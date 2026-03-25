@@ -3,7 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover"
+    />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Amplipatio</title>
     <link rel="icon" type="image/png" href="./assets/icon-192.png" />
     <link rel="apple-touch-icon" href="./assets/icon-512.png" />
@@ -64,6 +70,9 @@
       }
       header {
         padding: 6px 24px;
+        padding-top: max(6px, env(safe-area-inset-top));
+        padding-left: max(24px, env(safe-area-inset-left));
+        padding-right: max(24px, env(safe-area-inset-right));
         background: linear-gradient(180deg, rgba(12, 15, 20, 0.62), rgba(12, 15, 20, 0.28));
         border-bottom: 1px solid rgba(31, 38, 49, 0.7);
         display: flex;
@@ -155,6 +164,9 @@
       }
       main {
         padding: 28px 32px 64px;
+        padding-bottom: max(64px, calc(28px + env(safe-area-inset-bottom)));
+        padding-left: max(32px, env(safe-area-inset-left));
+        padding-right: max(32px, env(safe-area-inset-right));
         max-width: 1200px;
         margin: 0 auto;
       }
@@ -1523,11 +1535,26 @@
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1nbmZ1d2xidndhcm1qdGl3c2RoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxNjA2OTAsImV4cCI6MjA4NTczNjY5MH0.uA4i_aGJCu1fSVMdANkmOPfuyDuInaaqeTzyXrEgPD4";
-      if (!window.supabase) {
-        alert("Falha ao carregar o Supabase. Verifique sua conexão e tente recarregar.");
+
+      function resolveSupabaseCreateClient() {
+        const g = window.supabase;
+        if (g && typeof g.createClient === "function") return g.createClient.bind(g);
+        if (g && g.default && typeof g.default.createClient === "function") {
+          return g.default.createClient.bind(g.default);
+        }
+        return null;
       }
-      var supabase = window.supabaseClient || window.supabase.createClient(supabaseUrl, supabaseKey);
-      window.supabaseClient = supabase;
+
+      let supabase = null;
+      const createClientFn = resolveSupabaseCreateClient();
+      if (createClientFn) {
+        try {
+          supabase = window.supabaseClient || createClientFn(supabaseUrl, supabaseKey);
+          window.supabaseClient = supabase;
+        } catch (e) {
+          console.error(e);
+        }
+      }
 
       const authPanel = document.getElementById("authPanel");
       const appPanel = document.getElementById("appPanel");
@@ -1836,6 +1863,13 @@
 
       loginForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (!supabase) {
+          setStatus(
+            "Não foi possível carregar o sistema (rede ou bloqueador). Use Wi‑Fi, desative bloqueio de scripts/CDN e recarregue.",
+            "error"
+          );
+          return;
+        }
         setStatus("Entrando...", "");
         const email = document.getElementById("loginEmail").value.trim();
         const password = document.getElementById("loginPassword").value;
@@ -1850,6 +1884,13 @@
 
       registerForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (!supabase) {
+          setStatus(
+            "Não foi possível carregar o sistema (rede ou bloqueador). Recarregue a página ou tente outra rede.",
+            "error"
+          );
+          return;
+        }
         setStatus("Criando conta...", "");
         const email = document.getElementById("registerEmail").value.trim();
         const password = document.getElementById("registerPassword").value;
@@ -1863,7 +1904,7 @@
       });
 
       logoutBtn.addEventListener("click", async () => {
-        await supabase.auth.signOut();
+        if (supabase) await supabase.auth.signOut();
       });
 
       function showApp(user) {
@@ -1882,26 +1923,48 @@
       }
 
       async function bootstrap() {
-        const { data } = await supabase.auth.getSession();
-        if (data.session?.user) {
-          showApp(data.session.user);
-        } else {
+        if (!supabase) {
           showAuth();
+          setStatus(
+            "Sem conexão com o servidor de login. Confira a internet, use https:// neste site e desative bloqueador de anúncios para cdn.jsdelivr.net.",
+            "error"
+          );
+          return;
+        }
+        try {
+          const { data, error } = await supabase.auth.getSession();
+          if (error) {
+            console.error(error);
+            showAuth();
+            setStatus("Não foi possível verificar a sessão. Recarregue a página.", "error");
+            return;
+          }
+          if (data.session && data.session.user) {
+            showApp(data.session.user);
+          } else {
+            showAuth();
+          }
+        } catch (e) {
+          console.error(e);
+          showAuth();
+          setStatus("Erro ao iniciar. Recarregue ou tente outro navegador.", "error");
         }
       }
 
-      supabase.auth.onAuthStateChange((event, session) => {
-        if (event === "SIGNED_OUT" || event === "TOKEN_REFRESH_FAILED") {
-          showAuth();
-          alert("Sessão expirada. Faça login novamente.");
-          return;
-        }
-        if (session?.user) {
-          showApp(session.user);
-        } else {
-          showAuth();
-        }
-      });
+      if (supabase) {
+        supabase.auth.onAuthStateChange((event, session) => {
+          if (event === "SIGNED_OUT" || event === "TOKEN_REFRESH_FAILED") {
+            showAuth();
+            setStatus("Sessão expirada. Faça login novamente.", "error");
+            return;
+          }
+          if (session && session.user) {
+            showApp(session.user);
+          } else {
+            showAuth();
+          }
+        });
+      }
 
       async function loadPartners() {
         const { data, error } = await supabase
@@ -3341,10 +3404,12 @@
       cardReceberAtrasoLink.addEventListener("click", () => openFinanceSubview("receber_alerta"));
 
       /** Busca só no envio do formulário (OK ou Enter) — digitar não dispara nada. */
-      plateSearchForm.addEventListener("submit", (event) => {
-        event.preventDefault();
-        applyPlateSearchFromDashboard();
-      });
+      if (plateSearchForm) {
+        plateSearchForm.addEventListener("submit", (event) => {
+          event.preventDefault();
+          applyPlateSearchFromDashboard();
+        });
+      }
 
       clearPlateFilter.addEventListener("click", () => {
         plateFilter.value = "";

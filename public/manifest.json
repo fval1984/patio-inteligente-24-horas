@@ -1,0 +1,23 @@
+{
+  "name": "Amplipatio",
+  "short_name": "Amplipatio",
+  "description": "Gestão de pátio e financeiro",
+  "start_url": "./app.html",
+  "display": "standalone",
+  "background_color": "#0b0d11",
+  "theme_color": "#0b0d11",
+  "icons": [
+    {
+      "src": "./assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
