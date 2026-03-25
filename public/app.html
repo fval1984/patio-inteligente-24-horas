@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- amplipatio-static v=2026-03-26-ssr-root -->
+<!-- amplipatio-static v=2026-03-26-assets-root -->
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
@@ -12,9 +12,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Amplipatio</title>
-    <link rel="icon" type="image/png" href="./assets/icon-192.png" />
-    <link rel="apple-touch-icon" href="./assets/icon-512.png" />
-    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/png" href="/assets/icon-192.png" />
+    <link rel="apple-touch-icon" href="/assets/icon-512.png" />
+    <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#0b0d11" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -804,7 +804,7 @@
     <header>
       <div class="brand">
         <div class="brand-stack">
-          <img id="brandLogo" src="./assets/logo.png" alt="Ampliauto" class="brand-logo" />
+          <img id="brandLogo" src="/assets/logo.png" alt="Ampliauto" class="brand-logo" />
           <div class="brand-text">
             <span class="brand-subtitle">Pátio inteligente 24hrs</span>
           </div>
@@ -1536,7 +1536,7 @@
     </main>
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
-    <script src="./vendor/supabase.umd.js"></script>
+    <script src="/vendor/supabase.umd.js"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
