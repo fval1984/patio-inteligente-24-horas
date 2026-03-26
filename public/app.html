@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- amplipatio-static v=2026-03-26-logo-svg -->
+<!-- amplipatio-static v=2026-03-26-logo-oficial -->
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
@@ -103,15 +103,6 @@
         height: 120px;
         width: auto;
         display: block;
-      }
-      .brand-logo-svg {
-        max-width: min(100%, 380px);
-      }
-      .brand-logo-svg .logo-word {
-        fill: var(--text);
-      }
-      .brand-logo-svg .logo-suffix {
-        fill: #e11d2e;
       }
       .brand-text {
         display: flex;
@@ -813,38 +804,7 @@
     <header>
       <div class="brand">
         <div class="brand-stack">
-          <svg
-            id="brandLogo"
-            class="brand-logo brand-logo-svg"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 380 88"
-            role="img"
-            aria-label="Ampliauto"
-          >
-            <title>Ampliauto</title>
-            <rect x="2" y="6" width="72" height="72" rx="18" fill="#e11d2e" />
-            <text
-              x="38"
-              y="58"
-              text-anchor="middle"
-              fill="#ffffff"
-              font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
-              font-size="48"
-              font-weight="800"
-            >
-              A
-            </text>
-            <text
-              x="92"
-              y="60"
-              font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
-              font-size="42"
-              font-weight="700"
-              letter-spacing="-0.02em"
-            >
-              <tspan class="logo-word">Amplia</tspan><tspan class="logo-suffix">uto</tspan>
-            </text>
-          </svg>
+          <img id="brandLogo" src="/assets/logo.png" alt="Ampliauto" class="brand-logo" />
           <div class="brand-text">
             <span class="brand-subtitle">Pátio inteligente 24hrs</span>
           </div>
@@ -1892,45 +1852,7 @@
       }
 
       function stylizeLogo() {
-        const logoEl = document.getElementById("brandLogo");
-        if (!logoEl || logoEl.tagName.toLowerCase() === "svg") return;
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = logoEl.src;
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) return;
-          ctx.drawImage(img, 0, 0);
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const data = imageData.data;
-          for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            const a = data[i + 3];
-            if (a === 0) continue;
-            const isDark = r < 20 && g < 20 && b < 20;
-            const isRedDetail = r > g + 40 && r > b + 40;
-            if (isDark) {
-              data[i + 3] = 0;
-            } else if (isRedDetail) {
-              // mantém o detalhe vermelho
-            } else {
-              data[i] = 255;
-              data[i + 1] = 255;
-              data[i + 2] = 255;
-            }
-          }
-          ctx.putImageData(imageData, 0, 0);
-          try {
-            logoEl.src = canvas.toDataURL("image/png");
-          } catch (err) {
-            console.warn("Logo: canvas/CORS no Safari", err);
-          }
-        };
+        return;
       }
 
       function toggleAuthTab(isLogin) {
