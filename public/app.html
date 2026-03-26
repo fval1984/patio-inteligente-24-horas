@@ -3699,12 +3699,15 @@
 
       vehicleForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        const vehicleDailyEl = document.getElementById("vehicleDaily");
+        const vehicleDailyRaw = (vehicleDailyEl?.value || "").toString().trim();
         const payload = {
           user_id: state.user.id,
           placa: document.getElementById("vehiclePlate").value.trim(),
           marca: document.getElementById("vehicleBrand").value.trim(),
           modelo: document.getElementById("vehicleModel").value.trim(),
-          valor_diaria: Number(document.getElementById("vehicleDaily").value),
+          // Gestor de pista nao preenche valores; deixamos como null quando vier vazio.
+          valor_diaria: vehicleDailyRaw ? Number(vehicleDailyRaw) : null,
           data_entrada: new Date(document.getElementById("vehicleEntry").value).toISOString(),
           data_saida: vehicleExit.value ? new Date(vehicleExit.value).toISOString() : null,
           localizador_id: vehicleLocator.value || null,
