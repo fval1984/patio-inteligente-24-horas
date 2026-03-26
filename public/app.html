@@ -881,8 +881,8 @@
                 <span class="card-title">Buscar por placa</span>
               </div>
               <p class="subtitle" style="margin: 0 0 12px">
-                Consulta em VNP, VLS, VRP e NFSe pendente. Digite a placa completa (7 letras/números; hífen e espaço são
-                ignorados) e clique em <strong>OK</strong> — a busca não roda enquanto você digita.
+                Consulta em VNP, VLS, VRP e NFSe pendente. Digite a placa (qualquer quantidade de letras/números; hífen e
+                espaços são ignorados) e clique em <strong>OK</strong> para consultar.
               </p>
               <form id="plateSearchForm" class="filter-bar" style="margin: 0" action="#" novalidate>
                 <label for="plateFilter">Placa</label>
@@ -892,7 +892,7 @@
                   type="text"
                   inputmode="text"
                   placeholder="Ex.: ABC1D23"
-                  maxlength="10"
+                  maxlength="20"
                   autocomplete="off"
                   autocorrect="off"
                   autocapitalize="characters"
@@ -2116,15 +2116,13 @@
         document.getElementById("cardNfsePendentes").textContent = nfsePendentes.length.toString();
       }
 
-      /** Para busca: só letras/números, ignora hífen/espaço (padrão Mercosul/antigo = 7 caracteres). */
+      /** Para busca: só letras/números; ignora hífen/espaço (consulta acontece apenas no OK). */
       function normalizePlateSearch(str) {
         return (str || "")
           .toString()
           .toLowerCase()
           .replace(/[^a-z0-9]/g, "");
       }
-
-      const PLATE_SEARCH_LEN = 7;
 
       function applyPlateSearchFromDashboard() {
         const raw = plateFilter.value.trim().toLowerCase();
@@ -2135,15 +2133,8 @@
           renderVehicles();
           return;
         }
-        if (norm.length !== PLATE_SEARCH_LEN) {
-          plateQuery = "";
-          setPlateSearchHints(
-            `Digite a placa completa (${PLATE_SEARCH_LEN} letras e números) e clique em OK.`,
-            true
-          );
-          renderVehicles();
-          return;
-        }
+        // Se tiver caracteres (após normalizar), permite qualquer tamanho.
+        setPlateSearchHints("", false);
         plateQuery = raw;
         goToPatioForPlateSearch();
         renderVehicles();
