@@ -1076,6 +1076,29 @@
             <button data-subview="nfse_pendente">NFSe pendente</button>
           </div>
           <p class="notice plate-search-hint hidden" style="margin: 6px 0 10px"></p>
+          <form
+            id="plateSearchFormPatio"
+            class="filter-bar"
+            style="margin: 0 0 12px"
+            action="#"
+            novalidate
+          >
+            <label for="plateFilterPatio">Placa</label>
+            <input
+              id="plateFilterPatio"
+              name="plate"
+              type="text"
+              inputmode="text"
+              placeholder="Ex.: ABC1D23"
+              maxlength="20"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="characters"
+              spellcheck="false"
+            />
+            <button type="submit" id="plateSearchOkPatio">OK</button>
+            <button type="button" class="secondary" id="clearPlateFilterPatio">Limpar</button>
+          </form>
           <div class="grid large" style="margin-top: 18px;">
             <div class="section-card patio-subview hidden" data-subview="no_patio">
               <div class="pill">VNP</div>
@@ -1317,6 +1340,26 @@
               </div>
             </div>
             <p class="notice">Essas informações serão usadas automaticamente nas cobranças e notas.</p>
+          </div>
+          <div class="section-card" style="margin-top: 18px;">
+            <div class="form-grid">
+              <div class="full">
+                <label>Gestor de Pista - User ID</label>
+                <input
+                  id="trackManagerUserId"
+                  type="text"
+                  placeholder="UUID do gestor (copie no login do gestor)"
+                />
+              </div>
+              <div class="full">
+                <label>Email (opcional)</label>
+                <input id="trackManagerEmail" type="email" placeholder="email@dominio.com" />
+              </div>
+            </div>
+            <div class="form-actions" style="margin-top: 10px;">
+              <button type="button" id="addTrackManager">Adicionar gestor</button>
+            </div>
+            <p class="notice" id="trackManagerStatus" style="margin-top: 12px;"></p>
           </div>
         </div>
       </section>
@@ -1684,6 +1727,11 @@
       const settingsInvoice = document.getElementById("settingsInvoice");
       const saveSettings = document.getElementById("saveSettings");
 
+      const trackManagerUserId = document.getElementById("trackManagerUserId");
+      const trackManagerEmail = document.getElementById("trackManagerEmail");
+      const addTrackManager = document.getElementById("addTrackManager");
+      const trackManagerStatus = document.getElementById("trackManagerStatus");
+
       const reloadPatio = document.getElementById("reloadPatio");
       const reloadFinanceiro = document.getElementById("reloadFinanceiro");
       const patioSubnav = document.getElementById("patioSubnav");
@@ -1693,6 +1741,9 @@
       const plateFilter = document.getElementById("plateFilter");
       const plateSearchForm = document.getElementById("plateSearchForm");
       const clearPlateFilter = document.getElementById("clearPlateFilter");
+      const plateFilterPatio = document.getElementById("plateFilterPatio");
+      const plateSearchFormPatio = document.getElementById("plateSearchFormPatio");
+      const clearPlateFilterPatio = document.getElementById("clearPlateFilterPatio");
 
       const patioSubviews = document.querySelectorAll(".patio-subview");
       const partnerSubviews = document.querySelectorAll(".partner-subview");
@@ -1911,11 +1962,13 @@
         if (supabase) await supabase.auth.signOut();
       });
 
-      function showApp(user) {
+      async function showApp(user) {
         authPanel.classList.add("hidden");
         appPanel.classList.remove("hidden");
         userInfo.textContent = user ? `Logado como ${user.email}` : "Logado";
         state.user = user;
+        await loadTrackManagerRole();
+        applyRoleRestrictions();
         loadAll();
       }
 
@@ -1924,6 +1977,53 @@
         appPanel.classList.add("hidden");
         userInfo.textContent = "Não autenticado";
         state.user = null;
+      }
+
+      async function loadTrackManagerRole() {
+        // Se ainda nao existir a tabela de roles, o app continua em modo normal.
+        userIsTrackManager = false;
+        try {
+          if (!supabase || !state?.user?.id) return false;
+          const { data, error } = await supabase
+            .from("track_managers")
+            .select("user_id,email")
+            .eq("user_id", state.user.id)
+            .limit(1);
+          if (error) {
+            console.warn("track_managers: role table not ready", error);
+            return false;
+          }
+          userIsTrackManager = !!(data && data.length);
+          return userIsTrackManager;
+        } catch (e) {
+          console.warn("track_managers: load failed", e);
+          return false;
+        }
+      }
+
+      function applyRoleRestrictions() {
+        if (!userIsTrackManager) return;
+
+        // Deixa somente "Gestão de Pátio" visível.
+        document.querySelectorAll(".nav button[data-view]").forEach((btn) => {
+          const view = btn.getAttribute("data-view");
+          btn.style.display = view === "patio" ? "" : "none";
+        });
+
+        // Garante que nenhuma outra aba fique acessivel via UI.
+        showMainView("patio");
+
+        // E remove qualquer sub-aba que não seja valida quando entrar no patio.
+        setPatioView("no_patio");
+
+        // Gestor nao deve registrar/visualizar valores financeiros no modal.
+        const vehicleDailyInput = document.getElementById("vehicleDaily");
+        const vehicleDailyContainer = vehicleDailyInput?.closest("div");
+        if (vehicleDailyContainer) vehicleDailyContainer.style.display = "none";
+        if (vehicleDailyInput) {
+          vehicleDailyInput.value = "";
+          vehicleDailyInput.required = false;
+        }
       }
 
       async function bootstrap() {
@@ -2061,6 +2161,10 @@
       }
 
       async function loadAll() {
+        if (userIsTrackManager) {
+          await Promise.all([loadPartners(), loadVehicles()]);
+          return;
+        }
         await Promise.all([loadPartners(), loadVehicles(), loadReceivables(), loadPayables(), loadCash(), loadSettings()]);
         renderFinance();
         updateDashboard();
@@ -2224,6 +2328,7 @@
           setEmptyRow(tbody, "Nenhum veículo encontrado.", 8);
           return;
         }
+        const showGestor = userIsTrackManager;
         tbody.innerHTML = items
           .map((v) => {
             const total = calcTotal(v);
@@ -2243,19 +2348,17 @@
               remover: "Registrar remoção",
             };
 
-            return `
-              <tr>
-                <td data-label="Placa">${v.placa || "-"}</td>
-                <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
-                <td data-label="Localizador">${localizador}</td>
-                <td data-label="Assessoria">${assessoria}</td>
-                <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
-                <td data-label="Valor">
-                  ${formatCurrency(total)}
-                  <span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>
-                </td>
-                <td data-label="Pagamento"><span class="tag ${pago ? "success" : "warning"}">${pago ? "Pago" : "Em aberto"}</span></td>
-                <td class="actions" data-label="Ações">
+            const valorCell = showGestor
+              ? "-"
+              : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
+
+            const pagamentoCell = showGestor
+              ? ""
+              : `<span class="tag ${pago ? "success" : "warning"}">${pago ? "Pago" : "Em aberto"}</span>`;
+
+            const actionsCell = showGestor
+              ? ""
+              : `
                   <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
                   <button class="secondary" data-action="nfse" data-id="${v.id}">NFSe solicitada</button>
                   <button class="secondary" data-action="trocar-responsavel" data-id="${v.id}">Trocar responsável</button>
@@ -2263,7 +2366,18 @@
                   <button class="secondary" data-action="pagamento" data-id="${v.id}">${pago ? "Marcar em aberto" : "Marcar pago"}</button>
                   <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
                   <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
-                </td>
+                `;
+
+            return `
+              <tr>
+                <td data-label="Placa">${v.placa || "-"}</td>
+                <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
+                <td data-label="Localizador">${localizador}</td>
+                <td data-label="Assessoria">${assessoria}</td>
+                <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
+                <td data-label="Valor">${valorCell}</td>
+                <td data-label="Pagamento">${pagamentoCell}</td>
+                <td class="actions" data-label="Ações">${actionsCell}</td>
               </tr>
             `;
           })
@@ -2315,6 +2429,7 @@
           setEmptyRow(tbody, "Nenhum veículo encontrado.", 8);
           return;
         }
+        const showGestor = userIsTrackManager;
         tbody.innerHTML = items
           .map((v) => {
             const total = calcTotal(v);
@@ -2330,19 +2445,18 @@
               remover: "Registrar remoção",
               nfse_pendente: "NFSe solicitada",
             };
-            return `
-              <tr>
-                <td data-label="Placa">${v.placa || "-"}</td>
-                <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
-                <td data-label="Localizador">${localizador}</td>
-                <td data-label="Assessoria">${assessoria}</td>
-                <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
-                <td data-label="Valor">
-                  ${formatCurrency(total)}
-                  <span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>
-                </td>
-                <td data-label="Pagamento"><span class="tag ${pago ? "success" : "warning"}">${pago ? "Pago" : "Em aberto"}</span></td>
-                <td class="actions" data-label="Ações">
+
+            const valorCell = showGestor
+              ? "-"
+              : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
+
+            const pagamentoCell = showGestor
+              ? ""
+              : `<span class="tag ${pago ? "success" : "warning"}">${pago ? "Pago" : "Em aberto"}</span>`;
+
+            const actionsCell = showGestor
+              ? ""
+              : `
                   <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
                   ${
                     actionType === "nfse_pendente"
@@ -2353,7 +2467,18 @@
                   <button class="secondary" data-action="pagamento" data-id="${v.id}">${pago ? "Marcar em aberto" : "Marcar pago"}</button>
                   <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
                   <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
-                </td>
+                `;
+
+            return `
+              <tr>
+                <td data-label="Placa">${v.placa || "-"}</td>
+                <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
+                <td data-label="Localizador">${localizador}</td>
+                <td data-label="Assessoria">${assessoria}</td>
+                <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
+                <td data-label="Valor">${valorCell}</td>
+                <td data-label="Pagamento">${pagamentoCell}</td>
+                <td class="actions" data-label="Ações">${actionsCell}</td>
               </tr>
             `;
           })
@@ -2365,6 +2490,7 @@
           setEmptyRow(tbody, "Nenhum veículo removido.", 8);
           return;
         }
+        const showGestor = userIsTrackManager;
         tbody.innerHTML = items
           .map((v) => {
             const total = calcTotal(v);
@@ -2374,6 +2500,23 @@
               state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
             const assessoria =
               state.partners.find((p) => p.id === v.assessoria_id)?.nome || "-";
+
+            const valorCell = showGestor
+              ? "-"
+              : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
+
+            const actionsCell = showGestor
+              ? ""
+              : `
+                  <span class="tag ${pago ? "success" : "warning"}">${pago ? "Pago" : "Em aberto"}</span>
+                  <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
+                  <button class="secondary" data-action="nfse" data-id="${v.id}">NFSe solicitada</button>
+                  <button class="secondary" data-action="pagamento" data-id="${v.id}">${pago ? "Marcar em aberto" : "Marcar pago"}</button>
+                  <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
+                  <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
+                  <span class="tag success">${status}</span>
+                `;
+
             return `
               <tr>
                 <td data-label="Placa">${v.placa || "-"}</td>
@@ -2382,19 +2525,8 @@
                 <td data-label="Assessoria">${assessoria}</td>
                 <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
                 <td data-label="Saída">${formatDateTime(v.data_saida)}</td>
-                <td data-label="Valor">
-                  ${formatCurrency(total)}
-                  <span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>
-                </td>
-                <td class="actions" data-label="Ações">
-                  <span class="tag ${pago ? "success" : "warning"}">${pago ? "Pago" : "Em aberto"}</span>
-                  <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
-                  <button class="secondary" data-action="nfse" data-id="${v.id}">NFSe solicitada</button>
-                  <button class="secondary" data-action="pagamento" data-id="${v.id}">${pago ? "Marcar em aberto" : "Marcar pago"}</button>
-                  <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
-                  <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
-                  <span class="tag success">${status}</span>
-                </td>
+                <td data-label="Valor">${valorCell}</td>
+                <td class="actions" data-label="Ações">${actionsCell}</td>
               </tr>
             `;
           })
@@ -3272,6 +3404,8 @@
       const cardCaixaLink = document.getElementById("cardCaixaLink");
       const cardReceberAtrasoLink = document.getElementById("cardReceberAtrasoLink");
 
+      let userIsTrackManager = false;
+
       function showMainView(view) {
         document.querySelectorAll(".nav button[data-view]").forEach((btn) => {
           btn.classList.toggle("active", btn.getAttribute("data-view") === view);
@@ -3286,6 +3420,10 @@
       }
 
       function openMainView(view) {
+        if (userIsTrackManager && view !== "patio") {
+          showMainView("patio");
+          return;
+        }
         const top = navStack[navStack.length - 1];
         if (top === view || (typeof top === "string" && top.startsWith(`${view}:`))) {
           showMainView(view);
@@ -3418,12 +3556,32 @@
         });
       }
 
+      // Busca duplicada dentro do "Gestão de Pátio" (para gestor não precisar abrir Painel).
+      if (plateSearchFormPatio) {
+        plateSearchFormPatio.addEventListener("submit", (event) => {
+          event.preventDefault();
+          if (!plateFilter || !plateFilterPatio) return;
+          plateFilter.value = plateFilterPatio.value;
+          applyPlateSearchFromDashboard();
+        });
+      }
+
       clearPlateFilter.addEventListener("click", () => {
         plateFilter.value = "";
         plateQuery = "";
         setPlateSearchHints("", false);
         renderVehicles();
       });
+
+      if (clearPlateFilterPatio) {
+        clearPlateFilterPatio.addEventListener("click", () => {
+          if (plateFilter) plateFilter.value = "";
+          if (plateFilterPatio) plateFilterPatio.value = "";
+          plateQuery = "";
+          setPlateSearchHints("", false);
+          renderVehicles();
+        });
+      }
 
       financeSubnav.addEventListener("click", (event) => {
         const button = event.target.closest("button[data-subview]");
@@ -3652,6 +3810,34 @@
         loadSettings();
       });
 
+      if (addTrackManager) {
+        addTrackManager.addEventListener("click", async () => {
+          if (!supabase || !state?.user?.id) return;
+          const userId = (trackManagerUserId?.value || "").trim();
+          const email = (trackManagerEmail?.value || "").trim();
+          if (!userId) {
+            if (trackManagerStatus) trackManagerStatus.textContent = "Informe o User ID do gestor.";
+            return;
+          }
+          if (trackManagerStatus) trackManagerStatus.textContent = "Adicionando gestor...";
+
+          try {
+            const { error } = await supabase.from("track_managers").insert({
+              owner_user_id: state.user.id,
+              user_id: userId,
+              email: email || null,
+            });
+            if (error) throw error;
+            if (trackManagerStatus) trackManagerStatus.textContent = "Gestor de pista adicionado.";
+            if (trackManagerUserId) trackManagerUserId.value = "";
+            if (trackManagerEmail) trackManagerEmail.value = "";
+          } catch (e) {
+            if (trackManagerStatus) trackManagerStatus.textContent = "Erro ao adicionar gestor. Verifique a tabela/policies no Supabase.";
+            console.error(e);
+          }
+        });
+      }
+
       document.getElementById("viewPatio").addEventListener("click", async (event) => {
         const button = event.target.closest("button[data-action]");
         if (!button) return;
@@ -3659,6 +3845,11 @@
         const action = button.getAttribute("data-action");
         const vehicle = state.vehicles.find((v) => v.id === id);
         if (!vehicle) return;
+
+        if (userIsTrackManager) {
+          // Gestor de pista: apenas visualizar e lançar veículos.
+          return;
+        }
 
         if (action === "apagar") {
           if (!confirm("Deseja apagar este veículo?")) return;
