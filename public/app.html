@@ -1378,6 +1378,7 @@
             <button data-subview="receber_alerta">Recebimentos em alerta</button>
             <button data-subview="pagar">Contas a pagar</button>
             <button data-subview="caixa">Caixa</button>
+            <button data-subview="fechamento_mensal">Fechamento mensal</button>
             <button data-subview="relatorios">Relatórios</button>
             <button data-subview="historico_pagar">Histórico a pagar</button>
             <button data-subview="historico_receber">Histórico a receber</button>
@@ -1395,28 +1396,95 @@
             <button class="secondary" id="exportHistory">Exportar CSV</button>
           </div>
           <div id="financeContent" class="hidden">
-            <div class="grid">
-              <div class="card">
-                <div class="card-title">Contas a receber</div>
-                <div class="card-value" id="financeReceber">R$ 0,00</div>
-                <span class="tag warning" id="financeReceberCount">0 em aberto</span>
+            <div id="financeStandardArea">
+              <div class="grid">
+                <div class="card">
+                  <div class="card-title">Contas a receber</div>
+                  <div class="card-value" id="financeReceber">R$ 0,00</div>
+                  <span class="tag warning" id="financeReceberCount">0 em aberto</span>
+                </div>
+                <div class="card">
+                  <div class="card-title">Contas a pagar</div>
+                  <div class="card-value" id="financePagar">R$ 0,00</div>
+                  <span class="tag" id="financePagarCount">0 previstas</span>
+                </div>
+                <div class="card">
+                  <div class="card-title">Saldo em caixa</div>
+                  <div class="card-value" id="financeCaixa">R$ 0,00</div>
+                  <span class="tag success" id="financeCaixaStatus">Positivo</span>
+                </div>
               </div>
-              <div class="card">
-                <div class="card-title">Contas a pagar</div>
-                <div class="card-value" id="financePagar">R$ 0,00</div>
-                <span class="tag" id="financePagarCount">0 previstas</span>
-              </div>
-              <div class="card">
-                <div class="card-title">Saldo em caixa</div>
-                <div class="card-value" id="financeCaixa">R$ 0,00</div>
-                <span class="tag success" id="financeCaixaStatus">Positivo</span>
+              <div class="section-card" style="margin-top: 18px;">
+                <div class="table-wrap">
+                  <table class="table">
+                  <thead id="financeHead"></thead>
+                  <tbody id="tableFinance"></tbody>
+                  </table>
+                </div>
               </div>
             </div>
-            <div class="section-card" style="margin-top: 18px;">
+            <div id="financeClosureArea" class="section-card hidden" style="margin-top: 0">
+              <p id="closureSetupHint" class="notice hidden" style="margin-top: 0"></p>
+              <div class="toolbar" style="padding: 0; margin-bottom: 12px; border: none">
+                <div>
+                  <h3 style="margin: 0 0 6px; font-size: 1.1rem">Mês operacional aberto</h3>
+                  <p class="subtitle" style="margin: 0" id="closureOperationalTitle">—</p>
+                </div>
+              </div>
+              <p class="subtitle" style="margin: 0 0 14px">Fecha o mês no calendário, grava totais e passa o mês operacional adiante. Em aberto segue nos mesmos registros.</p>
+              <div class="grid" style="margin-bottom: 16px">
+                <div class="card">
+                  <div class="card-title">Entradas no mês</div>
+                  <div class="card-value" id="closurePrevEntradas">0</div>
+                </div>
+                <div class="card">
+                  <div class="card-title">Saídas no mês</div>
+                  <div class="card-value" id="closurePrevSaidas">0</div>
+                </div>
+                <div class="card">
+                  <div class="card-title">No pátio (fim do mês)</div>
+                  <div class="card-value" id="closurePrevPatioFim">0</div>
+                </div>
+                <div class="card">
+                  <div class="card-title">Recebimentos no caixa (mês)</div>
+                  <div class="card-value" id="closurePrevReceita">R$ 0,00</div>
+                </div>
+                <div class="card">
+                  <div class="card-title">Pagamentos no caixa (mês)</div>
+                  <div class="card-value" id="closurePrevDespesa">R$ 0,00</div>
+                </div>
+                <div class="card">
+                  <div class="card-title">A receber em aberto (agora)</div>
+                  <div class="card-value" id="closurePrevRecAberto">R$ 0,00</div>
+                </div>
+                <div class="card">
+                  <div class="card-title">A pagar em aberto (agora)</div>
+                  <div class="card-value" id="closurePrevPagAberto">R$ 0,00</div>
+                </div>
+                <div class="card">
+                  <div class="card-title">Saldo em caixa (agora)</div>
+                  <div class="card-value" id="closurePrevCaixa">R$ 0,00</div>
+                </div>
+              </div>
+              <div class="actions" style="margin-bottom: 20px">
+                <button type="button" id="btnCloseOperationalMonth">Fechar mês e abrir o próximo</button>
+              </div>
+              <h3 style="margin: 0 0 10px; font-size: 1.05rem">Meses já encerrados</h3>
               <div class="table-wrap">
                 <table class="table">
-                <thead id="financeHead"></thead>
-                <tbody id="tableFinance"></tbody>
+                  <thead>
+                    <tr>
+                      <th>Mês</th>
+                      <th>Entradas</th>
+                      <th>Saídas</th>
+                      <th>Pátio fim</th>
+                      <th>Rec. caixa</th>
+                      <th>Pag. caixa</th>
+                      <th>Saldo caixa</th>
+                      <th>Encerrado em</th>
+                    </tr>
+                  </thead>
+                  <tbody id="closureHistoryBody"></tbody>
                 </table>
               </div>
             </div>
@@ -1885,6 +1953,8 @@
         payables: [],
         cash: [],
         settings: null,
+        monthlyClosures: [],
+        monthlyClosureLoadError: null,
       };
 
       const currency = new Intl.NumberFormat("pt-BR", {
@@ -2309,7 +2379,190 @@
           settingsBank.value = state.settings.conta_bancaria || "";
           settingsCharge.value = state.settings.texto_cobranca || "";
           settingsInvoice.value = state.settings.texto_nota_fiscal || "";
+          if (!state.settings.operational_month && state.settings.id) {
+            const curYm = currentYearMonthLocal();
+            const { error: opErr } = await supabase
+              .from("settings")
+              .update({ operational_month: curYm })
+              .eq("id", state.settings.id);
+            if (!opErr) state.settings.operational_month = curYm;
+          }
         }
+      }
+
+      function currentYearMonthLocal() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      }
+
+      function addOneYearMonth(ym) {
+        const [y, m] = ym.split("-").map(Number);
+        const d = new Date(y, m, 1);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      }
+
+      function formatYearMonthLong(ym) {
+        if (!ym || !/^\d{4}-\d{2}$/.test(ym)) return ym || "—";
+        const [y, m] = ym.split("-").map(Number);
+        const names = [
+          "Janeiro",
+          "Fevereiro",
+          "Março",
+          "Abril",
+          "Maio",
+          "Junho",
+          "Julho",
+          "Agosto",
+          "Setembro",
+          "Outubro",
+          "Novembro",
+          "Dezembro",
+        ];
+        return `${names[m - 1]} de ${y}`;
+      }
+
+      function toLocalYmd(iso) {
+        if (!iso) return null;
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return null;
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      }
+
+      function yearMonthFromYmd(ymd) {
+        if (!ymd || ymd.length < 7) return null;
+        return ymd.slice(0, 7);
+      }
+
+      function lastDayOfYearMonth(ym) {
+        const [y, m] = ym.split("-").map(Number);
+        const last = new Date(y, m, 0);
+        return `${y}-${String(m).padStart(2, "0")}-${String(last.getDate()).padStart(2, "0")}`;
+      }
+
+      function getOperationalMonth() {
+        const op = state.settings?.operational_month;
+        if (op && /^\d{4}-\d{2}$/.test(op)) return op;
+        return currentYearMonthLocal();
+      }
+
+      function computeMonthClosureStats(ym) {
+        const first = `${ym}-01`;
+        const last = lastDayOfYearMonth(ym);
+        let entered = 0;
+        let exited = 0;
+        let inYardEnd = 0;
+        (state.vehicles || []).forEach((v) => {
+          const entYmd = toLocalYmd(v.data_entrada);
+          if (!entYmd) return;
+          if (yearMonthFromYmd(entYmd) === ym) entered++;
+          if (v.data_saida) {
+            const saiYmd = toLocalYmd(v.data_saida);
+            if (saiYmd && yearMonthFromYmd(saiYmd) === ym) exited++;
+          }
+          if (entYmd > last) return;
+          if (v.data_saida) {
+            const saiYmd = toLocalYmd(v.data_saida);
+            if (saiYmd && saiYmd <= last) return;
+          }
+          inYardEnd++;
+        });
+
+        let revenue = 0;
+        let expense = 0;
+        (state.cash || []).forEach((mov) => {
+          const ds = (mov.data_movimento || mov.created_at || "").toString().slice(0, 10);
+          if (!ds || ds < first || ds > last) return;
+          const val = Number(mov.valor || 0);
+          if (mov.tipo_conta === "RECEBER") revenue += val;
+          if (mov.tipo_conta === "PAGAR") expense += val;
+        });
+
+        const openRec = (state.receivables || [])
+          .filter((r) => r.status === "EM_ABERTO")
+          .reduce((s, r) => s + Number(r.valor || 0), 0);
+        const openPag = (state.payables || [])
+          .filter((p) => p.status === "EM_ABERTO")
+          .reduce((s, p) => s + Number(p.valor || 0), 0);
+        const caixa = (state.cash || []).reduce((sum, mov) => {
+          if (mov.tipo_conta === "PAGAR") return sum - Number(mov.valor || 0);
+          return sum + Number(mov.valor || 0);
+        }, 0);
+
+        return { entered, exited, inYardEnd, revenue, expense, openRec, openPag, caixa };
+      }
+
+      async function loadMonthlyClosures() {
+        state.monthlyClosures = [];
+        state.monthlyClosureLoadError = null;
+        if (!supabase || !state.user?.id) return;
+        const { data, error } = await supabase
+          .from("monthly_closures")
+          .select("*")
+          .eq("user_id", state.user.id)
+          .order("year_month", { ascending: false });
+        if (error) {
+          state.monthlyClosureLoadError = error.message || String(error);
+          return;
+        }
+        state.monthlyClosures = data || [];
+      }
+
+      function renderFinanceClosurePanel() {
+        const hint = document.getElementById("closureSetupHint");
+        const btn = document.getElementById("btnCloseOperationalMonth");
+        const opYm = getOperationalMonth();
+        document.getElementById("closureOperationalTitle").textContent = formatYearMonthLong(opYm);
+
+        if (state.monthlyClosureLoadError) {
+          if (hint) {
+            hint.textContent =
+              "Não foi possível carregar fechamentos. Rode o SQL em supabase/monthly_closures.sql no Supabase e recarregue. Erro: " +
+              state.monthlyClosureLoadError;
+            hint.classList.remove("hidden");
+          }
+          if (btn) btn.disabled = true;
+        } else {
+          if (hint) hint.classList.add("hidden");
+          if (btn) btn.disabled = false;
+        }
+
+        const st = computeMonthClosureStats(opYm);
+        document.getElementById("closurePrevEntradas").textContent = String(st.entered);
+        document.getElementById("closurePrevSaidas").textContent = String(st.exited);
+        document.getElementById("closurePrevPatioFim").textContent = String(st.inYardEnd);
+        document.getElementById("closurePrevReceita").textContent = formatCurrency(st.revenue);
+        document.getElementById("closurePrevDespesa").textContent = formatCurrency(st.expense);
+        document.getElementById("closurePrevRecAberto").textContent = formatCurrency(st.openRec);
+        document.getElementById("closurePrevPagAberto").textContent = formatCurrency(st.openPag);
+        document.getElementById("closurePrevCaixa").textContent = formatCurrency(st.caixa);
+
+        const closedSet = new Set((state.monthlyClosures || []).map((r) => r.year_month));
+        if (btn) {
+          btn.disabled = !!state.monthlyClosureLoadError || closedSet.has(opYm);
+        }
+
+        const tbody = document.getElementById("closureHistoryBody");
+        if (!tbody) return;
+        const rows = state.monthlyClosures || [];
+        if (!rows.length) {
+          tbody.innerHTML = `<tr><td colspan="8"><em>Nenhum mês encerrado ainda.</em></td></tr>`;
+          return;
+        }
+        tbody.innerHTML = rows
+          .map((r) => {
+            const dt = r.closed_at ? formatDateTime(r.closed_at) : "—";
+            return `<tr>
+              <td>${formatYearMonthLong(r.year_month)}</td>
+              <td>${r.vehicles_entered}</td>
+              <td>${r.vehicles_exited}</td>
+              <td>${r.vehicles_in_yard_end}</td>
+              <td>${formatCurrency(r.revenue_in_month)}</td>
+              <td>${formatCurrency(r.expense_in_month)}</td>
+              <td>${formatCurrency(r.cash_balance_end)}</td>
+              <td>${dt}</td>
+            </tr>`;
+          })
+          .join("");
       }
 
       async function loadAll() {
@@ -2317,7 +2570,15 @@
           await Promise.all([loadPartners(), loadVehicles()]);
           return;
         }
-        await Promise.all([loadPartners(), loadVehicles(), loadReceivables(), loadPayables(), loadCash(), loadSettings()]);
+        await Promise.all([
+          loadPartners(),
+          loadVehicles(),
+          loadReceivables(),
+          loadPayables(),
+          loadCash(),
+          loadSettings(),
+          loadMonthlyClosures(),
+        ]);
         renderFinance();
         updateDashboard();
       }
@@ -2963,6 +3224,17 @@
           }
         }
 
+        const stdArea = document.getElementById("financeStandardArea");
+        const cloArea = document.getElementById("financeClosureArea");
+        if (currentFinanceView === "fechamento_mensal") {
+          if (stdArea) stdArea.classList.add("hidden");
+          if (cloArea) cloArea.classList.remove("hidden");
+          renderFinanceClosurePanel();
+          return;
+        }
+        if (stdArea) stdArea.classList.remove("hidden");
+        if (cloArea) cloArea.classList.add("hidden");
+
         const rows = [];
 
         if (currentFinanceView === "relatorios") {
@@ -3522,7 +3794,14 @@
       });
 
       reloadFinanceiro.addEventListener("click", () => {
-        Promise.all([loadReceivables(), loadPayables(), loadCash()]).then(() => {
+        Promise.all([
+          loadReceivables(),
+          loadPayables(),
+          loadCash(),
+          loadSettings(),
+          loadMonthlyClosures(),
+          loadVehicles(),
+        ]).then(() => {
           if (!currentFinanceView || currentFinanceView === "none") {
             setFinanceView("receber");
           } else {
@@ -3530,6 +3809,58 @@
           }
           updateDashboard();
         });
+      });
+
+      document.getElementById("btnCloseOperationalMonth")?.addEventListener("click", async () => {
+        if (!supabase || !state.user?.id) return;
+        if (!state.settings?.id) {
+          alert("Salve as configurações do pátio uma vez (aba Configurações) para poder gravar o mês operacional.");
+          return;
+        }
+        const ym = getOperationalMonth();
+        const st = computeMonthClosureStats(ym);
+        const nextYm = addOneYearMonth(ym);
+        if (
+          !confirm(
+            `Fechar ${formatYearMonthLong(ym)} e abrir ${formatYearMonthLong(nextYm)}? Os dados em aberto permanecem nos cadastros.`
+          )
+        ) {
+          return;
+        }
+        const { error: insErr } = await supabase.from("monthly_closures").insert({
+          user_id: state.user.id,
+          year_month: ym,
+          vehicles_entered: st.entered,
+          vehicles_exited: st.exited,
+          vehicles_in_yard_end: st.inYardEnd,
+          open_receivables_value: st.openRec,
+          open_payables_value: st.openPag,
+          cash_balance_end: st.caixa,
+          revenue_in_month: st.revenue,
+          expense_in_month: st.expense,
+        });
+        if (insErr) {
+          if (insErr.code === "23505" || /duplicate|unique/i.test(insErr.message || "")) {
+            alert("Este mês já foi encerrado.");
+          } else {
+            alert(insErr.message);
+          }
+          return;
+        }
+        const { error: updErr } = await supabase
+          .from("settings")
+          .update({ operational_month: nextYm })
+          .eq("id", state.settings.id);
+        if (updErr) {
+          alert("Fechamento gravado, mas falhou ao avançar o mês operacional: " + updErr.message);
+          await loadMonthlyClosures();
+          renderFinance();
+          return;
+        }
+        state.settings.operational_month = nextYm;
+        await loadMonthlyClosures();
+        renderFinance();
+        alert(`Mês encerrado. Mês operacional atual: ${formatYearMonthLong(nextYm)}.`);
       });
 
       patioSubnav.addEventListener("click", (event) => {
