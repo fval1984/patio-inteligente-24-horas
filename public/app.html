@@ -69,6 +69,115 @@
           radial-gradient(circle at 10% 20%, rgba(0, 0, 0, 0.03), transparent 35%),
           var(--bg);
       }
+      /* Gestão financeira: foco no módulo (barra global oculta). Pátio mantém a nav para Sair e troca de aba. */
+      body.app-module-finance #appPanel > .panel:first-child {
+        display: none;
+      }
+      body.app-module-patio {
+        background: radial-gradient(circle at 12% 0%, rgba(225, 29, 46, 0.14), transparent 42%),
+          radial-gradient(circle at 88% 8%, rgba(248, 113, 113, 0.06), transparent 46%),
+          var(--bg);
+      }
+      [data-theme="light"] body.app-module-patio {
+        background: radial-gradient(circle at 12% 0%, rgba(225, 29, 46, 0.1), transparent 44%),
+          var(--bg);
+      }
+      body.app-module-finance {
+        background: radial-gradient(circle at 14% 0%, rgba(13, 148, 136, 0.16), transparent 44%),
+          radial-gradient(circle at 86% 10%, rgba(56, 189, 248, 0.08), transparent 48%),
+          var(--bg);
+      }
+      [data-theme="light"] body.app-module-finance {
+        background: radial-gradient(circle at 14% 0%, rgba(13, 148, 136, 0.1), transparent 46%),
+          var(--bg);
+      }
+      body.app-module-patio header {
+        border-bottom-color: rgba(248, 113, 113, 0.35);
+      }
+      body.app-module-finance header {
+        border-bottom-color: rgba(45, 212, 191, 0.35);
+      }
+      #viewPatio.patio-module-shell {
+        border-color: rgba(248, 113, 113, 0.35);
+        background: linear-gradient(165deg, rgba(225, 29, 46, 0.1) 0%, rgba(15, 19, 26, 0.72) 38%, rgba(15, 19, 26, 0.58) 100%);
+        box-shadow: 0 0 0 1px rgba(225, 29, 46, 0.12), var(--shadow-soft);
+      }
+      [data-theme="light"] #viewPatio.patio-module-shell {
+        background: linear-gradient(165deg, rgba(225, 29, 46, 0.08) 0%, rgba(255, 255, 255, 0.85) 42%, rgba(255, 255, 255, 0.72) 100%);
+        box-shadow: 0 0 0 1px rgba(225, 29, 46, 0.18), var(--shadow-soft);
+      }
+      .patio-module-ribbon {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding-bottom: 14px;
+        margin-bottom: 6px;
+        border-bottom: 1px solid rgba(248, 113, 113, 0.28);
+      }
+      .patio-module-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        text-align: right;
+      }
+      .patio-module-name {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #fca5a5;
+      }
+      .patio-module-hint {
+        font-size: 12px;
+        color: var(--muted);
+        max-width: 300px;
+      }
+      #viewFinanceiro.finance-module-shell {
+        border-color: rgba(45, 212, 191, 0.35);
+        background: linear-gradient(165deg, rgba(13, 148, 136, 0.12) 0%, rgba(15, 19, 26, 0.72) 38%, rgba(15, 19, 26, 0.58) 100%);
+        box-shadow: 0 0 0 1px rgba(13, 148, 136, 0.12), var(--shadow-soft);
+      }
+      [data-theme="light"] #viewFinanceiro.finance-module-shell {
+        background: linear-gradient(165deg, rgba(13, 148, 136, 0.1) 0%, rgba(255, 255, 255, 0.85) 42%, rgba(255, 255, 255, 0.72) 100%);
+        box-shadow: 0 0 0 1px rgba(13, 148, 136, 0.2), var(--shadow-soft);
+      }
+      .finance-module-ribbon {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding-bottom: 14px;
+        margin-bottom: 6px;
+        border-bottom: 1px solid rgba(45, 212, 191, 0.28);
+      }
+      .finance-module-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        text-align: right;
+      }
+      .finance-module-name {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #5eead4;
+      }
+      .finance-module-hint {
+        font-size: 12px;
+        color: var(--muted);
+        max-width: 300px;
+      }
+      .dashboard-card-static {
+        cursor: default;
+      }
+      .dashboard-card-static:hover {
+        transform: none;
+        box-shadow: var(--shadow-soft);
+      }
       header {
         padding: 6px 24px;
         padding-top: max(6px, env(safe-area-inset-top));
@@ -861,7 +970,7 @@
             <button class="active" data-view="dashboard">Painel</button>
             <button data-view="patio">Gestão de Pátio</button>
             <button data-view="parceiros">Parceiros</button>
-            <button data-view="financeiro">Financeiro</button>
+            <button data-view="financeiro">Gestão financeira</button>
             <button data-view="configuracoes">Configurações</button>
             <button id="logoutBtn" class="secondary">Sair</button>
           </div>
@@ -871,7 +980,11 @@
           <div class="toolbar">
             <div>
               <h2>Painel</h2>
-              <p class="subtitle">Visão geral do pátio e financeiro.</p>
+              <p class="subtitle">
+                O Amplipatio é um só sistema, com dois módulos independentes: <strong>gestão de pátio</strong> (operação) e
+                <strong>gestão financeira do pátio</strong>. Aqui você vê um resumo; os números completos ficam no módulo
+                Gestão financeira, onde <strong>todo lançamento é manual</strong>.
+              </p>
             </div>
             <span class="pill">Atualizado em tempo real</span>
           </div>
@@ -951,7 +1064,7 @@
               </div>
               <div class="card-value" id="cardConfirmadas">0</div>
             </div>
-            <div class="card" id="cardVencidasLink">
+            <div class="card dashboard-card-static" id="cardVencidasLink">
               <div class="card-head">
                 <span class="card-title">Contas vencidas</span>
                 <span class="icon" aria-hidden="true">
@@ -968,7 +1081,7 @@
               </div>
               <div class="card-value" id="cardVencidas">0</div>
             </div>
-            <div class="card" id="cardHojeLink">
+            <div class="card dashboard-card-static" id="cardHojeLink">
               <div class="card-head">
                 <span class="card-title">Dia de pagar</span>
                 <span class="icon" aria-hidden="true">
@@ -985,7 +1098,7 @@
               </div>
               <div class="card-value" id="cardHoje">0</div>
             </div>
-            <div class="card" id="cardCaixaLink">
+            <div class="card dashboard-card-static" id="cardCaixaLink">
               <div class="card-head">
                 <span class="card-title">Caixa</span>
                 <span class="icon" aria-hidden="true">
@@ -1002,7 +1115,7 @@
               </div>
               <div class="card-value" id="cardCaixa">R$ 0,00</div>
             </div>
-            <div class="card clickable" id="cardReceberAtrasoLink">
+            <div class="card dashboard-card-static" id="cardReceberAtrasoLink">
               <div class="card-head">
                 <span class="card-title">Recebimentos atrasados</span>
                 <span class="icon" aria-hidden="true">
@@ -1057,11 +1170,18 @@
           </div>
         </div>
 
-        <div id="viewPatio" class="panel hidden">
+        <div id="viewPatio" class="panel hidden patio-module-shell">
+          <div class="patio-module-ribbon">
+            <button type="button" id="exitPatioModule" class="secondary">← Voltar ao Painel</button>
+            <div class="patio-module-meta">
+              <span class="patio-module-name">Gestão de pátio</span>
+              <span class="patio-module-hint">Operação de veículos no pátio — módulo independente da gestão financeira.</span>
+            </div>
+          </div>
           <div class="toolbar">
             <div>
               <h2>Gestão de Pátio</h2>
-              <p class="subtitle">Controle completo do fluxo de veículos.</p>
+              <p class="subtitle">Fluxo de veículos, liberações e NFSe — tudo neste módulo.</p>
             </div>
             <div class="actions">
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
@@ -1242,11 +1362,20 @@
           </div>
         </div>
 
-        <div id="viewFinanceiro" class="panel hidden">
+        <div id="viewFinanceiro" class="panel hidden finance-module-shell">
+          <div class="finance-module-ribbon">
+            <button type="button" id="exitFinanceModule" class="secondary">← Voltar ao Painel</button>
+            <div class="finance-module-meta">
+              <span class="finance-module-name">Gestão financeira do pátio</span>
+              <span class="finance-module-hint"
+                >Receitas, despesas e caixa deste pátio — independente da operação de veículos. Nenhum lançamento é
+                automático: tudo é registrado manualmente aqui.</span>
+            </div>
+          </div>
           <div class="toolbar">
             <div>
-              <h2>Financeiro</h2>
-              <p class="subtitle">Receitas, despesas e fluxo de caixa.</p>
+              <h2>Gestão financeira</h2>
+              <p class="subtitle">Contas a pagar e receber, caixa e relatórios — cada lançamento é feito manualmente.</p>
             </div>
             <div class="actions">
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
@@ -3433,17 +3562,22 @@
       const cardVeiculosLink = document.getElementById("cardVeiculosLink");
       const cardSolicitadasLink = document.getElementById("cardSolicitadasLink");
       const cardConfirmadasLink = document.getElementById("cardConfirmadasLink");
-      const cardVencidasLink = document.getElementById("cardVencidasLink");
-      const cardHojeLink = document.getElementById("cardHojeLink");
-      const cardCaixaLink = document.getElementById("cardCaixaLink");
-      const cardReceberAtrasoLink = document.getElementById("cardReceberAtrasoLink");
-
       let userIsTrackManager = false;
 
       function showMainView(view) {
         document.querySelectorAll(".nav button[data-view]").forEach((btn) => {
           btn.classList.toggle("active", btn.getAttribute("data-view") === view);
         });
+        document.body.classList.remove("app-module-patio", "app-module-finance");
+        if (view === "financeiro") {
+          document.body.classList.add("app-module-finance");
+          document.title = "Amplipatio · Gestão financeira do pátio";
+        } else if (view === "patio") {
+          document.body.classList.add("app-module-patio");
+          document.title = "Amplipatio · Gestão de pátio";
+        } else {
+          document.title = "Amplipatio";
+        }
         Object.values(views).forEach((panel) => panel.classList.add("hidden"));
         if (views[view]) {
           views[view].classList.remove("hidden");
@@ -3573,14 +3707,28 @@
         }
       }
 
-      // Cards do painel: abrem direto a sub-aba correspondente
+      const exitFinanceModuleBtn = document.getElementById("exitFinanceModule");
+      if (exitFinanceModuleBtn) {
+        exitFinanceModuleBtn.addEventListener("click", () => {
+          navStack.splice(0, navStack.length, "dashboard");
+          setFinanceView("none");
+          showMainView("dashboard");
+        });
+      }
+
+      const exitPatioModuleBtn = document.getElementById("exitPatioModule");
+      if (exitPatioModuleBtn) {
+        exitPatioModuleBtn.addEventListener("click", () => {
+          navStack.splice(0, navStack.length, "dashboard");
+          setPatioView("none");
+          showMainView("dashboard");
+        });
+      }
+
+      // Cards do painel: pátio abre sub-abas; cartões financeiros são só leitura (gestão no módulo Gestão financeira).
       cardVeiculosLink.addEventListener("click", () => openPatioSubview("no_patio"));
       cardSolicitadasLink.addEventListener("click", () => openPatioSubview("liberacao_solicitada"));
       cardConfirmadasLink.addEventListener("click", () => openPatioSubview("removidos"));
-      cardVencidasLink.addEventListener("click", () => openFinanceSubview("pagar"));
-      cardHojeLink.addEventListener("click", () => openFinanceSubview("pagar"));
-      cardCaixaLink.addEventListener("click", () => openFinanceSubview("caixa"));
-      cardReceberAtrasoLink.addEventListener("click", () => openFinanceSubview("receber_alerta"));
 
       /** Busca só no envio do formulário (OK ou Enter) — digitar não dispara nada. */
       if (plateSearchForm) {
