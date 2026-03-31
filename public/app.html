@@ -1536,6 +1536,23 @@
             <button data-subview="historico_pagar">Histórico a pagar</button>
             <button data-subview="historico_receber">Histórico a receber</button>
           </div>
+          <form id="financePlateSearchForm" class="filter-bar" style="margin: 8px 0 10px" action="#" novalidate>
+            <label for="financePlateFilter">Placa</label>
+            <input
+              id="financePlateFilter"
+              name="financePlate"
+              type="text"
+              inputmode="text"
+              placeholder="Ex.: ABC1D23"
+              maxlength="20"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="characters"
+              spellcheck="false"
+            />
+            <button type="submit">Buscar</button>
+            <button type="button" class="secondary" id="clearFinancePlateFilter">Limpar</button>
+          </form>
           <div id="financeFilters" class="filter-bar hidden">
             <label>De</label>
             <input id="filterFrom" type="date" />
@@ -2106,6 +2123,9 @@
       const receivableAlert = document.getElementById("receivableAlert");
       const financeFilters = document.getElementById("financeFilters");
       const financeContent = document.getElementById("financeContent");
+      const financePlateFilter = document.getElementById("financePlateFilter");
+      const financePlateSearchForm = document.getElementById("financePlateSearchForm");
+      const clearFinancePlateFilter = document.getElementById("clearFinancePlateFilter");
       const filterFrom = document.getElementById("filterFrom");
       const filterTo = document.getElementById("filterTo");
       const applyFilter = document.getElementById("applyFilter");
@@ -2150,6 +2170,7 @@
       const navStack = ["dashboard"];
       let historyFilter = { from: null, to: null };
       let plateQuery = "";
+      let financePlateQuery = "";
       let editingVehicleId = null;
       let editingVehicleData = null;
       let nfseVehicleId = null;
@@ -3402,6 +3423,14 @@
       function renderFinance() {
         const openReceivables = state.receivables.filter((r) => r.status === "EM_ABERTO");
         const openPayables = state.payables.filter((p) => p.status === "EM_ABERTO");
+        const financePlateNorm = normalizePlateSearch(financePlateQuery);
+        const vehicleById = new Map(state.vehicles.map((v) => [v.id, v]));
+        const matchesVehicleId = (vehicleId) => {
+          if (!financePlateNorm) return true;
+          const v = vehicleById.get(vehicleId);
+          if (!v) return false;
+          return normalizePlateSearch(v.placa) === financePlateNorm;
+        };
         const totalReceber = openReceivables.reduce((sum, r) => sum + Number(r.valor || 0), 0);
         const totalPagar = openPayables.reduce((sum, p) => sum + Number(p.valor || 0), 0);
         const caixa = state.cash.reduce((sum, mov) => {
@@ -3692,7 +3721,17 @@
               <th>Descrição</th>
               <th>Valor</th>
             </tr>`;
-          state.cash.forEach((mov) => {
+          state.cash
+            .filter((mov) => {
+              if (!financePlateNorm) return true;
+              if (mov.tipo_conta === "RECEBER") {
+                const rec = state.receivables.find((r) => r.id === mov.conta_id);
+                return rec ? matchesVehicleId(rec.vehicle_id) : false;
+              }
+              const descNorm = normalizePlateSearch(mov.descricao || "");
+              return descNorm.includes(financePlateNorm);
+            })
+            .forEach((mov) => {
             rows.push(`
               <tr>
                 <td>${formatDateTime(mov.data_movimento)}</td>
@@ -3701,7 +3740,7 @@
                 <td>${formatCurrency(mov.valor)}</td>
               </tr>
             `);
-          });
+            });
           if (!rows.length) {
             setEmptyRow(tableFinance, "Nenhum movimento em caixa.", 4);
           } else {
@@ -3735,6 +3774,7 @@
         if (currentFinanceView === "receber" || currentFinanceView === "receber_alerta") {
           state.receivables
             .filter((r) => r.status === "EM_ABERTO")
+            .filter((r) => matchesVehicleId(r.vehicle_id))
             .filter((r) => {
               if (currentFinanceView !== "receber_alerta") return true;
               if (!r.created_at) return false;
@@ -3773,7 +3813,14 @@
         }
 
         if (currentFinanceView === "pagar") {
-          state.payables.filter((p) => p.status === "EM_ABERTO").forEach((p) => {
+          state.payables
+            .filter((p) => p.status === "EM_ABERTO")
+            .filter((p) => {
+              if (!financePlateNorm) return true;
+              const descNorm = normalizePlateSearch(p.descricao || "");
+              return descNorm.includes(financePlateNorm);
+            })
+            .forEach((p) => {
             rows.push(`
               <tr>
                 <td>Pagar</td>
@@ -3791,7 +3838,7 @@
                 </td>
               </tr>
             `);
-          });
+            });
         }
 
         if (currentFinanceView === "historico_receber") {
@@ -3815,7 +3862,7 @@
             if (historyFilter.from && dateStr < historyFilter.from) return false;
             if (historyFilter.to && dateStr > historyFilter.to) return false;
             return true;
-          });
+          }).filter((r) => matchesVehicleId(r.vehicle_id));
           filtered.forEach((r) => {
             const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
             const origem = vehicle ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}` : "-";
@@ -3857,6 +3904,10 @@
             if (historyFilter.from && dateStr < historyFilter.from) return false;
             if (historyFilter.to && dateStr > historyFilter.to) return false;
             return true;
+          }).filter((p) => {
+            if (!financePlateNorm) return true;
+            const descNorm = normalizePlateSearch(p.descricao || "");
+            return descNorm.includes(financePlateNorm);
           });
           filtered.forEach((p) => {
             const mov = cashByPayable.get(p.id);
@@ -4406,6 +4457,21 @@
           plateQuery = "";
           setPlateSearchHints("", false);
           renderVehicles();
+        });
+      }
+
+      if (financePlateSearchForm) {
+        financePlateSearchForm.addEventListener("submit", (event) => {
+          event.preventDefault();
+          financePlateQuery = (financePlateFilter?.value || "").trim().toLowerCase();
+          renderFinance();
+        });
+      }
+      if (clearFinancePlateFilter) {
+        clearFinancePlateFilter.addEventListener("click", () => {
+          if (financePlateFilter) financePlateFilter.value = "";
+          financePlateQuery = "";
+          renderFinance();
         });
       }
 
