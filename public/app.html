@@ -1819,6 +1819,44 @@
         </div>
       </div>
 
+      <div id="liberacaoModal" class="modal-backdrop hidden">
+        <div class="modal">
+          <div class="modal-header">
+            <div>
+              <h3>Solicitar liberação</h3>
+              <p class="subtitle">Informe responsáveis e vínculos do processo</p>
+            </div>
+            <button class="modal-close" id="closeLiberacaoModal">Fechar</button>
+          </div>
+          <div class="form-grid">
+            <div>
+              <label>1) Quem solicitou a liberação?</label>
+              <input id="libSolicitante" type="text" placeholder="Nome do solicitante" />
+            </div>
+            <div>
+              <label>Empresa de remoção</label>
+              <select id="libEmpresaRemocao"></select>
+            </div>
+            <div>
+              <label>Assessoria (responsável pagamento)</label>
+              <select id="libAssessoria"></select>
+            </div>
+            <div>
+              <label>2) Responsável pelo pagamento</label>
+              <input id="libResponsavelPagamento" type="text" placeholder="Nome do responsável" />
+            </div>
+          </div>
+          <div class="actions" style="margin: 14px 0 0">
+            <button type="button" class="secondary" id="libCadastrarEmpresa">Cadastrar empresa de remoção</button>
+            <button type="button" class="secondary" id="libCadastrarAssessoria">Cadastrar assessoria</button>
+          </div>
+          <div class="form-actions">
+            <button type="button" id="confirmLiberacaoModal">Confirmar</button>
+            <button type="button" class="secondary" id="cancelLiberacaoModal">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
       <div id="payableModal" class="modal-backdrop hidden">
         <div class="modal">
           <div class="modal-header">
@@ -2009,6 +2047,16 @@
       const dateModalTitle = document.getElementById("dateModalTitle");
       const dateModalLabel = document.getElementById("dateModalLabel");
       const dateModalInput = document.getElementById("dateModalInput");
+      const liberacaoModal = document.getElementById("liberacaoModal");
+      const closeLiberacaoModal = document.getElementById("closeLiberacaoModal");
+      const cancelLiberacaoModal = document.getElementById("cancelLiberacaoModal");
+      const confirmLiberacaoModal = document.getElementById("confirmLiberacaoModal");
+      const libSolicitante = document.getElementById("libSolicitante");
+      const libEmpresaRemocao = document.getElementById("libEmpresaRemocao");
+      const libAssessoria = document.getElementById("libAssessoria");
+      const libResponsavelPagamento = document.getElementById("libResponsavelPagamento");
+      const libCadastrarEmpresa = document.getElementById("libCadastrarEmpresa");
+      const libCadastrarAssessoria = document.getElementById("libCadastrarAssessoria");
 
       const openPayableForm = document.getElementById("openPayableForm");
       const payableModal = document.getElementById("payableModal");
@@ -3010,7 +3058,7 @@
           void shownPanel.offsetWidth;
           shownPanel.classList.add("air-open");
         }
-        openPartnerForm.textContent = view === "assessorias" ? "Nova assessoria" : "Novo parceiro";
+        openPartnerForm.textContent = view === "assessorias" ? "Nova assessoria" : "Nova empresa de remoção";
       }
 
       function renderVehicleTable(tbody, items, actionType) {
@@ -3897,6 +3945,13 @@
           dateModalResolver = null;
         }
       });
+      closeLiberacaoModal.addEventListener("click", () => {
+        liberacaoModal.classList.add("hidden");
+        if (liberacaoModalResolver) {
+          liberacaoModalResolver(null);
+          liberacaoModalResolver = null;
+        }
+      });
       closePayableModal.addEventListener("click", () => payableModal.classList.add("hidden"));
       closeFichaModal.addEventListener("click", () => fichaModal.classList.add("hidden"));
       closeNfseModal.addEventListener("click", () => nfseModal.classList.add("hidden"));
@@ -3947,11 +4002,74 @@
           dateModalResolver = null;
         }
       });
+      cancelLiberacaoModal.addEventListener("click", () => {
+        liberacaoModal.classList.add("hidden");
+        if (liberacaoModalResolver) {
+          liberacaoModalResolver(null);
+          liberacaoModalResolver = null;
+        }
+      });
+      confirmLiberacaoModal.addEventListener("click", () => {
+        const solicitante = (libSolicitante.value || "").trim();
+        const empresaRemocaoId = libEmpresaRemocao.value || "";
+        const assessoriaId = libAssessoria.value || "";
+        const responsavelPagamento = (libResponsavelPagamento.value || "").trim();
+        if (!solicitante) {
+          alert("Informe quem solicitou a liberação.");
+          return;
+        }
+        if (!empresaRemocaoId) {
+          alert("Selecione a empresa de remoção.");
+          return;
+        }
+        if (!assessoriaId) {
+          alert("Selecione a assessoria responsável.");
+          return;
+        }
+        if (!responsavelPagamento) {
+          alert("Informe o responsável pelo pagamento.");
+          return;
+        }
+        liberacaoModal.classList.add("hidden");
+        if (liberacaoModalResolver) {
+          liberacaoModalResolver({ solicitante, empresaRemocaoId, assessoriaId, responsavelPagamento });
+          liberacaoModalResolver = null;
+        }
+      });
+      libAssessoria.addEventListener("change", () => {
+        const selectedId = libAssessoria.value || "";
+        const assessoria = state.partners.find((p) => p.id === selectedId && p.tipo === "ASSESSORIA");
+        if (assessoria && !libResponsavelPagamento.value.trim()) {
+          libResponsavelPagamento.value = assessoria.nome || "";
+        }
+      });
+      libCadastrarEmpresa.addEventListener("click", () => {
+        liberacaoModal.classList.add("hidden");
+        if (liberacaoModalResolver) {
+          liberacaoModalResolver({ action: "cadastrar_empresa" });
+          liberacaoModalResolver = null;
+        }
+      });
+      libCadastrarAssessoria.addEventListener("click", () => {
+        liberacaoModal.classList.add("hidden");
+        if (liberacaoModalResolver) {
+          liberacaoModalResolver({ action: "cadastrar_assessoria" });
+          liberacaoModalResolver = null;
+        }
+      });
 
-      [vehicleModal, partnerModal, payableModal, fichaModal, nfseModal, textModal].forEach((modal) => {
+      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, fichaModal, nfseModal, textModal].forEach((modal) => {
         modal.addEventListener("click", (event) => {
           if (event.target === modal) {
             modal.classList.add("hidden");
+            if (modal === dateModal && dateModalResolver) {
+              dateModalResolver(null);
+              dateModalResolver = null;
+            }
+            if (modal === liberacaoModal && liberacaoModalResolver) {
+              liberacaoModalResolver(null);
+              liberacaoModalResolver = null;
+            }
           }
         });
       });
@@ -3963,6 +4081,7 @@
       }
 
       let dateModalResolver = null;
+      let liberacaoModalResolver = null;
       function openDateModal({ title, label, type = "date", value = "" }) {
         return new Promise((resolve) => {
           dateModalResolver = resolve;
@@ -3972,6 +4091,25 @@
           dateModalInput.value = value || "";
           dateModal.classList.remove("hidden");
           // showPicker exige gesto do usuário; deixamos o usuário abrir o calendário.
+        });
+      }
+
+      function openSolicitarLiberacaoModal({ defaultEmpresaId = "", defaultAssessoriaId = "", defaultSolicitante = "", defaultResponsavelPagamento = "" }) {
+        return new Promise((resolve) => {
+          liberacaoModalResolver = resolve;
+          const empresas = state.partners.filter((p) => (p.tipo || "PARCEIRO") === "PARCEIRO");
+          const assessorias = state.partners.filter((p) => p.tipo === "ASSESSORIA");
+          libEmpresaRemocao.innerHTML =
+            `<option value="">Selecione...</option>` +
+            empresas.map((p) => `<option value="${p.id}">${p.nome || "-"}</option>`).join("");
+          libAssessoria.innerHTML =
+            `<option value="">Selecione...</option>` +
+            assessorias.map((p) => `<option value="${p.id}">${p.nome || "-"}</option>`).join("");
+          libEmpresaRemocao.value = defaultEmpresaId || "";
+          libAssessoria.value = defaultAssessoriaId || "";
+          libSolicitante.value = defaultSolicitante || "";
+          libResponsavelPagamento.value = defaultResponsavelPagamento || "";
+          liberacaoModal.classList.remove("hidden");
         });
       }
 
@@ -4741,24 +4879,38 @@
             return;
           }
 
-          const responsavel = (prompt("1) Quem solicitou a liberação?") || "").trim();
-          if (!responsavel) return;
-          const responsavelPagamento = (
-            prompt("2) Quem será o responsável pelo pagamento?", assessoria?.nome || "") || ""
-          ).trim();
-          if (!responsavelPagamento) {
-            alert("Informe o responsável pelo pagamento para continuar.");
+          const libData = await openSolicitarLiberacaoModal({
+            defaultEmpresaId: vehicle.localizador_id || "",
+            defaultAssessoriaId: vehicle.assessoria_id || "",
+            defaultResponsavelPagamento: assessoria?.nome || "",
+          });
+          if (!libData) return;
+          if (libData.action === "cadastrar_empresa") {
+            openPartnerRegistrationFlow("PARCEIRO");
+            return;
+          }
+          if (libData.action === "cadastrar_assessoria") {
+            openPartnerRegistrationFlow("ASSESSORIA");
+            return;
+          }
+          const { solicitante, responsavelPagamento, empresaRemocaoId, assessoriaId } = libData;
+          if (!solicitante || !responsavelPagamento || !empresaRemocaoId || !assessoriaId) {
+            alert("Preencha os dados da solicitação para continuar.");
             return;
           }
           await supabase.from("vehicle_events").insert({
             vehicle_id: id,
             tipo: "LIBERACAO_SOLICITADA",
-            responsavel,
+            responsavel: solicitante,
             descricao: `Liberação solicitada. Responsável pelo pagamento: ${responsavelPagamento}.`,
           });
           const { error: upErr } = await supabase
             .from("vehicles")
-            .update({ status: "LIBERACAO_SOLICITADA" })
+            .update({
+              status: "LIBERACAO_SOLICITADA",
+              localizador_id: empresaRemocaoId,
+              assessoria_id: assessoriaId,
+            })
             .eq("id", id)
             .eq("user_id", state.user.id);
           if (upErr) {
