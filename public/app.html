@@ -4714,13 +4714,18 @@
         }
 
         if (action === "solicitar") {
-          const responsavel = prompt("Quem solicitou a liberação?");
+          const responsavel = (prompt("1) Quem solicitou a liberação?") || "").trim();
           if (!responsavel) return;
+          const responsavelPagamento = (prompt("2) Quem será o responsável pelo pagamento?") || "").trim();
+          if (!responsavelPagamento) {
+            alert("Informe o responsável pelo pagamento para continuar.");
+            return;
+          }
           await supabase.from("vehicle_events").insert({
             vehicle_id: id,
             tipo: "LIBERACAO_SOLICITADA",
             responsavel,
-            descricao: "Liberação solicitada",
+            descricao: `Liberação solicitada. Responsável pelo pagamento: ${responsavelPagamento}.`,
           });
           const { error: upErr } = await supabase
             .from("vehicles")
@@ -4747,9 +4752,6 @@
           }
 
           if (!existingCycle || existingCycle.length === 0) {
-            const assessorName = state.partners.find((p) => p.id === vehicle.assessoria_id)?.nome || "";
-            const locatorName = state.partners.find((p) => p.id === vehicle.localizador_id)?.nome || "";
-            const responsavelPagamento = assessorName || locatorName || "Não informado";
             const periodStart = vehicle.data_entrada || new Date().toISOString();
             const valor = calcPeriodTotal(vehicle, periodStart, null);
 
@@ -4767,6 +4769,14 @@
               alert(insErr.message);
               return;
             }
+          } else {
+            await supabase
+              .from("receivables")
+              .update({ responsavel_pagamento: responsavelPagamento })
+              .eq("user_id", state.user.id)
+              .eq("vehicle_id", id)
+              .is("period_end", null)
+              .eq("status", "EM_ABERTO");
           }
 
           await loadVehicles();
@@ -4809,7 +4819,7 @@
         }
 
         if (action === "remover") {
-          const responsavel = prompt("Quem removeu o veículo?");
+          const responsavel = prompt("3) Quem removeu o veículo?");
           if (!responsavel) return;
           const dataSaidaInput = await openDateModal({
             title: "Data e hora da remoção",
