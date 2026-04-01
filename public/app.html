@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- amplipatio-static v=2026-03-31-print-vnp-vls-no-period -->
+<!-- amplipatio-static v=2026-03-31-print-iframe-no-popup -->
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
@@ -2561,21 +2561,37 @@
   ${sections.join("")}
 </body></html>`;
 
-        const w = window.open("", "_blank", "noopener,noreferrer,width=960,height=720");
-        if (!w) {
-          alert("Permita pop-ups neste site para abrir a impressão.");
+        const iframe = document.createElement("iframe");
+        iframe.setAttribute("title", "Impressão listagens do pátio");
+        iframe.setAttribute("aria-hidden", "true");
+        iframe.style.cssText =
+          "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;";
+        document.body.appendChild(iframe);
+        const win = iframe.contentWindow;
+        if (!win) {
+          iframe.remove();
+          alert("Não foi possível preparar a impressão neste navegador.");
+          document.getElementById("patioPrintModal")?.classList.add("hidden");
           return;
         }
-        w.document.open();
-        w.document.write(html);
-        w.document.close();
-        w.focus();
-        setTimeout(() => {
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+        win.focus();
+        const removeIframe = () => {
           try {
-            w.print();
+            iframe.remove();
           } catch (e) {
             /* ignore */
           }
+        };
+        setTimeout(() => {
+          try {
+            win.print();
+          } catch (e) {
+            /* ignore */
+          }
+          setTimeout(removeIframe, 800);
         }, 300);
 
         document.getElementById("patioPrintModal")?.classList.add("hidden");
