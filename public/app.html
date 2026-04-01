@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- amplipatio-static v=2026-03-31-print-iframe-no-popup -->
+<!-- amplipatio-static v=2026-03-31-print-by-partner -->
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
@@ -1335,6 +1335,9 @@
               <button class="secondary" type="button" id="printPatioVehicleList" title="VNP, VLS, VRP e NFSe pendente com filtro por período">
                 Imprimir listagens
               </button>
+              <button class="secondary" type="button" id="printPatioByPartner" title="Agrupar por empresa de remoção, assessoria e etapa de remoção">
+                Imprimir por parceiro/remoção
+              </button>
               <button class="secondary" id="reloadPatio">Atualizar</button>
             </div>
           </div>
@@ -1890,6 +1893,42 @@
         </div>
       </div>
 
+      <div id="patioPartnerPrintModal" class="modal-backdrop hidden">
+        <div class="modal">
+          <div class="modal-header">
+            <div>
+              <h3>Imprimir por parceiro e remoção</h3>
+              <p class="subtitle">Relatórios agrupados: empresa de remoção (localizador), assessoria e etapa do fluxo de liberação/remoção</p>
+            </div>
+            <button type="button" class="modal-close" id="closePatioPartnerPrintModal">Fechar</button>
+          </div>
+          <div class="form-grid">
+            <div class="full" style="display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center">
+              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
+                <input type="checkbox" id="printPartnerByLocator" checked />
+                Por empresa de remoção (localizador)
+              </label>
+              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
+                <input type="checkbox" id="printPartnerByAssessoria" checked />
+                Por assessoria
+              </label>
+              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
+                <input type="checkbox" id="printPartnerByRemoval" checked />
+                Por etapa de remoção (fluxo)
+              </label>
+            </div>
+            <label style="display: flex; gap: 8px; align-items: center; font-weight: normal; margin-top: 4px">
+              <input type="checkbox" id="printPartnerExcludeRemoved" />
+              Ocultar removidos (VRP) deste relatório
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="button" id="confirmPatioPartnerPrintModal">Gerar impressão</button>
+            <button type="button" class="secondary" id="cancelPatioPartnerPrintModal">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
       <div id="liberacaoModal" class="modal-backdrop hidden">
         <div class="modal">
           <div class="modal-header">
@@ -2203,6 +2242,7 @@
 
       const reloadPatio = document.getElementById("reloadPatio");
       const printPatioVehicleListBtn = document.getElementById("printPatioVehicleList");
+      const printPatioByPartnerBtn = document.getElementById("printPatioByPartner");
       const reloadFinanceiro = document.getElementById("reloadFinanceiro");
       const patioSubnav = document.getElementById("patioSubnav");
       const financeSubnav = document.getElementById("financeSubnav");
@@ -2342,6 +2382,244 @@
       function patioPrintObsCell(v) {
         const obsRaw = (v.observacoes || "").trim() || "—";
         return escapeHtml(obsRaw).replace(/\n/g, "<br />");
+      }
+
+      const REMOVAL_FLOW_ORDER = [
+        "NO_PATIO",
+        "LIBERACAO_SOLICITADA",
+        "LIBERACAO_CONFIRMADA",
+        "REMocao_CONFIRMADA",
+        "REMOVIDO",
+      ];
+      const REMOVAL_FLOW_LABELS = {
+        NO_PATIO: "No pátio (VNP)",
+        LIBERACAO_SOLICITADA: "Liberação solicitada",
+        LIBERACAO_CONFIRMADA: "Liberação confirmada",
+        REMocao_CONFIRMADA: "Remoção confirmada",
+        REMOVIDO: "Removido (VRP)",
+      };
+
+      function printHtmlInHiddenIframe(html, opts = {}) {
+        const iframeTitle = opts.iframeTitle || "Impressão";
+        const closeModalId = opts.closeModalId || null;
+        const iframe = document.createElement("iframe");
+        iframe.setAttribute("title", iframeTitle);
+        iframe.setAttribute("aria-hidden", "true");
+        iframe.style.cssText =
+          "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;";
+        document.body.appendChild(iframe);
+        const win = iframe.contentWindow;
+        if (!win) {
+          iframe.remove();
+          alert("Não foi possível preparar a impressão neste navegador.");
+          return false;
+        }
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+        win.focus();
+        const removeIframe = () => {
+          try {
+            iframe.remove();
+          } catch (e) {
+            /* ignore */
+          }
+        };
+        setTimeout(() => {
+          try {
+            win.print();
+          } catch (e) {
+            /* ignore */
+          }
+          setTimeout(removeIframe, 800);
+        }, 300);
+        if (closeModalId) document.getElementById(closeModalId)?.classList.add("hidden");
+        return true;
+      }
+
+      function bucketVehiclesByPartnerField(vehicles, field) {
+        const m = new Map();
+        vehicles.forEach((v) => {
+          const raw = v[field];
+          const key = raw != null && raw !== "" ? raw : "__sem__";
+          if (!m.has(key)) m.set(key, []);
+          m.get(key).push(v);
+        });
+        return m;
+      }
+
+      function sortPartnerBucketKeys(keys, partnerByIdMap) {
+        const label = (k) =>
+          k === "__sem__" ? "Não informado" : partnerByIdMap.get(k) || "Parceiro não encontrado";
+        const sem = keys.filter((k) => k === "__sem__");
+        const rest = keys
+          .filter((k) => k !== "__sem__")
+          .sort((a, b) => label(a).localeCompare(label(b), "pt-BR"));
+        return [...rest, ...sem];
+      }
+
+      function openPatioPartnerPrintModal() {
+        document.getElementById("patioPartnerPrintModal")?.classList.remove("hidden");
+      }
+
+      function runPatioPartnerPrintDocument() {
+        const byLoc = document.getElementById("printPartnerByLocator")?.checked;
+        const byAss = document.getElementById("printPartnerByAssessoria")?.checked;
+        const byRem = document.getElementById("printPartnerByRemoval")?.checked;
+        const excludeRemoved = document.getElementById("printPartnerExcludeRemoved")?.checked;
+        if (!byLoc && !byAss && !byRem) {
+          alert("Marque pelo menos um agrupamento: localizador, assessoria ou etapa de remoção.");
+          return;
+        }
+        let vehicles = state.vehicles || [];
+        if (excludeRemoved) {
+          vehicles = vehicles.filter((v) => v.status !== "REMOVIDO");
+        }
+        const partnerByIdMap = new Map((state.partners || []).map((p) => [p.id, p.nome || "-"]));
+        const partnerTitle = (k) =>
+          k === "__sem__" ? "Não informado" : partnerByIdMap.get(k) || "Parceiro não encontrado";
+
+        const nomePatio = state.settings?.nome_patio || "Pátio";
+        const nowStr = formatDateTime(new Date().toISOString());
+        const metaLine = [
+          excludeRemoved ? "Ocultando removidos (VRP)" : "Inclui removidos no agrupamento",
+          `Total no relatório: ${vehicles.length} veículo(s)`,
+          `Emitido em: ${nowStr}`,
+        ].join(" · ");
+
+        const theadLoc =
+          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Assessoria</th><th>Observações</th>";
+        const theadAss =
+          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Empresa de remoção</th><th>Observações</th>";
+        const theadRem =
+          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Localizador</th><th>Assessoria</th><th>Observações</th>";
+
+        const rowLoc = (v) => {
+          const { ass } = patioPrintPartnerNames(v);
+          const sai = v.data_saida ? formatDateTime(v.data_saida) : "—";
+          return `<tr>
+            <td>${patioPrintVehicleLine(v)}</td>
+            <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
+            <td>${escapeHtml(sai)}</td>
+            <td>${escapeHtml(ass)}</td>
+            <td>${patioPrintObsCell(v)}</td>
+          </tr>`;
+        };
+        const rowAss = (v) => {
+          const { loc } = patioPrintPartnerNames(v);
+          const sai = v.data_saida ? formatDateTime(v.data_saida) : "—";
+          return `<tr>
+            <td>${patioPrintVehicleLine(v)}</td>
+            <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
+            <td>${escapeHtml(sai)}</td>
+            <td>${escapeHtml(loc)}</td>
+            <td>${patioPrintObsCell(v)}</td>
+          </tr>`;
+        };
+        const rowRem = (v) => {
+          const { loc, ass } = patioPrintPartnerNames(v);
+          const sai = v.data_saida ? formatDateTime(v.data_saida) : "—";
+          return `<tr>
+            <td>${patioPrintVehicleLine(v)}</td>
+            <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
+            <td>${escapeHtml(sai)}</td>
+            <td>${escapeHtml(loc)}</td>
+            <td>${escapeHtml(ass)}</td>
+            <td>${patioPrintObsCell(v)}</td>
+          </tr>`;
+        };
+
+        const blocks = [];
+        if (!vehicles.length) {
+          blocks.push(
+            `<p class="empty-note">Nenhum veículo neste relatório. Desmarque “Ocultar removidos” ou verifique o cadastro.</p>`
+          );
+        } else {
+          if (byLoc) {
+            blocks.push(`<h2>Por empresa de remoção (localizador)</h2>`);
+            const map = bucketVehiclesByPartnerField(vehicles, "localizador_id");
+            const keys = sortPartnerBucketKeys([...map.keys()], partnerByIdMap);
+            keys.forEach((key) => {
+              const items = sortVehiclesByPlaca(map.get(key) || []);
+              blocks.push(
+                `<h3>${escapeHtml(partnerTitle(key))} <span class="count">(${items.length})</span></h3>`
+              );
+              if (!items.length) {
+                blocks.push(`<p class="empty-note">Nenhum veículo.</p>`);
+              } else {
+                blocks.push(
+                  `<table><thead><tr>${theadLoc}</tr></thead><tbody>${items.map(rowLoc).join("")}</tbody></table>`
+                );
+              }
+            });
+          }
+
+          if (byAss) {
+            blocks.push(`<h2>Por assessoria</h2>`);
+            const map = bucketVehiclesByPartnerField(vehicles, "assessoria_id");
+            const keys = sortPartnerBucketKeys([...map.keys()], partnerByIdMap);
+            keys.forEach((key) => {
+              const items = sortVehiclesByPlaca(map.get(key) || []);
+              blocks.push(
+                `<h3>${escapeHtml(partnerTitle(key))} <span class="count">(${items.length})</span></h3>`
+              );
+              if (!items.length) {
+                blocks.push(`<p class="empty-note">Nenhum veículo.</p>`);
+              } else {
+                blocks.push(
+                  `<table><thead><tr>${theadAss}</tr></thead><tbody>${items.map(rowAss).join("")}</tbody></table>`
+                );
+              }
+            });
+          }
+
+          if (byRem) {
+            blocks.push(`<h2>Por etapa de remoção (fluxo no pátio)</h2>`);
+            REMOVAL_FLOW_ORDER.forEach((st) => {
+              const items = sortVehiclesByPlaca(vehicles.filter((v) => v.status === st));
+              if (!items.length) return;
+              const lab = REMOVAL_FLOW_LABELS[st] || st;
+              blocks.push(`<h3>${escapeHtml(lab)} <span class="count">(${items.length})</span></h3>`);
+              blocks.push(
+                `<table><thead><tr>${theadRem}</tr></thead><tbody>${items.map(rowRem).join("")}</tbody></table>`
+              );
+            });
+            const known = new Set(REMOVAL_FLOW_ORDER);
+            const outros = sortVehiclesByPlaca(vehicles.filter((v) => !known.has(v.status)));
+            if (outros.length) {
+              blocks.push(`<h3>Outros status <span class="count">(${outros.length})</span></h3>`);
+              blocks.push(
+                `<table><thead><tr>${theadRem}</tr></thead><tbody>${outros.map(rowRem).join("")}</tbody></table>`
+              );
+            }
+          }
+        }
+
+        const printCss = `
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 20px; color: #111; }
+  h1 { font-size: 1.25rem; margin: 0 0 4px; }
+  h2 { font-size: 1.08rem; margin: 22px 0 8px; page-break-after: avoid; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+  h3 { font-size: 0.95rem; margin: 14px 0 6px; page-break-after: avoid; }
+  h3 .count { font-weight: normal; color: #555; }
+  .meta { font-size: 0.8rem; color: #444; margin-bottom: 14px; }
+  .empty-note { font-size: 0.85rem; color: #666; font-style: italic; margin: 0 0 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.76rem; margin-bottom: 14px; }
+  th, td { border: 1px solid #bbb; padding: 6px; text-align: left; vertical-align: top; }
+  th { background: #f0f0f0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  @page { margin: 12mm; }
+  @media print { body { margin: 0; } }`;
+
+        const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Veículos por parceiro e remoção</title>
+<style>${printCss}</style></head><body>
+  <h1>${escapeHtml(nomePatio)} — Veículos por parceiro e remoção</h1>
+  <div class="meta">${escapeHtml(metaLine)}</div>
+  ${blocks.join("")}
+</body></html>`;
+
+        printHtmlInHiddenIframe(html, {
+          iframeTitle: "Impressão por parceiro e remoção",
+          closeModalId: "patioPartnerPrintModal",
+        });
       }
 
       function openPatioPrintModal() {
@@ -2561,40 +2839,10 @@
   ${sections.join("")}
 </body></html>`;
 
-        const iframe = document.createElement("iframe");
-        iframe.setAttribute("title", "Impressão listagens do pátio");
-        iframe.setAttribute("aria-hidden", "true");
-        iframe.style.cssText =
-          "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;";
-        document.body.appendChild(iframe);
-        const win = iframe.contentWindow;
-        if (!win) {
-          iframe.remove();
-          alert("Não foi possível preparar a impressão neste navegador.");
-          document.getElementById("patioPrintModal")?.classList.add("hidden");
-          return;
-        }
-        win.document.open();
-        win.document.write(html);
-        win.document.close();
-        win.focus();
-        const removeIframe = () => {
-          try {
-            iframe.remove();
-          } catch (e) {
-            /* ignore */
-          }
-        };
-        setTimeout(() => {
-          try {
-            win.print();
-          } catch (e) {
-            /* ignore */
-          }
-          setTimeout(removeIframe, 800);
-        }, 300);
-
-        document.getElementById("patioPrintModal")?.classList.add("hidden");
+        printHtmlInHiddenIframe(html, {
+          iframeTitle: "Impressão listagens do pátio",
+          closeModalId: "patioPrintModal",
+        });
       }
 
       function toLocalInput(dateValue) {
@@ -4558,6 +4806,20 @@
 
       printPatioVehicleListBtn?.addEventListener("click", () => {
         openPatioPrintModal();
+      });
+
+      printPatioByPartnerBtn?.addEventListener("click", () => {
+        openPatioPartnerPrintModal();
+      });
+
+      document.getElementById("closePatioPartnerPrintModal")?.addEventListener("click", () => {
+        document.getElementById("patioPartnerPrintModal")?.classList.add("hidden");
+      });
+      document.getElementById("cancelPatioPartnerPrintModal")?.addEventListener("click", () => {
+        document.getElementById("patioPartnerPrintModal")?.classList.add("hidden");
+      });
+      document.getElementById("confirmPatioPartnerPrintModal")?.addEventListener("click", () => {
+        runPatioPartnerPrintDocument();
       });
 
       document.getElementById("closePatioPrintModal")?.addEventListener("click", () => {
