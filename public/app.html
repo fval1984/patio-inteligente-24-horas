@@ -2067,7 +2067,7 @@
               <select id="libEmpresaRemocao"></select>
             </div>
             <div>
-              <label>Assessoria (responsável pagamento)</label>
+              <label>Assessoria (opcional)</label>
               <select id="libAssessoria"></select>
             </div>
             <div>
@@ -5379,10 +5379,6 @@
           alert("Selecione a empresa de remoção.");
           return;
         }
-        if (!assessoriaId) {
-          alert("Selecione a assessoria responsável.");
-          return;
-        }
         if (!responsavelPagamento) {
           alert("Informe o responsável pelo pagamento.");
           return;
@@ -5460,7 +5456,7 @@
             `<option value="">Selecione...</option>` +
             empresas.map((p) => `<option value="${p.id}">${p.nome || "-"}</option>`).join("");
           libAssessoria.innerHTML =
-            `<option value="">Selecione...</option>` +
+            `<option value="">Nenhuma (opcional)</option>` +
             assessorias.map((p) => `<option value="${p.id}">${p.nome || "-"}</option>`).join("");
           libEmpresaRemocao.value = defaultEmpresaId || "";
           libAssessoria.value = defaultAssessoriaId || "";
@@ -6375,11 +6371,6 @@
           const assessoria =
             vehicle.assessoria_id &&
             state.partners.find((p) => p.id === vehicle.assessoria_id && p.tipo === "ASSESSORIA");
-          if (!assessoria) {
-            alert("Cadastre primeiro a assessoria responsável pelo pagamento (aba Assessoria).");
-            openPartnerRegistrationFlow("ASSESSORIA");
-            return;
-          }
 
           const libData = await openSolicitarLiberacaoModal({
             defaultEmpresaId: vehicle.localizador_id || "",
@@ -6396,7 +6387,7 @@
             return;
           }
           const { solicitante, responsavelPagamento, empresaRemocaoId, assessoriaId } = libData;
-          if (!solicitante || !responsavelPagamento || !empresaRemocaoId || !assessoriaId) {
+          if (!solicitante || !responsavelPagamento || !empresaRemocaoId) {
             alert("Preencha os dados da solicitação para continuar.");
             return;
           }
@@ -6411,7 +6402,7 @@
             .update({
               status: "LIBERACAO_SOLICITADA",
               localizador_id: empresaRemocaoId,
-              assessoria_id: assessoriaId,
+              assessoria_id: assessoriaId || null,
             })
             .eq("id", id)
             .eq("user_id", state.user.id);
