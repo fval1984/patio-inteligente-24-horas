@@ -235,6 +235,12 @@
       .module-kicker--finance {
         color: #5eead4;
       }
+      .module-kicker--partners {
+        color: #a5b4fc;
+      }
+      .module-kicker--config {
+        color: #7dd3fc;
+      }
       .module-lede {
         margin: 8px 0 0;
         font-size: 14px;
@@ -243,13 +249,17 @@
         max-width: 40rem;
       }
       #viewPatio.patio-module-shell .toolbar,
-      #viewFinanceiro.finance-module-shell .toolbar {
+      #viewFinanceiro.finance-module-shell .toolbar,
+      #viewParceiros.partners-module-shell .toolbar,
+      #viewConfiguracoes.config-module-shell .toolbar {
         margin-bottom: 16px;
         padding-bottom: 18px;
         border-bottom: 1px solid rgba(148, 163, 184, 0.12);
       }
       #viewPatio.patio-module-shell .toolbar h2,
-      #viewFinanceiro.finance-module-shell .toolbar h2 {
+      #viewFinanceiro.finance-module-shell .toolbar h2,
+      #viewParceiros.partners-module-shell .toolbar h2,
+      #viewConfiguracoes.config-module-shell .toolbar h2 {
         font-size: 1.65rem;
         font-weight: 800;
         letter-spacing: -0.03em;
@@ -295,6 +305,149 @@
         font-weight: 600;
         letter-spacing: 0.06em;
         text-transform: uppercase;
+      }
+
+      /* Parceiros — shell e ribbon (padrão premium) */
+      #viewParceiros.partners-module-shell {
+        position: relative;
+        overflow: hidden;
+        border-color: rgba(129, 140, 248, 0.42);
+        background: linear-gradient(165deg, rgba(99, 102, 241, 0.12) 0%, rgba(15, 19, 26, 0.74) 38%, rgba(15, 19, 26, 0.58) 100%);
+        box-shadow:
+          0 0 0 1px rgba(99, 102, 241, 0.14),
+          0 24px 48px rgba(0, 0, 0, 0.32);
+      }
+      #viewParceiros.partners-module-shell::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(129, 140, 248, 0.75),
+          rgba(99, 102, 241, 0.55),
+          rgba(167, 139, 250, 0.4),
+          transparent
+        );
+        pointer-events: none;
+        opacity: 0.95;
+      }
+      [data-theme="light"] #viewParceiros.partners-module-shell {
+        background: linear-gradient(165deg, rgba(99, 102, 241, 0.08) 0%, rgba(255, 255, 255, 0.88) 42%, rgba(255, 255, 255, 0.74) 100%);
+        box-shadow:
+          0 0 0 1px rgba(99, 102, 241, 0.16),
+          0 20px 40px rgba(15, 23, 42, 0.07);
+      }
+      .partners-module-ribbon {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding-bottom: 18px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid rgba(129, 140, 248, 0.3);
+      }
+      .partners-module-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        text-align: right;
+      }
+      .partners-module-name {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #a5b4fc;
+      }
+      .partners-module-ribbon-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+      }
+      #viewParceiros .section-card.partner-subview {
+        border-radius: 18px;
+        border-color: rgba(129, 140, 248, 0.22);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.05),
+          var(--shadow-soft);
+      }
+      #viewParceiros > .grid > .card {
+        border-radius: 18px;
+        border-color: rgba(129, 140, 248, 0.18);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.04),
+          var(--shadow-soft);
+      }
+
+      /* Configurações — shell e ribbon */
+      #viewConfiguracoes.config-module-shell {
+        position: relative;
+        overflow: hidden;
+        border-color: rgba(56, 189, 248, 0.38);
+        background: linear-gradient(165deg, rgba(14, 165, 233, 0.11) 0%, rgba(15, 19, 26, 0.74) 38%, rgba(15, 19, 26, 0.58) 100%);
+        box-shadow:
+          0 0 0 1px rgba(14, 165, 233, 0.12),
+          0 24px 48px rgba(0, 0, 0, 0.32);
+      }
+      #viewConfiguracoes.config-module-shell::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(56, 189, 248, 0.7),
+          rgba(14, 165, 233, 0.55),
+          rgba(125, 211, 252, 0.4),
+          transparent
+        );
+        pointer-events: none;
+        opacity: 0.95;
+      }
+      [data-theme="light"] #viewConfiguracoes.config-module-shell {
+        background: linear-gradient(165deg, rgba(14, 165, 233, 0.07) 0%, rgba(255, 255, 255, 0.88) 42%, rgba(255, 255, 255, 0.74) 100%);
+        box-shadow:
+          0 0 0 1px rgba(14, 165, 233, 0.14),
+          0 20px 40px rgba(15, 23, 42, 0.07);
+      }
+      .config-module-ribbon {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding-bottom: 18px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid rgba(56, 189, 248, 0.28);
+      }
+      .config-module-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        text-align: right;
+      }
+      .config-module-name {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #7dd3fc;
+      }
+      #viewConfiguracoes .section-card {
+        border-radius: 18px;
+        border-color: rgba(56, 189, 248, 0.2);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.05),
+          var(--shadow-soft);
       }
 
       .dashboard-card-static {
@@ -371,12 +524,6 @@
         gap: 8px;
         justify-content: flex-end;
       }
-      .module-back-ribbon {
-        padding-bottom: 12px;
-        margin-bottom: 14px;
-        border-bottom: 1px solid var(--border);
-      }
-
       /* Fechamento mensal (Financeiro) - layout mais moderno */
       #financeClosureArea .finance-closure-hero {
         display: flex;
@@ -1799,14 +1946,24 @@
           </div>
         </div>
 
-        <div id="viewParceiros" class="panel hidden">
-          <div class="module-back-ribbon">
-            <button type="button" class="secondary" id="exitParceirosToPatio">← Voltar à Gestão de pátio</button>
+        <div id="viewParceiros" class="panel hidden partners-module-shell">
+          <div class="partners-module-ribbon">
+            <div class="partners-module-ribbon-left">
+              <button type="button" class="secondary" id="exitParceirosToPatio">← Voltar à Gestão de pátio</button>
+            </div>
+            <div class="partners-module-ribbon-right">
+              <div class="partners-module-meta">
+                <span class="partners-module-name">Rede de parceiros</span>
+              </div>
+            </div>
           </div>
           <div class="toolbar">
             <div>
+              <p class="module-kicker module-kicker--partners">Cadastro</p>
               <h2>Parceiros</h2>
-              <p class="subtitle">Cadastro de empresas de remoção e assessorias.</p>
+              <p class="module-lede">
+                Empresas de remoção e assessorias, rankings e tabelas no mesmo padrão visual dos módulos de pátio e financeiro.
+              </p>
             </div>
             <div class="actions">
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
@@ -2029,14 +2186,22 @@
           </div>
         </div>
 
-        <div id="viewConfiguracoes" class="panel hidden">
-          <div class="module-back-ribbon">
-            <button type="button" class="secondary" id="exitConfigToPatio">← Voltar à Gestão de pátio</button>
+        <div id="viewConfiguracoes" class="panel hidden config-module-shell">
+          <div class="config-module-ribbon">
+            <div class="config-module-ribbon-left">
+              <button type="button" class="secondary" id="exitConfigToPatio">← Voltar à Gestão de pátio</button>
+            </div>
+            <div class="config-module-meta">
+              <span class="config-module-name">Definições do sistema</span>
+            </div>
           </div>
           <div class="toolbar">
             <div>
+              <p class="module-kicker module-kicker--config">Administrativo</p>
               <h2>Configurações</h2>
-              <p class="subtitle">Dados do pátio e textos padrão.</p>
+              <p class="module-lede">
+                Dados do pátio, textos padrão de cobrança e nota, e gestores de pista — salvos com um clique.
+              </p>
             </div>
             <div class="actions">
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
