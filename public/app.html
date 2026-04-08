@@ -1827,9 +1827,6 @@
             <div>
               <p class="module-kicker module-kicker--patio">Operação</p>
               <h2>Gestão de Pátio</h2>
-              <p class="module-lede">
-                Listas VNP, VRP e NFSe, busca por placa e impressões — o mesmo acabamento visual do painel.
-              </p>
             </div>
             <div class="actions">
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
@@ -1879,7 +1876,6 @@
             <div class="section-card patio-subview hidden" data-subview="no_patio">
               <div class="pill">VNP</div>
               <div id="vlsToolbarFilters" class="filter-bar hidden" style="margin-bottom: 10px">
-                <span class="notice">Filtros (liberação em andamento)</span>
                 <label for="vlsFilterLocator">Localizador</label>
                 <select id="vlsFilterLocator">
                   <option value="">Todos</option>
@@ -4664,12 +4660,7 @@
         };
         const total = counts.no_patio + counts.removidos + counts.nfse_pendente;
 
-        setPlateSearchHints(
-          total === 0
-            ? "Nenhum veículo com essa placa em VNP, VRP ou NFSe pendente."
-            : "Busca global: abaixo aparecem só as áreas onde há veículo com essa placa.",
-          true
-        );
+        setPlateSearchHints(total === 0 ? "Nenhum veículo com esta placa." : "", total === 0);
 
         patioSubnav.querySelectorAll("button").forEach((btn) => {
           const key = btn.getAttribute("data-subview");
