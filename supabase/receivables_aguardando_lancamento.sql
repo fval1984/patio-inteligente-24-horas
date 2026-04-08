@@ -1,0 +1,17 @@
+-- Status AGUARDANDO_LANCAMENTO nos recebíveis (ciclos encerrados no pátio, antes do financeiro lançar).
+--
+-- 1) Se a coluna `receivables.status` tiver CHECK ou ENUM que só permita EM_ABERTO e PAGO,
+--    ajuste no Supabase (SQL Editor) conforme o nome real da constraint:
+--
+--    Exemplo (o nome da constraint pode ser outro — veja em information_schema ou no painel Table Editor):
+--    -- ALTER TABLE receivables DROP CONSTRAINT IF EXISTS receivables_status_check;
+--    -- ALTER TABLE receivables ADD CONSTRAINT receivables_status_check
+--    --   CHECK (status IN ('EM_ABERTO', 'PAGO', 'AGUARDANDO_LANCAMENTO'));
+--
+-- 2) Opcional: alinhar dados antigos (ciclo já com fim no pátio mas ainda EM_ABERTO):
+--
+--    -- UPDATE receivables
+--    -- SET status = 'AGUARDANDO_LANCAMENTO'
+--    -- WHERE status = 'EM_ABERTO' AND period_end IS NOT NULL;
+--
+-- Descomente e adapte após confirmar políticas RLS e o schema da sua base.

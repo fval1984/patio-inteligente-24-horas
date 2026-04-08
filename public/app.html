@@ -1840,7 +1840,7 @@
               <button class="secondary" type="button" id="printPatioByPartner" title="Agrupar por empresa de remoção, assessoria e etapa de remoção">
                 Imprimir por parceiro/remoção
               </button>
-              <button class="secondary" type="button" id="printPatioLiberados" title="Veículos em liberação/removidos, pagos ou não, por localizador e assessoria">
+              <button class="secondary" type="button" id="printPatioLiberados" title="Veículos em liberação ou removidos, por localizador e assessoria">
                 Liberados: filtro / impressão
               </button>
               <button class="secondary" id="reloadPatio">Atualizar</button>
@@ -1880,10 +1880,6 @@
               <div class="pill">VNP</div>
               <div id="vlsToolbarFilters" class="filter-bar hidden" style="margin-bottom: 10px">
                 <span class="notice">Filtros (liberação em andamento)</span>
-                <label>Pagamento</label>
-                <button type="button" class="secondary vls-pay-filter active" data-vls-pay="all">Todos</button>
-                <button type="button" class="secondary vls-pay-filter" data-vls-pay="pago">Pagos</button>
-                <button type="button" class="secondary vls-pay-filter" data-vls-pay="aberto">Não pagos</button>
                 <label for="vlsFilterLocator">Localizador</label>
                 <select id="vlsFilterLocator">
                   <option value="">Todos</option>
@@ -1904,7 +1900,6 @@
                     <th>Assessoria</th>
                     <th>Entrada</th>
                     <th>Valor gerado</th>
-                    <th>Pagamento</th>
                     <th>Ações</th>
                   </tr>
                 </thead>
@@ -1925,7 +1920,7 @@
                     <th>Entrada</th>
                     <th>Saída</th>
                     <th>Valor total</th>
-                    <th>Pagamento / Status</th>
+                    <th>Situação / ações</th>
                   </tr>
                 </thead>
                 <tbody id="tableRemovidos"></tbody>
@@ -1944,7 +1939,6 @@
                     <th>Assessoria</th>
                     <th>Entrada</th>
                     <th>Valor gerado</th>
-                    <th>Pagamento</th>
                     <th>Ações</th>
                   </tr>
                 </thead>
@@ -2054,6 +2048,7 @@
           <div id="receivableAlert" class="alert hidden"></div>
           <div class="subnav" id="financeSubnav">
             <button data-subview="receber">Contas a receber</button>
+            <button data-subview="aguardando_lancamento">Aguardando lançamento</button>
             <button data-subview="receber_alerta">Recebimentos em alerta</button>
             <button data-subview="pagar">Contas a pagar</button>
             <button data-subview="caixa">Caixa</button>
@@ -2461,25 +2456,11 @@
           <div class="modal-header">
             <div>
               <h3>Liberados: filtro e impressão</h3>
-              <p class="subtitle">Liberação em andamento + removidos (VRP), com pagamento e agrupamento por localizador e assessoria</p>
+              <p class="subtitle">Liberação em andamento e removidos (VRP), agrupados por localizador e assessoria — pagamento só no financeiro.</p>
             </div>
             <button type="button" class="modal-close" id="closePatioLiberadosPrintModal">Fechar</button>
           </div>
           <div class="form-grid">
-            <div id="printLibPaymentFilters" class="full" style="display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center">
-              <span class="notice">Incluir no relatório:</span>
-              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
-                <input type="checkbox" id="printLibIncludePago" checked />
-                Pagos
-              </label>
-              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
-                <input type="checkbox" id="printLibIncludeNaoPago" checked />
-                Não pagos
-              </label>
-            </div>
-            <p id="printLibGestorPaymentHint" class="notice full hidden" style="margin: 0">
-              Como gestor de pista, o relatório lista todos os liberados; a coluna de pagamento não é exibida.
-            </p>
             <div class="full" style="display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center">
               <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
                 <input type="checkbox" id="printLibByLocator" checked />
@@ -2892,7 +2873,6 @@
       let plateQuery = "";
       let financePlateQuery = "";
       let financePlateInputTimer = null;
-      let vlsListFilterPay = "all";
       let vlsListFilterLocatorId = "";
       let vlsListFilterAssessoriaId = "";
       let editingVehicleId = null;
@@ -2910,6 +2890,27 @@
         monthlyClosures: [],
         monthlyClosureLoadError: null,
       };
+
+      const RECEIVABLE_AGUARDANDO_LANCAMENTO = "AGUARDANDO_LANCAMENTO";
+
+      function receivableIsCicloPatioAberto(r) {
+        if (!r || r.status !== "EM_ABERTO") return false;
+        return r.period_end == null || r.period_end === "";
+      }
+
+      function receivableIsContaReceberFinanceiro(r) {
+        if (!r || r.status !== "EM_ABERTO") return false;
+        return r.period_end != null && r.period_end !== "";
+      }
+
+      function formatReceivableStatusLabel(c) {
+        if (!c) return "-";
+        if (c.status === "PAGO") return "Pago";
+        if (c.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return "Aguardando lançamento (financeiro)";
+        if (c.status === "EM_ABERTO" && receivableIsCicloPatioAberto(c)) return "Em curso (pátio)";
+        if (c.status === "EM_ABERTO") return "Em aberto (conta a receber)";
+        return c.status || "-";
+      }
 
       const currency = new Intl.NumberFormat("pt-BR", {
         style: "currency",
@@ -3045,8 +3046,6 @@
       function filterVlsToolbarItems(items) {
         if (userIsTrackManager) return items;
         return items.filter((v) => {
-          if (vlsListFilterPay === "pago" && v.payment_status !== "PAGO") return false;
-          if (vlsListFilterPay === "aberto" && v.payment_status === "PAGO") return false;
           if (vlsListFilterLocatorId && v.localizador_id !== vlsListFilterLocatorId) return false;
           if (vlsListFilterAssessoriaId && v.assessoria_id !== vlsListFilterAssessoriaId) return false;
           return true;
@@ -3079,13 +3078,6 @@
           assSel.value = "";
           vlsListFilterAssessoriaId = "";
         }
-      }
-
-      function updateVlsPayFilterButtons() {
-        document.querySelectorAll(".vls-pay-filter").forEach((b) => {
-          const k = b.getAttribute("data-vls-pay") || "all";
-          b.classList.toggle("active", k === vlsListFilterPay);
-        });
       }
 
       function printHtmlInHiddenIframe(html, opts = {}) {
@@ -3339,24 +3331,10 @@
 
       function openPatioLiberadosPrintModal() {
         const modal = document.getElementById("patioLiberadosPrintModal");
-        const payF = document.getElementById("printLibPaymentFilters");
-        const hint = document.getElementById("printLibGestorPaymentHint");
-        if (payF) payF.classList.toggle("hidden", !!userIsTrackManager);
-        if (hint) hint.classList.toggle("hidden", !userIsTrackManager);
         modal?.classList.remove("hidden");
       }
 
       function runPatioLiberadosPrintDocument() {
-        let inclPago = document.getElementById("printLibIncludePago")?.checked;
-        let inclNaoPago = document.getElementById("printLibIncludeNaoPago")?.checked;
-        if (userIsTrackManager) {
-          inclPago = true;
-          inclNaoPago = true;
-        }
-        if (!inclPago && !inclNaoPago) {
-          alert("Marque pelo menos: Pagos ou Não pagos.");
-          return;
-        }
         const byLoc = document.getElementById("printLibByLocator")?.checked;
         const byAss = document.getElementById("printLibByAssessoria")?.checked;
         if (!byLoc && !byAss) {
@@ -3364,15 +3342,9 @@
           return;
         }
 
-        const showPayCol = !userIsTrackManager;
-        let vehicles = (state.vehicles || []).filter((v) =>
+        const vehicles = (state.vehicles || []).filter((v) =>
           LIBERADOS_PAYMENT_PRINT_STATUSES.includes(v.status)
         );
-        vehicles = vehicles.filter((v) => {
-          const okPago = v.payment_status === "PAGO";
-          if (okPago) return inclPago;
-          return inclNaoPago;
-        });
 
         const partnerByIdMap = new Map((state.partners || []).map((p) => [p.id, p.nome || "-"]));
         const partnerTitle = (k) =>
@@ -3380,26 +3352,13 @@
 
         const nomePatio = state.settings?.nome_patio || "Pátio";
         const nowStr = formatDateTime(new Date().toISOString());
-        const partesFiltro = [];
-        if (inclPago) partesFiltro.push("pagos");
-        if (inclNaoPago) partesFiltro.push("não pagos");
-        const metaLine = [
-          `Pagamento: ${partesFiltro.join(" e ")}`,
-          `Total: ${vehicles.length} veículo(s)`,
-          `Emitido em: ${nowStr}`,
-        ].join(" · ");
+        const metaLine = [`Total: ${vehicles.length} veículo(s)`, `Emitido em: ${nowStr}`].join(" · ");
 
         const situacaoCell = (v) => escapeHtml(REMOVAL_FLOW_LABELS[v.status] || v.status || "—");
-        const payCol = (v) =>
-          showPayCol
-            ? `<td>${escapeHtml(v.payment_status === "PAGO" ? "Pago" : "Em aberto")}</td>`
-            : "";
-        const theadLoc = showPayCol
-          ? "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Situação</th><th>Pagamento</th><th>Assessoria</th><th>Observações</th>"
-          : "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Situação</th><th>Assessoria</th><th>Observações</th>";
-        const theadAss = showPayCol
-          ? "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Situação</th><th>Pagamento</th><th>Empresa de remoção</th><th>Observações</th>"
-          : "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Situação</th><th>Empresa de remoção</th><th>Observações</th>";
+        const theadLoc =
+          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Situação</th><th>Assessoria</th><th>Observações</th>";
+        const theadAss =
+          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Situação</th><th>Empresa de remoção</th><th>Observações</th>";
 
         const rowLoc = (v) => {
           const { ass } = patioPrintPartnerNames(v);
@@ -3409,7 +3368,6 @@
             <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
             <td>${escapeHtml(sai)}</td>
             <td>${situacaoCell(v)}</td>
-            ${payCol(v)}
             <td>${escapeHtml(ass)}</td>
             <td>${patioPrintObsCell(v)}</td>
           </tr>`;
@@ -3422,7 +3380,6 @@
             <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
             <td>${escapeHtml(sai)}</td>
             <td>${situacaoCell(v)}</td>
-            ${payCol(v)}
             <td>${escapeHtml(loc)}</td>
             <td>${patioPrintObsCell(v)}</td>
           </tr>`;
@@ -3430,7 +3387,7 @@
 
         const blocks = [];
         if (!vehicles.length) {
-          blocks.push(`<p class="empty-note">Nenhum veículo com estes filtros (liberados e pagamento).</p>`);
+          blocks.push(`<p class="empty-note">Nenhum veículo em liberação ou removidos com estes critérios.</p>`);
         } else {
           if (byLoc) {
             blocks.push(`<h2>Por localizador (empresa de remoção)</h2>`);
@@ -3484,16 +3441,16 @@
   @page { margin: 12mm; }
   @media print { body { margin: 0; } }`;
 
-        const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Liberados — pagamento</title>
+        const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Liberados — pátio</title>
 <style>${printCss}</style></head><body>
-  <h1>${escapeHtml(nomePatio)} — Veículos liberados (pagamento)</h1>
+  <h1>${escapeHtml(nomePatio)} — Veículos em liberação e removidos</h1>
   <div class="meta">${escapeHtml(metaLine)}</div>
   <p class="meta">Inclui veículos em fase de liberação e VRP (removidos), conforme filtros.</p>
   ${blocks.join("")}
 </body></html>`;
 
         printHtmlInHiddenIframe(html, {
-          iframeTitle: "Impressão liberados e pagamento",
+          iframeTitle: "Impressão liberados (pátio)",
           closeModalId: "patioLiberadosPrintModal",
         });
       }
@@ -3518,7 +3475,8 @@
         const vehicleById = new Map(state.vehicles.map((v) => [v.id, v]));
         const financePlateNorm = normalizePlateSearch(financePlateQuery);
         const openList = (state.receivables || []).filter(
-          (r) => r.status === "EM_ABERTO" && financeReceivableMatchesPlateQuery(r, vehicleById, financePlateNorm)
+          (r) =>
+            receivableIsContaReceberFinanceiro(r) && financeReceivableMatchesPlateQuery(r, vehicleById, financePlateNorm)
         );
 
         const partnersList = state.partners || [];
@@ -3578,7 +3536,8 @@
         const partnerByIdMap = new Map((state.partners || []).map((p) => [p.id, p.nome || "-"]));
 
         let openRec = (state.receivables || []).filter(
-          (r) => r.status === "EM_ABERTO" && financeReceivableMatchesPlateQuery(r, vehicleById, financePlateNorm)
+          (r) =>
+            receivableIsContaReceberFinanceiro(r) && financeReceivableMatchesPlateQuery(r, vehicleById, financePlateNorm)
         );
 
         const filterLocId = document.getElementById("financePrintFilterLocator")?.value || "";
@@ -3608,11 +3567,7 @@
         const partnerTitle = (k) =>
           k === "__sem__" ? "Não informado" : partnerByIdMap.get(k) || "Parceiro não encontrado";
 
-        const receivableValor = (r) => {
-          const v = vehicleById.get(r.vehicle_id);
-          if (v) return calcTotal(v);
-          return Number(r.valor || 0);
-        };
+        const receivableValor = (r) => Number(r.valor || 0);
 
         const nomePatio = state.settings?.nome_patio || "Pátio";
         const nowMs = Date.now();
@@ -4238,23 +4193,17 @@
           vehicleDailyInput.required = false;
         }
 
-        // Oculta cabeçalhos/colunas de valores e pagamento apenas no modo gestor.
-        // Ordem das colunas:
-        // - VNP (lista unificada) / NFSe: 1 Placa, 2 Veículo, 3 Localizador, 4 Assessoria, 5 Entrada, 6 Valor, 7 Pagamento, 8 Ações
-        // - VRP (removidos): 1 Placa, 2 Veículo, 3 Localizador, 4 Assessoria, 5 Entrada, 6 Saída, 7 Valor, 8 Pagamento/Status
+        // Oculta coluna de valores apenas no modo gestor (sem cobrança na pista).
+        // Ordem: VNP/NFSe — 6 Valor, 7 Ações. VRP — 7 Valor, 8 Situação/ações.
         const style = document.createElement("style");
         style.id = "track-manager-hide-values-style";
         style.textContent = `
           #viewPatio [data-subview="no_patio"] table thead th:nth-child(6),
-          #viewPatio [data-subview="no_patio"] table thead th:nth-child(7),
-          #viewPatio [data-subview="no_patio"] table tbody td:nth-child(6),
-          #viewPatio [data-subview="no_patio"] table tbody td:nth-child(7) {
+          #viewPatio [data-subview="no_patio"] table tbody td:nth-child(6) {
             display: none !important;
           }
           #viewPatio [data-subview="nfse_pendente"] table thead th:nth-child(6),
-          #viewPatio [data-subview="nfse_pendente"] table thead th:nth-child(7),
-          #viewPatio [data-subview="nfse_pendente"] table tbody td:nth-child(6),
-          #viewPatio [data-subview="nfse_pendente"] table tbody td:nth-child(7) {
+          #viewPatio [data-subview="nfse_pendente"] table tbody td:nth-child(6) {
             display: none !important;
           }
           #viewPatio [data-subview="removidos"] table thead th:nth-child(7),
@@ -4497,7 +4446,7 @@
         });
 
         const openRec = (state.receivables || [])
-          .filter((r) => r.status === "EM_ABERTO")
+          .filter((r) => receivableIsContaReceberFinanceiro(r))
           .reduce((s, r) => s + Number(r.valor || 0), 0);
         const openPag = (state.payables || [])
           .filter((p) => p.status === "EM_ABERTO")
@@ -4685,7 +4634,6 @@
           vlsToolbar.classList.toggle("hidden", !!userIsTrackManager);
           if (!userIsTrackManager) {
             syncVlsFilterSelects();
-            updateVlsPayFilterButtons();
           }
         }
 
@@ -4750,22 +4698,18 @@
 
       function renderVnpUnifiedTable(tbody, items) {
         if (!items.length) {
-          setEmptyRow(tbody, "Nenhum veículo no pátio.", 8);
+          setEmptyRow(tbody, "Nenhum veículo no pátio.", 7);
           return;
         }
         const showGestor = userIsTrackManager;
         tbody.innerHTML = items
           .map((v) => {
             const total = calcTotal(v);
-            const pago = v.payment_status === "PAGO";
             const localizador = state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
             const assessoria = state.partners.find((p) => p.id === v.assessoria_id)?.nome || "-";
             const valorCell = showGestor
               ? "-"
               : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
-            const pagamentoCell = showGestor
-              ? ""
-              : `<span class="tag ${pago ? "success" : "warning"}">${pago ? "Pago" : "Em aberto"}</span>`;
 
             const emPipeline = v.status !== "NO_PATIO";
             const rowClass = emPipeline ? "vnp-row-liberacao" : "";
@@ -4792,7 +4736,6 @@
                 <td data-label="Assessoria">${assessoria}</td>
                 <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
                 <td data-label="Valor">${valorCell}</td>
-                <td data-label="Pagamento">${pagamentoCell}</td>
                 <td class="actions" data-label="Ações">${actionsCell}</td>
               </tr>
             `;
@@ -4843,14 +4786,13 @@
 
       function renderVehicleTable(tbody, items, actionType) {
         if (!items.length) {
-          setEmptyRow(tbody, "Nenhum veículo encontrado.", 8);
+          setEmptyRow(tbody, "Nenhum veículo encontrado.", 7);
           return;
         }
         const showGestor = userIsTrackManager;
         tbody.innerHTML = items
           .map((v) => {
             const total = calcTotal(v);
-            const pago = v.payment_status === "PAGO";
             const localizador =
               state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
             const assessoria =
@@ -4865,10 +4807,6 @@
               ? "-"
               : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
 
-            const pagamentoCell = showGestor
-              ? ""
-              : `<span class="tag ${pago ? "success" : "warning"}">${pago ? "Pago" : "Em aberto"}</span>`;
-
             const actionsCell = showGestor
               ? ""
               : `
@@ -4879,7 +4817,6 @@
                       : `<button class="secondary" data-action="nfse" data-id="${v.id}">NFSe solicitada</button>
                          <button class="secondary" data-action="${actionType}" data-id="${v.id}">${actionLabels[actionType]}</button>`
                   }
-                  <button class="secondary" data-action="pagamento" data-id="${v.id}">${pago ? "Marcar em aberto" : "Marcar pago"}</button>
                   <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
                   <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
                 `;
@@ -4892,7 +4829,6 @@
                 <td data-label="Assessoria">${assessoria}</td>
                 <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
                 <td data-label="Valor">${valorCell}</td>
-                <td data-label="Pagamento">${pagamentoCell}</td>
                 <td class="actions" data-label="Ações">${actionsCell}</td>
               </tr>
             `;
@@ -4910,7 +4846,6 @@
           .map((v) => {
             const total = calcTotal(v);
             const status = v.status === "REMOVIDO" ? "Removido" : "Outro";
-            const pago = v.payment_status === "PAGO";
             const localizador =
               state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
             const assessoria =
@@ -4923,10 +4858,8 @@
             const actionsCell = showGestor
               ? ""
               : `
-                  <span class="tag ${pago ? "success" : "warning"}">${pago ? "Pago" : "Em aberto"}</span>
                   <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
                   <button class="secondary" data-action="nfse" data-id="${v.id}">NFSe solicitada</button>
-                  <button class="secondary" data-action="pagamento" data-id="${v.id}">${pago ? "Marcar em aberto" : "Marcar pago"}</button>
                   <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
                   <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
                   <span class="tag success">${status}</span>
@@ -4995,7 +4928,7 @@
                 .map((c, idx) => {
                   const inicio = c.period_start ? formatDate(c.period_start) : "-";
                   const fim = c.period_end ? formatDate(c.period_end) : "aberto";
-                  const status = c.status === "PAGO" ? "Pago" : "Em aberto";
+                  const status = formatReceivableStatusLabel(c);
                   return `Ciclo ${idx + 1}: ${inicio} a ${fim} • ${c.responsavel_pagamento || "-"} • ${formatCurrency(
                     c.valor
                   )} (${status})`;
@@ -5005,9 +4938,8 @@
         fichaResumo.innerHTML = `
           <strong>${vehicle.placa || "-"}</strong> • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-"}<br />
           Entrada: ${formatDateTime(vehicle.data_entrada)} • Saída: ${formatDateTime(vehicle.data_saida)}<br />
-          Valor total: ${formatCurrency(calcTotal(vehicle))} • Pagamento: ${
-            vehicle.payment_status === "PAGO" ? "Pago" : "Em aberto"
-          }<br />
+          Valor de referência (diárias): ${formatCurrency(calcTotal(vehicle))}<br />
+          <span class="notice">Cobrança e pagamento: módulo Financeiro (após encerrar o ciclo no pátio).</span><br />
           <span class="notice">Ciclos financeiros:</span><br />
           ${ciclosError ? "<em>Erro ao carregar ciclos.</em>" : ciclosHtml}
         `;
@@ -5045,7 +4977,6 @@
           if (userIsTrackManager) {
             fichaSectionSlv.innerHTML = `<p class="notice" style="margin:0">Visualização do gestor de pista.</p>`;
           } else {
-            const pago = vehicle.payment_status === "PAGO";
             let situacao = "";
             if (vehicle.status === "NO_PATIO") {
               situacao =
@@ -5076,11 +5007,6 @@
                 `<button type="button" class="secondary" data-action="confirmar" data-id="${vehicle.id}">Confirmar liberação / remoção</button>`
               );
             }
-            botoes.push(
-              `<button type="button" class="secondary" data-action="pagamento" data-id="${vehicle.id}">${
-                pago ? "Marcar em aberto" : "Marcar pago"
-              }</button>`
-            );
             fichaSectionSlv.innerHTML = `${situacao}<div class="ficha-inline-actions">${botoes.join("")}</div>`;
           }
         }
@@ -5263,7 +5189,7 @@
       }
 
       function renderFinance() {
-        const openReceivables = state.receivables.filter((r) => r.status === "EM_ABERTO");
+        const openReceivablesFinanceiro = state.receivables.filter((r) => receivableIsContaReceberFinanceiro(r));
         const openPayables = state.payables.filter((p) => p.status === "EM_ABERTO");
         const financePlateNorm = normalizePlateSearch(financePlateQuery);
         const vehicleById = new Map(state.vehicles.map((v) => [v.id, v]));
@@ -5278,7 +5204,7 @@
           const descNorm = normalizePlateSearch(p.descricao || "");
           return descNorm.includes(financePlateNorm);
         };
-        const totalReceber = openReceivables.reduce((sum, r) => sum + Number(r.valor || 0), 0);
+        const totalReceber = openReceivablesFinanceiro.reduce((sum, r) => sum + Number(r.valor || 0), 0);
         const totalPagar = openPayables.reduce((sum, p) => sum + Number(p.valor || 0), 0);
         const caixa = state.cash.reduce((sum, mov) => {
           if (mov.tipo_conta === "PAGAR") return sum - Number(mov.valor || 0);
@@ -5286,7 +5212,7 @@
         }, 0);
 
         financeReceber.textContent = formatCurrency(totalReceber);
-        financeReceberCount.textContent = `${openReceivables.length} em aberto`;
+        financeReceberCount.textContent = `${openReceivablesFinanceiro.length} em aberto`;
         financePagar.textContent = formatCurrency(totalPagar);
         financePagarCount.textContent = `${openPayables.length} previstas`;
         financeCaixa.textContent = formatCurrency(caixa);
@@ -5294,7 +5220,7 @@
         financeCaixaStatus.className = caixa >= 0 ? "tag success" : "tag warning";
 
         state.receivables.forEach((r) => {
-          if (r.status !== "EM_ABERTO") return;
+          if (!receivableIsCicloPatioAberto(r)) return;
           const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
           if (!vehicle) return;
           const totalAtual = calcTotal(vehicle);
@@ -5309,7 +5235,7 @@
         });
 
         const now = Date.now();
-        const overdueReceivables = openReceivables.filter((r) => {
+        const overdueReceivables = openReceivablesFinanceiro.filter((r) => {
           if (!r.created_at) return false;
           const created = new Date(r.created_at).getTime();
           const days = Math.floor((now - created) / 86400000);
@@ -5335,6 +5261,52 @@
         if (cloArea) cloArea.classList.add("hidden");
 
         const rows = [];
+
+        if (currentFinanceView === "aguardando_lancamento") {
+          financeHead.innerHTML = `
+            <tr>
+              <th>Tipo</th>
+              <th>Período / Responsável / Veículo</th>
+              <th>Valor</th>
+              <th>Situação</th>
+              <th>Ações</th>
+            </tr>`;
+          state.receivables
+            .filter((r) => r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO)
+            .filter((r) => matchesVehicleId(r.vehicle_id))
+            .forEach((r) => {
+              const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
+              const vehicleInfo = vehicle
+                ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`
+                : "Veículo não encontrado";
+              const ini = r.period_start ? formatDate(r.period_start) : "-";
+              const fim = r.period_end ? formatDate(r.period_end) : "-";
+              const valor = Number(r.valor || 0);
+              rows.push(`
+                <tr>
+                  <td>Ciclo encerrado</td>
+                  <td>
+                    <span class="notice">${r.receivable_category || "GUARDA_PATIO"}</span><br />
+                    ${escapeHtml(r.responsavel_pagamento || "—")}<br />
+                    <span class="notice">${escapeHtml(vehicleInfo)}</span><br />
+                    <span class="notice">${escapeHtml(ini)} → ${escapeHtml(fim)}</span>
+                  </td>
+                  <td>${formatCurrency(valor)}</td>
+                  <td><span class="tag warning">Aguardando</span></td>
+                  <td class="actions">
+                    <button class="secondary" data-action="lancar_conta" data-id="${r.id}">Lançar em aberto</button>
+                    <button class="secondary" data-action="receber_aguardando" data-id="${r.id}">Registrar pagamento</button>
+                  </td>
+                </tr>
+              `);
+            });
+          if (!rows.length) {
+            setEmptyRow(tableFinance, "Nenhum ciclo aguardando lançamento no financeiro.", 5);
+          } else {
+            tableFinance.innerHTML = rows.join("");
+          }
+          return;
+        }
 
         if (currentFinanceView === "relatorios") {
           financeHead.innerHTML = `
@@ -5529,14 +5501,14 @@
           });
 
           // Projeção de caixa
-          const openReceivables = state.receivables.filter((r) => r.status === "EM_ABERTO");
+          const openRecProj = state.receivables.filter((r) => receivableIsContaReceberFinanceiro(r));
           const openPayables = state.payables.filter((p) => p.status === "EM_ABERTO");
           const caixaAtual = state.cash.reduce((sum, mov) => {
             if (mov.tipo_conta === "PAGAR") return sum - Number(mov.valor || 0);
             return sum + Number(mov.valor || 0);
           }, 0);
 
-          const projetado = caixaAtual + openReceivables.reduce((s, r) => s + Number(r.valor || 0), 0) - openPayables.reduce((s, p) => s + Number(p.valor || 0), 0);
+          const projetado = caixaAtual + openRecProj.reduce((s, r) => s + Number(r.valor || 0), 0) - openPayables.reduce((s, p) => s + Number(p.valor || 0), 0);
 
           rows.push(`
             <tr>
@@ -5620,7 +5592,7 @@
 
         if (currentFinanceView === "receber" || currentFinanceView === "receber_alerta") {
           state.receivables
-            .filter((r) => r.status === "EM_ABERTO")
+            .filter((r) => receivableIsContaReceberFinanceiro(r))
             .filter((r) => matchesVehicleId(r.vehicle_id))
             .filter((r) => {
               if (currentFinanceView !== "receber_alerta") return true;
@@ -5634,7 +5606,7 @@
               const daysOpen = created ? Math.floor((now - created) / 86400000) : 0;
               const isOverdue = created ? daysOpen > 10 : false;
               const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
-              const valorCobranca = vehicle ? calcTotal(vehicle) : Number(r.valor || 0);
+              const valorCobranca = Number(r.valor || 0);
               const vehicleInfo = vehicle
                 ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`
                 : "-";
@@ -5996,13 +5968,6 @@
         if (e.target === e.currentTarget) e.currentTarget.classList.add("hidden");
       });
 
-      document.getElementById("vlsToolbarFilters")?.addEventListener("click", (e) => {
-        const btn = e.target.closest("[data-vls-pay]");
-        if (!btn) return;
-        vlsListFilterPay = btn.getAttribute("data-vls-pay") || "all";
-        updateVlsPayFilterButtons();
-        renderVehicles();
-      });
       document.getElementById("vlsFilterLocator")?.addEventListener("change", (e) => {
         vlsListFilterLocatorId = e.target.value || "";
         renderVehicles();
@@ -6012,14 +5977,12 @@
         renderVehicles();
       });
       document.getElementById("vlsFiltersClear")?.addEventListener("click", () => {
-        vlsListFilterPay = "all";
         vlsListFilterLocatorId = "";
         vlsListFilterAssessoriaId = "";
         const loc = document.getElementById("vlsFilterLocator");
         const ass = document.getElementById("vlsFilterAssessoria");
         if (loc) loc.value = "";
         if (ass) ass.value = "";
-        updateVlsPayFilterButtons();
         renderVehicles();
       });
 
@@ -6779,7 +6742,11 @@
           const valorFechamento = calcPeriodTotal(vehicle, currentCycle.period_start, periodEnd);
           const { error: closeErr } = await supabase
             .from("receivables")
-            .update({ period_end: periodEnd, valor: valorFechamento })
+            .update({
+              period_end: periodEnd,
+              valor: valorFechamento,
+              status: RECEIVABLE_AGUARDANDO_LANCAMENTO,
+            })
             .eq("id", currentCycle.id)
             .eq("user_id", state.user.id);
           if (closeErr) {
@@ -6816,69 +6783,10 @@
           await loadReceivables();
           renderFinance();
           alert(
-            `Ciclo do responsável anterior encerrado em ${dataAcerto} (fim desse dia). Novo responsável a partir de ${formatNextCalendarDayPt(
+            `Ciclo do responsável anterior encerrado em ${dataAcerto} (fim desse dia). O encerramento foi enviado ao Financeiro (aba «Aguardando lançamento»). Novo responsável a partir de ${formatNextCalendarDayPt(
               dataAcerto
             )}.`
           );
-          await refreshFichaIfOpen(id);
-          return;
-        }
-
-        if (action === "pagamento") {
-          const nextStatus = vehicle.payment_status === "PAGO" ? "EM_ABERTO" : "PAGO";
-          const totalAtual = calcTotal(vehicle);
-          const { error } = await supabase
-            .from("vehicles")
-            .update({ payment_status: nextStatus })
-            .eq("id", id)
-            .eq("user_id", state.user.id);
-          if (error) {
-            alert(error.message);
-            return;
-          }
-          const { data: receivable } = await supabase
-            .from("receivables")
-            .select("id,status,valor,vehicle_id")
-            .eq("vehicle_id", id)
-            .eq("user_id", state.user.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (receivable) {
-            await supabase
-              .from("receivables")
-              .update({ status: nextStatus, valor: totalAtual })
-              .eq("id", receivable.id)
-              .eq("user_id", state.user.id);
-            if (nextStatus === "PAGO") {
-              const { data: existingMov } = await supabase
-                .from("cash_movements")
-                .select("id")
-                .eq("conta_id", receivable.id)
-                .eq("tipo_conta", "RECEBER")
-                .limit(1);
-              if (!existingMov || existingMov.length === 0) {
-                const vehicleInfo = `${vehicle?.placa || "-"} • ${[vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")}`.trim();
-                await supabase.from("cash_movements").insert({
-                  user_id: state.user.id,
-                  tipo_conta: "RECEBER",
-                  conta_id: receivable.id,
-                  valor: totalAtual,
-                  descricao: vehicleInfo ? `Diárias - ${vehicleInfo}` : "Diárias",
-                });
-              } else {
-                await supabase
-                  .from("cash_movements")
-                  .update({ valor: totalAtual })
-                  .eq("conta_id", receivable.id)
-                  .eq("tipo_conta", "RECEBER");
-              }
-            }
-          }
-          await loadVehicles();
-          await Promise.all([loadReceivables(), loadCash()]);
-          renderFinance();
-          updateDashboard();
           await refreshFichaIfOpen(id);
           return;
         }
@@ -7018,12 +6926,46 @@
             alert("Não foi possível atualizar o veículo. Verifique se o registro está no seu usuário.");
             return;
           }
+
+          const { data: cycleAberto, error: cycleQErr } = await supabase
+            .from("receivables")
+            .select("id,period_start")
+            .eq("user_id", state.user.id)
+            .eq("vehicle_id", id)
+            .is("period_end", null)
+            .eq("status", "EM_ABERTO")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (cycleQErr) {
+            console.warn(cycleQErr);
+          }
+          if (cycleAberto?.id) {
+            const closedVehicle = { ...vehicle, status: "REMOVIDO", data_saida: dataSaida };
+            const valorFechamento = calcPeriodTotal(closedVehicle, cycleAberto.period_start, dataSaida);
+            const { error: recErr } = await supabase
+              .from("receivables")
+              .update({
+                period_end: dataSaida,
+                valor: valorFechamento,
+                status: RECEIVABLE_AGUARDANDO_LANCAMENTO,
+              })
+              .eq("id", cycleAberto.id)
+              .eq("user_id", state.user.id);
+            if (recErr) {
+              alert(recErr.message);
+              return;
+            }
+          }
+
           await loadVehicles();
           await loadReceivables();
           renderFinance();
           updateDashboard();
           openPatioSubview("removidos");
-          alert("Veículo removido do pátio (VRP).");
+          alert(
+            "Veículo removido do pátio (VRP). O ciclo financeiro encerrado aparece no Financeiro, em «Aguardando lançamento», para lançamento ou pagamento."
+          );
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
           return;
@@ -7102,20 +7044,85 @@
           return;
         }
 
+        if (action === "lancar_conta") {
+          const receivable = state.receivables.find((r) => r.id === id);
+          if (!receivable || receivable.status !== RECEIVABLE_AGUARDANDO_LANCAMENTO) {
+            alert("Registo não encontrado ou já tratado. Atualize o financeiro.");
+            return;
+          }
+          const { error } = await supabase
+            .from("receivables")
+            .update({ status: "EM_ABERTO" })
+            .eq("id", id)
+            .eq("user_id", state.user.id);
+          if (error) {
+            alert(error.message);
+            return;
+          }
+          await loadReceivables();
+          renderFinance();
+          updateDashboard();
+          return;
+        }
+
+        if (action === "receber_aguardando") {
+          const receivable = state.receivables.find((r) => r.id === id);
+          if (!receivable || receivable.status !== RECEIVABLE_AGUARDANDO_LANCAMENTO) {
+            alert("Registo não encontrado ou já lançado. Atualize o financeiro.");
+            return;
+          }
+          const valorPago = Number(receivable.valor || 0);
+          if (valorPago <= 0) {
+            alert("Valor inválido para registo de pagamento.");
+            return;
+          }
+          const { error } = await supabase
+            .from("receivables")
+            .update({ status: "PAGO", valor: valorPago })
+            .eq("id", id)
+            .eq("user_id", state.user.id);
+          if (error) {
+            alert(error.message);
+            return;
+          }
+          if (receivable.vehicle_id) {
+            await supabase
+              .from("vehicles")
+              .update({ payment_status: "PAGO" })
+              .eq("id", receivable.vehicle_id)
+              .eq("user_id", state.user.id);
+          }
+          const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
+          const vehicleInfo = `${vehicle?.placa || "-"} • ${[vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")}`.trim();
+          await supabase.from("cash_movements").insert({
+            user_id: state.user.id,
+            tipo_conta: "RECEBER",
+            conta_id: id,
+            valor: valorPago,
+            descricao: vehicleInfo ? `Diárias - ${vehicleInfo}` : "Diárias",
+          });
+          await Promise.all([loadReceivables(), loadCash(), loadVehicles()]);
+          renderFinance();
+          updateDashboard();
+          return;
+        }
+
         if (action === "receber") {
           const receivable = state.receivables.find((r) => r.id === id);
           if (!receivable) {
             alert("Recebimento não encontrado. Atualize a página (Financeiro) e tente de novo.");
             return;
           }
-          const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
-          const totalAtual = vehicle ? calcTotal(vehicle) : Number(receivable.valor || 0);
-          if (totalAtual <= 0) {
+          if (!receivableIsContaReceberFinanceiro(receivable)) {
             alert(
-              vehicle
-                ? "Valor inválido para recebimento. Confira diária, data de entrada e (se houver) saída do veículo."
-                : "Valor inválido para recebimento (veículo não encontrado ou valor zerado)."
+              "Este registo não está em «Contas a receber». Se o ciclo acabou de sair do pátio, use a aba «Aguardando lançamento»."
             );
+            return;
+          }
+          const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
+          const totalAtual = Number(receivable.valor || 0);
+          if (totalAtual <= 0) {
+            alert("Valor inválido para recebimento. Confira o valor do ciclo ou atualize os dados do veículo.");
             return;
           }
           if (receivable.status === "PAGO") {
