@@ -98,13 +98,37 @@
         border-bottom-color: rgba(45, 212, 191, 0.35);
       }
       #viewPatio.patio-module-shell {
-        border-color: rgba(248, 113, 113, 0.35);
-        background: linear-gradient(165deg, rgba(225, 29, 46, 0.1) 0%, rgba(15, 19, 26, 0.72) 38%, rgba(15, 19, 26, 0.58) 100%);
-        box-shadow: 0 0 0 1px rgba(225, 29, 46, 0.12), var(--shadow-soft);
+        position: relative;
+        overflow: hidden;
+        border-color: rgba(248, 113, 113, 0.38);
+        background: linear-gradient(165deg, rgba(225, 29, 46, 0.11) 0%, rgba(15, 19, 26, 0.74) 38%, rgba(15, 19, 26, 0.58) 100%);
+        box-shadow:
+          0 0 0 1px rgba(225, 29, 46, 0.12),
+          0 24px 48px rgba(0, 0, 0, 0.32);
+      }
+      #viewPatio.patio-module-shell::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(248, 113, 113, 0.7),
+          rgba(225, 29, 46, 0.55),
+          rgba(248, 113, 113, 0.45),
+          transparent
+        );
+        pointer-events: none;
+        opacity: 0.95;
       }
       [data-theme="light"] #viewPatio.patio-module-shell {
-        background: linear-gradient(165deg, rgba(225, 29, 46, 0.08) 0%, rgba(255, 255, 255, 0.85) 42%, rgba(255, 255, 255, 0.72) 100%);
-        box-shadow: 0 0 0 1px rgba(225, 29, 46, 0.18), var(--shadow-soft);
+        background: linear-gradient(165deg, rgba(225, 29, 46, 0.08) 0%, rgba(255, 255, 255, 0.88) 42%, rgba(255, 255, 255, 0.74) 100%);
+        box-shadow:
+          0 0 0 1px rgba(225, 29, 46, 0.16),
+          0 20px 40px rgba(15, 23, 42, 0.07);
       }
       .patio-module-ribbon {
         display: flex;
@@ -112,9 +136,9 @@
         justify-content: space-between;
         gap: 16px;
         flex-wrap: wrap;
-        padding-bottom: 14px;
-        margin-bottom: 6px;
-        border-bottom: 1px solid rgba(248, 113, 113, 0.28);
+        padding-bottom: 18px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid rgba(248, 113, 113, 0.32);
       }
       .patio-module-meta {
         display: flex;
@@ -135,13 +159,37 @@
         max-width: 300px;
       }
       #viewFinanceiro.finance-module-shell {
-        border-color: rgba(45, 212, 191, 0.35);
-        background: linear-gradient(165deg, rgba(13, 148, 136, 0.12) 0%, rgba(15, 19, 26, 0.72) 38%, rgba(15, 19, 26, 0.58) 100%);
-        box-shadow: 0 0 0 1px rgba(13, 148, 136, 0.12), var(--shadow-soft);
+        position: relative;
+        overflow: hidden;
+        border-color: rgba(45, 212, 191, 0.4);
+        background: linear-gradient(165deg, rgba(13, 148, 136, 0.14) 0%, rgba(15, 19, 26, 0.74) 38%, rgba(15, 19, 26, 0.58) 100%);
+        box-shadow:
+          0 0 0 1px rgba(13, 148, 136, 0.14),
+          0 24px 48px rgba(0, 0, 0, 0.32);
+      }
+      #viewFinanceiro.finance-module-shell::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(45, 212, 191, 0.75),
+          rgba(13, 148, 136, 0.55),
+          rgba(56, 189, 248, 0.35),
+          transparent
+        );
+        pointer-events: none;
+        opacity: 0.95;
       }
       [data-theme="light"] #viewFinanceiro.finance-module-shell {
-        background: linear-gradient(165deg, rgba(13, 148, 136, 0.1) 0%, rgba(255, 255, 255, 0.85) 42%, rgba(255, 255, 255, 0.72) 100%);
-        box-shadow: 0 0 0 1px rgba(13, 148, 136, 0.2), var(--shadow-soft);
+        background: linear-gradient(165deg, rgba(13, 148, 136, 0.1) 0%, rgba(255, 255, 255, 0.88) 42%, rgba(255, 255, 255, 0.74) 100%);
+        box-shadow:
+          0 0 0 1px rgba(13, 148, 136, 0.18),
+          0 20px 40px rgba(15, 23, 42, 0.07);
       }
       .finance-module-ribbon {
         display: flex;
@@ -149,9 +197,9 @@
         justify-content: space-between;
         gap: 16px;
         flex-wrap: wrap;
-        padding-bottom: 14px;
-        margin-bottom: 6px;
-        border-bottom: 1px solid rgba(45, 212, 191, 0.28);
+        padding-bottom: 18px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid rgba(45, 212, 191, 0.32);
       }
       .finance-module-meta {
         display: flex;
@@ -171,6 +219,84 @@
         color: var(--muted);
         max-width: 300px;
       }
+
+      /* Módulos pátio / financeiro — hero alinhado ao painel premium */
+      .module-kicker {
+        margin: 0 0 4px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        opacity: 0.9;
+      }
+      .module-kicker--patio {
+        color: #fca5a5;
+      }
+      .module-kicker--finance {
+        color: #5eead4;
+      }
+      .module-lede {
+        margin: 8px 0 0;
+        font-size: 14px;
+        line-height: 1.55;
+        color: var(--muted);
+        max-width: 40rem;
+      }
+      #viewPatio.patio-module-shell .toolbar,
+      #viewFinanceiro.finance-module-shell .toolbar {
+        margin-bottom: 16px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      }
+      #viewPatio.patio-module-shell .toolbar h2,
+      #viewFinanceiro.finance-module-shell .toolbar h2 {
+        font-size: 1.65rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+        margin: 0;
+      }
+      #viewPatio .section-card.patio-subview {
+        border-radius: 18px;
+        border-color: rgba(248, 113, 113, 0.22);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.05),
+          var(--shadow-soft);
+      }
+      #viewPatio .section-card.patio-subview > .pill:first-child {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        border: 1px solid rgba(248, 113, 113, 0.38);
+        background: linear-gradient(135deg, rgba(225, 29, 46, 0.2), rgba(15, 19, 26, 0.68));
+        color: #fecaca;
+        font-weight: 600;
+        padding: 8px 14px;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+      }
+      [data-theme="light"] #viewPatio .section-card.patio-subview > .pill:first-child {
+        background: linear-gradient(135deg, rgba(225, 29, 46, 0.1), rgba(255, 255, 255, 0.96));
+        color: var(--primary-strong);
+        border-color: rgba(225, 29, 46, 0.22);
+      }
+      #viewFinanceiro .section-card {
+        border-radius: 18px;
+        border-color: rgba(45, 212, 191, 0.2);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.05),
+          var(--shadow-soft);
+      }
+      #viewPatio .patio-plate-bar input {
+        min-height: 40px;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
       .dashboard-card-static {
         cursor: default;
       }
@@ -1144,6 +1270,212 @@
         align-items: center;
         justify-content: space-between;
       }
+
+      /* Painel — visual premium */
+      #viewDashboard.dashboard-shell {
+        position: relative;
+        overflow: hidden;
+        border-color: rgba(148, 163, 184, 0.18);
+        box-shadow:
+          0 0 0 1px rgba(225, 29, 46, 0.08),
+          0 24px 48px rgba(0, 0, 0, 0.35);
+      }
+      [data-theme="light"] #viewDashboard.dashboard-shell {
+        box-shadow:
+          0 0 0 1px rgba(225, 29, 46, 0.12),
+          0 20px 40px rgba(15, 23, 42, 0.06);
+      }
+      #viewDashboard.dashboard-shell::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(225, 29, 46, 0.55),
+          rgba(248, 113, 113, 0.35),
+          rgba(225, 29, 46, 0.5),
+          transparent
+        );
+        pointer-events: none;
+        opacity: 0.92;
+      }
+      .dashboard-toolbar {
+        align-items: flex-start;
+        padding-bottom: 20px;
+        margin-bottom: 22px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      }
+      .dashboard-kicker {
+        margin: 0 0 4px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        opacity: 0.88;
+      }
+      #viewDashboard.dashboard-shell .dashboard-toolbar h2 {
+        font-size: 1.75rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+        margin: 0 0 8px;
+      }
+      .dashboard-subtitle {
+        margin: 0 !important;
+        max-width: 36rem;
+        font-size: 14px;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+      .pill.pill--premium {
+        align-self: center;
+        padding: 8px 14px 8px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(225, 29, 46, 0.38);
+        background: linear-gradient(
+          135deg,
+          rgba(225, 29, 46, 0.2),
+          rgba(15, 19, 26, 0.72)
+        );
+        color: #fecaca;
+        font-weight: 600;
+        font-size: 12px;
+        letter-spacing: 0.02em;
+        box-shadow: 0 4px 18px rgba(225, 29, 46, 0.14);
+      }
+      [data-theme="light"] .pill.pill--premium {
+        background: linear-gradient(135deg, rgba(225, 29, 46, 0.11), rgba(255, 255, 255, 0.96));
+        color: var(--primary-strong);
+        border-color: rgba(225, 29, 46, 0.28);
+        box-shadow: 0 4px 14px rgba(225, 29, 46, 0.08);
+      }
+      .pill-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #4ade80;
+        box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.28);
+        flex-shrink: 0;
+        animation: dashboardPillPulse 2.2s ease-in-out infinite;
+      }
+      @keyframes dashboardPillPulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.62;
+          transform: scale(0.9);
+        }
+      }
+      #viewDashboard .dashboard-modules {
+        gap: 20px;
+      }
+      #viewDashboard .card.dashboard-module-card {
+        min-height: 156px;
+        border-radius: 18px;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.06),
+          var(--shadow-soft);
+      }
+      #viewDashboard .card.dashboard-module-card:hover {
+        transform: translateY(-2px);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.08),
+          0 20px 42px rgba(0, 0, 0, 0.28);
+      }
+      .dashboard-plate-card {
+        grid-column: 1 / -1;
+        border-radius: 18px;
+        padding: 22px 22px 20px;
+        border-color: rgba(148, 163, 184, 0.16);
+        background: linear-gradient(
+          165deg,
+          rgba(255, 255, 255, 0.055) 0%,
+          rgba(15, 19, 26, 0.42) 100%
+        );
+      }
+      [data-theme="light"] .dashboard-plate-card {
+        background: linear-gradient(165deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.88));
+      }
+      .dashboard-plate-card .card-head .card-title {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        font-weight: 700;
+      }
+      .dashboard-plate-hint {
+        margin: 0 0 14px;
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+      .dashboard-plate-card .filter-bar input {
+        min-height: 42px;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .dashboard-stat-card {
+        border-radius: 18px;
+        padding: 20px 20px 18px;
+        position: relative;
+        overflow: hidden;
+      }
+      .dashboard-stat-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      }
+      .dashboard-stat-card .card-value {
+        font-size: 2.25rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        margin-top: 4px;
+      }
+      .dashboard-stat-card .card-head .card-title {
+        font-size: 11px;
+        letter-spacing: 0.09em;
+        font-weight: 700;
+      }
+      .dashboard-stat-card .icon {
+        width: 20px;
+        height: 20px;
+        padding: 8px;
+        border-radius: 12px;
+        background: rgba(225, 29, 46, 0.14);
+        box-sizing: content-box;
+      }
+      .dashboard-stat--vnp {
+        border-color: rgba(248, 113, 113, 0.38);
+        background: linear-gradient(155deg, rgba(225, 29, 46, 0.15), rgba(15, 19, 26, 0.52));
+      }
+      [data-theme="light"] .dashboard-stat--vnp {
+        background: linear-gradient(155deg, rgba(225, 29, 46, 0.08), rgba(255, 255, 255, 0.94));
+      }
+      .dashboard-stat--release {
+        border-color: rgba(251, 191, 36, 0.42);
+        background: linear-gradient(155deg, rgba(245, 158, 11, 0.13), rgba(15, 19, 26, 0.52));
+      }
+      [data-theme="light"] .dashboard-stat--release {
+        background: linear-gradient(155deg, rgba(251, 191, 36, 0.12), rgba(255, 255, 255, 0.94));
+      }
+      .dashboard-stat--release .icon {
+        background: rgba(245, 158, 11, 0.18);
+        color: #fbbf24;
+      }
     </style>
   </head>
   <body>
@@ -1214,13 +1546,17 @@
           </div>
         </div>
 
-        <div id="viewDashboard" class="panel">
-          <div class="toolbar">
-            <div>
+        <div id="viewDashboard" class="panel dashboard-shell">
+          <div class="toolbar dashboard-toolbar">
+            <div class="dashboard-toolbar-text">
+              <p class="dashboard-kicker">Visão geral</p>
               <h2>Painel</h2>
-              <p class="subtitle" style="margin-bottom: 0">Resumo e acesso aos módulos principais</p>
+              <p class="subtitle dashboard-subtitle">
+                Módulos de operação e financeiro, busca por placa e indicadores do pátio — tudo em um fluxo limpo.
+              </p>
             </div>
-            <span class="pill">Atualizado em tempo real</span>
+            <span class="pill pill--premium"
+              ><span class="pill-dot" aria-hidden="true"></span> Dados ao vivo</span>
           </div>
           <div class="grid">
             <div class="dashboard-modules" style="grid-column: 1 / -1">
@@ -1252,11 +1588,11 @@
                 </div>
               </div>
             </div>
-            <div class="card" style="grid-column: 1 / -1">
+            <div class="card dashboard-plate-card">
               <div class="card-head">
                 <span class="card-title">Buscar por placa</span>
               </div>
-              <p class="subtitle" style="margin: 0 0 12px"></p>
+              <p class="dashboard-plate-hint">Digite a placa e confirme — a lista do pátio filtra na hora.</p>
               <form id="plateSearchForm" class="filter-bar" style="margin: 0" action="#" novalidate>
                 <label for="plateFilter">Placa</label>
                 <input
@@ -1276,7 +1612,7 @@
               </form>
               <p class="notice plate-search-hint hidden" style="margin: 10px 0 0"></p>
             </div>
-            <div class="card" id="cardVeiculosLink">
+            <div class="card clickable dashboard-stat-card dashboard-stat--vnp" id="cardVeiculosLink">
               <div class="card-head">
                 <span class="card-title">VNP</span>
                 <span class="icon" aria-hidden="true">
@@ -1293,9 +1629,9 @@
               </div>
               <div class="card-value" id="cardVeiculos">0</div>
             </div>
-            <div class="card" id="cardSolicitadasLink">
+            <div class="card clickable dashboard-stat-card dashboard-stat--release" id="cardSolicitadasLink">
               <div class="card-head">
-                <span class="card-title">Em liberação</span>
+                <span class="card-title">Veículos em liberação</span>
                 <span class="icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none">
                     <path
@@ -1309,126 +1645,6 @@
                 </span>
               </div>
               <div class="card-value" id="cardSolicitadas">0</div>
-            </div>
-            <div class="card" id="cardConfirmadasLink">
-              <div class="card-head">
-                <span class="card-title">VRP</span>
-                <span class="icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M5 12l4 4L19 6"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </span>
-              </div>
-              <div class="card-value" id="cardConfirmadas">0</div>
-            </div>
-            <div class="card dashboard-card-static" id="cardVencidasLink">
-              <div class="card-head">
-                <span class="card-title">Contas vencidas</span>
-                <span class="icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M7 3h10a2 2 0 012 2v14l-7-3-7 3V5a2 2 0 012-2z"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </span>
-              </div>
-              <div class="card-value" id="cardVencidas">0</div>
-            </div>
-            <div class="card dashboard-card-static" id="cardHojeLink">
-              <div class="card-head">
-                <span class="card-title">Dia de pagar</span>
-                <span class="icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M8 2v4M16 2v4M4 8h16M6 12h6M6 16h6"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </span>
-              </div>
-              <div class="card-value" id="cardHoje">0</div>
-            </div>
-            <div class="card dashboard-card-static" id="cardCaixaLink">
-              <div class="card-head">
-                <span class="card-title">Caixa</span>
-                <span class="icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M4 7h16v10H4zM7 7l2-3h6l2 3"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </span>
-              </div>
-              <div class="card-value" id="cardCaixa">R$ 0,00</div>
-            </div>
-            <div class="card dashboard-card-static" id="cardReceberAtrasoLink">
-              <div class="card-head">
-                <span class="card-title">Recebimentos atrasados</span>
-                <span class="icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M12 8v4m0 4h.01M4.5 19h15a1.5 1.5 0 001.3-2.2l-7.5-13a1.5 1.5 0 00-2.6 0l-7.5 13A1.5 1.5 0 004.5 19z"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </span>
-              </div>
-              <div class="card-value" id="cardReceberAtraso">Em dia</div>
-            </div>
-            <div class="card">
-              <div class="card-head">
-                <span class="card-title">Total de diárias</span>
-                <span class="icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M4 6h16M7 3v6m10-6v6M5 10h14v9H5z"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </span>
-              </div>
-              <div class="card-value" id="cardTotalDiarias">0</div>
-            </div>
-            <div class="card clickable" id="cardNfseLink">
-              <div class="card-head">
-                <span class="card-title">NFSe pendente</span>
-                <span class="icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                    <path d="M14 3v5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                </span>
-              </div>
-              <div class="card-value" id="cardNfsePendentes">0</div>
             </div>
           </div>
         </div>
@@ -1450,7 +1666,11 @@
           </div>
           <div class="toolbar">
             <div>
+              <p class="module-kicker module-kicker--patio">Operação</p>
               <h2>Gestão de Pátio</h2>
+              <p class="module-lede">
+                Listas VNP, VRP e NFSe, busca por placa e impressões — o mesmo acabamento visual do painel.
+              </p>
             </div>
             <div class="actions">
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
@@ -1475,7 +1695,7 @@
           <p class="notice plate-search-hint hidden" style="margin: 6px 0 10px"></p>
           <form
             id="plateSearchFormPatio"
-            class="filter-bar"
+            class="filter-bar patio-plate-bar"
             style="margin: 0 0 12px"
             action="#"
             novalidate
@@ -1650,7 +1870,11 @@
           </div>
           <div class="toolbar">
             <div>
+              <p class="module-kicker module-kicker--finance">Financeiro</p>
               <h2>Gestão financeira</h2>
+              <p class="module-lede">
+                Recebíveis, despesas, caixa e fechamento — interface alinhada ao painel e ao módulo de pátio.
+              </p>
             </div>
             <div class="actions">
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
@@ -2461,7 +2685,6 @@
       const patioSubnav = document.getElementById("patioSubnav");
       const financeSubnav = document.getElementById("financeSubnav");
       const partnerSubnav = document.getElementById("partnerSubnav");
-      const cardNfseLink = document.getElementById("cardNfseLink");
       const plateFilter = document.getElementById("plateFilter");
       const plateSearchForm = document.getElementById("plateSearchForm");
       const clearPlateFilter = document.getElementById("clearPlateFilter");
@@ -4186,46 +4409,10 @@
         const vls = state.vehicles.filter((v) =>
           ["LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA"].includes(v.status)
         );
-        const removidos = state.vehicles.filter((v) => v.status === "REMOVIDO");
-        const nfsePendentes = state.vehicles.filter((v) => v.nfse_status === "PENDENTE");
-
-        const totalNoPatio = noPatio.reduce((sum, v) => sum + calcTotal(v), 0);
-        const now = new Date();
-        const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-        const endToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        const totalDiariasHoje = state.vehicles
-          .filter((v) => v.status !== "REMOVIDO")
-          .filter((v) => {
-            const entrada = new Date(v.data_entrada);
-            const saida = v.data_saida ? new Date(v.data_saida) : null;
-            const entrouAntes = entrada <= endToday;
-            const saiuDepois = !saida || saida >= startToday;
-            return entrouAntes && saiuDepois;
-          })
-          .reduce((sum, v) => sum + Number(v.valor_diaria || 0), 0);
-
-        const today = new Date();
-        const todayStr = today.toISOString().slice(0, 10);
-        const vencidas = state.payables.filter(
-          (p) => p.status === "EM_ABERTO" && p.data_vencimento && p.data_vencimento < todayStr
-        );
-        const vencendoHoje = state.payables.filter(
-          (p) => p.status === "EM_ABERTO" && p.data_vencimento === todayStr
-        );
-
-        const caixa = state.cash.reduce((sum, mov) => {
-          if (mov.tipo_conta === "PAGAR") return sum - Number(mov.valor || 0);
-          return sum + Number(mov.valor || 0);
-        }, 0);
-
-        document.getElementById("cardVeiculos").textContent = (noPatio.length + vls.length).toString();
-        document.getElementById("cardSolicitadas").textContent = vls.length.toString();
-        document.getElementById("cardConfirmadas").textContent = removidos.length.toString();
-        document.getElementById("cardVencidas").textContent = vencidas.length.toString();
-        document.getElementById("cardHoje").textContent = vencendoHoje.length.toString();
-        document.getElementById("cardCaixa").textContent = formatCurrency(caixa);
-        document.getElementById("cardTotalDiarias").textContent = formatCurrency(totalDiariasHoje);
-        document.getElementById("cardNfsePendentes").textContent = nfsePendentes.length.toString();
+        const elV = document.getElementById("cardVeiculos");
+        const elS = document.getElementById("cardSolicitadas");
+        if (elV) elV.textContent = (noPatio.length + vls.length).toString();
+        if (elS) elS.textContent = vls.length.toString();
       }
 
       /** Para busca: só letras/números; ignora hífen/espaço (consulta acontece apenas no OK). */
@@ -4859,19 +5046,9 @@
         if (overdueReceivables.length) {
           receivableAlert.textContent = `Atenção: ${overdueReceivables.length} contas a receber estão em aberto há mais de 10 dias.`;
           receivableAlert.classList.remove("hidden");
-          const cardAlert = document.getElementById("cardReceberAtraso");
-          if (cardAlert) {
-            cardAlert.textContent = `${overdueReceivables.length} atrasadas`;
-            cardAlert.className = "tag danger";
-          }
         } else {
           receivableAlert.classList.add("hidden");
           receivableAlert.textContent = "";
-          const cardAlert = document.getElementById("cardReceberAtraso");
-          if (cardAlert) {
-            cardAlert.textContent = "Em dia";
-            cardAlert.className = "tag success";
-          }
         }
 
         const stdArea = document.getElementById("financeStandardArea");
@@ -5706,10 +5883,6 @@
         openPatioSubview(button.getAttribute("data-subview"));
       });
 
-      cardNfseLink.addEventListener("click", () => {
-        openPatioSubview("nfse_pendente");
-      });
-
       function bindModuleCardActivate(el, fn) {
         if (!el) return;
         el.addEventListener("click", fn);
@@ -5730,7 +5903,6 @@
 
       const cardVeiculosLink = document.getElementById("cardVeiculosLink");
       const cardSolicitadasLink = document.getElementById("cardSolicitadasLink");
-      const cardConfirmadasLink = document.getElementById("cardConfirmadasLink");
       let userIsTrackManager = false;
 
       function showMainView(view) {
@@ -5895,10 +6067,9 @@
         });
       }
 
-      // Cards do painel: pátio abre sub-abas; cartões financeiros são só leitura (gestão no módulo Gestão financeira).
+      // Cards do painel: VNP e veículos em liberação abrem a lista unificada no pátio.
       cardVeiculosLink.addEventListener("click", () => openPatioSubview("no_patio"));
       cardSolicitadasLink.addEventListener("click", () => openPatioSubview("no_patio"));
-      cardConfirmadasLink.addEventListener("click", () => openPatioSubview("removidos"));
 
       /** Busca só no envio do formulário (OK ou Enter) — digitar não dispara nada. */
       if (plateSearchForm) {
