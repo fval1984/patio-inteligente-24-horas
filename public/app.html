@@ -2074,7 +2074,7 @@
           <p id="financeAguardandoIntro" class="notice hidden" style="margin: 4px 0 14px; max-width: 56rem; line-height: 1.45">
             <strong>Fluxo:</strong> veículos que saíram (ou troca de responsável) e ainda <strong>não confirmaste pagamento</strong> aparecem aqui — o mesmo conjunto que antes entrava direto em «Contas a receber».
             O teu OK: <strong>Ir para contas a receber</strong> (cobrança) ou <strong>Baixar como pago</strong> (entrada em caixa).
-            A aprovação fica guardada neste navegador (outro PC volta a pedir triagem até repetires o OK).
+            A aprovação fica na base (Supabase, coluna <code>financeiro_aprovado_contas_receber</code>) — o mesmo estado em qualquer PC após correres o script em <code>supabase/receivables_financeiro_aprovado_contas.sql</code>. Sem o script, a app ainda usa só o navegador como antes.
           </p>
           <div id="financeFilters" class="filter-bar hidden">
             <label>De</label>
@@ -2894,7 +2894,7 @@
       };
 
       const RECEIVABLE_AGUARDANDO_LANCAMENTO = "AGUARDANDO_LANCAMENTO";
-      /** IDs de ciclos EM_ABERTO já aprovados para «Contas a receber» (persiste neste navegador). */
+      /** Fallback se a coluna `financeiro_aprovado_contas_receber` ainda não existir no Supabase. */
       const RECEBER_TRIAGEM_IDS_KEY = "amplipatio_triagem_em_contas_ids";
 
       function receberTriagemIdSet() {
@@ -2929,6 +2929,13 @@
         }
       }
 
+      /** Aprovado para «Contas a receber»: coluna Supabase (sincroniza entre PCs) ou lista local (fallback). */
+      function receivableAprovadoParaContasReceber(r) {
+        if (!r) return false;
+        if (r.financeiro_aprovado_contas_receber === true) return true;
+        return receberTriagemIdSet().has(String(r.id));
+      }
+
       function receivableIsCicloPatioAberto(r) {
         if (!r || r.status !== "EM_ABERTO") return false;
         return r.period_end == null || r.period_end === "";
@@ -2944,21 +2951,21 @@
 
       /**
        * Fila «Aguardando lançamento»: status AGUARDANDO no Supabase OU EM_ABERTO com ciclo encerrado
-       * ainda não aprovado para «Contas a receber» neste navegador.
+       * ainda não aprovado para «Contas a receber» (Supabase ou fallback local).
        */
       function receivableNaFilaAguardandoTriagem(r) {
         if (!r) return false;
         if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return true;
         if (r.status !== "EM_ABERTO") return false;
         if (!receivableCicloEncerradoParaFinanceiro(r)) return false;
-        return !receberTriagemIdSet().has(String(r.id));
+        return !receivableAprovadoParaContasReceber(r);
       }
 
-      /** Só após «Ir para contas a receber» (marca local) ou equivalente. */
+      /** Só após «Ir para contas a receber» (Supabase ou marca local). */
       function receivableIsContaReceberFinanceiro(r) {
         if (!r || r.status !== "EM_ABERTO") return false;
         if (!receivableCicloEncerradoParaFinanceiro(r)) return false;
-        return receberTriagemIdSet().has(String(r.id));
+        return receivableAprovadoParaContasReceber(r);
       }
 
       function formatReceivableStatusLabel(c) {
@@ -2966,7 +2973,7 @@
         if (c.status === "PAGO") return "Pago";
         if (c.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return "Aguardando lançamento (financeiro)";
         if (c.status === "EM_ABERTO" && receivableIsCicloPatioAberto(c)) return "Em curso (pátio)";
-        if (c.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(c) && !receberTriagemIdSet().has(String(c.id)))
+        if (c.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(c) && !receivableAprovadoParaContasReceber(c))
           return "Aguardando lançamento (financeiro)";
         if (c.status === "EM_ABERTO") return "Em aberto (conta a receber)";
         return c.status || "-";
@@ -7115,13 +7122,26 @@
             alert("Registo não encontrado ou já tratado. Atualize o financeiro.");
             return;
           }
+          const patch = { financeiro_aprovado_contas_receber: true };
           if (receivable.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) {
-            const { error } = await supabase
-              .from("receivables")
-              .update({ status: "EM_ABERTO" })
-              .eq("id", id)
-              .eq("user_id", state.user.id);
-            if (error) {
+            patch.status = "EM_ABERTO";
+          }
+          const { error } = await supabase.from("receivables").update(patch).eq("id", id).eq("user_id", state.user.id);
+          if (error) {
+            const colMissing = /financeiro_aprovado|column|schema cache|PGRST204/i.test(error.message || "");
+            if (colMissing && receivable.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) {
+              const { error: err2 } = await supabase
+                .from("receivables")
+                .update({ status: "EM_ABERTO" })
+                .eq("id", id)
+                .eq("user_id", state.user.id);
+              if (err2) {
+                alert(err2.message);
+                return;
+              }
+            } else if (colMissing && receivable.status === "EM_ABERTO") {
+              /* coluna ainda não criada: só marca local */
+            } else {
               alert(error.message);
               return;
             }
@@ -7146,12 +7166,19 @@
           }
           const { error } = await supabase
             .from("receivables")
-            .update({ status: "PAGO", valor: valorPago })
+            .update({ status: "PAGO", valor: valorPago, financeiro_aprovado_contas_receber: false })
             .eq("id", id)
             .eq("user_id", state.user.id);
           if (error) {
-            alert(error.message);
-            return;
+            const { error: errFallback } = await supabase
+              .from("receivables")
+              .update({ status: "PAGO", valor: valorPago })
+              .eq("id", id)
+              .eq("user_id", state.user.id);
+            if (errFallback) {
+              alert(errFallback.message);
+              return;
+            }
           }
           if (receivable.vehicle_id) {
             await supabase
@@ -7200,12 +7227,19 @@
           }
           const { error } = await supabase
             .from("receivables")
-            .update({ status: "PAGO", valor: totalAtual })
+            .update({ status: "PAGO", valor: totalAtual, financeiro_aprovado_contas_receber: false })
             .eq("id", id)
             .eq("user_id", state.user.id);
           if (error) {
-            alert(error.message);
-            return;
+            const { error: errFallback } = await supabase
+              .from("receivables")
+              .update({ status: "PAGO", valor: totalAtual })
+              .eq("id", id)
+              .eq("user_id", state.user.id);
+            if (errFallback) {
+              alert(errFallback.message);
+              return;
+            }
           }
           if (receivable.vehicle_id) {
             await supabase

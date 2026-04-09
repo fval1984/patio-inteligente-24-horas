@@ -12,3 +12,6 @@
 --    (ficheiro dedicado: receivables_migrar_em_aberto_com_fim_para_aguardando.sql).
 --
 -- A interface também trata estes registos em «Aguardando lançamento» sem esse UPDATE.
+--
+-- 3) Sincronizar aprovação «Ir para contas a receber» entre dispositivos:
+--    receivables_financeiro_aprovado_contas.sql
