@@ -6908,12 +6908,22 @@
             if (trackManagerStatus) trackManagerStatus.textContent = "Defina uma senha inicial.";
             return;
           }
+          if (!isValidManagerEmail(email)) {
+            if (trackManagerStatus)
+              trackManagerStatus.textContent =
+                "Use um email completo (ex.: nome@ampliauto.com.br), com @ e domínio.";
+            return;
+          }
           if (trackManagerStatus) trackManagerStatus.textContent = "A criar utilizador...";
 
           try {
-            const sessionRes = await supabase.auth.getSession();
-            const accessToken = sessionRes?.data?.session?.access_token;
-            if (!accessToken) throw new Error("Sessao nao encontrada.");
+            let sessionRes = await supabase.auth.getSession();
+            let accessToken = sessionRes?.data?.session?.access_token;
+            if (!accessToken) {
+              const { data: ref } = await supabase.auth.refreshSession();
+              accessToken = ref?.session?.access_token;
+            }
+            if (!accessToken) throw new Error("Sessão expirada ou inexistente. Sai e volta a entrar na conta.");
 
             const resp = await fetch("/api/create-track-manager", {
               method: "POST",
@@ -6956,6 +6966,14 @@
         });
       }
 
+      function isValidManagerEmail(s) {
+        const t = (s || "").trim();
+        if (t.length < 5 || !t.includes("@")) return false;
+        const parts = t.split("@");
+        if (parts.length !== 2 || !parts[0] || !parts[1] || !parts[1].includes(".")) return false;
+        return true;
+      }
+
       function isTrackManagerUuid(s) {
         return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test((s || "").trim());
       }
@@ -6965,6 +6983,12 @@
           if (!supabase || !state?.user?.id) return;
           const uid = (trackManagerLinkUid?.value || "").trim();
           const email = (trackManagerLinkEmail?.value || "").trim();
+          if (uid.includes("@")) {
+            if (trackManagerLinkStatus)
+              trackManagerLinkStatus.textContent =
+                "No campo de cima cola só o UUID do Supabase (Authentication → Users). O email vai no campo de baixo.";
+            return;
+          }
           if (!isTrackManagerUuid(uid)) {
             if (trackManagerLinkStatus)
               trackManagerLinkStatus.textContent = "Cole um User UID válido (formato UUID).";
