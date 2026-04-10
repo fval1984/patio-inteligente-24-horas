@@ -6900,20 +6900,31 @@
 
             const json = await resp.json().catch(() => ({}));
             if (!resp.ok) {
-              throw new Error(json?.error || `Erro (${resp.status}) ao criar utilizador.`);
+              if (resp.status === 404) {
+                throw new Error(
+                  "API não encontrada (404). O deploy precisa de Next.js com /api/create-track-manager e variáveis SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY na Vercel."
+                );
+              }
+              throw new Error(
+                json?.error ||
+                  (resp.status === 500 && !json?.error
+                    ? "Erro no servidor (500). Confirme SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY em Vercel → Settings → Environment Variables."
+                    : `Erro (${resp.status}) ao criar utilizador.`)
+              );
             }
 
             const newUserId = json?.user_id || "";
             if (trackManagerStatus) {
               trackManagerStatus.textContent = newUserId
-                ? `Utilizador delegado criado. User ID: ${newUserId}`
-                : "Utilizador delegado criado.";
+                ? `Gestor de pista criado. User ID: ${newUserId}`
+                : "Gestor de pista criado.";
             }
             if (trackManagerEmail) trackManagerEmail.value = "";
             if (trackManagerPassword) trackManagerPassword.value = "";
             await loadTrackManagersList();
           } catch (e) {
-            if (trackManagerStatus) trackManagerStatus.textContent = "Erro ao criar utilizador. Verifique a tabela/policies no Supabase (coluna role).";
+            const msg = e instanceof Error ? e.message : String(e);
+            if (trackManagerStatus) trackManagerStatus.textContent = msg || "Erro ao criar utilizador.";
             console.error(e);
           }
         });

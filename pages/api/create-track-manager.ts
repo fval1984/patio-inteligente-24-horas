@@ -90,8 +90,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // 2) Marca o novo usuário como "Gestor de Pista" na tabela track_managers.
-  try {
-    const insertResp = await fetch(`${supabaseUrl}/rest/v1/track_managers`, {
+  const baseRow = {
+    owner_user_id: requesterId,
+    user_id: newUserId,
+    email,
+  };
+
+  function insertErrorText(j: any): string {
+    if (!j || typeof j !== "object") return "";
+    return [j.message, j.hint, j.details, j.error, Array.isArray(j) ? j.map((x) => x?.message).join(" ") : ""]
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  async function insertTrackManager(row: Record<string, unknown>) {
+    return fetch(`${supabaseUrl}/rest/v1/track_managers`, {
       method: "POST",
       headers: {
         apikey: serviceRoleKey,
@@ -100,21 +113,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         Accept: "application/json",
         Prefer: "return=representation",
       },
-      body: JSON.stringify([
-        {
-          owner_user_id: requesterId,
-          user_id: newUserId,
-          email,
-          role: "GESTOR_PISTA",
-        },
-      ]),
+      body: JSON.stringify([row]),
     });
+  }
 
-    const insertJson: any = await insertResp.json().catch(() => ({}));
+  try {
+    let insertResp = await insertTrackManager({ ...baseRow, role: "GESTOR_PISTA" });
+    let insertJson: any = await insertResp.json().catch(() => ({}));
+
     if (!insertResp.ok) {
-      // Se já existir, devolvemos mesmo assim para o admin saber o user_id.
+      const errText = insertErrorText(insertJson);
+      const missingRoleCol =
+        /'role'|\"role\"|column.*role|Could not find.*role/i.test(errText) ||
+        (/PGRST204|schema cache/i.test(errText) && /role/i.test(errText));
+      if (missingRoleCol) {
+        insertResp = await insertTrackManager({ ...baseRow });
+        insertJson = await insertResp.json().catch(() => ({}));
+      }
+    }
+
+    if (!insertResp.ok) {
+      const errText = insertErrorText(insertJson) || "User created but could not insert track_manager mapping";
       return res.status(insertResp.status).json({
-        error: insertJson?.message || insertJson?.hint || "User created but could not insert track_manager mapping",
+        error: errText,
         user_id: newUserId,
       });
     }
