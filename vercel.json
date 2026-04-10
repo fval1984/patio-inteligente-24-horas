@@ -1,40 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "installCommand": "npm install",
-  "buildCommand": "echo \"skip next build; static public + root api\"",
-  "outputDirectory": "public",
-  "rewrites": [
-    { "source": "/", "destination": "/app.html" },
-    { "source": "/app", "destination": "/app.html" },
-    { "source": "/amplipatio", "destination": "/app.html" },
-    { "source": "/patio", "destination": "/app.html" }
-  ],
-  "headers": [
-    {
-      "source": "/app.html",
-      "headers": [{ "key": "Cache-Control", "value": "no-store, must-revalidate" }]
-    },
-    {
-      "source": "/",
-      "headers": [{ "key": "Cache-Control", "value": "no-store, must-revalidate" }]
-    },
-    {
-      "source": "/app",
-      "headers": [{ "key": "Cache-Control", "value": "no-store, must-revalidate" }]
-    },
-    {
-      "source": "/amplipatio",
-      "headers": [{ "key": "Cache-Control", "value": "no-store, must-revalidate" }]
-    },
-    {
-      "source": "/patio",
-      "headers": [{ "key": "Cache-Control", "value": "no-store, must-revalidate" }]
-    }
-  ],
-  "functions": {
-    "api/create-track-manager.ts": {
-      "includeFiles": "lib/**"
-    }
-  }
+  "framework": "nextjs",
+  "buildCommand": "npm run build"
 }
