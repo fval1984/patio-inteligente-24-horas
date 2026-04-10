@@ -2242,14 +2242,7 @@
           <div class="section-card" style="margin-top: 18px;">
             <div class="form-grid">
               <div class="full">
-                <label>Perfil do utilizador delegado</label>
-                <select id="trackManagerRole">
-                  <option value="GESTOR_PISTA">Gestor de pista (sem valores; parceiros)</option>
-                  <option value="OPERADOR_CADASTRO">Operador (só placa, modelo, localizador; consulta sem valores; sem editar/apagar/liberar)</option>
-                </select>
-              </div>
-              <div class="full">
-                <label>Email do utilizador</label>
+                <label>Email do gestor de pista</label>
                 <input
                   id="trackManagerEmail"
                   type="text"
@@ -2261,8 +2254,11 @@
                 <input id="trackManagerPassword" type="password" placeholder="Crie uma senha" />
               </div>
             </div>
+            <p class="notice" style="margin-top: 8px">
+              O gestor regista <strong>placa, modelo, localizador e entrada</strong> (sem valores), consulta tempo no pátio e <strong>não</strong> edita, apaga nem libera veículos.
+            </p>
             <div class="form-actions" style="margin-top: 10px;">
-              <button type="button" id="addTrackManager">Criar utilizador delegado</button>
+              <button type="button" id="addTrackManager">Criar gestor de pista</button>
             </div>
             <p class="notice" id="trackManagerStatus" style="margin-top: 12px;"></p>
           </div>
@@ -2852,7 +2848,6 @@
 
       const trackManagerEmail = document.getElementById("trackManagerEmail");
       const trackManagerPassword = document.getElementById("trackManagerPassword");
-      const trackManagerRoleSelect = document.getElementById("trackManagerRole");
       const addTrackManager = document.getElementById("addTrackManager");
       const trackManagerStatus = document.getElementById("trackManagerStatus");
 
@@ -2908,10 +2903,6 @@
       }
 
       let isGestorPista = false;
-      let isOperadorCadastro = false;
-      function hideValoresNoPatio() {
-        return isGestorPista || isOperadorCadastro;
-      }
 
       const RECEIVABLE_AGUARDANDO_LANCAMENTO = "AGUARDANDO_LANCAMENTO";
       /** Fallback se a coluna `financeiro_aprovado_contas_receber` ainda não existir no Supabase. */
@@ -3131,7 +3122,7 @@
       }
 
       function filterVlsToolbarItems(items) {
-        if (hideValoresNoPatio()) return items;
+        if (isGestorPista) return items;
         return items.filter((v) => {
           if (vlsListFilterLocatorId && v.localizador_id !== vlsListFilterLocatorId) return false;
           if (vlsListFilterAssessoriaId && v.assessoria_id !== vlsListFilterAssessoriaId) return false;
@@ -4232,12 +4223,10 @@
         state.user = null;
         state.patioOwnerUserId = null;
         isGestorPista = false;
-        isOperadorCadastro = false;
       }
 
       async function loadPatioDelegatedRole() {
         isGestorPista = false;
-        isOperadorCadastro = false;
         state.patioOwnerUserId = null;
         try {
           if (!supabase || !state?.user?.id) return false;
@@ -4252,7 +4241,7 @@
               .select("owner_user_id")
               .eq("user_id", state.user.id)
               .maybeSingle();
-            data = r2.data ? { ...r2.data, role: "GESTOR_PISTA" } : null;
+            data = r2.data || null;
             error = r2.error;
           }
           if (error || !data || !data.owner_user_id) {
@@ -4260,9 +4249,7 @@
             return false;
           }
           state.patioOwnerUserId = data.owner_user_id;
-          const role = (data.role || "GESTOR_PISTA").toString().trim();
-          if (role === "OPERADOR_CADASTRO") isOperadorCadastro = true;
-          else isGestorPista = true;
+          isGestorPista = true;
           return true;
         } catch (e) {
           console.warn("track_managers: load failed", e);
@@ -4284,7 +4271,7 @@
         if (vehicleDailyWrap) vehicleDailyWrap.style.display = "";
         if (vehicleDailyReset) vehicleDailyReset.required = true;
 
-        if (!isGestorPista && !isOperadorCadastro) return;
+        if (!isGestorPista) return;
 
         document.querySelectorAll(".nav button[data-view]").forEach((btn) => {
           const view = btn.getAttribute("data-view");
@@ -4306,14 +4293,12 @@
           vehicleDailyContainer.style.display = "none";
         }
 
-        if (isOperadorCadastro) {
-          document.getElementById("openParceirosFromPatio")?.classList.add("hidden");
-          document.getElementById("printPatioVehicleList")?.classList.add("hidden");
-          document.getElementById("printPatioByPartner")?.classList.add("hidden");
-          document.getElementById("printPatioLiberados")?.classList.add("hidden");
-          patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.add("hidden");
-          patioSubnav?.querySelector('[data-subview="nfse_pendente"]')?.classList.add("hidden");
-        }
+        document.getElementById("openParceirosFromPatio")?.classList.add("hidden");
+        document.getElementById("printPatioVehicleList")?.classList.add("hidden");
+        document.getElementById("printPatioByPartner")?.classList.add("hidden");
+        document.getElementById("printPatioLiberados")?.classList.add("hidden");
+        patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.add("hidden");
+        patioSubnav?.querySelector('[data-subview="nfse_pendente"]')?.classList.add("hidden");
 
         const style = document.createElement("style");
         style.id = "track-manager-hide-values-style";
@@ -4326,24 +4311,11 @@
           #viewPatio [data-subview="nfse_pendente"] table tbody td:nth-child(6) {
             display: none !important;
           }
-        `;
-        if (isGestorPista) {
-          css += `
-          #viewPatio [data-subview="removidos"] table thead th:nth-child(7),
-          #viewPatio [data-subview="removidos"] table thead th:nth-child(8),
-          #viewPatio [data-subview="removidos"] table tbody td:nth-child(7),
-          #viewPatio [data-subview="removidos"] table tbody td:nth-child(8) {
-            display: none !important;
-          }
-        `;
-        } else if (isOperadorCadastro) {
-          css += `
           #viewPatio [data-subview="removidos"] table thead th:nth-child(7),
           #viewPatio [data-subview="removidos"] table tbody td:nth-child(7) {
             display: none !important;
           }
         `;
-        }
         css += `
           #vehicleForm.operador-simplified .field-operador-hide { display: none !important; }
         `;
@@ -4684,7 +4656,7 @@
       }
 
       async function loadAll() {
-        if (isGestorPista || isOperadorCadastro) {
+        if (isGestorPista) {
           await Promise.all([loadPartners(), loadVehicles()]);
           return;
         }
@@ -4766,8 +4738,8 @@
         const vlsForTable = filterVlsToolbarItems(vlsMerged);
         const vlsToolbar = document.getElementById("vlsToolbarFilters");
         if (vlsToolbar) {
-          vlsToolbar.classList.toggle("hidden", !!hideValoresNoPatio());
-          if (!hideValoresNoPatio()) {
+          vlsToolbar.classList.toggle("hidden", !!isGestorPista);
+          if (!isGestorPista) {
             syncVlsFilterSelects();
           }
         }
@@ -4831,7 +4803,7 @@
           setEmptyRow(tbody, "Nenhum veículo no pátio.", 7);
           return;
         }
-        const semValores = hideValoresNoPatio();
+        const semValores = isGestorPista;
         tbody.innerHTML = items
           .map((v) => {
             const total = calcTotal(v);
@@ -4850,9 +4822,9 @@
               : "";
 
             let actionsCell = "";
-            if (isOperadorCadastro) {
+            if (isGestorPista) {
               actionsCell = `<button class="secondary" data-action="ficha" data-id="${v.id}">Detalhes</button>`;
-            } else if (!isGestorPista) {
+            } else {
               actionsCell = `
                   <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
                   <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
@@ -4921,7 +4893,7 @@
           setEmptyRow(tbody, "Nenhum veículo encontrado.", 7);
           return;
         }
-        const semValores = hideValoresNoPatio();
+        const semValores = isGestorPista;
         tbody.innerHTML = items
           .map((v) => {
             const total = calcTotal(v);
@@ -4940,9 +4912,9 @@
               : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
 
             let actionsCell = "";
-            if (isOperadorCadastro) {
+            if (isGestorPista) {
               actionsCell = `<button class="secondary" data-action="ficha" data-id="${v.id}">Detalhes</button>`;
-            } else if (!isGestorPista) {
+            } else {
               actionsCell = `
                   <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
                   ${
@@ -4976,7 +4948,7 @@
           setEmptyRow(tbody, "Nenhum veículo removido.", 8);
           return;
         }
-        const semValores = hideValoresNoPatio();
+        const semValores = isGestorPista;
         tbody.innerHTML = items
           .map((v) => {
             const total = calcTotal(v);
@@ -4991,9 +4963,9 @@
               : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
 
             let actionsCell = "";
-            if (isOperadorCadastro) {
+            if (isGestorPista) {
               actionsCell = `<button class="secondary" data-action="ficha" data-id="${v.id}">Detalhes</button><span class="tag success">${status}</span>`;
-            } else if (!isGestorPista) {
+            } else {
               actionsCell = `
                   <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
                   <button class="secondary" data-action="nfse" data-id="${v.id}">NFSe solicitada</button>
@@ -5001,8 +4973,6 @@
                   <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
                   <span class="tag success">${status}</span>
                 `;
-            } else {
-              actionsCell = "";
             }
 
             return `
@@ -5054,7 +5024,7 @@
         }
         fichaModal.dataset.openVehicleId = vehicle.id;
 
-        if (isOperadorCadastro) {
+        if (isGestorPista) {
           const locNome = state.partners.find((p) => p.id === vehicle.localizador_id)?.nome || "-";
           const dias = calcDays(vehicle);
           const horas = calcHours(vehicle);
@@ -5067,7 +5037,7 @@
             <span class="notice">Tempo no pátio: ${dias} dia(s) • ${horas} h (referência operacional, sem valores).</span>
           `;
           if (fichaSectionSnf) {
-            fichaSectionSnf.innerHTML = `<p class="notice" style="margin:0">Nota fiscal e valores não estão disponíveis para este perfil.</p>`;
+            fichaSectionSnf.innerHTML = `<p class="notice" style="margin:0">Nota fiscal e valores não estão disponíveis para o gestor de pista.</p>`;
           }
           if (fichaSectionSlv) {
             const sit = VLS_STATUS_LABELS[vehicle.status] || vehicle.status || "-";
@@ -5107,10 +5077,7 @@
 
         const FLUXO_SLV = ["LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA"];
 
-        if (fichaSectionSnf && !isOperadorCadastro) {
-          if (isGestorPista) {
-            fichaSectionSnf.innerHTML = `<p class="notice" style="margin:0">Visualização do gestor de pista.</p>`;
-          } else {
+        if (fichaSectionSnf && !isGestorPista) {
             const st = vehicle.nfse_status || "NAO_SOLICITADA";
             let statusLine = "";
             if (st === "EMITIDA") {
@@ -5131,13 +5098,9 @@
                 <button type="button" class="secondary" data-action="nfse" data-id="${vehicle.id}">Abrir NFSe</button>
               </div>
             `;
-          }
         }
 
-        if (fichaSectionSlv && !isOperadorCadastro) {
-          if (isGestorPista) {
-            fichaSectionSlv.innerHTML = `<p class="notice" style="margin:0">Visualização do gestor de pista.</p>`;
-          } else {
+        if (fichaSectionSlv && !isGestorPista) {
             let situacao = "";
             if (vehicle.status === "NO_PATIO") {
               situacao =
@@ -5169,7 +5132,6 @@
               );
             }
             fichaSectionSlv.innerHTML = `${situacao}<div class="ficha-inline-actions">${botoes.join("")}</div>`;
-          }
         }
 
         const { data, error } = await supabase
@@ -5323,8 +5285,8 @@
       }
 
       function openVehicleModal(mode, vehicle) {
-        if (isOperadorCadastro && mode === "edit") {
-          alert("Este perfil não pode editar veículos.");
+        if (isGestorPista && mode === "edit") {
+          alert("O gestor de pista não pode editar veículos.");
           return;
         }
         editingVehicleId = mode === "edit" ? vehicle.id : null;
@@ -5333,10 +5295,10 @@
         vehicleModalSubtitle.textContent =
           mode === "edit"
             ? "Atualize os dados do veículo"
-            : isOperadorCadastro
+            : isGestorPista
               ? "Placa, modelo, localizador e data de entrada (sem valores)"
               : "Cadastro de entrada no pátio";
-        vehicleForm.classList.toggle("operador-simplified", isOperadorCadastro && mode === "create");
+        vehicleForm.classList.toggle("operador-simplified", isGestorPista && mode === "create");
         vehicleForm.reset();
         vehicleExit.value = "";
         if (mode === "edit" && vehicle) {
@@ -5356,7 +5318,7 @@
           }
         }
         const vd = document.getElementById("vehicleDaily");
-        if (vd) vd.required = !(isGestorPista || isOperadorCadastro);
+        if (vd) vd.required = !isGestorPista;
         vehicleModal.classList.remove("hidden");
       }
 
@@ -6349,11 +6311,7 @@
       }
 
       function openMainView(view) {
-        if (isOperadorCadastro && view !== "patio") {
-          showMainView("patio");
-          return;
-        }
-        if (isGestorPista && view !== "patio" && view !== "parceiros") {
+        if (isGestorPista && view !== "patio") {
           showMainView("patio");
           return;
         }
@@ -6685,8 +6643,8 @@
 
       vehicleForm.addEventListener("submit", async (event) => {
         event.preventDefault();
-        if (isOperadorCadastro && editingVehicleId) {
-          alert("Este perfil não pode editar veículos.");
+        if (isGestorPista && editingVehicleId) {
+          alert("O gestor de pista não pode editar veículos.");
           return;
         }
         const vehicleDailyEl = document.getElementById("vehicleDaily");
@@ -6694,15 +6652,15 @@
         const payload = {
           user_id: effectiveUserId(),
           placa: document.getElementById("vehiclePlate").value.trim(),
-          marca: isOperadorCadastro ? "" : document.getElementById("vehicleBrand").value.trim(),
+          marca: isGestorPista ? "" : document.getElementById("vehicleBrand").value.trim(),
           modelo: document.getElementById("vehicleModel").value.trim(),
           // Gestor de pista nao preenche valores; deixamos como null quando vier vazio.
           valor_diaria: vehicleDailyRaw ? Number(vehicleDailyRaw) : null,
           data_entrada: new Date(document.getElementById("vehicleEntry").value).toISOString(),
-          data_saida: isOperadorCadastro ? null : vehicleExit.value ? new Date(vehicleExit.value).toISOString() : null,
+          data_saida: isGestorPista ? null : vehicleExit.value ? new Date(vehicleExit.value).toISOString() : null,
           localizador_id: vehicleLocator.value || null,
-          assessoria_id: isOperadorCadastro ? null : vehicleAssessor.value || null,
-          observacoes: isOperadorCadastro ? "" : document.getElementById("vehicleNotes").value.trim(),
+          assessoria_id: isGestorPista ? null : vehicleAssessor.value || null,
+          observacoes: isGestorPista ? "" : document.getElementById("vehicleNotes").value.trim(),
           status: editingVehicleData?.status || "NO_PATIO",
           payment_status: editingVehicleData?.payment_status || "EM_ABERTO",
           nfse_status: editingVehicleData?.nfse_status || "NAO_SOLICITADA",
@@ -6833,11 +6791,7 @@
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${accessToken}`,
               },
-              body: JSON.stringify({
-                email,
-                password,
-                role: (trackManagerRoleSelect?.value || "GESTOR_PISTA").trim(),
-              }),
+              body: JSON.stringify({ email, password }),
             });
 
             const json = await resp.json().catch(() => ({}));
@@ -6866,10 +6820,7 @@
         const vehicle = state.vehicles.find((v) => v.id === id);
         if (!vehicle) return;
 
-        if (isGestorPista) {
-          return;
-        }
-        if (isOperadorCadastro && action !== "ficha") {
+        if (isGestorPista && action !== "ficha") {
           return;
         }
 
