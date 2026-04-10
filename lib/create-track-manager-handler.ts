@@ -30,6 +30,7 @@ export async function runCreateTrackManager(
 
   const supabaseUrl = process.env.SUPABASE_URL || "";
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  const anonKey = process.env.SUPABASE_ANON_KEY || "";
 
   if (!supabaseUrl || !serviceRoleKey) {
     return {
@@ -43,8 +44,16 @@ export async function runCreateTrackManager(
 
   const token = extractBearerToken(authorization);
   if (!token) {
-    return { status: 401, body: { error: "Missing auth token" } };
+    return {
+      status: 401,
+      body: {
+        error:
+          "Token em falta no pedido. Atualiza a página, volta a entrar e tenta de novo.",
+      },
+    };
   }
+
+  const apikeyForUserCall = anonKey || serviceRoleKey;
 
   let requesterId: string | null = null;
   try {
@@ -52,7 +61,7 @@ export async function runCreateTrackManager(
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/json",
-        apikey: serviceRoleKey,
+        apikey: apikeyForUserCall,
       },
     });
     if (!userResp.ok) {

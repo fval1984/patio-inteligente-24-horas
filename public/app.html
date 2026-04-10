@@ -6931,7 +6931,11 @@
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${accessToken}`,
               },
-              body: JSON.stringify({ email, password }),
+              body: JSON.stringify({
+                email,
+                password,
+                access_token: accessToken,
+              }),
             });
 
             const json = await resp.json().catch(() => ({}));
