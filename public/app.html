@@ -2242,7 +2242,14 @@
           <div class="section-card" style="margin-top: 18px;">
             <div class="form-grid">
               <div class="full">
-                <label>Gestor de Pista - Email</label>
+                <label>Perfil do utilizador delegado</label>
+                <select id="trackManagerRole">
+                  <option value="GESTOR_PISTA">Gestor de pista (sem valores; parceiros)</option>
+                  <option value="OPERADOR_CADASTRO">Operador (só placa, modelo, localizador; consulta sem valores; sem editar/apagar/liberar)</option>
+                </select>
+              </div>
+              <div class="full">
+                <label>Email do utilizador</label>
                 <input
                   id="trackManagerEmail"
                   type="text"
@@ -2250,12 +2257,12 @@
                 />
               </div>
               <div class="full">
-                <label>Gestor de Pista - Senha</label>
+                <label>Senha inicial</label>
                 <input id="trackManagerPassword" type="password" placeholder="Crie uma senha" />
               </div>
             </div>
             <div class="form-actions" style="margin-top: 10px;">
-              <button type="button" id="addTrackManager">Adicionar gestor</button>
+              <button type="button" id="addTrackManager">Criar utilizador delegado</button>
             </div>
             <p class="notice" id="trackManagerStatus" style="margin-top: 12px;"></p>
           </div>
@@ -2277,7 +2284,7 @@
                 <label>Placa</label>
                 <input id="vehiclePlate" type="text" placeholder="ABC1D23" required />
               </div>
-              <div>
+              <div class="field-operador-hide">
                 <label>Marca</label>
                 <input id="vehicleBrand" type="text" placeholder="Fiat" />
               </div>
@@ -2285,7 +2292,7 @@
                 <label>Modelo</label>
                 <input id="vehicleModel" type="text" placeholder="Argo" />
               </div>
-              <div>
+              <div class="field-operador-hide">
                 <label>Valor da diária</label>
                 <input id="vehicleDaily" type="number" step="0.01" placeholder="150.00" required />
               </div>
@@ -2293,19 +2300,19 @@
                 <label>Data e hora de entrada</label>
                 <input id="vehicleEntry" type="datetime-local" required />
               </div>
-              <div>
+              <div class="field-operador-hide">
                 <label>Data e hora de saída (opcional)</label>
                 <input id="vehicleExit" type="datetime-local" />
               </div>
               <div>
-                <label>Empresa de remoção</label>
+                <label>Localizador (cadastrado)</label>
                 <select id="vehicleLocator"></select>
               </div>
-              <div>
+              <div class="field-operador-hide">
                 <label>Assessoria</label>
                 <select id="vehicleAssessor"></select>
               </div>
-              <div class="full">
+              <div class="full field-operador-hide">
                 <label>Observações</label>
                 <input id="vehicleNotes" type="text" placeholder="Observações importantes" />
               </div>
@@ -2845,6 +2852,7 @@
 
       const trackManagerEmail = document.getElementById("trackManagerEmail");
       const trackManagerPassword = document.getElementById("trackManagerPassword");
+      const trackManagerRoleSelect = document.getElementById("trackManagerRole");
       const addTrackManager = document.getElementById("addTrackManager");
       const trackManagerStatus = document.getElementById("trackManagerStatus");
 
@@ -2883,6 +2891,8 @@
 
       const state = {
         user: null,
+        /** Quando logado como gestor/operador delegado: dono dos dados (veículos, parceiros, etc.). */
+        patioOwnerUserId: null,
         partners: [],
         vehicles: [],
         receivables: [],
@@ -2892,6 +2902,16 @@
         monthlyClosures: [],
         monthlyClosureLoadError: null,
       };
+
+      function effectiveUserId() {
+        return state.patioOwnerUserId || state.user?.id || null;
+      }
+
+      let isGestorPista = false;
+      let isOperadorCadastro = false;
+      function hideValoresNoPatio() {
+        return isGestorPista || isOperadorCadastro;
+      }
 
       const RECEIVABLE_AGUARDANDO_LANCAMENTO = "AGUARDANDO_LANCAMENTO";
       /** Fallback se a coluna `financeiro_aprovado_contas_receber` ainda não existir no Supabase. */
@@ -3111,7 +3131,7 @@
       }
 
       function filterVlsToolbarItems(items) {
-        if (userIsTrackManager) return items;
+        if (hideValoresNoPatio()) return items;
         return items.filter((v) => {
           if (vlsListFilterLocatorId && v.localizador_id !== vlsListFilterLocatorId) return false;
           if (vlsListFilterAssessoriaId && v.assessoria_id !== vlsListFilterAssessoriaId) return false;
@@ -4200,7 +4220,7 @@
         appPanel.classList.remove("hidden");
         userInfo.textContent = user ? `Logado como ${user.email}` : "Logado";
         state.user = user;
-        await loadTrackManagerRole();
+        await loadPatioDelegatedRole();
         applyRoleRestrictions();
         loadAll();
       }
@@ -4210,24 +4230,40 @@
         appPanel.classList.add("hidden");
         userInfo.textContent = "Não autenticado";
         state.user = null;
+        state.patioOwnerUserId = null;
+        isGestorPista = false;
+        isOperadorCadastro = false;
       }
 
-      async function loadTrackManagerRole() {
-        // Se ainda nao existir a tabela de roles, o app continua em modo normal.
-        userIsTrackManager = false;
+      async function loadPatioDelegatedRole() {
+        isGestorPista = false;
+        isOperadorCadastro = false;
+        state.patioOwnerUserId = null;
         try {
           if (!supabase || !state?.user?.id) return false;
-          const { data, error } = await supabase
+          let { data, error } = await supabase
             .from("track_managers")
-            .select("user_id,email")
+            .select("owner_user_id, role")
             .eq("user_id", state.user.id)
-            .limit(1);
-          if (error) {
-            console.warn("track_managers: role table not ready", error);
+            .maybeSingle();
+          if (error && /role|column|schema cache|PGRST204/i.test(error.message || "")) {
+            const r2 = await supabase
+              .from("track_managers")
+              .select("owner_user_id")
+              .eq("user_id", state.user.id)
+              .maybeSingle();
+            data = r2.data ? { ...r2.data, role: "GESTOR_PISTA" } : null;
+            error = r2.error;
+          }
+          if (error || !data || !data.owner_user_id) {
+            if (error) console.warn("track_managers", error);
             return false;
           }
-          userIsTrackManager = !!(data && data.length);
-          return userIsTrackManager;
+          state.patioOwnerUserId = data.owner_user_id;
+          const role = (data.role || "GESTOR_PISTA").toString().trim();
+          if (role === "OPERADOR_CADASTRO") isOperadorCadastro = true;
+          else isGestorPista = true;
+          return true;
         } catch (e) {
           console.warn("track_managers: load failed", e);
           return false;
@@ -4235,9 +4271,21 @@
       }
 
       function applyRoleRestrictions() {
-        if (!userIsTrackManager) return;
+        document.getElementById("track-manager-hide-values-style")?.remove();
+        document.getElementById("vehicleForm")?.classList.remove("operador-simplified");
+        document.getElementById("openParceirosFromPatio")?.classList.remove("hidden");
+        document.getElementById("printPatioVehicleList")?.classList.remove("hidden");
+        document.getElementById("printPatioByPartner")?.classList.remove("hidden");
+        document.getElementById("printPatioLiberados")?.classList.remove("hidden");
+        patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.remove("hidden");
+        patioSubnav?.querySelector('[data-subview="nfse_pendente"]')?.classList.remove("hidden");
+        const vehicleDailyReset = document.getElementById("vehicleDaily");
+        const vehicleDailyWrap = vehicleDailyReset?.closest("div");
+        if (vehicleDailyWrap) vehicleDailyWrap.style.display = "";
+        if (vehicleDailyReset) vehicleDailyReset.required = true;
 
-        // Navegação: só Painel; sem módulo financeiro no painel; configurações só para administrador.
+        if (!isGestorPista && !isOperadorCadastro) return;
+
         document.querySelectorAll(".nav button[data-view]").forEach((btn) => {
           const view = btn.getAttribute("data-view");
           btn.style.display = view === "dashboard" ? "" : "none";
@@ -4245,26 +4293,31 @@
         document.getElementById("dashboardModuleFinanceWrap")?.classList.add("hidden");
         document.getElementById("openConfigFromPatio")?.classList.add("hidden");
 
-        // Garante que nenhuma outra aba fique acessivel via UI.
         showMainView("patio");
-
-        // E remove qualquer sub-aba que não seja valida quando entrar no patio.
         setPatioView("no_patio");
 
-        // Gestor nao deve registrar/visualizar valores financeiros no modal.
         const vehicleDailyInput = document.getElementById("vehicleDaily");
         const vehicleDailyContainer = vehicleDailyInput?.closest("div");
-        if (vehicleDailyContainer) vehicleDailyContainer.style.display = "none";
         if (vehicleDailyInput) {
           vehicleDailyInput.value = "";
           vehicleDailyInput.required = false;
         }
+        if (isGestorPista && vehicleDailyContainer) {
+          vehicleDailyContainer.style.display = "none";
+        }
 
-        // Oculta coluna de valores apenas no modo gestor (sem cobrança na pista).
-        // Ordem: VNP/NFSe — 6 Valor, 7 Ações. VRP — 7 Valor, 8 Situação/ações.
+        if (isOperadorCadastro) {
+          document.getElementById("openParceirosFromPatio")?.classList.add("hidden");
+          document.getElementById("printPatioVehicleList")?.classList.add("hidden");
+          document.getElementById("printPatioByPartner")?.classList.add("hidden");
+          document.getElementById("printPatioLiberados")?.classList.add("hidden");
+          patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.add("hidden");
+          patioSubnav?.querySelector('[data-subview="nfse_pendente"]')?.classList.add("hidden");
+        }
+
         const style = document.createElement("style");
         style.id = "track-manager-hide-values-style";
-        style.textContent = `
+        let css = `
           #viewPatio [data-subview="no_patio"] table thead th:nth-child(6),
           #viewPatio [data-subview="no_patio"] table tbody td:nth-child(6) {
             display: none !important;
@@ -4273,6 +4326,9 @@
           #viewPatio [data-subview="nfse_pendente"] table tbody td:nth-child(6) {
             display: none !important;
           }
+        `;
+        if (isGestorPista) {
+          css += `
           #viewPatio [data-subview="removidos"] table thead th:nth-child(7),
           #viewPatio [data-subview="removidos"] table thead th:nth-child(8),
           #viewPatio [data-subview="removidos"] table tbody td:nth-child(7),
@@ -4280,6 +4336,18 @@
             display: none !important;
           }
         `;
+        } else if (isOperadorCadastro) {
+          css += `
+          #viewPatio [data-subview="removidos"] table thead th:nth-child(7),
+          #viewPatio [data-subview="removidos"] table tbody td:nth-child(7) {
+            display: none !important;
+          }
+        `;
+        }
+        css += `
+          #vehicleForm.operador-simplified .field-operador-hide { display: none !important; }
+        `;
+        style.textContent = css;
         document.head.appendChild(style);
       }
 
@@ -4331,7 +4399,7 @@
         const { data, error } = await supabase
           .from("partners")
           .select("*")
-          .eq("user_id", state.user.id)
+          .eq("user_id", effectiveUserId())
           .order("created_at", { ascending: false });
         if (error) {
           console.error(error);
@@ -4346,7 +4414,7 @@
         const { data, error } = await supabase
           .from("vehicles")
           .select("*")
-          .eq("user_id", state.user.id)
+          .eq("user_id", effectiveUserId())
           .order("data_entrada", { ascending: false });
         if (error) {
           console.error(error);
@@ -4360,7 +4428,7 @@
         const { data, error } = await supabase
           .from("receivables")
           .select("*")
-          .eq("user_id", state.user.id)
+          .eq("user_id", effectiveUserId())
           .order("created_at", { ascending: false });
         if (error) {
           console.error(error);
@@ -4373,7 +4441,7 @@
         const { data, error } = await supabase
           .from("payables")
           .select("*")
-          .eq("user_id", state.user.id)
+          .eq("user_id", effectiveUserId())
           .order("created_at", { ascending: false });
         if (error) {
           console.error(error);
@@ -4386,7 +4454,7 @@
         const { data, error } = await supabase
           .from("cash_movements")
           .select("*")
-          .eq("user_id", state.user.id)
+          .eq("user_id", effectiveUserId())
           .order("created_at", { ascending: false });
         if (error) {
           console.error(error);
@@ -4399,7 +4467,7 @@
         const { data, error } = await supabase
           .from("settings")
           .select("*")
-          .eq("user_id", state.user.id)
+          .eq("user_id", effectiveUserId())
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -4533,7 +4601,7 @@
         const { data, error } = await supabase
           .from("monthly_closures")
           .select("*")
-          .eq("user_id", state.user.id)
+          .eq("user_id", effectiveUserId())
           .order("year_month", { ascending: false });
         if (error) {
           state.monthlyClosureLoadError = error.message || String(error);
@@ -4616,7 +4684,7 @@
       }
 
       async function loadAll() {
-        if (userIsTrackManager) {
+        if (isGestorPista || isOperadorCadastro) {
           await Promise.all([loadPartners(), loadVehicles()]);
           return;
         }
@@ -4698,8 +4766,8 @@
         const vlsForTable = filterVlsToolbarItems(vlsMerged);
         const vlsToolbar = document.getElementById("vlsToolbarFilters");
         if (vlsToolbar) {
-          vlsToolbar.classList.toggle("hidden", !!userIsTrackManager);
-          if (!userIsTrackManager) {
+          vlsToolbar.classList.toggle("hidden", !!hideValoresNoPatio());
+          if (!hideValoresNoPatio()) {
             syncVlsFilterSelects();
           }
         }
@@ -4763,13 +4831,13 @@
           setEmptyRow(tbody, "Nenhum veículo no pátio.", 7);
           return;
         }
-        const showGestor = userIsTrackManager;
+        const semValores = hideValoresNoPatio();
         tbody.innerHTML = items
           .map((v) => {
             const total = calcTotal(v);
             const localizador = state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
             const assessoria = state.partners.find((p) => p.id === v.assessoria_id)?.nome || "-";
-            const valorCell = showGestor
+            const valorCell = semValores
               ? "-"
               : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
 
@@ -4782,7 +4850,9 @@
               : "";
 
             let actionsCell = "";
-            if (!showGestor) {
+            if (isOperadorCadastro) {
+              actionsCell = `<button class="secondary" data-action="ficha" data-id="${v.id}">Detalhes</button>`;
+            } else if (!isGestorPista) {
               actionsCell = `
                   <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
                   <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
@@ -4851,7 +4921,7 @@
           setEmptyRow(tbody, "Nenhum veículo encontrado.", 7);
           return;
         }
-        const showGestor = userIsTrackManager;
+        const semValores = hideValoresNoPatio();
         tbody.innerHTML = items
           .map((v) => {
             const total = calcTotal(v);
@@ -4865,13 +4935,15 @@
               nfse_pendente: "NFSe solicitada",
             };
 
-            const valorCell = showGestor
+            const valorCell = semValores
               ? "-"
               : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
 
-            const actionsCell = showGestor
-              ? ""
-              : `
+            let actionsCell = "";
+            if (isOperadorCadastro) {
+              actionsCell = `<button class="secondary" data-action="ficha" data-id="${v.id}">Detalhes</button>`;
+            } else if (!isGestorPista) {
+              actionsCell = `
                   <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
                   ${
                     actionType === "nfse_pendente"
@@ -4882,6 +4954,7 @@
                   <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
                   <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
                 `;
+            }
 
             return `
               <tr>
@@ -4903,7 +4976,7 @@
           setEmptyRow(tbody, "Nenhum veículo removido.", 8);
           return;
         }
-        const showGestor = userIsTrackManager;
+        const semValores = hideValoresNoPatio();
         tbody.innerHTML = items
           .map((v) => {
             const total = calcTotal(v);
@@ -4913,19 +4986,24 @@
             const assessoria =
               state.partners.find((p) => p.id === v.assessoria_id)?.nome || "-";
 
-            const valorCell = showGestor
+            const valorCell = semValores
               ? "-"
               : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
 
-            const actionsCell = showGestor
-              ? ""
-              : `
+            let actionsCell = "";
+            if (isOperadorCadastro) {
+              actionsCell = `<button class="secondary" data-action="ficha" data-id="${v.id}">Detalhes</button><span class="tag success">${status}</span>`;
+            } else if (!isGestorPista) {
+              actionsCell = `
                   <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
                   <button class="secondary" data-action="nfse" data-id="${v.id}">NFSe solicitada</button>
                   <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
                   <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
                   <span class="tag success">${status}</span>
                 `;
+            } else {
+              actionsCell = "";
+            }
 
             return `
               <tr>
@@ -4962,7 +5040,7 @@
             .from("vehicles")
             .update({ nfse_status: "PENDENTE", nfse_requested_at: new Date().toISOString() })
             .eq("id", vehicle.id)
-            .eq("user_id", state.user.id);
+            .eq("user_id", effectiveUserId());
           await loadVehicles();
           updateDashboard();
         }
@@ -4976,28 +5054,48 @@
         }
         fichaModal.dataset.openVehicleId = vehicle.id;
 
-        const { data: ciclos, error: ciclosError } = await supabase
-          .from("receivables")
-          .select("responsavel_pagamento,valor,period_start,period_end,status")
-          .eq("user_id", state.user.id)
-          .eq("vehicle_id", vehicle.id)
-          .order("period_start", { ascending: true });
+        if (isOperadorCadastro) {
+          const locNome = state.partners.find((p) => p.id === vehicle.localizador_id)?.nome || "-";
+          const dias = calcDays(vehicle);
+          const horas = calcHours(vehicle);
+          fichaResumo.innerHTML = `
+            <strong>${vehicle.placa || "-"}</strong> • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-"}<br />
+            Localizador: ${escapeHtml(locNome)}<br />
+            Entrada: ${formatDateTime(vehicle.data_entrada)}${
+            vehicle.data_saida ? ` • Saída: ${formatDateTime(vehicle.data_saida)}` : ""
+          }<br />
+            <span class="notice">Tempo no pátio: ${dias} dia(s) • ${horas} h (referência operacional, sem valores).</span>
+          `;
+          if (fichaSectionSnf) {
+            fichaSectionSnf.innerHTML = `<p class="notice" style="margin:0">Nota fiscal e valores não estão disponíveis para este perfil.</p>`;
+          }
+          if (fichaSectionSlv) {
+            const sit = VLS_STATUS_LABELS[vehicle.status] || vehicle.status || "-";
+            fichaSectionSlv.innerHTML = `<p class="notice" style="margin:0">Situação: <strong>${escapeHtml(sit)}</strong>. Liberação e alterações só pelo administrador.</p>`;
+          }
+        } else {
+          const { data: ciclos, error: ciclosError } = await supabase
+            .from("receivables")
+            .select("responsavel_pagamento,valor,period_start,period_end,status")
+            .eq("user_id", effectiveUserId())
+            .eq("vehicle_id", vehicle.id)
+            .order("period_start", { ascending: true });
 
-        const ciclosHtml =
-          !ciclos || !ciclos.length
-            ? "<em>Sem ciclos financeiros cadastrados.</em>"
-            : ciclos
-                .map((c, idx) => {
-                  const inicio = c.period_start ? formatDate(c.period_start) : "-";
-                  const fim = c.period_end ? formatDate(c.period_end) : "aberto";
-                  const status = formatReceivableStatusLabel(c);
-                  return `Ciclo ${idx + 1}: ${inicio} a ${fim} • ${c.responsavel_pagamento || "-"} • ${formatCurrency(
-                    c.valor
-                  )} (${status})`;
-                })
-                .join("<br />");
+          const ciclosHtml =
+            !ciclos || !ciclos.length
+              ? "<em>Sem ciclos financeiros cadastrados.</em>"
+              : ciclos
+                  .map((c, idx) => {
+                    const inicio = c.period_start ? formatDate(c.period_start) : "-";
+                    const fim = c.period_end ? formatDate(c.period_end) : "aberto";
+                    const status = formatReceivableStatusLabel(c);
+                    return `Ciclo ${idx + 1}: ${inicio} a ${fim} • ${c.responsavel_pagamento || "-"} • ${formatCurrency(
+                      c.valor
+                    )} (${status})`;
+                  })
+                  .join("<br />");
 
-        fichaResumo.innerHTML = `
+          fichaResumo.innerHTML = `
           <strong>${vehicle.placa || "-"}</strong> • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-"}<br />
           Entrada: ${formatDateTime(vehicle.data_entrada)} • Saída: ${formatDateTime(vehicle.data_saida)}<br />
           Valor de referência (diárias): ${formatCurrency(calcTotal(vehicle))}<br />
@@ -5005,11 +5103,12 @@
           <span class="notice">Ciclos financeiros:</span><br />
           ${ciclosError ? "<em>Erro ao carregar ciclos.</em>" : ciclosHtml}
         `;
+        }
 
         const FLUXO_SLV = ["LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA"];
 
-        if (fichaSectionSnf) {
-          if (userIsTrackManager) {
+        if (fichaSectionSnf && !isOperadorCadastro) {
+          if (isGestorPista) {
             fichaSectionSnf.innerHTML = `<p class="notice" style="margin:0">Visualização do gestor de pista.</p>`;
           } else {
             const st = vehicle.nfse_status || "NAO_SOLICITADA";
@@ -5035,8 +5134,8 @@
           }
         }
 
-        if (fichaSectionSlv) {
-          if (userIsTrackManager) {
+        if (fichaSectionSlv && !isOperadorCadastro) {
+          if (isGestorPista) {
             fichaSectionSlv.innerHTML = `<p class="notice" style="margin:0">Visualização do gestor de pista.</p>`;
           } else {
             let situacao = "";
@@ -5224,11 +5323,20 @@
       }
 
       function openVehicleModal(mode, vehicle) {
+        if (isOperadorCadastro && mode === "edit") {
+          alert("Este perfil não pode editar veículos.");
+          return;
+        }
         editingVehicleId = mode === "edit" ? vehicle.id : null;
         editingVehicleData = mode === "edit" ? vehicle : null;
         vehicleModalTitle.textContent = mode === "edit" ? "Editar veículo" : "Registrar veículo";
         vehicleModalSubtitle.textContent =
-          mode === "edit" ? "Atualize os dados do veículo" : "Cadastro de entrada no pátio";
+          mode === "edit"
+            ? "Atualize os dados do veículo"
+            : isOperadorCadastro
+              ? "Placa, modelo, localizador e data de entrada (sem valores)"
+              : "Cadastro de entrada no pátio";
+        vehicleForm.classList.toggle("operador-simplified", isOperadorCadastro && mode === "create");
         vehicleForm.reset();
         vehicleExit.value = "";
         if (mode === "edit" && vehicle) {
@@ -5247,6 +5355,8 @@
             entryInput.value = toLocalInput(new Date());
           }
         }
+        const vd = document.getElementById("vehicleDaily");
+        if (vd) vd.required = !(isGestorPista || isOperadorCadastro);
         vehicleModal.classList.remove("hidden");
       }
 
@@ -5291,7 +5401,7 @@
               .from("receivables")
               .update({ valor: totalAtual })
               .eq("id", r.id)
-              .eq("user_id", state.user.id);
+              .eq("user_id", effectiveUserId());
             r.valor = totalAtual;
           }
         });
@@ -6147,7 +6257,7 @@
           return;
         }
         const { error: insErr } = await supabase.from("monthly_closures").insert({
-          user_id: state.user.id,
+          user_id: effectiveUserId(),
           year_month: ym,
           vehicles_entered: st.entered,
           vehicles_exited: st.exited,
@@ -6214,7 +6324,6 @@
 
       const cardVeiculosLink = document.getElementById("cardVeiculosLink");
       const cardSolicitadasLink = document.getElementById("cardSolicitadasLink");
-      let userIsTrackManager = false;
 
       function showMainView(view) {
         document.querySelectorAll(".nav button[data-view]").forEach((btn) => {
@@ -6240,7 +6349,11 @@
       }
 
       function openMainView(view) {
-        if (userIsTrackManager && view !== "patio" && view !== "parceiros") {
+        if (isOperadorCadastro && view !== "patio") {
+          showMainView("patio");
+          return;
+        }
+        if (isGestorPista && view !== "patio" && view !== "parceiros") {
           showMainView("patio");
           return;
         }
@@ -6572,20 +6685,24 @@
 
       vehicleForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (isOperadorCadastro && editingVehicleId) {
+          alert("Este perfil não pode editar veículos.");
+          return;
+        }
         const vehicleDailyEl = document.getElementById("vehicleDaily");
         const vehicleDailyRaw = (vehicleDailyEl?.value || "").toString().trim();
         const payload = {
-          user_id: state.user.id,
+          user_id: effectiveUserId(),
           placa: document.getElementById("vehiclePlate").value.trim(),
-          marca: document.getElementById("vehicleBrand").value.trim(),
+          marca: isOperadorCadastro ? "" : document.getElementById("vehicleBrand").value.trim(),
           modelo: document.getElementById("vehicleModel").value.trim(),
           // Gestor de pista nao preenche valores; deixamos como null quando vier vazio.
           valor_diaria: vehicleDailyRaw ? Number(vehicleDailyRaw) : null,
           data_entrada: new Date(document.getElementById("vehicleEntry").value).toISOString(),
-          data_saida: vehicleExit.value ? new Date(vehicleExit.value).toISOString() : null,
+          data_saida: isOperadorCadastro ? null : vehicleExit.value ? new Date(vehicleExit.value).toISOString() : null,
           localizador_id: vehicleLocator.value || null,
-          assessoria_id: vehicleAssessor.value || null,
-          observacoes: document.getElementById("vehicleNotes").value.trim(),
+          assessoria_id: isOperadorCadastro ? null : vehicleAssessor.value || null,
+          observacoes: isOperadorCadastro ? "" : document.getElementById("vehicleNotes").value.trim(),
           status: editingVehicleData?.status || "NO_PATIO",
           payment_status: editingVehicleData?.payment_status || "EM_ABERTO",
           nfse_status: editingVehicleData?.nfse_status || "NAO_SOLICITADA",
@@ -6593,7 +6710,7 @@
           nfse_issued_at: editingVehicleData?.nfse_issued_at || null,
         };
         const vehicleOp = editingVehicleId
-          ? supabase.from("vehicles").update(payload).eq("id", editingVehicleId).eq("user_id", state.user.id)
+          ? supabase.from("vehicles").update(payload).eq("id", editingVehicleId).eq("user_id", effectiveUserId())
           : supabase.from("vehicles").insert(payload);
         const { error } = await vehicleOp;
         if (error) {
@@ -6615,7 +6732,7 @@
           .from("vehicles")
           .update({ nfse_status: "EMITIDA", nfse_issued_at: new Date().toISOString() })
           .eq("id", nfseVehicleId)
-          .eq("user_id", state.user.id);
+          .eq("user_id", effectiveUserId());
         if (error) {
           alert(error.message);
           return;
@@ -6631,7 +6748,7 @@
       partnerForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const payload = {
-          user_id: state.user.id,
+          user_id: effectiveUserId(),
           nome: document.getElementById("partnerName").value.trim(),
           cpf: document.getElementById("partnerCpf").value.trim(),
           email: document.getElementById("partnerEmail").value.trim(),
@@ -6651,7 +6768,7 @@
       payableForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const payload = {
-          user_id: state.user.id,
+          user_id: effectiveUserId(),
           tipo: document.getElementById("payableType").value,
           payable_category: (payableCategory?.value || "OUTROS").trim(),
           descricao: document.getElementById("payableDesc").value.trim(),
@@ -6671,7 +6788,7 @@
 
       saveSettings.addEventListener("click", async () => {
         const payload = {
-          user_id: state.user.id,
+          user_id: effectiveUserId(),
           cnpj: settingsCnpj.value.trim(),
           nome_patio: settingsName.value.trim(),
           conta_bancaria: settingsBank.value.trim(),
@@ -6696,14 +6813,14 @@
           const email = (trackManagerEmail?.value || "").trim();
           const password = (trackManagerPassword?.value || "").trim();
           if (!email) {
-            if (trackManagerStatus) trackManagerStatus.textContent = "Informe o email do gestor.";
+            if (trackManagerStatus) trackManagerStatus.textContent = "Informe o email do utilizador delegado.";
             return;
           }
           if (!password) {
-            if (trackManagerStatus) trackManagerStatus.textContent = "Defina uma senha para o gestor.";
+            if (trackManagerStatus) trackManagerStatus.textContent = "Defina uma senha inicial.";
             return;
           }
-          if (trackManagerStatus) trackManagerStatus.textContent = "Adicionando gestor...";
+          if (trackManagerStatus) trackManagerStatus.textContent = "A criar utilizador...";
 
           try {
             const sessionRes = await supabase.auth.getSession();
@@ -6716,24 +6833,28 @@
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${accessToken}`,
               },
-              body: JSON.stringify({ email, password }),
+              body: JSON.stringify({
+                email,
+                password,
+                role: (trackManagerRoleSelect?.value || "GESTOR_PISTA").trim(),
+              }),
             });
 
             const json = await resp.json().catch(() => ({}));
             if (!resp.ok) {
-              throw new Error(json?.error || `Erro (${resp.status}) ao criar gestor.`);
+              throw new Error(json?.error || `Erro (${resp.status}) ao criar utilizador.`);
             }
 
             const newUserId = json?.user_id || "";
             if (trackManagerStatus) {
               trackManagerStatus.textContent = newUserId
-                ? `Gestor de pista criado. User ID: ${newUserId}`
-                : "Gestor de pista criado.";
+                ? `Utilizador delegado criado. User ID: ${newUserId}`
+                : "Utilizador delegado criado.";
             }
             if (trackManagerEmail) trackManagerEmail.value = "";
             if (trackManagerPassword) trackManagerPassword.value = "";
           } catch (e) {
-            if (trackManagerStatus) trackManagerStatus.textContent = "Erro ao adicionar gestor. Verifique a tabela/policies no Supabase.";
+            if (trackManagerStatus) trackManagerStatus.textContent = "Erro ao criar utilizador. Verifique a tabela/policies no Supabase (coluna role).";
             console.error(e);
           }
         });
@@ -6745,13 +6866,16 @@
         const vehicle = state.vehicles.find((v) => v.id === id);
         if (!vehicle) return;
 
-        if (userIsTrackManager) {
+        if (isGestorPista) {
+          return;
+        }
+        if (isOperadorCadastro && action !== "ficha") {
           return;
         }
 
         if (action === "apagar") {
           if (!confirm("Deseja apagar este veículo?")) return;
-          const { error } = await supabase.from("vehicles").delete().eq("id", id).eq("user_id", state.user.id);
+          const { error } = await supabase.from("vehicles").delete().eq("id", id).eq("user_id", effectiveUserId());
           if (error) {
             alert(error.message);
             return;
@@ -6794,7 +6918,7 @@
           const { data: currentCycle, error: cycleErr } = await supabase
             .from("receivables")
             .select("id,period_start,period_end,status,valor,vehicle_id")
-            .eq("user_id", state.user.id)
+            .eq("user_id", effectiveUserId())
             .eq("vehicle_id", id)
             .is("period_end", null)
             .eq("status", "EM_ABERTO")
@@ -6820,7 +6944,7 @@
               status: RECEIVABLE_AGUARDANDO_LANCAMENTO,
             })
             .eq("id", currentCycle.id)
-            .eq("user_id", state.user.id);
+            .eq("user_id", effectiveUserId());
           if (closeErr) {
             alert(closeErr.message);
             return;
@@ -6829,7 +6953,7 @@
           // abre novo ciclo
           const valorNovo = calcPeriodTotal(vehicle, periodStartNew, null);
           const { error: newErr } = await supabase.from("receivables").insert({
-            user_id: state.user.id,
+            user_id: effectiveUserId(),
             vehicle_id: id,
             responsavel_pagamento: novoResp,
             receivable_category: "GUARDA_PATIO",
@@ -6896,7 +7020,7 @@
               status: "LIBERACAO_SOLICITADA",
             })
             .eq("id", id)
-            .eq("user_id", state.user.id);
+            .eq("user_id", effectiveUserId());
           if (upErr) {
             alert(upErr.message);
             return;
@@ -6906,7 +7030,7 @@
           const { data: existingCycle, error: cycleCheckErr } = await supabase
             .from("receivables")
             .select("id,period_start,period_end,status")
-            .eq("user_id", state.user.id)
+            .eq("user_id", effectiveUserId())
             .eq("vehicle_id", id)
             .is("period_end", null)
             .eq("status", "EM_ABERTO")
@@ -6921,7 +7045,7 @@
             const valor = calcPeriodTotal(vehicle, periodStart, null);
 
             const { error: insErr } = await supabase.from("receivables").insert({
-              user_id: state.user.id,
+              user_id: effectiveUserId(),
               vehicle_id: id,
               responsavel_pagamento: responsavelPagamento,
               receivable_category: "GUARDA_PATIO",
@@ -6938,7 +7062,7 @@
             await supabase
               .from("receivables")
               .update({ responsavel_pagamento: responsavelPagamento })
-              .eq("user_id", state.user.id)
+              .eq("user_id", effectiveUserId())
               .eq("vehicle_id", id)
               .is("period_end", null)
               .eq("status", "EM_ABERTO");
@@ -6988,7 +7112,7 @@
             .from("vehicles")
             .update({ status: "REMOVIDO", data_saida: dataSaida })
             .eq("id", id)
-            .eq("user_id", state.user.id)
+            .eq("user_id", effectiveUserId())
             .select("id");
           if (vehicleError) {
             alert(vehicleError.message);
@@ -7002,7 +7126,7 @@
           const { data: cycleAberto, error: cycleQErr } = await supabase
             .from("receivables")
             .select("id,period_start")
-            .eq("user_id", state.user.id)
+            .eq("user_id", effectiveUserId())
             .eq("vehicle_id", id)
             .is("period_end", null)
             .eq("status", "EM_ABERTO")
@@ -7023,7 +7147,7 @@
                 status: RECEIVABLE_AGUARDANDO_LANCAMENTO,
               })
               .eq("id", cycleAberto.id)
-              .eq("user_id", state.user.id);
+              .eq("user_id", effectiveUserId());
             if (recErr) {
               alert(recErr.message);
               return;
@@ -7066,7 +7190,7 @@
 
         if (action === "apagar-parceiro") {
           if (!confirm("Deseja apagar este parceiro?")) return;
-          const { error } = await supabase.from("partners").delete().eq("id", id).eq("user_id", state.user.id);
+          const { error } = await supabase.from("partners").delete().eq("id", id).eq("user_id", effectiveUserId());
           if (error) alert(error.message);
           loadPartners();
           return;
@@ -7080,7 +7204,7 @@
             .from("partners")
             .update({ nome: nome || null, contato: contato || null, email: email || null })
             .eq("id", id)
-            .eq("user_id", state.user.id);
+            .eq("user_id", effectiveUserId());
           if (error) alert(error.message);
           loadPartners();
         }
@@ -7126,7 +7250,7 @@
           if (receivable.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) {
             patch.status = "EM_ABERTO";
           }
-          const { error } = await supabase.from("receivables").update(patch).eq("id", id).eq("user_id", state.user.id);
+          const { error } = await supabase.from("receivables").update(patch).eq("id", id).eq("user_id", effectiveUserId());
           if (error) {
             const colMissing = /financeiro_aprovado|column|schema cache|PGRST204/i.test(error.message || "");
             if (colMissing && receivable.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) {
@@ -7134,7 +7258,7 @@
                 .from("receivables")
                 .update({ status: "EM_ABERTO" })
                 .eq("id", id)
-                .eq("user_id", state.user.id);
+                .eq("user_id", effectiveUserId());
               if (err2) {
                 alert(err2.message);
                 return;
@@ -7168,13 +7292,13 @@
             .from("receivables")
             .update({ status: "PAGO", valor: valorPago, financeiro_aprovado_contas_receber: false })
             .eq("id", id)
-            .eq("user_id", state.user.id);
+            .eq("user_id", effectiveUserId());
           if (error) {
             const { error: errFallback } = await supabase
               .from("receivables")
               .update({ status: "PAGO", valor: valorPago })
               .eq("id", id)
-              .eq("user_id", state.user.id);
+              .eq("user_id", effectiveUserId());
             if (errFallback) {
               alert(errFallback.message);
               return;
@@ -7185,12 +7309,12 @@
               .from("vehicles")
               .update({ payment_status: "PAGO" })
               .eq("id", receivable.vehicle_id)
-              .eq("user_id", state.user.id);
+              .eq("user_id", effectiveUserId());
           }
           const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
           const vehicleInfo = `${vehicle?.placa || "-"} • ${[vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")}`.trim();
           await supabase.from("cash_movements").insert({
-            user_id: state.user.id,
+            user_id: effectiveUserId(),
             tipo_conta: "RECEBER",
             conta_id: id,
             valor: valorPago,
@@ -7229,13 +7353,13 @@
             .from("receivables")
             .update({ status: "PAGO", valor: totalAtual, financeiro_aprovado_contas_receber: false })
             .eq("id", id)
-            .eq("user_id", state.user.id);
+            .eq("user_id", effectiveUserId());
           if (error) {
             const { error: errFallback } = await supabase
               .from("receivables")
               .update({ status: "PAGO", valor: totalAtual })
               .eq("id", id)
-              .eq("user_id", state.user.id);
+              .eq("user_id", effectiveUserId());
             if (errFallback) {
               alert(errFallback.message);
               return;
@@ -7246,7 +7370,7 @@
               .from("vehicles")
               .update({ payment_status: "PAGO" })
               .eq("id", receivable.vehicle_id)
-              .eq("user_id", state.user.id);
+              .eq("user_id", effectiveUserId());
           }
           const { data: existingMov } = await supabase
             .from("cash_movements")
@@ -7257,7 +7381,7 @@
           if (!existingMov || existingMov.length === 0) {
             const vehicleInfo = `${vehicle?.placa || "-"} • ${[vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")}`.trim();
             await supabase.from("cash_movements").insert({
-              user_id: state.user.id,
+              user_id: effectiveUserId(),
               tipo_conta: "RECEBER",
               conta_id: id,
               valor: totalAtual,
@@ -7284,13 +7408,13 @@
             .from("payables")
             .update({ status: "PAGO" })
             .eq("id", id)
-            .eq("user_id", state.user.id);
+            .eq("user_id", effectiveUserId());
           if (error) {
             alert(error.message);
             return;
           }
           await supabase.from("cash_movements").insert({
-            user_id: state.user.id,
+            user_id: effectiveUserId(),
             tipo_conta: "PAGAR",
             conta_id: id,
             valor: payable.valor,
@@ -7318,7 +7442,7 @@
             .from("payables")
             .update({ descricao: descricao || null, valor: Number(valor || 0), data_vencimento: vencimento || null })
             .eq("id", id)
-            .eq("user_id", state.user.id);
+            .eq("user_id", effectiveUserId());
           if (error) alert(error.message);
           await loadPayables();
           renderFinance();
@@ -7327,7 +7451,7 @@
 
         if (action === "apagar-despesa") {
           if (!confirm("Excluir esta despesa?")) return;
-          const { error } = await supabase.from("payables").delete().eq("id", id).eq("user_id", state.user.id);
+          const { error } = await supabase.from("payables").delete().eq("id", id).eq("user_id", effectiveUserId());
           if (error) alert(error.message);
           await loadPayables();
           renderFinance();
@@ -7345,7 +7469,7 @@
               valor: Number(valor || 0),
             })
             .eq("id", id)
-            .eq("user_id", state.user.id);
+            .eq("user_id", effectiveUserId());
           if (error) {
             alert(error.message);
             return;
@@ -7357,7 +7481,7 @@
 
         if (action === "apagar-recebido") {
           if (!confirm("Excluir este recebimento?")) return;
-          const { error } = await supabase.from("receivables").delete().eq("id", id).eq("user_id", state.user.id);
+          const { error } = await supabase.from("receivables").delete().eq("id", id).eq("user_id", effectiveUserId());
           if (error) {
             alert(error.message);
             return;
@@ -7368,7 +7492,7 @@
             .delete()
             .eq("conta_id", id)
             .eq("tipo_conta", "RECEBER")
-            .eq("user_id", state.user.id);
+            .eq("user_id", effectiveUserId());
           await Promise.all([loadReceivables(), loadCash()]);
           renderFinance();
           updateDashboard();
@@ -7391,7 +7515,7 @@
             .from("payables")
             .update({ descricao: descricao || null, valor: Number(valor || 0), data_vencimento: data || null })
             .eq("id", id)
-            .eq("user_id", state.user.id);
+            .eq("user_id", effectiveUserId());
           if (error) {
             alert(error.message);
             return;
@@ -7403,7 +7527,7 @@
 
         if (action === "apagar-pago") {
           if (!confirm("Excluir este pagamento?")) return;
-          const { error } = await supabase.from("payables").delete().eq("id", id).eq("user_id", state.user.id);
+          const { error } = await supabase.from("payables").delete().eq("id", id).eq("user_id", effectiveUserId());
           if (error) {
             alert(error.message);
             return;
@@ -7413,7 +7537,7 @@
             .delete()
             .eq("conta_id", id)
             .eq("tipo_conta", "PAGAR")
-            .eq("user_id", state.user.id);
+            .eq("user_id", effectiveUserId());
           await Promise.all([loadPayables(), loadCash()]);
           renderFinance();
           updateDashboard();

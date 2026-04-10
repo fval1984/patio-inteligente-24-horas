@@ -1,8 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
+const TRACK_ROLES = ["GESTOR_PISTA", "OPERADOR_CADASTRO"] as const;
+
 type CreateTrackManagerBody = {
   email?: string;
   password?: string;
+  /** GESTOR_PISTA (padrão) ou OPERADOR_CADASTRO */
+  role?: string;
 };
 
 function extractBearerToken(authHeader: string | string[] | undefined): string | null {
@@ -53,6 +57,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const body: CreateTrackManagerBody = req.body || {};
   const email = (body.email || "").trim();
   const password = (body.password || "").trim();
+  const roleRaw = (body.role || "GESTOR_PISTA").trim().toUpperCase();
+  const role = TRACK_ROLES.includes(roleRaw as (typeof TRACK_ROLES)[number]) ? roleRaw : "GESTOR_PISTA";
 
   if (!email || !password) {
     return res.status(400).json({ error: "email and password are required" });
@@ -105,6 +111,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           owner_user_id: requesterId,
           user_id: newUserId,
           email,
+          role,
         },
       ]),
     });
