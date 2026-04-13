@@ -2371,6 +2371,23 @@
                 <label>Placa</label>
                 <input id="vehiclePlate" type="text" placeholder="ABC1D23" required />
               </div>
+              <div class="full">
+                <input
+                  type="file"
+                  id="vehiclePhotoOcrInput"
+                  accept="image/*"
+                  capture="environment"
+                  class="hidden"
+                  aria-hidden="true"
+                  tabindex="-1"
+                />
+                <button type="button" class="secondary" id="vehicleOcrFromPhotoBtn">
+                  Preencher pela foto da traseira (tenta placa, marca e modelo)
+                </button>
+                <p class="notice" style="margin: 6px 0 0; font-size: 12px; line-height: 1.4">
+                  Usa o telemóvel sem custo extra; se não ler bem, corrija os campos à mão antes de salvar.
+                </p>
+              </div>
               <div class="field-operador-hide">
                 <label>Marca</label>
                 <input id="vehicleBrand" type="text" placeholder="Fiat" />
@@ -2816,6 +2833,129 @@
           document.head.appendChild(s);
         });
         return html2canvasLoadPromise;
+      }
+
+      /** Tesseract.js só ao usar «foto da traseira» no cadastro de veículo — evita peso no carregamento inicial */
+      let tesseractLoadPromise = null;
+      function loadTesseractJs() {
+        if (window.Tesseract) return Promise.resolve();
+        if (tesseractLoadPromise) return tesseractLoadPromise;
+        tesseractLoadPromise = new Promise(function (resolve, reject) {
+          var s = document.createElement("script");
+          s.async = true;
+          s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+          s.onload = function () {
+            resolve();
+          };
+          s.onerror = function () {
+            tesseractLoadPromise = null;
+            reject(new Error("tesseract"));
+          };
+          document.head.appendChild(s);
+        });
+        return tesseractLoadPromise;
+      }
+
+      function normalizeOcrAlnum(s) {
+        return String(s || "")
+          .toUpperCase()
+          .replace(/[^A-Z0-9]/g, "");
+      }
+
+      /** Mercosul (LLLNLNN) ou antiga (LLLNNNN), sobre texto OCR aglutinado. */
+      function extractPlacaBrFromText(raw) {
+        const merged = normalizeOcrAlnum(raw);
+        if (merged.length < 7) return "";
+        for (let i = 0; i <= merged.length - 7; i++) {
+          const slice = merged.slice(i, i + 7);
+          if (/^[A-Z]{3}\d[A-Z]\d{2}$/.test(slice)) return slice;
+        }
+        for (let i = 0; i <= merged.length - 7; i++) {
+          const slice = merged.slice(i, i + 7);
+          if (/^[A-Z]{3}\d{4}$/.test(slice)) return slice;
+        }
+        const loose = merged.match(/[A-Z]{3}\d[A-Z0-9]\d{2}/);
+        return loose ? loose[0] : "";
+      }
+
+      /** Heurística fraca: linhas que não parecem só a placa; marca/modelo só se campos ainda vazios. */
+      function extractMarcaModeloHeuristic(raw, placaNorm) {
+        const lines = String(raw || "")
+          .split(/\r?\n/)
+          .map((l) => l.replace(/\s+/g, " ").trim())
+          .filter((l) => l.length >= 2 && l.length <= 70);
+        let marca = "";
+        let modelo = "";
+        const touchesPlate = (line) => placaNorm && normalizeOcrAlnum(line).includes(placaNorm);
+        for (const line of lines) {
+          if (touchesPlate(line)) continue;
+          if (/^[\d.\s:/\\-]+$/.test(line)) continue;
+          const parts = line.split(/\s+/).filter(Boolean);
+          if (parts.length >= 2) {
+            marca = parts[0];
+            modelo = parts.slice(1).join(" ");
+            break;
+          }
+        }
+        if (!modelo) {
+          for (const line of lines) {
+            if (touchesPlate(line)) continue;
+            const compact = line.replace(/\s/g, "");
+            if (/^[A-Z0-9-]{3,20}$/i.test(compact) && /[A-Za-z]/.test(compact)) {
+              modelo = line.trim();
+              break;
+            }
+          }
+        }
+        return { marca: marca.slice(0, 40), modelo: modelo.slice(0, 80) };
+      }
+
+      async function runVehicleFormPhotoOcr(file) {
+        const btn = document.getElementById("vehicleOcrFromPhotoBtn");
+        const plateEl = document.getElementById("vehiclePlate");
+        const brandEl = document.getElementById("vehicleBrand");
+        const modelEl = document.getElementById("vehicleModel");
+        const prevLabel = btn ? btn.textContent : "";
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "A ler a imagem…";
+        }
+        try {
+          await loadTesseractJs();
+          const T = window.Tesseract;
+          if (!T || typeof T.createWorker !== "function") {
+            alert("O leitor de imagem não ficou disponível neste navegador.");
+            return;
+          }
+          /* v5: idioma e OEM no createWorker; loadLanguage/initialize foram unificados */
+          const worker = await T.createWorker("por+eng", 1, { logger: function () {} });
+          const {
+            data: { text },
+          } = await worker.recognize(file);
+          await worker.terminate();
+
+          const placa = extractPlacaBrFromText(text);
+          const placaNorm = normalizeOcrAlnum(placa);
+          const hint = extractMarcaModeloHeuristic(text, placaNorm);
+
+          if (placa) plateEl.value = placa;
+          if (hint.marca && !(brandEl.value || "").trim()) brandEl.value = hint.marca;
+          if (hint.modelo && !(modelEl.value || "").trim()) modelEl.value = hint.modelo;
+
+          if (placa || hint.marca || hint.modelo) {
+            alert("Sugestão a partir da foto.\nConfira placa, marca e modelo antes de salvar.");
+          } else {
+            alert("Não foi possível extrair placa ou texto útil.\nTente outra foto (traseira, foco, luz) ou preencha à mão.");
+          }
+        } catch (e) {
+          console.error(e);
+          alert("Não foi possível processar a imagem (rede, memória ou bloqueio do navegador).\nPreencha à mão.");
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = prevLabel || "Preencher pela foto da traseira";
+          }
+        }
       }
 
       const authPanel = document.getElementById("authPanel");
@@ -6244,6 +6384,17 @@
         vehicleForm.reset();
         editingVehicleId = null;
         vehicleModal.classList.add("hidden");
+      });
+
+      document.getElementById("vehicleOcrFromPhotoBtn")?.addEventListener("click", () => {
+        document.getElementById("vehiclePhotoOcrInput")?.click();
+      });
+      document.getElementById("vehiclePhotoOcrInput")?.addEventListener("change", async (ev) => {
+        const input = ev.target;
+        const file = input.files && input.files[0];
+        input.value = "";
+        if (!file || !file.type.startsWith("image/")) return;
+        await runVehicleFormPhotoOcr(file);
       });
 
       openPartnerForm.addEventListener("click", () => {
