@@ -3125,7 +3125,7 @@
       const VLS_STATUS_LABELS = {
         LIBERACAO_SOLICITADA: "Liberação solicitada",
         LIBERACAO_CONFIRMADA: "Liberação confirmada",
-        REMocao_CONFIRMADA: "Remoção confirmada",
+        REMocao_CONFIRMADA: "Remoção solicitada",
       };
 
       function toYmdLocal(value) {
@@ -3188,7 +3188,7 @@
         NO_PATIO: "No pátio (VNP)",
         LIBERACAO_SOLICITADA: "Liberação solicitada",
         LIBERACAO_CONFIRMADA: "Liberação confirmada",
-        REMocao_CONFIRMADA: "Remoção confirmada",
+        REMocao_CONFIRMADA: "Remoção solicitada",
         REMOVIDO: "Removido (VRP)",
       };
 
@@ -5103,16 +5103,27 @@
 
             let actionsCell = "";
             if (isGestorPista) {
-              if (["LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA"].includes(v.status)) {
-                actionsCell = `<button class="secondary" data-action="confirmar" data-id="${v.id}">Confirmar liberação</button>`;
+              if (v.status === "LIBERACAO_SOLICITADA") {
+                actionsCell = `<button class="secondary" data-action="confirmar_liberacao" data-id="${v.id}">Liberação confirmada</button>`;
               } else {
                 actionsCell = `<span class="notice">Sem permissão de ação</span>`;
               }
             } else {
+              let nextStepBtn = "";
+              if (v.status === "NO_PATIO") {
+                nextStepBtn = `<button class="secondary" data-action="solicitar" data-id="${v.id}">Liberação solicitada</button>`;
+              } else if (v.status === "LIBERACAO_SOLICITADA") {
+                nextStepBtn = `<button class="secondary" data-action="confirmar_liberacao" data-id="${v.id}">Liberação confirmada</button>`;
+              } else if (v.status === "LIBERACAO_CONFIRMADA") {
+                nextStepBtn = `<button class="secondary" data-action="remocao_solicitada" data-id="${v.id}">Remoção solicitada</button>`;
+              } else if (v.status === "REMocao_CONFIRMADA") {
+                nextStepBtn = `<button class="secondary" data-action="confirmar" data-id="${v.id}">Remoção confirmada</button>`;
+              }
               const voltarBtn = emPipeline
                 ? `<button class="secondary" data-action="voltar" data-id="${v.id}" title="Volta um passo no fluxo de liberação">Voltar</button>`
                 : "";
               actionsCell = `
+                  ${nextStepBtn}
                   <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
                   ${voltarBtn}
                   <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
@@ -5190,8 +5201,10 @@
             const assessoria =
               state.partners.find((p) => p.id === v.assessoria_id)?.nome || "-";
             const actionLabels = {
-              solicitar: "Solicitar liberação",
-              confirmar: "Confirmar liberação",
+              solicitar: "Liberação solicitada",
+              confirmar_liberacao: "Liberação confirmada",
+              remocao_solicitada: "Remoção solicitada",
+              confirmar: "Remoção confirmada",
               nfse_pendente: "NFSe solicitada",
             };
 
@@ -5201,8 +5214,8 @@
 
             let actionsCell = "";
             if (isGestorPista) {
-              if (actionType === "confirmar") {
-                actionsCell = `<button class="secondary" data-action="confirmar" data-id="${v.id}">Confirmar liberação</button>`;
+              if (actionType === "confirmar_liberacao") {
+                actionsCell = `<button class="secondary" data-action="confirmar_liberacao" data-id="${v.id}">Liberação confirmada</button>`;
               } else {
                 actionsCell = `<span class="notice">Sem permissão de ação</span>`;
               }
@@ -5372,8 +5385,6 @@
         `;
         }
 
-        const FLUXO_SLV = ["LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA"];
-
         if (fichaSectionSnf && !isGestorPista) {
             const st = vehicle.nfse_status || "NAO_SOLICITADA";
             let statusLine = "";
@@ -5404,12 +5415,12 @@
                 '<p class="notice" style="margin:0">Veículo <strong>no pátio</strong>. Registre a <strong>SLV</strong> para iniciar o fluxo de liberação.</p>';
             } else if (vehicle.status === "LIBERACAO_SOLICITADA") {
               situacao =
-                '<p class="notice" style="margin:0"><strong>SLV registrada</strong> — liberação solicitada. Use os botões abaixo quando aplicável.</p>';
+                '<p class="notice" style="margin:0"><strong>SLV registrada</strong>. Próximo passo: <strong>Liberação confirmada</strong>.</p>';
             } else if (vehicle.status === "LIBERACAO_CONFIRMADA") {
               situacao =
-                '<p class="notice" style="margin:0">Liberação <strong>confirmada</strong> — aguardando remoção.</p>';
+                '<p class="notice" style="margin:0">Liberação <strong>confirmada</strong>. Próximo passo: <strong>Remoção solicitada</strong> (quando a empresa de remoção entrar em contato).</p>';
             } else if (vehicle.status === "REMocao_CONFIRMADA") {
-              situacao = '<p class="notice" style="margin:0">Remoção <strong>confirmada</strong>.</p>';
+              situacao = '<p class="notice" style="margin:0">Remoção <strong>solicitada</strong>. Próximo passo: <strong>Remoção confirmada</strong> para ir ao VRP.</p>';
             } else {
               situacao = `<p class="notice" style="margin:0">Situação: ${escapeHtml(
                 VLS_STATUS_LABELS[vehicle.status] || vehicle.status || "-"
@@ -5418,14 +5429,28 @@
             const botoes = [];
             if (vehicle.status === "NO_PATIO") {
               botoes.push(
-                `<button type="button" class="secondary" data-action="solicitar" data-id="${vehicle.id}">Registrar SLV</button>`
+                `<button type="button" class="secondary" data-action="solicitar" data-id="${vehicle.id}">Liberação solicitada</button>`
               );
-            } else if (FLUXO_SLV.includes(vehicle.status)) {
+            } else if (vehicle.status === "LIBERACAO_SOLICITADA") {
               botoes.push(
                 `<button type="button" class="secondary" data-action="trocar-responsavel" data-id="${vehicle.id}">Trocar responsável</button>`
               );
               botoes.push(
-                `<button type="button" class="secondary" data-action="confirmar" data-id="${vehicle.id}">Confirmar liberação / remoção</button>`
+                `<button type="button" class="secondary" data-action="confirmar_liberacao" data-id="${vehicle.id}">Liberação confirmada</button>`
+              );
+            } else if (vehicle.status === "LIBERACAO_CONFIRMADA") {
+              botoes.push(
+                `<button type="button" class="secondary" data-action="trocar-responsavel" data-id="${vehicle.id}">Trocar responsável</button>`
+              );
+              botoes.push(
+                `<button type="button" class="secondary" data-action="remocao_solicitada" data-id="${vehicle.id}">Remoção solicitada</button>`
+              );
+            } else if (vehicle.status === "REMocao_CONFIRMADA") {
+              botoes.push(
+                `<button type="button" class="secondary" data-action="trocar-responsavel" data-id="${vehicle.id}">Trocar responsável</button>`
+              );
+              botoes.push(
+                `<button type="button" class="secondary" data-action="confirmar" data-id="${vehicle.id}">Remoção confirmada</button>`
               );
             }
             fichaSectionSlv.innerHTML = `${situacao}<div class="ficha-inline-actions">${botoes.join("")}</div>`;
@@ -7408,7 +7433,7 @@
         const vehicle = state.vehicles.find((v) => v.id === id);
         if (!vehicle) return;
 
-        if (isGestorPista && action !== "confirmar") {
+        if (isGestorPista && action !== "confirmar_liberacao") {
           return;
         }
 
@@ -7583,6 +7608,64 @@
 
           await Promise.all([loadVehicles(), loadReceivables(), loadCash()]);
           renderFinance();
+          updateDashboard();
+          await refreshFichaIfOpen(id);
+          return;
+        }
+
+        if (action === "confirmar_liberacao") {
+          if (vehicle.status !== "LIBERACAO_SOLICITADA") {
+            alert("Esta ação só pode ser usada quando o veículo está em «Liberação solicitada».");
+            return;
+          }
+          const responsavel = prompt("Quem confirmou a liberação?");
+          if (!responsavel) return;
+          const { error: upErr } = await supabase
+            .from("vehicles")
+            .update({ status: "LIBERACAO_CONFIRMADA" })
+            .eq("id", id)
+            .eq("user_id", effectiveUserId());
+          if (upErr) {
+            alert(upErr.message);
+            return;
+          }
+          await supabase.from("vehicle_events").insert({
+            vehicle_id: id,
+            tipo: "LIBERACAO_CONFIRMADA",
+            responsavel,
+            descricao: "Liberação confirmada. Próximo passo: remoção solicitada.",
+          });
+          await loadVehicles();
+          renderVehicles();
+          updateDashboard();
+          await refreshFichaIfOpen(id);
+          return;
+        }
+
+        if (action === "remocao_solicitada") {
+          if (vehicle.status !== "LIBERACAO_CONFIRMADA") {
+            alert("Esta ação só pode ser usada quando o veículo está em «Liberação confirmada».");
+            return;
+          }
+          const responsavel = prompt("Quem solicitou a remoção?");
+          if (!responsavel) return;
+          const { error: upErr } = await supabase
+            .from("vehicles")
+            .update({ status: "REMocao_CONFIRMADA" })
+            .eq("id", id)
+            .eq("user_id", effectiveUserId());
+          if (upErr) {
+            alert(upErr.message);
+            return;
+          }
+          await supabase.from("vehicle_events").insert({
+            vehicle_id: id,
+            tipo: "REMOCAO_SOLICITADA",
+            responsavel,
+            descricao: "Empresa de remoção entrou em contato. Aguardando confirmação final da remoção.",
+          });
+          await loadVehicles();
+          renderVehicles();
           updateDashboard();
           await refreshFichaIfOpen(id);
           return;
@@ -7769,12 +7852,10 @@
         }
 
         if (action === "confirmar") {
-          const fluxoLiberacao = [
-            "LIBERACAO_SOLICITADA",
-            "LIBERACAO_CONFIRMADA",
-            "REMocao_CONFIRMADA",
-          ];
-          if (!fluxoLiberacao.includes(vehicle.status)) return;
+          if (vehicle.status !== "REMocao_CONFIRMADA") {
+            alert("Use «Remoção confirmada» apenas quando o veículo estiver em «Remoção solicitada».");
+            return;
+          }
           const responsavel = prompt("Quem removeu o veículo?");
           if (!responsavel) return;
           const dataSaidaInput = await openDateModal({
