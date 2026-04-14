@@ -148,14 +148,14 @@ export async function runCreateTrackManager(
     return { status: 400, body: { error: "email and password are required" } };
   }
 
-  /** E-mails @gestor.local são técnicos (sem caixa postal): confirmar já na criação. E-mail real → envia confirmação do Supabase. */
-  const emailConfirmAuto = /@gestor\.local$/i.test(email);
-
+  /**
+   * Sempre email_confirm: true — o utilizador fica confirmado na hora e o Supabase NÃO envia
+   * e-mail de confirmação (evita «email rate limit exceeded» no plano gratuito).
+   * Partilhe o link da app, o e-mail e a senha com o gestor por WhatsApp / SMS / etc.
+   */
   let newUserId: string | null = null;
   /** True quando o Auth já tinha este e-mail e só ligámos em track_managers (a senha enviada não altera a conta). */
   let reusedExistingAuthUser = false;
-  /** Utilizador recém-criado na resposta admin (para saber se ainda falta confirmar e-mail). */
-  let createdAuthUser: Record<string, unknown> | null = null;
   try {
     const adminResp = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
       method: "POST",
@@ -168,13 +168,12 @@ export async function runCreateTrackManager(
       body: JSON.stringify({
         email,
         password,
-        email_confirm: emailConfirmAuto,
+        email_confirm: true,
       }),
     });
 
     const adminJson: any = await adminResp.json().catch(() => ({}));
     if (adminResp.ok) {
-      createdAuthUser = (adminJson?.user || adminJson) as Record<string, unknown>;
       newUserId = adminJson?.user?.id || adminJson?.id || null;
       if (!newUserId) {
         return { status: 500, body: { error: "User created but id not found" } };
@@ -271,24 +270,11 @@ export async function runCreateTrackManager(
       };
     }
 
-    const confirmedAt =
-      (createdAuthUser?.email_confirmed_at as string | undefined) ||
-      (createdAuthUser?.confirmed_at as string | undefined);
-    const confirmationSent =
-      !reusedExistingAuthUser && !emailConfirmAuto && !!createdAuthUser && !confirmedAt;
-
     return {
       status: 200,
       body: {
         user_id: newUserId,
         email,
-        ...(confirmationSent
-          ? {
-              confirmation_sent: true,
-              message:
-                "Foi enviado um e-mail de confirmação para o gestor. Depois de confirmar no link do e-mail, ele abre a mesma app (ou o atalho no telemóvel), entra com este e-mail e a senha que definiu, e fica com o perfil de gestor de pista.",
-            }
-          : {}),
         ...(reusedExistingAuthUser
           ? {
               existing_auth_user: true,

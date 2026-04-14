@@ -2307,7 +2307,7 @@
             <div class="section-card" style="margin-top: 18px">
               <h3 style="margin: 0 0 10px; font-size: 1.1rem">Gestor de pista</h3>
               <p class="notice" style="margin: 0 0 14px">
-                Indique o <strong>e-mail real</strong> do gestor e uma <strong>senha inicial</strong>. O Supabase envia um <strong>e-mail de confirmação</strong>: depois de confirmar, o gestor abre a <strong>mesma app</strong> (ou o atalho no telemóvel), entra com esse e-mail e senha e fica com o perfil de gestor de pista (regista placa, modelo, localizador e entrada; pode confirmar liberação já solicitada; sem valores nem edições avançadas).
+                Indique o <strong>e-mail</strong> do gestor e uma <strong>senha inicial</strong>. A conta fica <strong>pronta a usar na hora</strong> (não enviamos e-mail automático pelo Supabase — evita o limite de e-mails do plano gratuito). Envie ao gestor o <strong>link da app</strong>, o e-mail e a senha (WhatsApp, SMS, etc.). Ele abre a mesma app, entra e fica com o perfil de gestor de pista.
               </p>
               <div class="form-grid">
                 <div class="full">
@@ -7452,12 +7452,9 @@
         return norm.length >= 3 && norm.length <= 48;
       }
 
-      /** E-mail real para convite do gestor (não aceita @gestor.local aqui — use o e-mail da pessoa). */
+      /** E-mail para o gestor (formato válido; pode ser @gestor.local se usar esse padrão). */
       function isValidGestorInviteEmail(s) {
-        const t = (s || "").trim();
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) return false;
-        if (/@gestor\.local$/i.test(t)) return false;
-        return true;
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((s || "").trim());
       }
 
       async function createTrackManagerViaClientFlow(email, password) {
@@ -7515,8 +7512,7 @@
           }
           if (!isValidGestorInviteEmail(emailRaw)) {
             if (trackManagerStatus)
-              trackManagerStatus.textContent =
-                "Use um e-mail válido do gestor (ex.: nome@empresa.com). Não utilize @gestor.local aqui.";
+              trackManagerStatus.textContent = "Use um e-mail válido (ex.: nome@empresa.com).";
             return;
           }
           if (!password) {
@@ -7571,9 +7567,7 @@
 
             const newUserId = json?.user_id || "";
             if (trackManagerStatus) {
-              if (json?.confirmation_sent && json?.message) {
-                trackManagerStatus.textContent = json.message;
-              } else if (json?.already_linked) {
+              if (json?.already_linked) {
                 trackManagerStatus.textContent =
                   json?.message ||
                   `Este gestor já estava associado. E-mail: ${escapeHtml(email)} | User ID: ${newUserId || "—"}`;
@@ -7595,7 +7589,15 @@
                 msg || ""
               );
             if (!shouldFallback) {
-              if (trackManagerStatus) trackManagerStatus.textContent = msg || "Erro ao criar utilizador.";
+              if (trackManagerStatus) {
+                const m = (msg || "").toLowerCase();
+                if (/rate limit|429|email rate limit|over_email_send_rate|exceeded/i.test(m)) {
+                  trackManagerStatus.textContent =
+                    "Limite de e-mails do Supabase. Com o último deploy, criar gestor já não deve enviar e-mail — atualize a página e tente de novo. Se persistir, aguarde ~1 h. ou desative confirmações em Authentication → Providers → Email.";
+                } else {
+                  trackManagerStatus.textContent = msg || "Erro ao criar utilizador.";
+                }
+              }
               console.error(e);
               return;
             }
