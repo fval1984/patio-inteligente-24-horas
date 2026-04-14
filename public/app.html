@@ -7434,10 +7434,41 @@
           }
           if (!confirm("Desfazer esta remoção e voltar o veículo para o passo anterior?")) return;
 
-          // Retorna ao passo imediatamente anterior no fluxo de liberação.
+          let previousStatus = "LIBERACAO_CONFIRMADA";
+          try {
+            const { data: eventsBack, error: eventsBackErr } = await supabase
+              .from("vehicle_events")
+              .select("tipo,descricao,created_at")
+              .eq("vehicle_id", id)
+              .in("tipo", ["REMOVIDO", "REMocao_CONFIRMADA", "LIBERACAO_CONFIRMADA", "LIBERACAO_SOLICITADA"])
+              .order("created_at", { ascending: false })
+              .limit(30);
+            if (eventsBackErr) throw eventsBackErr;
+            const events = eventsBack || [];
+            const removedEvent = events.find((e) => e.tipo === "REMOVIDO");
+            if (removedEvent?.descricao) {
+              const m = String(removedEvent.descricao).match(/PREV_STATUS=([A-Z_]+)/);
+              if (m?.[1]) previousStatus = m[1];
+            }
+            if (!["LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA"].includes(previousStatus)) {
+              const idxRemoved = events.findIndex((e) => e.tipo === "REMOVIDO");
+              const older = idxRemoved >= 0 ? events.slice(idxRemoved + 1) : events;
+              const prevByTipo = older.find((e) =>
+                ["REMocao_CONFIRMADA", "LIBERACAO_CONFIRMADA", "LIBERACAO_SOLICITADA"].includes(e.tipo)
+              );
+              if (prevByTipo) previousStatus = prevByTipo.tipo;
+            }
+          } catch (e) {
+            console.warn("voltar_vrp_prev_status", e);
+          }
+          if (!["LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA"].includes(previousStatus)) {
+            previousStatus = "LIBERACAO_CONFIRMADA";
+          }
+
+          // Retorna ao passo anterior identificado no fluxo de liberação.
           const { error: vehicleBackErr } = await supabase
             .from("vehicles")
-            .update({ status: "REMocao_CONFIRMADA", data_saida: null, payment_status: "EM_ABERTO" })
+            .update({ status: previousStatus, data_saida: null, payment_status: "EM_ABERTO" })
             .eq("id", id)
             .eq("user_id", effectiveUserId());
           if (vehicleBackErr) {
@@ -7461,7 +7492,7 @@
             return;
           }
           if (lastCycle?.id) {
-            const reopenedVehicle = { ...vehicle, status: "REMocao_CONFIRMADA", data_saida: null };
+            const reopenedVehicle = { ...vehicle, status: previousStatus, data_saida: null };
             const valorReaberto = calcPeriodTotal(reopenedVehicle, lastCycle.period_start, null);
             const { error: reopenErr } = await supabase
               .from("receivables")
@@ -7507,7 +7538,7 @@
             vehicle_id: id,
             tipo: "REMOCAO_DESFEITA",
             responsavel: state.user?.email || "Administrador",
-            descricao: "Remoção desfeita manualmente. Veículo retornado ao passo anterior (Remoção confirmada).",
+            descricao: `Remoção desfeita manualmente. Veículo retornado ao passo anterior (${VLS_STATUS_LABELS[previousStatus] || previousStatus}).`,
           });
 
           await Promise.all([loadVehicles(), loadReceivables(), loadCash()]);
@@ -7719,11 +7750,12 @@
             return;
           }
           const dataSaida = parsed.toISOString();
+          const previousStatus = vehicle.status;
           const { error: eventError } = await supabase.from("vehicle_events").insert({
             vehicle_id: id,
             tipo: "REMOVIDO",
             responsavel,
-            descricao: "Liberação confirmada — veículo removido do pátio",
+            descricao: `Liberação confirmada — veículo removido do pátio. PREV_STATUS=${previousStatus}`,
           });
           if (eventError) {
             alert(eventError.message);
