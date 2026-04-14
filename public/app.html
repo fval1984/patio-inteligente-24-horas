@@ -1654,9 +1654,9 @@
         </div>
       </div>
       <div class="header-actions">
-        <button id="themeToggle" class="toggle" type="button">
+        <button id="themeToggle" class="toggle hidden" type="button" aria-hidden="true" tabindex="-1">
           <span class="dot" aria-hidden="true"></span>
-          <span id="themeLabel">Tema claro</span>
+          <span id="themeLabel">Tema escuro</span>
         </button>
         <div class="user" id="userInfo">Não autenticado</div>
       </div>
@@ -4377,25 +4377,7 @@
         }
       }
 
-      var savedTheme = "light";
-      try {
-        savedTheme = localStorage.getItem("amplipatio-theme") || "light";
-      } catch (e) {
-        console.warn("localStorage tema indisponível", e);
-      }
-      applyTheme(savedTheme);
-
-      if (themeToggle) {
-        themeToggle.addEventListener("click", () => {
-          const nextTheme = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-          try {
-            localStorage.setItem("amplipatio-theme", nextTheme);
-          } catch (e) {
-            console.warn("localStorage", e);
-          }
-          applyTheme(nextTheme);
-        });
-      }
+      applyTheme("dark");
 
       function setStatus(message, type) {
         if (!authStatus) return;
