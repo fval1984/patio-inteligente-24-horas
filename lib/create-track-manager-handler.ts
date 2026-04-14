@@ -104,9 +104,6 @@ export async function runCreateTrackManager(
 
   const supabaseUrl = process.env.SUPABASE_URL || "";
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-  /** Sempre preferir anon do servidor (mesmo projeto que SERVICE_ROLE) — evita chave errada vinda do cliente. */
-  const anonKey =
-    (process.env.SUPABASE_ANON_KEY || "").trim() || (body.anon_key || "").trim() || "";
 
   if (!supabaseUrl || !serviceRoleKey) {
     return {
@@ -132,26 +129,30 @@ export async function runCreateTrackManager(
     };
   }
 
-  const apikeyForUserCall = anonKey;
-  if (!apikeyForUserCall) {
-    return {
-      status: 500,
-      body: {
-        error:
-          "Falta SUPABASE_ANON_KEY no servidor (Vercel). Adicione a chave «anon public» do mesmo projeto Supabase em Environment Variables e faça Redeploy.",
-      },
-    };
-  }
-
+  /**
+   * Validar o JWT do dono com GET /auth/v1/user.
+   * 1) `apikey: service_role` no servidor (não depende de ANON na Vercel).
+   * 2) Se 401, tenta com anon (env ou corpo) por compatibilidade com versões do GoTrue.
+   */
+  const anonFallback = (process.env.SUPABASE_ANON_KEY || "").trim() || (body.anon_key || "").trim() || "";
   let requesterId: string | null = null;
   try {
-    const userResp = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    let userResp = await fetch(`${supabaseUrl}/auth/v1/user`, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/json",
-        apikey: apikeyForUserCall,
+        apikey: serviceRoleKey,
       },
     });
+    if (!userResp.ok && userResp.status === 401 && anonFallback) {
+      userResp = await fetch(`${supabaseUrl}/auth/v1/user`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+          apikey: anonFallback,
+        },
+      });
+    }
     if (!userResp.ok) {
       const userErr: any = await userResp.json().catch(() => ({}));
       const supMsg = [userErr?.message, userErr?.msg, userErr?.error_description, userErr?.error]
@@ -159,7 +160,7 @@ export async function runCreateTrackManager(
         .join(" ");
       const hint401 =
         userResp.status === 401
-          ? " Confirme que SUPABASE_URL na Vercel é o mesmo projeto que em app.html, que SUPABASE_ANON_KEY coincide com a chave anon da app e que voltou a entrar (sessão válida)."
+          ? " Confirme que SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY na Vercel são do mesmo projeto que em app.html, que o campo access_token chega no pedido e que a sessão não expirou (saia e entre de novo)."
           : "";
       return {
         status: 401,
