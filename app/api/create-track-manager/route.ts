@@ -45,7 +45,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   return NextResponse.json(
-    { ok: true, route: "create-track-manager", hint: "Use POST with Bearer token and JSON { email, password }." },
+    {
+      ok: true,
+      route: "create-track-manager",
+      hint: "POST com Bearer. JSON: { password? } — sem e-mail gera login gm_...@gestor.local; sem senha gera senha (devolvida só uma vez em initial_password). Opcional: { email, password }.",
+    },
     { status: 200 }
   );
 }

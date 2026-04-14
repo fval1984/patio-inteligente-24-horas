@@ -2307,29 +2307,42 @@
             <div class="section-card" style="margin-top: 18px">
               <h3 style="margin: 0 0 10px; font-size: 1.1rem">Gestor de pista</h3>
               <p class="notice" style="margin: 0 0 14px">
-                Indique o <strong>e-mail</strong> do gestor e uma <strong>senha inicial</strong>. A conta fica <strong>pronta a usar na hora</strong> (não enviamos e-mail automático pelo Supabase — evita o limite de e-mails do plano gratuito). Envie ao gestor o <strong>link da app</strong>, o e-mail e a senha (WhatsApp, SMS, etc.). Ele abre a mesma app, entra e fica com o perfil de gestor de pista.
+                Cria um <strong>acesso técnico</strong> (login + senha) <strong>sem e-mail real</strong>: não enviamos mensagens pelo Supabase. Na hora aparece aqui o que deve copiar e enviar ao funcionário por <strong>WhatsApp</strong>. No ecrã de entrada da app ele cola o <strong>login</strong> no campo de e-mail e a <strong>senha</strong> no campo da palavra-passe.
               </p>
               <div class="form-grid">
                 <div class="full">
-                  <label>E-mail do gestor de pista</label>
-                  <input id="trackManagerGestorEmail" type="email" autocomplete="email" placeholder="ex.: maria.silva@email.com" />
-                </div>
-                <div class="full">
-                  <label>Senha inicial (o gestor usa na 1.ª entrada)</label>
-                  <input id="trackManagerPassword" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres" />
+                  <label>Senha personalizada (opcional)</label>
+                  <input id="trackManagerPassword" type="password" autocomplete="new-password" placeholder="Se vazio, geramos uma senha segura (aparece só uma vez em baixo)" />
                 </div>
               </div>
               <div class="form-actions" style="margin-top: 10px">
-                <button type="button" id="addTrackManager">Criar gestor de pista</button>
+                <button type="button" id="addTrackManager">Gerar acesso de gestor de pista</button>
               </div>
               <p class="notice" id="trackManagerStatus" style="margin-top: 12px"></p>
+              <div id="trackManagerAccessBox" class="hidden" style="margin-top: 14px; padding: 14px; border-radius: 8px; border: 1px solid var(--border, #ccc); background: var(--card-muted, rgba(0,0,0,0.03))">
+                <p style="margin: 0 0 10px; font-weight: 600">Copiar para o WhatsApp</p>
+                <p class="notice" style="margin: 0 0 10px; font-size: 0.9rem">Guarde já: a senha gerada <strong>só aparece desta vez</strong> neste ecrã.</p>
+                <div class="form-grid">
+                  <div class="full">
+                    <label for="trackManagerGeneratedLogin">Login (colar no campo «e-mail» da app)</label>
+                    <input id="trackManagerGeneratedLogin" type="text" readonly style="width: 100%; font-family: monospace" />
+                  </div>
+                  <div class="full">
+                    <label for="trackManagerGeneratedPassword">Senha</label>
+                    <input id="trackManagerGeneratedPassword" type="text" readonly autocomplete="off" style="width: 100%; font-family: monospace" />
+                  </div>
+                </div>
+                <div class="form-actions" style="margin-top: 10px">
+                  <button type="button" id="trackManagerCopyWhatsApp">Copiar mensagem (link + login + senha)</button>
+                </div>
+              </div>
             </div>
             <div class="section-card" style="margin-top: 18px; box-shadow: none; border: 1px dashed var(--border, #ccc); padding: 14px">
               <p class="notice" style="margin: 0 0 8px">Gestores de pista ligados a esta conta</p>
               <table class="table stacked">
                 <thead>
                   <tr>
-                    <th>E-mail</th>
+                    <th>Login</th>
                     <th>Perfil</th>
                   </tr>
                 </thead>
@@ -2921,10 +2934,13 @@
       const settingsInvoice = document.getElementById("settingsInvoice");
       const saveSettings = document.getElementById("saveSettings");
 
-      const trackManagerGestorEmail = document.getElementById("trackManagerGestorEmail");
       const trackManagerPassword = document.getElementById("trackManagerPassword");
       const addTrackManager = document.getElementById("addTrackManager");
       const trackManagerStatus = document.getElementById("trackManagerStatus");
+      const trackManagerAccessBox = document.getElementById("trackManagerAccessBox");
+      const trackManagerGeneratedLogin = document.getElementById("trackManagerGeneratedLogin");
+      const trackManagerGeneratedPassword = document.getElementById("trackManagerGeneratedPassword");
+      const trackManagerCopyWhatsApp = document.getElementById("trackManagerCopyWhatsApp");
       const trackManagerLinkUid = document.getElementById("trackManagerLinkUid");
       const trackManagerLinkEmail = document.getElementById("trackManagerLinkEmail");
       const linkTrackManager = document.getElementById("linkTrackManager");
@@ -6936,7 +6952,7 @@
         tableTrackManagersBody.innerHTML = rows
           .map((r) => {
             const perfil = "Gestor de pista";
-            return `<tr><td data-label="E-mail">${escapeHtml((r.email || "—").trim())}</td><td data-label="Perfil">${escapeHtml(perfil)}</td></tr>`;
+            return `<tr><td data-label="Login">${escapeHtml((r.email || "—").trim())}</td><td data-label="Perfil">${escapeHtml(perfil)}</td></tr>`;
           })
           .join("");
       }
@@ -7452,9 +7468,33 @@
         return norm.length >= 3 && norm.length <= 48;
       }
 
-      /** E-mail para o gestor (formato válido; pode ser @gestor.local se usar esse padrão). */
-      function isValidGestorInviteEmail(s) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((s || "").trim());
+      function randomGestorLoginEmail() {
+        const a = new Uint8Array(16);
+        crypto.getRandomValues(a);
+        const h = [...a].map((b) => b.toString(16).padStart(2, "0")).join("");
+        return `gm_${h}@gestor.local`;
+      }
+
+      function randomGestorInitialPassword() {
+        const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
+        const a = new Uint8Array(14);
+        crypto.getRandomValues(a);
+        let s = "";
+        for (let i = 0; i < 14; i++) s += chars[a[i] % chars.length];
+        return s;
+      }
+
+      function hideTrackManagerAccessBox() {
+        trackManagerAccessBox?.classList.add("hidden");
+        if (trackManagerGeneratedLogin) trackManagerGeneratedLogin.value = "";
+        if (trackManagerGeneratedPassword) trackManagerGeneratedPassword.value = "";
+      }
+
+      function showTrackManagerAccessBox(login, pwd) {
+        if (!trackManagerAccessBox) return;
+        if (trackManagerGeneratedLogin) trackManagerGeneratedLogin.value = login || "";
+        if (trackManagerGeneratedPassword) trackManagerGeneratedPassword.value = pwd || "";
+        trackManagerAccessBox.classList.remove("hidden");
       }
 
       async function createTrackManagerViaClientFlow(email, password) {
@@ -7492,6 +7532,25 @@
         return newUserId;
       }
 
+      trackManagerCopyWhatsApp?.addEventListener("click", async () => {
+        const login = (trackManagerGeneratedLogin?.value || "").trim();
+        const pwd = (trackManagerGeneratedPassword?.value || "").trim();
+        if (!login || !pwd) {
+          if (trackManagerStatus) trackManagerStatus.textContent = "Não há login/senha para copiar.";
+          return;
+        }
+        const u = new URL(window.location.href);
+        u.hash = "";
+        const appUrl = u.toString();
+        const text = `App do pátio: ${appUrl}\nLogin (colar no campo e-mail): ${login}\nSenha: ${pwd}`;
+        try {
+          await navigator.clipboard.writeText(text);
+          if (trackManagerStatus) trackManagerStatus.textContent = "Mensagem copiada. Cole no WhatsApp e envie ao gestor.";
+        } catch {
+          if (trackManagerStatus) trackManagerStatus.textContent = "Não foi possível copiar. Selecione os campos acima e copie manualmente.";
+        }
+      });
+
       if (addTrackManager) {
         addTrackManager.addEventListener("click", async () => {
           if (!supabase) {
@@ -7504,27 +7563,13 @@
                 "Inicie sessão com a conta principal (dono do pátio) antes de criar gestores de pista.";
             return;
           }
-          const emailRaw = (trackManagerGestorEmail?.value || "").trim().toLowerCase();
-          const password = (trackManagerPassword?.value || "").trim();
-          if (!emailRaw) {
-            if (trackManagerStatus) trackManagerStatus.textContent = "Indique o e-mail do gestor de pista.";
+          hideTrackManagerAccessBox();
+          const ownerChosenPassword = (trackManagerPassword?.value || "").trim();
+          if (ownerChosenPassword && ownerChosenPassword.length < 6) {
+            if (trackManagerStatus) trackManagerStatus.textContent = "A senha personalizada deve ter pelo menos 6 caracteres (regra do Supabase).";
             return;
           }
-          if (!isValidGestorInviteEmail(emailRaw)) {
-            if (trackManagerStatus)
-              trackManagerStatus.textContent = "Use um e-mail válido (ex.: nome@empresa.com).";
-            return;
-          }
-          if (!password) {
-            if (trackManagerStatus) trackManagerStatus.textContent = "Defina uma senha inicial para o gestor.";
-            return;
-          }
-          if (password.length < 6) {
-            if (trackManagerStatus) trackManagerStatus.textContent = "A senha deve ter pelo menos 6 caracteres (regra do Supabase).";
-            return;
-          }
-          const email = emailRaw;
-          if (trackManagerStatus) trackManagerStatus.textContent = "A criar utilizador...";
+          if (trackManagerStatus) trackManagerStatus.textContent = "A gerar acesso…";
 
           try {
             let sessionRes = await supabase.auth.getSession();
@@ -7543,8 +7588,7 @@
                 Authorization: `Bearer ${accessToken}`,
               },
               body: JSON.stringify({
-                email,
-                password,
+                ...(ownerChosenPassword ? { password: ownerChosenPassword } : {}),
                 access_token: accessToken,
                 anon_key: supabaseKey,
               }),
@@ -7566,20 +7610,28 @@
             }
 
             const newUserId = json?.user_id || "";
+            const loginEmail = (json?.email || "").trim();
+            const pwdForShare =
+              typeof json?.initial_password === "string" && json.initial_password
+                ? json.initial_password
+                : ownerChosenPassword;
             if (trackManagerStatus) {
               if (json?.already_linked) {
                 trackManagerStatus.textContent =
                   json?.message ||
-                  `Este gestor já estava associado. E-mail: ${escapeHtml(email)} | User ID: ${newUserId || "—"}`;
+                  `Este gestor já estava associado. Login: ${escapeHtml(loginEmail)} | User ID: ${newUserId || "—"}`;
+                hideTrackManagerAccessBox();
               } else if (json?.existing_auth_user && json?.message) {
-                trackManagerStatus.textContent = `${json.message} E-mail: ${escapeHtml(email)} | User ID: ${newUserId}`;
+                trackManagerStatus.textContent = `${json.message} Login: ${escapeHtml(loginEmail)} | User ID: ${newUserId}`;
+                hideTrackManagerAccessBox();
               } else {
                 trackManagerStatus.textContent = newUserId
-                  ? `Gestor associado. E-mail: ${escapeHtml(email)} — já pode entrar na app com este e-mail e a senha definida. User ID: ${newUserId}`
-                  : `Gestor associado. E-mail: ${escapeHtml(email)} — já pode entrar na app com este e-mail e a senha definida.`;
+                  ? "Acesso criado. Copie login e senha em baixo e envie pelo WhatsApp."
+                  : "Acesso criado. Copie login e senha em baixo e envie pelo WhatsApp.";
+                if (loginEmail && pwdForShare) showTrackManagerAccessBox(loginEmail, pwdForShare);
+                else hideTrackManagerAccessBox();
               }
             }
-            if (trackManagerGestorEmail) trackManagerGestorEmail.value = "";
             if (trackManagerPassword) trackManagerPassword.value = "";
             await loadTrackManagersList();
           } catch (e) {
@@ -7605,11 +7657,14 @@
               if (trackManagerStatus)
                 trackManagerStatus.textContent =
                   "API indisponível. Tentando criação direta pelo Supabase (modo único)...";
-              const newUserId = await createTrackManagerViaClientFlow(email, password);
+              const fbEmail = randomGestorLoginEmail();
+              const fbPwd = ownerChosenPassword || randomGestorInitialPassword();
+              const newUserId = await createTrackManagerViaClientFlow(fbEmail, fbPwd);
               if (trackManagerStatus) {
-                trackManagerStatus.textContent = `Gestor de pista criado. Login: ${displayManagerIdentity(email)} | User ID: ${newUserId}`;
+                trackManagerStatus.textContent =
+                  "Gestor criado (modo direto). Copie login e senha em baixo — confirme depois o deploy da API para o fluxo normal.";
               }
-              if (trackManagerGestorEmail) trackManagerGestorEmail.value = "";
+              showTrackManagerAccessBox(fbEmail, fbPwd);
               if (trackManagerPassword) trackManagerPassword.value = "";
               await loadTrackManagersList();
             } catch (e2) {

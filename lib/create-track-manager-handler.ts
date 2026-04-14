@@ -1,8 +1,28 @@
+import { randomBytes } from "node:crypto";
+
 type CreateTrackManagerBody = {
   email?: string;
   password?: string;
   anon_key?: string;
 };
+
+/** Login técnico único (sem e-mail real). O funcionário usa isto no campo «e-mail» do login da app. */
+function generateGestorLoginEmail(): string {
+  return `gm_${randomBytes(16).toString("hex")}@gestor.local`;
+}
+
+/** Senha inicial segura (só devolvida uma vez na resposta HTTP quando gerada aqui). */
+function generateGestorInitialPassword(): string {
+  const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  const buf = randomBytes(14);
+  let out = "";
+  for (let i = 0; i < 14; i++) out += chars[buf[i]! % chars.length];
+  return out;
+}
+
+function isValidEmailFormat(s: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+}
 
 export type CreateTrackManagerResult = {
   status: number;
@@ -141,17 +161,30 @@ export async function runCreateTrackManager(
     return { status: 401, body: { error: "Unauthorized" } };
   }
 
-  const email = (body.email || "").trim();
-  const password = (body.password || "").trim();
+  let email = (body.email || "").trim().toLowerCase();
+  let password = (body.password || "").trim();
+  let initialPasswordForResponse: string | undefined;
+  const autoLogin = !email;
+  const autoPassword = !password;
 
-  if (!email || !password) {
-    return { status: 400, body: { error: "email and password are required" } };
+  if (email && !isValidEmailFormat(email)) {
+    return { status: 400, body: { error: "Formato de e-mail inválido." } };
+  }
+  if (!email) {
+    email = generateGestorLoginEmail();
+  }
+  if (!password) {
+    password = generateGestorInitialPassword();
+    initialPasswordForResponse = password;
+  }
+  if (password.length < 6) {
+    return { status: 400, body: { error: "A senha deve ter pelo menos 6 caracteres (regra do Supabase)." } };
   }
 
   /**
    * Sempre email_confirm: true — o utilizador fica confirmado na hora e o Supabase NÃO envia
    * e-mail de confirmação (evita «email rate limit exceeded» no plano gratuito).
-   * Partilhe o link da app, o e-mail e a senha com o gestor por WhatsApp / SMS / etc.
+   * Partilhe o link da app, o login e a senha com o gestor por WhatsApp / SMS / etc.
    */
   let newUserId: string | null = null;
   /** True quando o Auth já tinha este e-mail e só ligámos em track_managers (a senha enviada não altera a conta). */
@@ -275,6 +308,10 @@ export async function runCreateTrackManager(
       body: {
         user_id: newUserId,
         email,
+        ...(autoLogin ? { generated_login: true } : {}),
+        ...(autoPassword && initialPasswordForResponse && !reusedExistingAuthUser
+          ? { initial_password: initialPasswordForResponse }
+          : {}),
         ...(reusedExistingAuthUser
           ? {
               existing_auth_user: true,
