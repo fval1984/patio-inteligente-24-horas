@@ -1,4 +1,4 @@
-/** Mesma lógica que em app.html: nome de acesso → e-mail técnico @gestor.local para o Supabase Auth. */
+/** Mesma lógica que em app.html: nome de acesso → e-mail técnico @gestor.invalid para o Supabase Auth. */
 
 export function normalizeManagerLogin(raw: string): string {
   return (raw || "")
@@ -15,7 +15,7 @@ export function normalizeManagerLogin(raw: string): string {
 export function managerLoginToEmail(loginRaw: string): string {
   const norm = normalizeManagerLogin(loginRaw);
   if (!norm) return "";
-  return `${norm}@gestor.local`;
+  return `${norm}@gestor.invalid`;
 }
 
 export function resolveManagerIdentityToEmail(inputRaw: string): string {
