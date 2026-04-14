@@ -146,14 +146,18 @@ export async function runCreateTrackManager(
       },
     });
     if (!userResp.ok) {
-      const hint =
+      const userErr: any = await userResp.json().catch(() => ({}));
+      const supMsg = [userErr?.message, userErr?.msg, userErr?.error_description, userErr?.error]
+        .filter(Boolean)
+        .join(" ");
+      const hint401 =
         userResp.status === 401
-          ? " Confirma que SUPABASE_URL na Vercel é o mesmo projeto que em app.html (URL do Supabase)."
+          ? " Confirme que SUPABASE_URL na Vercel é o mesmo projeto que em app.html, que SUPABASE_ANON_KEY coincide com a chave anon da app e que voltou a entrar (sessão válida)."
           : "";
       return {
         status: 401,
         body: {
-          error: `Não autorizado (${userResp.status}).${hint}`,
+          error: `Não autorizado (${userResp.status}).${hint401}${supMsg ? ` ${supMsg}` : ""}`,
         },
       };
     }

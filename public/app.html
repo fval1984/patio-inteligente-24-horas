@@ -7696,9 +7696,10 @@
             }
 
             if (!resp.ok) {
-              const parts = [json?.error, json?.details]
+              const rawParts = [json?.error, json?.details]
                 .filter((x) => typeof x === "string" && String(x).trim())
                 .map((x) => String(x).trim());
+              const parts = [...new Set(rawParts)];
               let msg = parts.join(" — ") || `Erro HTTP ${resp.status} ao criar gestor.`;
               const mlow = msg.toLowerCase();
               if (/rate limit|429|over_email_send_rate|email rate limit|exceeded/i.test(mlow)) {
