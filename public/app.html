@@ -4506,7 +4506,7 @@
       function displayManagerIdentity(emailOrLogin) {
         const s = (emailOrLogin || "").trim();
         if (!s) return "—";
-        const m = s.match(/^([a-z0-9._-]+)@gestor\.local$/i);
+        const m = s.match(/^([a-z0-9._-]+)@gestor\.(local|invalid)$/i);
         if (m) return m[1];
         return s;
       }
