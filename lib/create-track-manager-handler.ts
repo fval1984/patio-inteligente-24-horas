@@ -3,6 +3,8 @@ import { randomBytes } from "node:crypto";
 type CreateTrackManagerBody = {
   email?: string;
   password?: string;
+  /** JWT da sessão do dono (preferir enviar no corpo — não depender do header Authorization na Vercel). */
+  access_token?: string;
   anon_key?: string;
 };
 
@@ -102,7 +104,9 @@ export async function runCreateTrackManager(
 
   const supabaseUrl = process.env.SUPABASE_URL || "";
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-  const anonKey = (body.anon_key || "").trim() || process.env.SUPABASE_ANON_KEY || "";
+  /** Sempre preferir anon do servidor (mesmo projeto que SERVICE_ROLE) — evita chave errada vinda do cliente. */
+  const anonKey =
+    (process.env.SUPABASE_ANON_KEY || "").trim() || (body.anon_key || "").trim() || "";
 
   if (!supabaseUrl || !serviceRoleKey) {
     return {
@@ -114,13 +118,16 @@ export async function runCreateTrackManager(
     };
   }
 
-  const token = extractBearerToken(authorization);
+  const token =
+    (body.access_token || "").trim() ||
+    extractBearerToken(authorization) ||
+    null;
   if (!token) {
     return {
       status: 401,
       body: {
         error:
-          "Token em falta no pedido. Atualiza a página, volta a entrar e tenta de novo.",
+          "Sessão em falta: o pedido precisa do campo JSON access_token (JWT). Atualize a página, entre de novo na conta principal e tente.",
       },
     };
   }
@@ -131,7 +138,7 @@ export async function runCreateTrackManager(
       status: 500,
       body: {
         error:
-          "Falta SUPABASE_ANON_KEY no servidor e no pedido. Configure SUPABASE_ANON_KEY na Vercel ou atualize a app.",
+          "Falta SUPABASE_ANON_KEY no servidor (Vercel). Adicione a chave «anon public» do mesmo projeto Supabase em Environment Variables e faça Redeploy.",
       },
     };
   }

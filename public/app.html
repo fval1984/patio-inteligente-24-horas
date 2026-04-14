@@ -2342,7 +2342,8 @@
                 <strong>3)</strong> Ao entrar, a app <strong>abre logo na Gestão de pátio</strong> com o que ele pode fazer (operar veículos no pátio; sem financeiro nem as tuas definições).
               </p>
               <p class="notice" style="margin: 0 0 14px; font-size: 0.9rem">
-                O login é técnico (não é caixa de correio). Não enviamos e-mail automático pelo Supabase.
+                O login é técnico (não é caixa de correio). Não enviamos e-mail automático pelo Supabase. No servidor (Vercel) são necessários
+                <strong>SUPABASE_URL</strong>, <strong>SUPABASE_SERVICE_ROLE_KEY</strong> e <strong>SUPABASE_ANON_KEY</strong> do mesmo projeto.
               </p>
               <div class="form-grid">
                 <div class="full">
@@ -7513,22 +7514,6 @@
         return norm.length >= 3 && norm.length <= 48;
       }
 
-      function randomGestorLoginEmail() {
-        const a = new Uint8Array(16);
-        crypto.getRandomValues(a);
-        const h = [...a].map((b) => b.toString(16).padStart(2, "0")).join("");
-        return `gm_${h}@gestor.invalid`;
-      }
-
-      function randomGestorInitialPassword() {
-        const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
-        const a = new Uint8Array(14);
-        crypto.getRandomValues(a);
-        let s = "";
-        for (let i = 0; i < 14; i++) s += chars[a[i] % chars.length];
-        return s;
-      }
-
       function hideTrackManagerAccessBox() {
         trackManagerAccessBox?.classList.add("hidden");
         if (trackManagerGeneratedLogin) trackManagerGeneratedLogin.value = "";
@@ -7540,41 +7525,6 @@
         if (trackManagerGeneratedLogin) trackManagerGeneratedLogin.value = login || "";
         if (trackManagerGeneratedPassword) trackManagerGeneratedPassword.value = pwd || "";
         trackManagerAccessBox.classList.remove("hidden");
-      }
-
-      async function createTrackManagerViaClientFlow(email, password) {
-        const signupResp = await fetch(`${supabaseUrl}/auth/v1/signup`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: supabaseKey,
-          },
-          body: JSON.stringify({
-            email,
-            password,
-          }),
-        });
-        const signupJson = await signupResp.json().catch(() => ({}));
-        if (!signupResp.ok) {
-          throw new Error(signupJson?.msg || signupJson?.error_description || signupJson?.error || "Falha ao criar utilizador.");
-        }
-        const newUserId = signupJson?.user?.id || "";
-        if (!newUserId) {
-          throw new Error("Utilizador criado sem UID retornado pelo Auth.");
-        }
-
-        const base = { owner_user_id: state.user.id, user_id: newUserId, email };
-        let ins = await supabase.from("track_managers").insert({ ...base, role: "GESTOR_PISTA" });
-        if (ins.error && /role|column|PGRST204|schema cache/i.test(ins.error.message || "")) {
-          ins = await supabase.from("track_managers").insert(base);
-        }
-        if (ins.error) {
-          const hint = /row-level security|RLS|42501/i.test(ins.error.message || "")
-            ? " Execute no Supabase o SQL supabase/track_managers_rls_policies.sql."
-            : "";
-          throw new Error((ins.error.message || "Falha ao associar gestor na tabela track_managers.") + hint);
-        }
-        return newUserId;
       }
 
       document.getElementById("gestorPistaWelcomeDismiss")?.addEventListener("click", () => {
@@ -7637,14 +7587,11 @@
             const createTrackManagerApiUrl = new URL("/api/create-track-manager", window.location.origin).href;
             const resp = await fetch(createTrackManagerApiUrl, {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${accessToken}`,
-              },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                ...(ownerChosenPassword ? { password: ownerChosenPassword } : {}),
                 access_token: accessToken,
                 anon_key: supabaseKey,
+                ...(ownerChosenPassword ? { password: ownerChosenPassword } : {}),
               }),
             });
 
@@ -7664,34 +7611,10 @@
               json = {};
             }
 
-            const runSignupFallback = async () => {
+            if (resp.status === 404) {
               if (trackManagerStatus)
                 trackManagerStatus.textContent =
-                  "A API não existe neste URL (404). A tentar criar pelo Auth público (requer «Signups» ativas no Supabase)…";
-              const fbEmail = randomGestorLoginEmail();
-              const fbPwd = ownerChosenPassword || randomGestorInitialPassword();
-              const newUserId = await createTrackManagerViaClientFlow(fbEmail, fbPwd);
-              if (trackManagerStatus) {
-                trackManagerStatus.textContent =
-                  "Gestor criado em modo alternativo. Corrija o deploy (Next + /api/create-track-manager) para o fluxo estável sem e-mails automáticos.";
-              }
-              showTrackManagerAccessBox(fbEmail, fbPwd);
-              if (trackManagerPassword) trackManagerPassword.value = "";
-              await loadTrackManagersList();
-              return newUserId;
-            };
-
-            if (resp.status === 404) {
-              try {
-                await runSignupFallback();
-              } catch (e2) {
-                const msg2 = e2 instanceof Error ? e2.message : String(e2);
-                if (trackManagerStatus)
-                  trackManagerStatus.textContent =
-                    msg2 ||
-                    "Não foi possível criar gestor. Instale o projeto Next na Vercel com variáveis SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.";
-                console.error(e2);
-              }
+                  "API /api/create-track-manager não encontrada (404). Confirme deploy Next.js na Vercel neste domínio e variáveis SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY e SUPABASE_ANON_KEY.";
               return;
             }
 

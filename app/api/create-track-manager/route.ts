@@ -26,17 +26,9 @@ export async function POST(request: NextRequest) {
     body = {};
   }
 
-  const { access_token: accessTokenBody, ...credentials } = body;
   const headerAuth = getAuthorizationFromRequest(request);
-  const bearerFromBody = accessTokenBody?.trim() ? `Bearer ${accessTokenBody.trim()}` : null;
-  /**
-   * Preferir o JWT enviado no JSON: na Vercel o header Authorization por vezes não chega
-   * ao route handler ou vem substituído, o que faz o Supabase responder
-   * «This endpoint requires a valid Bearer token» mesmo com sessão válida no browser.
-   */
-  const authHeader = bearerFromBody || headerAuth;
-
-  const result = await runCreateTrackManager("POST", authHeader, credentials);
+  /** O handler lê `body.access_token` primeiro; o header fica só como compatibilidade. */
+  const result = await runCreateTrackManager("POST", headerAuth, body);
 
   const headers = new Headers();
   if (result.headers) {
@@ -53,7 +45,7 @@ export async function GET() {
     {
       ok: true,
       route: "create-track-manager",
-      hint: "POST com Bearer. JSON: { password? } — sem e-mail gera login gm_...@gestor.invalid; sem senha gera senha (devolvida só uma vez em initial_password). Opcional: { email, password }.",
+      hint: "POST JSON: { access_token (JWT), password?, anon_key? } — sem e-mail/senha gera login gm_*@gestor.invalid e senha (initial_password uma vez). Opcional: email, password.",
     },
     { status: 200 }
   );
