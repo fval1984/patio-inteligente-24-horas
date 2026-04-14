@@ -5256,6 +5256,7 @@
             } else {
               actionsCell = `
                   <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
+                  <button class="secondary" data-action="voltar" data-id="${v.id}" title="Desfaz remoção feita por engano e volta para o passo anterior">Voltar</button>
                   <button class="secondary" data-action="nfse" data-id="${v.id}">NFSe solicitada</button>
                   <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
                   <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
@@ -7423,6 +7424,96 @@
 
         if (action === "nfse") {
           await openNfseModal(vehicle);
+          return;
+        }
+
+        if (action === "voltar") {
+          if (vehicle.status !== "REMOVIDO") {
+            alert("A ação Voltar só está disponível para veículos no VRP (removidos).");
+            return;
+          }
+          if (!confirm("Desfazer esta remoção e voltar o veículo para o passo anterior?")) return;
+
+          // Retorna ao passo imediatamente anterior no fluxo de liberação.
+          const { error: vehicleBackErr } = await supabase
+            .from("vehicles")
+            .update({ status: "REMocao_CONFIRMADA", data_saida: null, payment_status: "EM_ABERTO" })
+            .eq("id", id)
+            .eq("user_id", effectiveUserId());
+          if (vehicleBackErr) {
+            alert(vehicleBackErr.message);
+            return;
+          }
+
+          // Reabre o ciclo financeiro fechado no momento da remoção (quando existir).
+          const { data: lastCycle, error: qCycleErr } = await supabase
+            .from("receivables")
+            .select("id,period_start,period_end,status")
+            .eq("user_id", effectiveUserId())
+            .eq("vehicle_id", id)
+            .not("period_end", "is", null)
+            .in("status", [RECEIVABLE_AGUARDANDO_LANCAMENTO, "EM_ABERTO"])
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (qCycleErr) {
+            alert(qCycleErr.message);
+            return;
+          }
+          if (lastCycle?.id) {
+            const reopenedVehicle = { ...vehicle, status: "REMocao_CONFIRMADA", data_saida: null };
+            const valorReaberto = calcPeriodTotal(reopenedVehicle, lastCycle.period_start, null);
+            const { error: reopenErr } = await supabase
+              .from("receivables")
+              .update({
+                period_end: null,
+                status: "EM_ABERTO",
+                valor: valorReaberto,
+                financeiro_aprovado_contas_receber: false,
+              })
+              .eq("id", lastCycle.id)
+              .eq("user_id", effectiveUserId());
+            if (reopenErr) {
+              // fallback para ambientes sem a coluna financeiro_aprovado_contas_receber
+              if (/financeiro_aprovado|column|schema cache|PGRST204/i.test(reopenErr.message || "")) {
+                const { error: reopenFallbackErr } = await supabase
+                  .from("receivables")
+                  .update({
+                    period_end: null,
+                    status: "EM_ABERTO",
+                    valor: valorReaberto,
+                  })
+                  .eq("id", lastCycle.id)
+                  .eq("user_id", effectiveUserId());
+                if (reopenFallbackErr) {
+                  alert(reopenFallbackErr.message);
+                  return;
+                }
+              } else {
+                alert(reopenErr.message);
+                return;
+              }
+            }
+            removeReceberTriagemId(lastCycle.id);
+            await supabase
+              .from("cash_movements")
+              .delete()
+              .eq("conta_id", lastCycle.id)
+              .eq("tipo_conta", "RECEBER")
+              .eq("user_id", effectiveUserId());
+          }
+
+          await supabase.from("vehicle_events").insert({
+            vehicle_id: id,
+            tipo: "REMOCAO_DESFEITA",
+            responsavel: state.user?.email || "Administrador",
+            descricao: "Remoção desfeita manualmente. Veículo retornado ao passo anterior (Remoção confirmada).",
+          });
+
+          await Promise.all([loadVehicles(), loadReceivables(), loadCash()]);
+          renderFinance();
+          updateDashboard();
+          await refreshFichaIfOpen(id);
           return;
         }
 
