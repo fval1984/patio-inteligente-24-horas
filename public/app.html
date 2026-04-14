@@ -5105,7 +5105,7 @@
 
             let actionsCell = "";
             if (isGestorPista) {
-              actionsCell = `<button class="secondary" data-action="ficha" data-id="${v.id}">Detalhes</button>`;
+              actionsCell = `<span class="notice">Sem permissão de ação</span>`;
             } else {
               actionsCell = `
                   <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
@@ -5195,7 +5195,7 @@
 
             let actionsCell = "";
             if (isGestorPista) {
-              actionsCell = `<button class="secondary" data-action="ficha" data-id="${v.id}">Detalhes</button>`;
+              actionsCell = `<span class="notice">Sem permissão de ação</span>`;
             } else {
               actionsCell = `
                   <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
@@ -5246,7 +5246,7 @@
 
             let actionsCell = "";
             if (isGestorPista) {
-              actionsCell = `<button class="secondary" data-action="ficha" data-id="${v.id}">Detalhes</button><span class="tag success">${status}</span>`;
+              actionsCell = `<span class="notice">Sem permissão de ação</span><span class="tag success">${status}</span>`;
             } else {
               actionsCell = `
                   <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
@@ -7333,7 +7333,7 @@
         const vehicle = state.vehicles.find((v) => v.id === id);
         if (!vehicle) return;
 
-        if (isGestorPista && action !== "ficha") {
+        if (isGestorPista) {
           return;
         }
 
