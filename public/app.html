@@ -895,6 +895,24 @@
         display: none;
       }
 
+      .gestor-pista-welcome:not(.hidden) {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin: 0 0 12px;
+        padding: 12px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border, #ccc);
+        background: var(--card-muted, rgba(0, 0, 0, 0.04));
+      }
+      .gestor-pista-welcome-text {
+        margin: 0;
+        flex: 1;
+        min-width: min(100%, 220px);
+      }
+
       .close-view {
         font-weight: 800;
         letter-spacing: -0.02em;
@@ -1665,7 +1683,10 @@
     <main>
       <section id="authPanel" class="panel auth">
         <h2>Bem-vindo</h2>
-        <p class="subtitle">Utilizador e senha. Se quiser e-mail real para recuperação, escreva-o no campo de utilizador (com @).</p>
+        <p class="subtitle">
+          <strong>Gestor geral:</strong> utilize o seu utilizador ou e-mail e a senha da conta principal.
+          <strong>Gestor de pista:</strong> use o <strong>login e a senha</strong> que o gestor geral criou em Configurações → Usuários e lhe enviou (ex.: WhatsApp). No campo abaixo cola o login no mesmo sítio do utilizador ou e-mail.
+        </p>
         <div class="auth-tabs">
           <button class="auth-tab active" id="tabLogin">Entrar</button>
           <button class="auth-tab" id="tabRegister">Criar conta</button>
@@ -1673,14 +1694,17 @@
 
         <form id="loginForm">
           <div>
-            <label for="loginEmail">Utilizador ou e-mail</label>
-            <input id="loginEmail" type="text" placeholder="ex.: maria ou nome@empresa.com" required />
+            <label for="loginEmail">Utilizador ou e-mail (ou login técnico do gestor de pista)</label>
+            <input id="loginEmail" type="text" placeholder="Conta principal: maria ou nome@empresa.com · Gestor de pista: cole o login recebido" required />
           </div>
           <div>
             <label for="loginPassword">Senha</label>
-            <input id="loginPassword" type="password" placeholder="Sua senha" required />
+            <input id="loginPassword" type="password" placeholder="A senha definida ou enviada pelo gestor geral" required />
           </div>
           <button type="submit">Entrar</button>
+          <p class="notice" style="margin-top: 12px; font-size: 0.9rem">
+            Depois de entrar, o <strong>gestor de pista</strong> é levado direto para a <strong>Gestão de pátio</strong>, com o acesso permitido (operar veículos no pátio, sem financeiro nem configurações do dono).
+          </p>
         </form>
 
         <form id="registerForm" class="hidden">
@@ -1702,6 +1726,12 @@
       </section>
 
       <section id="appPanel" class="hidden">
+        <div id="gestorPistaWelcomeBanner" class="gestor-pista-welcome hidden" role="status">
+          <p class="notice gestor-pista-welcome-text">
+            <strong>Gestor de pista.</strong> Entrou com o acesso que o gestor geral criou. Fica na <strong>Gestão de pátio</strong> (cadastro e consultas permitidas; sem valores completos, financeiro nem definições do dono). Use «← Voltar ao Painel» para o resumo.
+          </p>
+          <button type="button" class="secondary" id="gestorPistaWelcomeDismiss">Entendi</button>
+        </div>
         <div class="panel">
           <div class="nav">
             <button class="active" data-view="dashboard">Painel</button>
@@ -2306,8 +2336,13 @@
             </div>
             <div class="section-card" style="margin-top: 18px">
               <h3 style="margin: 0 0 10px; font-size: 1.1rem">Gestor de pista</h3>
-              <p class="notice" style="margin: 0 0 14px">
-                Cria um <strong>acesso técnico</strong> (login + senha) <strong>sem e-mail real</strong>: não enviamos mensagens pelo Supabase. Na hora aparece aqui o que deve copiar e enviar ao funcionário por <strong>WhatsApp</strong>. No ecrã de entrada da app ele cola o <strong>login</strong> no campo de e-mail e a <strong>senha</strong> no campo da palavra-passe.
+              <p class="notice" style="margin: 0 0 10px">
+                Fluxo: <strong>1)</strong> Tu (gestor geral), aqui em Configurações → Usuários, geras o acesso (login + senha) e copias para o WhatsApp.
+                <strong>2)</strong> O funcionário abre a <strong>mesma app</strong>, separador <strong>Entrar</strong>, cola o login no campo <strong>«Utilizador ou e-mail»</strong> e a senha em <strong>«Senha»</strong>.
+                <strong>3)</strong> Ao entrar, a app <strong>abre logo na Gestão de pátio</strong> com o que ele pode fazer (operar veículos no pátio; sem financeiro nem as tuas definições).
+              </p>
+              <p class="notice" style="margin: 0 0 14px; font-size: 0.9rem">
+                O login é técnico (não é caixa de correio). Não enviamos e-mail automático pelo Supabase.
               </p>
               <div class="form-grid">
                 <div class="full">
@@ -2324,7 +2359,7 @@
                 <p class="notice" style="margin: 0 0 10px; font-size: 0.9rem">Guarde já: a senha gerada <strong>só aparece desta vez</strong> neste ecrã.</p>
                 <div class="form-grid">
                   <div class="full">
-                    <label for="trackManagerGeneratedLogin">Login (colar no campo «e-mail» da app)</label>
+                    <label for="trackManagerGeneratedLogin">Login (colar no campo «Utilizador ou e-mail» ao entrar)</label>
                     <input id="trackManagerGeneratedLogin" type="text" readonly style="width: 100%; font-family: monospace" />
                   </div>
                   <div class="full">
@@ -4611,6 +4646,7 @@
         state.user = null;
         state.patioOwnerUserId = null;
         isGestorPista = false;
+        document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
       }
 
       async function loadPatioDelegatedRole() {
@@ -4659,7 +4695,14 @@
         if (vehicleDailyWrap) vehicleDailyWrap.style.display = "";
         if (vehicleDailyReset) vehicleDailyReset.required = true;
 
+        document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
         if (!isGestorPista) return;
+
+        try {
+          navStack.splice(0, navStack.length, "patio", "patio:no_patio");
+        } catch (e) {
+          console.warn("navStack", e);
+        }
 
         document.querySelectorAll(".nav button[data-view]").forEach((btn) => {
           const view = btn.getAttribute("data-view");
@@ -4709,6 +4752,8 @@
         `;
         style.textContent = css;
         document.head.appendChild(style);
+
+        document.getElementById("gestorPistaWelcomeBanner")?.classList.remove("hidden");
       }
 
       async function bootstrap() {
@@ -7532,6 +7577,10 @@
         return newUserId;
       }
 
+      document.getElementById("gestorPistaWelcomeDismiss")?.addEventListener("click", () => {
+        document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
+      });
+
       trackManagerCopyWhatsApp?.addEventListener("click", async () => {
         const login = (trackManagerGeneratedLogin?.value || "").trim();
         const pwd = (trackManagerGeneratedPassword?.value || "").trim();
@@ -7542,7 +7591,7 @@
         const u = new URL(window.location.href);
         u.hash = "";
         const appUrl = u.toString();
-        const text = `App do pátio: ${appUrl}\nLogin (colar no campo e-mail): ${login}\nSenha: ${pwd}`;
+        const text = `App do pátio: ${appUrl}\nLogin (colar no campo «Utilizador ou e-mail» ao entrar): ${login}\nSenha: ${pwd}`;
         try {
           await navigator.clipboard.writeText(text);
           if (trackManagerStatus) trackManagerStatus.textContent = "Mensagem copiada. Cole no WhatsApp e envie ao gestor.";
