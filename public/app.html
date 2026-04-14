@@ -5001,19 +5001,25 @@
         return storedNorm.includes(queryNorm) || queryNorm.includes(storedNorm);
       }
 
-      /** Outro veículo «ativo» (não removido) com a mesma placa normalizada, opcionalmente excluindo um id (edição). */
-      function findActiveVehicleDuplicatePlaca(placaInput, excludeVehicleId) {
+      /**
+       * Consulta na base (não só a lista em memória): outro veículo não removido com a mesma placa
+       * (ignora hífen/espaço e maiúsculas). excludeVehicleId = edição do próprio registo.
+       */
+      async function findActiveVehicleDuplicatePlacaRemote(placaInput, excludeVehicleId) {
         const norm = normalizePlateSearch(placaInput);
-        if (!norm) return null;
-        const list = state.vehicles || [];
-        return (
-          list.find(
+        if (!norm) return { queryError: null, duplicate: null };
+        const { data, error } = await supabase
+          .from("vehicles")
+          .select("id,placa,status")
+          .eq("user_id", effectiveUserId())
+          .neq("status", "REMOVIDO");
+        if (error) return { queryError: error, duplicate: null };
+        const duplicate =
+          (data || []).find(
             (v) =>
-              v.status !== "REMOVIDO" &&
-              (!excludeVehicleId || v.id !== excludeVehicleId) &&
-              normalizePlateSearch(v.placa) === norm
-          ) || null
-        );
+              (!excludeVehicleId || v.id !== excludeVehicleId) && normalizePlateSearch(v.placa) === norm
+          ) || null;
+        return { queryError: null, duplicate };
       }
 
       function partnerNomeNorm(nome) {
@@ -7231,11 +7237,17 @@
           alert("Informe uma placa válida.");
           return;
         }
-        const dupV = findActiveVehicleDuplicatePlaca(payload.placa, editingVehicleId || null);
+        const { queryError: dupQErr, duplicate: dupV } = await findActiveVehicleDuplicatePlacaRemote(
+          payload.placa,
+          editingVehicleId || null
+        );
+        if (dupQErr) {
+          alert(dupQErr.message || "Não foi possível verificar se a placa já existe.");
+          return;
+        }
         if (dupV) {
           alert(
-            `Já existe um cadastro ativo com a placa equivalente a «${dupV.placa || payload.placa}» (veículo não removido). ` +
-              "Altere a placa ou encerre o registo anterior no VRP antes de criar outro."
+            `Esta placa já está a ser usada no veículo «${dupV.placa || payload.placa}». Não é permitido ter dois cadastros do mesmo veículo: altere a placa ou conclua a remoção (VRP) do registo anterior.`
           );
           return;
         }
