@@ -715,6 +715,62 @@
         font-size: 12px;
         color: var(--muted);
       }
+      .finance-menu-toggle {
+        min-width: 96px;
+      }
+      .finance-side-menu {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: min(320px, 84vw);
+        background: #0f131a;
+        border-right: 1px solid rgba(148, 163, 184, 0.25);
+        z-index: 80;
+        padding: 18px 14px;
+        display: grid;
+        align-content: start;
+        gap: 8px;
+        transform: translateX(-100%);
+        transition: transform 0.22s ease;
+      }
+      [data-theme="light"] .finance-side-menu {
+        background: #ffffff;
+      }
+      .finance-side-menu.open {
+        transform: translateX(0);
+      }
+      .finance-side-menu button {
+        width: 100%;
+        text-align: left;
+      }
+      .finance-menu-backdrop,
+      .finance-flyout-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(5, 8, 12, 0.5);
+        z-index: 70;
+      }
+      .finance-flyout-backdrop {
+        z-index: 65;
+      }
+      #viewFinanceiro.finance-flyout-open #financeContent {
+        position: fixed;
+        top: 84px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(1180px, 95vw);
+        max-height: calc(100vh - 106px);
+        overflow: auto;
+        z-index: 75;
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        background: var(--surface);
+        padding: 12px;
+      }
+      #viewFinanceiro.finance-flyout-open #financeContent.air-open {
+        animation: airIn 0.2s ease both;
+      }
 
       header {
         padding: 6px 24px;
@@ -2226,6 +2282,7 @@
             </div>
             <div class="actions">
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
+              <button class="secondary finance-menu-toggle" type="button" id="financeMenuToggle">Menu</button>
               <button id="openPayableForm">Nova despesa</button>
               <button class="secondary" type="button" id="openFinanceOpenRecPrint" title="Contas a receber em aberto agrupadas">
                 Imprimir a receber em aberto
@@ -2233,6 +2290,8 @@
               <button class="secondary" id="reloadFinanceiro">Atualizar</button>
             </div>
           </div>
+          <div id="financeMenuBackdrop" class="finance-menu-backdrop hidden"></div>
+          <div id="financeFlyoutBackdrop" class="finance-flyout-backdrop hidden"></div>
           <div id="receivableAlert" class="alert hidden"></div>
           <div id="financeTopDashboard" class="section-card finance-top-dashboard hidden">
             <div class="finance-dashboard-grid">
@@ -2295,7 +2354,7 @@
               </div>
             </div>
           </div>
-          <div class="subnav" id="financeSubnav">
+          <div class="subnav finance-side-menu" id="financeSubnav">
             <button data-subview="dashboard">Dashboard</button>
             <button data-subview="aguardando_lancamento">Aguardando lançamento</button>
             <button data-subview="receber">Contas a receber</button>
@@ -3206,6 +3265,9 @@
       const financeCaixa = document.getElementById("financeCaixa");
       const financeCaixaStatus = document.getElementById("financeCaixaStatus");
       const receivableAlert = document.getElementById("receivableAlert");
+      const financeMenuToggle = document.getElementById("financeMenuToggle");
+      const financeMenuBackdrop = document.getElementById("financeMenuBackdrop");
+      const financeFlyoutBackdrop = document.getElementById("financeFlyoutBackdrop");
       const financeFilters = document.getElementById("financeFilters");
       const financeContent = document.getElementById("financeContent");
       const financePlateFilter = document.getElementById("financePlateFilter");
@@ -6971,6 +7033,8 @@
       function setFinanceView(view) {
         currentFinanceView = view;
         const isNone = !view || view === "none";
+        const isDashboard = view === "dashboard";
+        const isFlyoutView = !isNone && !isDashboard;
         financeSubnav.querySelectorAll("button").forEach((btn) => {
           btn.classList.toggle("active", !isNone && btn.getAttribute("data-subview") === view);
         });
@@ -6979,13 +7043,18 @@
           receivableAlert.classList.add("hidden");
           document.getElementById("financeTopDashboard")?.classList.add("hidden");
           if (financeContent) financeContent.classList.add("hidden");
+          document.getElementById("viewFinanceiro")?.classList.remove("finance-flyout-open");
+          financeFlyoutBackdrop?.classList.add("hidden");
           document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
           document.getElementById("financeReceberFilters")?.classList.add("hidden");
           document.getElementById("financeReceberResumoWrap")?.classList.add("hidden");
           return;
         }
-        if (financeContent) {
-          financeContent.classList.remove("hidden");
+        if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", isDashboard);
+        document.getElementById("viewFinanceiro")?.classList.toggle("finance-flyout-open", isFlyoutView);
+        financeFlyoutBackdrop?.classList.toggle("hidden", !isFlyoutView);
+        if (financeContent) financeContent.classList.toggle("hidden", !isFlyoutView);
+        if (isFlyoutView && financeContent) {
           financeContent.classList.remove("air-open");
           void financeContent.offsetWidth;
           financeContent.classList.add("air-open");
@@ -7386,6 +7455,12 @@
       const cardSaidasHojeLink = document.getElementById("cardSaidasHojeLink");
 
       function showMainView(view) {
+        if (view !== "financeiro") {
+          financeSubnav?.classList.remove("open");
+          financeMenuBackdrop?.classList.add("hidden");
+          financeFlyoutBackdrop?.classList.add("hidden");
+          document.getElementById("viewFinanceiro")?.classList.remove("finance-flyout-open");
+        }
         document.querySelectorAll(".nav button[data-view]").forEach((btn) => {
           btn.classList.toggle("active", btn.getAttribute("data-view") === view);
         });
@@ -7682,9 +7757,25 @@
         });
       }
 
+      function openFinanceMenu() {
+        financeSubnav?.classList.add("open");
+        financeMenuBackdrop?.classList.remove("hidden");
+      }
+      function closeFinanceMenu() {
+        financeSubnav?.classList.remove("open");
+        financeMenuBackdrop?.classList.add("hidden");
+      }
+      financeMenuToggle?.addEventListener("click", () => {
+        if (financeSubnav?.classList.contains("open")) closeFinanceMenu();
+        else openFinanceMenu();
+      });
+      financeMenuBackdrop?.addEventListener("click", closeFinanceMenu);
+      financeFlyoutBackdrop?.addEventListener("click", () => setFinanceView("dashboard"));
+
       financeSubnav.addEventListener("click", (event) => {
         const button = event.target.closest("button[data-subview]");
         if (!button) return;
+        closeFinanceMenu();
         openFinanceSubview(button.getAttribute("data-subview"));
       });
 
