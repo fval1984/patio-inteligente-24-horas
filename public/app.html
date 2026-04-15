@@ -461,78 +461,83 @@
 
       .dashboard-modules {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 14px;
         margin-bottom: 8px;
       }
-      .dashboard-module-entry {
-        min-height: 112px;
+      .dashboard-finance-card {
+        min-height: 118px;
         border-radius: 16px;
         border: 1px solid rgba(148, 163, 184, 0.22);
         background: rgba(15, 19, 26, 0.46);
         padding: 16px 18px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
+        display: grid;
+        gap: 8px;
         cursor: pointer;
         transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
       }
-      .dashboard-module-entry:hover {
+      .dashboard-finance-card:hover {
         transform: translateY(-1px);
         border-color: rgba(248, 250, 252, 0.35);
       }
-      .dashboard-module-entry:focus-visible {
+      .dashboard-finance-card:focus-visible {
         outline: none;
         box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.28);
       }
-      .dashboard-module-entry__left {
-        display: grid;
-        gap: 5px;
-      }
-      .dashboard-module-entry__kicker {
+      .dashboard-finance-card__title {
         font-size: 11px;
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--muted);
       }
-      .dashboard-module-entry__title {
-        font-size: 1.06rem;
+      .dashboard-finance-card__value {
+        font-size: 1.52rem;
         font-weight: 800;
-        line-height: 1.2;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
       }
-      .dashboard-module-entry__hint {
+      .dashboard-finance-card__meta {
         font-size: 12px;
         color: var(--muted);
       }
-      .dashboard-module-entry__go {
+      .dashboard-finance-card__go {
         font-size: 13px;
         font-weight: 700;
         letter-spacing: 0.02em;
       }
-      .dashboard-module-entry--patio {
-        border-color: rgba(248, 113, 113, 0.38);
+      .dashboard-finance-card--receber {
+        border-color: rgba(245, 158, 11, 0.42);
+        background: linear-gradient(145deg, rgba(146, 64, 14, 0.25), rgba(15, 19, 26, 0.62));
+      }
+      .dashboard-finance-card--receber .dashboard-finance-card__go {
+        color: #fcd34d;
+      }
+      .dashboard-finance-card--pagar {
+        border-color: rgba(248, 113, 113, 0.4);
         background: linear-gradient(145deg, rgba(127, 29, 29, 0.26), rgba(15, 19, 26, 0.62));
       }
-      .dashboard-module-entry--patio .dashboard-module-entry__go {
+      .dashboard-finance-card--pagar .dashboard-finance-card__go {
         color: #fca5a5;
       }
-      .dashboard-module-entry--finance {
+      .dashboard-finance-card--caixa {
         border-color: rgba(45, 212, 191, 0.4);
         background: linear-gradient(145deg, rgba(15, 118, 110, 0.26), rgba(15, 19, 26, 0.62));
       }
-      .dashboard-module-entry--finance .dashboard-module-entry__go {
+      .dashboard-finance-card--caixa .dashboard-finance-card__go {
         color: #99f6e4;
       }
-      [data-theme="light"] .dashboard-module-entry {
+      [data-theme="light"] .dashboard-finance-card {
         background: rgba(255, 255, 255, 0.92);
         border-color: rgba(148, 163, 184, 0.34);
       }
-      [data-theme="light"] .dashboard-module-entry--patio {
-        background: linear-gradient(145deg, rgba(254, 226, 226, 0.82), rgba(255, 255, 255, 0.94));
+      [data-theme="light"] .dashboard-finance-card--receber {
+        background: linear-gradient(145deg, rgba(254, 243, 199, 0.85), rgba(255, 255, 255, 0.94));
       }
-      [data-theme="light"] .dashboard-module-entry--finance {
+      [data-theme="light"] .dashboard-finance-card--pagar {
+        background: linear-gradient(145deg, rgba(254, 226, 226, 0.85), rgba(255, 255, 255, 0.94));
+      }
+      [data-theme="light"] .dashboard-finance-card--caixa {
         background: linear-gradient(145deg, rgba(204, 251, 241, 0.8), rgba(255, 255, 255, 0.94));
       }
       .patio-module-ribbon-right {
@@ -1585,7 +1590,7 @@
       #viewDashboard .dashboard-modules {
         gap: 14px;
       }
-      #viewDashboard .dashboard-module-entry {
+      #viewDashboard .dashboard-finance-card {
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.05),
           var(--shadow-soft);
@@ -1799,24 +1804,24 @@
               ><span class="pill-dot" aria-hidden="true"></span> Dados ao vivo</span>
           </div>
           <div class="grid">
-            <div class="dashboard-modules" style="grid-column: 1 / -1">
-              <div class="dashboard-module-entry dashboard-module-entry--patio" id="cardModuloPatio" role="button" tabindex="0">
-                <div class="dashboard-module-entry__left">
-                  <span class="dashboard-module-entry__kicker">Operação</span>
-                  <h3 class="dashboard-module-entry__title">Centro operacional do pátio</h3>
-                  <span class="dashboard-module-entry__hint">Veículos, liberações e removidos</span>
-                </div>
-                <span class="dashboard-module-entry__go">Acessar →</span>
+            <div id="dashboardModuleFinanceWrap" class="dashboard-modules" style="grid-column: 1 / -1">
+              <div class="dashboard-finance-card dashboard-finance-card--receber" id="cardFinanceReceberLink" role="button" tabindex="0">
+                <span class="dashboard-finance-card__title">Contas a receber</span>
+                <div class="dashboard-finance-card__value" id="dashboardFinanceReceberValue">R$ 0,00</div>
+                <span class="dashboard-finance-card__meta" id="dashboardFinanceReceberMeta">0 em aberto</span>
+                <span class="dashboard-finance-card__go">Abrir financeiro →</span>
               </div>
-              <div id="dashboardModuleFinanceWrap">
-                <div class="dashboard-module-entry dashboard-module-entry--finance" id="cardModuloFinanceiro" role="button" tabindex="0">
-                  <div class="dashboard-module-entry__left">
-                    <span class="dashboard-module-entry__kicker">Financeiro</span>
-                    <h3 class="dashboard-module-entry__title">Centro financeiro</h3>
-                    <span class="dashboard-module-entry__hint">A receber, caixa e fechamento mensal</span>
-                  </div>
-                  <span class="dashboard-module-entry__go">Acessar →</span>
-                </div>
+              <div class="dashboard-finance-card dashboard-finance-card--pagar" id="cardFinancePagarLink" role="button" tabindex="0">
+                <span class="dashboard-finance-card__title">Contas a pagar</span>
+                <div class="dashboard-finance-card__value" id="dashboardFinancePagarValue">R$ 0,00</div>
+                <span class="dashboard-finance-card__meta" id="dashboardFinancePagarMeta">0 em aberto</span>
+                <span class="dashboard-finance-card__go">Abrir financeiro →</span>
+              </div>
+              <div class="dashboard-finance-card dashboard-finance-card--caixa" id="cardFinanceCaixaLink" role="button" tabindex="0">
+                <span class="dashboard-finance-card__title">Saldo em caixa</span>
+                <div class="dashboard-finance-card__value" id="dashboardFinanceCaixaValue">R$ 0,00</div>
+                <span class="dashboard-finance-card__meta" id="dashboardFinanceCaixaMeta">Movimentações: 0</span>
+                <span class="dashboard-finance-card__go">Abrir financeiro →</span>
               </div>
             </div>
             <div class="card dashboard-plate-card">
@@ -5182,12 +5187,30 @@
         const elSH = document.getElementById("cardSaidasHoje");
         const elEHMeta = document.getElementById("cardEntradasHojeMeta");
         const elSHMeta = document.getElementById("cardSaidasHojeMeta");
+        const openReceber = (state.receivables || []).filter((r) => receivableIsContaReceberFinanceiro(r));
+        const openPagar = (state.payables || []).filter((p) => p.status === "EM_ABERTO");
+        const caixaAtual = (state.cash || []).reduce((sum, mov) => {
+          if (mov.tipo_conta === "PAGAR") return sum - Number(mov.valor || 0);
+          return sum + Number(mov.valor || 0);
+        }, 0);
+        const dashRecValue = document.getElementById("dashboardFinanceReceberValue");
+        const dashRecMeta = document.getElementById("dashboardFinanceReceberMeta");
+        const dashPagValue = document.getElementById("dashboardFinancePagarValue");
+        const dashPagMeta = document.getElementById("dashboardFinancePagarMeta");
+        const dashCxValue = document.getElementById("dashboardFinanceCaixaValue");
+        const dashCxMeta = document.getElementById("dashboardFinanceCaixaMeta");
         if (elV) elV.textContent = (noPatio.length + vls.length).toString();
         if (elS) elS.textContent = vls.length.toString();
         if (elEH) elEH.textContent = entradasHoje.toString();
         if (elSH) elSH.textContent = saidasHoje.toString();
         if (elEHMeta) elEHMeta.textContent = `No mês: ${entradasMes}`;
         if (elSHMeta) elSHMeta.textContent = `No mês: ${saidasMes}`;
+        if (dashRecValue) dashRecValue.textContent = formatCurrency(openReceber.reduce((s, r) => s + Number(r.valor || 0), 0));
+        if (dashRecMeta) dashRecMeta.textContent = `${openReceber.length} em aberto`;
+        if (dashPagValue) dashPagValue.textContent = formatCurrency(openPagar.reduce((s, p) => s + Number(p.valor || 0), 0));
+        if (dashPagMeta) dashPagMeta.textContent = `${openPagar.length} em aberto`;
+        if (dashCxValue) dashCxValue.textContent = formatCurrency(caixaAtual);
+        if (dashCxMeta) dashCxMeta.textContent = `Movimentações: ${(state.cash || []).length}`;
       }
 
       /** Para busca: só letras/números; ignora hífen/espaço (consulta acontece apenas no OK). */
@@ -6983,8 +7006,9 @@
           }
         });
       }
-      bindModuleCardActivate(document.getElementById("cardModuloPatio"), () => openPatioSubview("no_patio"));
-      bindModuleCardActivate(document.getElementById("cardModuloFinanceiro"), () => openFinanceSubview("aguardando_lancamento"));
+      bindModuleCardActivate(document.getElementById("cardFinanceReceberLink"), () => openFinanceSubview("receber"));
+      bindModuleCardActivate(document.getElementById("cardFinancePagarLink"), () => openFinanceSubview("pagar"));
+      bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("caixa"));
 
       document.getElementById("openParceirosFromPatio")?.addEventListener("click", () => openMainView("parceiros"));
       document.getElementById("openConfigFromPatio")?.addEventListener("click", () => openMainView("configuracoes"));
