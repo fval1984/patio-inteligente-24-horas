@@ -756,17 +756,24 @@
       }
       #viewFinanceiro.finance-flyout-open #financeContent {
         position: fixed;
-        top: 84px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: min(1180px, 95vw);
-        max-height: calc(100vh - 106px);
+        inset: 0;
+        transform: none;
+        width: 100%;
+        max-width: none;
+        height: 100%;
+        max-height: none;
+        min-height: 100dvh;
+        margin-top: 0;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
         overflow: auto;
         z-index: 75;
-        border-radius: 16px;
-        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 0;
+        border: none;
         background: var(--surface);
-        padding: 12px;
+        padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
       }
       #viewFinanceiro.finance-flyout-open #financeContent.air-open {
         animation: airIn 0.2s ease both;
@@ -777,10 +784,15 @@
       .finance-flyout-close {
         display: none;
       }
+      #viewFinanceiro.finance-flyout-open #financeStandardArea {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
       #viewFinanceiro.finance-flyout-open .finance-flyout-close {
         display: inline-flex;
-        margin-left: auto;
-        margin-bottom: 10px;
+        align-self: flex-end;
+        margin-bottom: 0;
       }
       .patio-menu-toggle {
         min-width: 96px;
@@ -825,17 +837,24 @@
       }
       #viewPatio.patio-flyout-open #patioContent {
         position: fixed;
-        top: 84px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: min(1180px, 95vw);
-        max-height: calc(100vh - 106px);
+        inset: 0;
+        transform: none;
+        width: 100%;
+        max-width: none;
+        height: 100%;
+        max-height: none;
+        min-height: 100dvh;
+        margin-top: 0;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
         overflow: auto;
         z-index: 75;
-        border-radius: 16px;
-        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 0;
+        border: none;
         background: var(--surface);
-        padding: 12px;
+        padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
       }
       #viewPatio.patio-flyout-open #patioContent.air-open {
         animation: airIn 0.2s ease both;
@@ -848,8 +867,19 @@
       }
       #viewPatio.patio-flyout-open .patio-flyout-close {
         display: inline-flex;
-        margin-left: auto;
-        margin-bottom: 10px;
+        align-self: flex-end;
+        margin-bottom: 0;
+      }
+      #viewPatio.patio-flyout-open #patioContent .section-card.patio-subview:not(.hidden) {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      #viewPatio.patio-flyout-open #patioContent .section-card.patio-subview:not(.hidden) .table-wrap {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
       }
 
       header {
@@ -2206,7 +2236,7 @@
             <button type="submit" id="plateSearchOkPatio">OK</button>
             <button type="button" class="secondary" id="clearPlateFilterPatio">Limpar</button>
           </form>
-          <div id="patioContent" class="grid large hidden" style="margin-top: 18px;">
+          <div id="patioContent" class="hidden" style="margin-top: 18px;">
             <button type="button" class="secondary patio-flyout-close" id="patioFlyoutClose">Fechar</button>
             <div id="patioFlyoutSummaryCards" class="grid" style="margin-bottom: 12px">
               <div class="card"><div class="card-title" id="patioCardTitle1">VNP</div><div class="card-value" id="patioCardValue1">0</div><span class="tag warning" id="patioCardMeta1">-</span></div>
