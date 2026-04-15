@@ -680,6 +680,41 @@
       .finance-dashboard-list li {
         font-size: 13px;
       }
+      .finance-top-dashboard {
+        margin: 0 0 12px;
+      }
+      .finance-charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .finance-chart-card {
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 14px;
+        padding: 12px;
+        background: rgba(15, 19, 26, 0.44);
+      }
+      [data-theme="light"] .finance-chart-card {
+        background: rgba(255, 255, 255, 0.9);
+        border-color: rgba(148, 163, 184, 0.28);
+      }
+      .finance-chart-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text);
+        margin: 0 0 8px;
+      }
+      .finance-chart-svg {
+        width: 100%;
+        height: 130px;
+        display: block;
+      }
+      .finance-chart-legend {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--muted);
+      }
 
       header {
         padding: 6px 24px;
@@ -2199,6 +2234,67 @@
             </div>
           </div>
           <div id="receivableAlert" class="alert hidden"></div>
+          <div id="financeTopDashboard" class="section-card finance-top-dashboard hidden">
+            <div class="finance-dashboard-grid">
+              <div class="finance-kpi-card">
+                <div class="finance-kpi-title">A receber em aberto</div>
+                <div class="finance-kpi-value" id="fdtTotalReceber">R$ 0,00</div>
+                <div class="finance-kpi-meta" id="fdtQtdReceber">0 contas</div>
+              </div>
+              <div class="finance-kpi-card">
+                <div class="finance-kpi-title">A pagar em aberto</div>
+                <div class="finance-kpi-value" id="fdtTotalPagar">R$ 0,00</div>
+                <div class="finance-kpi-meta" id="fdtQtdPagar">0 contas</div>
+              </div>
+              <div class="finance-kpi-card">
+                <div class="finance-kpi-title">Caixa atual</div>
+                <div class="finance-kpi-value" id="fdtCaixaAtual">R$ 0,00</div>
+                <div class="finance-kpi-meta" id="fdtCaixaStatus">Neutro</div>
+              </div>
+              <div class="finance-kpi-card">
+                <div class="finance-kpi-title">Projeção de caixa</div>
+                <div class="finance-kpi-value" id="fdtCaixaProjetado">R$ 0,00</div>
+                <div class="finance-kpi-meta">Caixa + receber - pagar</div>
+              </div>
+              <div class="finance-kpi-card">
+                <div class="finance-kpi-title">Entradas no mês</div>
+                <div class="finance-kpi-value" id="fdtEntradasMes">R$ 0,00</div>
+                <div class="finance-kpi-meta" id="fdtSaidasMesMeta">Saídas no mês: R$ 0,00</div>
+              </div>
+              <div class="finance-kpi-card">
+                <div class="finance-kpi-title">Resultado do mês</div>
+                <div class="finance-kpi-value" id="fdtResultadoMes">R$ 0,00</div>
+                <div class="finance-kpi-meta">Entradas - saídas</div>
+              </div>
+              <div class="finance-kpi-card">
+                <div class="finance-kpi-title">Ticket médio (a receber)</div>
+                <div class="finance-kpi-value" id="fdtTicketMedio">R$ 0,00</div>
+                <div class="finance-kpi-meta">Média por conta em aberto</div>
+              </div>
+              <div class="finance-kpi-card">
+                <div class="finance-kpi-title">Índice de atraso</div>
+                <div class="finance-kpi-value" id="fdtIndiceAtraso">0%</div>
+                <div class="finance-kpi-meta" id="fdtAtrasoMeta">0 contas em atraso</div>
+              </div>
+              <div class="finance-kpi-card">
+                <div class="finance-kpi-title">Autonomia de caixa</div>
+                <div class="finance-kpi-value" id="fdtRunway">0 dias</div>
+                <div class="finance-kpi-meta">Com base na despesa média diária do mês</div>
+              </div>
+            </div>
+            <div class="finance-charts-grid">
+              <div class="finance-chart-card">
+                <div class="finance-chart-title">Tendência 6 meses (Entradas x Saídas)</div>
+                <svg id="fdtTrendSvg" class="finance-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                <div class="finance-chart-legend">Azul: entradas • Vermelho: saídas</div>
+              </div>
+              <div class="finance-chart-card">
+                <div class="finance-chart-title">Projeção de caixa (4 semanas)</div>
+                <svg id="fdtProjectionSvg" class="finance-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                <div class="finance-chart-legend">Linha mostra a evolução esperada do saldo</div>
+              </div>
+            </div>
+          </div>
           <div class="subnav" id="financeSubnav">
             <button data-subview="dashboard">Dashboard</button>
             <button data-subview="aguardando_lancamento">Aguardando lançamento</button>
@@ -6161,14 +6257,16 @@
         const stdArea = document.getElementById("financeStandardArea");
         const cloArea = document.getElementById("financeClosureArea");
         const dashArea = document.getElementById("financeDetailDashboard");
+        const dashTopArea = document.getElementById("financeTopDashboard");
         const hideAllFinanceAreas = () => {
           if (stdArea) stdArea.classList.add("hidden");
           if (cloArea) cloArea.classList.add("hidden");
           if (dashArea) dashArea.classList.add("hidden");
+          if (dashTopArea) dashTopArea.classList.add("hidden");
         };
         if (currentFinanceView === "dashboard") {
           hideAllFinanceAreas();
-          if (dashArea) dashArea.classList.remove("hidden");
+          if (dashTopArea) dashTopArea.classList.remove("hidden");
           const monthKey = currentYearMonthLocal();
           const movMes = state.cash.filter((m) => {
             const ymd = toLocalYmd(m.data_movimento || m.created_at);
@@ -6188,6 +6286,14 @@
             return days > 10;
           });
           const overdueTotal = overdueReceivablesDetail.reduce((s, r) => s + Number(r.valor || 0), 0);
+          const ticketMedio = openReceivablesFinanceiro.length ? totalReceber / openReceivablesFinanceiro.length : 0;
+          const indiceAtraso = openReceivablesFinanceiro.length
+            ? (overdueReceivablesDetail.length / openReceivablesFinanceiro.length) * 100
+            : 0;
+          const resultadoMes = entradasMes - saidasMes;
+          const dayNow = new Date().getDate();
+          const despesaMediaDia = dayNow > 0 ? saidasMes / dayNow : 0;
+          const runway = despesaMediaDia > 0 ? Math.floor(caixa / despesaMediaDia) : 0;
           const partnerMap = new Map(state.partners.map((p) => [p.id, p.nome || "—"]));
           const vehicleMap = new Map(state.vehicles.map((v) => [v.id, v]));
           const byResp = new Map();
@@ -6217,6 +6323,92 @@
             ["Contas a receber em aberto", openReceivablesFinanceiro.length],
             ["Contas a pagar em aberto", openPayables.length],
           ];
+          const seriesMonths = [];
+          for (let i = 5; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(1);
+            d.setMonth(d.getMonth() - i);
+            seriesMonths.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+          }
+          const entradasPorMes = new Map();
+          const saidasPorMes = new Map();
+          state.cash.forEach((m) => {
+            const ymd = toLocalYmd(m.data_movimento || m.created_at);
+            const ym = ymd ? yearMonthFromYmd(ymd) : null;
+            if (!ym) return;
+            if (m.tipo_conta === "RECEBER") entradasPorMes.set(ym, (entradasPorMes.get(ym) || 0) + Number(m.valor || 0));
+            if (m.tipo_conta === "PAGAR") saidasPorMes.set(ym, (saidasPorMes.get(ym) || 0) + Number(m.valor || 0));
+          });
+          const maxMonthly = Math.max(
+            1,
+            ...seriesMonths.map((ym) => entradasPorMes.get(ym) || 0),
+            ...seriesMonths.map((ym) => saidasPorMes.get(ym) || 0)
+          );
+          const trendSvg = document.getElementById("fdtTrendSvg");
+          if (trendSvg) {
+            const barW = 22;
+            const gap = 8;
+            trendSvg.innerHTML = seriesMonths
+              .map((ym, idx) => {
+                const xBase = 10 + idx * (barW * 2 + gap);
+                const entrada = entradasPorMes.get(ym) || 0;
+                const saida = saidasPorMes.get(ym) || 0;
+                const hEnt = Math.max(2, Math.round((entrada / maxMonthly) * 88));
+                const hSai = Math.max(2, Math.round((saida / maxMonthly) * 88));
+                return `
+                  <rect x="${xBase}" y="${104 - hEnt}" width="${barW}" height="${hEnt}" rx="4" fill="#60a5fa"></rect>
+                  <rect x="${xBase + barW + 2}" y="${104 - hSai}" width="${barW}" height="${hSai}" rx="4" fill="#f87171"></rect>
+                `;
+              })
+              .join("");
+          }
+          const projectionSvg = document.getElementById("fdtProjectionSvg");
+          if (projectionSvg) {
+            const weeklyRec = totalReceber / 4;
+            const weeklyPay = totalPagar / 4;
+            const pts = [];
+            let saldo = caixa;
+            pts.push(saldo);
+            for (let i = 0; i < 4; i++) {
+              saldo += weeklyRec - weeklyPay;
+              pts.push(saldo);
+            }
+            const minV = Math.min(...pts);
+            const maxV = Math.max(...pts);
+            const span = Math.max(1, maxV - minV);
+            const coords = pts
+              .map((v, i) => {
+                const x = 18 + i * 80;
+                const y = 104 - ((v - minV) / span) * 84;
+                return `${x},${y}`;
+              })
+              .join(" ");
+            projectionSvg.innerHTML = `
+              <polyline points="${coords}" fill="none" stroke="#2dd4bf" stroke-width="3"></polyline>
+              ${pts
+                .map((v, i) => {
+                  const x = 18 + i * 80;
+                  const y = 104 - ((v - minV) / span) * 84;
+                  return `<circle cx="${x}" cy="${y}" r="3.5" fill="#2dd4bf"></circle>`;
+                })
+                .join("")}
+            `;
+          }
+          document.getElementById("fdtTotalReceber").textContent = formatCurrency(totalReceber);
+          document.getElementById("fdtQtdReceber").textContent = `${openReceivablesFinanceiro.length} contas`;
+          document.getElementById("fdtTotalPagar").textContent = formatCurrency(totalPagar);
+          document.getElementById("fdtQtdPagar").textContent = `${openPayables.length} contas`;
+          document.getElementById("fdtCaixaAtual").textContent = formatCurrency(caixa);
+          document.getElementById("fdtCaixaStatus").textContent = caixa >= 0 ? "Posição positiva" : "Posição negativa";
+          document.getElementById("fdtCaixaProjetado").textContent = formatCurrency(projetado);
+          document.getElementById("fdtEntradasMes").textContent = formatCurrency(entradasMes);
+          document.getElementById("fdtSaidasMesMeta").textContent = `Saídas no mês: ${formatCurrency(saidasMes)}`;
+          document.getElementById("fdtResultadoMes").textContent = formatCurrency(resultadoMes);
+          document.getElementById("fdtTicketMedio").textContent = formatCurrency(ticketMedio);
+          document.getElementById("fdtIndiceAtraso").textContent = `${indiceAtraso.toFixed(1)}%`;
+          document.getElementById("fdtAtrasoMeta").textContent = `${overdueReceivablesDetail.length} contas em atraso`;
+          document.getElementById("fdtRunway").textContent = `${Math.max(0, runway)} dias`;
+
           document.getElementById("fdTotalReceber").textContent = formatCurrency(totalReceber);
           document.getElementById("fdQtdReceber").textContent = `${openReceivablesFinanceiro.length} contas`;
           document.getElementById("fdTotalPagar").textContent = formatCurrency(totalPagar);
@@ -6785,6 +6977,7 @@
         if (isNone) {
           financeFilters.classList.add("hidden");
           receivableAlert.classList.add("hidden");
+          document.getElementById("financeTopDashboard")?.classList.add("hidden");
           if (financeContent) financeContent.classList.add("hidden");
           document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
           document.getElementById("financeReceberFilters")?.classList.add("hidden");
