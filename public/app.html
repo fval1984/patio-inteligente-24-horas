@@ -461,57 +461,79 @@
 
       .dashboard-modules {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 18px;
-        margin-bottom: 6px;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 14px;
+        margin-bottom: 8px;
       }
-      .card.dashboard-module-card {
-        min-height: 148px;
-        padding: 22px 20px;
-        justify-content: flex-start;
-        gap: 0;
+      .dashboard-module-entry {
+        min-height: 112px;
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: rgba(15, 19, 26, 0.46);
+        padding: 16px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        cursor: pointer;
+        transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
       }
-      .dashboard-module-card .module-eyebrow {
+      .dashboard-module-entry:hover {
+        transform: translateY(-1px);
+        border-color: rgba(248, 250, 252, 0.35);
+      }
+      .dashboard-module-entry:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.28);
+      }
+      .dashboard-module-entry__left {
+        display: grid;
+        gap: 5px;
+      }
+      .dashboard-module-entry__kicker {
         font-size: 11px;
         font-weight: 700;
-        letter-spacing: 0.07em;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--muted);
-        margin-bottom: 6px;
       }
-      .dashboard-module-card .module-title {
-        font-size: 1.28rem;
-        font-weight: 700;
-        margin: 0 0 10px;
-        line-height: 1.25;
-        color: var(--text);
+      .dashboard-module-entry__title {
+        font-size: 1.06rem;
+        font-weight: 800;
+        line-height: 1.2;
       }
-      .dashboard-module-card .module-desc {
-        font-size: 13px;
+      .dashboard-module-entry__hint {
+        font-size: 12px;
         color: var(--muted);
-        line-height: 1.5;
-        margin: 0 0 16px;
-        flex: 1;
       }
-      .dashboard-module-card .module-cta {
+      .dashboard-module-entry__go {
         font-size: 13px;
-        font-weight: 600;
-        color: var(--primary);
-        margin-top: auto;
+        font-weight: 700;
+        letter-spacing: 0.02em;
       }
-      .card.dashboard-module-card.dashboard--patio {
-        border-color: rgba(248, 113, 113, 0.42);
-        background: linear-gradient(155deg, rgba(225, 29, 46, 0.11), rgba(15, 19, 26, 0.52));
+      .dashboard-module-entry--patio {
+        border-color: rgba(248, 113, 113, 0.38);
+        background: linear-gradient(145deg, rgba(127, 29, 29, 0.26), rgba(15, 19, 26, 0.62));
       }
-      [data-theme="light"] .card.dashboard-module-card.dashboard--patio {
-        background: linear-gradient(155deg, rgba(225, 29, 46, 0.07), rgba(255, 255, 255, 0.88));
+      .dashboard-module-entry--patio .dashboard-module-entry__go {
+        color: #fca5a5;
       }
-      .card.dashboard-module-card.dashboard--finance {
-        border-color: rgba(45, 212, 191, 0.42);
-        background: linear-gradient(155deg, rgba(13, 148, 136, 0.12), rgba(15, 19, 26, 0.52));
+      .dashboard-module-entry--finance {
+        border-color: rgba(45, 212, 191, 0.4);
+        background: linear-gradient(145deg, rgba(15, 118, 110, 0.26), rgba(15, 19, 26, 0.62));
       }
-      [data-theme="light"] .card.dashboard-module-card.dashboard--finance {
-        background: linear-gradient(155deg, rgba(13, 148, 136, 0.09), rgba(255, 255, 255, 0.88));
+      .dashboard-module-entry--finance .dashboard-module-entry__go {
+        color: #99f6e4;
+      }
+      [data-theme="light"] .dashboard-module-entry {
+        background: rgba(255, 255, 255, 0.92);
+        border-color: rgba(148, 163, 184, 0.34);
+      }
+      [data-theme="light"] .dashboard-module-entry--patio {
+        background: linear-gradient(145deg, rgba(254, 226, 226, 0.82), rgba(255, 255, 255, 0.94));
+      }
+      [data-theme="light"] .dashboard-module-entry--finance {
+        background: linear-gradient(145deg, rgba(204, 251, 241, 0.8), rgba(255, 255, 255, 0.94));
       }
       .patio-module-ribbon-right {
         display: flex;
@@ -1561,20 +1583,12 @@
         }
       }
       #viewDashboard .dashboard-modules {
-        gap: 20px;
+        gap: 14px;
       }
-      #viewDashboard .card.dashboard-module-card {
-        min-height: 156px;
-        border-radius: 18px;
+      #viewDashboard .dashboard-module-entry {
         box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.06),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05),
           var(--shadow-soft);
-      }
-      #viewDashboard .card.dashboard-module-card:hover {
-        transform: translateY(-2px);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.08),
-          0 20px 42px rgba(0, 0, 0, 0.28);
       }
       .dashboard-plate-card {
         grid-column: 1 / -1;
@@ -1786,26 +1800,22 @@
           </div>
           <div class="grid">
             <div class="dashboard-modules" style="grid-column: 1 / -1">
-              <div
-                class="card clickable dashboard-module-card dashboard--patio"
-                id="cardModuloPatio"
-                role="button"
-                tabindex="0"
-              >
-                <div class="module-eyebrow">Operação</div>
-                <h3 class="module-title">Gestão de pátio</h3>
-                <span class="module-cta">Abrir módulo →</span>
+              <div class="dashboard-module-entry dashboard-module-entry--patio" id="cardModuloPatio" role="button" tabindex="0">
+                <div class="dashboard-module-entry__left">
+                  <span class="dashboard-module-entry__kicker">Operação</span>
+                  <h3 class="dashboard-module-entry__title">Centro operacional do pátio</h3>
+                  <span class="dashboard-module-entry__hint">Veículos, liberações e removidos</span>
+                </div>
+                <span class="dashboard-module-entry__go">Acessar →</span>
               </div>
               <div id="dashboardModuleFinanceWrap">
-                <div
-                  class="card clickable dashboard-module-card dashboard--finance"
-                  id="cardModuloFinanceiro"
-                  role="button"
-                  tabindex="0"
-                >
-                  <div class="module-eyebrow">Financeiro</div>
-                  <h3 class="module-title">Gestão financeira</h3>
-                  <span class="module-cta">Abrir módulo →</span>
+                <div class="dashboard-module-entry dashboard-module-entry--finance" id="cardModuloFinanceiro" role="button" tabindex="0">
+                  <div class="dashboard-module-entry__left">
+                    <span class="dashboard-module-entry__kicker">Financeiro</span>
+                    <h3 class="dashboard-module-entry__title">Centro financeiro</h3>
+                    <span class="dashboard-module-entry__hint">A receber, caixa e fechamento mensal</span>
+                  </div>
+                  <span class="dashboard-module-entry__go">Acessar →</span>
                 </div>
               </div>
             </div>
