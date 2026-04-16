@@ -70,10 +70,7 @@
           radial-gradient(circle at 10% 20%, rgba(0, 0, 0, 0.03), transparent 35%),
           var(--bg);
       }
-      /* Gestão financeira: foco no módulo (barra global oculta). Pátio mantém a nav para Sair e troca de aba. */
-      body.app-module-finance #appPanel > .panel:first-child {
-        display: none;
-      }
+      /* Navegação principal: menu no cabeçalho (sem barra de abas no corpo). */
       body.app-module-patio {
         background: radial-gradient(circle at 12% 0%, rgba(225, 29, 46, 0.14), transparent 42%),
           radial-gradient(circle at 88% 8%, rgba(248, 113, 113, 0.06), transparent 46%),
@@ -1204,7 +1201,6 @@
         box-shadow: none;
       }
       button:focus-visible,
-      .nav button:focus-visible,
       .subnav button:focus-visible,
       input:focus-visible,
       select:focus-visible,
@@ -1274,25 +1270,6 @@
         font-size: 22px;
         font-weight: 700;
         font-variant-numeric: tabular-nums;
-      }
-      .nav {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-      .nav button {
-        background: transparent;
-        color: var(--text);
-        border: 1px solid var(--border);
-        box-shadow: none;
-        border-radius: 999px;
-        padding: 8px 14px;
-      }
-      .nav button.active {
-        border-color: var(--primary);
-        color: var(--primary);
-        font-weight: 600;
-        background: var(--primary-weak);
       }
       .sr-only {
         position: absolute;
@@ -1754,13 +1731,6 @@
           flex-direction: column;
           align-items: flex-start;
         }
-        .nav {
-          gap: 6px;
-        }
-        .nav button {
-          width: 100%;
-          justify-content: center;
-        }
         .subnav {
           gap: 6px;
         }
@@ -2208,19 +2178,11 @@
       <section id="appPanel" class="hidden">
         <div id="gestorPistaWelcomeBanner" class="gestor-pista-welcome hidden" role="status">
           <p class="notice gestor-pista-welcome-text">
-            <strong>Gestor de pista.</strong> Entrou com o acesso que o gestor geral criou. Fica na <strong>Gestão de pátio</strong> (cadastro e consultas permitidas; sem valores completos, financeiro nem definições do dono). Use «← Voltar ao Painel» para o resumo.
+            <strong>Gestor de pista.</strong> Entrou com o acesso que o gestor geral criou. Fica na <strong>Gestão de pátio</strong> (cadastro e consultas permitidas; sem valores completos, financeiro nem definições do dono). No <strong>menu</strong> (canto superior direito), use <strong>Painel</strong> para o resumo.
           </p>
           <button type="button" class="secondary" id="gestorPistaWelcomeDismiss">Entendi</button>
         </div>
-        <div class="panel">
-          <div class="nav">
-            <button class="active" data-view="dashboard">Painel</button>
-            <button data-view="patio">Gestão de pátio</button>
-            <button data-view="financeiro">Gestão financeira</button>
-            <button data-view="configuracoes">Configurações</button>
-            <button id="logoutBtn" class="secondary">Sair</button>
-          </div>
-        </div>
+        <button type="button" id="logoutBtn" class="hidden" aria-hidden="true" tabindex="-1">Sair</button>
 
         <div id="viewDashboard" class="panel dashboard-shell">
           <div class="toolbar dashboard-toolbar">
@@ -5494,9 +5456,6 @@
       function applyRoleRestrictions() {
         document.getElementById("track-manager-hide-values-style")?.remove();
         document.getElementById("vehicleForm")?.classList.remove("operador-simplified");
-        document.querySelectorAll(".nav button[data-view]").forEach((btn) => {
-          btn.style.display = "";
-        });
         document.querySelectorAll("#appHeaderMenu button[data-view]").forEach((btn) => {
           btn.style.display = "";
         });
@@ -5525,7 +5484,6 @@
           if (!view) return;
           btn.style.display = view === "dashboard" ? "" : "none";
         };
-        document.querySelectorAll(".nav button[data-view]").forEach(hideGestorMainNavItem);
         document.querySelectorAll("#appHeaderMenu button[data-view]").forEach(hideGestorMainNavItem);
         document.getElementById("dashboardModuleFinanceWrap")?.classList.add("hidden");
         document.getElementById("openConfigFromPatio")?.classList.add("hidden");
@@ -8588,9 +8546,6 @@
           patioFlyoutBackdrop?.classList.add("hidden");
           document.getElementById("viewPatio")?.classList.remove("patio-flyout-open");
         }
-        document.querySelectorAll(".nav button[data-view]").forEach((btn) => {
-          btn.classList.toggle("active", btn.getAttribute("data-view") === view);
-        });
         document.querySelectorAll("#appHeaderMenu button[data-view]").forEach((btn) => {
           btn.classList.toggle("active", btn.getAttribute("data-view") === view);
         });
@@ -10846,7 +10801,6 @@
         openMainView(view);
       }
 
-      const navButtons = document.querySelectorAll(".nav button[data-view]");
       const views = {
         dashboard: document.getElementById("viewDashboard"),
         patio: document.getElementById("viewPatio"),
@@ -10857,12 +10811,6 @@
 
       document.querySelectorAll('[data-close-stack="true"]').forEach((btn) => {
         btn.addEventListener("click", closeStackTop);
-      });
-
-      navButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-          navigateMainViewFromNav(button.getAttribute("data-view"));
-        });
       });
 
       document.getElementById("appHeaderMenuBtn")?.addEventListener("click", toggleAppHeaderMenu);
