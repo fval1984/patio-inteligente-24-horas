@@ -7287,11 +7287,29 @@
                 mov.tipo_conta === "RECEBER" && mov.conta_id
                   ? state.receivables.find((r) => r.id === mov.conta_id)
                   : null;
-              const podeVoltarRecebimento =
+              const payVinculado =
+                mov.tipo_conta === "PAGAR" && mov.conta_id
+                  ? state.payables.find((p) => p.id === mov.conta_id)
+                  : null;
+              const receberQuitadoPodeGestionar =
                 mov.tipo_conta === "RECEBER" && recVinculado && recVinculado.status === "PAGO";
-              const acoesCell = podeVoltarRecebimento
-                ? `<button class="secondary" type="button" data-action="voltar-caixa-receber" data-id="${mov.id}" title="Remove este lançamento do caixa e devolve a conta para «Contas a receber» em aberto">Voltar</button>`
-                : "—";
+              const pagarQuitadoPodeGestionar =
+                mov.tipo_conta === "PAGAR" && payVinculado && payVinculado.status === "PAGO";
+              let acoesCell = "—";
+              if (receberQuitadoPodeGestionar) {
+                const rid = mov.conta_id;
+                acoesCell = `
+                  <button class="secondary" type="button" data-action="voltar-caixa-receber" data-id="${mov.id}" title="Remove este lançamento do caixa e devolve a conta para «Contas a receber» em aberto">Voltar</button>
+                  <button class="secondary" type="button" data-action="editar-recebido" data-id="${rid}" title="Ajustar responsável ou valor do recebimento">Editar</button>
+                  <button class="secondary" type="button" data-action="apagar-recebido" data-id="${rid}" title="Apaga o recebimento e o lançamento em caixa">Apagar</button>
+                `;
+              } else if (pagarQuitadoPodeGestionar) {
+                const pid = mov.conta_id;
+                acoesCell = `
+                  <button class="secondary" type="button" data-action="editar-pago" data-id="${pid}" title="Ajustar despesa quitada">Editar</button>
+                  <button class="secondary" type="button" data-action="apagar-pago" data-id="${pid}" title="Apaga o pagamento e o lançamento em caixa">Apagar</button>
+                `;
+              }
               rows.push(`
               <tr>
                 <td>${formatDateTime(mov.data_movimento)}</td>
@@ -10161,11 +10179,12 @@
           if (!receivable) return;
           const responsavel = prompt("Responsável pelo pagamento:", receivable.responsavel_pagamento || "");
           const valor = prompt("Valor:", receivable.valor || "");
+          const numValor = Number(valor || 0);
           const { error } = await supabase
             .from("receivables")
             .update({
               responsavel_pagamento: responsavel || null,
-              valor: Number(valor || 0),
+              valor: numValor,
             })
             .eq("id", id)
             .eq("user_id", effectiveUserId());
@@ -10173,7 +10192,15 @@
             alert(error.message);
             return;
           }
-          await loadReceivables();
+          if (receivable.status === "PAGO") {
+            await supabase
+              .from("cash_movements")
+              .update({ valor: numValor })
+              .eq("conta_id", id)
+              .eq("tipo_conta", "RECEBER")
+              .eq("user_id", effectiveUserId());
+          }
+          await Promise.all([loadReceivables(), loadCash()]);
           renderFinance();
           return;
         }
