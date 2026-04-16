@@ -969,8 +969,70 @@
         gap: 12px;
       }
       .header-app-menu-wrap {
-        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
         margin-left: auto;
+      }
+      .header-menu-tray {
+        position: relative;
+        align-self: flex-end;
+      }
+      .header-plate-search {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 6px;
+        max-width: min(100vw - 48px, 320px);
+        justify-content: flex-end;
+      }
+      .header-plate-search .header-plate-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0;
+        padding: 0 2px 0 0;
+      }
+      .header-plate-search input#plateFilter {
+        width: 92px;
+        min-width: 0;
+        min-height: 26px;
+        padding: 3px 6px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--text);
+      }
+      .header-plate-search button {
+        min-height: 26px;
+        padding: 2px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .header-plate-search button[type="submit"] {
+        border: 1px solid var(--primary);
+        background: var(--primary-weak);
+        color: var(--primary);
+      }
+      .header-plate-search button.secondary {
+        padding: 2px 6px;
+        font-size: 10px;
+      }
+      .header-plate-search-hint {
+        margin: 0;
+        max-width: min(100vw - 48px, 320px);
+        font-size: 10px;
+        text-align: right;
+        line-height: 1.25;
       }
       .header-menu-trigger {
         display: inline-flex;
@@ -1970,40 +2032,6 @@
           inset 0 1px 0 rgba(255, 255, 255, 0.05),
           var(--shadow-soft);
       }
-      .dashboard-plate-card {
-        grid-column: 1 / -1;
-        border-radius: 18px;
-        padding: 22px 22px 20px;
-        border-color: rgba(148, 163, 184, 0.16);
-        background: linear-gradient(
-          165deg,
-          rgba(255, 255, 255, 0.055) 0%,
-          rgba(15, 19, 26, 0.42) 100%
-        );
-      }
-      [data-theme="light"] .dashboard-plate-card {
-        background: linear-gradient(165deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.88));
-      }
-      .dashboard-plate-card .card-head .card-title {
-        font-size: 12px;
-        letter-spacing: 0.08em;
-        font-weight: 700;
-      }
-      .dashboard-plate-hint {
-        margin: 0 0 14px;
-        font-size: 13px;
-        color: var(--muted);
-        line-height: 1.45;
-      }
-      .dashboard-plate-card .filter-bar input {
-        min-height: 42px;
-        border-radius: 12px;
-        padding: 10px 14px;
-        font-size: 15px;
-        font-weight: 600;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-      }
       .dashboard-stat-card {
         border-radius: 18px;
         padding: 20px 20px 18px;
@@ -2108,28 +2136,48 @@
         <div class="user" id="userInfo">Não autenticado</div>
         <div id="appHeaderMenuWrap" class="header-app-menu-wrap hidden">
           <div id="appHeaderMenuBackdrop" class="header-menu-backdrop hidden" aria-hidden="true"></div>
-          <button
-            type="button"
-            id="appHeaderMenuBtn"
-            class="header-menu-trigger"
-            aria-haspopup="true"
-            aria-expanded="false"
-            aria-controls="appHeaderMenu"
-            title="Menu"
-          >
-            <span class="header-menu-bar" aria-hidden="true"></span>
-            <span class="header-menu-bar" aria-hidden="true"></span>
-            <span class="header-menu-bar" aria-hidden="true"></span>
-            <span class="sr-only">Menu</span>
-          </button>
-          <div id="appHeaderMenu" class="header-menu-dropdown hidden" role="menu" aria-label="Navegação da aplicação">
-            <button type="button" role="menuitem" data-view="dashboard">Painel</button>
-            <button type="button" role="menuitem" data-view="patio">Gestão de pátio</button>
-            <button type="button" role="menuitem" data-view="financeiro">Gestão financeira</button>
-            <button type="button" role="menuitem" data-view="configuracoes">Configurações</button>
-            <div class="header-menu-sep" role="separator"></div>
-            <button type="button" role="menuitem" id="appHeaderMenuLogout" class="header-menu-item--danger">Sair</button>
+          <div class="header-menu-tray">
+            <button
+              type="button"
+              id="appHeaderMenuBtn"
+              class="header-menu-trigger"
+              aria-haspopup="true"
+              aria-expanded="false"
+              aria-controls="appHeaderMenu"
+              title="Menu"
+            >
+              <span class="header-menu-bar" aria-hidden="true"></span>
+              <span class="header-menu-bar" aria-hidden="true"></span>
+              <span class="header-menu-bar" aria-hidden="true"></span>
+              <span class="sr-only">Menu</span>
+            </button>
+            <div id="appHeaderMenu" class="header-menu-dropdown hidden" role="menu" aria-label="Navegação da aplicação">
+              <button type="button" role="menuitem" data-view="dashboard">Painel</button>
+              <button type="button" role="menuitem" data-view="patio">Gestão de pátio</button>
+              <button type="button" role="menuitem" data-view="financeiro">Gestão financeira</button>
+              <button type="button" role="menuitem" data-view="configuracoes">Configurações</button>
+              <div class="header-menu-sep" role="separator"></div>
+              <button type="button" role="menuitem" id="appHeaderMenuLogout" class="header-menu-item--danger">Sair</button>
+            </div>
           </div>
+          <form id="plateSearchForm" class="header-plate-search" action="#" novalidate>
+            <label for="plateFilter" class="header-plate-label">Placa</label>
+            <input
+              id="plateFilter"
+              name="plate"
+              type="text"
+              inputmode="text"
+              placeholder="ABC1D23"
+              maxlength="20"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="characters"
+              spellcheck="false"
+            />
+            <button type="submit" id="plateSearchOk">OK</button>
+            <button type="button" class="secondary" id="clearPlateFilter">Limpar</button>
+          </form>
+          <p class="notice plate-search-hint header-plate-search-hint hidden" aria-live="polite"></p>
         </div>
       </div>
     </header>
@@ -2215,30 +2263,6 @@
                 <span class="dashboard-finance-card__meta" id="dashboardFinanceCaixaMeta">Movimentações: 0</span>
                 <span class="dashboard-finance-card__go">Abrir financeiro →</span>
               </div>
-            </div>
-            <div class="card dashboard-plate-card">
-              <div class="card-head">
-                <span class="card-title">Buscar por placa</span>
-              </div>
-              <p class="dashboard-plate-hint">Digite a placa e confirme — a lista do pátio filtra na hora.</p>
-              <form id="plateSearchForm" class="filter-bar" style="margin: 0" action="#" novalidate>
-                <label for="plateFilter">Placa</label>
-                <input
-                  id="plateFilter"
-                  name="plate"
-                  type="text"
-                  inputmode="text"
-                  placeholder="Ex.: ABC1D23"
-                  maxlength="20"
-                  autocomplete="off"
-                  autocorrect="off"
-                  autocapitalize="characters"
-                  spellcheck="false"
-                />
-                <button type="submit" id="plateSearchOk">OK</button>
-                <button type="button" class="secondary" id="clearPlateFilter">Limpar</button>
-              </form>
-              <p class="notice plate-search-hint hidden" style="margin: 10px 0 0"></p>
             </div>
             <div class="card clickable dashboard-stat-card dashboard-stat--vnp" id="cardVeiculosLink">
               <div class="card-head">
@@ -5931,6 +5955,46 @@
           .replace(/[^a-z0-9]/g, "");
       }
 
+      function vehiclePlateSearchActivityTs(v) {
+        const parts = [v.updated_at, v.data_saida, v.data_entrada, v.nfse_requested_at, v.created_at].filter(Boolean);
+        let best = 0;
+        for (const p of parts) {
+          const t = new Date(p).getTime();
+          if (!Number.isNaN(t)) best = Math.max(best, t);
+        }
+        return best;
+      }
+
+      function pickMostRecentPlateVehicle(matches) {
+        return [...matches].sort((a, b) => {
+          const d = vehiclePlateSearchActivityTs(b) - vehiclePlateSearchActivityTs(a);
+          if (d !== 0) return d;
+          return String(b.id || "").localeCompare(String(a.id || ""), "pt-BR");
+        })[0];
+      }
+
+      function resolvePlateSearchSubview(v) {
+        if (!v) return "no_patio";
+        if (v.status === "REMOVIDO") return "removidos";
+        if (v.nfse_status === "PENDENTE") return "nfse_pendente";
+        return "no_patio";
+      }
+
+      function syncPatioPlateInputFromHeader() {
+        if (plateFilter && plateFilterPatio) plateFilterPatio.value = plateFilter.value;
+      }
+
+      function scrollPlateSearchVehicleIntoView(vehicleId) {
+        if (vehicleId == null || vehicleId === "") return;
+        const safe = String(vehicleId).replace(/"/g, "");
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const row = document.querySelector(`tr[data-vehicle-row="${safe}"]`);
+            row?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          });
+        });
+      }
+
       /** Busca no financeiro: placa completa ou trecho (Mercosul ou antiga). */
       function plateNormMatchesQuery(storedNorm, queryNorm) {
         if (!queryNorm) return true;
@@ -5994,14 +6058,23 @@
         if (norm.length === 0) {
           plateQuery = "";
           setPlateSearchHints("", false);
+          syncPatioPlateInputFromHeader();
           renderVehicles();
           return;
         }
-        // Se tiver caracteres (após normalizar), permite qualquer tamanho.
         setPlateSearchHints("", false);
         plateQuery = raw;
+        syncPatioPlateInputFromHeader();
+        const matches = (state.vehicles || []).filter((v) => normalizePlateSearch(v.placa) === norm);
         goToPatioForPlateSearch();
-        renderVehicles();
+        if (matches.length) {
+          const target = pickMostRecentPlateVehicle(matches);
+          openPatioSubview(resolvePlateSearchSubview(target));
+          renderVehicles();
+          scrollPlateSearchVehicleIntoView(target.id);
+        } else {
+          renderVehicles();
+        }
       }
 
       function renderVehicles() {
@@ -6212,7 +6285,7 @@
             }
 
             return `
-              <tr class="${rowClass}">
+              <tr class="${rowClass}" data-vehicle-row="${v.id}">
                 <td data-label="Placa">${v.placa || "-"}${situacaoHtml}</td>
                 <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
                 <td data-label="Localizador">${localizador}</td>
@@ -6328,7 +6401,7 @@
             }
 
             return `
-              <tr>
+              <tr data-vehicle-row="${v.id}">
                 <td data-label="Placa">${v.placa || "-"}</td>
                 <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
                 <td data-label="Localizador">${localizador}</td>
@@ -6376,7 +6449,7 @@
             }
 
             return `
-              <tr>
+              <tr data-vehicle-row="${v.id}">
                 <td data-label="Placa">${v.placa || "-"}</td>
                 <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
                 <td data-label="Localizador">${localizador}</td>
@@ -8804,6 +8877,7 @@
       clearPlateFilter.addEventListener("click", () => {
         plateFilter.value = "";
         plateQuery = "";
+        syncPatioPlateInputFromHeader();
         setPlateSearchHints("", false);
         renderVehicles();
       });
