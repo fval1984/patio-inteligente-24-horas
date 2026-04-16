@@ -3326,6 +3326,11 @@
             </div>
             <button class="modal-close" id="closeReciboModal">Fechar</button>
           </div>
+          <p class="notice" style="margin: 0 0 12px; font-size: 13px; line-height: 1.45">
+            Preencha <strong>só</strong> o nome e o CPF/CNPJ de quem consta no recibo como direcionado. O PDF usa
+            <strong>automaticamente</strong> marca, modelo, placa, período das estadias e o valor desta conta.
+          </p>
+          <div id="reciboModalResumoAuto" class="section-card hidden" style="margin-bottom: 14px; padding: 12px 14px; font-size: 13px; line-height: 1.55"></div>
           <div class="form-grid">
             <div>
               <label for="reciboDestinatarioNome">Nome do direcionado</label>
@@ -7840,8 +7845,16 @@
       });
       closeTextModal.addEventListener("click", () => textModal.classList.add("hidden"));
       closeTextModal2.addEventListener("click", () => textModal.classList.add("hidden"));
+      function hideReciboModalResumo() {
+        const resumo = document.getElementById("reciboModalResumoAuto");
+        if (resumo) {
+          resumo.innerHTML = "";
+          resumo.classList.add("hidden");
+        }
+      }
       closeReciboModal?.addEventListener("click", () => {
         reciboModal.classList.add("hidden");
+        hideReciboModalResumo();
         if (reciboModalResolver) {
           reciboModalResolver(null);
           reciboModalResolver = null;
@@ -7849,6 +7862,7 @@
       });
       cancelReciboModal?.addEventListener("click", () => {
         reciboModal.classList.add("hidden");
+        hideReciboModalResumo();
         if (reciboModalResolver) {
           reciboModalResolver(null);
           reciboModalResolver = null;
@@ -7866,6 +7880,7 @@
           return;
         }
         reciboModal.classList.add("hidden");
+        hideReciboModalResumo();
         if (reciboModalResolver) {
           reciboModalResolver({ nome, doc });
           reciboModalResolver = null;
@@ -7945,9 +7960,12 @@
               liberacaoModalResolver = null;
               workflowModalConfig = null;
             }
-            if (modal === reciboModal && reciboModalResolver) {
-              reciboModalResolver(null);
-              reciboModalResolver = null;
+            if (modal === reciboModal) {
+              hideReciboModalResumo();
+              if (reciboModalResolver) {
+                reciboModalResolver(null);
+                reciboModalResolver = null;
+              }
             }
           }
         });
@@ -7981,11 +7999,29 @@
         row.setAttribute("aria-hidden", visible ? "false" : "true");
       }
 
-      function openReciboDestinatarioModal({ defaultNome = "", defaultDoc = "" }) {
+      function openReciboDestinatarioModal({ defaultNome = "", defaultDoc = "", receivable = null, vehicle = null }) {
         return new Promise((resolve) => {
           reciboModalResolver = resolve;
           if (reciboDestinatarioNome) reciboDestinatarioNome.value = defaultNome;
           if (reciboDestinatarioDoc) reciboDestinatarioDoc.value = defaultDoc;
+          const resumo = document.getElementById("reciboModalResumoAuto");
+          if (resumo) {
+            if (receivable && vehicle) {
+              const placa = vehicle.placa || "—";
+              const vm = [vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "—";
+              const pi = receivable.period_start ? formatDateBr(receivable.period_start) : "—";
+              const pf = receivable.period_end ? formatDateBr(receivable.period_end) : "—";
+              const val = formatCurrency(Number(receivable.valor || 0));
+              resumo.innerHTML = `<strong>Dados que vão no PDF (automático)</strong><br />
+                Veículo: <strong>${escapeHtml(vm)}</strong> — placa <strong>${escapeHtml(placa)}</strong><br />
+                Estadias (período): <strong>${escapeHtml(pi)}</strong> a <strong>${escapeHtml(pf)}</strong><br />
+                Valor: <strong>${escapeHtml(val)}</strong>`;
+              resumo.classList.remove("hidden");
+            } else {
+              resumo.innerHTML = "";
+              resumo.classList.add("hidden");
+            }
+          }
           reciboModal.classList.remove("hidden");
         });
       }
@@ -10130,6 +10166,9 @@
           const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
           const destinatarioInfo = await openReciboDestinatarioModal({
             defaultNome: receivable.responsavel_pagamento || "",
+            defaultDoc: "",
+            receivable,
+            vehicle: vehicle || null,
           });
           if (!destinatarioInfo) return;
           const totalAtual = Number(receivable.valor || 0);
