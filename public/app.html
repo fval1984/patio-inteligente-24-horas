@@ -9319,7 +9319,7 @@
 
           // fecha ciclo atual
           const valorFechamento = calcPeriodTotal(vehicle, currentCycle.period_start, periodEnd);
-          const { error: closeErr } = await supabase
+          let { error: closeErr } = await supabase
             .from("receivables")
             .update({
               period_end: periodEnd,
@@ -9328,6 +9328,20 @@
             })
             .eq("id", currentCycle.id)
             .eq("user_id", effectiveUserId());
+          if (closeErr && /invalid input value for enum payment_status/i.test(closeErr.message || "")) {
+            // Compatibilidade temporária para bases onde payment_status ainda não aceita AGUARDANDO_LANCAMENTO.
+            closeErr = (
+              await supabase
+                .from("receivables")
+                .update({
+                  period_end: periodEnd,
+                  valor: valorFechamento,
+                  status: "EM_ABERTO",
+                })
+                .eq("id", currentCycle.id)
+                .eq("user_id", effectiveUserId())
+            ).error;
+          }
           if (closeErr) {
             alert(closeErr.message);
             return;
@@ -9508,7 +9522,7 @@
           if (cycleAberto?.id) {
             const closedVehicle = { ...vehicle, status: "REMOVIDO", data_saida: dataSaida };
             const valorFechamento = calcPeriodTotal(closedVehicle, cycleAberto.period_start, dataSaida);
-            const { error: recErr } = await supabase
+            let { error: recErr } = await supabase
               .from("receivables")
               .update({
                 period_end: dataSaida,
@@ -9517,6 +9531,19 @@
               })
               .eq("id", cycleAberto.id)
               .eq("user_id", effectiveUserId());
+            if (recErr && /invalid input value for enum payment_status/i.test(recErr.message || "")) {
+              recErr = (
+                await supabase
+                  .from("receivables")
+                  .update({
+                    period_end: dataSaida,
+                    valor: valorFechamento,
+                    status: "EM_ABERTO",
+                  })
+                  .eq("id", cycleAberto.id)
+                  .eq("user_id", effectiveUserId())
+              ).error;
+            }
             if (recErr) {
               alert(recErr.message);
               return;
