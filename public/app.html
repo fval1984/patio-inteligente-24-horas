@@ -2248,7 +2248,6 @@
                 <div class="header-menu-nested">
                   <button type="button" data-header-patio="new-vehicle">Registrar veículo</button>
                   <button type="button" data-header-patio="print">Imprimir</button>
-                  <button type="button" data-header-patio="parceiros">Parceiros</button>
                   <button type="button" data-header-patio-sub="no_patio">VNP</button>
                   <button type="button" data-header-patio-sub="removidos">VRP</button>
                   <button type="button" data-header-patio-sub="nfse_pendente">NFSe pendente</button>
@@ -2549,7 +2548,7 @@
             </div>
             <div class="patio-module-ribbon-right">
               <div class="patio-module-tools">
-                <button type="button" class="secondary" id="openParceirosFromPatio">Parceiros</button>
+                <button type="button" class="secondary" id="openParceirosFromPatio">Rede de parceiros</button>
                 <button type="button" class="secondary" id="openConfigFromPatio">Configurações</button>
               </div>
               <div class="patio-module-meta">
@@ -2693,7 +2692,7 @@
           <div class="toolbar">
             <div>
               <p class="module-kicker module-kicker--partners">Cadastro</p>
-              <h2>Parceiros</h2>
+              <h2>Rede de parceiros</h2>
               <p class="module-lede">
                 Empresas de remoção e assessorias, rankings e tabelas no mesmo padrão visual dos módulos de pátio e financeiro.
               </p>
@@ -5622,7 +5621,6 @@
         document.getElementById("vehicleForm")?.classList.remove("operador-simplified");
         document.querySelectorAll("#appHeaderMenu .header-menu-details").forEach((el) => el.classList.remove("hidden"));
         document.querySelectorAll("#headerDetailsPatio [data-header-patio-sub]").forEach((el) => el.classList.remove("hidden"));
-        document.querySelector('#headerDetailsPatio [data-header-patio="parceiros"]')?.classList.remove("hidden");
         document.querySelectorAll("#appHeaderMenu button[data-view]").forEach((btn) => {
           btn.style.display = "";
         });
@@ -5664,7 +5662,6 @@
             '#headerDetailsPatio [data-header-patio-sub="removidos"], #headerDetailsPatio [data-header-patio-sub="nfse_pendente"]'
           )
           .forEach((el) => el.classList.add("hidden"));
-        document.querySelector('#headerDetailsPatio [data-header-patio="parceiros"]')?.classList.add("hidden");
         document.getElementById("dashboardModuleFinanceWrap")?.classList.add("hidden");
         document.getElementById("financeTopDashboard")?.classList.add("hidden");
         document.getElementById("openConfigFromPatio")?.classList.add("hidden");
@@ -8759,7 +8756,7 @@
       bindModuleCardActivate(document.getElementById("cardFinancePagarLink"), () => openFinanceSubview("pagar"));
       bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("caixa"));
 
-      document.getElementById("openParceirosFromPatio")?.addEventListener("click", () => openMainView("parceiros"));
+      document.getElementById("openParceirosFromPatio")?.addEventListener("click", () => openPartnerSubview("parceiros"));
       document.getElementById("openConfigFromPatio")?.addEventListener("click", () => openMainView("configuracoes"));
       document.getElementById("exitParceirosToPatio")?.addEventListener("click", () => closeStackTop());
       document.getElementById("exitConfigToPatio")?.addEventListener("click", () => closeStackTop());
@@ -11132,13 +11129,9 @@
         if (patioAct && !patioAct.hasAttribute("data-header-patio-sub")) {
           e.preventDefault();
           const k = patioAct.getAttribute("data-header-patio");
-          if (k === "parceiros") {
-            openMainView("parceiros");
-          } else {
-            openMainView("patio");
-            if (k === "new-vehicle") openVehicleModal("create");
-            else if (k === "print") openPatioPrintModal();
-          }
+          openMainView("patio");
+          if (k === "new-vehicle") openVehicleModal("create");
+          else if (k === "print") openPatioPrintModal();
           closeAppHeaderMenu();
           return;
         }
