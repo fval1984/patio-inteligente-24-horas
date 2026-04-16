@@ -1158,6 +1158,23 @@
       .header-menu-nested button:hover {
         background: var(--primary-weak, rgba(56, 189, 248, 0.1));
       }
+      .header-menu-top.header-menu-top--current {
+        color: var(--primary);
+        font-weight: 700;
+        background: var(--primary-weak, rgba(56, 189, 248, 0.18));
+        border: 1px solid rgba(56, 189, 248, 0.35);
+      }
+      .header-menu-details.header-menu-details--current > summary {
+        color: var(--primary);
+        font-weight: 700;
+        background: var(--primary-weak, rgba(56, 189, 248, 0.15));
+      }
+      [data-theme="light"] .header-menu-top.header-menu-top--current {
+        background: rgba(56, 189, 248, 0.12);
+      }
+      [data-theme="light"] .header-menu-details.header-menu-details--current > summary {
+        background: rgba(56, 189, 248, 0.1);
+      }
       [data-theme="light"] .header-menu-dropdown {
         box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
       }
@@ -5549,6 +5566,7 @@
         appPanel.classList.add("hidden");
         document.getElementById("appHeaderMenuWrap")?.classList.add("hidden");
         document.body.classList.remove("menus-no-modulo");
+        lastAppHeaderModuleView = null;
         closeAppHeaderMenu();
         userInfo.textContent = "Não autenticado";
         state.user = null;
@@ -8730,6 +8748,20 @@
       const cardEntradasHojeLink = document.getElementById("cardEntradasHojeLink");
       const cardSaidasHojeLink = document.getElementById("cardSaidasHojeLink");
 
+      let lastAppHeaderModuleView = null;
+
+      function syncHeaderMenuModuleHighlight(view) {
+        const menu = document.getElementById("appHeaderMenu");
+        if (!menu) return;
+        menu.querySelectorAll(".header-menu-details").forEach((d) => d.classList.remove("header-menu-details--current"));
+        const top = menu.querySelector(".header-menu-top");
+        if (top) top.classList.toggle("header-menu-top--current", view === "dashboard");
+        if (view === "patio") menu.querySelector("#headerDetailsPatio")?.classList.add("header-menu-details--current");
+        else if (view === "parceiros") menu.querySelector("#headerDetailsParceiros")?.classList.add("header-menu-details--current");
+        else if (view === "financeiro") menu.querySelector("#headerDetailsFinance")?.classList.add("header-menu-details--current");
+        else if (view === "configuracoes") menu.querySelector("#headerDetailsConfig")?.classList.add("header-menu-details--current");
+      }
+
       function showMainView(view) {
         if (view !== "financeiro") {
           financeSubnav?.classList.remove("open");
@@ -8766,6 +8798,12 @@
         if (view === "configuracoes") {
           setConfigSubview("dados");
         }
+        const headerModViews = ["dashboard", "patio", "parceiros", "financeiro", "configuracoes"];
+        if (headerModViews.includes(view) && lastAppHeaderModuleView !== view) {
+          document.querySelectorAll("#appHeaderMenu > .header-menu-details").forEach((d) => d.removeAttribute("open"));
+          lastAppHeaderModuleView = view;
+        }
+        syncHeaderMenuModuleHighlight(view);
       }
 
       function setConfigSubview(sub) {
@@ -10961,6 +10999,7 @@
         }
       });
 
+      /** Fecha só o painel suspenso; mantém `<details>` abertos até mudar de módulo em `showMainView`. */
       function closeAppHeaderMenu() {
         const b = document.getElementById("appHeaderMenuBtn");
         const p = document.getElementById("appHeaderMenu");
@@ -11007,6 +11046,18 @@
         configuracoes: document.getElementById("viewConfiguracoes"),
       };
 
+      function syncHeaderMenuHighlightFromDom() {
+        const order = ["dashboard", "patio", "parceiros", "financeiro", "configuracoes"];
+        for (const name of order) {
+          const el = views[name];
+          if (el && !el.classList.contains("hidden")) {
+            lastAppHeaderModuleView = name;
+            syncHeaderMenuModuleHighlight(name);
+            return;
+          }
+        }
+      }
+
       document.querySelectorAll('[data-close-stack="true"]').forEach((btn) => {
         btn.addEventListener("click", closeStackTop);
       });
@@ -11041,7 +11092,6 @@
           }
           openPatioSubview(patioSub.getAttribute("data-header-patio-sub"));
           closeAppHeaderMenu();
-          patioSub.closest("details")?.removeAttribute("open");
           return;
         }
 
@@ -11057,7 +11107,6 @@
             else if (k === "print") openPatioPrintModal();
           }
           closeAppHeaderMenu();
-          patioAct.closest("details")?.removeAttribute("open");
           return;
         }
 
@@ -11066,7 +11115,6 @@
           e.preventDefault();
           openPartnerSubview(partnerSub.getAttribute("data-header-partner-sub"));
           closeAppHeaderMenu();
-          partnerSub.closest("details")?.removeAttribute("open");
           return;
         }
 
@@ -11076,7 +11124,6 @@
           closeFinanceMenu();
           openFinanceSubview(finSub.getAttribute("data-header-finance-sub"));
           closeAppHeaderMenu();
-          finSub.closest("details")?.removeAttribute("open");
           return;
         }
 
@@ -11088,7 +11135,6 @@
           openMainView("financeiro");
           document.getElementById(id)?.click();
           closeAppHeaderMenu();
-          finAct.closest("details")?.removeAttribute("open");
           return;
         }
 
@@ -11098,7 +11144,6 @@
           openMainView("configuracoes");
           setConfigSubview(cfgSub.getAttribute("data-header-config-sub"));
           closeAppHeaderMenu();
-          cfgSub.closest("details")?.removeAttribute("open");
           return;
         }
       });
@@ -11124,6 +11169,7 @@
       setPatioView("dashboard");
       setFinanceView("none");
       setPartnerView("none");
+      syncHeaderMenuHighlightFromDom();
     </script>
   </body>
 </html>
