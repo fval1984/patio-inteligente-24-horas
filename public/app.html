@@ -2790,13 +2790,26 @@
                   <input id="settingsName" type="text" placeholder="Amplipatio" />
                 </div>
                 <div class="full">
-                  <label>Endereço da empresa (recibo)</label>
+                  <label>Endereço da empresa (rodapé do recibo)</label>
                   <textarea
                     id="settingsEndereco"
                     rows="3"
-                    placeholder="Rua, número, complemento — bairro, cidade — UF, CEP"
+                    placeholder="Ex.: Rua Marquês de Baependi, 119 — Campo Grande, Recife — PE"
                     style="width: 100%; resize: vertical; min-height: 72px; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: rgba(0, 0, 0, 0.2); color: var(--text); font: inherit"
                   ></textarea>
+                </div>
+                <div class="full">
+                  <label>Nome do emitente (recibo — quem declara o «Eu, …»)</label>
+                  <input
+                    id="settingsReciboEmitente"
+                    type="text"
+                    placeholder="Ex.: Fernando Vasconcellos de Albuquerque Lima"
+                    style="width: 100%"
+                  />
+                </div>
+                <div>
+                  <label>Telefone (rodapé do recibo)</label>
+                  <input id="settingsReciboTelefone" type="text" placeholder="Ex.: (81) 99991-8484" />
                 </div>
                 <div>
                   <label>Conta bancária</label>
@@ -2812,7 +2825,7 @@
                 </div>
               </div>
               <p class="notice">
-                Essas informações serão usadas nas cobranças, notas e no <strong>recibo PDF</strong> (timbrado: nome, CNPJ e endereço).
+                O <strong>recibo em PDF</strong> usa o <strong>logotipo</strong> em <code>public/assets/logo.png</code>, o nome do emitente, CNPJ, período do veículo e os dados de rodapé (endereço e telefone). A4, texto de quitação conforme modelo legal.
               </p>
             </div>
           </div>
@@ -3538,6 +3551,8 @@
       const settingsName = document.getElementById("settingsName");
       const settingsBank = document.getElementById("settingsBank");
       const settingsEndereco = document.getElementById("settingsEndereco");
+      const settingsReciboEmitente = document.getElementById("settingsReciboEmitente");
+      const settingsReciboTelefone = document.getElementById("settingsReciboTelefone");
       const settingsCharge = document.getElementById("settingsCharge");
       const settingsInvoice = document.getElementById("settingsInvoice");
       const saveSettings = document.getElementById("saveSettings");
@@ -3752,6 +3767,17 @@
         const hh = String(date.getHours()).padStart(2, "0");
         const min = String(date.getMinutes()).padStart(2, "0");
         return `${dd}-${mm}-${yy} ${hh}:${min}`;
+      }
+
+      /** Data em dd/mm/aaaa (ex.: recibo). */
+      function formatDateBr(value) {
+        if (!value) return "-";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "-";
+        const dd = String(date.getDate()).padStart(2, "0");
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
+        const yyyy = String(date.getFullYear());
+        return `${dd}/${mm}/${yyyy}`;
       }
 
       function formatDate(value) {
@@ -5515,6 +5541,8 @@
           settingsCnpj.value = state.settings.cnpj || "";
           settingsName.value = state.settings.nome_patio || "";
           if (settingsEndereco) settingsEndereco.value = state.settings.endereco || "";
+          if (settingsReciboEmitente) settingsReciboEmitente.value = state.settings.recibo_emitente_nome || "";
+          if (settingsReciboTelefone) settingsReciboTelefone.value = state.settings.recibo_telefone || "";
           settingsBank.value = state.settings.conta_bancaria || "";
           settingsCharge.value = state.settings.texto_cobranca || "";
           settingsInvoice.value = state.settings.texto_nota_fiscal || "";
@@ -6263,36 +6291,41 @@
       }
 
       function buildRecebimentoReciboText({ receivable, vehicle, destinatario, valor }) {
-        const agora = new Date().toISOString();
         const placa = vehicle?.placa || "-";
-        const veiculo = [vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ") || "-";
-        const responsavel = receivable?.responsavel_pagamento || "-";
-        const periodoInicio = receivable?.period_start ? formatDateTime(receivable.period_start) : "-";
-        const periodoFim = receivable?.period_end ? formatDateTime(receivable.period_end) : "-";
+        const marca = vehicle?.marca || "";
+        const modelo = vehicle?.modelo || "";
+        const veiculoDesc = [marca, modelo].filter(Boolean).join(" ").trim() || "—";
         const cfg = state.settings || {};
-        const emp = (cfg.nome_patio || "").trim();
-        const cj = formatCnpjForDisplay(cfg.cnpj) || String(cfg.cnpj || "").trim();
-        const end = (cfg.endereco || "").trim();
-        const head = [];
-        if (emp) head.push(emp);
-        if (cj) head.push(`CNPJ: ${cj}`);
-        if (end) head.push(end.replace(/\n/g, " "));
-        if (head.length) head.push("");
-        return [
-          ...head,
-          "RECIBO DE RECEBIMENTO",
-          "",
-          `Data: ${formatDateTime(agora)}`,
-          `Destinatário: ${destinatario}`,
-          `Responsável financeiro: ${responsavel}`,
-          `Veículo: ${placa} • ${veiculo}`,
-          `Período de cobrança: ${periodoInicio} até ${periodoFim}`,
-          `Valor recebido: ${formatCurrency(valor)}`,
-          "",
-          "Declaro que recebi o valor acima referente à guarda/pátio do veículo descrito.",
-          "",
-          "Assinatura: __________________________________________",
-        ].join("\n");
+        const emitente = (cfg.recibo_emitente_nome || "").trim() || "(emitente — Configurações)";
+        const cnpjFmt = formatCnpjForDisplay(cfg.cnpj) || String(cfg.cnpj || "").trim() || "—";
+        const nomePatio = (cfg.nome_patio || "AMPLIAUTO").trim();
+        const dIni = receivable?.period_start ? formatDateBr(receivable.period_start) : "-";
+        const dFim = receivable?.period_end ? formatDateBr(receivable.period_end) : "-";
+        const endRod = (cfg.endereco || "").trim().replace(/\n/g, " ");
+        const telRod = (cfg.recibo_telefone || "").trim();
+        const corpo = `Eu, ${emitente}, inscrito no CNPJ ${cnpjFmt}, recebi a quantia de ${formatCurrency(
+          valor
+        )} do Sr(a). ${destinatario || "—"}, referente às estadias do veículo ${veiculoDesc}, placa ${placa}, em pátio particular ${nomePatio}, de ${dIni} a ${dFim}. Pelo presente dou plena e total quitação referente ao pagamento das estadias referidas acima.`;
+        const rod = [endRod && `Endereço: ${endRod}`, telRod && `Contato: ${telRod}`].filter(Boolean).join("\n");
+        const parts = [corpo, "", "_______________________________", "Assinatura do emitente"];
+        if (rod) parts.push("", rod);
+        return parts.join("\n");
+      }
+
+      async function loadReciboLogoDataUrl() {
+        try {
+          const r = await fetch("/assets/logo.png", { cache: "force-cache" });
+          if (!r.ok) return null;
+          const blob = await r.blob();
+          return await new Promise((resolve, reject) => {
+            const fr = new FileReader();
+            fr.onloadend = () => resolve(String(fr.result || ""));
+            fr.onerror = reject;
+            fr.readAsDataURL(blob);
+          });
+        } catch {
+          return null;
+        }
       }
 
       async function downloadReciboPdf({ receivable, vehicle, destinatarioNome, destinatarioDoc, valor }) {
@@ -6300,99 +6333,109 @@
         const jsPdfCtor = window.jspdf?.jsPDF;
         if (!jsPdfCtor) throw new Error("jsPDF indisponível");
         const doc = new jsPdfCtor({ unit: "pt", format: "a4" });
-        const marginX = 48;
+        const marginX = 56;
+        const marginBottom = 64;
         const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
         const contentW = pageW - marginX * 2;
-        let y = 44;
+        let y = 48;
 
         const s = state.settings || {};
-        const empresa = (s.nome_patio || "").trim() || "Razão social / Pátio";
+        const emitente = (s.recibo_emitente_nome || "").trim() || "______________________________________________";
         const cnpjRaw = (s.cnpj || "").trim();
-        const cnpjFmt = formatCnpjForDisplay(cnpjRaw) || cnpjRaw || "";
-        const enderecoTxt = (s.endereco || "").trim().replace(/\r\n/g, "\n");
-        const bancoTxt = (s.conta_bancaria || "").trim();
+        const cnpjFmt = formatCnpjForDisplay(cnpjRaw) || cnpjRaw || "______________________";
+        const nomePatio = (s.nome_patio || "AMPLIAUTO").trim();
+        const enderecoRodape = (s.endereco || "").trim().replace(/\r\n/g, "\n");
+        const telefoneRodape = (s.recibo_telefone || "").trim();
+        const pessoa = (destinatarioNome || "").trim() || "________________________";
+        const placa = vehicle?.placa || "—";
+        const marca = (vehicle?.marca || "").trim();
+        const modelo = (vehicle?.modelo || "").trim();
+        const veiculoDesc = [marca, modelo].filter(Boolean).join(" ").trim() || "—";
+        const dIni = receivable?.period_start ? formatDateBr(receivable.period_start) : "-";
+        const dFim = receivable?.period_end ? formatDateBr(receivable.period_end) : "-";
+        const valorTxt = formatCurrency(valor);
 
-        const drawTimbrado = () => {
-          doc.setDrawColor(52, 58, 70);
-          doc.setLineWidth(0.85);
-          doc.line(marginX, y, marginX + contentW, y);
-          y += 14;
+        const logoData = await loadReciboLogoDataUrl();
+        if (logoData) {
+          try {
+            const props = doc.getImageProperties(logoData);
+            const maxW = 200;
+            const maxH = 56;
+            let imgW = maxW;
+            let imgH = (props.height * imgW) / props.width;
+            if (imgH > maxH) {
+              imgH = maxH;
+              imgW = (props.width * imgH) / props.height;
+            }
+            const xLogo = (pageW - imgW) / 2;
+            doc.addImage(logoData, "PNG", xLogo, y, imgW, imgH);
+            y += imgH + 28;
+          } catch {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(20);
+            doc.setTextColor(17, 24, 39);
+            doc.text(nomePatio.toUpperCase(), pageW / 2, y + 14, { align: "center" });
+            y += 40;
+          }
+        } else {
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(14);
-          doc.setTextColor(28, 32, 40);
-          doc.text(empresa, marginX, y);
-          y += 22;
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(10);
-          doc.setTextColor(45, 52, 64);
-          if (cnpjFmt) {
-            doc.text(`CNPJ: ${cnpjFmt}`, marginX, y);
-            y += 15;
-          }
-          if (enderecoTxt) {
-            const addrLines = doc.splitTextToSize(enderecoTxt, contentW);
-            doc.text(addrLines, marginX, y);
-            y += addrLines.length * 13 + 4;
-          }
-          if (bancoTxt) {
-            doc.setFontSize(9);
-            doc.setTextColor(71, 85, 105);
-            const bankLines = doc.splitTextToSize(bancoTxt, contentW);
-            doc.text(bankLines, marginX, y);
-            y += bankLines.length * 12 + 6;
-            doc.setFontSize(10);
-            doc.setTextColor(45, 52, 64);
-          }
-          doc.setDrawColor(52, 58, 70);
-          doc.setLineWidth(0.5);
-          doc.line(marginX, y, marginX + contentW, y);
-          y += 22;
-        };
+          doc.setFontSize(20);
+          doc.setTextColor(17, 24, 39);
+          doc.text(nomePatio.toUpperCase(), pageW / 2, y + 14, { align: "center" });
+          y += 40;
+        }
 
-        drawTimbrado();
+        doc.setDrawColor(55, 65, 80);
+        doc.setLineWidth(0.6);
+        doc.line(marginX, y, marginX + contentW, y);
+        y += 22;
 
-        const addLine = (label, value = "") => {
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(11);
-          doc.setTextColor(28, 32, 40);
-          doc.text(label, marginX, y);
-          y += 16;
-          doc.setFont("helvetica", "normal");
-          doc.setTextColor(45, 52, 64);
-          const lines = doc.splitTextToSize(value || "-", contentW);
-          doc.text(lines, marginX, y);
-          y += lines.length * 14 + 8;
-        };
+        const corpo =
+          `Eu, ${emitente}, inscrito no CNPJ ${cnpjFmt}, recebi a quantia de ${valorTxt} do Sr(a). ${pessoa}, referente às estadias do veículo ${veiculoDesc}, placa ${placa}, em pátio particular ${nomePatio}, de ${dIni} a ${dFim}. Pelo presente dou plena e total quitação referente ao pagamento das estadias referidas acima.` +
+          (destinatarioDoc ? ` Documento do Sr(a).: ${String(destinatarioDoc).trim()}.` : "");
 
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(15);
+        doc.setFont("times", "normal");
+        doc.setFontSize(12);
         doc.setTextColor(17, 24, 39);
-        doc.text("RECIBO DE RECEBIMENTO", marginX, y);
-        y += 26;
-        doc.setFontSize(10.5);
+        const corpoLines = doc.splitTextToSize(corpo, contentW);
+        const lh = 15.2;
+        doc.text(corpoLines, marginX, y, { lineHeightFactor: lh / 12, maxWidth: contentW });
+        y += corpoLines.length * lh + 36;
 
-        const placa = vehicle?.placa || "-";
-        const veiculo = [vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ") || "-";
-        addLine("Data", formatDateTime(new Date().toISOString()));
-        addLine("Nome do direcionado", destinatarioNome);
-        addLine("CPF/CNPJ do direcionado", destinatarioDoc);
-        addLine("Responsável financeiro", receivable?.responsavel_pagamento || "-");
-        addLine("Veículo", `${placa} • ${veiculo}`);
-        addLine(
-          "Período de cobrança",
-          `${receivable?.period_start ? formatDateTime(receivable.period_start) : "-"} até ${
-            receivable?.period_end ? formatDateTime(receivable.period_end) : "-"
-          }`
-        );
-        addLine("Valor recebido", formatCurrency(valor));
-
-        y += 10;
-        doc.setFont("helvetica", "normal");
+        doc.setFont("times", "italic");
         doc.setFontSize(10);
-        doc.setTextColor(45, 52, 64);
-        doc.text("Declaro que recebi o valor acima referente à guarda/pátio do veículo descrito.", marginX, y);
-        y += 42;
-        doc.text("Assinatura: __________________________________________", marginX, y);
+        doc.setTextColor(71, 85, 105);
+        const localData = `Local e data: _______________________, ${formatDateBr(new Date().toISOString())}.`;
+        doc.text(localData, marginX, y);
+        y += 28;
+
+        doc.setFont("times", "normal");
+        doc.setFontSize(11);
+        doc.setTextColor(17, 24, 39);
+        doc.text("__________________________________________________________", marginX, y);
+        y += 18;
+        doc.setFontSize(10);
+        doc.text("Assinatura do emitente", marginX, y);
+        y += 40;
+
+        const footerY = pageH - marginBottom;
+        doc.setDrawColor(100, 116, 139);
+        doc.setLineWidth(0.45);
+        doc.line(marginX, footerY - 8, marginX + contentW, footerY - 8);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9.5);
+        doc.setTextColor(71, 85, 105);
+        let fy = footerY;
+        if (enderecoRodape) {
+          const endLines = doc.splitTextToSize(enderecoRodape, contentW);
+          doc.text(endLines, marginX, fy);
+          fy += endLines.length * 12 + 4;
+        }
+        if (telefoneRodape) {
+          doc.text(`Contato: ${telefoneRodape}`, marginX, fy);
+        }
 
         const safePlate = (placa || "veiculo").replace(/[^a-z0-9_-]+/gi, "_");
         doc.save(`recibo_recebimento_${safePlate}.pdf`);
@@ -8859,11 +8902,15 @@
 
       saveSettings.addEventListener("click", async () => {
         const enderecoVal = settingsEndereco ? settingsEndereco.value.trim() : "";
+        const emitenteVal = settingsReciboEmitente ? settingsReciboEmitente.value.trim() : "";
+        const telefoneVal = settingsReciboTelefone ? settingsReciboTelefone.value.trim() : "";
         const payload = {
           user_id: effectiveUserId(),
           cnpj: settingsCnpj.value.trim(),
           nome_patio: settingsName.value.trim(),
           endereco: enderecoVal,
+          recibo_emitente_nome: emitenteVal,
+          recibo_telefone: telefoneVal,
           conta_bancaria: settingsBank.value.trim(),
           texto_cobranca: settingsCharge.value.trim(),
           texto_nota_fiscal: settingsInvoice.value.trim(),
@@ -8872,8 +8919,8 @@
           ? supabase.from("settings").update(payload).eq("id", state.settings.id)
           : supabase.from("settings").insert(payload);
         let { error } = await settingsOp;
-        if (error && /endereco|column/i.test(error.message || "")) {
-          const { endereco: _e, ...rest } = payload;
+        if (error && /endereco|recibo_emitente|recibo_telefone|column/i.test(error.message || "")) {
+          const { endereco: _e, recibo_emitente_nome: _r, recibo_telefone: _t, ...rest } = payload;
           const fallbackOp = state.settings?.id
             ? supabase.from("settings").update(rest).eq("id", state.settings.id)
             : supabase.from("settings").insert(rest);
@@ -8881,7 +8928,7 @@
           error = retry.error;
           if (!error) {
             alert(
-              "Configurações salvas (sem gravar endereço). Execute no Supabase o script supabase/settings_endereco.sql para criar a coluna «endereco» e voltar a guardar o endereço."
+              "Configurações salvas (sem gravar endereço / emitente / telefone do recibo). Execute no Supabase o script supabase/settings_endereco.sql e volte a guardar."
             );
             loadSettings();
             return;
