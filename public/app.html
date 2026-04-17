@@ -537,11 +537,11 @@
       .dashboard-finance-card--caixa .dashboard-finance-card__go {
         color: #99f6e4;
       }
-      .dashboard-finance-card--diarias-hoje {
+      .dashboard-finance-card--diarias-patio {
         border-color: rgba(96, 165, 250, 0.45);
         background: linear-gradient(145deg, rgba(30, 58, 138, 0.32), rgba(15, 19, 26, 0.62));
       }
-      .dashboard-finance-card--diarias-hoje .dashboard-finance-card__go {
+      .dashboard-finance-card--diarias-patio .dashboard-finance-card__go {
         color: #bfdbfe;
       }
       [data-theme="light"] .dashboard-finance-card {
@@ -557,7 +557,7 @@
       [data-theme="light"] .dashboard-finance-card--caixa {
         background: linear-gradient(145deg, rgba(204, 251, 241, 0.8), rgba(255, 255, 255, 0.94));
       }
-      [data-theme="light"] .dashboard-finance-card--diarias-hoje {
+      [data-theme="light"] .dashboard-finance-card--diarias-patio {
         background: linear-gradient(145deg, rgba(219, 234, 254, 0.88), rgba(255, 255, 255, 0.94));
       }
       .patio-module-ribbon-right {
@@ -2533,13 +2533,13 @@
                 <span class="dashboard-finance-card__go">Abrir financeiro →</span>
               </div>
               <div
-                class="dashboard-finance-card dashboard-finance-card--diarias-hoje dashboard-card-static"
+                class="dashboard-finance-card dashboard-finance-card--diarias-patio dashboard-card-static"
                 aria-live="polite"
               >
-                <span class="dashboard-finance-card__title">Diárias geradas hoje</span>
-                <div class="dashboard-finance-card__value" id="dashboardDiariasHojeValue">R$ 0,00</div>
-                <span class="dashboard-finance-card__meta" id="dashboardDiariasHojeMeta">0 ciclos criados hoje</span>
-                <span class="dashboard-finance-card__go" style="opacity: 0.72; font-weight: 600">Soma ao criar o registo (hora local)</span>
+                <span class="dashboard-finance-card__title">Diárias no pátio (agora)</span>
+                <div class="dashboard-finance-card__value" id="dashboardDiariasPatioValue">R$ 0,00</div>
+                <span class="dashboard-finance-card__meta" id="dashboardDiariasPatioMeta">0 veículos VNP</span>
+                <span class="dashboard-finance-card__go" style="opacity: 0.72; font-weight: 600">Dias corridos × diária, até este instante (igual à ficha)</span>
               </div>
             </div>
             <div class="card clickable dashboard-stat-card dashboard-stat--vnp" id="cardVeiculosLink">
@@ -6887,20 +6887,15 @@
         if (dashPagMeta) dashPagMeta.textContent = `${openPagar.length} em aberto`;
         if (dashCxValue) dashCxValue.textContent = formatCurrency(caixaAtual);
         if (dashCxMeta) dashCxMeta.textContent = `Movimentações: ${(state.cash || []).length}`;
-        const diariasHojeRows = (state.receivables || []).filter((r) => {
-          const cat = String(r.receivable_category || "GUARDA_PATIO")
-            .trim()
-            .toUpperCase();
-          if (cat !== "GUARDA_PATIO") return false;
-          return toLocalYmd(r.created_at) === todayYmd;
-        });
-        const diariasHojeTotal = diariasHojeRows.reduce((s, r) => s + Number(r.valor || 0), 0);
-        const elDiariasVal = document.getElementById("dashboardDiariasHojeValue");
-        const elDiariasMeta = document.getElementById("dashboardDiariasHojeMeta");
-        if (elDiariasVal) elDiariasVal.textContent = formatCurrency(diariasHojeTotal);
+        const patioDiariaList = [...noPatio, ...vls];
+        const diariasPatioTotal = patioDiariaList.reduce((s, v) => s + calcTotal(v), 0);
+        const comDiariaDefinida = patioDiariaList.filter((v) => v.data_entrada && Number(v.valor_diaria) > 0).length;
+        const elDiariasVal = document.getElementById("dashboardDiariasPatioValue");
+        const elDiariasMeta = document.getElementById("dashboardDiariasPatioMeta");
+        if (elDiariasVal) elDiariasVal.textContent = formatCurrency(diariasPatioTotal);
         if (elDiariasMeta) {
-          const n = diariasHojeRows.length;
-          elDiariasMeta.textContent = `${n} ciclo${n === 1 ? "" : "s"} de diária criado${n === 1 ? "" : "s"} hoje`;
+          const n = noPatio.length + vls.length;
+          elDiariasMeta.textContent = `${n} veículo${n === 1 ? "" : "s"} VNP · ${comDiariaDefinida} com diária definida`;
         }
         const removidosCount = (state.vehicles || []).filter((v) => v.status === "REMOVIDO").length;
         const nfsePendCount = (state.vehicles || []).filter((v) => v.nfse_status === "PENDENTE").length;
