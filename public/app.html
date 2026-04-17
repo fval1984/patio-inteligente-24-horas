@@ -2719,7 +2719,7 @@
             <button type="button" class="secondary" id="listaFiltersClear">Limpar filtros</button>
             <button type="button" id="listaFiltersApply">Atualizar lista</button>
             <button type="button" class="secondary" id="listaFiltersPrint">Imprimir / PDF</button>
-            <button type="button" class="secondary" id="listaFiltersDownloadImage">Baixar imagem (PNG)</button>
+            <button type="button" class="secondary" id="listaFiltersDownloadPdf">Baixar PDF (A4)</button>
           </div>
           <div class="subnav" id="listaSubnav" style="margin-bottom: 12px; flex-wrap: wrap">
             <button type="button" data-lista-subview="vnp">VNP</button>
@@ -3837,7 +3837,7 @@
         }
       }
 
-      /** html2canvas só quando precisa (ficha PNG / lista PNG) — uma única carga partilhada */
+      /** html2canvas só quando precisa (ficha PNG / lista PDF) — uma única carga partilhada */
       let html2canvasLoadPromise = null;
       function loadHtml2Canvas() {
         if (window.html2canvas) return Promise.resolve(window.html2canvas);
@@ -4925,7 +4925,7 @@
         });
       }
 
-      /** Para PNG: html2canvas só «via» a zona visível de .table-wrap com max-height — expande e devolve restore. */
+      /** Para captura (PDF lista / etc.): html2canvas só «via» a zona visível de .table-wrap com max-height — expande e devolve restore. */
       function expandListaCaptureScrollContainersForExport(root) {
         const restoreFns = [];
         root.querySelectorAll(".table-wrap").forEach((el) => {
@@ -4957,7 +4957,7 @@
         return () => restoreFns.forEach((fn) => fn());
       }
 
-      async function downloadListaCaptureAsPng() {
+      async function downloadListaCaptureAsPdf() {
         const root = document.getElementById("listaCaptureRoot");
         if (!root) {
           alert("Área da lista não encontrada.");
@@ -4965,13 +4965,16 @@
         }
         readListaFiltersFromDom();
         renderListaPanel();
-        const btn = document.getElementById("listaFiltersDownloadImage");
+        const btn = document.getElementById("listaFiltersDownloadPdf");
         const prev = btn?.textContent;
         if (btn) {
           btn.disabled = true;
-          btn.textContent = "A gerar imagem…";
+          btn.textContent = "A gerar PDF…";
         }
         try {
+          await loadJsPdf();
+          const jsPdfCtor = window.jspdf?.jsPDF;
+          if (!jsPdfCtor) throw new Error("jsPDF indisponível");
           const html2canvas = await loadHtml2Canvas();
           const releaseExpand = expandListaCaptureScrollContainersForExport(root);
           await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -5001,35 +5004,35 @@
           } finally {
             releaseExpand();
           }
+          const imgData = canvas.toDataURL("image/jpeg", 0.92);
+          const doc = new jsPdfCtor({ unit: "pt", format: "a4", orientation: "portrait" });
+          const pageW = doc.internal.pageSize.getWidth();
+          const pageH = doc.internal.pageSize.getHeight();
+          const margin = 36;
+          const innerW = pageW - margin * 2;
+          const innerH = pageH - margin * 2;
+          const imgW = innerW;
+          const imgH = (canvas.height * imgW) / canvas.width;
+          let hLeft = imgH;
+          let yPos = margin;
+          doc.addImage(imgData, "JPEG", margin, yPos, imgW, imgH);
+          hLeft -= innerH;
+          while (hLeft > 0) {
+            yPos = margin - (imgH - hLeft);
+            doc.addPage();
+            doc.addImage(imgData, "JPEG", margin, yPos, imgW, imgH);
+            hLeft -= innerH;
+          }
           const safeSub = String(currentListaView || "lista").replace(/[^\w-]+/g, "_");
           const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-          await new Promise((resolve) => {
-            canvas.toBlob(
-              (blob) => {
-                if (!blob) {
-                  alert("Não foi possível gerar o ficheiro.");
-                  resolve();
-                  return;
-                }
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `lista-${safeSub}-${stamp}.png`;
-                a.click();
-                URL.revokeObjectURL(url);
-                resolve();
-              },
-              "image/png",
-              0.95
-            );
-          });
+          doc.save(`lista-${safeSub}-${stamp}.pdf`);
         } catch (e) {
           console.error(e);
-          alert("Não foi possível gerar a imagem. Verifique a ligação à Internet ou tente noutro navegador.");
+          alert("Não foi possível gerar o PDF. Verifique a ligação à Internet ou tente noutro navegador.");
         } finally {
           if (btn) {
             btn.disabled = false;
-            btn.textContent = prev || "Baixar imagem (PNG)";
+            btn.textContent = prev || "Baixar PDF (A4)";
           }
         }
       }
@@ -9319,8 +9322,8 @@
       document.getElementById("listaFiltersPrint")?.addEventListener("click", () => {
         runListaPrintDocument();
       });
-      document.getElementById("listaFiltersDownloadImage")?.addEventListener("click", () => {
-        void downloadListaCaptureAsPng();
+      document.getElementById("listaFiltersDownloadPdf")?.addEventListener("click", () => {
+        void downloadListaCaptureAsPdf();
       });
       document.getElementById("listaFiltersClear")?.addEventListener("click", () => {
         listaFilterLocatorId = "";
