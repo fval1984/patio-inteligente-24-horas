@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<!-- amplipatio-static build=f4e48a9 lista-totais-deploy -->
+<!-- amplipatio-static build=login-js-fix html2canvas-dedup -->
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
-    <meta name="amplipatio-build" content="f4e48a9" />
+    <meta name="amplipatio-build" content="login-js-fix" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta
       name="viewport"
@@ -3726,17 +3726,21 @@
         }
       }
 
-      /** html2canvas só quando o usuário baixa a ficha — acelera abertura no celular */
+      /** html2canvas só quando precisa (ficha PNG / lista PNG) — uma única carga partilhada */
       let html2canvasLoadPromise = null;
       function loadHtml2Canvas() {
-        if (window.html2canvas) return Promise.resolve();
+        if (window.html2canvas) return Promise.resolve(window.html2canvas);
         if (html2canvasLoadPromise) return html2canvasLoadPromise;
         html2canvasLoadPromise = new Promise(function (resolve, reject) {
           var s = document.createElement("script");
           s.async = true;
           s.src = "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js";
           s.onload = function () {
-            resolve();
+            if (window.html2canvas) resolve(window.html2canvas);
+            else {
+              html2canvasLoadPromise = null;
+              reject(new Error("html2canvas"));
+            }
           };
           s.onerror = function () {
             html2canvasLoadPromise = null;
@@ -4768,24 +4772,6 @@
         }
       }
 
-      let html2canvasLoadPromise = null;
-      function ensureHtml2Canvas() {
-        if (window.html2canvas) return Promise.resolve(window.html2canvas);
-        if (html2canvasLoadPromise) return html2canvasLoadPromise;
-        html2canvasLoadPromise = new Promise((resolve, reject) => {
-          const s = document.createElement("script");
-          s.src = "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js";
-          s.async = true;
-          s.onload = () => {
-            if (window.html2canvas) resolve(window.html2canvas);
-            else reject(new Error("html2canvas não disponível"));
-          };
-          s.onerror = () => reject(new Error("Falha ao carregar html2canvas"));
-          document.head.appendChild(s);
-        });
-        return html2canvasLoadPromise;
-      }
-
       async function downloadListaCaptureAsPng() {
         const root = document.getElementById("listaCaptureRoot");
         if (!root) {
@@ -4801,7 +4787,7 @@
           btn.textContent = "A gerar imagem…";
         }
         try {
-          const html2canvas = await ensureHtml2Canvas();
+          const html2canvas = await loadHtml2Canvas();
           const canvas = await html2canvas(root, {
             backgroundColor: "#ffffff",
             scale: Math.min(2, (window.devicePixelRatio || 1) * 1.5),
@@ -8802,15 +8788,16 @@
       printFicha.addEventListener("click", () => window.print());
       downloadFicha.addEventListener("click", async () => {
         if (!fichaCapture) return;
+        let h2c;
         try {
-          await loadHtml2Canvas();
+          h2c = await loadHtml2Canvas();
         } catch (e) {
           alert("Não foi possível carregar a ferramenta de imagem. Verifique a internet.");
           return;
         }
-        if (!window.html2canvas) return;
+        if (!h2c) return;
         try {
-          const canvas = await window.html2canvas(fichaCapture, { backgroundColor: "#ffffff", scale: 2 });
+          const canvas = await h2c(fichaCapture, { backgroundColor: "#ffffff", scale: 2 });
           const link = document.createElement("a");
           link.href = canvas.toDataURL("image/png");
           link.download = "ficha-veiculo.png";
