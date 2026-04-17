@@ -4175,6 +4175,15 @@
         });
       }
 
+      function sortVehiclesByRegistroDesc(list) {
+        return [...list].sort((a, b) => {
+          const ta = new Date(a.data_entrada || a.created_at || 0).getTime();
+          const tb = new Date(b.data_entrada || b.created_at || 0).getTime();
+          if (tb !== ta) return tb - ta;
+          return String(b.id || "").localeCompare(String(a.id || ""), "pt-BR");
+        });
+      }
+
       function patioPrintVehicleLine(v) {
         const vehicleLine = [v.marca, v.modelo].filter(Boolean).join(" ").trim() || "-";
         const placa = v.placa || "-";
@@ -6276,7 +6285,7 @@
           }
         }
 
-        const vnpUnified = [...sortVehiclesByPlaca(vlsForTable), ...sortVehiclesByPlaca(byStatus.NO_PATIO)];
+        const vnpUnified = sortVehiclesByRegistroDesc([...vlsForTable, ...byStatus.NO_PATIO]);
         const patioCardTitle1 = document.getElementById("patioCardTitle1");
         const patioCardTitle2 = document.getElementById("patioCardTitle2");
         const patioCardTitle3 = document.getElementById("patioCardTitle3");
