@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<!-- amplipatio-static build=lista-logo-toolbar -->
+<!-- amplipatio-static build=lista-png-full-height -->
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
-    <meta name="amplipatio-build" content="lista-logo-toolbar" />
+    <meta name="amplipatio-build" content="lista-png-full-height" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta
       name="viewport"
@@ -4914,6 +4914,49 @@
         }
       }
 
+      function listaCaptureOnCloneExpandTables(inner) {
+        if (!inner) return;
+        inner.style.overflow = "visible";
+        inner.querySelectorAll(".table-wrap").forEach((el) => {
+          el.style.setProperty("max-height", "none", "important");
+          el.style.setProperty("overflow", "visible", "important");
+          el.style.setProperty("overflow-x", "visible", "important");
+          el.style.setProperty("overflow-y", "visible", "important");
+        });
+      }
+
+      /** Para PNG: html2canvas só «via» a zona visível de .table-wrap com max-height — expande e devolve restore. */
+      function expandListaCaptureScrollContainersForExport(root) {
+        const restoreFns = [];
+        root.querySelectorAll(".table-wrap").forEach((el) => {
+          const mh = el.style.maxHeight;
+          const ov = el.style.overflow;
+          const ovx = el.style.overflowX;
+          const ovy = el.style.overflowY;
+          el.style.setProperty("max-height", "none", "important");
+          el.style.setProperty("overflow", "visible", "important");
+          el.style.setProperty("overflow-x", "visible", "important");
+          el.style.setProperty("overflow-y", "visible", "important");
+          restoreFns.push(() => {
+            el.style.removeProperty("max-height");
+            el.style.removeProperty("overflow");
+            el.style.removeProperty("overflow-x");
+            el.style.removeProperty("overflow-y");
+            if (mh) el.style.maxHeight = mh;
+            if (ov) el.style.overflow = ov;
+            if (ovx) el.style.overflowX = ovx;
+            if (ovy) el.style.overflowY = ovy;
+          });
+        });
+        const ro = root.style.overflow;
+        root.style.setProperty("overflow", "visible", "important");
+        restoreFns.push(() => {
+          root.style.removeProperty("overflow");
+          if (ro) root.style.overflow = ro;
+        });
+        return () => restoreFns.forEach((fn) => fn());
+      }
+
       async function downloadListaCaptureAsPng() {
         const root = document.getElementById("listaCaptureRoot");
         if (!root) {
@@ -4930,12 +4973,34 @@
         }
         try {
           const html2canvas = await loadHtml2Canvas();
-          const canvas = await html2canvas(root, {
-            backgroundColor: "#ffffff",
-            scale: Math.min(2, (window.devicePixelRatio || 1) * 1.5),
-            useCORS: true,
-            logging: false,
-          });
+          const releaseExpand = expandListaCaptureScrollContainersForExport(root);
+          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          const w = Math.max(1, Math.ceil(root.scrollWidth));
+          const h = Math.max(1, Math.ceil(root.scrollHeight));
+          let scale = Math.min(2, (window.devicePixelRatio || 1) * 1.5);
+          const maxSide = 16384;
+          const cap = maxSide / Math.max(w, h, 1);
+          if (scale > cap) scale = Math.max(0.55, cap);
+          let canvas;
+          try {
+            canvas = await html2canvas(root, {
+              backgroundColor: "#ffffff",
+              scale,
+              useCORS: true,
+              logging: false,
+              width: w,
+              height: h,
+              windowWidth: w,
+              windowHeight: h,
+              scrollX: 0,
+              scrollY: 0,
+              onclone(clonedDoc) {
+                listaCaptureOnCloneExpandTables(clonedDoc.getElementById("listaCaptureRoot"));
+              },
+            });
+          } finally {
+            releaseExpand();
+          }
           const safeSub = String(currentListaView || "lista").replace(/[^\w-]+/g, "_");
           const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
           await new Promise((resolve) => {
