@@ -2388,7 +2388,7 @@
                   <button type="button" data-header-partner-sub="localizadores">Localizador</button>
                   <button type="button" data-header-partner-sub="assessorias">Assessoria</button>
                   <button type="button" data-header-partner-sub="instituicoes_financeiras">Instituição Financeira</button>
-                  <button type="button" data-header-partner-sub="remocoes">Remoção</button>
+                  <button type="button" data-header-partner-sub="remocoes">Serviço de remoção</button>
                 </div>
               </details>
 
@@ -2955,7 +2955,7 @@
             <button data-subview="localizadores">Localizador</button>
             <button data-subview="assessorias">Assessoria</button>
             <button data-subview="instituicoes_financeiras">Instituição Financeira</button>
-            <button data-subview="remocoes">Remoção</button>
+            <button data-subview="remocoes">Serviço de remoção</button>
           </div>
           <div class="grid" style="margin-bottom: 18px;">
             <div class="card">
@@ -7405,7 +7405,7 @@
         }
         if (view === "assessorias") openPartnerForm.textContent = "Nova assessoria";
         else if (view === "instituicoes_financeiras") openPartnerForm.textContent = "Nova instituição financeira";
-        else if (view === "remocoes") openPartnerForm.textContent = "Nova remoção";
+        else if (view === "remocoes") openPartnerForm.textContent = "Novo serviço de remoção";
         else openPartnerForm.textContent = "Novo localizador";
         syncPartnerFormForCurrentView();
       }
@@ -7417,7 +7417,7 @@
           else if (currentPartnerView === "assessorias") partnerNameLabel.textContent = "Nome da assessoria";
           else if (currentPartnerView === "instituicoes_financeiras")
             partnerNameLabel.textContent = "Nome da instituição financeira";
-          else if (currentPartnerView === "remocoes") partnerNameLabel.textContent = "Nome da remoção";
+          else if (currentPartnerView === "remocoes") partnerNameLabel.textContent = "Nome do serviço de remoção";
           else partnerNameLabel.textContent = "Nome";
         }
         if (partnerDocLabel) partnerDocLabel.textContent = "CNPJ";
@@ -8067,7 +8067,7 @@
         }
 
         if (!remocoes.length) {
-          setEmptyRow(tableRemocoes, "Nenhuma remoção cadastrada.", 5);
+          setEmptyRow(tableRemocoes, "Nenhum serviço de remoção cadastrado.", 5);
         } else {
           tableRemocoes.innerHTML = remocoes
             .map((p) => {
@@ -8155,7 +8155,7 @@
         openPartnerSubview(targetSubview);
         if (isAssessoria) partnerModalTitle.textContent = "Nova assessoria";
         else if (normalizedTarget === "INSTITUICAO_FINANCEIRA") partnerModalTitle.textContent = "Nova instituição financeira";
-        else if (normalizedTarget === "REMOCAO") partnerModalTitle.textContent = "Nova remoção";
+        else if (normalizedTarget === "REMOCAO") partnerModalTitle.textContent = "Novo serviço de remoção";
         else partnerModalTitle.textContent = "Novo localizador";
         syncPartnerFormForCurrentView();
         partnerForm.reset();
@@ -9172,7 +9172,7 @@
         if (currentPartnerView === "assessorias") partnerModalTitle.textContent = "Nova assessoria";
         else if (currentPartnerView === "instituicoes_financeiras")
           partnerModalTitle.textContent = "Nova instituição financeira";
-        else if (currentPartnerView === "remocoes") partnerModalTitle.textContent = "Nova remoção";
+        else if (currentPartnerView === "remocoes") partnerModalTitle.textContent = "Novo serviço de remoção";
         else partnerModalTitle.textContent = "Novo localizador";
         syncPartnerFormForCurrentView();
         partnerForm.reset();
@@ -11895,12 +11895,15 @@
             return;
           }
 
-          const podeRecalc = !!(vehicle && vehicle.valor_diaria);
+          const podeRecalc = !!(vehicle && Number(vehicle.valor_diaria) > 0);
           let numValor;
-          if (podeRecalc && confirm("Recalcular o valor com base nas datas acima e na diária do veículo?")) {
+          if (podeRecalc) {
             numValor = calcPeriodTotal(vehicle, period_start, period_end);
           } else {
-            const valorStr = prompt("Valor (R$):", String(receivable.valor ?? ""));
+            const valorStr = prompt(
+              "Valor (R$) — não foi possível recalcular automaticamente (veículo sem diária ou sem ligação). Indique manualmente:",
+              String(receivable.valor ?? "")
+            );
             if (valorStr === null) return;
             numValor = Number(String(valorStr).trim().replace(",", "."));
             if (!Number.isFinite(numValor) || numValor < 0) {
