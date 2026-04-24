@@ -199,7 +199,7 @@
       .finance-module-ribbon {
         display: flex;
         align-items: flex-start;
-        justify-content: space-between;
+        justify-content: flex-end;
         gap: 16px;
         flex-wrap: wrap;
         padding-bottom: 18px;
@@ -795,25 +795,48 @@
         color: #0f766e;
         border-top-color: rgba(15, 118, 110, 0.2);
       }
-      .patio-module-main-col,
       .finance-module-main-col {
         min-width: 0;
       }
+      #viewPatio .patio-nav-inline {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-top: 14px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+      }
+      #viewPatio .patio-nav-inline button {
+        width: auto;
+        flex: 0 1 auto;
+        white-space: nowrap;
+      }
+      #viewPatio .patio-toolbar {
+        align-items: flex-start;
+      }
+      #viewPatio .patio-toolbar .patio-toolbar-text {
+        flex: 1;
+        min-width: 0;
+      }
+      [data-theme="light"] #viewPatio .patio-nav-inline button.secondary,
+      #viewPatio .patio-nav-inline button.secondary {
+        border-radius: 10px;
+      }
       @media (min-width: 960px) {
-        body.app-module-patio .patio-module-body,
         body.app-module-finance .finance-module-body {
           display: grid;
           grid-template-columns: minmax(216px, 268px) minmax(0, 1fr);
           gap: 0 18px;
           align-items: start;
         }
-        body.app-module-patio .patio-side-rail,
         body.app-module-finance .finance-side-rail {
           position: sticky;
           top: 10px;
           align-self: start;
         }
-        body.app-module-patio .patio-side-rail .patio-side-menu,
         body.app-module-finance .finance-side-rail .finance-side-menu {
           position: relative !important;
           transform: none !important;
@@ -831,15 +854,12 @@
           border: 1px solid rgba(148, 163, 184, 0.22);
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
-        body.app-module-patio .patio-side-menu.open,
         body.app-module-finance .finance-side-menu.open {
           transform: none !important;
         }
-        body.app-module-patio #viewPatio:not(.patio-flyout-open) #patioMenuToggle,
         body.app-module-finance #viewFinanceiro:not(.finance-flyout-open) #financeMenuToggle {
           display: none !important;
         }
-        body.app-module-patio #viewPatio.patio-flyout-open .patio-side-rail,
         body.app-module-finance #viewFinanceiro.finance-flyout-open .finance-side-rail {
           pointer-events: none;
           opacity: 0.4;
@@ -3122,9 +3142,6 @@
 
         <div id="viewPatio" class="panel hidden patio-module-shell">
           <div class="patio-module-ribbon">
-            <div class="patio-module-ribbon-left">
-              <button type="button" class="secondary" id="exitPatioModule">← Painel principal</button>
-            </div>
             <div class="patio-module-ribbon-right">
               <div class="patio-module-tools">
                 <button type="button" class="secondary" id="openParceirosFromPatio">Rede de parceiros</button>
@@ -3135,35 +3152,29 @@
               </div>
             </div>
           </div>
-          <div class="toolbar">
-            <div>
+          <div class="toolbar patio-toolbar">
+            <div class="patio-toolbar-text">
               <p class="module-kicker module-kicker--patio">Operação</p>
               <h2>Gestão de Pátio</h2>
+              <nav id="patioSubnav" class="subnav patio-nav-inline" aria-label="Secções do pátio">
+                <button type="button" class="secondary" data-subview="inicio">Visão geral</button>
+                <button type="button" class="secondary" id="patioMenuNewVehicle">Registrar veículo</button>
+                <button type="button" class="secondary" id="patioMenuPrintList">Imprimir</button>
+                <button type="button" class="secondary" data-subview="no_patio">VNP</button>
+                <button type="button" class="secondary" data-subview="removidos">VRP</button>
+                <button type="button" class="secondary" data-subview="nfse_pendente">NFSe pendente</button>
+              </nav>
             </div>
             <div class="actions">
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
-              <button class="secondary patio-menu-toggle" type="button" id="patioMenuToggle">Menu</button>
             </div>
           </div>
-          <div id="patioMenuBackdrop" class="patio-menu-backdrop hidden"></div>
           <div id="patioFlyoutBackdrop" class="patio-flyout-backdrop hidden"></div>
-          <div class="patio-module-body">
-            <aside class="patio-side-rail" aria-label="Navegação do pátio">
-              <div class="subnav patio-side-menu" id="patioSubnav">
-                <button type="button" data-subview="inicio">Visão geral</button>
-                <button type="button" id="patioMenuNewVehicle">Registrar veículo</button>
-                <button type="button" id="patioMenuPrintList">Imprimir</button>
-                <button data-subview="no_patio">VNP</button>
-                <button data-subview="removidos">VRP</button>
-                <button data-subview="nfse_pendente">NFSe pendente</button>
-              </div>
-            </aside>
-            <div class="patio-module-main-col">
           <div id="patioInicioPanel" class="patio-inicio-panel hidden">
             <div class="patio-inicio-head">
               <h3>Visão geral · Gestão de pátio</h3>
               <p class="patio-inicio-lede">
-                Resumo operacional só do pátio. Use os atalhos para abrir listas e fluxos; o <strong>Painel principal</strong> (canto superior ou botão abaixo) volta ao hub dos dois sistemas.
+                Resumo operacional só do pátio. Use os atalhos para abrir listas e fluxos. Para o hub dos dois sistemas, use <strong>Painel</strong> no menu (canto superior direito).
               </p>
             </div>
             <div class="patio-inicio-grid" aria-label="Indicadores do pátio">
@@ -3212,9 +3223,6 @@
                 <span class="dashboard-system-btn__go">Abrir lista →</span>
               </button>
             </div>
-            <p class="notice" style="margin: 14px 0 0; font-size: 13px">
-              <button type="button" class="secondary" id="patioInicioToPainel">Painel principal (hub)</button>
-            </p>
           </div>
           <p class="notice plate-search-hint hidden" style="margin: 6px 0 10px"></p>
           <form
@@ -3315,8 +3323,6 @@
                 <tbody id="tableNfsePendentes"></tbody>
                 </table>
               </div>
-            </div>
-          </div>
             </div>
           </div>
         </div>
@@ -3429,9 +3435,6 @@
 
         <div id="viewFinanceiro" class="panel hidden finance-module-shell">
           <div class="finance-module-ribbon">
-            <div class="finance-module-ribbon-left">
-              <button type="button" class="secondary" id="exitFinanceModule">← Painel principal</button>
-            </div>
             <div class="finance-module-meta">
               <span class="finance-module-name">Gestão financeira do pátio</span>
             </div>
@@ -4550,8 +4553,6 @@
       const printPatioVehicleListBtn = document.getElementById("printPatioVehicleList");
       const printPatioByPartnerBtn = document.getElementById("printPatioByPartner");
       const printPatioLiberadosBtn = document.getElementById("printPatioLiberados");
-      const patioMenuToggle = document.getElementById("patioMenuToggle");
-      const patioMenuBackdrop = document.getElementById("patioMenuBackdrop");
       const patioFlyoutBackdrop = document.getElementById("patioFlyoutBackdrop");
       const patioFlyoutClose = document.getElementById("patioFlyoutClose");
       const patioMenuNewVehicle = document.getElementById("patioMenuNewVehicle");
@@ -9603,19 +9604,9 @@
         renderFinance();
       }
 
-      const openPatioMenu = () => {
-        patioSubnav?.classList.add("open");
-        patioMenuBackdrop?.classList.remove("hidden");
-      };
       const closePatioMenu = () => {
         patioSubnav?.classList.remove("open");
-        patioMenuBackdrop?.classList.add("hidden");
       };
-      patioMenuToggle?.addEventListener("click", () => {
-        if (patioSubnav?.classList.contains("open")) closePatioMenu();
-        else openPatioMenu();
-      });
-      patioMenuBackdrop?.addEventListener("click", closePatioMenu);
       function returnToPainelFromPatioFlyout() {
         navStack.splice(0, navStack.length, "patio", "patio:inicio");
         showMainView("patio");
@@ -10253,7 +10244,6 @@
         }
         if (view !== "patio") {
           patioSubnav?.classList.remove("open");
-          patioMenuBackdrop?.classList.add("hidden");
           patioFlyoutBackdrop?.classList.add("hidden");
           document.getElementById("viewPatio")?.classList.remove("patio-flyout-open");
         }
@@ -10545,22 +10535,11 @@
         }
       }
 
-      const exitFinanceModuleBtn = document.getElementById("exitFinanceModule");
-      if (exitFinanceModuleBtn) {
-        exitFinanceModuleBtn.addEventListener("click", () => navigateMainViewFromNav("dashboard"));
-      }
-
-      const exitPatioModuleBtn = document.getElementById("exitPatioModule");
-      if (exitPatioModuleBtn) {
-        exitPatioModuleBtn.addEventListener("click", () => navigateMainViewFromNav("dashboard"));
-      }
-
       document.getElementById("patioInicioPanel")?.addEventListener("click", (event) => {
         const go = event.target.closest("[data-patio-inicio-go]");
         if (!go) return;
         openPatioSubview(go.getAttribute("data-patio-inicio-go"));
       });
-      document.getElementById("patioInicioToPainel")?.addEventListener("click", () => navigateMainViewFromNav("dashboard"));
 
       // Cards do painel: VNP e veículos em liberação abrem a lista unificada no pátio.
       cardVeiculosLink.addEventListener("click", () => openPatioSubview("no_patio"));
