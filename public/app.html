@@ -199,12 +199,24 @@
       .finance-module-ribbon {
         display: flex;
         align-items: flex-start;
-        justify-content: flex-end;
+        justify-content: space-between;
         gap: 16px;
         flex-wrap: wrap;
         padding-bottom: 18px;
         margin-bottom: 8px;
         border-bottom: 1px solid rgba(45, 212, 191, 0.32);
+      }
+      .finance-module-ribbon-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+      }
+      .finance-module-tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
       }
       .finance-module-ribbon-left {
         flex: 1;
@@ -818,6 +830,13 @@
         align-items: flex-start;
       }
       #viewPatio .patio-toolbar .patio-toolbar-text {
+        flex: 1;
+        min-width: 0;
+      }
+      #viewFinanceiro .finance-toolbar {
+        align-items: flex-start;
+      }
+      #viewFinanceiro .finance-toolbar .finance-toolbar-text {
         flex: 1;
         min-width: 0;
       }
@@ -3435,15 +3454,20 @@
 
         <div id="viewFinanceiro" class="panel hidden finance-module-shell">
           <div class="finance-module-ribbon">
-            <div class="finance-module-meta">
-              <span class="finance-module-name">Gestão financeira do pátio</span>
+            <div class="finance-module-ribbon-right">
+              <div class="finance-module-tools">
+                <button type="button" class="secondary" id="openParceirosFromFinanceiro">Rede de parceiros</button>
+                <button type="button" class="secondary" id="openConfigFromFinanceiro">Configurações</button>
+              </div>
+              <div class="finance-module-meta">
+                <span class="finance-module-name">Gestão financeira do pátio</span>
+              </div>
             </div>
           </div>
-          <div class="toolbar">
-            <div>
+          <div class="toolbar finance-toolbar">
+            <div class="finance-toolbar-text">
               <p class="module-kicker module-kicker--finance">Financeiro</p>
               <h2>Gestão financeira</h2>
-              <p class="module-lede">Visão de recebimentos, pagamentos, caixa, fechamentos e histórico em um fluxo único de operação.</p>
             </div>
             <div class="actions">
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
@@ -6919,6 +6943,9 @@
           btn.style.display = "";
         });
         document.getElementById("openParceirosFromPatio")?.classList.remove("hidden");
+        document.getElementById("openParceirosFromFinanceiro")?.classList.remove("hidden");
+        document.getElementById("openConfigFromPatio")?.classList.remove("hidden");
+        document.getElementById("openConfigFromFinanceiro")?.classList.remove("hidden");
         document.getElementById("printPatioVehicleList")?.classList.remove("hidden");
         document.getElementById("printPatioByPartner")?.classList.remove("hidden");
         document.getElementById("printPatioLiberados")?.classList.remove("hidden");
@@ -6966,11 +6993,13 @@
         document.getElementById("dashboardOpenFinance")?.classList.add("hidden");
         document.getElementById("dashboardSystemEntry")?.classList.add("dashboard-system-entry--single");
         document.getElementById("openConfigFromPatio")?.classList.add("hidden");
+        document.getElementById("openConfigFromFinanceiro")?.classList.add("hidden");
 
         showMainView("patio");
         setPatioView("inicio");
 
         document.getElementById("openParceirosFromPatio")?.classList.add("hidden");
+        document.getElementById("openParceirosFromFinanceiro")?.classList.add("hidden");
         document.getElementById("printPatioVehicleList")?.classList.add("hidden");
         document.getElementById("printPatioByPartner")?.classList.add("hidden");
         document.getElementById("printPatioLiberados")?.classList.add("hidden");
@@ -10210,6 +10239,8 @@
 
       document.getElementById("openParceirosFromPatio")?.addEventListener("click", () => openPartnerSubview("localizadores"));
       document.getElementById("openConfigFromPatio")?.addEventListener("click", () => openMainView("configuracoes"));
+      document.getElementById("openParceirosFromFinanceiro")?.addEventListener("click", () => openPartnerSubview("localizadores"));
+      document.getElementById("openConfigFromFinanceiro")?.addEventListener("click", () => openMainView("configuracoes"));
       document.getElementById("exitParceirosToPatio")?.addEventListener("click", () => closeStackTop());
       document.getElementById("exitConfigToPatio")?.addEventListener("click", () => closeStackTop());
 
