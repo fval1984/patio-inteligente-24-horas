@@ -206,6 +206,10 @@
         margin-bottom: 8px;
         border-bottom: 1px solid rgba(45, 212, 191, 0.32);
       }
+      .finance-module-ribbon-left {
+        flex: 1;
+        min-width: 0;
+      }
       .finance-module-meta {
         display: flex;
         flex-direction: column;
@@ -2421,6 +2425,75 @@
       [data-theme="light"] .dashboard-system-btn--finance .dashboard-system-btn__go {
         color: var(--primary-strong, #b91c1c);
       }
+      .patio-inicio-panel {
+        margin-bottom: 20px;
+        padding: 20px 22px 22px;
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: linear-gradient(160deg, rgba(24, 28, 36, 0.92), rgba(14, 17, 24, 0.96));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 10px 32px rgba(0, 0, 0, 0.2);
+      }
+      [data-theme="light"] .patio-inicio-panel {
+        background: linear-gradient(160deg, #ffffff, #f8fafc);
+        border-color: rgba(148, 163, 184, 0.28);
+        box-shadow: inset 0 1px 0 #fff, 0 10px 28px rgba(15, 23, 42, 0.05);
+      }
+      .patio-inicio-panel .patio-inicio-head {
+        margin-bottom: 16px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+      }
+      .patio-inicio-panel .patio-inicio-head h3 {
+        margin: 0 0 6px;
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .patio-inicio-panel .patio-inicio-lede {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--muted);
+        max-width: 40rem;
+      }
+      .patio-inicio-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .patio-inicio-stat {
+        border-radius: 14px;
+        padding: 14px 14px 12px;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        background: rgba(15, 19, 26, 0.55);
+      }
+      [data-theme="light"] .patio-inicio-stat {
+        background: rgba(248, 250, 252, 0.95);
+      }
+      .patio-inicio-stat .label {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .patio-inicio-stat .value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .patio-inicio-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+      .patio-inicio-panel .dashboard-system-entry {
+        grid-template-columns: repeat(auto-fit, minmax(172px, 1fr));
+      }
       #viewDashboard .dashboard-finance-card {
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.05),
@@ -2570,6 +2643,7 @@
               <details class="header-menu-details" id="headerDetailsPatio">
                 <summary>Gestão de pátio</summary>
                 <div class="header-menu-nested">
+                  <button type="button" data-header-patio-sub="inicio">Visão geral do pátio</button>
                   <button type="button" data-header-patio="new-vehicle">Registrar veículo</button>
                   <button type="button" data-header-patio="print">Imprimir</button>
                   <button type="button" data-header-patio-sub="no_patio">VNP</button>
@@ -2591,7 +2665,7 @@
               <details class="header-menu-details" id="headerDetailsFinance">
                 <summary>Gestão financeira</summary>
                 <div class="header-menu-nested">
-                  <button type="button" data-header-finance-panel="true">Resumo no painel</button>
+                  <button type="button" data-header-finance-panel="true">Visão geral financeira</button>
                   <button type="button" data-header-finance-action="financeMenuNewPayable">Nova despesa</button>
                   <button type="button" data-header-finance-action="financeMenuPrintOpenRec">Imprimir a receber em aberto</button>
                   <button type="button" data-header-finance-action="financeMenuReload">Atualizar dados</button>
@@ -2705,8 +2779,8 @@
               <p class="dashboard-kicker">Visão geral</p>
               <h2>Painel</h2>
               <p class="subtitle dashboard-subtitle">
-                Acesse a <strong>gestão de pátio</strong> (veículos e operação) ou a <strong>gestão financeira</strong>
-                (recebimentos, pagamentos e caixa). Os cartões abaixo mostram indicadores ao vivo.
+                Cada botão abre o <strong>resumo desse sistema</strong> (visão geral só de pátio ou só financeiro). Aqui
+                em baixo ficam os indicadores combinados do pátio e do caixa.
               </p>
             </div>
             <span class="pill pill--premium"
@@ -3008,6 +3082,7 @@
         <div id="viewPatio" class="panel hidden patio-module-shell">
           <div class="patio-module-ribbon">
             <div class="patio-module-ribbon-left">
+              <button type="button" class="secondary" id="exitPatioModule">← Painel principal</button>
             </div>
             <div class="patio-module-ribbon-right">
               <div class="patio-module-tools">
@@ -3032,11 +3107,69 @@
           <div id="patioMenuBackdrop" class="patio-menu-backdrop hidden"></div>
           <div id="patioFlyoutBackdrop" class="patio-flyout-backdrop hidden"></div>
           <div class="subnav patio-side-menu" id="patioSubnav">
+            <button type="button" data-subview="inicio">Visão geral</button>
             <button type="button" id="patioMenuNewVehicle">Registrar veículo</button>
             <button type="button" id="patioMenuPrintList">Imprimir</button>
             <button data-subview="no_patio">VNP</button>
             <button data-subview="removidos">VRP</button>
             <button data-subview="nfse_pendente">NFSe pendente</button>
+          </div>
+          <div id="patioInicioPanel" class="patio-inicio-panel hidden">
+            <div class="patio-inicio-head">
+              <h3>Visão geral · Gestão de pátio</h3>
+              <p class="patio-inicio-lede">
+                Resumo operacional só do pátio. Use os atalhos para abrir listas e fluxos; o <strong>Painel principal</strong> (canto superior ou botão abaixo) volta ao hub dos dois sistemas.
+              </p>
+            </div>
+            <div class="patio-inicio-grid" aria-label="Indicadores do pátio">
+              <div class="patio-inicio-stat">
+                <span class="label">VNP</span>
+                <span class="value" id="patioInicioVnp">0</span>
+              </div>
+              <div class="patio-inicio-stat">
+                <span class="label">Em liberação</span>
+                <span class="value" id="patioInicioLiberacao">0</span>
+              </div>
+              <div class="patio-inicio-stat">
+                <span class="label">Entradas hoje</span>
+                <span class="value" id="patioInicioEntradasHoje">0</span>
+              </div>
+              <div class="patio-inicio-stat">
+                <span class="label">Saídas hoje</span>
+                <span class="value" id="patioInicioSaidasHoje">0</span>
+              </div>
+              <div class="patio-inicio-stat">
+                <span class="label">VRP</span>
+                <span class="value" id="patioInicioVrp">0</span>
+              </div>
+              <div class="patio-inicio-stat">
+                <span class="label">NFSe pendente</span>
+                <span class="value" id="patioInicioNfse">0</span>
+              </div>
+            </div>
+            <div class="dashboard-system-entry" style="margin-bottom: 0">
+              <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" data-patio-inicio-go="no_patio">
+                <span class="dashboard-system-btn__kicker">Lista</span>
+                <span class="dashboard-system-btn__title">VNP</span>
+                <span class="dashboard-system-btn__desc">Veículos no pátio e em fluxo de liberação ou remoção.</span>
+                <span class="dashboard-system-btn__go">Abrir VNP →</span>
+              </button>
+              <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" data-patio-inicio-go="removidos">
+                <span class="dashboard-system-btn__kicker">Histórico</span>
+                <span class="dashboard-system-btn__title">VRP</span>
+                <span class="dashboard-system-btn__desc">Veículos removidos e situação pós-saída.</span>
+                <span class="dashboard-system-btn__go">Abrir VRP →</span>
+              </button>
+              <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" data-patio-inicio-go="nfse_pendente">
+                <span class="dashboard-system-btn__kicker">Fiscal</span>
+                <span class="dashboard-system-btn__title">NFSe pendente</span>
+                <span class="dashboard-system-btn__desc">Veículos com emissão de nota em aberto.</span>
+                <span class="dashboard-system-btn__go">Abrir lista →</span>
+              </button>
+            </div>
+            <p class="notice" style="margin: 14px 0 0; font-size: 13px">
+              <button type="button" class="secondary" id="patioInicioToPainel">Painel principal (hub)</button>
+            </p>
           </div>
           <p class="notice plate-search-hint hidden" style="margin: 6px 0 10px"></p>
           <form
@@ -3249,6 +3382,9 @@
 
         <div id="viewFinanceiro" class="panel hidden finance-module-shell">
           <div class="finance-module-ribbon">
+            <div class="finance-module-ribbon-left">
+              <button type="button" class="secondary" id="exitFinanceModule">← Painel principal</button>
+            </div>
             <div class="finance-module-meta">
               <span class="finance-module-name">Gestão financeira do pátio</span>
             </div>
@@ -3267,6 +3403,7 @@
           <div id="financeMenuBackdrop" class="finance-menu-backdrop hidden"></div>
           <div id="financeFlyoutBackdrop" class="finance-flyout-backdrop hidden"></div>
           <div id="financeQuickActions" class="finance-quick-actions">
+            <button type="button" class="quick-secondary" data-finance-quick-subview="dashboard">Visão geral</button>
             <button type="button" class="quick-primary" data-finance-quick-action="new-payable">Nova despesa</button>
             <button type="button" class="quick-primary" data-finance-quick-subview="receber">Recebimentos em aberto</button>
             <button type="button" class="quick-secondary" data-finance-quick-subview="pagar">Pagamentos em aberto</button>
@@ -3280,7 +3417,7 @@
           <div id="receivableAlert" class="alert hidden"></div>
           <div class="subnav finance-side-menu" id="financeSubnav">
             <span class="finance-menu-group">Visão geral</span>
-            <button type="button" data-finance-go-panel="true">Resumo no painel</button>
+            <button type="button" data-subview="dashboard">Resumo neste módulo</button>
             <button type="button" id="financeMenuReload">Atualizar dados</button>
 
             <span class="finance-menu-group">Recebimentos</span>
@@ -6749,7 +6886,7 @@
         }
 
         try {
-          navStack.splice(0, navStack.length, "patio", "patio:no_patio");
+          navStack.splice(0, navStack.length, "patio", "patio:inicio");
         } catch (e) {
           console.warn("navStack", e);
         }
@@ -6778,7 +6915,7 @@
         document.getElementById("openConfigFromPatio")?.classList.add("hidden");
 
         showMainView("patio");
-        setPatioView("no_patio");
+        setPatioView("inicio");
 
         document.getElementById("openParceirosFromPatio")?.classList.add("hidden");
         document.getElementById("printPatioVehicleList")?.classList.add("hidden");
@@ -7238,6 +7375,18 @@
         const elNfse = document.getElementById("cardNfsePendente");
         if (elVrp) elVrp.textContent = String(removidosCount);
         if (elNfse) elNfse.textContent = String(nfsePendCount);
+        const piVnp = document.getElementById("patioInicioVnp");
+        const piLib = document.getElementById("patioInicioLiberacao");
+        const piEH = document.getElementById("patioInicioEntradasHoje");
+        const piSH = document.getElementById("patioInicioSaidasHoje");
+        const piVrp = document.getElementById("patioInicioVrp");
+        const piNfse = document.getElementById("patioInicioNfse");
+        if (piVnp) piVnp.textContent = String(noPatio.length + vls.length);
+        if (piLib) piLib.textContent = String(vls.length);
+        if (piEH) piEH.textContent = String(entradasHoje);
+        if (piSH) piSH.textContent = String(saidasHoje);
+        if (piVrp) piVrp.textContent = String(removidosCount);
+        if (piNfse) piNfse.textContent = String(nfsePendCount);
       }
 
       /** Para busca: só letras/números; ignora hífen/espaço (consulta acontece apenas no OK). */
@@ -7606,7 +7755,8 @@
         currentPatioView = view;
         const isNone = !view || view === "none";
         const isDashboard = view === "dashboard";
-        const isFlyoutView = !isNone && !isDashboard;
+        const isInicio = view === "inicio";
+        const isFlyoutView = !isNone && !isDashboard && !isInicio;
         patioSubnav.querySelectorAll("button[data-subview]").forEach((btn) => {
           btn.classList.toggle("active", !isNone && btn.getAttribute("data-subview") === view);
         });
@@ -7614,10 +7764,12 @@
         document.getElementById("viewPatio")?.classList.toggle("patio-flyout-open", isFlyoutView);
         patioFlyoutBackdrop?.classList.toggle("hidden", !isFlyoutView);
         const patioContent = document.getElementById("patioContent");
+        const patioInicioPanel = document.getElementById("patioInicioPanel");
+        if (patioInicioPanel) patioInicioPanel.classList.toggle("hidden", !isInicio);
         if (patioContent) patioContent.classList.toggle("hidden", !isFlyoutView);
         let shownPanel = null;
         patioSubviews.forEach((panel) => {
-          const match = !isNone && panel.getAttribute("data-subview") === view;
+          const match = !isNone && !isInicio && panel.getAttribute("data-subview") === view;
           panel.classList.toggle("hidden", !match);
           if (match) shownPanel = panel;
         });
@@ -8622,6 +8774,11 @@
           if (cloArea) cloArea.classList.add("hidden");
           if (dashArea) dashArea.classList.add("hidden");
         };
+        const showFinanceDashboardOnly = () => {
+          if (stdArea) stdArea.classList.add("hidden");
+          if (cloArea) cloArea.classList.add("hidden");
+          if (dashArea) dashArea.classList.remove("hidden");
+        };
         if (dashTopArea) {
           const monthKey = currentYearMonthLocal();
           const movMes = state.cash.filter((m) => {
@@ -8790,7 +8947,7 @@
           }
         }
         if (currentFinanceView === "dashboard") {
-          hideAllFinanceAreas();
+          showFinanceDashboardOnly();
           return;
         }
         if (currentFinanceView === "fechamento_mensal") {
@@ -9336,7 +9493,7 @@
       function setFinanceView(view) {
         currentFinanceView = view;
         const viewMap = {
-          dashboard: "Resumo",
+          dashboard: "Visão geral",
           aguardando_lancamento: "Fila de lançamento financeiro",
           receber: "Recebimentos em aberto",
           receber_alerta: "Recebimentos em alerta",
@@ -9380,8 +9537,9 @@
         if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", isDashboard);
         financeRoot?.classList.toggle("finance-flyout-open", isFlyoutView);
         financeFlyoutBackdrop?.classList.toggle("hidden", !isFlyoutView);
-        if (financeContent) financeContent.classList.toggle("hidden", !isFlyoutView);
-        if (isFlyoutView && financeContent) {
+        const showFinanceBody = isFlyoutView || isDashboard;
+        if (financeContent) financeContent.classList.toggle("hidden", !showFinanceBody);
+        if (showFinanceBody && financeContent) {
           financeContent.classList.remove("air-open");
           void financeContent.offsetWidth;
           financeContent.classList.add("air-open");
@@ -9407,16 +9565,16 @@
       });
       patioMenuBackdrop?.addEventListener("click", closePatioMenu);
       function returnToPainelFromPatioFlyout() {
-        navStack.splice(0, navStack.length, "dashboard");
-        setPatioView("dashboard");
+        navStack.splice(0, navStack.length, "patio", "patio:inicio");
+        showMainView("patio");
+        setPatioView("inicio");
         setFinanceView("none");
-        showMainView("dashboard");
       }
       function returnToPainelFromFinanceFlyout() {
-        navStack.splice(0, navStack.length, "dashboard");
-        setFinanceView("none");
+        navStack.splice(0, navStack.length, "financeiro", "financeiro:dashboard");
+        showMainView("financeiro");
+        setFinanceView("dashboard");
         setPatioView("dashboard");
-        showMainView("dashboard");
       }
       patioFlyoutBackdrop?.addEventListener("click", returnToPainelFromPatioFlyout);
       patioFlyoutClose?.addEventListener("click", returnToPainelFromPatioFlyout);
@@ -10150,6 +10308,7 @@
       function openMainView(view) {
         if (isGestorPista && view !== "patio" && view !== "lista") {
           showMainView("patio");
+          setPatioView("inicio");
           return;
         }
         const top = navStack[navStack.length - 1];
@@ -10161,9 +10320,15 @@
         navStack.push(view);
         showMainView(view);
 
-        if (view === "patio") setPatioView("no_patio");
+        if (view === "patio") {
+          setPatioView("inicio");
+          navStack.push("patio:inicio");
+        }
         if (view === "parceiros") setPartnerView("none");
-        if (view === "financeiro") setFinanceView("receber");
+        if (view === "financeiro") {
+          setFinanceView("dashboard");
+          navStack.push("financeiro:dashboard");
+        }
         if (view === "lista") {
           syncListaFilterSelects();
           renderListaPanel();
@@ -10223,8 +10388,15 @@
         if (top && typeof top === "string" && top.startsWith("financeiro:")) navStack.pop();
 
         if (sub === "dashboard") {
-          navigateMainViewFromNav("dashboard");
-          document.getElementById("financeTopDashboard")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          closeFinanceMenu?.();
+          if (navStack[navStack.length - 1] !== "financeiro") {
+            navStack.push("financeiro");
+            showMainView("financeiro");
+          } else {
+            showMainView("financeiro");
+          }
+          navStack.push("financeiro:dashboard");
+          setFinanceView("dashboard");
           return;
         }
 
@@ -10278,7 +10450,7 @@
         if (top === "dashboard") return showMainView("dashboard");
         if (top === "patio") {
           showMainView("patio");
-          return setPatioView("no_patio");
+          return setPatioView("inicio");
         }
         if (top === "parceiros") {
           showMainView("parceiros");
@@ -10286,7 +10458,7 @@
         }
         if (top === "financeiro") {
           showMainView("financeiro");
-          return setFinanceView("receber");
+          return setFinanceView("dashboard");
         }
         if (top === "configuracoes") return showMainView("configuracoes");
 
@@ -10323,22 +10495,20 @@
 
       const exitFinanceModuleBtn = document.getElementById("exitFinanceModule");
       if (exitFinanceModuleBtn) {
-        exitFinanceModuleBtn.addEventListener("click", () => {
-          navStack.splice(0, navStack.length, "dashboard");
-          setFinanceView("none");
-          showMainView("dashboard");
-        });
+        exitFinanceModuleBtn.addEventListener("click", () => navigateMainViewFromNav("dashboard"));
       }
 
       const exitPatioModuleBtn = document.getElementById("exitPatioModule");
       if (exitPatioModuleBtn) {
-        exitPatioModuleBtn.addEventListener("click", () => {
-          navStack.splice(0, navStack.length, "dashboard");
-          setPatioView("dashboard");
-          setFinanceView("none");
-          showMainView("dashboard");
-        });
+        exitPatioModuleBtn.addEventListener("click", () => navigateMainViewFromNav("dashboard"));
       }
+
+      document.getElementById("patioInicioPanel")?.addEventListener("click", (event) => {
+        const go = event.target.closest("[data-patio-inicio-go]");
+        if (!go) return;
+        openPatioSubview(go.getAttribute("data-patio-inicio-go"));
+      });
+      document.getElementById("patioInicioToPainel")?.addEventListener("click", () => navigateMainViewFromNav("dashboard"));
 
       // Cards do painel: VNP e veículos em liberação abrem a lista unificada no pátio.
       cardVeiculosLink.addEventListener("click", () => openPatioSubview("no_patio"));
@@ -10425,13 +10595,6 @@
       financeFlyoutClose?.addEventListener("click", returnToPainelFromFinanceFlyout);
 
       financeSubnav.addEventListener("click", (event) => {
-        const panelBtn = event.target.closest("button[data-finance-go-panel]");
-        if (panelBtn) {
-          closeFinanceMenu();
-          navigateMainViewFromNav("dashboard");
-          document.getElementById("financeTopDashboard")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-          return;
-        }
         const button = event.target.closest("button[data-subview]");
         if (!button) return;
         closeFinanceMenu();
@@ -12543,9 +12706,8 @@
         if (finPanel) {
           e.preventDefault();
           closeFinanceMenu();
-          navigateMainViewFromNav("dashboard");
           closeAppHeaderMenu();
-          document.getElementById("financeTopDashboard")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          openFinanceSubview("dashboard");
           return;
         }
 
