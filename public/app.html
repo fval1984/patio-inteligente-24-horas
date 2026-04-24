@@ -2312,6 +2312,115 @@
       #viewDashboard .dashboard-modules {
         gap: 14px;
       }
+      .dashboard-system-entry {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 22px;
+      }
+      .dashboard-system-entry.dashboard-system-entry--single {
+        grid-template-columns: 1fr;
+      }
+      @media (max-width: 720px) {
+        .dashboard-system-entry:not(.dashboard-system-entry--single) {
+          grid-template-columns: 1fr;
+        }
+      }
+      .dashboard-system-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        text-align: left;
+        padding: 22px 24px;
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        background: linear-gradient(155deg, rgba(28, 32, 40, 0.96), rgba(17, 20, 28, 0.99));
+        color: var(--text);
+        cursor: pointer;
+        font: inherit;
+        transition:
+          transform 0.14s ease,
+          box-shadow 0.14s ease,
+          border-color 0.14s ease;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 28px rgba(0, 0, 0, 0.22);
+        position: relative;
+        overflow: hidden;
+      }
+      .dashboard-system-btn::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        border-radius: 4px 0 0 4px;
+        opacity: 0.95;
+      }
+      .dashboard-system-btn--patio::before {
+        background: linear-gradient(180deg, #38bdf8, #0ea5e9);
+      }
+      .dashboard-system-btn--finance::before {
+        background: linear-gradient(180deg, #f87171, var(--primary, #e11d2e));
+      }
+      .dashboard-system-btn:hover {
+        transform: translateY(-2px);
+        border-color: rgba(148, 163, 184, 0.32);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 14px 36px rgba(0, 0, 0, 0.28);
+      }
+      .dashboard-system-btn:active {
+        transform: translateY(0);
+      }
+      .dashboard-system-btn__kicker {
+        margin: 0;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        opacity: 0.9;
+      }
+      .dashboard-system-btn__title {
+        margin: 0;
+        font-size: 1.28rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+      }
+      .dashboard-system-btn__desc {
+        margin: 4px 0 0;
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--muted);
+        max-width: 28rem;
+      }
+      .dashboard-system-btn__go {
+        margin-top: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .dashboard-system-btn--patio .dashboard-system-btn__go {
+        color: #7dd3fc;
+      }
+      .dashboard-system-btn--finance .dashboard-system-btn__go {
+        color: #fecaca;
+      }
+      [data-theme="light"] .dashboard-system-btn {
+        background: linear-gradient(155deg, #ffffff, #f1f5f9);
+        border-color: rgba(148, 163, 184, 0.28);
+        box-shadow: inset 0 1px 0 #fff, 0 8px 22px rgba(15, 23, 42, 0.06);
+      }
+      [data-theme="light"] .dashboard-system-btn:hover {
+        border-color: rgba(148, 163, 184, 0.4);
+        box-shadow: inset 0 1px 0 #fff, 0 12px 28px rgba(15, 23, 42, 0.08);
+      }
+      [data-theme="light"] .dashboard-system-btn--patio .dashboard-system-btn__go {
+        color: #0369a1;
+      }
+      [data-theme="light"] .dashboard-system-btn--finance .dashboard-system-btn__go {
+        color: var(--primary-strong, #b91c1c);
+      }
       #viewDashboard .dashboard-finance-card {
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.05),
@@ -2596,10 +2705,28 @@
               <p class="dashboard-kicker">Visão geral</p>
               <h2>Painel</h2>
               <p class="subtitle dashboard-subtitle">
+                Acesse a <strong>gestão de pátio</strong> (veículos e operação) ou a <strong>gestão financeira</strong>
+                (recebimentos, pagamentos e caixa). Os cartões abaixo mostram indicadores ao vivo.
               </p>
             </div>
             <span class="pill pill--premium"
               ><span class="pill-dot" aria-hidden="true"></span> Dados ao vivo</span>
+          </div>
+          <div class="dashboard-system-entry" id="dashboardSystemEntry">
+            <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenPatio">
+              <span class="dashboard-system-btn__kicker">Operação</span>
+              <span class="dashboard-system-btn__title">Gestão de pátio</span>
+              <span class="dashboard-system-btn__desc"
+                >VNP, liberações, entradas e saídas, NFSe pendente e fluxo operacional do pátio.</span>
+              <span class="dashboard-system-btn__go">Abrir gestão de pátio →</span>
+            </button>
+            <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
+              <span class="dashboard-system-btn__kicker">Financeiro</span>
+              <span class="dashboard-system-btn__title">Gestão financeira</span>
+              <span class="dashboard-system-btn__desc"
+                >Contas a receber e a pagar, caixa, fechos mensais e relatórios do pátio.</span>
+              <span class="dashboard-system-btn__go">Abrir gestão financeira →</span>
+            </button>
           </div>
           <div class="grid">
             <div id="dashboardModuleFinanceWrap" class="dashboard-modules" style="grid-column: 1 / -1">
@@ -6616,6 +6743,8 @@
         if (!isGestorPista) {
           document.getElementById("dashboardModuleFinanceWrap")?.classList.remove("hidden");
           document.getElementById("financeTopDashboard")?.classList.remove("hidden");
+          document.getElementById("dashboardOpenFinance")?.classList.remove("hidden");
+          document.getElementById("dashboardSystemEntry")?.classList.remove("dashboard-system-entry--single");
           return;
         }
 
@@ -6644,6 +6773,8 @@
           .forEach((el) => el.classList.add("hidden"));
         document.getElementById("dashboardModuleFinanceWrap")?.classList.add("hidden");
         document.getElementById("financeTopDashboard")?.classList.add("hidden");
+        document.getElementById("dashboardOpenFinance")?.classList.add("hidden");
+        document.getElementById("dashboardSystemEntry")?.classList.add("dashboard-system-entry--single");
         document.getElementById("openConfigFromPatio")?.classList.add("hidden");
 
         showMainView("patio");
@@ -9872,6 +10003,9 @@
       bindModuleCardActivate(document.getElementById("cardFinanceReceberLink"), () => openFinanceSubview("receber"));
       bindModuleCardActivate(document.getElementById("cardFinancePagarLink"), () => openFinanceSubview("pagar"));
       bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("caixa"));
+
+      document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
+      document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
 
       document.getElementById("openParceirosFromPatio")?.addEventListener("click", () => openPartnerSubview("localizadores"));
       document.getElementById("openConfigFromPatio")?.addEventListener("click", () => openMainView("configuracoes"));
