@@ -3750,6 +3750,8 @@
                 <select id="payableCategory">
                   <option value="ALUGUEL">Aluguel</option>
                   <option value="ENERGIA">Energia</option>
+                  <option value="AGUA">Água</option>
+                  <option value="TELEFONE_INTERNET">Telefone / Internet</option>
                   <option value="FUNCIONARIO">Funcionário</option>
                   <option value="GUINCHO">Guincho</option>
                   <option value="MANUTENCAO">Manutenção</option>
@@ -11796,6 +11798,43 @@
             valor: payable.valor,
             descricao: payable.descricao,
           });
+
+          // Para despesas recorrentes, cria automaticamente o próximo lançamento em aberto.
+          if ((payable.tipo || "").toUpperCase() === "RECORRENTE") {
+            const due = String(payable.data_vencimento || "").trim();
+            let nextDue = null;
+            if (due) {
+              const [y, m, d] = due.split("-").map((v) => Number(v));
+              if (y && m && d) {
+                const base = new Date(y, m - 1, d, 12, 0, 0, 0);
+                if (!Number.isNaN(base.getTime())) {
+                  const originalDay = base.getDate();
+                  base.setDate(1);
+                  base.setMonth(base.getMonth() + 1);
+                  const lastDay = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+                  base.setDate(Math.min(originalDay, lastDay));
+                  const yy = base.getFullYear();
+                  const mm = String(base.getMonth() + 1).padStart(2, "0");
+                  const dd = String(base.getDate()).padStart(2, "0");
+                  nextDue = `${yy}-${mm}-${dd}`;
+                }
+              }
+            }
+
+            const nextPayload = {
+              user_id: effectiveUserId(),
+              tipo: "RECORRENTE",
+              payable_category: payable.payable_category || "OUTROS",
+              descricao: payable.descricao || null,
+              valor: Number(payable.valor || 0),
+              data_vencimento: nextDue,
+              status: "EM_ABERTO",
+            };
+            const { error: nextErr } = await supabase.from("payables").insert(nextPayload);
+            if (nextErr) {
+              alert(`Conta paga, mas falhou ao gerar o próximo lançamento recorrente: ${nextErr.message}`);
+            }
+          }
           await Promise.all([loadPayables(), loadCash()]);
           renderFinance();
           updateDashboard();
