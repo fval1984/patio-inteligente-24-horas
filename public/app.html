@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<!-- amplipatio-static build=finance-toolbar-nav -->
+<!-- amplipatio-static build=finance-layout-patio-par -->
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
-    <meta name="amplipatio-build" content="finance-toolbar-nav" />
+    <meta name="amplipatio-build" content="finance-layout-patio-par" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta
       name="viewport"
@@ -761,35 +761,6 @@
         font-size: 12px;
         color: var(--muted);
       }
-      .finance-menu-toggle {
-        min-width: 96px;
-      }
-      .finance-side-menu {
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100vh;
-        width: min(320px, 84vw);
-        background: #0f131a;
-        border-right: 1px solid rgba(148, 163, 184, 0.25);
-        z-index: 80;
-        padding: 18px 14px;
-        display: grid;
-        align-content: start;
-        gap: 8px;
-        transform: translateX(-100%);
-        transition: transform 0.22s ease;
-      }
-      [data-theme="light"] .finance-side-menu {
-        background: #ffffff;
-      }
-      .finance-side-menu.open {
-        transform: translateX(0);
-      }
-      .finance-side-menu button {
-        width: 100%;
-        text-align: left;
-      }
       .finance-menu-group {
         margin-top: 10px;
         padding: 8px 10px 4px;
@@ -800,17 +771,9 @@
         text-transform: uppercase;
         color: #5eead4;
       }
-      .finance-side-menu .finance-menu-group:first-child {
-        margin-top: 0;
-        border-top: none;
-        padding-top: 2px;
-      }
       [data-theme="light"] .finance-menu-group {
         color: #0f766e;
         border-top-color: rgba(15, 118, 110, 0.2);
-      }
-      .finance-module-main-col {
-        min-width: 0;
       }
       #viewPatio .patio-nav-inline {
         display: flex;
@@ -853,38 +816,16 @@
         background: transparent;
         box-shadow: none;
       }
-      #viewFinanceiro .finance-side-menu.finance-side-menu--toolbar {
-        position: relative !important;
-        top: auto !important;
-        left: auto !important;
-        height: auto !important;
-        width: 100% !important;
-        max-height: none !important;
-        min-height: 0 !important;
-        transform: none !important;
-        z-index: 1 !important;
-        padding: 0 !important;
-        border: none !important;
-        border-right: none !important;
-        background: transparent !important;
-      }
-      #viewFinanceiro .finance-side-menu.finance-side-menu--toolbar.open {
-        transform: none !important;
-      }
-      #viewFinanceiro .finance-side-menu.finance-side-menu--toolbar button {
+      #viewFinanceiro #financeSubnav.finance-nav-inline button {
         width: auto;
-        text-align: center;
-        white-space: nowrap;
         flex: 0 1 auto;
+        white-space: nowrap;
       }
-      #viewFinanceiro .finance-side-menu.finance-side-menu--toolbar .finance-menu-group {
+      #viewFinanceiro #financeSubnav .finance-menu-group {
         flex: 1 1 100%;
         width: 100%;
-        margin-top: 10px;
-        padding: 8px 10px 4px;
-        border-top: 1px solid rgba(148, 163, 184, 0.2);
       }
-      #viewFinanceiro .finance-side-menu.finance-side-menu--toolbar .finance-menu-group:first-child {
+      #viewFinanceiro #financeSubnav .finance-menu-group:first-child {
         margin-top: 0;
         border-top: none;
         padding-top: 2px;
@@ -910,12 +851,6 @@
       #viewFinanceiro .filter-bar label {
         font-weight: 600;
       }
-      .finance-quick-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin: 0 0 10px;
-      }
       .finance-context-bar {
         display: flex;
         flex-wrap: wrap;
@@ -932,20 +867,6 @@
         font-weight: 700;
         letter-spacing: 0.03em;
         background: rgba(15, 23, 42, 0.36);
-      }
-      .finance-quick-actions .quick-primary {
-        border-color: rgba(45, 212, 191, 0.45);
-        background: linear-gradient(135deg, rgba(13, 148, 136, 0.32), rgba(15, 23, 42, 0.35));
-      }
-      .finance-quick-actions .quick-secondary {
-        border-color: rgba(148, 163, 184, 0.3);
-        background: rgba(15, 23, 42, 0.28);
-      }
-      [data-theme="light"] .finance-quick-actions .quick-primary {
-        background: linear-gradient(135deg, rgba(13, 148, 136, 0.18), rgba(255, 255, 255, 0.95));
-      }
-      [data-theme="light"] .finance-quick-actions .quick-secondary {
-        background: rgba(255, 255, 255, 0.92);
       }
       [data-theme="light"] .finance-context-badge {
         background: rgba(255, 255, 255, 0.95);
@@ -3477,50 +3398,35 @@
             <div class="finance-toolbar-text">
               <p class="module-kicker module-kicker--finance">Financeiro</p>
               <h2>Gestão financeira</h2>
-              <div
-                class="subnav finance-side-menu finance-side-menu--toolbar finance-nav-inline"
-                id="financeSubnav"
-                role="navigation"
-                aria-label="Navegação financeira"
-              >
+              <nav id="financeSubnav" class="subnav finance-nav-inline" aria-label="Navegação financeira">
                 <span class="finance-menu-group">Visão geral</span>
-                <button type="button" data-subview="dashboard">Resumo neste módulo</button>
-                <button type="button" id="financeMenuReload">Atualizar dados</button>
+                <button type="button" class="secondary" data-subview="dashboard">Resumo neste módulo</button>
+                <button type="button" class="secondary" id="financeMenuReload">Atualizar dados</button>
 
                 <span class="finance-menu-group">Recebimentos</span>
-                <button type="button" id="financeMenuPrintOpenRec">Imprimir a receber em aberto</button>
-                <button type="button" id="financeMenuReceberFilters">Filtro de contas a receber</button>
-                <button type="button" data-subview="aguardando_lancamento">Fila de lançamento financeiro</button>
-                <button type="button" data-subview="receber">Recebimentos em aberto</button>
-                <button type="button" data-subview="receber_alerta">Recebimentos em alerta</button>
+                <button type="button" class="secondary" id="financeMenuPrintOpenRec">Imprimir a receber em aberto</button>
+                <button type="button" class="secondary" id="financeMenuReceberFilters">Filtro de contas a receber</button>
+                <button type="button" class="secondary" data-subview="aguardando_lancamento">Fila de lançamento financeiro</button>
+                <button type="button" class="secondary" data-subview="receber">Recebimentos em aberto</button>
+                <button type="button" class="secondary" data-subview="receber_alerta">Recebimentos em alerta</button>
 
                 <span class="finance-menu-group">Pagamentos e caixa</span>
-                <button type="button" id="financeMenuNewPayable">Nova despesa</button>
-                <button type="button" data-subview="pagar">Pagamentos em aberto</button>
-                <button type="button" data-subview="caixa">Caixa</button>
+                <button type="button" class="secondary" id="financeMenuNewPayable">Nova despesa</button>
+                <button type="button" class="secondary" data-subview="pagar">Pagamentos em aberto</button>
+                <button type="button" class="secondary" data-subview="caixa">Caixa</button>
 
                 <span class="finance-menu-group">Gestão e histórico</span>
-                <button type="button" data-subview="fechamento_mensal">Fechamento mensal</button>
-                <button type="button" data-subview="relatorios">Relatórios</button>
-                <button type="button" data-subview="historico_pagar">Histórico a pagar</button>
-                <button type="button" data-subview="historico_receber">Histórico a receber</button>
-              </div>
+                <button type="button" class="secondary" data-subview="fechamento_mensal">Fechamento mensal</button>
+                <button type="button" class="secondary" data-subview="relatorios">Relatórios</button>
+                <button type="button" class="secondary" data-subview="historico_pagar">Histórico a pagar</button>
+                <button type="button" class="secondary" data-subview="historico_receber">Histórico a receber</button>
+              </nav>
             </div>
             <div class="actions">
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
             </div>
           </div>
           <div id="financeFlyoutBackdrop" class="finance-flyout-backdrop hidden"></div>
-          <div class="finance-module-body">
-            <div class="finance-module-main-col">
-          <div id="financeQuickActions" class="finance-quick-actions">
-            <button type="button" class="quick-secondary" data-finance-quick-subview="dashboard">Visão geral</button>
-            <button type="button" class="quick-primary" data-finance-quick-action="new-payable">Nova despesa</button>
-            <button type="button" class="quick-primary" data-finance-quick-subview="receber">Recebimentos em aberto</button>
-            <button type="button" class="quick-secondary" data-finance-quick-subview="pagar">Pagamentos em aberto</button>
-            <button type="button" class="quick-secondary" data-finance-quick-subview="caixa">Caixa</button>
-            <button type="button" class="quick-secondary" data-finance-quick-subview="aguardando_lancamento">Fila de lançamento financeiro</button>
-          </div>
           <div class="finance-context-bar">
             <span id="financeViewBadge" class="finance-context-badge">Visão: Resumo</span>
             <span id="financeModeBadge" class="finance-context-badge">Modo executivo</span>
@@ -3726,8 +3632,6 @@
                   <tbody id="closureHistoryBody"></tbody>
                 </table>
               </div>
-            </div>
-          </div>
             </div>
           </div>
         </div>
@@ -4531,7 +4435,6 @@
       const financeMenuPrintOpenRec = document.getElementById("financeMenuPrintOpenRec");
       const financeMenuReload = document.getElementById("financeMenuReload");
       const financeMenuReceberFilters = document.getElementById("financeMenuReceberFilters");
-      const financeQuickActions = document.getElementById("financeQuickActions");
       const financeViewBadge = document.getElementById("financeViewBadge");
       const financeModeBadge = document.getElementById("financeModeBadge");
       const financeFilters = document.getElementById("financeFilters");
@@ -9610,7 +9513,7 @@
               ? "Modo operacional"
               : "Modo executivo";
         }
-        financeSubnav.querySelectorAll("button").forEach((btn) => {
+        financeSubnav?.querySelectorAll("button").forEach((btn) => {
           btn.classList.toggle("active", !isNone && btn.getAttribute("data-subview") === view);
         });
         if (isNone) {
@@ -10659,17 +10562,6 @@
         closeFinanceMenu();
         openFinanceSubview(button.getAttribute("data-subview"));
       });
-      financeQuickActions?.addEventListener("click", (event) => {
-        const actionBtn = event.target.closest("button[data-finance-quick-action]");
-        if (actionBtn?.getAttribute("data-finance-quick-action") === "new-payable") {
-          openNewPayableModal();
-          return;
-        }
-        const subBtn = event.target.closest("button[data-finance-quick-subview]");
-        if (!subBtn) return;
-        openFinanceSubview(subBtn.getAttribute("data-finance-quick-subview"));
-      });
-
       applyFilter.addEventListener("click", () => {
         historyFilter.from = filterFrom.value || null;
         historyFilter.to = filterTo.value || null;
