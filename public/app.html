@@ -10046,7 +10046,8 @@
         if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", isDashboard);
         financeRoot?.classList.toggle("finance-flyout-open", isFlyoutView);
         financeFlyoutBackdrop?.classList.toggle("hidden", !isFlyoutView);
-        const showFinanceBody = isFlyoutView || isDashboard;
+        const showReportResult = view !== "relatorios" || reportHasRun;
+        const showFinanceBody = (isFlyoutView || isDashboard) && showReportResult;
         if (financeContent) financeContent.classList.toggle("hidden", !showFinanceBody);
         if (showFinanceBody && financeContent) {
           financeContent.classList.remove("air-open");
@@ -11126,7 +11127,10 @@
       applyFilter.addEventListener("click", () => {
         historyFilter.from = filterFrom.value || null;
         historyFilter.to = filterTo.value || null;
-        if (currentFinanceView === "relatorios") reportHasRun = true;
+        if (currentFinanceView === "relatorios") {
+          reportHasRun = true;
+          if (financeContent) financeContent.classList.remove("hidden");
+        }
         renderFinance();
       });
 
@@ -11139,7 +11143,10 @@
         if (reportClienteFiltro) reportClienteFiltro.value = "";
         if (reportFornecedorFiltro) reportFornecedorFiltro.value = "";
         reportFilter = { tipo: "", categoria: "", cliente: "", fornecedor: "" };
-        if (currentFinanceView === "relatorios") reportHasRun = false;
+        if (currentFinanceView === "relatorios") {
+          reportHasRun = false;
+          if (financeContent) financeContent.classList.add("hidden");
+        }
         renderFinance();
       });
 
