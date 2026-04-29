@@ -4742,6 +4742,7 @@
       let currentPatioView = null;
       let currentFinanceView = null;
       let currentPartnerView = null;
+      let reportHasRun = false;
       const navStack = ["dashboard"];
       let historyFilter = { from: null, to: null };
       let reportFilter = { tipo: "", categoria: "", cliente: "", fornecedor: "" };
@@ -9591,6 +9592,14 @@
               <th>Relatório</th>
               <th>Valor</th>
             </tr>`;
+          if (!reportHasRun) {
+            setEmptyRow(
+              tableFinance,
+              "Selecione os filtros e clique em «Aplicar» para gerar o relatório.",
+              2
+            );
+            return;
+          }
           const reportFrom = filterFrom?.value || null;
           const reportTo = filterTo?.value || null;
           const toDateOnly = (value) => {
@@ -9984,6 +9993,7 @@
       }
 
       function setFinanceView(view) {
+        const previousFinanceView = currentFinanceView;
         currentFinanceView = view;
         const viewMap = {
           dashboard: "Dashboard geral",
@@ -9999,6 +10009,9 @@
         const isNone = !view || view === "none";
         const isDashboard = view === "dashboard";
         const isFlyoutView = !isNone && !isDashboard;
+        if (view === "relatorios" && previousFinanceView !== "relatorios") {
+          reportHasRun = false;
+        }
         const isFullscreenSubview = isFlyoutView;
         const financeRoot = document.getElementById("viewFinanceiro");
         if (financeRoot) {
@@ -11113,6 +11126,7 @@
       applyFilter.addEventListener("click", () => {
         historyFilter.from = filterFrom.value || null;
         historyFilter.to = filterTo.value || null;
+        if (currentFinanceView === "relatorios") reportHasRun = true;
         renderFinance();
       });
 
@@ -11125,6 +11139,7 @@
         if (reportClienteFiltro) reportClienteFiltro.value = "";
         if (reportFornecedorFiltro) reportFornecedorFiltro.value = "";
         reportFilter = { tipo: "", categoria: "", cliente: "", fornecedor: "" };
+        if (currentFinanceView === "relatorios") reportHasRun = false;
         renderFinance();
       });
 
@@ -11137,6 +11152,7 @@
         filterFrom.value = fromStr;
         filterTo.value = toStr;
         historyFilter = { from: fromStr, to: toStr };
+        if (currentFinanceView === "relatorios") reportHasRun = true;
         renderFinance();
       }
 
