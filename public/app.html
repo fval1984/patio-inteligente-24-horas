@@ -3660,6 +3660,12 @@
             <input id="financeLancBusca" type="text" placeholder="Buscar" />
             <button type="button" class="secondary" id="financeLancLimpar">Limpar filtros</button>
           </div>
+          <div id="financeCaixaFilters" class="filter-bar hidden" style="margin: 0 0 10px; flex-wrap: wrap; align-items: center">
+            <span class="notice" style="font-weight: 600">Fluxo de caixa — mês:</span>
+            <label for="financeCaixaMonth">Competência</label>
+            <input id="financeCaixaMonth" type="month" />
+            <button type="button" class="secondary" id="financeCaixaMonthAtual">Mês atual</button>
+          </div>
           <div id="financeContent" class="hidden">
             <div id="financeDetailDashboard" class="section-card hidden" style="margin-top: 0">
               <div class="finance-dashboard-grid">
@@ -4704,6 +4710,7 @@
       const financeModeBadge = document.getElementById("financeModeBadge");
       const financeFilters = document.getElementById("financeFilters");
       const financeLancamentosFilters = document.getElementById("financeLancamentosFilters");
+      const financeCaixaFilters = document.getElementById("financeCaixaFilters");
       const financeContent = document.getElementById("financeContent");
       const financePlateFilter = document.getElementById("financePlateFilter");
       const financePlateSearchForm = document.getElementById("financePlateSearchForm");
@@ -4729,6 +4736,8 @@
       const financeLancCompetencia = document.getElementById("financeLancCompetencia");
       const financeLancBusca = document.getElementById("financeLancBusca");
       const financeLancLimpar = document.getElementById("financeLancLimpar");
+      const financeCaixaMonth = document.getElementById("financeCaixaMonth");
+      const financeCaixaMonthAtual = document.getElementById("financeCaixaMonthAtual");
 
       const settingsCnpj = document.getElementById("settingsCnpj");
       const settingsName = document.getElementById("settingsName");
@@ -4806,6 +4815,7 @@
         competencia: "",
         busca: "",
       };
+      let caixaFilter = { month: "" };
       let plateQuery = "";
       let financePlateQuery = "";
       let financePlateInputTimer = null;
@@ -9037,10 +9047,15 @@
         const sumPayablesFiltered = payablesFiltered.reduce((s, p) => s + Number(p.valor || 0), 0);
         const sumTriagem = triagemList.reduce((s, r) => s + Number(r.valor || 0), 0);
         const maxPagar = payablesFiltered.reduce((m, p) => Math.max(m, Number(p.valor || 0)), 0);
-        const entradasCaixa = state.cash
+        const caixaMonth = caixaFilter.month || currentYearMonthLocal();
+        const cashMonthMovements = state.cash.filter((m) => {
+          const ymd = toLocalYmd(m.data_movimento || m.created_at);
+          return ymd && yearMonthFromYmd(ymd) === caixaMonth;
+        });
+        const entradasCaixa = cashMonthMovements
           .filter((m) => m.tipo_conta === "RECEBER")
           .reduce((s, m) => s + Number(m.valor || 0), 0);
-        const saidasCaixa = state.cash
+        const saidasCaixa = cashMonthMovements
           .filter((m) => m.tipo_conta === "PAGAR")
           .reduce((s, m) => s + Number(m.valor || 0), 0);
         const setFinanceSummaryCards = ({ t1, v1, m1, t2, v2, m2, t3, v3, m3, c1, c2, c3 }) => {
@@ -9126,16 +9141,18 @@
             c3: "tag danger",
           });
         } else if (currentFinanceView === "caixa") {
+          const [anoCaixa, mesCaixa] = caixaMonth.split("-");
+          const competenciaCaixa = mesCaixa && anoCaixa ? `${mesCaixa}/${anoCaixa}` : caixaMonth;
           setFinanceSummaryCards({
             t1: "Saldo em caixa",
             v1: formatCurrency(caixa),
             m1: caixa >= 0 ? "posição positiva" : "posição negativa",
             t2: "Entradas em caixa",
             v2: formatCurrency(entradasCaixa),
-            m2: "recebimentos acumulados",
+            m2: `recebimentos em ${competenciaCaixa}`,
             t3: "Saídas em caixa",
             v3: formatCurrency(saidasCaixa),
-            m3: "pagamentos acumulados",
+            m3: `pagamentos em ${competenciaCaixa}`,
             c1: caixa >= 0 ? "tag success" : "tag warning",
             c2: "tag success",
             c3: "tag warning",
@@ -9894,6 +9911,8 @@
           };
           state.cash
             .filter((mov) => {
+              const ymdMov = toLocalYmd(mov.data_movimento || mov.created_at);
+              if (!ymdMov || yearMonthFromYmd(ymdMov) !== caixaMonth) return false;
               if (!financePlateNorm) return true;
               if (mov.tipo_conta === "RECEBER") {
                 const rec = receivableByContaId(mov.conta_id);
@@ -10199,6 +10218,7 @@
         if (isNone) {
           financeFilters.classList.add("hidden");
           financeLancamentosFilters?.classList.add("hidden");
+          financeCaixaFilters?.classList.add("hidden");
           receivableAlert.classList.add("hidden");
           if (financeContent) financeContent.classList.add("hidden");
           financeRoot?.classList.remove("finance-flyout-open", "finance-subview-fullscreen");
@@ -10222,6 +10242,11 @@
         financeFilters.classList.toggle("hidden", view !== "relatorios");
         financeReportExtraFilters?.classList.toggle("hidden", view !== "relatorios");
         financeLancamentosFilters?.classList.toggle("hidden", view !== "lancamentos");
+        financeCaixaFilters?.classList.toggle("hidden", view !== "caixa");
+        if (view === "caixa") {
+          caixaFilter.month = caixaFilter.month || currentYearMonthLocal();
+          if (financeCaixaMonth) financeCaixaMonth.value = caixaFilter.month;
+        }
         document.getElementById("financeLancamentosScrollNotice")?.classList.toggle("hidden", view !== "lancamentos");
         document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
         const receberExtras = view === "receber";
@@ -11248,6 +11273,18 @@
           }, 320);
         });
       }
+      if (!caixaFilter.month) caixaFilter.month = currentYearMonthLocal();
+      if (financeCaixaMonth && !financeCaixaMonth.value) financeCaixaMonth.value = caixaFilter.month;
+      financeCaixaMonth?.addEventListener("change", () => {
+        caixaFilter.month = (financeCaixaMonth.value || "").trim() || currentYearMonthLocal();
+        financeCaixaMonth.value = caixaFilter.month;
+        if (currentFinanceView === "caixa") renderFinance();
+      });
+      financeCaixaMonthAtual?.addEventListener("click", () => {
+        caixaFilter.month = currentYearMonthLocal();
+        if (financeCaixaMonth) financeCaixaMonth.value = caixaFilter.month;
+        if (currentFinanceView === "caixa") renderFinance();
+      });
       const syncLancamentosFilters = () => {
         lancamentosFilter = {
           tipo: (financeLancTipo?.value || "").trim(),
