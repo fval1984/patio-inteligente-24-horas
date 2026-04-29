@@ -3568,6 +3568,26 @@
             <input id="filterFrom" type="date" />
             <label>Até</label>
             <input id="filterTo" type="date" />
+            <span id="financeReportExtraFilters" class="hidden" style="display: contents">
+              <label for="reportTipoFiltro">Tipo</label>
+              <select id="reportTipoFiltro">
+                <option value="">Todos</option>
+                <option value="RECEITA">Receita</option>
+                <option value="DESPESA">Despesa</option>
+              </select>
+              <label for="reportCategoriaFiltro">Categoria</label>
+              <select id="reportCategoriaFiltro">
+                <option value="">Todas</option>
+              </select>
+              <label for="reportClienteFiltro">Cliente</label>
+              <select id="reportClienteFiltro">
+                <option value="">Todos</option>
+              </select>
+              <label for="reportFornecedorFiltro">Fornecedor</label>
+              <select id="reportFornecedorFiltro">
+                <option value="">Todos</option>
+              </select>
+            </span>
             <button class="secondary" id="applyFilter">Aplicar</button>
             <button class="secondary" id="clearFilter">Limpar</button>
             <button class="secondary" id="quick7">Últimos 7 dias</button>
@@ -4639,6 +4659,11 @@
       const clearFinancePlateFilter = document.getElementById("clearFinancePlateFilter");
       const filterFrom = document.getElementById("filterFrom");
       const filterTo = document.getElementById("filterTo");
+      const financeReportExtraFilters = document.getElementById("financeReportExtraFilters");
+      const reportTipoFiltro = document.getElementById("reportTipoFiltro");
+      const reportCategoriaFiltro = document.getElementById("reportCategoriaFiltro");
+      const reportClienteFiltro = document.getElementById("reportClienteFiltro");
+      const reportFornecedorFiltro = document.getElementById("reportFornecedorFiltro");
       const applyFilter = document.getElementById("applyFilter");
       const clearFilter = document.getElementById("clearFilter");
       const quick7 = document.getElementById("quick7");
@@ -4719,6 +4744,7 @@
       let currentPartnerView = null;
       const navStack = ["dashboard"];
       let historyFilter = { from: null, to: null };
+      let reportFilter = { tipo: "", categoria: "", cliente: "", fornecedor: "" };
       let lancamentosFilter = {
         tipo: "",
         status: "",
@@ -9565,208 +9591,105 @@
               <th>Relatório</th>
               <th>Valor</th>
             </tr>`;
-
-          const nowDate = new Date();
-          const months = [];
-          for (let i = 5; i >= 0; i--) {
-            const d = new Date(nowDate.getFullYear(), nowDate.getMonth() - i, 1);
-            months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-          }
-
-          const monthLabel = (ym) => {
-            const [y, m] = ym.split("-");
-            return `${m}-${String(y).slice(-2)}`;
-          };
-
-          const toMonth = (value) => {
-            if (!value) return null;
-            const d = new Date(value);
-            if (Number.isNaN(d.getTime())) return null;
-            const mm = String(d.getMonth() + 1).padStart(2, "0");
-            const yy = d.getFullYear();
-            return `${yy}-${mm}`;
-          };
-
-          const receivablesPaid = state.receivables
-            .filter((r) => r.status === "PAGO")
-            .filter((r) => matchesVehicleId(r.vehicle_id));
-          const payablesPaid = state.payables
-            .filter((p) => p.status === "PAGO")
-            .filter(payableDescMatchesPlate);
-
           const reportFrom = filterFrom?.value || null;
           const reportTo = filterTo?.value || null;
-
           const toDateOnly = (value) => {
             if (!value) return null;
             const d = new Date(value);
             if (Number.isNaN(d.getTime())) return null;
             return d.toISOString().slice(0, 10);
           };
-
-          const receivablesPaidFiltered = reportFrom || reportTo ? receivablesPaid.filter((r) => {
-            const dateStr = toDateOnly(r.period_start || r.created_at);
-            if (!dateStr) return false;
-            if (reportFrom && dateStr < reportFrom) return false;
-            if (reportTo && dateStr > reportTo) return false;
-            return true;
-          }) : receivablesPaid;
-
-          const payablesPaidFiltered = reportFrom || reportTo ? payablesPaid.filter((p) => {
-            const dateStr = toDateOnly(p.data_vencimento || p.created_at);
-            if (!dateStr) return false;
-            if (reportFrom && dateStr < reportFrom) return false;
-            if (reportTo && dateStr > reportTo) return false;
-            return true;
-          }) : payablesPaid;
-
-          const receiptsByMonth = new Map();
-          receivablesPaidFiltered.forEach((r) => {
-            const m = toMonth(r.period_start || r.created_at);
-            if (!m) return;
-            receiptsByMonth.set(m, (receiptsByMonth.get(m) || 0) + Number(r.valor || 0));
-          });
-
-          const expensesByMonth = new Map();
-          payablesPaidFiltered.forEach((p) => {
-            const m = toMonth(p.data_vencimento || p.created_at);
-            if (!m) return;
-            expensesByMonth.set(m, (expensesByMonth.get(m) || 0) + Number(p.valor || 0));
-          });
-
-          months.forEach((m) => {
-            const rec = receiptsByMonth.get(m) || 0;
-            const exp = expensesByMonth.get(m) || 0;
-            const resultado = rec - exp;
-            rows.push(`
-              <tr>
-                <td>Resultado do mês (${monthLabel(m)})</td>
-                <td>${formatCurrency(resultado)}</td>
-              </tr>
-            `);
-          });
-
-          // Top responsáveis (por recebimentos pagos)
-          const revenueByResp = new Map();
-          receivablesPaidFiltered.forEach((r) => {
-            const key = r.responsavel_pagamento || "Não informado";
-            revenueByResp.set(key, (revenueByResp.get(key) || 0) + Number(r.valor || 0));
-          });
-          const top = [...revenueByResp.entries()]
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5);
-
-          rows.push(`
-            <tr>
-              <td colspan="2" style="padding-top:16px;"><strong>Top responsáveis (recebidos)</strong></td>
-            </tr>
-          `);
-          if (top.length) {
-            top.forEach(([k, v], idx) => {
-              rows.push(`
-                <tr>
-                  <td>${idx + 1}. ${k}</td>
-                  <td>${formatCurrency(v)}</td>
-                </tr>
-              `);
-            });
-          } else {
-            rows.push(`
-              <tr>
-                <td>Sem dados</td>
-                <td>-</td>
-              </tr>
-            `);
-          }
-
-          // Totais por parceiro/localizador e assessoria (por ciclos pagos)
-          const partnerById = new Map(state.partners.map((p) => [p.id, p.nome || "-"]));
-          const totalsByLocator = new Map();
-          const totalsByAssessoria = new Map();
-
-          receivablesPaid.forEach((r) => {
-            const vehicle = vehicleById.get(r.vehicle_id);
-            if (!vehicle) return;
-            if (vehicle.localizador_id) {
-              const name = partnerById.get(vehicle.localizador_id) || "Sem localizador";
-              totalsByLocator.set(name, (totalsByLocator.get(name) || 0) + Number(r.valor || 0));
-            }
-            if (vehicle.assessoria_id) {
-              const name = partnerById.get(vehicle.assessoria_id) || "Sem assessoria";
-              totalsByAssessoria.set(name, (totalsByAssessoria.get(name) || 0) + Number(r.valor || 0));
-            }
-          });
-
-          const pushTopByMap = (title, map) => {
-            rows.push(`
-              <tr>
-                <td colspan="2" style="padding-top:16px;"><strong>${title}</strong></td>
-              </tr>
-            `);
-            const entries = [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-            if (!entries.length) {
-              rows.push(`
-                <tr>
-                  <td>Sem dados</td>
-                  <td>-</td>
-                </tr>
-              `);
-              return;
-            }
-            entries.forEach(([name, val], idx) => {
-              rows.push(`
-                <tr>
-                  <td>${idx + 1}. ${name}</td>
-                  <td>${formatCurrency(val)}</td>
-                </tr>
-              `);
-            });
+          const toMonth = (value) => {
+            const ymd = toDateOnly(value);
+            return ymd ? ymd.slice(0, 7) : null;
+          };
+          const monthLabel = (ym) => {
+            if (!ym) return "-";
+            const [y, m] = ym.split("-");
+            return `${m}/${y}`;
           };
 
-          pushTopByMap("Recebido por localizador (ciclos pagos)", totalsByLocator);
-          pushTopByMap("Recebido por assessoria (ciclos pagos)", totalsByAssessoria);
-
-          // Lista dos últimos ciclos pagos
-          rows.push(`
-            <tr>
-              <td colspan="2" style="padding-top:16px;"><strong>Últimos ciclos pagos</strong></td>
-            </tr>
-          `);
-          const lastCycles = [...receivablesPaidFiltered]
-            .sort((a, b) => new Date(b.period_start || b.created_at || 0).getTime() - new Date(a.period_start || a.created_at || 0).getTime())
-            .slice(0, 10);
-
-          lastCycles.forEach((r) => {
-            const vehicle = vehicleById.get(r.vehicle_id);
-            const locatorName = vehicle?.localizador_id ? partnerById.get(vehicle.localizador_id) || "Sem localizador" : "Sem localizador";
-            const assessName = vehicle?.assessoria_id ? partnerById.get(vehicle.assessoria_id) || "Sem assessoria" : "Sem assessoria";
-            const inicio = r.period_start ? formatDate(r.period_start) : "-";
-            const fim = r.period_end ? formatDate(r.period_end) : "aberto";
-            const resp = r.responsavel_pagamento || "-";
-            rows.push(`
-              <tr>
-                <td>${locatorName} / ${assessName} • ${inicio} a ${fim} • ${resp}</td>
-                <td>${formatCurrency(r.valor)}</td>
-              </tr>
-            `);
+          const entries = [];
+          state.receivables.forEach((r) => {
+            if (!matchesVehicleId(r.vehicle_id)) return;
+            entries.push({
+              data: toDateOnly(r.period_start || r.created_at),
+              tipo: "RECEITA",
+              categoria: r.receivable_category || "RECEITA",
+              cliente: (r.responsavel_pagamento || "").trim() || "Não informado",
+              fornecedor: "",
+              valor: Number(r.valor || 0),
+            });
+          });
+          state.payables.forEach((p) => {
+            if (!payableDescMatchesPlate(p)) return;
+            entries.push({
+              data: toDateOnly(p.data_vencimento || p.created_at),
+              tipo: "DESPESA",
+              categoria: p.payable_category || "OUTROS",
+              cliente: "",
+              fornecedor: (p.fornecedor || p.descricao || "").trim() || "Não informado",
+              valor: Number(p.valor || 0),
+            });
           });
 
-          // Projeção de caixa
-          const openRecProj = state.receivables.filter((r) => receivableIsContaReceberFinanceiro(r));
-          const openPayables = state.payables.filter((p) => p.status === "EM_ABERTO");
-          const caixaAtual = state.cash.reduce((sum, mov) => {
-            if (mov.tipo_conta === "PAGAR") return sum - Number(mov.valor || 0);
-            return sum + Number(mov.valor || 0);
-          }, 0);
+          const syncSelectOptions = (selectEl, values, defaultLabel) => {
+            if (!selectEl) return;
+            const current = selectEl.value;
+            const opts = [...new Set(values.map((v) => String(v || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+            selectEl.innerHTML = [`<option value="">${defaultLabel}</option>`, ...opts.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`)].join("");
+            if (current && opts.includes(current)) selectEl.value = current;
+          };
+          syncSelectOptions(reportCategoriaFiltro, entries.map((e) => e.categoria), "Todas");
+          syncSelectOptions(reportClienteFiltro, entries.filter((e) => e.tipo === "RECEITA").map((e) => e.cliente), "Todos");
+          syncSelectOptions(reportFornecedorFiltro, entries.filter((e) => e.tipo === "DESPESA").map((e) => e.fornecedor), "Todos");
 
-          const projetado = caixaAtual + openRecProj.reduce((s, r) => s + Number(r.valor || 0), 0) - openPayables.reduce((s, p) => s + Number(p.valor || 0), 0);
+          const filtered = entries.filter((e) => {
+            if (!e.data) return false;
+            if (reportFrom && e.data < reportFrom) return false;
+            if (reportTo && e.data > reportTo) return false;
+            if (reportFilter.tipo && e.tipo !== reportFilter.tipo) return false;
+            if (reportFilter.categoria && e.categoria !== reportFilter.categoria) return false;
+            if (reportFilter.cliente && e.cliente !== reportFilter.cliente) return false;
+            if (reportFilter.fornecedor && e.fornecedor !== reportFilter.fornecedor) return false;
+            return true;
+          });
 
-          rows.push(`
-            <tr>
-              <td style="padding-top:16px;"><strong>Projeção de caixa</strong> (caixa atual + em aberto)</td>
-              <td>${formatCurrency(projetado)}</td>
-            </tr>
-          `);
+          const receitas = filtered.filter((e) => e.tipo === "RECEITA").reduce((s, e) => s + e.valor, 0);
+          const despesas = filtered.filter((e) => e.tipo === "DESPESA").reduce((s, e) => s + e.valor, 0);
+          const lucro = receitas - despesas;
+          rows.push(`<tr><td><strong>Total receitas (filtro atual)</strong></td><td>${formatCurrency(receitas)}</td></tr>`);
+          rows.push(`<tr><td><strong>Total despesas (filtro atual)</strong></td><td>${formatCurrency(despesas)}</td></tr>`);
+          rows.push(`<tr><td><strong>Lucro (filtro atual)</strong></td><td>${formatCurrency(lucro)}</td></tr>`);
+
+          const lucroMes = new Map();
+          filtered.forEach((e) => {
+            const ym = toMonth(e.data);
+            if (!ym) return;
+            const current = lucroMes.get(ym) || { receitas: 0, despesas: 0 };
+            if (e.tipo === "RECEITA") current.receitas += e.valor;
+            else current.despesas += e.valor;
+            lucroMes.set(ym, current);
+          });
+          rows.push(`<tr><td colspan="2" style="padding-top:16px;"><strong>Lucro por mês</strong></td></tr>`);
+          [...lucroMes.entries()]
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .forEach(([ym, v]) => {
+              rows.push(`<tr><td>${monthLabel(ym)}</td><td>${formatCurrency(v.receitas - v.despesas)}</td></tr>`);
+            });
+          if (!lucroMes.size) rows.push(`<tr><td>Sem dados no período</td><td>-</td></tr>`);
+
+          const gastosPorSetor = new Map();
+          filtered
+            .filter((e) => e.tipo === "DESPESA")
+            .forEach((e) => gastosPorSetor.set(e.categoria, (gastosPorSetor.get(e.categoria) || 0) + e.valor));
+          rows.push(`<tr><td colspan="2" style="padding-top:16px;"><strong>Gastos por setor (categoria)</strong></td></tr>`);
+          [...gastosPorSetor.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([setor, val]) => {
+              rows.push(`<tr><td>${escapeHtml(setor)}</td><td>${formatCurrency(val)}</td></tr>`);
+            });
+          if (!gastosPorSetor.size) rows.push(`<tr><td>Sem despesas no período</td><td>-</td></tr>`);
 
           if (!rows.length) {
             setEmptyRow(tableFinance, "Nenhum dado para relatórios.", 2);
@@ -10118,6 +10041,7 @@
           financeContent.classList.add("air-open");
         }
         financeFilters.classList.toggle("hidden", !["historico_receber", "historico_pagar", "relatorios"].includes(view));
+        financeReportExtraFilters?.classList.toggle("hidden", view !== "relatorios");
         financeLancamentosFilters?.classList.toggle("hidden", view !== "lancamentos");
         document.getElementById("financeLancamentosScrollNotice")?.classList.toggle("hidden", view !== "lancamentos");
         document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
@@ -11160,6 +11084,19 @@
         if (financeLancBusca) financeLancBusca.value = "";
         syncLancamentosFilters();
       });
+      const syncReportFilters = () => {
+        reportFilter = {
+          tipo: (reportTipoFiltro?.value || "").trim(),
+          categoria: (reportCategoriaFiltro?.value || "").trim(),
+          cliente: (reportClienteFiltro?.value || "").trim(),
+          fornecedor: (reportFornecedorFiltro?.value || "").trim(),
+        };
+        if (currentFinanceView === "relatorios") renderFinance();
+      };
+      reportTipoFiltro?.addEventListener("change", syncReportFilters);
+      reportCategoriaFiltro?.addEventListener("change", syncReportFilters);
+      reportClienteFiltro?.addEventListener("change", syncReportFilters);
+      reportFornecedorFiltro?.addEventListener("change", syncReportFilters);
 
       function closeFinanceMenu() {
         financeSubnav?.classList.remove("open");
@@ -11183,6 +11120,11 @@
         filterFrom.value = "";
         filterTo.value = "";
         historyFilter = { from: null, to: null };
+        if (reportTipoFiltro) reportTipoFiltro.value = "";
+        if (reportCategoriaFiltro) reportCategoriaFiltro.value = "";
+        if (reportClienteFiltro) reportClienteFiltro.value = "";
+        if (reportFornecedorFiltro) reportFornecedorFiltro.value = "";
+        reportFilter = { tipo: "", categoria: "", cliente: "", fornecedor: "" };
         renderFinance();
       });
 
