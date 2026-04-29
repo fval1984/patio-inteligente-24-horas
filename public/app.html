@@ -9778,9 +9778,10 @@
           financeHead.innerHTML = `
             <tr>
               <th>Vencimento</th>
-              <th>Valor</th>
+              <th>Descrição</th>
+              <th>Fornecedor</th>
               <th>Categoria</th>
-              <th>Descrição / Fornecedor</th>
+              <th>Valor</th>
               <th>Dias em atraso</th>
               <th>Status</th>
               <th>Ações</th>
@@ -9838,31 +9839,36 @@
 
         if (currentFinanceView === "pagar") {
           state.payables
-            .filter((p) => p.status === "EM_ABERTO")
             .filter(payableDescMatchesPlate)
+            .sort((a, b) => String(a.data_vencimento || "").localeCompare(String(b.data_vencimento || "")))
             .forEach((p) => {
             const due = (p.data_vencimento || "").slice(0, 10);
             const today = new Date().toISOString().slice(0, 10);
-            const isOverdue = !!(due && due < today);
-            const atrasoDias = isOverdue
-              ? Math.max(0, Math.floor((new Date(today).getTime() - new Date(due).getTime()) / 86400000))
-              : 0;
-            rows.push(`
-              <tr>
-                <td>${formatDate(p.data_vencimento)}</td>
-                <td>${formatCurrency(p.valor)}</td>
-                <td>${escapeHtml(p.payable_category || "OUTROS")}</td>
-                <td>
-                  ${p.descricao || "Despesa"}<br />
-                  <span class="notice">${escapeHtml(p.fornecedor || "Fornecedor não informado")}</span>
-                </td>
-                <td>${atrasoDias} dia(s)</td>
-                <td><span class="tag ${isOverdue ? "danger" : "warning"}">${isOverdue ? "Vencido" : "Pendente"}</span></td>
-                <td class="actions">
+            const isPaid = p.status === "PAGO";
+            const isOverdue = !isPaid && !!(due && due < today);
+            const atrasoDias = isOverdue ? Math.max(0, Math.floor((new Date(today).getTime() - new Date(due).getTime()) / 86400000)) : 0;
+            const statusLabel = isPaid ? "Pago" : isOverdue ? "Vencido" : "Pendente";
+            const statusClass = isPaid ? "success" : isOverdue ? "danger" : "warning";
+            const acoes = isPaid
+              ? `
+                  <button class="secondary" data-action="editar-pago" data-id="${p.id}">Editar</button>
+                  <button class="secondary" data-action="apagar-pago" data-id="${p.id}">Apagar</button>
+                `
+              : `
                   <button class="secondary" data-action="pagar" data-id="${p.id}">Pagamento</button>
                   <button class="secondary" data-action="editar-despesa" data-id="${p.id}">Editar</button>
                   <button class="secondary" data-action="apagar-despesa" data-id="${p.id}">Excluir</button>
-                </td>
+                `;
+            rows.push(`
+              <tr>
+                <td>${formatDate(p.data_vencimento)}</td>
+                <td>${escapeHtml(p.descricao || "Despesa")}</td>
+                <td>${escapeHtml(p.fornecedor || "Fornecedor não informado")}</td>
+                <td>${escapeHtml(p.payable_category || "OUTROS")}</td>
+                <td>${formatCurrency(p.valor)}</td>
+                <td>${atrasoDias} dia(s)</td>
+                <td><span class="tag ${statusClass}">${statusLabel}</span></td>
+                <td class="actions">${acoes}</td>
               </tr>
             `);
             });
