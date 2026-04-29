@@ -2673,22 +2673,17 @@
               </details>
 
               <details class="header-menu-details" id="headerDetailsFinance">
-                <summary>Gestão financeira</summary>
+                <summary>Financeiro</summary>
                 <div class="header-menu-nested">
-                  <button type="button" data-header-finance-panel="true">Visão geral financeira</button>
+                  <button type="button" data-header-finance-panel="true">Dashboard geral</button>
                   <button type="button" data-header-finance-action="financeMenuNewPayable">Nova despesa</button>
-                  <button type="button" data-header-finance-action="financeMenuPrintOpenRec">Imprimir a receber em aberto</button>
                   <button type="button" data-header-finance-action="financeMenuReload">Atualizar dados</button>
-                  <button type="button" data-header-finance-action="financeMenuReceberFilters">Filtro de contas a receber</button>
-                  <button type="button" data-header-finance-sub="aguardando_lancamento">Aguardando lançamento</button>
+                  <button type="button" data-header-finance-sub="lancamentos">Lançamentos financeiros</button>
                   <button type="button" data-header-finance-sub="receber">Contas a receber</button>
-                  <button type="button" data-header-finance-sub="receber_alerta">Recebimentos em alerta</button>
                   <button type="button" data-header-finance-sub="pagar">Contas a pagar</button>
-                  <button type="button" data-header-finance-sub="caixa">Caixa</button>
-                  <button type="button" data-header-finance-sub="fechamento_mensal">Fechamento mensal</button>
+                  <button type="button" data-header-finance-sub="caixa">Fluxo de caixa diário</button>
+                  <button type="button" data-header-finance-sub="cadastro_base">Cadastro base</button>
                   <button type="button" data-header-finance-sub="relatorios">Relatórios</button>
-                  <button type="button" data-header-finance-sub="historico_pagar">Histórico a pagar</button>
-                  <button type="button" data-header-finance-sub="historico_receber">Histórico a receber</button>
                 </div>
               </details>
 
@@ -2806,10 +2801,10 @@
             </button>
             <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
               <span class="dashboard-system-btn__kicker">Financeiro</span>
-              <span class="dashboard-system-btn__title">Gestão financeira</span>
+              <span class="dashboard-system-btn__title">Financeiro</span>
               <span class="dashboard-system-btn__desc"
                 >Contas a receber e a pagar, caixa, fechos mensais e relatórios do pátio.</span>
-              <span class="dashboard-system-btn__go">Abrir gestão financeira →</span>
+              <span class="dashboard-system-btn__go">Abrir financeiro →</span>
             </button>
           </div>
           <div class="grid">
@@ -2946,47 +2941,52 @@
               <div class="card-value" id="cardNfsePendente">0</div>
             </div>
             <div id="financeTopDashboard" class="section-card finance-top-dashboard dashboard-embed-finance" style="grid-column: 1 / -1; margin-top: 8px">
-              <p class="dashboard-embed-kicker">Resumo — Gestão financeira</p>
+              <p class="dashboard-embed-kicker">Resumo — Financeiro</p>
               <div class="finance-dashboard-grid">
                 <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Projeção de caixa</div>
-                  <div class="finance-kpi-value" id="fdtCaixaProjetado">R$ 0,00</div>
-                  <div class="finance-kpi-meta">Caixa + receber - pagar</div>
+                  <div class="finance-kpi-title">Saldo atual em caixa</div>
+                  <div class="finance-kpi-value" id="fdtCaixaAtual">R$ 0,00</div>
+                  <div class="finance-kpi-meta" id="fdtCaixaStatus">Neutro</div>
                 </div>
                 <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Entradas no mês</div>
+                  <div class="finance-kpi-title">Total de receitas do mês</div>
                   <div class="finance-kpi-value" id="fdtEntradasMes">R$ 0,00</div>
-                  <div class="finance-kpi-meta" id="fdtSaidasMesMeta">Saídas no mês: R$ 0,00</div>
+                  <div class="finance-kpi-meta">Entradas confirmadas no mês</div>
                 </div>
                 <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Resultado do mês</div>
+                  <div class="finance-kpi-title">Total de despesas do mês</div>
+                  <div class="finance-kpi-value" id="fdtSaidasMes">R$ 0,00</div>
+                  <div class="finance-kpi-meta">Saídas confirmadas no mês</div>
+                </div>
+                <div class="finance-kpi-card">
+                  <div class="finance-kpi-title">Lucro líquido mensal</div>
                   <div class="finance-kpi-value" id="fdtResultadoMes">R$ 0,00</div>
-                  <div class="finance-kpi-meta">Entradas - saídas</div>
+                  <div class="finance-kpi-meta">Receitas - despesas</div>
                 </div>
                 <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Ticket médio (a receber)</div>
-                  <div class="finance-kpi-value" id="fdtTicketMedio">R$ 0,00</div>
-                  <div class="finance-kpi-meta">Média por conta em aberto</div>
+                  <div class="finance-kpi-title">Contas a pagar vencidas</div>
+                  <div class="finance-kpi-value" id="fdtPagarVencidasQtd">0</div>
+                  <div class="finance-kpi-meta" id="fdtPagarVencidasValor">Total vencido: R$ 0,00</div>
                 </div>
                 <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Índice de atraso</div>
-                  <div class="finance-kpi-value" id="fdtIndiceAtraso">0%</div>
-                  <div class="finance-kpi-meta" id="fdtAtrasoMeta">0 contas em atraso</div>
+                  <div class="finance-kpi-title">Contas a receber vencidas</div>
+                  <div class="finance-kpi-value" id="fdtAtrasoQtd">0</div>
+                  <div class="finance-kpi-meta" id="fdtAtrasoValor">Total vencido: R$ 0,00</div>
                 </div>
                 <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Autonomia de caixa</div>
-                  <div class="finance-kpi-value" id="fdtRunway">0 dias</div>
-                  <div class="finance-kpi-meta">Com base na despesa média diária do mês</div>
+                  <div class="finance-kpi-title">Faturamento anual</div>
+                  <div class="finance-kpi-value" id="fdtFaturamentoAnual">R$ 0,00</div>
+                  <div class="finance-kpi-meta" id="fdtLucroAnualMeta">Lucro anual: R$ 0,00</div>
                 </div>
               </div>
               <div class="finance-charts-grid">
                 <div class="finance-chart-card">
-                  <div class="finance-chart-title">Tendência 6 meses (Entradas x Saídas)</div>
+                  <div class="finance-chart-title">Comparativo mensal receitas x despesas</div>
                   <svg id="fdtTrendSvg" class="finance-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
                   <div class="finance-chart-legend">Azul: entradas • Vermelho: saídas</div>
                 </div>
                 <div class="finance-chart-card">
-                  <div class="finance-chart-title">Projeção de caixa (4 semanas)</div>
+                  <div class="finance-chart-title">Fluxo de caixa em gráfico</div>
                   <svg id="fdtProjectionSvg" class="finance-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
                   <div class="finance-chart-legend">Linha mostra a evolução esperada do saldo</div>
                 </div>
@@ -3002,7 +3002,7 @@
               <h2 style="margin: 0">Lista</h2>
               <p class="subtitle" style="margin: 6px 0 0; max-width: 42rem">
                 Filtros comuns (localizador, assessoria e texto tipo banco) aplicam-se à área escolhida. Para editar ou lançar valores, use as abas
-                <strong>Gestão de pátio</strong> e <strong>Gestão financeira</strong>.
+                <strong>Gestão de pátio</strong> e <strong>Financeiro</strong>.
               </p>
             </div>
             <div class="actions lista-toolbar-actions">
@@ -3390,36 +3390,29 @@
                 <button type="button" class="secondary" id="openConfigFromFinanceiro">Configurações</button>
               </div>
               <div class="finance-module-meta">
-                <span class="finance-module-name">Gestão financeira do pátio</span>
+                <span class="finance-module-name">Financeiro do pátio</span>
               </div>
             </div>
           </div>
           <div class="toolbar finance-toolbar">
             <div class="finance-toolbar-text">
               <p class="module-kicker module-kicker--finance">Financeiro</p>
-              <h2>Gestão financeira</h2>
+              <h2>Financeiro</h2>
               <nav id="financeSubnav" class="subnav finance-nav-inline" aria-label="Navegação financeira">
-                <span class="finance-menu-group">Visão geral</span>
-                <button type="button" class="secondary" data-subview="dashboard">Resumo neste módulo</button>
+                <span class="finance-menu-group">Aba principal</span>
+                <button type="button" class="secondary" data-subview="dashboard">Dashboard geral</button>
                 <button type="button" class="secondary" id="financeMenuReload">Atualizar dados</button>
 
-                <span class="finance-menu-group">Recebimentos</span>
-                <button type="button" class="secondary" id="financeMenuPrintOpenRec">Imprimir a receber em aberto</button>
-                <button type="button" class="secondary" id="financeMenuReceberFilters">Filtro de contas a receber</button>
-                <button type="button" class="secondary" data-subview="aguardando_lancamento">Fila de lançamento financeiro</button>
-                <button type="button" class="secondary" data-subview="receber">Recebimentos em aberto</button>
-                <button type="button" class="secondary" data-subview="receber_alerta">Recebimentos em alerta</button>
-
-                <span class="finance-menu-group">Pagamentos e caixa</span>
+                <span class="finance-menu-group">Operação financeira</span>
+                <button type="button" class="secondary" data-subview="lancamentos">Lançamentos financeiros</button>
                 <button type="button" class="secondary" id="financeMenuNewPayable">Nova despesa</button>
-                <button type="button" class="secondary" data-subview="pagar">Pagamentos em aberto</button>
-                <button type="button" class="secondary" data-subview="caixa">Caixa</button>
+                <button type="button" class="secondary" data-subview="pagar">Contas a pagar</button>
+                <button type="button" class="secondary" data-subview="receber">Contas a receber</button>
+                <button type="button" class="secondary" data-subview="caixa">Fluxo de caixa diário</button>
 
-                <span class="finance-menu-group">Gestão e histórico</span>
-                <button type="button" class="secondary" data-subview="fechamento_mensal">Fechamento mensal</button>
+                <span class="finance-menu-group">Cadastros e análise</span>
+                <button type="button" class="secondary" data-subview="cadastro_base">Cadastro base</button>
                 <button type="button" class="secondary" data-subview="relatorios">Relatórios</button>
-                <button type="button" class="secondary" data-subview="historico_pagar">Histórico a pagar</button>
-                <button type="button" class="secondary" data-subview="historico_receber">Histórico a receber</button>
               </nav>
             </div>
             <div class="actions">
@@ -3428,7 +3421,7 @@
           </div>
           <div id="financeFlyoutBackdrop" class="finance-flyout-backdrop hidden"></div>
           <div class="finance-context-bar">
-            <span id="financeViewBadge" class="finance-context-badge">Visão: Resumo</span>
+            <span id="financeViewBadge" class="finance-context-badge">Visão: Dashboard geral</span>
             <span id="financeModeBadge" class="finance-context-badge">Modo executivo</span>
           </div>
           <div id="receivableAlert" class="alert hidden"></div>
@@ -3482,6 +3475,26 @@
             <button class="secondary" id="quick90">Últimos 90 dias</button>
             <button class="secondary" id="exportHistory">Exportar CSV</button>
           </div>
+          <div id="financeLancamentosFilters" class="filter-bar hidden" style="margin: 0 0 10px; flex-wrap: wrap; align-items: center">
+            <span class="notice" style="font-weight: 600">Lançamentos — filtros:</span>
+            <label for="financeLancTipo">Tipo</label>
+            <select id="financeLancTipo">
+              <option value="">Todos</option>
+              <option value="RECEITA">Receita</option>
+              <option value="DESPESA">Despesa</option>
+            </select>
+            <label for="financeLancStatus">Status</label>
+            <select id="financeLancStatus">
+              <option value="">Todos</option>
+              <option value="ABERTO">Não pago</option>
+              <option value="PAGO">Pago</option>
+            </select>
+            <label for="financeLancCategoria">Categoria</label>
+            <input id="financeLancCategoria" type="text" placeholder="Categoria" />
+            <label for="financeLancBusca">Descrição / Cliente / Fornecedor</label>
+            <input id="financeLancBusca" type="text" placeholder="Buscar" />
+            <button type="button" class="secondary" id="financeLancLimpar">Limpar filtros</button>
+          </div>
           <div id="financeContent" class="hidden">
             <div id="financeDetailDashboard" class="section-card hidden" style="margin-top: 0">
               <div class="finance-dashboard-grid">
@@ -3515,18 +3528,28 @@
                   <div class="finance-kpi-value" id="fdAtrasoQtd">0</div>
                   <div class="finance-kpi-meta" id="fdAtrasoValor">Total em atraso: R$ 0,00</div>
                 </div>
+                <div class="finance-kpi-card">
+                  <div class="finance-kpi-title">Faturamento anual</div>
+                  <div class="finance-kpi-value" id="fdFaturamentoAnual">R$ 0,00</div>
+                  <div class="finance-kpi-meta" id="fdLucroAnualMeta">Lucro anual: R$ 0,00</div>
+                </div>
+                <div class="finance-kpi-card">
+                  <div class="finance-kpi-title">Contas a pagar vencidas</div>
+                  <div class="finance-kpi-value" id="fdPagarVencidasQtd">0</div>
+                  <div class="finance-kpi-meta" id="fdPagarVencidasValor">Total vencido: R$ 0,00</div>
+                </div>
               </div>
               <div class="finance-dashboard-sections">
                 <div class="section-card" style="margin: 0">
-                  <div class="card-title">Top responsáveis (a receber)</div>
-                  <ol id="fdTopResponsaveis" class="finance-dashboard-list"></ol>
+                  <div class="card-title">Percentual de despesas por categoria</div>
+                  <ol id="fdDespesasCategoria" class="finance-dashboard-list"></ol>
                 </div>
                 <div class="section-card" style="margin: 0">
-                  <div class="card-title">Top localizadores (a receber)</div>
-                  <ol id="fdTopLocalizadores" class="finance-dashboard-list"></ol>
+                  <div class="card-title">Ranking maiores gastos</div>
+                  <ol id="fdRankingGastos" class="finance-dashboard-list"></ol>
                 </div>
                 <div class="section-card" style="margin: 0">
-                  <div class="card-title">Fila de lançamento financeiro</div>
+                  <div class="card-title">Indicadores auxiliares</div>
                   <ol id="fdFilaFinanceira" class="finance-dashboard-list"></ol>
                 </div>
               </div>
@@ -3832,6 +3855,54 @@
               <div class="full field-operador-hide">
                 <label>Observações</label>
                 <input id="vehicleNotes" type="text" placeholder="Observações importantes" />
+              </div>
+              <div class="full field-operador-hide" style="margin-top: 6px">
+                <h4 class="ficha-section-title" style="margin: 0 0 6px">Vistoria de entrada</h4>
+              </div>
+              <div class="field-operador-hide">
+                <label>Data da vistoria</label>
+                <input id="vehicleInspectionDate" type="datetime-local" />
+              </div>
+              <div class="field-operador-hide">
+                <label>Responsável pela vistoria</label>
+                <input id="vehicleInspectionResponsible" type="text" placeholder="Nome do vistoriador" />
+              </div>
+              <div class="field-operador-hide">
+                <label>KM</label>
+                <input id="vehicleInspectionKm" type="text" placeholder="Ex.: 123456" />
+              </div>
+              <div class="field-operador-hide">
+                <label>Combustível</label>
+                <select id="vehicleInspectionFuel">
+                  <option value="">Não informado</option>
+                  <option value="VAZIO">Vazio</option>
+                  <option value="1/4">1/4</option>
+                  <option value="1/2">1/2</option>
+                  <option value="3/4">3/4</option>
+                  <option value="CHEIO">Cheio</option>
+                </select>
+              </div>
+              <div class="full field-operador-hide" style="display: flex; flex-wrap: wrap; gap: 10px 16px">
+                <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
+                  <input type="checkbox" id="vehicleInspectionDoc" />
+                  Documento no veículo
+                </label>
+                <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
+                  <input type="checkbox" id="vehicleInspectionKey" />
+                  Chave entregue
+                </label>
+                <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
+                  <input type="checkbox" id="vehicleInspectionStep" />
+                  Estepe presente
+                </label>
+                <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
+                  <input type="checkbox" id="vehicleInspectionTow" />
+                  Triângulo/macaco
+                </label>
+              </div>
+              <div class="full field-operador-hide">
+                <label>Avarias e observações da vistoria</label>
+                <input id="vehicleInspectionDamage" type="text" placeholder="Ex.: para-choque dianteiro riscado, retrovisor esquerdo trincado" />
               </div>
             </div>
             <div class="form-actions">
@@ -4167,6 +4238,10 @@
               <h4 class="ficha-section-title">SLV · Solicitação de liberação do veículo</h4>
               <div id="fichaSectionSlv"></div>
             </div>
+            <div class="section-card" style="margin-bottom: 12px">
+              <h4 class="ficha-section-title">LV · Laudo de vistoria</h4>
+              <div id="fichaSectionVistoria"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -4385,6 +4460,7 @@
       const fichaTimeline = document.getElementById("fichaTimeline");
       const fichaSectionSnf = document.getElementById("fichaSectionSnf");
       const fichaSectionSlv = document.getElementById("fichaSectionSlv");
+      const fichaSectionVistoria = document.getElementById("fichaSectionVistoria");
       const fichaModalTitle = document.getElementById("fichaModalTitle");
       const nfseModal = document.getElementById("nfseModal");
       const closeNfseModal = document.getElementById("closeNfseModal");
@@ -4438,6 +4514,7 @@
       const financeViewBadge = document.getElementById("financeViewBadge");
       const financeModeBadge = document.getElementById("financeModeBadge");
       const financeFilters = document.getElementById("financeFilters");
+      const financeLancamentosFilters = document.getElementById("financeLancamentosFilters");
       const financeContent = document.getElementById("financeContent");
       const financePlateFilter = document.getElementById("financePlateFilter");
       const financePlateSearchForm = document.getElementById("financePlateSearchForm");
@@ -4450,6 +4527,11 @@
       const quick30 = document.getElementById("quick30");
       const quick90 = document.getElementById("quick90");
       const exportHistory = document.getElementById("exportHistory");
+      const financeLancTipo = document.getElementById("financeLancTipo");
+      const financeLancStatus = document.getElementById("financeLancStatus");
+      const financeLancCategoria = document.getElementById("financeLancCategoria");
+      const financeLancBusca = document.getElementById("financeLancBusca");
+      const financeLancLimpar = document.getElementById("financeLancLimpar");
 
       const settingsCnpj = document.getElementById("settingsCnpj");
       const settingsName = document.getElementById("settingsName");
@@ -4516,6 +4598,7 @@
       let currentPartnerView = null;
       const navStack = ["dashboard"];
       let historyFilter = { from: null, to: null };
+      let lancamentosFilter = { tipo: "", status: "", categoria: "", busca: "" };
       let plateQuery = "";
       let financePlateQuery = "";
       let financePlateInputTimer = null;
@@ -4693,6 +4776,10 @@
         const mm = String(date.getMonth() + 1).padStart(2, "0");
         const yy = String(date.getFullYear()).slice(-2);
         return `${dd}-${mm}-${yy}`;
+      }
+
+      function boolLabel(v) {
+        return v ? "Sim" : "Não";
       }
 
       function escapeHtml(str) {
@@ -8346,6 +8433,44 @@
             fichaSectionSlv.innerHTML = `${situacao}<div class="ficha-inline-actions">${botoes.join("")}</div>`;
         }
 
+        if (fichaSectionVistoria) {
+          const vistoriaData = vehicle.vistoria_data ? formatDateTime(vehicle.vistoria_data) : "-";
+          const vistoriaResp = vehicle.vistoria_responsavel || "-";
+          const vistoriaKm = vehicle.vistoria_km || "-";
+          const vistoriaComb = vehicle.vistoria_combustivel || "-";
+          const vistoriaObs = vehicle.vistoria_observacoes || "-";
+          const checklist = vehicle.vistoria_checklist || {};
+          const hasVistoria =
+            !!vehicle.vistoria_data ||
+            !!vehicle.vistoria_responsavel ||
+            !!vehicle.vistoria_km ||
+            !!vehicle.vistoria_combustivel ||
+            !!vehicle.vistoria_observacoes ||
+            !!checklist.documento ||
+            !!checklist.chave ||
+            !!checklist.estepe ||
+            !!checklist.triangulo_macaco;
+          fichaSectionVistoria.innerHTML = hasVistoria
+            ? `
+              <p class="notice" style="margin:0 0 8px">
+                Data: <strong>${escapeHtml(vistoriaData)}</strong> • Responsável: <strong>${escapeHtml(vistoriaResp)}</strong>
+              </p>
+              <p style="margin:0 0 8px">
+                KM: <strong>${escapeHtml(vistoriaKm)}</strong> • Combustível: <strong>${escapeHtml(vistoriaComb)}</strong>
+              </p>
+              <p style="margin:0 0 8px">
+                Documento: <strong>${boolLabel(!!checklist.documento)}</strong> •
+                Chave: <strong>${boolLabel(!!checklist.chave)}</strong> •
+                Estepe: <strong>${boolLabel(!!checklist.estepe)}</strong> •
+                Triângulo/Macaco: <strong>${boolLabel(!!checklist.triangulo_macaco)}</strong>
+              </p>
+              <p style="margin:0">
+                Avarias/observações: ${escapeHtml(vistoriaObs)}
+              </p>
+            `
+            : `<p class="notice" style="margin:0">Sem laudo de vistoria cadastrado neste veículo.</p>`;
+        }
+
         const { data, error } = await supabase
           .from("vehicle_events")
           .select("*")
@@ -8574,6 +8699,15 @@
           vehicleLocator.value = vehicle.localizador_id || "";
           vehicleAssessor.value = vehicle.assessoria_id || "";
           document.getElementById("vehicleNotes").value = vehicle.observacoes || "";
+          document.getElementById("vehicleInspectionDate").value = toLocalInput(vehicle.vistoria_data);
+          document.getElementById("vehicleInspectionResponsible").value = vehicle.vistoria_responsavel || "";
+          document.getElementById("vehicleInspectionKm").value = vehicle.vistoria_km || "";
+          document.getElementById("vehicleInspectionFuel").value = vehicle.vistoria_combustivel || "";
+          document.getElementById("vehicleInspectionDoc").checked = !!vehicle.vistoria_checklist?.documento;
+          document.getElementById("vehicleInspectionKey").checked = !!vehicle.vistoria_checklist?.chave;
+          document.getElementById("vehicleInspectionStep").checked = !!vehicle.vistoria_checklist?.estepe;
+          document.getElementById("vehicleInspectionTow").checked = !!vehicle.vistoria_checklist?.triangulo_macaco;
+          document.getElementById("vehicleInspectionDamage").value = vehicle.vistoria_observacoes || "";
         } else {
           const entryInput = document.getElementById("vehicleEntry");
           if (!entryInput.value) {
@@ -8669,6 +8803,21 @@
             c1: "tag warning",
             c2: "tag danger",
             c3: "tag warning",
+          });
+        } else if (currentFinanceView === "lancamentos") {
+          setFinanceSummaryCards({
+            t1: "Total de receitas em aberto",
+            v1: formatCurrency(sumReceivablesFiltered),
+            m1: `${receivablesFiltered.length} lançamento(s)`,
+            t2: "Total de despesas em aberto",
+            v2: formatCurrency(sumPayablesFiltered),
+            m2: `${payablesFiltered.length} lançamento(s)`,
+            t3: "Saldo atual em caixa",
+            v3: formatCurrency(caixa),
+            m3: caixa >= 0 ? "posição positiva" : "posição negativa",
+            c1: "tag warning",
+            c2: "tag danger",
+            c3: caixa >= 0 ? "tag success" : "tag warning",
           });
         } else if (currentFinanceView === "receber" || currentFinanceView === "receber_alerta") {
           const ticket = receivablesFiltered.length ? sumReceivablesFiltered / receivablesFiltered.length : 0;
@@ -8792,26 +8941,19 @@
             return days > 10;
           });
           const overdueTotal = overdueReceivablesDetail.reduce((s, r) => s + Number(r.valor || 0), 0);
-          const ticketMedio = openReceivablesFinanceiro.length ? totalReceber / openReceivablesFinanceiro.length : 0;
-          const indiceAtraso = openReceivablesFinanceiro.length
-            ? (overdueReceivablesDetail.length / openReceivablesFinanceiro.length) * 100
-            : 0;
+          const todayYmd = new Date().toISOString().slice(0, 10);
+          const overduePayablesDetail = openPayables.filter((p) => (p.data_vencimento || "").slice(0, 10) < todayYmd);
+          const overduePayablesTotal = overduePayablesDetail.reduce((s, p) => s + Number(p.valor || 0), 0);
           const resultadoMes = entradasMes - saidasMes;
-          const dayNow = new Date().getDate();
-          const despesaMediaDia = dayNow > 0 ? saidasMes / dayNow : 0;
-          const runway = despesaMediaDia > 0 ? Math.floor(caixa / despesaMediaDia) : 0;
-          const partnerMap = new Map(state.partners.map((p) => [p.id, p.nome || "—"]));
-          const vehicleMap = new Map(state.vehicles.map((v) => [v.id, v]));
-          const byResp = new Map();
-          const byLoc = new Map();
-          openReceivablesFinanceiro.forEach((r) => {
-            const val = Number(r.valor || 0);
-            const resp = r.responsavel_pagamento || "Sem responsável";
-            byResp.set(resp, (byResp.get(resp) || 0) + val);
-            const vehicle = vehicleMap.get(r.vehicle_id);
-            const locName = vehicle?.localizador_id ? partnerMap.get(vehicle.localizador_id) || "Sem localizador" : "Sem localizador";
-            byLoc.set(locName, (byLoc.get(locName) || 0) + val);
+          const byCategoriaDespesa = new Map();
+          state.payables.forEach((p) => {
+            const cat = (p.payable_category || "OUTROS").toString().trim() || "OUTROS";
+            byCategoriaDespesa.set(cat, (byCategoriaDespesa.get(cat) || 0) + Number(p.valor || 0));
           });
+          const totalDespesasCategorias = [...byCategoriaDespesa.values()].reduce((s, v) => s + Number(v || 0), 0);
+          const rankingGastos = [...state.payables]
+            .sort((a, b) => Number(b.valor || 0) - Number(a.valor || 0))
+            .slice(0, 5);
           const fillTop = (elId, items, emptyText) => {
             const el = document.getElementById(elId);
             if (!el) return;
@@ -8845,6 +8987,16 @@
             if (m.tipo_conta === "RECEBER") entradasPorMes.set(ym, (entradasPorMes.get(ym) || 0) + Number(m.valor || 0));
             if (m.tipo_conta === "PAGAR") saidasPorMes.set(ym, (saidasPorMes.get(ym) || 0) + Number(m.valor || 0));
           });
+          const currentYear = String(new Date().getFullYear());
+          const entradasAno = state.cash
+            .filter((m) => m.tipo_conta === "RECEBER")
+            .filter((m) => String(toLocalYmd(m.data_movimento || m.created_at) || "").startsWith(currentYear))
+            .reduce((s, m) => s + Number(m.valor || 0), 0);
+          const saidasAno = state.cash
+            .filter((m) => m.tipo_conta === "PAGAR")
+            .filter((m) => String(toLocalYmd(m.data_movimento || m.created_at) || "").startsWith(currentYear))
+            .reduce((s, m) => s + Number(m.valor || 0), 0);
+          const lucroAnual = entradasAno - saidasAno;
           const maxMonthly = Math.max(
             1,
             ...seriesMonths.map((ym) => entradasPorMes.get(ym) || 0),
@@ -8912,14 +9064,24 @@
           if (_fdtCx) _fdtCx.textContent = formatCurrency(caixa);
           const _fdtCxSt = document.getElementById("fdtCaixaStatus");
           if (_fdtCxSt) _fdtCxSt.textContent = caixa >= 0 ? "Posição positiva" : "Posição negativa";
-          document.getElementById("fdtCaixaProjetado").textContent = formatCurrency(projetado);
+          const fdtCaixaProjetado = document.getElementById("fdtCaixaProjetado");
+          if (fdtCaixaProjetado) fdtCaixaProjetado.textContent = formatCurrency(projetado);
           document.getElementById("fdtEntradasMes").textContent = formatCurrency(entradasMes);
-          document.getElementById("fdtSaidasMesMeta").textContent = `Saídas no mês: ${formatCurrency(saidasMes)}`;
+          const fdtSaidasMes = document.getElementById("fdtSaidasMes");
+          if (fdtSaidasMes) fdtSaidasMes.textContent = formatCurrency(saidasMes);
           document.getElementById("fdtResultadoMes").textContent = formatCurrency(resultadoMes);
-          document.getElementById("fdtTicketMedio").textContent = formatCurrency(ticketMedio);
-          document.getElementById("fdtIndiceAtraso").textContent = `${indiceAtraso.toFixed(1)}%`;
-          document.getElementById("fdtAtrasoMeta").textContent = `${overdueReceivablesDetail.length} contas em atraso`;
-          document.getElementById("fdtRunway").textContent = `${Math.max(0, runway)} dias`;
+          const fdtAtrasoQtd = document.getElementById("fdtAtrasoQtd");
+          if (fdtAtrasoQtd) fdtAtrasoQtd.textContent = String(overdueReceivablesDetail.length);
+          const fdtAtrasoValor = document.getElementById("fdtAtrasoValor");
+          if (fdtAtrasoValor) fdtAtrasoValor.textContent = `Total vencido: ${formatCurrency(overdueTotal)}`;
+          const fdtPagarVencidasQtd = document.getElementById("fdtPagarVencidasQtd");
+          if (fdtPagarVencidasQtd) fdtPagarVencidasQtd.textContent = String(overduePayablesDetail.length);
+          const fdtPagarVencidasValor = document.getElementById("fdtPagarVencidasValor");
+          if (fdtPagarVencidasValor) fdtPagarVencidasValor.textContent = `Total vencido: ${formatCurrency(overduePayablesTotal)}`;
+          const fdtFaturamentoAnual = document.getElementById("fdtFaturamentoAnual");
+          if (fdtFaturamentoAnual) fdtFaturamentoAnual.textContent = formatCurrency(entradasAno);
+          const fdtLucroAnualMeta = document.getElementById("fdtLucroAnualMeta");
+          if (fdtLucroAnualMeta) fdtLucroAnualMeta.textContent = `Lucro anual: ${formatCurrency(lucroAnual)}`;
 
           document.getElementById("fdTotalReceber").textContent = formatCurrency(totalReceber);
           document.getElementById("fdQtdReceber").textContent = `${openReceivablesFinanceiro.length} contas`;
@@ -8932,8 +9094,29 @@
           document.getElementById("fdSaidasMesMeta").textContent = `Saídas no mês: ${formatCurrency(saidasMes)}`;
           document.getElementById("fdAtrasoQtd").textContent = String(overdueReceivablesDetail.length);
           document.getElementById("fdAtrasoValor").textContent = `Total em atraso: ${formatCurrency(overdueTotal)}`;
-          fillTop("fdTopResponsaveis", [...byResp.entries()].sort((a, b) => b[1] - a[1]), "Sem dados");
-          fillTop("fdTopLocalizadores", [...byLoc.entries()].sort((a, b) => b[1] - a[1]), "Sem dados");
+          const fdFaturamentoAnual = document.getElementById("fdFaturamentoAnual");
+          const fdLucroAnualMeta = document.getElementById("fdLucroAnualMeta");
+          const fdPagarVencidasQtd = document.getElementById("fdPagarVencidasQtd");
+          const fdPagarVencidasValor = document.getElementById("fdPagarVencidasValor");
+          if (fdFaturamentoAnual) fdFaturamentoAnual.textContent = formatCurrency(entradasAno);
+          if (fdLucroAnualMeta) fdLucroAnualMeta.textContent = `Lucro anual: ${formatCurrency(lucroAnual)}`;
+          if (fdPagarVencidasQtd) fdPagarVencidasQtd.textContent = String(overduePayablesDetail.length);
+          if (fdPagarVencidasValor) fdPagarVencidasValor.textContent = `Total vencido: ${formatCurrency(overduePayablesTotal)}`;
+          fillTop(
+            "fdDespesasCategoria",
+            [...byCategoriaDespesa.entries()]
+              .sort((a, b) => b[1] - a[1])
+              .map(([nome, valor]) => [
+                `${nome} (${totalDespesasCategorias > 0 ? ((Number(valor || 0) / totalDespesasCategorias) * 100).toFixed(1) : "0.0"}%)`,
+                valor,
+              ]),
+            "Sem despesas lançadas"
+          );
+          fillTop(
+            "fdRankingGastos",
+            rankingGastos.map((p) => [p.descricao || "Despesa", Number(p.valor || 0)]),
+            "Sem gastos lançados"
+          );
           const filaEl = document.getElementById("fdFilaFinanceira");
           if (filaEl) {
             filaEl.innerHTML = filaFinanceira.map(([label, qtd]) => `<li>${escapeHtml(label)} — <strong>${qtd}</strong></li>`).join("");
@@ -8953,6 +9136,123 @@
         if (stdArea) stdArea.classList.remove("hidden");
 
         const rows = [];
+
+        if (currentFinanceView === "cadastro_base") {
+          financeHead.innerHTML = `
+            <tr>
+              <th>Cadastro</th>
+              <th>Total de itens</th>
+              <th>Fonte</th>
+            </tr>`;
+          const baseCategorias = new Set(state.payables.map((p) => String(p.payable_category || "").trim()).filter(Boolean));
+          const baseClientes = new Set(state.receivables.map((r) => String(r.responsavel_pagamento || "").trim()).filter(Boolean));
+          const baseFornecedores = new Set(state.payables.map((p) => String(p.descricao || "").trim()).filter(Boolean));
+          const baseFormas = new Set(state.cash.map((m) => String(m.forma_pagamento || "").trim()).filter(Boolean));
+          const baseBancos = new Set([String(state.settings?.conta_bancaria || "").trim()].filter(Boolean));
+          rows.push(`<tr><td>Categorias</td><td>${baseCategorias.size}</td><td>Contas a pagar</td></tr>`);
+          rows.push(`<tr><td>Subcategorias</td><td>0</td><td>A configurar</td></tr>`);
+          rows.push(`<tr><td>Clientes</td><td>${baseClientes.size}</td><td>Contas a receber</td></tr>`);
+          rows.push(`<tr><td>Fornecedores</td><td>${baseFornecedores.size}</td><td>Contas a pagar</td></tr>`);
+          rows.push(`<tr><td>Formas de pagamento</td><td>${baseFormas.size}</td><td>Movimentações de caixa</td></tr>`);
+          rows.push(`<tr><td>Bancos</td><td>${baseBancos.size}</td><td>Configurações</td></tr>`);
+          rows.push(`<tr><td>Centros de custo</td><td>0</td><td>A configurar</td></tr>`);
+          tableFinance.innerHTML = rows.join("");
+          return;
+        }
+
+        if (currentFinanceView === "lancamentos") {
+          financeHead.innerHTML = `
+            <tr>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th>Categoria</th>
+              <th>Subcategoria</th>
+              <th>Descrição</th>
+              <th>Cliente / Fornecedor</th>
+              <th>Forma de pagamento</th>
+              <th>Valor</th>
+              <th>Pago?</th>
+              <th>Data de pagamento</th>
+              <th>Competência</th>
+              <th>Observações</th>
+            </tr>`;
+          const qBusca = String(lancamentosFilter.busca || "").trim().toLowerCase();
+          const qCategoria = String(lancamentosFilter.categoria || "").trim().toLowerCase();
+          const acceptEntry = (entry) => {
+            if (lancamentosFilter.tipo && entry.tipo !== lancamentosFilter.tipo) return false;
+            if (lancamentosFilter.status && entry.status !== lancamentosFilter.status) return false;
+            if (qCategoria && !String(entry.categoria || "").toLowerCase().includes(qCategoria)) return false;
+            if (
+              qBusca &&
+              !`${entry.descricao || ""} ${entry.parte || ""}`.toLowerCase().includes(qBusca)
+            ) return false;
+            return true;
+          };
+          state.receivables
+            .filter((r) => matchesVehicleId(r.vehicle_id))
+            .forEach((r) => {
+              const ymd = (r.period_start || r.created_at || "").toString().slice(0, 10);
+              const entry = {
+                tipo: "RECEITA",
+                status: r.status === "PAGO" ? "PAGO" : "ABERTO",
+                categoria: r.receivable_category || "RECEITA",
+                descricao: r.observacoes || "Lançamento de receita",
+                parte: r.responsavel_pagamento || "-",
+              };
+              if (!acceptEntry(entry)) return;
+              rows.push(`
+                <tr>
+                  <td>${formatDate(ymd)}</td>
+                  <td>Receita</td>
+                  <td>${escapeHtml(entry.categoria)}</td>
+                  <td>-</td>
+                  <td>${escapeHtml(entry.descricao)}</td>
+                  <td>${escapeHtml(entry.parte)}</td>
+                  <td>-</td>
+                  <td>${formatCurrency(Number(r.valor || 0))}</td>
+                  <td>${r.status === "PAGO" ? "Sim" : "Não"}</td>
+                  <td>${r.status === "PAGO" ? formatDate(r.updated_at || r.created_at) : "-"}</td>
+                  <td>${ymd ? escapeHtml(yearMonthFromYmd(ymd)) : "-"}</td>
+                  <td>-</td>
+                </tr>
+              `);
+            });
+          state.payables
+            .filter(payableDescMatchesPlate)
+            .forEach((p) => {
+              const ymd = (p.data_vencimento || p.created_at || "").toString().slice(0, 10);
+              const entry = {
+                tipo: "DESPESA",
+                status: p.status === "PAGO" ? "PAGO" : "ABERTO",
+                categoria: p.payable_category || "OUTROS",
+                descricao: p.descricao || "-",
+                parte: p.fornecedor || "-",
+              };
+              if (!acceptEntry(entry)) return;
+              rows.push(`
+                <tr>
+                  <td>${formatDate(ymd)}</td>
+                  <td>Despesa</td>
+                  <td>${escapeHtml(entry.categoria)}</td>
+                  <td>-</td>
+                  <td>${escapeHtml(entry.descricao)}</td>
+                  <td>${escapeHtml(entry.parte)}</td>
+                  <td>-</td>
+                  <td>${formatCurrency(Number(p.valor || 0))}</td>
+                  <td>${p.status === "PAGO" ? "Sim" : "Não"}</td>
+                  <td>${p.status === "PAGO" ? formatDate(p.updated_at || p.created_at) : "-"}</td>
+                  <td>${ymd ? escapeHtml(yearMonthFromYmd(ymd)) : "-"}</td>
+                  <td>${escapeHtml(p.tipo || "-")}</td>
+                </tr>
+              `);
+            });
+          if (!rows.length) {
+            setEmptyRow(tableFinance, "Nenhum lançamento financeiro encontrado.", 12);
+          } else {
+            tableFinance.innerHTML = rows.join("");
+          }
+          return;
+        }
 
         if (currentFinanceView === "aguardando_lancamento") {
           financeHead.innerHTML = `
@@ -9308,20 +9608,23 @@
         if (currentFinanceView === "pagar") {
           financeHead.innerHTML = `
             <tr>
-              <th>Tipo</th>
-              <th>Categoria / Descrição</th>
-              <th>Valor</th>
               <th>Vencimento</th>
+              <th>Valor</th>
+              <th>Categoria</th>
+              <th>Descrição / Fornecedor</th>
+              <th>Dias em atraso</th>
               <th>Status</th>
               <th>Ações</th>
             </tr>`;
         } else {
           financeHead.innerHTML = `
             <tr>
-              <th>Tipo</th>
-              <th>Categoria / Origem</th>
+              <th>Vencimento</th>
+              <th>Cliente</th>
+              <th>Serviço / Produto</th>
               <th>Valor</th>
               <th>Dias em aberto</th>
+              <th>Recebido em</th>
               <th>Status</th>
               <th>Ações</th>
             </tr>`;
@@ -9343,16 +9646,16 @@
               : "-";
             rows.push(`
                 <tr>
-                  <td>Receber</td>
+                  <td>${formatDate(r.period_end || r.created_at)}</td>
+                  <td>${r.responsavel_pagamento || "Responsável não informado"}</td>
                   <td>
                     <span class="notice">${r.receivable_category || "GUARDA_PATIO"}</span><br />
-                    ${r.responsavel_pagamento || "Responsável não informado"}<br />
-                    <span class="notice">${vehicleInfo}</span><br />
-                    <span class="notice">Valor: ${formatCurrency(valorCobranca)}</span>
+                    <span class="notice">${vehicleInfo}</span>
                   </td>
                   <td>${formatCurrency(valorCobranca)}</td>
                   <td>${daysOpen} dia(s)</td>
-                  <td><span class="tag ${isOverdue ? "danger" : "warning"}">${isOverdue ? "Atrasada" : "Em aberto"}</span></td>
+                  <td>${r.status === "PAGO" ? formatDate(r.updated_at || r.created_at) : "-"}</td>
+                  <td><span class="tag ${isOverdue ? "danger" : "warning"}">${isOverdue ? "Vencida" : "Pendente"}</span></td>
                   <td class="actions">
                     <button class="secondary" data-action="editar-conta-receber" data-id="${r.id}" title="Editar responsável, categoria, período e valor">Editar</button>
                     <button class="secondary" data-action="cobranca" data-id="${r.id}">Cobrança</button>
@@ -9369,16 +9672,23 @@
             .filter((p) => p.status === "EM_ABERTO")
             .filter(payableDescMatchesPlate)
             .forEach((p) => {
+            const due = (p.data_vencimento || "").slice(0, 10);
+            const today = new Date().toISOString().slice(0, 10);
+            const isOverdue = !!(due && due < today);
+            const atrasoDias = isOverdue
+              ? Math.max(0, Math.floor((new Date(today).getTime() - new Date(due).getTime()) / 86400000))
+              : 0;
             rows.push(`
               <tr>
-                <td>Pagar</td>
-                <td>
-                  <span class="notice">${p.payable_category || "OUTROS"}</span><br />
-                  ${p.descricao || "Despesa"}
-                </td>
-                <td>${formatCurrency(p.valor)}</td>
                 <td>${formatDate(p.data_vencimento)}</td>
-                <td><span class="tag">Prevista</span></td>
+                <td>${formatCurrency(p.valor)}</td>
+                <td>${escapeHtml(p.payable_category || "OUTROS")}</td>
+                <td>
+                  ${p.descricao || "Despesa"}<br />
+                  <span class="notice">${escapeHtml(p.fornecedor || "Fornecedor não informado")}</span>
+                </td>
+                <td>${atrasoDias} dia(s)</td>
+                <td><span class="tag ${isOverdue ? "danger" : "warning"}">${isOverdue ? "Vencido" : "Pendente"}</span></td>
                 <td class="actions">
                   <button class="secondary" data-action="pagar" data-id="${p.id}">Pagamento</button>
                   <button class="secondary" data-action="editar-despesa" data-id="${p.id}">Editar</button>
@@ -9486,13 +9796,12 @@
       function setFinanceView(view) {
         currentFinanceView = view;
         const viewMap = {
-          dashboard: "Visão geral",
-          aguardando_lancamento: "Fila de lançamento financeiro",
-          receber: "Recebimentos em aberto",
-          receber_alerta: "Recebimentos em alerta",
-          pagar: "Pagamentos em aberto",
-          caixa: "Caixa",
-          fechamento_mensal: "Fechamento mensal",
+          dashboard: "Dashboard geral",
+          lancamentos: "Lançamentos financeiros",
+          receber: "Contas a receber",
+          pagar: "Contas a pagar",
+          caixa: "Fluxo de caixa diário",
+          cadastro_base: "Cadastro base",
           relatorios: "Relatórios",
           historico_pagar: "Histórico a pagar",
           historico_receber: "Histórico a receber",
@@ -9505,7 +9814,7 @@
           if (isNone) financeRoot.removeAttribute("data-finance-view");
           else financeRoot.setAttribute("data-finance-view", view);
         }
-        if (financeViewBadge) financeViewBadge.textContent = `Visão: ${viewMap[view] || "Resumo"}`;
+        if (financeViewBadge) financeViewBadge.textContent = `Visão: ${viewMap[view] || "Dashboard geral"}`;
         if (financeModeBadge) {
           financeModeBadge.textContent = isDashboard
             ? "Modo executivo"
@@ -9518,6 +9827,7 @@
         });
         if (isNone) {
           financeFilters.classList.add("hidden");
+          financeLancamentosFilters?.classList.add("hidden");
           receivableAlert.classList.add("hidden");
           if (financeContent) financeContent.classList.add("hidden");
           financeRoot?.classList.remove("finance-flyout-open");
@@ -9538,8 +9848,9 @@
           financeContent.classList.add("air-open");
         }
         financeFilters.classList.toggle("hidden", !["historico_receber", "historico_pagar", "relatorios"].includes(view));
-        document.getElementById("financeAguardandoIntro")?.classList.toggle("hidden", view !== "aguardando_lancamento");
-        const receberExtras = view === "receber" || view === "receber_alerta";
+        financeLancamentosFilters?.classList.toggle("hidden", view !== "lancamentos");
+        document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
+        const receberExtras = view === "receber";
         document.getElementById("financeReceberFilters")?.classList.toggle("hidden", !receberExtras);
         renderFinance();
       }
@@ -10194,7 +10505,7 @@
         document.body.classList.remove("app-module-patio", "app-module-finance");
         if (view === "financeiro") {
           document.body.classList.add("app-module-finance");
-          document.title = "Amplipatio · Gestão financeira do pátio";
+          document.title = "Amplipatio · Financeiro do pátio";
         } else if (view === "patio") {
           document.body.classList.add("app-module-patio");
           document.title = "Amplipatio · Gestão de pátio";
@@ -10549,6 +10860,26 @@
           }, 320);
         });
       }
+      const syncLancamentosFilters = () => {
+        lancamentosFilter = {
+          tipo: (financeLancTipo?.value || "").trim(),
+          status: (financeLancStatus?.value || "").trim(),
+          categoria: (financeLancCategoria?.value || "").trim(),
+          busca: (financeLancBusca?.value || "").trim(),
+        };
+        if (currentFinanceView === "lancamentos") renderFinance();
+      };
+      financeLancTipo?.addEventListener("change", syncLancamentosFilters);
+      financeLancStatus?.addEventListener("change", syncLancamentosFilters);
+      financeLancCategoria?.addEventListener("input", syncLancamentosFilters);
+      financeLancBusca?.addEventListener("input", syncLancamentosFilters);
+      financeLancLimpar?.addEventListener("click", () => {
+        if (financeLancTipo) financeLancTipo.value = "";
+        if (financeLancStatus) financeLancStatus.value = "";
+        if (financeLancCategoria) financeLancCategoria.value = "";
+        if (financeLancBusca) financeLancBusca.value = "";
+        syncLancamentosFilters();
+      });
 
       function closeFinanceMenu() {
         financeSubnav?.classList.remove("open");
@@ -10718,6 +11049,19 @@
           nfse_status: editingVehicleData?.nfse_status || "NAO_SOLICITADA",
           nfse_requested_at: editingVehicleData?.nfse_requested_at || null,
           nfse_issued_at: editingVehicleData?.nfse_issued_at || null,
+          vistoria_data: document.getElementById("vehicleInspectionDate").value
+            ? new Date(document.getElementById("vehicleInspectionDate").value).toISOString()
+            : null,
+          vistoria_responsavel: document.getElementById("vehicleInspectionResponsible").value.trim(),
+          vistoria_km: document.getElementById("vehicleInspectionKm").value.trim(),
+          vistoria_combustivel: document.getElementById("vehicleInspectionFuel").value,
+          vistoria_checklist: {
+            documento: !!document.getElementById("vehicleInspectionDoc").checked,
+            chave: !!document.getElementById("vehicleInspectionKey").checked,
+            estepe: !!document.getElementById("vehicleInspectionStep").checked,
+            triangulo_macaco: !!document.getElementById("vehicleInspectionTow").checked,
+          },
+          vistoria_observacoes: document.getElementById("vehicleInspectionDamage").value.trim(),
         };
         if (!normalizePlateSearch(payload.placa)) {
           alert("Informe uma placa válida.");
@@ -10740,7 +11084,28 @@
         const vehicleOp = editingVehicleId
           ? supabase.from("vehicles").update(payload).eq("id", editingVehicleId).eq("user_id", effectiveUserId())
           : supabase.from("vehicles").insert(payload);
-        const { error } = await vehicleOp;
+        let { error } = await vehicleOp;
+        if (error && /vistoria_|column|schema cache|PGRST204/i.test(error.message || "")) {
+          const {
+            vistoria_data: _vd,
+            vistoria_responsavel: _vr,
+            vistoria_km: _vkm,
+            vistoria_combustivel: _vcb,
+            vistoria_checklist: _vck,
+            vistoria_observacoes: _vobs,
+            ...payloadSemVistoria
+          } = payload;
+          const retryOp = editingVehicleId
+            ? supabase.from("vehicles").update(payloadSemVistoria).eq("id", editingVehicleId).eq("user_id", effectiveUserId())
+            : supabase.from("vehicles").insert(payloadSemVistoria);
+          const retry = await retryOp;
+          error = retry.error;
+          if (!error) {
+            alert(
+              "Veículo salvo sem laudo de vistoria. Para habilitar o laudo, execute o SQL: supabase/vehicles_vistoria.sql no Supabase e tente novamente."
+            );
+          }
+        }
         if (error) {
           const msg = error.message || "";
           if (/duplicate key|unique constraint|23505/i.test(msg)) {
