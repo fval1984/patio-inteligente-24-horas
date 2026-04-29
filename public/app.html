@@ -9793,9 +9793,10 @@
               <th>Cliente</th>
               <th>Serviço / Produto</th>
               <th>Valor</th>
-              <th>Dias em aberto</th>
-              <th>Recebido em</th>
               <th>Status</th>
+              <th>Dias em atraso</th>
+              <th>Recebido em</th>
+              <th>Alertas automáticos</th>
               <th>Ações</th>
             </tr>`;
         }
@@ -9811,6 +9812,15 @@
             const isOverdue = created ? daysOpen > 10 : false;
             const vehicle = vehicleById.get(r.vehicle_id);
             const valorCobranca = Number(r.valor || 0);
+            const statusLabel = r.status === "PAGO" ? "Pago" : isOverdue ? "Vencido" : "Pendente";
+            const statusClass = r.status === "PAGO" ? "success" : isOverdue ? "danger" : "warning";
+            const diasAtraso = isOverdue ? Math.max(0, daysOpen - 10) : 0;
+            const alertaTexto = isOverdue
+              ? "Em atraso (+10 dias)"
+              : daysOpen >= 8
+                ? "Próximo de vencer"
+                : "Sem alerta";
+            const alertaClasse = isOverdue ? "danger" : daysOpen >= 8 ? "warning" : "success";
             const vehicleInfo = vehicle
               ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`
               : "-";
@@ -9823,9 +9833,10 @@
                     <span class="notice">${vehicleInfo}</span>
                   </td>
                   <td>${formatCurrency(valorCobranca)}</td>
-                  <td>${daysOpen} dia(s)</td>
+                  <td><span class="tag ${statusClass}">${statusLabel}</span></td>
+                  <td>${diasAtraso} dia(s)</td>
                   <td>${r.status === "PAGO" ? formatDate(r.updated_at || r.created_at) : "-"}</td>
-                  <td><span class="tag ${isOverdue ? "danger" : "warning"}">${isOverdue ? "Vencida" : "Pendente"}</span></td>
+                  <td><span class="tag ${alertaClasse}">${alertaTexto}</span></td>
                   <td class="actions">
                     <button class="secondary" data-action="editar-conta-receber" data-id="${r.id}" title="Editar responsável, categoria, período e valor">Editar</button>
                     <button class="secondary" data-action="cobranca" data-id="${r.id}">Cobrança</button>
