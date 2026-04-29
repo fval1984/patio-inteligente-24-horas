@@ -1708,6 +1708,18 @@
       #viewFinanceiro .finance-ledger {
         min-width: 880px;
       }
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos {
+        min-width: 1600px;
+      }
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th,
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos tbody td {
+        white-space: nowrap;
+      }
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th:last-child,
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos tbody td:last-child {
+        position: static;
+        box-shadow: none;
+      }
       #viewFinanceiro .finance-ledger thead th:last-child,
       #viewFinanceiro .finance-ledger tbody td:last-child {
         position: sticky;
@@ -3591,6 +3603,9 @@
                 <p id="financeCaixaScrollNotice" class="notice hidden" style="margin: 0 0 10px; font-size: 12px">
                   A coluna «Ações» fica à direita. Se não a vir, deslize esta tabela para o lado (barra de deslocamento por baixo).
                 </p>
+                <p id="financeLancamentosScrollNotice" class="notice hidden" style="margin: 0 0 10px; font-size: 12px">
+                  Lançamentos financeiros: para ver todas as colunas, deslize horizontalmente a tabela.
+                </p>
                 <div class="table-wrap">
                   <table class="table finance-ledger">
                   <thead id="financeHead"></thead>
@@ -4506,6 +4521,7 @@
       const tableRemocoes = document.getElementById("tableRemocoes");
       const tableFinance = document.getElementById("tableFinance");
       const financeHead = document.getElementById("financeHead");
+      const financeLedgerTable = document.querySelector("#financeStandardArea .finance-ledger");
       const rankByVehicles = document.getElementById("rankByVehicles");
       const rankByRevenue = document.getElementById("rankByRevenue");
 
@@ -9159,6 +9175,7 @@
         }
         hideAllFinanceAreas();
         if (stdArea) stdArea.classList.remove("hidden");
+        financeLedgerTable?.classList.remove("finance-ledger--lancamentos");
 
         const rows = [];
 
@@ -9186,6 +9203,7 @@
         }
 
         if (currentFinanceView === "lancamentos") {
+          financeLedgerTable?.classList.add("finance-ledger--lancamentos");
           financeHead.innerHTML = `
             <tr>
               <th>Data</th>
@@ -9909,6 +9927,7 @@
         }
         financeFilters.classList.toggle("hidden", !["historico_receber", "historico_pagar", "relatorios"].includes(view));
         financeLancamentosFilters?.classList.toggle("hidden", view !== "lancamentos");
+        document.getElementById("financeLancamentosScrollNotice")?.classList.toggle("hidden", view !== "lancamentos");
         document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
         const receberExtras = view === "receber";
         document.getElementById("financeReceberFilters")?.classList.toggle("hidden", !receberExtras);
