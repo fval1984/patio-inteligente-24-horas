@@ -1709,16 +1709,50 @@
         min-width: 880px;
       }
       #viewFinanceiro .finance-ledger.finance-ledger--lancamentos {
-        min-width: 1600px;
+        min-width: 100%;
+        width: 100%;
+        table-layout: fixed;
       }
       #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th,
       #viewFinanceiro .finance-ledger.finance-ledger--lancamentos tbody td {
-        white-space: nowrap;
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        font-size: 11px;
+        line-height: 1.2;
+        padding: 8px 6px;
       }
       #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th:last-child,
       #viewFinanceiro .finance-ledger.finance-ledger--lancamentos tbody td:last-child {
         position: static;
         box-shadow: none;
+      }
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th {
+        font-size: 10px;
+      }
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th:nth-child(1),
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos tbody td:nth-child(1) {
+        width: 7%;
+      }
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th:nth-child(2),
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos tbody td:nth-child(2) {
+        width: 5%;
+      }
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th:nth-child(8),
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos tbody td:nth-child(8) {
+        width: 8%;
+      }
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th:nth-child(9),
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos tbody td:nth-child(9) {
+        width: 6%;
+      }
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th:nth-child(11),
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos tbody td:nth-child(11) {
+        width: 7%;
+      }
+      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos .tag {
+        font-size: 10px;
+        padding: 3px 6px;
       }
       #viewFinanceiro .finance-ledger thead th:last-child,
       #viewFinanceiro .finance-ledger tbody td:last-child {
