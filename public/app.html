@@ -3555,6 +3555,12 @@
           <div class="finance-context-bar">
             <span id="financeViewBadge" class="finance-context-badge">Visão: Dashboard geral</span>
             <span id="financeModeBadge" class="finance-context-badge">Modo executivo</span>
+            <span id="financeCompetenciaBadge" class="finance-context-badge">Competência: —</span>
+            <span class="finance-context-badge">
+              <label for="financeDashboardMonth" style="margin-right: 6px; font-weight: 700">Mês</label>
+              <input id="financeDashboardMonth" type="month" style="min-width: 9.2rem" />
+              <button type="button" class="secondary" id="financeDashboardMonthAtual" style="margin-left: 6px; padding: 4px 8px">Atual</button>
+            </span>
           </div>
           <div id="receivableAlert" class="alert hidden"></div>
           <form id="financePlateSearchForm" class="filter-bar" style="margin: 8px 0 10px" action="#" novalidate>
@@ -4708,6 +4714,9 @@
       const financeMenuReceberFilters = document.getElementById("financeMenuReceberFilters");
       const financeViewBadge = document.getElementById("financeViewBadge");
       const financeModeBadge = document.getElementById("financeModeBadge");
+      const financeCompetenciaBadge = document.getElementById("financeCompetenciaBadge");
+      const financeDashboardMonth = document.getElementById("financeDashboardMonth");
+      const financeDashboardMonthAtual = document.getElementById("financeDashboardMonthAtual");
       const financeFilters = document.getElementById("financeFilters");
       const financeLancamentosFilters = document.getElementById("financeLancamentosFilters");
       const financeCaixaFilters = document.getElementById("financeCaixaFilters");
@@ -4803,6 +4812,7 @@
       let currentFinanceView = null;
       let currentPartnerView = null;
       let reportHasRun = false;
+      let financeCompetencia = currentYearMonthLocal();
       const navStack = ["dashboard"];
       let historyFilter = { from: null, to: null };
       let reportFilter = { tipo: "", categoria: "", cliente: "", fornecedor: "" };
@@ -9213,7 +9223,7 @@
           if (dashArea) dashArea.classList.remove("hidden");
         };
         if (dashTopArea) {
-          const monthKey = currentYearMonthLocal();
+          const monthKey = financeCompetencia || currentYearMonthLocal();
           const movMes = state.cash.filter((m) => {
             const ymd = toLocalYmd(m.data_movimento || m.created_at);
             return ymd && yearMonthFromYmd(ymd) === monthKey;
@@ -9288,6 +9298,42 @@
             .filter((m) => String(toLocalYmd(m.data_movimento || m.created_at) || "").startsWith(currentYear))
             .reduce((s, m) => s + Number(m.valor || 0), 0);
           const lucroAnual = entradasAno - saidasAno;
+          const prevMonthDate = new Date(`${monthKey}-01T00:00:00`);
+          prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+          const prevMonthKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, "0")}`;
+          const receitasMesAtual = entradasPorMes.get(monthKey) || 0;
+          const receitasMesAnterior = entradasPorMes.get(prevMonthKey) || 0;
+          const despesasMesAtual = saidasPorMes.get(monthKey) || 0;
+          const lucroMesAtual = receitasMesAtual - despesasMesAtual;
+          const crescimentoMensalPerc =
+            receitasMesAnterior > 0 ? ((receitasMesAtual - receitasMesAnterior) / receitasMesAnterior) * 100 : receitasMesAtual > 0 ? 100 : 0;
+          const monthEnd = `${monthKey}-${String(lastDayOfYearMonth(monthKey)).padStart(2, "0")}`;
+          const saldoAcumulado = state.cash
+            .filter((m) => {
+              const ymd = toLocalYmd(m.data_movimento || m.created_at);
+              return ymd && ymd <= monthEnd;
+            })
+            .reduce((sum, mov) => (mov.tipo_conta === "PAGAR" ? sum - Number(mov.valor || 0) : sum + Number(mov.valor || 0)), 0);
+          const contasPagasMes = state.receivables.filter((r) => {
+            if (r.status !== "PAGO") return false;
+            const ymd = toLocalYmd(r.updated_at || r.created_at || r.period_end);
+            return ymd && yearMonthFromYmd(ymd) === monthKey;
+          }).length +
+            state.payables.filter((p) => {
+              if (p.status !== "PAGO") return false;
+              const ymd = toLocalYmd(p.updated_at || p.created_at || p.data_vencimento);
+              return ymd && yearMonthFromYmd(ymd) === monthKey;
+            }).length;
+          const contasPendentesMes = state.receivables.filter((r) => {
+            if (r.status === "PAGO") return false;
+            const ymd = toLocalYmd(r.period_end || r.created_at);
+            return ymd && yearMonthFromYmd(ymd) === monthKey;
+          }).length +
+            state.payables.filter((p) => {
+              if (p.status === "PAGO") return false;
+              const ymd = toLocalYmd(p.data_vencimento || p.created_at);
+              return ymd && yearMonthFromYmd(ymd) === monthKey;
+            }).length;
           const metaMensalConfig = Number(state.settings?.meta_faturamento_mensal || 0);
           const metaMensalSugerida = Math.max(1, entradasMes || (entradasAno > 0 ? entradasAno / 12 : 0));
           const metaMensal = metaMensalConfig > 0 ? metaMensalConfig : metaMensalSugerida;
@@ -9451,7 +9497,7 @@
           document.getElementById("fdCaixaStatus").textContent = caixa >= 0 ? "Posição positiva" : "Posição negativa";
           document.getElementById("fdCaixaProjetado").textContent = formatCurrency(projetado);
           document.getElementById("fdEntradasMes").textContent = formatCurrency(entradasMes);
-          document.getElementById("fdSaidasMesMeta").textContent = `Saídas no mês: ${formatCurrency(saidasMes)}`;
+          document.getElementById("fdSaidasMesMeta").textContent = `Saídas em ${monthKey.slice(5, 7)}/${monthKey.slice(0, 4)}: ${formatCurrency(saidasMes)}`;
           document.getElementById("fdAtrasoQtd").textContent = String(overdueReceivablesDetail.length);
           document.getElementById("fdAtrasoValor").textContent = `Total em atraso: ${formatCurrency(overdueTotal)}`;
           const fdFaturamentoAnual = document.getElementById("fdFaturamentoAnual");
@@ -9519,6 +9565,11 @@
               .map(([nome, valor]) => `${nome} (${formatCurrency(valor)})`)[0];
             const filaExtendida = [
               ...filaFinanceira,
+              ["Saldo acumulado até a competência", formatCurrency(saldoAcumulado)],
+              ["Contas pagas no mês", contasPagasMes],
+              ["Contas pendentes no mês", contasPendentesMes],
+              ["Lucro do mês", formatCurrency(lucroMesAtual)],
+              ["Crescimento mensal", `${crescimentoMensalPerc.toFixed(1)}% vs ${prevMonthKey.slice(5, 7)}/${prevMonthKey.slice(0, 4)}`],
               ["Controle bancário", bancosTop || "Sem movimentação identificada"],
               ["Separação PF/PJ (a receber)", `PF ${formatCurrency(totalPf)} | PJ ${formatCurrency(totalPj)}`],
               ["Centro de custo líder", centroTop || "Sem dados"],
@@ -9587,6 +9638,9 @@
           financeHead.innerHTML = `
             <tr>
               <th>Data</th>
+              <th>Mês</th>
+              <th>Ano</th>
+              <th>Competência</th>
               <th>Tipo</th>
               <th>Categoria</th>
               <th>Subcategoria</th>
@@ -9594,9 +9648,8 @@
               <th>Cliente / Fornecedor</th>
               <th>Forma de pagamento</th>
               <th>Valor</th>
-              <th>Pago?</th>
+              <th>Status</th>
               <th>Data de pagamento</th>
-              <th>Competência</th>
               <th>Observações</th>
             </tr>`;
           const qBusca = String(lancamentosFilter.busca || "").trim().toLowerCase();
@@ -9625,6 +9678,8 @@
               const dataPagamento = r.status === "PAGO" ? (mov?.data_movimento || r.updated_at || r.created_at || "") : "";
               entries.push({
                 data: dataBase,
+                mes: dataBase ? dataBase.slice(5, 7) : "-",
+                ano: dataBase ? dataBase.slice(0, 4) : "-",
                 tipo: "RECEITA",
                 categoria: r.receivable_category || "RECEITA",
                 subcategoria: r.subcategoria || "Geral",
@@ -9646,6 +9701,8 @@
               const dataPagamento = p.status === "PAGO" ? (mov?.data_movimento || p.updated_at || p.created_at || "") : "";
               entries.push({
                 data: dataBase,
+                mes: dataBase ? dataBase.slice(5, 7) : "-",
+                ano: dataBase ? dataBase.slice(0, 4) : "-",
                 tipo: "DESPESA",
                 categoria: p.payable_category || "OUTROS",
                 subcategoria: p.subcategoria || p.tipo || "Geral",
@@ -9690,6 +9747,9 @@
               rows.push(`
                 <tr>
                   <td>${formatDate(entry.data)}</td>
+                  <td>${escapeHtml(entry.mes || "-")}</td>
+                  <td>${escapeHtml(entry.ano || "-")}</td>
+                  <td>${escapeHtml(entry.competencia || "-")}</td>
                   <td>${entry.tipo === "RECEITA" ? "Receita" : "Despesa"}</td>
                   <td>${escapeHtml(entry.categoria)}</td>
                   <td>${escapeHtml(entry.subcategoria)}</td>
@@ -9697,15 +9757,14 @@
                   <td>${escapeHtml(entry.parte)}</td>
                   <td>${escapeHtml(entry.formaPagamento)}</td>
                   <td>${formatCurrency(entry.valor)}</td>
-                  <td>${entry.status === "PAGO" ? "Sim" : "Não"}</td>
+                  <td>${entry.status === "PAGO" ? "Pago" : "Pendente"}</td>
                   <td>${entry.dataPagamento ? formatDate(entry.dataPagamento) : "-"}</td>
-                  <td>${escapeHtml(entry.competencia || "-")}</td>
                   <td>${escapeHtml(entry.observacoes || "-")}</td>
                 </tr>
               `);
             });
           if (!rows.length) {
-            setEmptyRow(tableFinance, "Nenhum lançamento financeiro encontrado.", 12);
+            setEmptyRow(tableFinance, "Nenhum lançamento financeiro encontrado.", 14);
           } else {
             tableFinance.innerHTML = rows.join("");
           }
@@ -10212,6 +10271,10 @@
               ? "Modo operacional"
               : "Modo executivo";
         }
+        if (financeCompetenciaBadge) {
+          financeCompetenciaBadge.textContent = `Competência: ${formatYearMonthLong(financeCompetencia || currentYearMonthLocal())}`;
+        }
+        if (financeDashboardMonth) financeDashboardMonth.value = financeCompetencia || currentYearMonthLocal();
         financeSubnav?.querySelectorAll("button").forEach((btn) => {
           btn.classList.toggle("active", !isNone && btn.getAttribute("data-subview") === view);
         });
@@ -11273,6 +11336,28 @@
           }, 320);
         });
       }
+      if (financeDashboardMonth && !financeDashboardMonth.value) {
+        financeDashboardMonth.value = financeCompetencia || currentYearMonthLocal();
+      }
+      financeDashboardMonth?.addEventListener("change", () => {
+        financeCompetencia = (financeDashboardMonth.value || "").trim() || currentYearMonthLocal();
+        caixaFilter.month = financeCompetencia;
+        if (financeCaixaMonth) financeCaixaMonth.value = caixaFilter.month;
+        if (financeCompetenciaBadge) {
+          financeCompetenciaBadge.textContent = `Competência: ${formatYearMonthLong(financeCompetencia)}`;
+        }
+        renderFinance();
+      });
+      financeDashboardMonthAtual?.addEventListener("click", () => {
+        financeCompetencia = currentYearMonthLocal();
+        caixaFilter.month = financeCompetencia;
+        if (financeCaixaMonth) financeCaixaMonth.value = caixaFilter.month;
+        if (financeDashboardMonth) financeDashboardMonth.value = financeCompetencia;
+        if (financeCompetenciaBadge) {
+          financeCompetenciaBadge.textContent = `Competência: ${formatYearMonthLong(financeCompetencia)}`;
+        }
+        renderFinance();
+      });
       if (!caixaFilter.month) caixaFilter.month = currentYearMonthLocal();
       if (financeCaixaMonth && !financeCaixaMonth.value) financeCaixaMonth.value = caixaFilter.month;
       financeCaixaMonth?.addEventListener("change", () => {
