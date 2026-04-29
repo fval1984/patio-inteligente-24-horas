@@ -10887,7 +10887,16 @@
       function openFinanceSubview(sub) {
         const top = navStack[navStack.length - 1];
         if (!sub) return;
-        if (top === `financeiro:${sub}`) return;
+        if (sub === "relatorios") {
+          reportHasRun = false;
+          if (financeContent) financeContent.classList.add("hidden");
+        }
+        if (top === `financeiro:${sub}`) {
+          if (sub === "relatorios") {
+            setFinanceView("relatorios");
+          }
+          return;
+        }
         if (top && typeof top === "string" && top.startsWith("financeiro:")) navStack.pop();
 
         if (sub === "dashboard") {
