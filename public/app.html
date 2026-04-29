@@ -3490,7 +3490,21 @@
               <option value="PAGO">Pago</option>
             </select>
             <label for="financeLancCategoria">Categoria</label>
-            <input id="financeLancCategoria" type="text" placeholder="Categoria" />
+            <select id="financeLancCategoria">
+              <option value="">Todas</option>
+            </select>
+            <label for="financeLancSubcategoria">Subcategoria</label>
+            <select id="financeLancSubcategoria">
+              <option value="">Todas</option>
+            </select>
+            <label for="financeLancFormaPagamento">Forma de pagamento</label>
+            <select id="financeLancFormaPagamento">
+              <option value="">Todas</option>
+            </select>
+            <label for="financeLancCompetencia">Competência</label>
+            <select id="financeLancCompetencia">
+              <option value="">Todas</option>
+            </select>
             <label for="financeLancBusca">Descrição / Cliente / Fornecedor</label>
             <input id="financeLancBusca" type="text" placeholder="Buscar" />
             <button type="button" class="secondary" id="financeLancLimpar">Limpar filtros</button>
@@ -4530,6 +4544,9 @@
       const financeLancTipo = document.getElementById("financeLancTipo");
       const financeLancStatus = document.getElementById("financeLancStatus");
       const financeLancCategoria = document.getElementById("financeLancCategoria");
+      const financeLancSubcategoria = document.getElementById("financeLancSubcategoria");
+      const financeLancFormaPagamento = document.getElementById("financeLancFormaPagamento");
+      const financeLancCompetencia = document.getElementById("financeLancCompetencia");
       const financeLancBusca = document.getElementById("financeLancBusca");
       const financeLancLimpar = document.getElementById("financeLancLimpar");
 
@@ -4598,7 +4615,15 @@
       let currentPartnerView = null;
       const navStack = ["dashboard"];
       let historyFilter = { from: null, to: null };
-      let lancamentosFilter = { tipo: "", status: "", categoria: "", busca: "" };
+      let lancamentosFilter = {
+        tipo: "",
+        status: "",
+        categoria: "",
+        subcategoria: "",
+        formaPagamento: "",
+        competencia: "",
+        busca: "",
+      };
       let plateQuery = "";
       let financePlateQuery = "";
       let financePlateInputTimer = null;
@@ -9177,72 +9202,107 @@
               <th>Observações</th>
             </tr>`;
           const qBusca = String(lancamentosFilter.busca || "").trim().toLowerCase();
-          const qCategoria = String(lancamentosFilter.categoria || "").trim().toLowerCase();
+          const cashByReceivable = new Map(
+            state.cash
+              .filter((c) => c.tipo_conta === "RECEBER")
+              .map((c) => [String(c.conta_id), c])
+          );
+          const cashByPayable = new Map(
+            state.cash
+              .filter((c) => c.tipo_conta === "PAGAR")
+              .map((c) => [String(c.conta_id), c])
+          );
+          const toCompetencia = (ymd) => {
+            if (!ymd) return "";
+            const ym = yearMonthFromYmd(ymd);
+            if (!ym) return "";
+            return `${ym.slice(5, 7)}/${ym.slice(0, 4)}`;
+          };
+          const entries = [];
+          state.receivables
+            .filter((r) => matchesVehicleId(r.vehicle_id))
+            .forEach((r) => {
+              const dataBase = (r.period_start || r.created_at || "").toString().slice(0, 10);
+              const mov = cashByReceivable.get(String(r.id));
+              const dataPagamento = r.status === "PAGO" ? (mov?.data_movimento || r.updated_at || r.created_at || "") : "";
+              entries.push({
+                data: dataBase,
+                tipo: "RECEITA",
+                categoria: r.receivable_category || "RECEITA",
+                subcategoria: r.subcategoria || "Geral",
+                descricao: r.observacoes || "Lançamento de receita",
+                parte: r.responsavel_pagamento || "-",
+                formaPagamento: mov?.forma_pagamento || r.forma_pagamento || "Não informado",
+                valor: Number(r.valor || 0),
+                status: r.status === "PAGO" ? "PAGO" : "ABERTO",
+                dataPagamento,
+                competencia: toCompetencia(dataBase),
+                observacoes: r.observacoes || "-",
+              });
+            });
+          state.payables
+            .filter(payableDescMatchesPlate)
+            .forEach((p) => {
+              const dataBase = (p.data_vencimento || p.created_at || "").toString().slice(0, 10);
+              const mov = cashByPayable.get(String(p.id));
+              const dataPagamento = p.status === "PAGO" ? (mov?.data_movimento || p.updated_at || p.created_at || "") : "";
+              entries.push({
+                data: dataBase,
+                tipo: "DESPESA",
+                categoria: p.payable_category || "OUTROS",
+                subcategoria: p.subcategoria || p.tipo || "Geral",
+                descricao: p.descricao || "-",
+                parte: p.fornecedor || "-",
+                formaPagamento: mov?.forma_pagamento || p.forma_pagamento || "Não informado",
+                valor: Number(p.valor || 0),
+                status: p.status === "PAGO" ? "PAGO" : "ABERTO",
+                dataPagamento,
+                competencia: toCompetencia(dataBase),
+                observacoes: p.observacoes || p.tipo || "-",
+              });
+            });
+          const syncSelectOptions = (selectEl, values, defaultLabel = "Todas") => {
+            if (!selectEl) return;
+            const current = selectEl.value;
+            const opts = [...new Set(values.map((v) => String(v || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+            selectEl.innerHTML = [`<option value="">${defaultLabel}</option>`, ...opts.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`)].join("");
+            if (current && opts.includes(current)) selectEl.value = current;
+          };
+          syncSelectOptions(financeLancCategoria, entries.map((e) => e.categoria), "Todas");
+          syncSelectOptions(financeLancSubcategoria, entries.map((e) => e.subcategoria), "Todas");
+          syncSelectOptions(financeLancFormaPagamento, entries.map((e) => e.formaPagamento), "Todas");
+          syncSelectOptions(financeLancCompetencia, entries.map((e) => e.competencia), "Todas");
           const acceptEntry = (entry) => {
             if (lancamentosFilter.tipo && entry.tipo !== lancamentosFilter.tipo) return false;
             if (lancamentosFilter.status && entry.status !== lancamentosFilter.status) return false;
-            if (qCategoria && !String(entry.categoria || "").toLowerCase().includes(qCategoria)) return false;
+            if (lancamentosFilter.categoria && entry.categoria !== lancamentosFilter.categoria) return false;
+            if (lancamentosFilter.subcategoria && entry.subcategoria !== lancamentosFilter.subcategoria) return false;
+            if (lancamentosFilter.formaPagamento && entry.formaPagamento !== lancamentosFilter.formaPagamento) return false;
+            if (lancamentosFilter.competencia && entry.competencia !== lancamentosFilter.competencia) return false;
             if (
               qBusca &&
               !`${entry.descricao || ""} ${entry.parte || ""}`.toLowerCase().includes(qBusca)
             ) return false;
             return true;
           };
-          state.receivables
-            .filter((r) => matchesVehicleId(r.vehicle_id))
-            .forEach((r) => {
-              const ymd = (r.period_start || r.created_at || "").toString().slice(0, 10);
-              const entry = {
-                tipo: "RECEITA",
-                status: r.status === "PAGO" ? "PAGO" : "ABERTO",
-                categoria: r.receivable_category || "RECEITA",
-                descricao: r.observacoes || "Lançamento de receita",
-                parte: r.responsavel_pagamento || "-",
-              };
-              if (!acceptEntry(entry)) return;
+          entries
+            .filter(acceptEntry)
+            .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")))
+            .forEach((entry) => {
               rows.push(`
                 <tr>
-                  <td>${formatDate(ymd)}</td>
-                  <td>Receita</td>
+                  <td>${formatDate(entry.data)}</td>
+                  <td>${entry.tipo === "RECEITA" ? "Receita" : "Despesa"}</td>
                   <td>${escapeHtml(entry.categoria)}</td>
-                  <td>-</td>
+                  <td>${escapeHtml(entry.subcategoria)}</td>
                   <td>${escapeHtml(entry.descricao)}</td>
                   <td>${escapeHtml(entry.parte)}</td>
-                  <td>-</td>
-                  <td>${formatCurrency(Number(r.valor || 0))}</td>
-                  <td>${r.status === "PAGO" ? "Sim" : "Não"}</td>
-                  <td>${r.status === "PAGO" ? formatDate(r.updated_at || r.created_at) : "-"}</td>
-                  <td>${ymd ? escapeHtml(yearMonthFromYmd(ymd)) : "-"}</td>
-                  <td>-</td>
-                </tr>
-              `);
-            });
-          state.payables
-            .filter(payableDescMatchesPlate)
-            .forEach((p) => {
-              const ymd = (p.data_vencimento || p.created_at || "").toString().slice(0, 10);
-              const entry = {
-                tipo: "DESPESA",
-                status: p.status === "PAGO" ? "PAGO" : "ABERTO",
-                categoria: p.payable_category || "OUTROS",
-                descricao: p.descricao || "-",
-                parte: p.fornecedor || "-",
-              };
-              if (!acceptEntry(entry)) return;
-              rows.push(`
-                <tr>
-                  <td>${formatDate(ymd)}</td>
-                  <td>Despesa</td>
-                  <td>${escapeHtml(entry.categoria)}</td>
-                  <td>-</td>
-                  <td>${escapeHtml(entry.descricao)}</td>
-                  <td>${escapeHtml(entry.parte)}</td>
-                  <td>-</td>
-                  <td>${formatCurrency(Number(p.valor || 0))}</td>
-                  <td>${p.status === "PAGO" ? "Sim" : "Não"}</td>
-                  <td>${p.status === "PAGO" ? formatDate(p.updated_at || p.created_at) : "-"}</td>
-                  <td>${ymd ? escapeHtml(yearMonthFromYmd(ymd)) : "-"}</td>
-                  <td>${escapeHtml(p.tipo || "-")}</td>
+                  <td>${escapeHtml(entry.formaPagamento)}</td>
+                  <td>${formatCurrency(entry.valor)}</td>
+                  <td>${entry.status === "PAGO" ? "Sim" : "Não"}</td>
+                  <td>${entry.dataPagamento ? formatDate(entry.dataPagamento) : "-"}</td>
+                  <td>${escapeHtml(entry.competencia || "-")}</td>
+                  <td>${escapeHtml(entry.observacoes || "-")}</td>
                 </tr>
               `);
             });
@@ -10865,18 +10925,27 @@
           tipo: (financeLancTipo?.value || "").trim(),
           status: (financeLancStatus?.value || "").trim(),
           categoria: (financeLancCategoria?.value || "").trim(),
+          subcategoria: (financeLancSubcategoria?.value || "").trim(),
+          formaPagamento: (financeLancFormaPagamento?.value || "").trim(),
+          competencia: (financeLancCompetencia?.value || "").trim(),
           busca: (financeLancBusca?.value || "").trim(),
         };
         if (currentFinanceView === "lancamentos") renderFinance();
       };
       financeLancTipo?.addEventListener("change", syncLancamentosFilters);
       financeLancStatus?.addEventListener("change", syncLancamentosFilters);
-      financeLancCategoria?.addEventListener("input", syncLancamentosFilters);
+      financeLancCategoria?.addEventListener("change", syncLancamentosFilters);
+      financeLancSubcategoria?.addEventListener("change", syncLancamentosFilters);
+      financeLancFormaPagamento?.addEventListener("change", syncLancamentosFilters);
+      financeLancCompetencia?.addEventListener("change", syncLancamentosFilters);
       financeLancBusca?.addEventListener("input", syncLancamentosFilters);
       financeLancLimpar?.addEventListener("click", () => {
         if (financeLancTipo) financeLancTipo.value = "";
         if (financeLancStatus) financeLancStatus.value = "";
         if (financeLancCategoria) financeLancCategoria.value = "";
+        if (financeLancSubcategoria) financeLancSubcategoria.value = "";
+        if (financeLancFormaPagamento) financeLancFormaPagamento.value = "";
+        if (financeLancCompetencia) financeLancCompetencia.value = "";
         if (financeLancBusca) financeLancBusca.value = "";
         syncLancamentosFilters();
       });
