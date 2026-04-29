@@ -9914,6 +9914,7 @@
                 mov.tipo_conta === "RECEBER" && mov.conta_id ? receivableByContaId(mov.conta_id) : null;
               const payVinculado =
                 mov.tipo_conta === "PAGAR" && mov.conta_id ? payableByContaId(mov.conta_id) : null;
+              const tipoMovLabel = mov.tipo_conta === "RECEBER" ? "Recebido" : "Pago";
               const receberQuitadoPodeGestionar =
                 mov.tipo_conta === "RECEBER" && recVinculado && recVinculado.status === "PAGO";
               const pagarQuitadoPodeGestionar =
@@ -9936,7 +9937,7 @@
               rows.push(`
               <tr>
                 <td>${formatDateTime(mov.data_movimento)}</td>
-                <td>${mov.tipo_conta}</td>
+                <td>${tipoMovLabel}</td>
                 <td>${mov.descricao || "-"}</td>
                 <td>${formatCurrency(mov.valor)}</td>
                 <td class="actions">${acoesCell}</td>
