@@ -10054,7 +10054,7 @@
           void financeContent.offsetWidth;
           financeContent.classList.add("air-open");
         }
-        financeFilters.classList.toggle("hidden", !["historico_receber", "historico_pagar", "relatorios"].includes(view));
+        financeFilters.classList.toggle("hidden", view !== "relatorios");
         financeReportExtraFilters?.classList.toggle("hidden", view !== "relatorios");
         financeLancamentosFilters?.classList.toggle("hidden", view !== "lancamentos");
         document.getElementById("financeLancamentosScrollNotice")?.classList.toggle("hidden", view !== "lancamentos");
