@@ -932,6 +932,60 @@
         align-self: flex-end;
         margin-bottom: 0;
       }
+      #viewFinanceiro.finance-subview-fullscreen #financeContent {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 95;
+        padding-top: max(10px, calc(8px + env(safe-area-inset-top)));
+      }
+      #viewFinanceiro.finance-subview-fullscreen #financeStandardArea {
+        height: calc(100dvh - max(18px, env(safe-area-inset-top)) - max(18px, env(safe-area-inset-bottom)));
+      }
+      #viewFinanceiro.finance-subview-fullscreen #financeStandardArea .section-card {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      #viewFinanceiro.finance-subview-fullscreen #financeStandardArea .table-wrap {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+      }
+      #viewFinanceiro.finance-subview-fullscreen .finance-flyout-close {
+        position: fixed;
+        top: max(10px, env(safe-area-inset-top));
+        right: max(10px, env(safe-area-inset-right));
+        z-index: 110;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+        padding: 0;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      #viewPatio.patio-subview-fullscreen .patio-flyout-close {
+        position: fixed;
+        top: max(10px, env(safe-area-inset-top));
+        right: max(10px, env(safe-area-inset-right));
+        z-index: 110;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+        padding: 0;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 700;
+      }
       .patio-menu-toggle {
         min-width: 96px;
       }
@@ -3244,7 +3298,7 @@
             <button type="button" class="secondary" id="clearPlateFilterPatio">Limpar</button>
           </form>
           <div id="patioContent" class="hidden" style="margin-top: 18px;">
-            <button type="button" class="secondary patio-flyout-close" id="patioFlyoutClose">Fechar</button>
+              <button type="button" class="secondary patio-flyout-close" id="patioFlyoutClose" aria-label="Fechar subaba">X</button>
             <div id="patioFlyoutSummaryCards" class="grid" style="margin-bottom: 12px">
               <div class="card"><div class="card-title" id="patioCardTitle1">VNP</div><div class="card-value" id="patioCardValue1">0</div><span class="tag warning" id="patioCardMeta1">-</span></div>
               <div class="card"><div class="card-title" id="patioCardTitle2">VRP</div><div class="card-value" id="patioCardValue2">0</div><span class="tag" id="patioCardMeta2">-</span></div>
@@ -3615,7 +3669,7 @@
               </div>
             </div>
             <div id="financeStandardArea">
-              <button type="button" class="secondary finance-flyout-close" id="financeFlyoutClose">Fechar</button>
+              <button type="button" class="secondary finance-flyout-close" id="financeFlyoutClose" aria-label="Fechar subaba">X</button>
               <div id="financeFlyoutSummaryCards" class="grid">
                 <div class="card">
                   <div class="card-title" id="financeCardTitle1">Recebimentos em aberto</div>
@@ -7916,7 +7970,10 @@
           btn.classList.toggle("active", !isNone && btn.getAttribute("data-subview") === view);
         });
         if (plateSearchFormPatio) plateSearchFormPatio.classList.toggle("hidden", isDashboard);
-        document.getElementById("viewPatio")?.classList.toggle("patio-flyout-open", isFlyoutView);
+        const patioRoot = document.getElementById("viewPatio");
+        patioRoot?.classList.toggle("patio-flyout-open", isFlyoutView);
+        patioRoot?.classList.toggle("patio-subview-fullscreen", isFlyoutView);
+        if (patioFlyoutClose) patioFlyoutClose.textContent = "X";
         patioFlyoutBackdrop?.classList.toggle("hidden", !isFlyoutView);
         const patioContent = document.getElementById("patioContent");
         const patioInicioPanel = document.getElementById("patioInicioPanel");
@@ -9921,11 +9978,14 @@
         const isNone = !view || view === "none";
         const isDashboard = view === "dashboard";
         const isFlyoutView = !isNone && !isDashboard;
+        const isFullscreenSubview = isFlyoutView;
         const financeRoot = document.getElementById("viewFinanceiro");
         if (financeRoot) {
           if (isNone) financeRoot.removeAttribute("data-finance-view");
           else financeRoot.setAttribute("data-finance-view", view);
+          financeRoot.classList.toggle("finance-subview-fullscreen", isFullscreenSubview);
         }
+        if (financeFlyoutClose) financeFlyoutClose.textContent = "X";
         if (financeViewBadge) financeViewBadge.textContent = `Visão: ${viewMap[view] || "Dashboard geral"}`;
         if (financeModeBadge) {
           financeModeBadge.textContent = isDashboard
@@ -9942,7 +10002,7 @@
           financeLancamentosFilters?.classList.add("hidden");
           receivableAlert.classList.add("hidden");
           if (financeContent) financeContent.classList.add("hidden");
-          financeRoot?.classList.remove("finance-flyout-open");
+          financeRoot?.classList.remove("finance-flyout-open", "finance-subview-fullscreen");
           financeFlyoutBackdrop?.classList.add("hidden");
           document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
           document.getElementById("financeReceberFilters")?.classList.add("hidden");
@@ -10605,12 +10665,12 @@
         if (view !== "financeiro") {
           financeSubnav?.classList.remove("open");
           financeFlyoutBackdrop?.classList.add("hidden");
-          document.getElementById("viewFinanceiro")?.classList.remove("finance-flyout-open");
+          document.getElementById("viewFinanceiro")?.classList.remove("finance-flyout-open", "finance-subview-fullscreen");
         }
         if (view !== "patio") {
           patioSubnav?.classList.remove("open");
           patioFlyoutBackdrop?.classList.add("hidden");
-          document.getElementById("viewPatio")?.classList.remove("patio-flyout-open");
+          document.getElementById("viewPatio")?.classList.remove("patio-flyout-open", "patio-subview-fullscreen");
         }
         document.querySelectorAll("#appHeaderMenu button[data-view]").forEach((btn) => {
           btn.classList.toggle("active", btn.getAttribute("data-view") === view);
