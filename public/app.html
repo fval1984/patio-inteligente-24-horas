@@ -721,6 +721,41 @@
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 12px;
       }
+      .finance-month-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .finance-month-btn {
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(15, 23, 42, 0.36);
+        color: var(--text);
+        cursor: pointer;
+      }
+      .finance-month-btn.active {
+        border-color: rgba(45, 212, 191, 0.7);
+        color: #5eead4;
+      }
+      .finance-month-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .finance-month-table th,
+      .finance-month-table td {
+        padding: 7px 8px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        text-align: right;
+      }
+      .finance-month-table th:first-child,
+      .finance-month-table td:first-child {
+        text-align: left;
+      }
       .finance-dashboard-list {
         margin: 0;
         padding-left: 18px;
@@ -3748,6 +3783,21 @@
                 <div class="section-card" style="margin: 0">
                   <div class="card-title">Indicadores auxiliares</div>
                   <ol id="fdFilaFinanceira" class="finance-dashboard-list"></ol>
+                </div>
+                <div class="section-card" style="margin: 0; grid-column: 1 / -1">
+                  <div class="card-title">Mês a mês (visão simples)</div>
+                  <div id="financeMonthStrip" class="finance-month-strip"></div>
+                  <table class="finance-month-table">
+                    <thead>
+                      <tr>
+                        <th>Mês</th>
+                        <th>Receitas</th>
+                        <th>Despesas</th>
+                        <th>Lucro</th>
+                      </tr>
+                    </thead>
+                    <tbody id="financeMonthTableBody"></tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -9576,6 +9626,33 @@
             ];
             filaEl.innerHTML = filaExtendida.map(([label, qtd]) => `<li>${escapeHtml(label)} — <strong>${escapeHtml(String(qtd))}</strong></li>`).join("");
           }
+          const monthStripEl = document.getElementById("financeMonthStrip");
+          const monthTableBody = document.getElementById("financeMonthTableBody");
+          const recentMonths = [...seriesMonths].reverse();
+          if (monthStripEl) {
+            monthStripEl.innerHTML = recentMonths
+              .map((ym) => {
+                const isActive = ym === monthKey;
+                const label = formatYearMonthLong(ym);
+                return `<button type="button" class="finance-month-btn ${isActive ? "active" : ""}" data-finance-month-jump="${ym}">${escapeHtml(label)}</button>`;
+              })
+              .join("");
+          }
+          if (monthTableBody) {
+            monthTableBody.innerHTML = recentMonths
+              .map((ym) => {
+                const r = entradasPorMes.get(ym) || 0;
+                const d = saidasPorMes.get(ym) || 0;
+                const l = r - d;
+                return `<tr>
+                  <td>${escapeHtml(formatYearMonthLong(ym))}${ym === monthKey ? ' <span class="tag">Atual</span>' : ""}</td>
+                  <td>${formatCurrency(r)}</td>
+                  <td>${formatCurrency(d)}</td>
+                  <td>${formatCurrency(l)}</td>
+                </tr>`;
+              })
+              .join("");
+          }
         }
         if (currentFinanceView === "dashboard") {
           showFinanceDashboardOnly();
@@ -11356,6 +11433,18 @@
         if (financeCompetenciaBadge) {
           financeCompetenciaBadge.textContent = `Competência: ${formatYearMonthLong(financeCompetencia)}`;
         }
+        renderFinance();
+      });
+      document.addEventListener("click", (event) => {
+        const jumpBtn = event.target.closest("[data-finance-month-jump]");
+        if (!jumpBtn) return;
+        const ym = (jumpBtn.getAttribute("data-finance-month-jump") || "").trim();
+        if (!/^\d{4}-\d{2}$/.test(ym)) return;
+        financeCompetencia = ym;
+        caixaFilter.month = ym;
+        if (financeDashboardMonth) financeDashboardMonth.value = ym;
+        if (financeCaixaMonth) financeCaixaMonth.value = ym;
+        if (financeCompetenciaBadge) financeCompetenciaBadge.textContent = `Competência: ${formatYearMonthLong(ym)}`;
         renderFinance();
       });
       if (!caixaFilter.month) caixaFilter.month = currentYearMonthLocal();
