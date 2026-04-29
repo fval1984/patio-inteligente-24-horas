@@ -681,6 +681,18 @@
         padding: 12px 14px;
         background: rgba(15, 19, 26, 0.44);
       }
+      .finance-kpi-card.kpi-alert-danger {
+        border-color: rgba(248, 113, 113, 0.7);
+        box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.18);
+      }
+      .finance-kpi-card.kpi-alert-warning {
+        border-color: rgba(251, 191, 36, 0.7);
+        box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.16);
+      }
+      .finance-kpi-card.kpi-alert-success {
+        border-color: rgba(52, 211, 153, 0.7);
+        box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.14);
+      }
       [data-theme="light"] .finance-kpi-card {
         background: rgba(255, 255, 255, 0.9);
         border-color: rgba(148, 163, 184, 0.28);
@@ -3078,6 +3090,26 @@
                   <div class="finance-kpi-value" id="fdtFaturamentoAnual">R$ 0,00</div>
                   <div class="finance-kpi-meta" id="fdtLucroAnualMeta">Lucro anual: R$ 0,00</div>
                 </div>
+                <div class="finance-kpi-card">
+                  <div class="finance-kpi-title">Meta de faturamento mensal</div>
+                  <div class="finance-kpi-value" id="fdtMetaFaturamento">0%</div>
+                  <div class="finance-kpi-meta" id="fdtMetaFaturamentoStatus">Aguardando dados</div>
+                </div>
+                <div class="finance-kpi-card">
+                  <div class="finance-kpi-title">Indicador de inadimplência</div>
+                  <div class="finance-kpi-value" id="fdtInadimplencia">0,0%</div>
+                  <div class="finance-kpi-meta" id="fdtInadimplenciaStatus">Sem contas vencidas</div>
+                </div>
+                <div class="finance-kpi-card">
+                  <div class="finance-kpi-title">Reserva financeira</div>
+                  <div class="finance-kpi-value" id="fdtReservaFinanceira">R$ 0,00</div>
+                  <div class="finance-kpi-meta" id="fdtReservaFinanceiraStatus">Cobertura de 0,0 mês</div>
+                </div>
+                <div class="finance-kpi-card">
+                  <div class="finance-kpi-title">Projeção de lucro anual</div>
+                  <div class="finance-kpi-value" id="fdtProjecaoLucroAnual">R$ 0,00</div>
+                  <div class="finance-kpi-meta" id="fdtProjecaoLucroAnualStatus">Estimativa automática</div>
+                </div>
               </div>
               <div class="finance-charts-grid">
                 <div class="finance-chart-card">
@@ -3671,6 +3703,26 @@
                   <div class="finance-kpi-title">Contas a pagar vencidas</div>
                   <div class="finance-kpi-value" id="fdPagarVencidasQtd">0</div>
                   <div class="finance-kpi-meta" id="fdPagarVencidasValor">Total vencido: R$ 0,00</div>
+                </div>
+                <div class="finance-kpi-card">
+                  <div class="finance-kpi-title">Meta de faturamento mensal</div>
+                  <div class="finance-kpi-value" id="fdMetaFaturamento">0%</div>
+                  <div class="finance-kpi-meta" id="fdMetaFaturamentoStatus">Aguardando dados</div>
+                </div>
+                <div class="finance-kpi-card">
+                  <div class="finance-kpi-title">Indicador de inadimplência</div>
+                  <div class="finance-kpi-value" id="fdInadimplencia">0,0%</div>
+                  <div class="finance-kpi-meta" id="fdInadimplenciaStatus">Sem contas vencidas</div>
+                </div>
+                <div class="finance-kpi-card">
+                  <div class="finance-kpi-title">Reserva financeira</div>
+                  <div class="finance-kpi-value" id="fdReservaFinanceira">R$ 0,00</div>
+                  <div class="finance-kpi-meta" id="fdReservaFinanceiraStatus">Cobertura de 0,0 mês</div>
+                </div>
+                <div class="finance-kpi-card">
+                  <div class="finance-kpi-title">Projeção de lucro anual</div>
+                  <div class="finance-kpi-value" id="fdProjecaoLucroAnual">R$ 0,00</div>
+                  <div class="finance-kpi-meta" id="fdProjecaoLucroAnualStatus">Estimativa automática</div>
                 </div>
               </div>
               <div class="finance-dashboard-sections">
@@ -9220,6 +9272,54 @@
             .filter((m) => String(toLocalYmd(m.data_movimento || m.created_at) || "").startsWith(currentYear))
             .reduce((s, m) => s + Number(m.valor || 0), 0);
           const lucroAnual = entradasAno - saidasAno;
+          const metaMensalConfig = Number(state.settings?.meta_faturamento_mensal || 0);
+          const metaMensalSugerida = Math.max(1, entradasMes || (entradasAno > 0 ? entradasAno / 12 : 0));
+          const metaMensal = metaMensalConfig > 0 ? metaMensalConfig : metaMensalSugerida;
+          const percentualMetaMensal = metaMensal > 0 ? (entradasMes / metaMensal) * 100 : 0;
+          const inadimplenciaPerc = totalReceber > 0 ? (overdueTotal / totalReceber) * 100 : 0;
+          const reservaMeta = Math.max(saidasMes * 3, 1);
+          const reservaCoberturaMeses = saidasMes > 0 ? caixa / saidasMes : 0;
+          const projecaoLucroAnual = resultadoMes * 12;
+          const mesAtual = new Date().getMonth() + 1;
+          const projecaoLucroAnoCorrente = mesAtual > 0 ? (lucroAnual / mesAtual) * 12 : lucroAnual;
+          const bancosBase = cadastroBaseMerged().bancos || [];
+          const bancoLabels = [...new Set([...(bancosBase || []), state.settings?.conta_bancaria || ""])]
+            .map((v) => String(v || "").trim())
+            .filter(Boolean);
+          const bancoResumo = new Map();
+          state.cash.forEach((m) => {
+            const desc = `${m.descricao || ""} ${m.observacoes || ""}`.toLowerCase();
+            const match = bancoLabels.find((b) => desc.includes(b.toLowerCase()));
+            const nomeConta = match || "Conta principal";
+            const valorMov = Number(m.valor || 0) * (m.tipo_conta === "PAGAR" ? -1 : 1);
+            bancoResumo.set(nomeConta, (bancoResumo.get(nomeConta) || 0) + valorMov);
+          });
+          const parceiroPorNome = new Map(
+            (state.partners || [])
+              .filter((p) => (p.nome || "").trim())
+              .map((p) => [String(p.nome || "").trim().toLowerCase(), (p.cpf || "").toString().replace(/\D/g, "")])
+          );
+          let totalPf = 0;
+          let totalPj = 0;
+          openReceivablesFinanceiro.forEach((r) => {
+            const nome = (r.responsavel_pagamento || "").trim().toLowerCase();
+            const doc = parceiroPorNome.get(nome) || "";
+            const valor = Number(r.valor || 0);
+            if (doc.length === 11) totalPf += valor;
+            else if (doc.length === 14) totalPj += valor;
+          });
+          const centrosCusto = new Map();
+          state.payables.forEach((p) => {
+            const cc = (p.centro_custo || p.payable_category || "Sem centro de custo").toString().trim() || "Sem centro de custo";
+            centrosCusto.set(cc, (centrosCusto.get(cc) || 0) + Number(p.valor || 0));
+          });
+          const setKpiCardAlert = (valueId, level) => {
+            const card = document.getElementById(valueId)?.closest(".finance-kpi-card");
+            if (!card) return;
+            card.classList.remove("kpi-alert-danger", "kpi-alert-warning", "kpi-alert-success");
+            if (!level) return;
+            card.classList.add(`kpi-alert-${level}`);
+          };
           const maxMonthly = Math.max(
             1,
             ...seriesMonths.map((ym) => entradasPorMes.get(ym) || 0),
@@ -9305,6 +9405,27 @@
           if (fdtFaturamentoAnual) fdtFaturamentoAnual.textContent = formatCurrency(entradasAno);
           const fdtLucroAnualMeta = document.getElementById("fdtLucroAnualMeta");
           if (fdtLucroAnualMeta) fdtLucroAnualMeta.textContent = `Lucro anual: ${formatCurrency(lucroAnual)}`;
+          const fdtMetaFaturamento = document.getElementById("fdtMetaFaturamento");
+          const fdtMetaFaturamentoStatus = document.getElementById("fdtMetaFaturamentoStatus");
+          if (fdtMetaFaturamento) fdtMetaFaturamento.textContent = `${percentualMetaMensal.toFixed(1)}%`;
+          if (fdtMetaFaturamentoStatus)
+            fdtMetaFaturamentoStatus.textContent =
+              `${formatCurrency(entradasMes)} de ${formatCurrency(metaMensal)}` + (metaMensalConfig > 0 ? "" : " (meta sugerida)");
+          const fdtInadimplencia = document.getElementById("fdtInadimplencia");
+          const fdtInadimplenciaStatus = document.getElementById("fdtInadimplenciaStatus");
+          if (fdtInadimplencia) fdtInadimplencia.textContent = `${inadimplenciaPerc.toFixed(1)}%`;
+          if (fdtInadimplenciaStatus) fdtInadimplenciaStatus.textContent = `${formatCurrency(overdueTotal)} vencido`;
+          const fdtReservaFinanceira = document.getElementById("fdtReservaFinanceira");
+          const fdtReservaFinanceiraStatus = document.getElementById("fdtReservaFinanceiraStatus");
+          if (fdtReservaFinanceira) fdtReservaFinanceira.textContent = formatCurrency(caixa);
+          if (fdtReservaFinanceiraStatus)
+            fdtReservaFinanceiraStatus.textContent =
+              `Cobertura de ${reservaCoberturaMeses.toFixed(1)} mês(es) · alvo ${formatCurrency(reservaMeta)}`;
+          const fdtProjecaoLucroAnual = document.getElementById("fdtProjecaoLucroAnual");
+          const fdtProjecaoLucroAnualStatus = document.getElementById("fdtProjecaoLucroAnualStatus");
+          if (fdtProjecaoLucroAnual) fdtProjecaoLucroAnual.textContent = formatCurrency(projecaoLucroAnoCorrente);
+          if (fdtProjecaoLucroAnualStatus)
+            fdtProjecaoLucroAnualStatus.textContent = `Run-rate mensal: ${formatCurrency(projecaoLucroAnual)}/ano`;
 
           document.getElementById("fdTotalReceber").textContent = formatCurrency(totalReceber);
           document.getElementById("fdQtdReceber").textContent = `${openReceivablesFinanceiro.length} contas`;
@@ -9325,6 +9446,35 @@
           if (fdLucroAnualMeta) fdLucroAnualMeta.textContent = `Lucro anual: ${formatCurrency(lucroAnual)}`;
           if (fdPagarVencidasQtd) fdPagarVencidasQtd.textContent = String(overduePayablesDetail.length);
           if (fdPagarVencidasValor) fdPagarVencidasValor.textContent = `Total vencido: ${formatCurrency(overduePayablesTotal)}`;
+          const fdMetaFaturamento = document.getElementById("fdMetaFaturamento");
+          const fdMetaFaturamentoStatus = document.getElementById("fdMetaFaturamentoStatus");
+          if (fdMetaFaturamento) fdMetaFaturamento.textContent = `${percentualMetaMensal.toFixed(1)}%`;
+          if (fdMetaFaturamentoStatus)
+            fdMetaFaturamentoStatus.textContent =
+              `${formatCurrency(entradasMes)} de ${formatCurrency(metaMensal)}` + (metaMensalConfig > 0 ? "" : " (meta sugerida)");
+          const fdInadimplencia = document.getElementById("fdInadimplencia");
+          const fdInadimplenciaStatus = document.getElementById("fdInadimplenciaStatus");
+          if (fdInadimplencia) fdInadimplencia.textContent = `${inadimplenciaPerc.toFixed(1)}%`;
+          if (fdInadimplenciaStatus) fdInadimplenciaStatus.textContent = `${formatCurrency(overdueTotal)} vencido`;
+          const fdReservaFinanceira = document.getElementById("fdReservaFinanceira");
+          const fdReservaFinanceiraStatus = document.getElementById("fdReservaFinanceiraStatus");
+          if (fdReservaFinanceira) fdReservaFinanceira.textContent = formatCurrency(caixa);
+          if (fdReservaFinanceiraStatus)
+            fdReservaFinanceiraStatus.textContent =
+              `Cobertura de ${reservaCoberturaMeses.toFixed(1)} mês(es) · alvo ${formatCurrency(reservaMeta)}`;
+          const fdProjecaoLucroAnual = document.getElementById("fdProjecaoLucroAnual");
+          const fdProjecaoLucroAnualStatus = document.getElementById("fdProjecaoLucroAnualStatus");
+          if (fdProjecaoLucroAnual) fdProjecaoLucroAnual.textContent = formatCurrency(projecaoLucroAnoCorrente);
+          if (fdProjecaoLucroAnualStatus)
+            fdProjecaoLucroAnualStatus.textContent = `Run-rate mensal: ${formatCurrency(projecaoLucroAnual)}/ano`;
+          setKpiCardAlert("fdtMetaFaturamento", percentualMetaMensal >= 100 ? "success" : percentualMetaMensal >= 75 ? "warning" : "danger");
+          setKpiCardAlert("fdMetaFaturamento", percentualMetaMensal >= 100 ? "success" : percentualMetaMensal >= 75 ? "warning" : "danger");
+          setKpiCardAlert("fdtInadimplencia", inadimplenciaPerc > 25 ? "danger" : inadimplenciaPerc > 10 ? "warning" : "success");
+          setKpiCardAlert("fdInadimplencia", inadimplenciaPerc > 25 ? "danger" : inadimplenciaPerc > 10 ? "warning" : "success");
+          setKpiCardAlert("fdtReservaFinanceira", caixa < reservaMeta ? "warning" : "success");
+          setKpiCardAlert("fdReservaFinanceira", caixa < reservaMeta ? "warning" : "success");
+          setKpiCardAlert("fdtProjecaoLucroAnual", projecaoLucroAnoCorrente < 0 ? "danger" : "success");
+          setKpiCardAlert("fdProjecaoLucroAnual", projecaoLucroAnoCorrente < 0 ? "danger" : "success");
           fillTop(
             "fdDespesasCategoria",
             [...byCategoriaDespesa.entries()]
@@ -9342,7 +9492,22 @@
           );
           const filaEl = document.getElementById("fdFilaFinanceira");
           if (filaEl) {
-            filaEl.innerHTML = filaFinanceira.map(([label, qtd]) => `<li>${escapeHtml(label)} — <strong>${qtd}</strong></li>`).join("");
+            const bancosTop = [...bancoResumo.entries()]
+              .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+              .slice(0, 2)
+              .map(([nome, saldo]) => `${nome}: ${formatCurrency(saldo)}`)
+              .join(" | ");
+            const centroTop = [...centrosCusto.entries()]
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 1)
+              .map(([nome, valor]) => `${nome} (${formatCurrency(valor)})`)[0];
+            const filaExtendida = [
+              ...filaFinanceira,
+              ["Controle bancário", bancosTop || "Sem movimentação identificada"],
+              ["Separação PF/PJ (a receber)", `PF ${formatCurrency(totalPf)} | PJ ${formatCurrency(totalPj)}`],
+              ["Centro de custo líder", centroTop || "Sem dados"],
+            ];
+            filaEl.innerHTML = filaExtendida.map(([label, qtd]) => `<li>${escapeHtml(label)} — <strong>${escapeHtml(String(qtd))}</strong></li>`).join("");
           }
         }
         if (currentFinanceView === "dashboard") {
