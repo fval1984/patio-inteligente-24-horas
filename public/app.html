@@ -4764,6 +4764,16 @@
       const RECEIVABLE_AGUARDANDO_LANCAMENTO = "AGUARDANDO_LANCAMENTO";
       /** Fallback se a coluna `financeiro_aprovado_contas_receber` ainda não existir no Supabase. */
       const RECEBER_TRIAGEM_IDS_KEY = "amplipatio_triagem_em_contas_ids";
+      const CADASTRO_BASE_STORAGE_KEY = "amplipatio_financeiro_cadastro_base_v1";
+      const CADASTRO_BASE_FIELDS = [
+        { key: "categorias", label: "Categorias" },
+        { key: "subcategorias", label: "Subcategorias" },
+        { key: "clientes", label: "Clientes" },
+        { key: "fornecedores", label: "Fornecedores" },
+        { key: "formas_pagamento", label: "Formas de pagamento" },
+        { key: "bancos", label: "Bancos" },
+        { key: "centros_custo", label: "Centros de custo" },
+      ];
 
       function receberTriagemIdSet() {
         try {
@@ -4795,6 +4805,60 @@
         } catch (e) {
           console.warn("localStorage triagem", e);
         }
+      }
+
+      function cadastroBaseReadSaved() {
+        try {
+          const raw = localStorage.getItem(CADASTRO_BASE_STORAGE_KEY);
+          const parsed = JSON.parse(raw || "{}");
+          return parsed && typeof parsed === "object" ? parsed : {};
+        } catch (e) {
+          return {};
+        }
+      }
+
+      function cadastroBaseWriteSaved(payload) {
+        try {
+          localStorage.setItem(CADASTRO_BASE_STORAGE_KEY, JSON.stringify(payload || {}));
+        } catch (e) {
+          console.warn("localStorage cadastro base", e);
+        }
+      }
+
+      function cadastroBaseNormalizeList(list) {
+        const seen = new Set();
+        return (Array.isArray(list) ? list : [])
+          .map((x) => String(x || "").trim())
+          .filter(Boolean)
+          .filter((x) => {
+            const k = x.toLowerCase();
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+          })
+          .sort((a, b) => a.localeCompare(b));
+      }
+
+      function cadastroBaseDefaults() {
+        return {
+          categorias: cadastroBaseNormalizeList(state.payables.map((p) => p.payable_category || "")),
+          subcategorias: cadastroBaseNormalizeList(state.payables.map((p) => p.subcategoria || p.tipo || "")),
+          clientes: cadastroBaseNormalizeList(state.receivables.map((r) => r.responsavel_pagamento || "")),
+          fornecedores: cadastroBaseNormalizeList(state.payables.map((p) => p.fornecedor || p.descricao || "")),
+          formas_pagamento: cadastroBaseNormalizeList(state.cash.map((m) => m.forma_pagamento || "")),
+          bancos: cadastroBaseNormalizeList([state.settings?.conta_bancaria || ""]),
+          centros_custo: cadastroBaseNormalizeList(state.payables.map((p) => p.centro_custo || "")),
+        };
+      }
+
+      function cadastroBaseMerged() {
+        const defaults = cadastroBaseDefaults();
+        const saved = cadastroBaseReadSaved();
+        const merged = {};
+        CADASTRO_BASE_FIELDS.forEach(({ key }) => {
+          merged[key] = Array.isArray(saved[key]) ? cadastroBaseNormalizeList(saved[key]) : defaults[key] || [];
+        });
+        return merged;
       }
 
       /** Aprovado para «Contas a receber»: coluna Supabase (sincroniza entre PCs) ou lista local (fallback). */
@@ -9274,21 +9338,38 @@
           financeHead.innerHTML = `
             <tr>
               <th>Cadastro</th>
-              <th>Total de itens</th>
-              <th>Fonte</th>
+              <th>Itens (editável)</th>
+              <th>Novo item</th>
+              <th>Ações</th>
             </tr>`;
-          const baseCategorias = new Set(state.payables.map((p) => String(p.payable_category || "").trim()).filter(Boolean));
-          const baseClientes = new Set(state.receivables.map((r) => String(r.responsavel_pagamento || "").trim()).filter(Boolean));
-          const baseFornecedores = new Set(state.payables.map((p) => String(p.descricao || "").trim()).filter(Boolean));
-          const baseFormas = new Set(state.cash.map((m) => String(m.forma_pagamento || "").trim()).filter(Boolean));
-          const baseBancos = new Set([String(state.settings?.conta_bancaria || "").trim()].filter(Boolean));
-          rows.push(`<tr><td>Categorias</td><td>${baseCategorias.size}</td><td>Contas a pagar</td></tr>`);
-          rows.push(`<tr><td>Subcategorias</td><td>0</td><td>A configurar</td></tr>`);
-          rows.push(`<tr><td>Clientes</td><td>${baseClientes.size}</td><td>Contas a receber</td></tr>`);
-          rows.push(`<tr><td>Fornecedores</td><td>${baseFornecedores.size}</td><td>Contas a pagar</td></tr>`);
-          rows.push(`<tr><td>Formas de pagamento</td><td>${baseFormas.size}</td><td>Movimentações de caixa</td></tr>`);
-          rows.push(`<tr><td>Bancos</td><td>${baseBancos.size}</td><td>Configurações</td></tr>`);
-          rows.push(`<tr><td>Centros de custo</td><td>0</td><td>A configurar</td></tr>`);
+          const base = cadastroBaseMerged();
+          CADASTRO_BASE_FIELDS.forEach(({ key, label }) => {
+            const list = base[key] || [];
+            const badges = list.length
+              ? list
+                  .map(
+                    (item) =>
+                      `<span class="tag" style="margin:2px 4px 2px 0; display:inline-flex; gap:6px; align-items:center;">
+                        ${escapeHtml(item)}
+                        <button class="secondary" type="button" data-action="cadastro-remove-item" data-base-key="${key}" data-base-item="${encodeURIComponent(item)}" style="padding:0 6px; min-width:0;">×</button>
+                      </span>`
+                  )
+                  .join("")
+              : `<span class="notice">Sem itens</span>`;
+            rows.push(`
+              <tr>
+                <td>${escapeHtml(label)}<br /><span class="notice">${list.length} item(ns)</span></td>
+                <td>${badges}</td>
+                <td>
+                  <input id="cadastroBaseInput_${key}" type="text" placeholder="Adicionar ${escapeHtml(label.toLowerCase())}" style="min-width: 220px" />
+                </td>
+                <td class="actions">
+                  <button class="secondary" type="button" data-action="cadastro-add-item" data-base-key="${key}">Adicionar</button>
+                  <button class="secondary" type="button" data-action="cadastro-reset-list" data-base-key="${key}">Restaurar</button>
+                </td>
+              </tr>
+            `);
+          });
           tableFinance.innerHTML = rows.join("");
           return;
         }
@@ -12535,6 +12616,50 @@
         if (!button) return;
         const id = button.getAttribute("data-id");
         const action = button.getAttribute("data-action");
+        const baseKey = button.getAttribute("data-base-key");
+
+        if (action === "cadastro-add-item") {
+          const validKeys = new Set(CADASTRO_BASE_FIELDS.map((f) => f.key));
+          if (!baseKey || !validKeys.has(baseKey)) return;
+          const input = document.getElementById(`cadastroBaseInput_${baseKey}`);
+          const value = String(input?.value || "").trim();
+          if (!value) {
+            alert("Informe um item para adicionar.");
+            return;
+          }
+          const current = cadastroBaseMerged()[baseKey] || [];
+          const next = cadastroBaseNormalizeList([...current, value]);
+          const saved = cadastroBaseReadSaved();
+          saved[baseKey] = next;
+          cadastroBaseWriteSaved(saved);
+          if (input) input.value = "";
+          renderFinance();
+          return;
+        }
+
+        if (action === "cadastro-remove-item") {
+          const validKeys = new Set(CADASTRO_BASE_FIELDS.map((f) => f.key));
+          if (!baseKey || !validKeys.has(baseKey)) return;
+          const item = decodeURIComponent(button.getAttribute("data-base-item") || "");
+          if (!item) return;
+          const current = cadastroBaseMerged()[baseKey] || [];
+          const next = current.filter((x) => x.toLowerCase() !== item.toLowerCase());
+          const saved = cadastroBaseReadSaved();
+          saved[baseKey] = cadastroBaseNormalizeList(next);
+          cadastroBaseWriteSaved(saved);
+          renderFinance();
+          return;
+        }
+
+        if (action === "cadastro-reset-list") {
+          const validKeys = new Set(CADASTRO_BASE_FIELDS.map((f) => f.key));
+          if (!baseKey || !validKeys.has(baseKey)) return;
+          const saved = cadastroBaseReadSaved();
+          delete saved[baseKey];
+          cadastroBaseWriteSaved(saved);
+          renderFinance();
+          return;
+        }
 
         if (action === "cobranca") {
           const receivable = state.receivables.find((r) => r.id === id);
