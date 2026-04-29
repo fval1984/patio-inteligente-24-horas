@@ -10061,6 +10061,11 @@
         document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
         const receberExtras = view === "receber";
         document.getElementById("financeReceberFilters")?.classList.toggle("hidden", !receberExtras);
+        if (view === "relatorios" && !reportHasRun) {
+          if (financeContent) financeContent.classList.add("hidden");
+          if (financeHead) financeHead.innerHTML = "";
+          if (tableFinance) tableFinance.innerHTML = "";
+        }
         renderFinance();
       }
 
@@ -11168,7 +11173,10 @@
         filterFrom.value = fromStr;
         filterTo.value = toStr;
         historyFilter = { from: fromStr, to: toStr };
-        if (currentFinanceView === "relatorios") reportHasRun = true;
+        if (currentFinanceView === "relatorios") {
+          reportHasRun = false;
+          if (financeContent) financeContent.classList.add("hidden");
+        }
         renderFinance();
       }
 
