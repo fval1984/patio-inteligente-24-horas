@@ -1,5 +1,12 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
+type FormaPagamento = "DINHEIRO" | "PIX" | "DEBITO" | "CREDITO" | "TRANSFERENCIA";
+type TipoMovimentacao = "ENTRADA" | "SAIDA" | "SANGRIA" | "REFORCO";
+
+function mapTipoLancamento(tipoMovimentacao: TipoMovimentacao): "ENTRADA" | "SAIDA" {
+  return tipoMovimentacao === "ENTRADA" || tipoMovimentacao === "REFORCO" ? "ENTRADA" : "SAIDA";
+}
+
 export async function abrirCaixa(input: { usuarioId: string; saldoInicial: number }) {
   const admin = getSupabaseAdmin();
   const usuarioId = String(input.usuarioId || "").trim();
@@ -77,22 +84,25 @@ export async function listarLancamentos(params: {
 
 export async function criarLancamento(input: {
   caixaId: string;
-  tipo: "ENTRADA" | "SAIDA";
+  tipo: TipoMovimentacao;
   categoria: string;
   descricao: string;
   valor: number;
-  formaPagamento: "DINHEIRO" | "PIX" | "DEBITO" | "CREDITO" | "TRANSFERENCIA";
+  formaPagamento: FormaPagamento;
   usuarioId: string;
   referenciaId?: string | null;
   referenciaVeiculoId?: string | null;
+  integrarFinanceiro?: boolean;
 }) {
   const admin = getSupabaseAdmin();
   if (Number(input.valor || 0) <= 0) throw new Error("Valor deve ser positivo.");
+  const tipoBase = mapTipoLancamento(input.tipo);
   const { data, error } = await admin
     .from("lancamentos_caixa")
     .insert({
       caixa_id: input.caixaId,
-      tipo: input.tipo,
+      tipo: tipoBase,
+      tipo_movimentacao: input.tipo,
       categoria: String(input.categoria || "").trim() || "OUTROS",
       descricao: String(input.descricao || "").trim() || "Lançamento financeiro",
       valor: Number(input.valor),
@@ -104,6 +114,42 @@ export async function criarLancamento(input: {
     .select("*")
     .single();
   if (error) throw new Error(error.message);
+
+  // Integracao opcional com financeiro geral.
+  if (input.integrarFinanceiro) {
+    const payload = {
+      origem: "caixa",
+      lancamento_caixa_id: data.id,
+      tipo_movimentacao: input.tipo,
+      tipo_base: tipoBase,
+      categoria: data.categoria,
+      descricao: data.descricao,
+      valor: data.valor,
+      forma_pagamento: data.forma_pagamento,
+      referencia_id: data.referencia_id,
+      referencia_veiculo_id: data.referencia_veiculo_id,
+      usuario_id: input.usuarioId,
+    };
+
+    const rpc = await admin.rpc("fn_financeiro_registrar_movimento", { p_payload: payload as any });
+    if (rpc.error) {
+      await admin.rpc("fn_caixa_log_acao", {
+        p_entidade: "lancamentos_caixa",
+        p_entidade_id: data.id,
+        p_acao: "INTEGRACAO_FINANCEIRO_PENDENTE",
+        p_usuario_id: input.usuarioId,
+        p_payload: { motivo: rpc.error.message, payload },
+      });
+    } else {
+      await admin.rpc("fn_caixa_log_acao", {
+        p_entidade: "lancamentos_caixa",
+        p_entidade_id: data.id,
+        p_acao: "INTEGRACAO_FINANCEIRO_OK",
+        p_usuario_id: input.usuarioId,
+        p_payload: payload,
+      });
+    }
+  }
   return data;
 }
 
@@ -232,6 +278,29 @@ export async function fecharCaixa(input: {
   return data;
 }
 
+export async function listarHistoricoCaixas(params: {
+  from?: string | null;
+  to?: string | null;
+  status?: "ABERTO" | "FECHADO" | null;
+  limit?: number;
+}) {
+  const admin = getSupabaseAdmin();
+  let query = admin
+    .from("caixas_financeiros")
+    .select("*,caixa_fechamentos(*)")
+    .is("deleted_at", null)
+    .order("data_abertura", { ascending: false })
+    .limit(Math.min(Math.max(params.limit || 100, 1), 500));
+
+  if (params.from) query = query.gte("data_abertura", `${params.from}T00:00:00`);
+  if (params.to) query = query.lte("data_abertura", `${params.to}T23:59:59`);
+  if (params.status) query = query.eq("status", params.status);
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
 export async function obterDashboardCaixa(params: { caixaId: string }) {
   const admin = getSupabaseAdmin();
   const { data: caixa, error: caixaErr } = await admin
@@ -262,8 +331,12 @@ export async function obterDashboardCaixa(params: { caixaId: string }) {
       return d >= from && d <= to;
     });
   const byMonth = (arr: any[]) => arr.filter((x) => String(x.data_hora || "").slice(0, 7) === month);
-  const entradas = list.filter((x) => x.tipo === "ENTRADA");
-  const saidas = list.filter((x) => x.tipo === "SAIDA");
+  const isEntrada = (x: any) => x.tipo_movimentacao === "ENTRADA" || x.tipo_movimentacao === "REFORCO" || x.tipo === "ENTRADA";
+  const isSaida = (x: any) => x.tipo_movimentacao === "SAIDA" || x.tipo_movimentacao === "SANGRIA" || x.tipo === "SAIDA";
+  const isSangria = (x: any) => x.tipo_movimentacao === "SANGRIA";
+  const entradas = list.filter(isEntrada);
+  const saidas = list.filter(isSaida);
+  const sangrias = list.filter(isSangria);
 
   return {
     caixa,
@@ -274,6 +347,7 @@ export async function obterDashboardCaixa(params: { caixaId: string }) {
     saidasSemana: sum(byDateRange(saidas, week, today)),
     entradasMes: sum(byMonth(entradas)),
     saidasMes: sum(byMonth(saidas)),
+    sangriasMes: sum(byMonth(sangrias)),
     lucroBruto: sum(byMonth(entradas)) - sum(byMonth(saidas)),
     recentes: list
       .sort((a, b) => String(b.data_hora || "").localeCompare(String(a.data_hora || "")))

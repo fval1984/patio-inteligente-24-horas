@@ -19,6 +19,9 @@ begin
   end if;
 end$$;
 
+alter type public.caixa_lancamento_tipo add value if not exists 'SANGRIA';
+alter type public.caixa_lancamento_tipo add value if not exists 'REFORCO';
+
 create table if not exists public.caixas_financeiros (
   id uuid primary key default gen_random_uuid(),
   data_abertura timestamptz not null default now(),
@@ -42,6 +45,7 @@ create table if not exists public.lancamentos_caixa (
   id uuid primary key default gen_random_uuid(),
   caixa_id uuid not null references public.caixas_financeiros(id),
   tipo public.caixa_lancamento_tipo not null,
+  tipo_movimentacao public.caixa_lancamento_tipo not null default 'ENTRADA',
   categoria text not null,
   descricao text not null,
   valor numeric(14,2) not null check (valor > 0),
@@ -60,6 +64,7 @@ create table if not exists public.lancamentos_caixa (
 create index if not exists idx_lancamentos_caixa_caixa_id on public.lancamentos_caixa(caixa_id);
 create index if not exists idx_lancamentos_caixa_data on public.lancamentos_caixa(data_hora);
 create index if not exists idx_lancamentos_caixa_categoria on public.lancamentos_caixa(categoria);
+create index if not exists idx_lancamentos_caixa_tipo_movimentacao on public.lancamentos_caixa(tipo_movimentacao);
 
 create table if not exists public.contas_receber_financeiro (
   id uuid primary key default gen_random_uuid(),
@@ -138,11 +143,11 @@ begin
 
   select coalesce(sum(valor), 0) into v_entradas
   from public.lancamentos_caixa
-  where caixa_id = p_caixa_id and tipo = 'ENTRADA' and deleted_at is null;
+  where caixa_id = p_caixa_id and tipo_movimentacao in ('ENTRADA', 'REFORCO') and deleted_at is null;
 
   select coalesce(sum(valor), 0) into v_saidas
   from public.lancamentos_caixa
-  where caixa_id = p_caixa_id and tipo = 'SAIDA' and deleted_at is null;
+  where caixa_id = p_caixa_id and tipo_movimentacao in ('SAIDA', 'SANGRIA') and deleted_at is null;
 
   v_saldo_final := v_saldo_inicial + v_entradas - v_saidas;
 
@@ -269,9 +274,10 @@ begin
   end if;
 
   insert into public.lancamentos_caixa (
-    caixa_id, tipo, categoria, descricao, valor, forma_pagamento, usuario_id, referencia_id, referencia_veiculo_id
+    caixa_id, tipo, tipo_movimentacao, categoria, descricao, valor, forma_pagamento, usuario_id, referencia_id, referencia_veiculo_id
   ) values (
     v_caixa_id,
+    'ENTRADA',
     'ENTRADA',
     'SERVICO',
     'Recebimento automático de conta a receber',

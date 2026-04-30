@@ -24,9 +24,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const tipoMovimentacao = String(body?.tipo || "ENTRADA").toUpperCase();
+    const tipo =
+      tipoMovimentacao === "SAIDA" ||
+      tipoMovimentacao === "SANGRIA" ||
+      tipoMovimentacao === "REFORCO" ||
+      tipoMovimentacao === "ENTRADA"
+        ? (tipoMovimentacao as "ENTRADA" | "SAIDA" | "SANGRIA" | "REFORCO")
+        : "ENTRADA";
     const data = await criarLancamento({
       caixaId: String(body?.caixa_id || ""),
-      tipo: body?.tipo === "SAIDA" ? "SAIDA" : "ENTRADA",
+      tipo,
       categoria: String(body?.categoria || "OUTROS"),
       descricao: String(body?.descricao || ""),
       valor: Number(body?.valor || 0),
@@ -34,6 +42,7 @@ export async function POST(request: NextRequest) {
       usuarioId: String(body?.usuario_id || ""),
       referenciaId: body?.referencia_id || null,
       referenciaVeiculoId: body?.referencia_veiculo_id || null,
+      integrarFinanceiro: Boolean(body?.integrar_financeiro),
     });
     return NextResponse.json({ ok: true, data }, { status: 201 });
   } catch (error: any) {

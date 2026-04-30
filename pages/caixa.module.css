@@ -61,6 +61,11 @@
   cursor: pointer;
 }
 
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .buttonPrimary {
   background: linear-gradient(135deg, #047857, #10b981);
   border-color: #34d399;
@@ -188,6 +193,24 @@
   margin: 0;
   font-size: 12px;
   color: #fca5a5;
+}
+
+.success {
+  margin: 0;
+  font-size: 12px;
+  color: #86efac;
+}
+
+.checkWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #cbd5e1;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  background: rgba(15, 23, 42, 0.8);
 }
 
 @media (max-width: 900px) {
