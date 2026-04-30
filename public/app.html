@@ -1072,20 +1072,35 @@
         #viewFinanceiro .finance-modern-layout {
           grid-template-columns: 1fr;
         }
-        #viewFinanceiro .finance-modern-sidebar {
-          min-height: 0;
-          position: static;
-        }
         #viewFinanceiro #financeSidebarToggle {
           display: inline-flex;
         }
         #viewFinanceiro .finance-modern-sidebar {
-          display: none;
+          display: grid;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: min(320px, calc(100vw - 52px));
+          height: 100vh;
+          z-index: 120;
+          border-radius: 0 14px 14px 0;
+          transform: translateX(-110%);
+          transition: transform 0.2s ease;
+          overflow: auto;
+          margin: 0;
+          min-height: 100vh;
         }
         #viewFinanceiro.finance-sidebar-open .finance-modern-sidebar {
-          display: grid;
-          position: static;
-          margin-bottom: 10px;
+          transform: translateX(0);
+        }
+        #viewFinanceiro #financeSidebarBackdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(2, 6, 23, 0.52);
+          z-index: 110;
+        }
+        #viewFinanceiro:not(.finance-sidebar-open) #financeSidebarBackdrop {
+          display: none;
         }
         #viewFinanceiro .finance-modern-topbar {
           align-items: center;
@@ -4157,6 +4172,7 @@
                   <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
                 </div>
               </div>
+              <div id="financeSidebarBackdrop" class="hidden" aria-hidden="true"></div>
               <div id="financeFlyoutBackdrop" class="finance-flyout-backdrop hidden"></div>
           <div class="finance-context-bar">
             <span id="financeViewBadge" class="finance-context-badge">Visão: Dashboard geral</span>
@@ -5410,6 +5426,7 @@
       const financeModeBadge = document.getElementById("financeModeBadge");
       const financeBreadcrumb = document.getElementById("financeBreadcrumb");
       const financeSidebarToggle = document.getElementById("financeSidebarToggle");
+      const financeSidebarBackdrop = document.getElementById("financeSidebarBackdrop");
       const financeCompetenciaBadge = document.getElementById("financeCompetenciaBadge");
       const financeDashboardMonth = document.getElementById("financeDashboardMonth");
       const financeDashboardMonthAtual = document.getElementById("financeDashboardMonthAtual");
@@ -11118,6 +11135,7 @@
           financeSidebarOpen = false;
           financeRoot?.classList.remove("finance-sidebar-open");
           if (financeSidebarToggle) financeSidebarToggle.setAttribute("aria-expanded", "false");
+          financeSidebarBackdrop?.classList.add("hidden");
           financeFlyoutBackdrop?.classList.add("hidden");
           document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
           document.getElementById("financeReceberFilters")?.classList.add("hidden");
@@ -12368,10 +12386,18 @@
         financeSidebarOpen = !financeSidebarOpen;
         financeRootEl?.classList.toggle("finance-sidebar-open", financeSidebarOpen);
         financeSidebarToggle.setAttribute("aria-expanded", financeSidebarOpen ? "true" : "false");
+        financeSidebarBackdrop?.classList.toggle("hidden", !financeSidebarOpen);
+      });
+      financeSidebarBackdrop?.addEventListener("click", () => {
+        financeSidebarOpen = false;
+        getFinanceRoot()?.classList.remove("finance-sidebar-open");
+        financeSidebarToggle?.setAttribute("aria-expanded", "false");
+        financeSidebarBackdrop?.classList.add("hidden");
       });
       if (window.matchMedia && window.matchMedia("(min-width: 1041px)").matches) {
         getFinanceRoot()?.classList.remove("finance-sidebar-open");
         financeSidebarToggle?.setAttribute("aria-expanded", "false");
+        financeSidebarBackdrop?.classList.add("hidden");
         financeSidebarOpen = false;
       }
       window.addEventListener("resize", () => {
@@ -12379,6 +12405,7 @@
           financeSidebarOpen = false;
           getFinanceRoot()?.classList.remove("finance-sidebar-open");
           financeSidebarToggle?.setAttribute("aria-expanded", "false");
+          financeSidebarBackdrop?.classList.add("hidden");
         }
       });
       if (tableFinance) {
@@ -12398,6 +12425,7 @@
           financeSidebarOpen = false;
           getFinanceRoot()?.classList.remove("finance-sidebar-open");
           financeSidebarToggle?.setAttribute("aria-expanded", "false");
+          financeSidebarBackdrop?.classList.add("hidden");
         }
         openFinanceSubview(button.getAttribute("data-subview"));
       });
