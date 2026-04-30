@@ -3047,6 +3047,7 @@
                   <button type="button" data-header-partner-sub="localizadores">Localizador</button>
                   <button type="button" data-header-partner-sub="assessorias">Assessoria</button>
                   <button type="button" data-header-partner-sub="instituicoes_financeiras">Instituição Financeira</button>
+                  <button type="button" data-header-partner-sub="leiloeiros">Leiloeiro</button>
                   <button type="button" data-header-partner-sub="remocoes">Serviço de remoção</button>
                 </div>
               </details>
@@ -3703,6 +3704,7 @@
             <button data-subview="localizadores">Localizador</button>
             <button data-subview="assessorias">Assessoria</button>
             <button data-subview="instituicoes_financeiras">Instituição Financeira</button>
+            <button data-subview="leiloeiros">Leiloeiro</button>
             <button data-subview="remocoes">Serviço de remoção</button>
           </div>
           <div class="grid" style="margin-bottom: 18px;">
@@ -3760,6 +3762,22 @@
                 </tr>
               </thead>
               <tbody id="tableInstituicoesFinanceiras"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="section-card partner-subview hidden" data-subview="leiloeiros">
+            <div class="table-wrap">
+              <table class="table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>CNPJ</th>
+                  <th>Contato</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tableLeiloeiros"></tbody>
               </table>
             </div>
           </div>
@@ -4350,6 +4368,10 @@
                 <label>Assessoria</label>
                 <select id="vehicleAssessor"></select>
               </div>
+              <div class="field-operador-hide">
+                <label>Leiloeiro</label>
+                <select id="vehicleAuctioneer"></select>
+              </div>
               <div class="full field-operador-hide">
                 <label>Observações</label>
                 <input id="vehicleNotes" type="text" placeholder="Observações importantes" />
@@ -4902,6 +4924,7 @@
       const cancelVehicleForm = document.getElementById("cancelVehicleForm");
       const vehicleLocator = document.getElementById("vehicleLocator");
       const vehicleAssessor = document.getElementById("vehicleAssessor");
+      const vehicleAuctioneer = document.getElementById("vehicleAuctioneer");
       const vehicleExit = document.getElementById("vehicleExit");
       const vehicleModalTitle = document.getElementById("vehicleModalTitle");
       const vehicleModalSubtitle = document.getElementById("vehicleModalSubtitle");
@@ -4987,6 +5010,7 @@
       const tableLocalizadores = document.getElementById("tableLocalizadores");
       const tableAssessorias = document.getElementById("tableAssessorias");
       const tableInstituicoesFinanceiras = document.getElementById("tableInstituicoesFinanceiras");
+      const tableLeiloeiros = document.getElementById("tableLeiloeiros");
       const tableRemocoes = document.getElementById("tableRemocoes");
       const tableFinance = document.getElementById("tableFinance");
       const financeHead = document.getElementById("financeHead");
@@ -8159,6 +8183,7 @@
       function partnerTypeFromSubview(view) {
         if (view === "assessorias") return "ASSESSORIA";
         if (view === "instituicoes_financeiras") return "INSTITUICAO_FINANCEIRA";
+        if (view === "leiloeiros") return "LEILOEIRO";
         if (view === "remocoes") return "REMOCAO";
         return "LOCALIZADOR";
       }
@@ -8471,6 +8496,7 @@
         }
         if (view === "assessorias") openPartnerForm.textContent = "Nova assessoria";
         else if (view === "instituicoes_financeiras") openPartnerForm.textContent = "Nova instituição financeira";
+        else if (view === "leiloeiros") openPartnerForm.textContent = "Novo leiloeiro";
         else if (view === "remocoes") openPartnerForm.textContent = "Novo serviço de remoção";
         else openPartnerForm.textContent = "Novo localizador";
         syncPartnerFormForCurrentView();
@@ -8483,6 +8509,7 @@
           else if (currentPartnerView === "assessorias") partnerNameLabel.textContent = "Nome da assessoria";
           else if (currentPartnerView === "instituicoes_financeiras")
             partnerNameLabel.textContent = "Nome da instituição financeira";
+          else if (currentPartnerView === "leiloeiros") partnerNameLabel.textContent = "Nome do leiloeiro";
           else if (currentPartnerView === "remocoes") partnerNameLabel.textContent = "Nome do serviço de remoção";
           else partnerNameLabel.textContent = "Nome";
         }
@@ -9105,6 +9132,7 @@
         const parceiros = state.partners.filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
         const assessorias = state.partners.filter((p) => p.tipo === "ASSESSORIA");
         const instituicoesFinanceiras = state.partners.filter((p) => p.tipo === "INSTITUICAO_FINANCEIRA");
+        const leiloeiros = state.partners.filter((p) => p.tipo === "LEILOEIRO");
         const remocoes = state.partners.filter((p) => p.tipo === "REMOCAO");
 
         if (!parceiros.length) {
@@ -9153,6 +9181,27 @@
           setEmptyRow(tableInstituicoesFinanceiras, "Nenhuma instituição financeira cadastrada.", 5);
         } else {
           tableInstituicoesFinanceiras.innerHTML = instituicoesFinanceiras
+            .map((p) => {
+              return `
+                <tr>
+                  <td>${p.nome || "-"}</td>
+                  <td>${formatCnpjForDisplay(p.cpf) || "-"}</td>
+                  <td>${p.contato || "-"}</td>
+                  <td><span class="tag">Ativo</span></td>
+                  <td class="actions">
+                    <button class="secondary" data-action="editar-parceiro" data-id="${p.id}">Editar</button>
+                    <button class="secondary" data-action="apagar-parceiro" data-id="${p.id}">Apagar</button>
+                  </td>
+                </tr>
+              `;
+            })
+            .join("");
+        }
+
+        if (!leiloeiros.length) {
+          setEmptyRow(tableLeiloeiros, "Nenhum leiloeiro cadastrado.", 5);
+        } else {
+          tableLeiloeiros.innerHTML = leiloeiros
             .map((p) => {
               return `
                 <tr>
@@ -9235,6 +9284,7 @@
       function renderPartnerOptions() {
         vehicleLocator.innerHTML = `<option value="">Sem localizador</option>`;
         vehicleAssessor.innerHTML = `<option value="">Sem assessoria</option>`;
+        if (vehicleAuctioneer) vehicleAuctioneer.innerHTML = `<option value="">Sem leiloeiro</option>`;
         state.partners.forEach((p) => {
           const type = normalizePartnerType(p.tipo || "PARCEIRO");
           const option = document.createElement("option");
@@ -9242,6 +9292,8 @@
           option.textContent = p.nome;
           if (type === "ASSESSORIA") {
             vehicleAssessor.appendChild(option);
+          } else if (type === "LEILOEIRO" && vehicleAuctioneer) {
+            vehicleAuctioneer.appendChild(option);
           } else if (type === "LOCALIZADOR") {
             vehicleLocator.appendChild(option);
           }
@@ -9255,10 +9307,12 @@
         let targetSubview = "localizadores";
         if (normalizedTarget === "ASSESSORIA") targetSubview = "assessorias";
         else if (normalizedTarget === "INSTITUICAO_FINANCEIRA") targetSubview = "instituicoes_financeiras";
+        else if (normalizedTarget === "LEILOEIRO") targetSubview = "leiloeiros";
         else if (normalizedTarget === "REMOCAO") targetSubview = "remocoes";
         openPartnerSubview(targetSubview);
         if (isAssessoria) partnerModalTitle.textContent = "Nova assessoria";
         else if (normalizedTarget === "INSTITUICAO_FINANCEIRA") partnerModalTitle.textContent = "Nova instituição financeira";
+        else if (normalizedTarget === "LEILOEIRO") partnerModalTitle.textContent = "Novo leiloeiro";
         else if (normalizedTarget === "REMOCAO") partnerModalTitle.textContent = "Novo serviço de remoção";
         else partnerModalTitle.textContent = "Novo localizador";
         syncPartnerFormForCurrentView();
@@ -9290,6 +9344,7 @@
           vehicleExit.value = toLocalInput(vehicle.data_saida);
           vehicleLocator.value = vehicle.localizador_id || "";
           vehicleAssessor.value = vehicle.assessoria_id || "";
+          if (vehicleAuctioneer) vehicleAuctioneer.value = vehicle.leiloeiro_id || "";
           document.getElementById("vehicleNotes").value = vehicle.observacoes || "";
           document.getElementById("vehicleInspectionDate").value = toLocalInput(vehicle.vistoria_data);
           document.getElementById("vehicleInspectionResponsible").value = vehicle.vistoria_responsavel || "";
@@ -9305,6 +9360,7 @@
           if (!entryInput.value) {
             entryInput.value = toLocalInput(new Date());
           }
+          if (vehicleAuctioneer) vehicleAuctioneer.value = "";
         }
         const vd = document.getElementById("vehicleDaily");
         if (vd) vd.required = true;
@@ -10699,6 +10755,7 @@
         if (currentPartnerView === "assessorias") partnerModalTitle.textContent = "Nova assessoria";
         else if (currentPartnerView === "instituicoes_financeiras")
           partnerModalTitle.textContent = "Nova instituição financeira";
+        else if (currentPartnerView === "leiloeiros") partnerModalTitle.textContent = "Novo leiloeiro";
         else if (currentPartnerView === "remocoes") partnerModalTitle.textContent = "Novo serviço de remoção";
         else partnerModalTitle.textContent = "Novo localizador";
         syncPartnerFormForCurrentView();
@@ -11945,6 +12002,7 @@
           data_saida: vehicleExit.value ? new Date(vehicleExit.value).toISOString() : null,
           localizador_id: vehicleLocator.value || null,
           assessoria_id: vehicleAssessor.value || null,
+          leiloeiro_id: vehicleAuctioneer?.value || null,
           observacoes: document.getElementById("vehicleNotes").value.trim(),
           status: editingVehicleData?.status || "NO_PATIO",
           payment_status: editingVehicleData?.payment_status || "EM_ABERTO",
@@ -11987,7 +12045,7 @@
           ? supabase.from("vehicles").update(payload).eq("id", editingVehicleId).eq("user_id", effectiveUserId())
           : supabase.from("vehicles").insert(payload);
         let { error } = await vehicleOp;
-        if (error && /vistoria_|column|schema cache|PGRST204/i.test(error.message || "")) {
+        if (error && /vistoria_|leiloeiro_id|column|schema cache|PGRST204/i.test(error.message || "")) {
           const {
             vistoria_data: _vd,
             vistoria_responsavel: _vr,
@@ -11995,6 +12053,7 @@
             vistoria_combustivel: _vcb,
             vistoria_checklist: _vck,
             vistoria_observacoes: _vobs,
+            leiloeiro_id: _lei,
             ...payloadSemVistoria
           } = payload;
           const retryOp = editingVehicleId
@@ -12004,7 +12063,7 @@
           error = retry.error;
           if (!error) {
             alert(
-              "Veículo salvo sem laudo de vistoria. Para habilitar o laudo, execute o SQL: supabase/vehicles_vistoria.sql no Supabase e tente novamente."
+              "Veículo salvo com recursos avançados desativados (vistoria ou leiloeiro). Para habilitar tudo, execute os SQLs de migração no Supabase e tente novamente."
             );
           }
         }
