@@ -10667,6 +10667,16 @@
         }
 
         if (currentFinanceView === "relatorios") {
+          // Garante que, em Relatórios, os filtros dessa própria aba fiquem sempre visíveis.
+          financeFiltersHub?.classList.remove("hidden");
+          financeFilters?.classList.remove("hidden");
+          financeReportExtraFilters?.classList.remove("hidden");
+          financePlateSearchForm?.classList.add("hidden");
+          financeLancamentosFilters?.classList.add("hidden");
+          financeLancamentosToolbar?.classList.add("hidden");
+          financeCaixaFilters?.classList.add("hidden");
+          document.getElementById("financeReceberFilters")?.classList.add("hidden");
+          financeLancSidePanel?.classList.add("hidden");
           financeHead.innerHTML = `
             <tr>
               <th>Relatório</th>
