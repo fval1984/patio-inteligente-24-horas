@@ -1101,12 +1101,51 @@
         }
       }
       @media (max-width: 760px) {
+        #viewFinanceiro .finance-modern-main {
+          padding: 0 2px;
+        }
+        #viewFinanceiro .finance-modern-topbar {
+          padding: 8px 10px;
+          border-radius: 12px;
+        }
+        #viewFinanceiro .finance-modern-topbar h2 {
+          font-size: 18px;
+          line-height: 1.2;
+        }
+        #viewFinanceiro .finance-modern-topbar .notice {
+          font-size: 11px;
+        }
+        #viewFinanceiro .finance-modern-topbar .actions button {
+          padding: 6px 10px;
+          min-height: 34px;
+        }
         #viewFinanceiro .finance-context-bar {
           gap: 6px;
         }
         #viewFinanceiro .finance-context-badge {
           width: 100%;
+          min-height: 36px;
           justify-content: space-between;
+          padding: 7px 10px;
+          font-size: 11px;
+        }
+        #viewFinanceiro .filter-bar.finance-filter-panel {
+          padding: 10px;
+          gap: 6px;
+        }
+        #viewFinanceiro .filter-bar.finance-filter-panel label {
+          width: 100%;
+          font-size: 11px;
+        }
+        #viewFinanceiro .filter-bar.finance-filter-panel input,
+        #viewFinanceiro .filter-bar.finance-filter-panel select,
+        #viewFinanceiro .filter-bar.finance-filter-panel button {
+          width: 100%;
+          min-height: 36px;
+        }
+        #viewFinanceiro #financeLancamentosToolbar {
+          display: grid !important;
+          grid-template-columns: 1fr;
         }
         #viewFinanceiro #financeStandardArea .table-wrap {
           overflow: visible;
@@ -1136,6 +1175,27 @@
           font-weight: 700;
           color: var(--muted);
           padding-right: 8px;
+        }
+        #viewFinanceiro #financeLancPagination {
+          align-items: stretch !important;
+        }
+        #viewFinanceiro #financeLancPagination > * {
+          width: 100%;
+        }
+        #viewFinanceiro #financeLancPagination > div {
+          justify-content: space-between;
+        }
+      }
+      @media (max-width: 420px) {
+        #viewFinanceiro .finance-modern-topbar h2 {
+          font-size: 17px;
+        }
+        #viewFinanceiro .finance-ledger tbody td {
+          grid-template-columns: 46% 54%;
+          font-size: 12px;
+        }
+        #viewFinanceiro .finance-ledger tbody td::before {
+          font-size: 11px;
         }
       }
       [data-theme="light"] #viewFinanceiro .finance-nav-inline button.secondary,
