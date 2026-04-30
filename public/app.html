@@ -4133,6 +4133,7 @@
                 <button type="button" class="secondary" id="financeMenuReload">Atualizar dados</button>
 
                 <span class="finance-menu-group">Operação financeira</span>
+                <button type="button" class="secondary" data-subview="pre_lancamento">Pré-lançamento</button>
                 <button type="button" class="secondary" data-subview="lancamentos">Lançamentos</button>
                 <button type="button" class="secondary" data-subview="receber">Contas a receber</button>
                 <button type="button" class="secondary" data-subview="pagar">Contas a pagar</button>
@@ -5741,10 +5742,10 @@
       function formatReceivableStatusLabel(c) {
         if (!c) return "-";
         if (c.status === "PAGO") return "Pago";
-        if (c.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return "Aguardando lançamento (financeiro)";
+        if (c.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return "Pré-lançamento (financeiro)";
         if (c.status === "EM_ABERTO" && receivableIsCicloPatioAberto(c)) return "Em curso (pátio)";
         if (c.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(c) && !receivableAprovadoParaContasReceber(c))
-          return "Aguardando lançamento (financeiro)";
+          return "Pré-lançamento (financeiro)";
         if (c.status === "EM_ABERTO") return "Em aberto (conta a receber)";
         return c.status || "-";
       }
@@ -11086,9 +11087,11 @@
       function setFinanceView(view) {
         const previousFinanceView = currentFinanceView;
         if (view === "filtros" || view === "relatorios") view = "dashboard";
+        if (view === "pre_lancamento") view = "aguardando_lancamento";
         currentFinanceView = view;
         const viewMap = {
           dashboard: "Dashboard geral",
+          aguardando_lancamento: "Pré-lançamento",
           lancamentos: "Lançamentos financeiros",
           receber: "Contas a receber",
           pagar: "Contas a pagar",
@@ -11126,7 +11129,9 @@
         }
         if (financeDashboardMonth) financeDashboardMonth.value = financeCompetencia || currentYearMonthLocal();
         financeSubnav?.querySelectorAll("button").forEach((btn) => {
-          btn.classList.toggle("active", !isNone && btn.getAttribute("data-subview") === view);
+          const btnSubview = btn.getAttribute("data-subview");
+          const isPreLancamentoButton = btnSubview === "pre_lancamento" && view === "aguardando_lancamento";
+          btn.classList.toggle("active", !isNone && (btnSubview === view || isPreLancamentoButton));
         });
         if (isNone) {
           financeFiltersHub?.classList.add("hidden");
@@ -12028,6 +12033,7 @@
         const top = navStack[navStack.length - 1];
         if (!sub) return;
         if (sub === "filtros" || sub === "relatorios") sub = "dashboard";
+        if (sub === "pre_lancamento") sub = "aguardando_lancamento";
         if (top === `financeiro:${sub}`) {
           return;
         }
@@ -13620,7 +13626,7 @@
           await loadReceivables();
           renderFinance();
           alert(
-            `Ciclo do responsável anterior encerrado em ${dataAcerto} (fim desse dia). O encerramento foi enviado ao Financeiro (aba «Aguardando lançamento»). Novo responsável a partir de ${formatNextCalendarDayPt(
+            `Ciclo do responsável anterior encerrado em ${dataAcerto} (fim desse dia). O encerramento foi enviado ao Financeiro (aba «Pré-lançamento»). Novo responsável a partir de ${formatNextCalendarDayPt(
               dataAcerto
             )}.`
           );
@@ -13800,7 +13806,7 @@
           updateDashboard();
           openPatioSubview("removidos");
           alert(
-            "Veículo removido do pátio (VRP). O ciclo vai primeiro para Financeiro → «Aguardando lançamento»; depois do teu OK passa a «Contas a receber» ou baixa em caixa."
+            "Veículo removido do pátio (VRP). O ciclo vai primeiro para Financeiro → «Pré-lançamento»; depois do teu OK passa a «Contas a receber» ou baixa em caixa."
           );
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
@@ -14049,7 +14055,7 @@
           }
           if (!receivableIsContaReceberFinanceiro(receivable)) {
             alert(
-              "Este registo não está em «Contas a receber». Se o ciclo acabou de sair do pátio, use a aba «Aguardando lançamento»."
+              "Este registo não está em «Contas a receber». Se o ciclo acabou de sair do pátio, use a aba «Pré-lançamento»."
             );
             return;
           }
@@ -14236,7 +14242,7 @@
           const naFilaAguardando = receivableNaFilaAguardandoTriagem(receivable);
           if (!emContaReceber && !naFilaAguardando) {
             alert(
-              "É possível editar ciclos somente em «Aguardando lançamento» ou «Contas a receber» (ainda não pagos). Atualize o financeiro."
+              "É possível editar ciclos somente em «Pré-lançamento» ou «Contas a receber» (ainda não pagos). Atualize o financeiro."
             );
             return;
           }
