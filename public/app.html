@@ -4174,6 +4174,7 @@
             </span>
           </div>
           <div id="receivableAlert" class="alert hidden"></div>
+          <div id="financeFiltersHub" class="hidden">
           <form id="financePlateSearchForm" class="filter-bar finance-filter-panel" style="margin: 8px 0 10px" action="#" novalidate>
             <label for="financePlateFilter">Placa</label>
             <input
@@ -4308,6 +4309,7 @@
             <label for="financeCaixaMonth">Competência</label>
             <input id="financeCaixaMonth" type="month" />
             <button type="button" class="secondary" id="financeCaixaMonthAtual">Mês atual</button>
+          </div>
           </div>
           <div id="financeContent" class="hidden">
             <div id="financeDetailDashboard" class="section-card hidden" style="margin-top: 0">
@@ -5420,6 +5422,7 @@
       const financeCompetenciaBadge = document.getElementById("financeCompetenciaBadge");
       const financeDashboardMonth = document.getElementById("financeDashboardMonth");
       const financeDashboardMonthAtual = document.getElementById("financeDashboardMonthAtual");
+      const financeFiltersHub = document.getElementById("financeFiltersHub");
       const financeFilters = document.getElementById("financeFilters");
       const financeLancamentosFilters = document.getElementById("financeLancamentosFilters");
       const financeCaixaFilters = document.getElementById("financeCaixaFilters");
@@ -11119,6 +11122,7 @@
           btn.classList.toggle("active", !isNone && btn.getAttribute("data-subview") === view);
         });
         if (isNone) {
+          financeFiltersHub?.classList.add("hidden");
           financeFilters.classList.add("hidden");
           financeLancamentosFilters?.classList.add("hidden");
           financeLancamentosToolbar?.classList.add("hidden");
@@ -11138,7 +11142,9 @@
           renderFinance();
           return;
         }
-        if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", isDashboard);
+        const showFiltersHub = view === "filtros";
+        financeFiltersHub?.classList.toggle("hidden", !showFiltersHub);
+        if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", !showFiltersHub);
         financeRoot?.classList.toggle("finance-flyout-open", isFlyoutView);
         financeFlyoutBackdrop?.classList.toggle("hidden", !isFlyoutView);
         const showReportResult = view !== "relatorios" || reportHasRun;
@@ -11149,7 +11155,6 @@
           void financeContent.offsetWidth;
           financeContent.classList.add("air-open");
         }
-        const showFiltersHub = view === "filtros";
         financeFilters.classList.toggle("hidden", !showFiltersHub);
         financeReportExtraFilters?.classList.toggle("hidden", !showFiltersHub);
         financeLancamentosFilters?.classList.toggle("hidden", !showFiltersHub);
