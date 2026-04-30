@@ -1147,6 +1147,60 @@
         transform: translateY(-1px);
         box-shadow: 0 10px 20px rgba(2, 6, 23, 0.25);
       }
+      #viewFinanceiro .finance-lanc-sidepanel {
+        position: fixed;
+        top: 98px;
+        right: 14px;
+        width: min(340px, calc(100vw - 28px));
+        max-height: calc(100vh - 120px);
+        overflow: auto;
+        z-index: 90;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        background: linear-gradient(165deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.95));
+        box-shadow: 0 18px 34px rgba(2, 6, 23, 0.36);
+      }
+      #viewFinanceiro .finance-lanc-sidepanel-head,
+      #viewFinanceiro .finance-lanc-sidepanel-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+      }
+      #viewFinanceiro .finance-lanc-sidepanel-foot {
+        border-bottom: 0;
+        border-top: 1px solid rgba(148, 163, 184, 0.2);
+      }
+      #viewFinanceiro .finance-lanc-sidepanel-body {
+        display: grid;
+        gap: 8px;
+        padding: 10px 12px;
+      }
+      #viewFinanceiro .finance-check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      #viewFinanceiro .finance-check input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+      }
+      #viewFinanceiro #financeLancPagination button[disabled] {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      @media (max-width: 900px) {
+        #viewFinanceiro .finance-lanc-sidepanel {
+          top: 72px;
+          right: 8px;
+          width: calc(100vw - 16px);
+          max-height: calc(100vh - 86px);
+        }
+      }
       [data-theme="light"] #viewFinanceiro .filter-bar {
         background: rgba(255, 255, 255, 0.92);
         border-color: rgba(13, 148, 136, 0.18);
@@ -4093,6 +4147,32 @@
             <input id="financeLancBusca" type="text" placeholder="Buscar" />
             <button type="button" class="secondary" id="financeLancLimpar">Limpar filtros</button>
           </div>
+          <div id="financeLancamentosToolbar" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; gap: 8px; flex-wrap: wrap; align-items: center">
+            <span class="notice" style="font-weight: 600">Tabela:</span>
+            <label for="financeLancSortBy">Ordenar por</label>
+            <select id="financeLancSortBy">
+              <option value="data">Data</option>
+              <option value="valor">Valor</option>
+              <option value="tipo">Tipo</option>
+              <option value="status">Status</option>
+              <option value="categoria">Categoria</option>
+              <option value="competencia">Competência</option>
+            </select>
+            <label for="financeLancSortDir">Direção</label>
+            <select id="financeLancSortDir">
+              <option value="desc">Decrescente</option>
+              <option value="asc">Crescente</option>
+            </select>
+            <label for="financeLancPageSize">Itens por página</label>
+            <select id="financeLancPageSize">
+              <option value="10">10</option>
+              <option value="20" selected>20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            <button type="button" class="secondary" id="financeLancOpenPanel">Filtros avançados</button>
+            <span id="financeLancResultCount" class="notice">0 registros</span>
+          </div>
           <div id="financeCaixaFilters" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; flex-wrap: wrap; align-items: center">
             <span class="notice" style="font-weight: 600">Fluxo de caixa — mês:</span>
             <label for="financeCaixaMonth">Competência</label>
@@ -4240,7 +4320,31 @@
                   <tbody id="tableFinance"></tbody>
                   </table>
                 </div>
+                <div id="financeLancPagination" class="hidden" style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap">
+                  <span id="financeLancPageInfo" class="notice">Página 1 de 1</span>
+                  <div style="display:flex; gap:6px; align-items:center">
+                    <button type="button" class="secondary" id="financeLancPrevPage">Anterior</button>
+                    <button type="button" class="secondary" id="financeLancNextPage">Próxima</button>
+                  </div>
+                </div>
               </div>
+              <aside id="financeLancSidePanel" class="finance-lanc-sidepanel hidden" aria-label="Filtros avançados de lançamentos">
+                <div class="finance-lanc-sidepanel-head">
+                  <strong>Filtros avançados</strong>
+                  <button type="button" class="secondary" id="financeLancClosePanel">X</button>
+                </div>
+                <div class="finance-lanc-sidepanel-body">
+                  <label class="finance-check"><input type="checkbox" id="financeLancOnlyPago" /> Mostrar apenas pagos</label>
+                  <label class="finance-check"><input type="checkbox" id="financeLancOnlyAberto" /> Mostrar apenas pendentes</label>
+                  <label class="finance-check"><input type="checkbox" id="financeLancSomenteReceita" /> Somente receitas</label>
+                  <label class="finance-check"><input type="checkbox" id="financeLancSomenteDespesa" /> Somente despesas</label>
+                  <label class="finance-check"><input type="checkbox" id="financeLancSemObs" /> Apenas sem observações</label>
+                  <label class="finance-check"><input type="checkbox" id="financeLancComObs" /> Apenas com observações</label>
+                </div>
+                <div class="finance-lanc-sidepanel-foot">
+                  <button type="button" class="secondary" id="financeLancResetAdvanced">Limpar avançados</button>
+                </div>
+              </aside>
             </div>
             <div id="financeClosureArea" class="section-card hidden" style="margin-top: 0">
               <p id="closureSetupHint" class="notice hidden" style="margin-top: 0"></p>
@@ -5211,6 +5315,25 @@
       const financeLancCompetencia = document.getElementById("financeLancCompetencia");
       const financeLancBusca = document.getElementById("financeLancBusca");
       const financeLancLimpar = document.getElementById("financeLancLimpar");
+      const financeLancamentosToolbar = document.getElementById("financeLancamentosToolbar");
+      const financeLancSortBy = document.getElementById("financeLancSortBy");
+      const financeLancSortDir = document.getElementById("financeLancSortDir");
+      const financeLancPageSize = document.getElementById("financeLancPageSize");
+      const financeLancOpenPanel = document.getElementById("financeLancOpenPanel");
+      const financeLancResultCount = document.getElementById("financeLancResultCount");
+      const financeLancPagination = document.getElementById("financeLancPagination");
+      const financeLancPageInfo = document.getElementById("financeLancPageInfo");
+      const financeLancPrevPage = document.getElementById("financeLancPrevPage");
+      const financeLancNextPage = document.getElementById("financeLancNextPage");
+      const financeLancSidePanel = document.getElementById("financeLancSidePanel");
+      const financeLancClosePanel = document.getElementById("financeLancClosePanel");
+      const financeLancResetAdvanced = document.getElementById("financeLancResetAdvanced");
+      const financeLancOnlyPago = document.getElementById("financeLancOnlyPago");
+      const financeLancOnlyAberto = document.getElementById("financeLancOnlyAberto");
+      const financeLancSomenteReceita = document.getElementById("financeLancSomenteReceita");
+      const financeLancSomenteDespesa = document.getElementById("financeLancSomenteDespesa");
+      const financeLancSemObs = document.getElementById("financeLancSemObs");
+      const financeLancComObs = document.getElementById("financeLancComObs");
       const financeCaixaMonth = document.getElementById("financeCaixaMonth");
       const financeCaixaMonthAtual = document.getElementById("financeCaixaMonthAtual");
 
@@ -5290,6 +5413,16 @@
         formaPagamento: "",
         competencia: "",
         busca: "",
+      };
+      let lancamentosSort = { by: "data", dir: "desc" };
+      let lancamentosPagination = { page: 1, pageSize: 20 };
+      let lancamentosAdvanced = {
+        onlyPago: false,
+        onlyAberto: false,
+        onlyReceita: false,
+        onlyDespesa: false,
+        semObs: false,
+        comObs: false,
       };
       let caixaFilter = { month: "" };
       let plateQuery = "";
@@ -10275,35 +10408,60 @@
             if (lancamentosFilter.subcategoria && entry.subcategoria !== lancamentosFilter.subcategoria) return false;
             if (lancamentosFilter.formaPagamento && entry.formaPagamento !== lancamentosFilter.formaPagamento) return false;
             if (lancamentosFilter.competencia && entry.competencia !== lancamentosFilter.competencia) return false;
+            if (lancamentosAdvanced.onlyPago && entry.status !== "PAGO") return false;
+            if (lancamentosAdvanced.onlyAberto && entry.status !== "ABERTO") return false;
+            if (lancamentosAdvanced.onlyReceita && entry.tipo !== "RECEITA") return false;
+            if (lancamentosAdvanced.onlyDespesa && entry.tipo !== "DESPESA") return false;
+            if (lancamentosAdvanced.semObs && String(entry.observacoes || "").trim() !== "-") return false;
+            if (lancamentosAdvanced.comObs && String(entry.observacoes || "").trim() === "-") return false;
             if (
               qBusca &&
               !`${entry.descricao || ""} ${entry.parte || ""}`.toLowerCase().includes(qBusca)
             ) return false;
             return true;
           };
-          entries
+          const sortedEntries = entries
             .filter(acceptEntry)
-            .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")))
-            .forEach((entry) => {
-              rows.push(`
-                <tr>
-                  <td>${formatDate(entry.data)}</td>
-                  <td>${escapeHtml(entry.mes || "-")}</td>
-                  <td>${escapeHtml(entry.ano || "-")}</td>
-                  <td>${escapeHtml(entry.competencia || "-")}</td>
-                  <td>${entry.tipo === "RECEITA" ? "Receita" : "Despesa"}</td>
-                  <td>${escapeHtml(entry.categoria)}</td>
-                  <td>${escapeHtml(entry.subcategoria)}</td>
-                  <td>${escapeHtml(entry.descricao)}</td>
-                  <td>${escapeHtml(entry.parte)}</td>
-                  <td>${escapeHtml(entry.formaPagamento)}</td>
-                  <td>${formatCurrency(entry.valor)}</td>
-                  <td>${entry.status === "PAGO" ? "Pago" : "Pendente"}</td>
-                  <td>${entry.dataPagamento ? formatDate(entry.dataPagamento) : "-"}</td>
-                  <td>${escapeHtml(entry.observacoes || "-")}</td>
-                </tr>
-              `);
+            .sort((a, b) => {
+              const dir = lancamentosSort.dir === "asc" ? 1 : -1;
+              const by = lancamentosSort.by || "data";
+              if (by === "valor") return (Number(a.valor || 0) - Number(b.valor || 0)) * dir;
+              if (by === "tipo") return String(a.tipo || "").localeCompare(String(b.tipo || "")) * dir;
+              if (by === "status") return String(a.status || "").localeCompare(String(b.status || "")) * dir;
+              if (by === "categoria") return String(a.categoria || "").localeCompare(String(b.categoria || "")) * dir;
+              if (by === "competencia") return String(a.competencia || "").localeCompare(String(b.competencia || "")) * dir;
+              return String(a.data || "").localeCompare(String(b.data || "")) * dir;
             });
+          const totalRows = sortedEntries.length;
+          const size = Math.max(1, Number(lancamentosPagination.pageSize || 20));
+          const pages = Math.max(1, Math.ceil(totalRows / size));
+          lancamentosPagination.page = Math.min(Math.max(1, Number(lancamentosPagination.page || 1)), pages);
+          const start = (lancamentosPagination.page - 1) * size;
+          const pageEntries = sortedEntries.slice(start, start + size);
+          if (financeLancResultCount) financeLancResultCount.textContent = `${totalRows} registro(s)`;
+          if (financeLancPageInfo) financeLancPageInfo.textContent = `Página ${lancamentosPagination.page} de ${pages}`;
+          if (financeLancPrevPage) financeLancPrevPage.disabled = lancamentosPagination.page <= 1;
+          if (financeLancNextPage) financeLancNextPage.disabled = lancamentosPagination.page >= pages;
+          pageEntries.forEach((entry) => {
+            rows.push(`
+              <tr>
+                <td>${formatDate(entry.data)}</td>
+                <td>${escapeHtml(entry.mes || "-")}</td>
+                <td>${escapeHtml(entry.ano || "-")}</td>
+                <td>${escapeHtml(entry.competencia || "-")}</td>
+                <td>${entry.tipo === "RECEITA" ? "Receita" : "Despesa"}</td>
+                <td>${escapeHtml(entry.categoria)}</td>
+                <td>${escapeHtml(entry.subcategoria)}</td>
+                <td>${escapeHtml(entry.descricao)}</td>
+                <td>${escapeHtml(entry.parte)}</td>
+                <td>${escapeHtml(entry.formaPagamento)}</td>
+                <td>${formatCurrency(entry.valor)}</td>
+                <td>${entry.status === "PAGO" ? "Pago" : "Pendente"}</td>
+                <td>${entry.dataPagamento ? formatDate(entry.dataPagamento) : "-"}</td>
+                <td>${escapeHtml(entry.observacoes || "-")}</td>
+              </tr>
+            `);
+          });
           if (!rows.length) {
             setEmptyRow(tableFinance, "Nenhum lançamento financeiro encontrado.", 14);
           } else {
@@ -10823,6 +10981,9 @@
         if (isNone) {
           financeFilters.classList.add("hidden");
           financeLancamentosFilters?.classList.add("hidden");
+          financeLancamentosToolbar?.classList.add("hidden");
+          financeLancPagination?.classList.add("hidden");
+          financeLancSidePanel?.classList.add("hidden");
           financeCaixaFilters?.classList.add("hidden");
           receivableAlert.classList.add("hidden");
           if (financeContent) financeContent.classList.add("hidden");
@@ -10847,6 +11008,9 @@
         financeFilters.classList.toggle("hidden", view !== "relatorios");
         financeReportExtraFilters?.classList.toggle("hidden", view !== "relatorios");
         financeLancamentosFilters?.classList.toggle("hidden", view !== "lancamentos");
+        financeLancamentosToolbar?.classList.toggle("hidden", view !== "lancamentos");
+        financeLancPagination?.classList.toggle("hidden", view !== "lancamentos");
+        if (view !== "lancamentos") financeLancSidePanel?.classList.add("hidden");
         financeCaixaFilters?.classList.toggle("hidden", view !== "caixa");
         if (view === "caixa") {
           caixaFilter.month = caixaFilter.month || currentYearMonthLocal();
@@ -11935,6 +12099,44 @@
           competencia: (financeLancCompetencia?.value || "").trim(),
           busca: (financeLancBusca?.value || "").trim(),
         };
+        lancamentosPagination.page = 1;
+        if (currentFinanceView === "lancamentos") renderFinance();
+      };
+      const syncLancamentosSort = () => {
+        lancamentosSort = {
+          by: (financeLancSortBy?.value || "data").trim() || "data",
+          dir: (financeLancSortDir?.value || "desc").trim() || "desc",
+        };
+        lancamentosPagination.page = 1;
+        if (currentFinanceView === "lancamentos") renderFinance();
+      };
+      const syncLancamentosPageSize = () => {
+        lancamentosPagination.pageSize = Math.max(1, Number(financeLancPageSize?.value || 20));
+        lancamentosPagination.page = 1;
+        if (currentFinanceView === "lancamentos") renderFinance();
+      };
+      const syncLancamentosAdvanced = () => {
+        lancamentosAdvanced = {
+          onlyPago: !!financeLancOnlyPago?.checked,
+          onlyAberto: !!financeLancOnlyAberto?.checked,
+          onlyReceita: !!financeLancSomenteReceita?.checked,
+          onlyDespesa: !!financeLancSomenteDespesa?.checked,
+          semObs: !!financeLancSemObs?.checked,
+          comObs: !!financeLancComObs?.checked,
+        };
+        if (lancamentosAdvanced.onlyPago && financeLancOnlyAberto) financeLancOnlyAberto.checked = false;
+        if (lancamentosAdvanced.onlyAberto && financeLancOnlyPago) financeLancOnlyPago.checked = false;
+        if (lancamentosAdvanced.onlyReceita && financeLancSomenteDespesa) financeLancSomenteDespesa.checked = false;
+        if (lancamentosAdvanced.onlyDespesa && financeLancSomenteReceita) financeLancSomenteReceita.checked = false;
+        if (lancamentosAdvanced.semObs && financeLancComObs) financeLancComObs.checked = false;
+        if (lancamentosAdvanced.comObs && financeLancSemObs) financeLancSemObs.checked = false;
+        lancamentosAdvanced.onlyPago = !!financeLancOnlyPago?.checked;
+        lancamentosAdvanced.onlyAberto = !!financeLancOnlyAberto?.checked;
+        lancamentosAdvanced.onlyReceita = !!financeLancSomenteReceita?.checked;
+        lancamentosAdvanced.onlyDespesa = !!financeLancSomenteDespesa?.checked;
+        lancamentosAdvanced.semObs = !!financeLancSemObs?.checked;
+        lancamentosAdvanced.comObs = !!financeLancComObs?.checked;
+        lancamentosPagination.page = 1;
         if (currentFinanceView === "lancamentos") renderFinance();
       };
       financeLancTipo?.addEventListener("change", syncLancamentosFilters);
@@ -11944,6 +12146,38 @@
       financeLancFormaPagamento?.addEventListener("change", syncLancamentosFilters);
       financeLancCompetencia?.addEventListener("change", syncLancamentosFilters);
       financeLancBusca?.addEventListener("input", syncLancamentosFilters);
+      financeLancSortBy?.addEventListener("change", syncLancamentosSort);
+      financeLancSortDir?.addEventListener("change", syncLancamentosSort);
+      financeLancPageSize?.addEventListener("change", syncLancamentosPageSize);
+      financeLancPrevPage?.addEventListener("click", () => {
+        lancamentosPagination.page = Math.max(1, Number(lancamentosPagination.page || 1) - 1);
+        if (currentFinanceView === "lancamentos") renderFinance();
+      });
+      financeLancNextPage?.addEventListener("click", () => {
+        lancamentosPagination.page = Number(lancamentosPagination.page || 1) + 1;
+        if (currentFinanceView === "lancamentos") renderFinance();
+      });
+      [
+        financeLancOnlyPago,
+        financeLancOnlyAberto,
+        financeLancSomenteReceita,
+        financeLancSomenteDespesa,
+        financeLancSemObs,
+        financeLancComObs,
+      ].forEach((el) => el?.addEventListener("change", syncLancamentosAdvanced));
+      financeLancOpenPanel?.addEventListener("click", () => {
+        financeLancSidePanel?.classList.toggle("hidden");
+      });
+      financeLancClosePanel?.addEventListener("click", () => financeLancSidePanel?.classList.add("hidden"));
+      financeLancResetAdvanced?.addEventListener("click", () => {
+        if (financeLancOnlyPago) financeLancOnlyPago.checked = false;
+        if (financeLancOnlyAberto) financeLancOnlyAberto.checked = false;
+        if (financeLancSomenteReceita) financeLancSomenteReceita.checked = false;
+        if (financeLancSomenteDespesa) financeLancSomenteDespesa.checked = false;
+        if (financeLancSemObs) financeLancSemObs.checked = false;
+        if (financeLancComObs) financeLancComObs.checked = false;
+        syncLancamentosAdvanced();
+      });
       financeLancLimpar?.addEventListener("click", () => {
         if (financeLancTipo) financeLancTipo.value = "";
         if (financeLancStatus) financeLancStatus.value = "";
@@ -11952,6 +12186,18 @@
         if (financeLancFormaPagamento) financeLancFormaPagamento.value = "";
         if (financeLancCompetencia) financeLancCompetencia.value = "";
         if (financeLancBusca) financeLancBusca.value = "";
+        if (financeLancSortBy) financeLancSortBy.value = "data";
+        if (financeLancSortDir) financeLancSortDir.value = "desc";
+        if (financeLancPageSize) financeLancPageSize.value = "20";
+        if (financeLancOnlyPago) financeLancOnlyPago.checked = false;
+        if (financeLancOnlyAberto) financeLancOnlyAberto.checked = false;
+        if (financeLancSomenteReceita) financeLancSomenteReceita.checked = false;
+        if (financeLancSomenteDespesa) financeLancSomenteDespesa.checked = false;
+        if (financeLancSemObs) financeLancSemObs.checked = false;
+        if (financeLancComObs) financeLancComObs.checked = false;
+        syncLancamentosSort();
+        syncLancamentosPageSize();
+        syncLancamentosAdvanced();
         syncLancamentosFilters();
       });
       const syncReportFilters = () => {
