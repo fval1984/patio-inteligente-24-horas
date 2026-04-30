@@ -11142,7 +11142,11 @@
           renderFinance();
           return;
         }
-        const showFiltersHub = view === "filtros";
+        const showFiltersHub = view === "filtros" || view === "relatorios";
+        const showReportFilters = view === "filtros" || view === "relatorios";
+        const showLancamentosFilters = view === "filtros";
+        const showCaixaFilters = view === "filtros";
+        const showReceberFilters = view === "filtros" || view === "receber";
         financeFiltersHub?.classList.toggle("hidden", !showFiltersHub);
         if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", !showFiltersHub);
         financeRoot?.classList.toggle("finance-flyout-open", isFlyoutView);
@@ -11155,21 +11159,20 @@
           void financeContent.offsetWidth;
           financeContent.classList.add("air-open");
         }
-        financeFilters.classList.toggle("hidden", !showFiltersHub);
-        financeReportExtraFilters?.classList.toggle("hidden", !showFiltersHub);
-        financeLancamentosFilters?.classList.toggle("hidden", !showFiltersHub);
-        financeLancamentosToolbar?.classList.toggle("hidden", !showFiltersHub);
+        financeFilters.classList.toggle("hidden", !showReportFilters);
+        financeReportExtraFilters?.classList.toggle("hidden", !showReportFilters);
+        financeLancamentosFilters?.classList.toggle("hidden", !showLancamentosFilters);
+        financeLancamentosToolbar?.classList.toggle("hidden", !showLancamentosFilters);
         financeLancPagination?.classList.toggle("hidden", view !== "lancamentos");
         if (view !== "lancamentos" && view !== "filtros") financeLancSidePanel?.classList.add("hidden");
-        financeCaixaFilters?.classList.toggle("hidden", !showFiltersHub);
+        financeCaixaFilters?.classList.toggle("hidden", !showCaixaFilters);
         if (view === "caixa") {
           caixaFilter.month = caixaFilter.month || currentYearMonthLocal();
           if (financeCaixaMonth) financeCaixaMonth.value = caixaFilter.month;
         }
         document.getElementById("financeLancamentosScrollNotice")?.classList.toggle("hidden", view !== "lancamentos");
         document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
-        const receberExtras = view === "receber" || view === "filtros";
-        document.getElementById("financeReceberFilters")?.classList.toggle("hidden", !receberExtras);
+        document.getElementById("financeReceberFilters")?.classList.toggle("hidden", !showReceberFilters);
         if (view === "relatorios" && !reportHasRun) {
           if (financeContent) financeContent.classList.add("hidden");
           if (financeHead) financeHead.innerHTML = "";
