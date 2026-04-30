@@ -4133,7 +4133,6 @@
                 <button type="button" class="secondary" id="financeMenuReload">Atualizar dados</button>
 
                 <span class="finance-menu-group">Operação financeira</span>
-                <button type="button" class="secondary" data-subview="filtros">Filtros</button>
                 <button type="button" class="secondary" data-subview="lancamentos">Lançamentos</button>
                 <button type="button" class="secondary" data-subview="receber">Contas a receber</button>
                 <button type="button" class="secondary" data-subview="pagar">Contas a pagar</button>
@@ -4141,7 +4140,6 @@
                 <button type="button" class="secondary" id="financeMenuNewPayable">Nova despesa</button>
 
                 <span class="finance-menu-group">Análise</span>
-                <button type="button" class="secondary" data-subview="relatorios">Relatórios</button>
                 <button type="button" class="secondary" data-subview="cadastro_base">Cadastro base</button>
               </nav>
               <div class="finance-modern-sidebar-actions">
@@ -4156,7 +4154,6 @@
                   <p id="financeBreadcrumb" class="notice" style="margin: 4px 0 0">Início > Financeiro > Dashboard</p>
                 </div>
                 <div class="actions">
-                  <button class="secondary" type="button" id="financeOpenFilters">Filtros</button>
                   <button class="secondary" type="button" id="financeSidebarToggle" aria-expanded="false">Menu</button>
                   <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
                 </div>
@@ -11087,16 +11084,15 @@
 
       function setFinanceView(view) {
         const previousFinanceView = currentFinanceView;
+        if (view === "filtros" || view === "relatorios") view = "dashboard";
         currentFinanceView = view;
         const viewMap = {
           dashboard: "Dashboard geral",
-          filtros: "Filtros",
           lancamentos: "Lançamentos financeiros",
           receber: "Contas a receber",
           pagar: "Contas a pagar",
           caixa: "Fluxo de caixa diário",
           cadastro_base: "Cadastro base",
-          relatorios: "Relatórios",
           historico_pagar: "Histórico a pagar",
           historico_receber: "Histórico a receber",
         };
@@ -11152,12 +11148,12 @@
           renderFinance();
           return;
         }
-        const showFiltersHub = view === "filtros" || view === "relatorios";
-        const showPlateSearchFilter = view === "filtros";
-        const showReportFilters = view === "relatorios";
-        const showLancamentosFilters = view === "filtros";
-        const showCaixaFilters = view === "filtros";
-        const showReceberFilters = view === "filtros" || view === "receber";
+        const showFiltersHub = false;
+        const showPlateSearchFilter = false;
+        const showReportFilters = false;
+        const showLancamentosFilters = false;
+        const showCaixaFilters = false;
+        const showReceberFilters = view === "receber";
         financeFiltersHub?.classList.toggle("hidden", !showFiltersHub);
         if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", !showPlateSearchFilter);
         financeRoot?.classList.toggle("finance-flyout-open", isFlyoutView);
@@ -12030,14 +12026,8 @@
       function openFinanceSubview(sub) {
         const top = navStack[navStack.length - 1];
         if (!sub) return;
-        if (sub === "relatorios") {
-          reportHasRun = false;
-          if (financeContent) financeContent.classList.add("hidden");
-        }
+        if (sub === "filtros" || sub === "relatorios") sub = "dashboard";
         if (top === `financeiro:${sub}`) {
-          if (sub === "relatorios") {
-            setFinanceView("relatorios");
-          }
           return;
         }
         if (top && typeof top === "string" && top.startsWith("financeiro:")) navStack.pop();
