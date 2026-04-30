@@ -1145,8 +1145,8 @@
           width: 100%;
           min-height: 36px;
         }
-        #viewFinanceiro #financeLancamentosToolbar {
-          display: grid !important;
+        #viewFinanceiro #financeLancamentosToolbar:not(.hidden) {
+          display: grid;
           grid-template-columns: 1fr;
         }
         #viewFinanceiro #financeStandardArea .table-wrap {
@@ -11173,6 +11173,17 @@
         document.getElementById("financeLancamentosScrollNotice")?.classList.toggle("hidden", view !== "lancamentos");
         document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
         document.getElementById("financeReceberFilters")?.classList.toggle("hidden", !showReceberFilters);
+        if (view === "relatorios") {
+          // Em Relatórios, manter apenas filtros do próprio relatório visíveis.
+          financeFiltersHub?.classList.remove("hidden");
+          financeFilters.classList.remove("hidden");
+          financeReportExtraFilters?.classList.remove("hidden");
+          financeLancamentosFilters?.classList.add("hidden");
+          financeLancamentosToolbar?.classList.add("hidden");
+          financeCaixaFilters?.classList.add("hidden");
+          document.getElementById("financeReceberFilters")?.classList.add("hidden");
+          financeLancSidePanel?.classList.add("hidden");
+        }
         if (view === "relatorios" && !reportHasRun) {
           if (financeContent) financeContent.classList.add("hidden");
           if (financeHead) financeHead.innerHTML = "";
