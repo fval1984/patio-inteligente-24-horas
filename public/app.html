@@ -795,6 +795,54 @@
       .finance-month-table td:first-child {
         text-align: left;
       }
+      .finance-monthly-board {
+        border: 1px solid rgba(45, 212, 191, 0.35);
+        border-radius: 14px;
+        background: linear-gradient(145deg, rgba(15, 23, 42, 0.85), rgba(17, 94, 89, 0.22));
+        padding: 12px;
+      }
+      .finance-monthly-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .finance-monthly-title {
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+      .finance-monthly-sub {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .finance-monthly-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .finance-monthly-kpi {
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 10px;
+        padding: 8px 10px;
+        background: rgba(15, 23, 42, 0.42);
+      }
+      .finance-monthly-kpi .k {
+        display: block;
+        font-size: 10px;
+        text-transform: uppercase;
+        color: var(--muted);
+        letter-spacing: 0.04em;
+      }
+      .finance-monthly-kpi .v {
+        display: block;
+        font-size: 1rem;
+        font-weight: 800;
+        margin-top: 4px;
+      }
       .finance-dashboard-list {
         margin: 0;
         padding-left: 18px;
@@ -3957,20 +4005,23 @@
                 </div>
               </div>
               <div class="finance-dashboard-sections">
-                <div class="section-card" style="margin: 0">
-                  <div class="card-title">Percentual de despesas por categoria</div>
-                  <ol id="fdDespesasCategoria" class="finance-dashboard-list"></ol>
-                </div>
-                <div class="section-card" style="margin: 0">
-                  <div class="card-title">Ranking maiores gastos</div>
-                  <ol id="fdRankingGastos" class="finance-dashboard-list"></ol>
-                </div>
-                <div class="section-card" style="margin: 0">
-                  <div class="card-title">Indicadores auxiliares</div>
-                  <ol id="fdFilaFinanceira" class="finance-dashboard-list"></ol>
-                </div>
-                <div class="section-card" style="margin: 0; grid-column: 1 / -1">
-                  <div class="card-title">Mês a mês (visão simples)</div>
+                <div class="section-card finance-monthly-board" style="margin: 0; grid-column: 1 / -1">
+                  <div class="finance-monthly-head">
+                    <div>
+                      <div class="finance-monthly-title">Painel mensal inteligente</div>
+                      <div class="finance-monthly-sub">Leitura rápida por competência</div>
+                    </div>
+                    <span id="financeMonthlyBoardBadge" class="tag">—</span>
+                  </div>
+                  <div class="finance-monthly-grid">
+                    <div class="finance-monthly-kpi"><span class="k">Receitas</span><span id="fmReceitasMes" class="v">R$ 0,00</span></div>
+                    <div class="finance-monthly-kpi"><span class="k">Despesas</span><span id="fmDespesasMes" class="v">R$ 0,00</span></div>
+                    <div class="finance-monthly-kpi"><span class="k">Lucro líquido</span><span id="fmLucroMes" class="v">R$ 0,00</span></div>
+                    <div class="finance-monthly-kpi"><span class="k">Saldo acumulado</span><span id="fmSaldoAcumulado" class="v">R$ 0,00</span></div>
+                    <div class="finance-monthly-kpi"><span class="k">Contas pagas</span><span id="fmContasPagas" class="v">0</span></div>
+                    <div class="finance-monthly-kpi"><span class="k">Contas pendentes</span><span id="fmContasPendentes" class="v">0</span></div>
+                    <div class="finance-monthly-kpi"><span class="k">Inadimplência</span><span id="fmInadimplencia" class="v">0,0%</span></div>
+                  </div>
                   <div id="financeMonthStrip" class="finance-month-strip"></div>
                   <table class="finance-month-table">
                     <thead>
@@ -3983,6 +4034,18 @@
                     </thead>
                     <tbody id="financeMonthTableBody"></tbody>
                   </table>
+                </div>
+                <div class="section-card" style="margin: 0">
+                  <div class="card-title">Percentual de despesas por categoria</div>
+                  <ol id="fdDespesasCategoria" class="finance-dashboard-list"></ol>
+                </div>
+                <div class="section-card" style="margin: 0">
+                  <div class="card-title">Ranking maiores gastos</div>
+                  <ol id="fdRankingGastos" class="finance-dashboard-list"></ol>
+                </div>
+                <div class="section-card" style="margin: 0">
+                  <div class="card-title">Indicadores auxiliares</div>
+                  <ol id="fdFilaFinanceira" class="finance-dashboard-list"></ol>
                 </div>
               </div>
             </div>
@@ -9813,7 +9876,23 @@
           }
           const monthStripEl = document.getElementById("financeMonthStrip");
           const monthTableBody = document.getElementById("financeMonthTableBody");
+          const monthlyBoardBadge = document.getElementById("financeMonthlyBoardBadge");
+          const fmReceitasMes = document.getElementById("fmReceitasMes");
+          const fmDespesasMes = document.getElementById("fmDespesasMes");
+          const fmLucroMes = document.getElementById("fmLucroMes");
+          const fmSaldoAcumulado = document.getElementById("fmSaldoAcumulado");
+          const fmContasPagas = document.getElementById("fmContasPagas");
+          const fmContasPendentes = document.getElementById("fmContasPendentes");
+          const fmInadimplencia = document.getElementById("fmInadimplencia");
           const recentMonths = [...seriesMonths].reverse();
+          if (monthlyBoardBadge) monthlyBoardBadge.textContent = formatYearMonthLong(monthKey);
+          if (fmReceitasMes) fmReceitasMes.textContent = formatCurrency(receitasMesAtual);
+          if (fmDespesasMes) fmDespesasMes.textContent = formatCurrency(despesasMesAtual);
+          if (fmLucroMes) fmLucroMes.textContent = formatCurrency(lucroMesAtual);
+          if (fmSaldoAcumulado) fmSaldoAcumulado.textContent = formatCurrency(saldoAcumulado);
+          if (fmContasPagas) fmContasPagas.textContent = String(contasPagasMes);
+          if (fmContasPendentes) fmContasPendentes.textContent = String(contasPendentesMes);
+          if (fmInadimplencia) fmInadimplencia.textContent = `${inadimplenciaPerc.toFixed(1)}%`;
           if (monthStripEl) {
             monthStripEl.innerHTML = recentMonths
               .map((ym) => {
