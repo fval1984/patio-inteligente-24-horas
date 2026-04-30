@@ -4133,6 +4133,7 @@
                 <button type="button" class="secondary" id="financeMenuReload">Atualizar dados</button>
 
                 <span class="finance-menu-group">Operação financeira</span>
+                <button type="button" class="secondary" data-subview="filtros">Filtros</button>
                 <button type="button" class="secondary" data-subview="lancamentos">Lançamentos</button>
                 <button type="button" class="secondary" data-subview="receber">Contas a receber</button>
                 <button type="button" class="secondary" data-subview="pagar">Contas a pagar</button>
@@ -4155,6 +4156,7 @@
                   <p id="financeBreadcrumb" class="notice" style="margin: 4px 0 0">Início > Financeiro > Dashboard</p>
                 </div>
                 <div class="actions">
+                  <button class="secondary" type="button" id="financeOpenFilters">Filtros</button>
                   <button class="secondary" type="button" id="financeSidebarToggle" aria-expanded="false">Menu</button>
                   <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
                 </div>
@@ -5412,6 +5414,7 @@
       const financeViewBadge = document.getElementById("financeViewBadge");
       const financeModeBadge = document.getElementById("financeModeBadge");
       const financeBreadcrumb = document.getElementById("financeBreadcrumb");
+      const financeOpenFilters = document.getElementById("financeOpenFilters");
       const financeSidebarToggle = document.getElementById("financeSidebarToggle");
       const financeSidebarBackdrop = document.getElementById("financeSidebarBackdrop");
       const financeCompetenciaBadge = document.getElementById("financeCompetenciaBadge");
@@ -10386,6 +10389,10 @@
           showFinanceDashboardOnly();
           return;
         }
+        if (currentFinanceView === "filtros") {
+          hideAllFinanceAreas();
+          return;
+        }
         if (currentFinanceView === "fechamento_mensal") {
           hideAllFinanceAreas();
           if (cloArea) cloArea.classList.remove("hidden");
@@ -11070,6 +11077,7 @@
         currentFinanceView = view;
         const viewMap = {
           dashboard: "Dashboard geral",
+          filtros: "Filtros",
           lancamentos: "Lançamentos financeiros",
           receber: "Contas a receber",
           pagar: "Contas a pagar",
@@ -11081,6 +11089,7 @@
         };
         const isNone = !view || view === "none";
         const isDashboard = view === "dashboard";
+        const isFiltersView = view === "filtros";
         const isFlyoutView = !isNone && !isDashboard;
         if (view === "relatorios" && previousFinanceView !== "relatorios") {
           reportHasRun = false;
@@ -11133,27 +11142,28 @@
         financeRoot?.classList.toggle("finance-flyout-open", isFlyoutView);
         financeFlyoutBackdrop?.classList.toggle("hidden", !isFlyoutView);
         const showReportResult = view !== "relatorios" || reportHasRun;
-        const showFinanceBody = (isFlyoutView || isDashboard) && showReportResult;
+        const showFinanceBody = (isFlyoutView || isDashboard) && !isFiltersView && showReportResult;
         if (financeContent) financeContent.classList.toggle("hidden", !showFinanceBody);
         if (showFinanceBody && financeContent) {
           financeContent.classList.remove("air-open");
           void financeContent.offsetWidth;
           financeContent.classList.add("air-open");
         }
-        financeFilters.classList.toggle("hidden", view !== "relatorios");
-        financeReportExtraFilters?.classList.toggle("hidden", view !== "relatorios");
-        financeLancamentosFilters?.classList.toggle("hidden", view !== "lancamentos");
-        financeLancamentosToolbar?.classList.toggle("hidden", view !== "lancamentos");
+        const showFiltersHub = view === "filtros";
+        financeFilters.classList.toggle("hidden", !showFiltersHub);
+        financeReportExtraFilters?.classList.toggle("hidden", !showFiltersHub);
+        financeLancamentosFilters?.classList.toggle("hidden", !showFiltersHub);
+        financeLancamentosToolbar?.classList.toggle("hidden", !showFiltersHub);
         financeLancPagination?.classList.toggle("hidden", view !== "lancamentos");
-        if (view !== "lancamentos") financeLancSidePanel?.classList.add("hidden");
-        financeCaixaFilters?.classList.toggle("hidden", view !== "caixa");
+        if (view !== "lancamentos" && view !== "filtros") financeLancSidePanel?.classList.add("hidden");
+        financeCaixaFilters?.classList.toggle("hidden", !showFiltersHub);
         if (view === "caixa") {
           caixaFilter.month = caixaFilter.month || currentYearMonthLocal();
           if (financeCaixaMonth) financeCaixaMonth.value = caixaFilter.month;
         }
         document.getElementById("financeLancamentosScrollNotice")?.classList.toggle("hidden", view !== "lancamentos");
         document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
-        const receberExtras = view === "receber";
+        const receberExtras = view === "receber" || view === "filtros";
         document.getElementById("financeReceberFilters")?.classList.toggle("hidden", !receberExtras);
         if (view === "relatorios" && !reportHasRun) {
           if (financeContent) financeContent.classList.add("hidden");
@@ -12368,6 +12378,7 @@
       }
       financeFlyoutBackdrop?.addEventListener("click", returnToPainelFromFinanceFlyout);
       financeFlyoutClose?.addEventListener("click", returnToPainelFromFinanceFlyout);
+      financeOpenFilters?.addEventListener("click", () => openFinanceSubview("filtros"));
       financeSidebarToggle?.addEventListener("click", () => {
         const financeRootEl = getFinanceRoot();
         financeSidebarOpen = !financeSidebarOpen;
