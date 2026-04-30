@@ -939,6 +939,52 @@
         flex: 1;
         min-width: 0;
       }
+      #viewFinanceiro .finance-modern-layout {
+        display: grid;
+        grid-template-columns: 250px minmax(0, 1fr);
+        gap: 14px;
+      }
+      #viewFinanceiro .finance-modern-sidebar {
+        border: 1px solid rgba(45, 212, 191, 0.24);
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.88));
+        padding: 14px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 520px;
+        position: sticky;
+        top: 12px;
+      }
+      #viewFinanceiro .finance-modern-main {
+        min-width: 0;
+      }
+      #viewFinanceiro .finance-modern-topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      #viewFinanceiro .finance-modern-sidebar-actions {
+        margin-top: auto;
+        display: grid;
+        gap: 8px;
+      }
+      #viewFinanceiro .finance-modern-sidebar-actions .secondary {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      #viewFinanceiro .finance-modern-sidebar .finance-module-lede {
+        font-size: 12px;
+        max-width: none;
+      }
+      #viewFinanceiro .finance-modern-sidebar .module-kicker--finance {
+        color: #99f6e4;
+      }
+      #viewFinanceiro .finance-modern-sidebar h2 {
+        color: #ecfeff;
+      }
       #viewFinanceiro .finance-nav-inline {
         display: flex;
         flex-wrap: wrap;
@@ -992,6 +1038,41 @@
         margin-top: 0;
         border-top: none;
         padding-top: 2px;
+      }
+      #viewFinanceiro .finance-modern-sidebar #financeSubnav {
+        margin-top: 0;
+        background: rgba(15, 23, 42, 0.36);
+      }
+      #viewFinanceiro .finance-modern-sidebar #financeSubnav button.secondary {
+        width: 100%;
+        justify-content: flex-start;
+        text-align: left;
+        padding: 9px 10px;
+        border-radius: 10px;
+      }
+      #viewFinanceiro .finance-modern-sidebar #financeSubnav button.secondary.active {
+        border-color: rgba(45, 212, 191, 0.9);
+        background: linear-gradient(135deg, rgba(13, 148, 136, 0.42), rgba(14, 116, 144, 0.3));
+      }
+      #viewFinanceiro .finance-modern-sidebar #financeSubnav .finance-menu-group {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px dashed rgba(148, 163, 184, 0.28);
+      }
+      #viewFinanceiro .finance-modern-topbar {
+        border: 1px solid rgba(45, 212, 191, 0.2);
+        border-radius: 14px;
+        background: linear-gradient(160deg, rgba(15, 23, 42, 0.45), rgba(2, 6, 23, 0.28));
+        padding: 10px 12px;
+      }
+      @media (max-width: 1040px) {
+        #viewFinanceiro .finance-modern-layout {
+          grid-template-columns: 1fr;
+        }
+        #viewFinanceiro .finance-modern-sidebar {
+          min-height: 0;
+          position: static;
+        }
       }
       [data-theme="light"] #viewFinanceiro .finance-nav-inline button.secondary,
       #viewFinanceiro .finance-nav-inline button.secondary {
@@ -3800,44 +3881,45 @@
         </div>
 
         <div id="viewFinanceiro" class="panel hidden finance-module-shell">
-          <div class="finance-module-ribbon">
-            <div class="finance-module-ribbon-right">
-              <div class="finance-module-tools">
-                <button type="button" class="secondary" id="openParceirosFromFinanceiro">Rede de parceiros</button>
-                <button type="button" class="secondary" id="openConfigFromFinanceiro">Configurações</button>
+          <div class="finance-modern-layout">
+            <aside class="finance-modern-sidebar">
+              <div>
+                <p class="module-kicker module-kicker--finance">Financeiro</p>
+                <h2 style="margin: 0">Financeiro</h2>
+                <p class="finance-module-lede">Painel central para acompanhar receita, despesa, fluxo de caixa e prioridades financeiras com leitura mais rápida.</p>
               </div>
-              <div class="finance-module-meta">
-                <span class="finance-module-name">Financeiro do pátio</span>
-              </div>
-            </div>
-          </div>
-          <div class="toolbar finance-toolbar">
-            <div class="finance-toolbar-text">
-              <p class="module-kicker module-kicker--finance">Financeiro</p>
-              <h2>Financeiro</h2>
-              <p class="finance-module-lede">Painel central para acompanhar receita, despesa, fluxo de caixa e prioridades financeiras com leitura mais rápida.</p>
               <nav id="financeSubnav" class="subnav finance-nav-inline" aria-label="Navegação financeira">
-                <span class="finance-menu-group">Aba principal</span>
-                <button type="button" class="secondary" data-subview="dashboard">Dashboard geral</button>
+                <span class="finance-menu-group">Dashboard</span>
+                <button type="button" class="secondary" data-subview="dashboard">Visão geral</button>
                 <button type="button" class="secondary" id="financeMenuReload">Atualizar dados</button>
 
                 <span class="finance-menu-group">Operação financeira</span>
-                <button type="button" class="secondary" data-subview="lancamentos">Lançamentos financeiros</button>
-                <button type="button" class="secondary" id="financeMenuNewPayable">Nova despesa</button>
-                <button type="button" class="secondary" data-subview="pagar">Contas a pagar</button>
+                <button type="button" class="secondary" data-subview="lancamentos">Lançamentos</button>
                 <button type="button" class="secondary" data-subview="receber">Contas a receber</button>
-                <button type="button" class="secondary" data-subview="caixa">Fluxo de caixa diário</button>
+                <button type="button" class="secondary" data-subview="pagar">Contas a pagar</button>
+                <button type="button" class="secondary" data-subview="caixa">Fluxo de caixa</button>
+                <button type="button" class="secondary" id="financeMenuNewPayable">Nova despesa</button>
 
-                <span class="finance-menu-group">Cadastros e análise</span>
-                <button type="button" class="secondary" data-subview="cadastro_base">Cadastro base</button>
+                <span class="finance-menu-group">Análise</span>
                 <button type="button" class="secondary" data-subview="relatorios">Relatórios</button>
+                <button type="button" class="secondary" data-subview="cadastro_base">Cadastro base</button>
               </nav>
-            </div>
-            <div class="actions">
-              <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
-            </div>
-          </div>
-          <div id="financeFlyoutBackdrop" class="finance-flyout-backdrop hidden"></div>
+              <div class="finance-modern-sidebar-actions">
+                <button type="button" class="secondary" id="openParceirosFromFinanceiro">Rede de parceiros</button>
+                <button type="button" class="secondary" id="openConfigFromFinanceiro">Configurações</button>
+              </div>
+            </aside>
+            <section class="finance-modern-main">
+              <div class="finance-modern-topbar">
+                <div>
+                  <h2 style="margin: 0">Financeiro</h2>
+                  <p id="financeBreadcrumb" class="notice" style="margin: 4px 0 0">Início > Financeiro > Dashboard</p>
+                </div>
+                <div class="actions">
+                  <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
+                </div>
+              </div>
+              <div id="financeFlyoutBackdrop" class="finance-flyout-backdrop hidden"></div>
           <div class="finance-context-bar">
             <span id="financeViewBadge" class="finance-context-badge">Visão: Dashboard geral</span>
             <span id="financeModeBadge" class="finance-context-badge">Modo executivo</span>
@@ -4173,6 +4255,8 @@
               </div>
             </div>
           </div>
+            </section>
+          </div>
         </div>
 
         <div id="viewConfiguracoes" class="panel hidden config-module-shell">
@@ -4323,7 +4407,7 @@
             </div>
           </div>
         </div>
-      </section>
+
 
       <div id="vehicleModal" class="modal-backdrop hidden">
         <div class="modal">
@@ -5036,6 +5120,7 @@
       const financeMenuReceberFilters = document.getElementById("financeMenuReceberFilters");
       const financeViewBadge = document.getElementById("financeViewBadge");
       const financeModeBadge = document.getElementById("financeModeBadge");
+      const financeBreadcrumb = document.getElementById("financeBreadcrumb");
       const financeCompetenciaBadge = document.getElementById("financeCompetenciaBadge");
       const financeDashboardMonth = document.getElementById("financeDashboardMonth");
       const financeDashboardMonthAtual = document.getElementById("financeDashboardMonthAtual");
@@ -10661,6 +10746,7 @@
         }
         if (financeFlyoutClose) financeFlyoutClose.textContent = "X";
         if (financeViewBadge) financeViewBadge.textContent = `Visão: ${viewMap[view] || "Dashboard geral"}`;
+        if (financeBreadcrumb) financeBreadcrumb.textContent = `Início > Financeiro > ${viewMap[view] || "Dashboard geral"}`;
         if (financeModeBadge) {
           financeModeBadge.textContent = isDashboard
             ? "Modo executivo"
