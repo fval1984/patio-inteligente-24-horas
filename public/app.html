@@ -241,6 +241,13 @@
         color: var(--muted);
         max-width: 300px;
       }
+      .finance-module-lede {
+        margin: 8px 0 0;
+        font-size: 14px;
+        line-height: 1.55;
+        color: color-mix(in srgb, var(--muted) 82%, #d1fae5 18%);
+        max-width: 52rem;
+      }
 
       /* Módulos pátio / financeiro — hero alinhado ao painel premium */
       .module-kicker {
@@ -671,15 +678,47 @@
       }
       .finance-dashboard-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-        gap: 12px;
-        margin-bottom: 14px;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 14px;
+        margin-bottom: 16px;
       }
       .finance-kpi-card {
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        border-radius: 14px;
-        padding: 12px 14px;
-        background: rgba(15, 19, 26, 0.44);
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(45, 212, 191, 0.2);
+        border-radius: 16px;
+        padding: 14px;
+        background: linear-gradient(155deg, rgba(12, 74, 110, 0.2), rgba(15, 19, 26, 0.52));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.06),
+          0 8px 18px rgba(0, 0, 0, 0.18);
+        transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+      }
+      .finance-kpi-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #14b8a6, #22d3ee);
+        opacity: 0.9;
+      }
+      .finance-kpi-card:nth-child(3n)::before {
+        background: linear-gradient(90deg, #38bdf8, #0ea5e9);
+      }
+      .finance-kpi-card:nth-child(4n)::before {
+        background: linear-gradient(90deg, #f59e0b, #f97316);
+      }
+      .finance-kpi-card:nth-child(5n)::before {
+        background: linear-gradient(90deg, #ef4444, #f43f5e);
+      }
+      .finance-kpi-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(45, 212, 191, 0.34);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.06),
+          0 12px 24px rgba(15, 23, 42, 0.24);
       }
       .finance-kpi-card.kpi-alert-danger {
         border-color: rgba(248, 113, 113, 0.7);
@@ -700,13 +739,13 @@
       .finance-kpi-title {
         font-size: 11px;
         text-transform: uppercase;
-        letter-spacing: 0.07em;
+        letter-spacing: 0.08em;
         color: var(--muted);
         font-weight: 700;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
       }
       .finance-kpi-value {
-        font-size: 1.32rem;
+        font-size: 1.42rem;
         font-weight: 800;
         line-height: 1.1;
         letter-spacing: -0.02em;
@@ -856,12 +895,35 @@
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
         margin-top: 14px;
-        padding: 0;
-        border: none;
-        background: transparent;
-        box-shadow: none;
+        padding: 10px 12px;
+        border: 1px solid rgba(45, 212, 191, 0.22);
+        border-radius: 14px;
+        background: rgba(8, 19, 24, 0.34);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      }
+      #viewFinanceiro .finance-nav-inline button.secondary {
+        border-radius: 10px;
+        padding: 7px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        border-color: rgba(45, 212, 191, 0.24);
+        background: rgba(15, 23, 42, 0.45);
+        color: #ccfbf1;
+      }
+      #viewFinanceiro .finance-nav-inline button.secondary:hover {
+        border-color: rgba(45, 212, 191, 0.5);
+        background: rgba(13, 148, 136, 0.18);
+      }
+      #viewFinanceiro .finance-nav-inline button.secondary.active {
+        border-color: rgba(45, 212, 191, 0.8);
+        background: linear-gradient(140deg, rgba(13, 148, 136, 0.35), rgba(14, 116, 144, 0.32));
+        color: #f0fdfa;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.1),
+          0 6px 14px rgba(13, 148, 136, 0.2);
       }
       #viewFinanceiro #financeSubnav.finance-nav-inline button {
         width: auto;
@@ -871,6 +933,12 @@
       #viewFinanceiro #financeSubnav .finance-menu-group {
         flex: 1 1 100%;
         width: 100%;
+        margin-top: 2px;
+        color: color-mix(in srgb, var(--muted) 80%, #99f6e4 20%);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
       #viewFinanceiro #financeSubnav .finance-menu-group:first-child {
         margin-top: 0;
@@ -888,8 +956,8 @@
       #viewFinanceiro .filter-bar {
         border-radius: 14px;
         border: 1px solid rgba(45, 212, 191, 0.2);
-        background: rgba(15, 23, 42, 0.28);
-        padding: 10px 12px;
+        background: linear-gradient(160deg, rgba(15, 23, 42, 0.44), rgba(2, 6, 23, 0.26));
+        padding: 12px 14px;
       }
       [data-theme="light"] #viewFinanceiro .filter-bar {
         background: rgba(255, 255, 255, 0.92);
@@ -901,19 +969,21 @@
       .finance-context-bar {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
-        margin: 0 0 10px;
+        gap: 10px;
+        margin: 0 0 12px;
       }
       .finance-context-badge {
         display: inline-flex;
         align-items: center;
+        gap: 6px;
         border-radius: 999px;
-        border: 1px solid rgba(148, 163, 184, 0.32);
-        padding: 6px 12px;
+        border: 1px solid rgba(45, 212, 191, 0.24);
+        padding: 7px 12px;
         font-size: 12px;
         font-weight: 700;
-        letter-spacing: 0.03em;
-        background: rgba(15, 23, 42, 0.36);
+        letter-spacing: 0.02em;
+        background: linear-gradient(145deg, rgba(15, 23, 42, 0.55), rgba(8, 19, 24, 0.35));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
       }
       [data-theme="light"] .finance-context-badge {
         background: rgba(255, 255, 255, 0.95);
@@ -1805,6 +1875,40 @@
         overflow-x: auto;
         border-radius: 12px;
       }
+      #viewFinanceiro .table-wrap {
+        border: 1px solid rgba(45, 212, 191, 0.18);
+        border-radius: 14px;
+        background: rgba(2, 6, 23, 0.25);
+      }
+      #viewFinanceiro .table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: linear-gradient(180deg, rgba(11, 18, 32, 0.98), rgba(15, 23, 42, 0.96));
+        border-bottom-color: rgba(45, 212, 191, 0.24);
+        color: #99f6e4;
+        font-size: 11px;
+      }
+      #viewFinanceiro .table tbody td {
+        font-size: 12px;
+      }
+      #viewFinanceiro .table tbody tr:nth-child(even) {
+        background: rgba(15, 23, 42, 0.2);
+      }
+      #viewFinanceiro .table tbody tr:hover {
+        background: rgba(13, 148, 136, 0.14);
+      }
+      [data-theme="light"] #viewFinanceiro .table-wrap {
+        background: rgba(255, 255, 255, 0.95);
+        border-color: rgba(13, 148, 136, 0.2);
+      }
+      [data-theme="light"] #viewFinanceiro .table thead th {
+        background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.96));
+        color: #0f766e;
+      }
+      [data-theme="light"] #viewFinanceiro .table tbody tr:hover {
+        background: rgba(13, 148, 136, 0.1);
+      }
       /* Livro do financeiro: última coluna (Ações) fica sempre visível ao deslizar horizontalmente */
       #viewFinanceiro .finance-ledger {
         min-width: 880px;
@@ -2035,6 +2139,86 @@
       [data-theme="light"] .section-card {
         background: rgba(255, 255, 255, 0.72);
         backdrop-filter: blur(14px);
+      }
+      /* Padrão visual unificado dos módulos (estilo dashboard executivo) */
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewFinanceiro, #viewLista) .toolbar h2 {
+        letter-spacing: -0.02em;
+      }
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewFinanceiro, #viewLista) .module-lede,
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewFinanceiro, #viewLista) .finance-module-lede,
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewFinanceiro, #viewLista) .subtitle {
+        line-height: 1.55;
+      }
+      :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) {
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 14px;
+        padding: 10px 12px;
+        margin-top: 12px;
+        background: linear-gradient(160deg, rgba(15, 23, 42, 0.36), rgba(2, 6, 23, 0.2));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      }
+      :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button {
+        border-radius: 10px;
+        padding: 7px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+      :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button.active {
+        border-color: rgba(56, 189, 248, 0.75);
+        background: linear-gradient(140deg, rgba(56, 189, 248, 0.22), rgba(14, 165, 233, 0.2));
+        color: #e0f2fe;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.1),
+          0 6px 12px rgba(14, 165, 233, 0.16);
+      }
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewFinanceiro, #viewLista) .section-card {
+        border-radius: 16px;
+      }
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewFinanceiro, #viewLista) .filter-bar {
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        background: linear-gradient(160deg, rgba(15, 23, 42, 0.35), rgba(2, 6, 23, 0.2));
+        padding: 12px 14px;
+      }
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewFinanceiro, #viewLista) .table-wrap {
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 14px;
+        background: rgba(2, 6, 23, 0.25);
+      }
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewFinanceiro, #viewLista) .table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: linear-gradient(180deg, rgba(11, 18, 32, 0.98), rgba(15, 23, 42, 0.96));
+        border-bottom-color: rgba(148, 163, 184, 0.3);
+      }
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewFinanceiro, #viewLista) .table tbody td {
+        font-size: 12px;
+      }
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewFinanceiro, #viewLista) .table tbody tr:nth-child(even) {
+        background: rgba(15, 23, 42, 0.2);
+      }
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewFinanceiro, #viewLista) .table tbody tr:hover {
+        background: rgba(56, 189, 248, 0.1);
+      }
+      [data-theme="light"] :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) {
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(241, 245, 249, 0.9));
+      }
+      [data-theme="light"] :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button.active {
+        color: #075985;
+      }
+      [data-theme="light"] :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewFinanceiro, #viewLista) .filter-bar {
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.88));
+      }
+      [data-theme="light"] :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewFinanceiro, #viewLista) .table-wrap {
+        background: rgba(255, 255, 255, 0.95);
+      }
+      [data-theme="light"] :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewFinanceiro, #viewLista) .table thead th {
+        background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.96));
+      }
+      [data-theme="light"] :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewFinanceiro, #viewLista) .table tbody tr:hover {
+        background: rgba(56, 189, 248, 0.08);
       }
       .form-grid {
         display: grid;
@@ -3565,6 +3749,7 @@
             <div class="finance-toolbar-text">
               <p class="module-kicker module-kicker--finance">Financeiro</p>
               <h2>Financeiro</h2>
+              <p class="finance-module-lede">Painel central para acompanhar receita, despesa, fluxo de caixa e prioridades financeiras com leitura mais rápida.</p>
               <nav id="financeSubnav" class="subnav finance-nav-inline" aria-label="Navegação financeira">
                 <span class="finance-menu-group">Aba principal</span>
                 <button type="button" class="secondary" data-subview="dashboard">Dashboard geral</button>
