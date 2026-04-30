@@ -11143,12 +11143,13 @@
           return;
         }
         const showFiltersHub = view === "filtros" || view === "relatorios";
-        const showReportFilters = view === "filtros" || view === "relatorios";
+        const showPlateSearchFilter = view === "filtros";
+        const showReportFilters = view === "relatorios";
         const showLancamentosFilters = view === "filtros";
         const showCaixaFilters = view === "filtros";
         const showReceberFilters = view === "filtros" || view === "receber";
         financeFiltersHub?.classList.toggle("hidden", !showFiltersHub);
-        if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", !showFiltersHub);
+        if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", !showPlateSearchFilter);
         financeRoot?.classList.toggle("finance-flyout-open", isFlyoutView);
         financeFlyoutBackdrop?.classList.toggle("hidden", !isFlyoutView);
         const showReportResult = view !== "relatorios" || reportHasRun;
@@ -11173,17 +11174,6 @@
         document.getElementById("financeLancamentosScrollNotice")?.classList.toggle("hidden", view !== "lancamentos");
         document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
         document.getElementById("financeReceberFilters")?.classList.toggle("hidden", !showReceberFilters);
-        if (view === "relatorios") {
-          // Em Relatórios, manter apenas filtros do próprio relatório visíveis.
-          financeFiltersHub?.classList.remove("hidden");
-          financeFilters.classList.remove("hidden");
-          financeReportExtraFilters?.classList.remove("hidden");
-          financeLancamentosFilters?.classList.add("hidden");
-          financeLancamentosToolbar?.classList.add("hidden");
-          financeCaixaFilters?.classList.add("hidden");
-          document.getElementById("financeReceberFilters")?.classList.add("hidden");
-          financeLancSidePanel?.classList.add("hidden");
-        }
         if (view === "relatorios" && !reportHasRun) {
           if (financeContent) financeContent.classList.add("hidden");
           if (financeHead) financeHead.innerHTML = "";
