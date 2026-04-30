@@ -941,20 +941,31 @@
       }
       #viewFinanceiro .finance-modern-layout {
         display: grid;
-        grid-template-columns: 250px minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
         gap: 14px;
       }
       #viewFinanceiro .finance-modern-sidebar {
         border: 1px solid rgba(45, 212, 191, 0.24);
-        border-radius: 16px;
+        border-radius: 0 14px 14px 0;
         background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.88));
         padding: 14px 12px;
         display: flex;
         flex-direction: column;
         gap: 12px;
-        min-height: 520px;
-        position: sticky;
-        top: 12px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: min(320px, calc(100vw - 52px));
+        height: 100vh;
+        z-index: 120;
+        transform: translateX(-110%);
+        transition: transform 0.2s ease;
+        overflow: auto;
+        margin: 0;
+        min-height: 100vh;
+      }
+      #viewFinanceiro.finance-sidebar-open .finance-modern-sidebar {
+        transform: translateX(0);
       }
       #viewFinanceiro .finance-modern-main {
         min-width: 0;
@@ -967,6 +978,15 @@
         margin-bottom: 10px;
       }
       #viewFinanceiro #financeSidebarToggle {
+        display: inline-flex;
+      }
+      #viewFinanceiro #financeSidebarBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.52);
+        z-index: 110;
+      }
+      #viewFinanceiro:not(.finance-sidebar-open) #financeSidebarBackdrop {
         display: none;
       }
       #viewFinanceiro .finance-modern-sidebar-actions {
@@ -1069,39 +1089,6 @@
         padding: 10px 12px;
       }
       @media (max-width: 1040px) {
-        #viewFinanceiro .finance-modern-layout {
-          grid-template-columns: 1fr;
-        }
-        #viewFinanceiro #financeSidebarToggle {
-          display: inline-flex;
-        }
-        #viewFinanceiro .finance-modern-sidebar {
-          display: grid;
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: min(320px, calc(100vw - 52px));
-          height: 100vh;
-          z-index: 120;
-          border-radius: 0 14px 14px 0;
-          transform: translateX(-110%);
-          transition: transform 0.2s ease;
-          overflow: auto;
-          margin: 0;
-          min-height: 100vh;
-        }
-        #viewFinanceiro.finance-sidebar-open .finance-modern-sidebar {
-          transform: translateX(0);
-        }
-        #viewFinanceiro #financeSidebarBackdrop {
-          position: fixed;
-          inset: 0;
-          background: rgba(2, 6, 23, 0.52);
-          z-index: 110;
-        }
-        #viewFinanceiro:not(.finance-sidebar-open) #financeSidebarBackdrop {
-          display: none;
-        }
         #viewFinanceiro .finance-modern-topbar {
           align-items: center;
         }
@@ -12394,20 +12381,6 @@
         financeSidebarToggle?.setAttribute("aria-expanded", "false");
         financeSidebarBackdrop?.classList.add("hidden");
       });
-      if (window.matchMedia && window.matchMedia("(min-width: 1041px)").matches) {
-        getFinanceRoot()?.classList.remove("finance-sidebar-open");
-        financeSidebarToggle?.setAttribute("aria-expanded", "false");
-        financeSidebarBackdrop?.classList.add("hidden");
-        financeSidebarOpen = false;
-      }
-      window.addEventListener("resize", () => {
-        if (window.innerWidth > 1040 && financeSidebarOpen) {
-          financeSidebarOpen = false;
-          getFinanceRoot()?.classList.remove("finance-sidebar-open");
-          financeSidebarToggle?.setAttribute("aria-expanded", "false");
-          financeSidebarBackdrop?.classList.add("hidden");
-        }
-      });
       if (tableFinance) {
         const financeTableObserver = new MutationObserver(() => refreshFinanceTableDataLabels());
         financeTableObserver.observe(tableFinance, { childList: true, subtree: true });
@@ -12421,7 +12394,7 @@
         const button = event.target.closest("button[data-subview]");
         if (!button) return;
         closeFinanceMenu();
-        if (window.innerWidth <= 1040 && financeSidebarOpen) {
+        if (financeSidebarOpen) {
           financeSidebarOpen = false;
           getFinanceRoot()?.classList.remove("finance-sidebar-open");
           financeSidebarToggle?.setAttribute("aria-expanded", "false");
