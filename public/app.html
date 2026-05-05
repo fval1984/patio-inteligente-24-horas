@@ -3470,8 +3470,8 @@
               <p class="dashboard-kicker">Visão geral</p>
               <h2>Painel</h2>
               <p class="subtitle dashboard-subtitle">
-                Cada botão abre o <strong>resumo desse sistema</strong> (visão geral só de pátio ou só financeiro). Aqui
-                em baixo ficam os indicadores combinados do pátio e do caixa.
+                Use os botões para abrir direto o módulo desejado. Abaixo ficam os indicadores operacionais do pátio
+                por mês, semana e dia.
               </p>
             </div>
             <span class="pill pill--premium"
@@ -3480,21 +3480,31 @@
           <div class="dashboard-system-entry" id="dashboardSystemEntry">
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenPatio">
               <span class="dashboard-system-btn__kicker">Operação</span>
-              <span class="dashboard-system-btn__title">Gestão de pátio</span>
-              <span class="dashboard-system-btn__desc"
-                >VNP, liberações, entradas e saídas, NFSe pendente e fluxo operacional do pátio.</span>
-              <span class="dashboard-system-btn__go">Abrir gestão de pátio →</span>
+              <span class="dashboard-system-btn__title">Pátio</span>
+              <span class="dashboard-system-btn__desc">Acompanhe veículos, entradas, saídas e fluxo operacional.</span>
+              <span class="dashboard-system-btn__go">Abrir pátio →</span>
             </button>
             <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
               <span class="dashboard-system-btn__kicker">Financeiro</span>
               <span class="dashboard-system-btn__title">Financeiro</span>
-              <span class="dashboard-system-btn__desc"
-                >Contas a receber e a pagar, caixa, fechos mensais e relatórios do pátio.</span>
+              <span class="dashboard-system-btn__desc">Contas, caixa, movimentos e relatórios financeiros.</span>
               <span class="dashboard-system-btn__go">Abrir financeiro →</span>
+            </button>
+            <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
+              <span class="dashboard-system-btn__kicker">Relacionamento</span>
+              <span class="dashboard-system-btn__title">Parceiros</span>
+              <span class="dashboard-system-btn__desc">Gerencie localizadores, assessorias, leiloeiros e bancos.</span>
+              <span class="dashboard-system-btn__go">Abrir parceiros →</span>
+            </button>
+            <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenConfiguracoes">
+              <span class="dashboard-system-btn__kicker">Sistema</span>
+              <span class="dashboard-system-btn__title">Configurações</span>
+              <span class="dashboard-system-btn__desc">Ajuste dados, usuários e parâmetros operacionais.</span>
+              <span class="dashboard-system-btn__go">Abrir configurações →</span>
             </button>
           </div>
           <div class="grid">
-            <div id="dashboardModuleFinanceWrap" class="dashboard-modules" style="grid-column: 1 / -1">
+            <div id="dashboardModuleFinanceWrap" class="dashboard-modules hidden" style="grid-column: 1 / -1">
               <div class="dashboard-finance-card dashboard-finance-card--receber" id="cardFinanceReceberLink" role="button" tabindex="0">
                 <span class="dashboard-finance-card__title">Contas a receber</span>
                 <div class="dashboard-finance-card__value" id="dashboardFinanceReceberValue">R$ 0,00</div>
@@ -3524,7 +3534,7 @@
             </div>
             <div class="card clickable dashboard-stat-card dashboard-stat--vnp" id="cardVeiculosLink">
               <div class="card-head">
-                <span class="card-title">VNP</span>
+                <span class="card-title">Veículos no pátio</span>
                 <span class="icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none">
                     <path
@@ -3541,7 +3551,7 @@
             </div>
             <div class="card clickable dashboard-stat-card dashboard-stat--release" id="cardSolicitadasLink">
               <div class="card-head">
-                <span class="card-title">Veículos em liberação</span>
+                <span class="card-title">Entraram no mês</span>
                 <span class="icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none">
                     <path
@@ -3558,7 +3568,7 @@
             </div>
             <div class="card clickable dashboard-stat-card dashboard-stat--entries" id="cardEntradasHojeLink">
               <div class="card-head">
-                <span class="card-title">Entradas hoje</span>
+                <span class="card-title">Saíram no mês</span>
                 <span class="icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none">
                     <path
@@ -3572,11 +3582,11 @@
                 </span>
               </div>
               <div class="card-value" id="cardEntradasHoje">0</div>
-              <div class="dashboard-stat-meta" id="cardEntradasHojeMeta">No mês: 0</div>
+              <div class="dashboard-stat-meta" id="cardEntradasHojeMeta">Mês atual</div>
             </div>
             <div class="card clickable dashboard-stat-card dashboard-stat--exits" id="cardSaidasHojeLink">
               <div class="card-head">
-                <span class="card-title">Saídas hoje</span>
+                <span class="card-title">Semana (entraram/saíram)</span>
                 <span class="icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none">
                     <path
@@ -3590,11 +3600,11 @@
                 </span>
               </div>
               <div class="card-value" id="cardSaidasHoje">0</div>
-              <div class="dashboard-stat-meta" id="cardSaidasHojeMeta">No mês: 0</div>
+              <div class="dashboard-stat-meta" id="cardSaidasHojeMeta">Semana atual</div>
             </div>
             <div class="card clickable dashboard-stat-card dashboard-stat--exits" id="cardVrpLink">
               <div class="card-head">
-                <span class="card-title">VRP (removidos)</span>
+                <span class="card-title">Entraram no dia</span>
                 <span class="icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none">
                     <path
@@ -3611,7 +3621,7 @@
             </div>
             <div class="card clickable dashboard-stat-card dashboard-stat--release" id="cardNfsePendenteLink">
               <div class="card-head">
-                <span class="card-title">NFSe pendente</span>
+                <span class="card-title">Saíram no dia</span>
                 <span class="icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none">
                     <path
@@ -3626,7 +3636,7 @@
               </div>
               <div class="card-value" id="cardNfsePendente">0</div>
             </div>
-            <div id="financeTopDashboard" class="section-card finance-top-dashboard dashboard-embed-finance" style="grid-column: 1 / -1; margin-top: 8px">
+            <div id="financeTopDashboard" class="section-card finance-top-dashboard dashboard-embed-finance hidden" style="grid-column: 1 / -1; margin-top: 8px">
               <p class="dashboard-embed-kicker">Resumo — Financeiro</p>
               <div class="finance-dashboard-grid">
                 <div class="finance-kpi-card">
@@ -7968,9 +7978,6 @@
 
         document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
         if (!isGestorPista) {
-          document.getElementById("dashboardModuleFinanceWrap")?.classList.remove("hidden");
-          document.getElementById("financeTopDashboard")?.classList.remove("hidden");
-          document.getElementById("dashboardOpenFinance")?.classList.remove("hidden");
           document.getElementById("dashboardSystemEntry")?.classList.remove("dashboard-system-entry--single");
           return;
         }
@@ -8000,7 +8007,6 @@
           .forEach((el) => el.classList.add("hidden"));
         document.getElementById("dashboardModuleFinanceWrap")?.classList.add("hidden");
         document.getElementById("financeTopDashboard")?.classList.add("hidden");
-        document.getElementById("dashboardOpenFinance")?.classList.add("hidden");
         document.getElementById("dashboardSystemEntry")?.classList.add("dashboard-system-entry--single");
         document.getElementById("openConfigFromPatio")?.classList.add("hidden");
         document.getElementById("openConfigFromFinanceiro")?.classList.add("hidden");
@@ -8407,6 +8413,17 @@
         );
         const todayYmd = toLocalYmd(new Date().toISOString());
         const currentYm = yearMonthFromYmd(todayYmd);
+        const startOfWeekYmd = (() => {
+          const now = new Date();
+          const day = now.getDay();
+          const diffToMonday = day === 0 ? 6 : day - 1;
+          now.setHours(0, 0, 0, 0);
+          now.setDate(now.getDate() - diffToMonday);
+          const y = now.getFullYear();
+          const m = String(now.getMonth() + 1).padStart(2, "0");
+          const d = String(now.getDate()).padStart(2, "0");
+          return `${y}-${m}-${d}`;
+        })();
         const entradasHoje = state.vehicles.filter((v) => toLocalYmd(v.data_entrada) === todayYmd).length;
         const saidasHoje = state.vehicles.filter((v) => toLocalYmd(v.data_saida) === todayYmd).length;
         const entradasMes = state.vehicles.filter(
@@ -8415,58 +8432,32 @@
         const saidasMes = state.vehicles.filter(
           (v) => yearMonthFromYmd(toLocalYmd(v.data_saida)) === currentYm
         ).length;
+        const entradasSemana = state.vehicles.filter((v) => {
+          const ymdEntrada = toLocalYmd(v.data_entrada);
+          return ymdEntrada && ymdEntrada >= startOfWeekYmd && ymdEntrada <= todayYmd;
+        }).length;
+        const saidasSemana = state.vehicles.filter((v) => {
+          const ymdSaida = toLocalYmd(v.data_saida);
+          return ymdSaida && ymdSaida >= startOfWeekYmd && ymdSaida <= todayYmd;
+        }).length;
         const elV = document.getElementById("cardVeiculos");
         const elS = document.getElementById("cardSolicitadas");
         const elEH = document.getElementById("cardEntradasHoje");
         const elSH = document.getElementById("cardSaidasHoje");
         const elEHMeta = document.getElementById("cardEntradasHojeMeta");
         const elSHMeta = document.getElementById("cardSaidasHojeMeta");
-        const openReceber = (state.receivables || []).filter((r) => receivableIsContaReceberFinanceiro(r));
-        const openPagar = (state.payables || []).filter((p) => p.status === "EM_ABERTO");
-        const caixaAtual = (state.cash || []).reduce((sum, mov) => {
-          if (mov.tipo_conta === "PAGAR") return sum - Number(mov.valor || 0);
-          return sum + Number(mov.valor || 0);
-        }, 0);
-        const dashRecValue = document.getElementById("dashboardFinanceReceberValue");
-        const dashRecMeta = document.getElementById("dashboardFinanceReceberMeta");
-        const dashPagValue = document.getElementById("dashboardFinancePagarValue");
-        const dashPagMeta = document.getElementById("dashboardFinancePagarMeta");
-        const dashCxValue = document.getElementById("dashboardFinanceCaixaValue");
-        const dashCxMeta = document.getElementById("dashboardFinanceCaixaMeta");
         if (elV) elV.textContent = (noPatio.length + vls.length).toString();
-        if (elS) elS.textContent = vls.length.toString();
-        if (elEH) elEH.textContent = entradasHoje.toString();
-        if (elSH) elSH.textContent = saidasHoje.toString();
-        if (elEHMeta) elEHMeta.textContent = `No mês: ${entradasMes}`;
-        if (elSHMeta) elSHMeta.textContent = `No mês: ${saidasMes}`;
-        if (dashRecValue) dashRecValue.textContent = formatCurrency(openReceber.reduce((s, r) => s + Number(r.valor || 0), 0));
-        if (dashRecMeta) dashRecMeta.textContent = `${openReceber.length} em aberto`;
-        if (dashPagValue) dashPagValue.textContent = formatCurrency(openPagar.reduce((s, p) => s + Number(p.valor || 0), 0));
-        if (dashPagMeta) dashPagMeta.textContent = `${openPagar.length} em aberto`;
-        if (dashCxValue) dashCxValue.textContent = formatCurrency(caixaAtual);
-        if (dashCxMeta) dashCxMeta.textContent = `Movimentações: ${(state.cash || []).length}`;
-        const patioDiariaList = [...noPatio, ...vls];
-        const diariasGeradasHojeTotal = patioDiariaList.reduce((s, v) => s + calcDiariaValorGeradoNoDiaLocal(v, todayYmd), 0);
-        const veiculosComDiariaHoje = patioDiariaList.filter((v) => calcDiariaValorGeradoNoDiaLocal(v, todayYmd) > 0).length;
-        const elDiariasVal = document.getElementById("dashboardDiariasPatioValue");
-        const elDiariasMeta = document.getElementById("dashboardDiariasPatioMeta");
-        if (elDiariasVal) elDiariasVal.textContent = formatCurrency(diariasGeradasHojeTotal);
-        if (elDiariasMeta) {
-          const labelDia = formatDateBr(new Date().toISOString());
-          const vnpTotal = noPatio.length + vls.length;
-          const nContam = veiculosComDiariaHoje;
-          if (nContam < vnpTotal) {
-            elDiariasMeta.textContent = `${vnpTotal} VNP · ${nContam} com valor diário na soma · ${labelDia}`;
-          } else {
-            elDiariasMeta.textContent = `${vnpTotal} VNP · ${labelDia}`;
-          }
-        }
-        const removidosCount = (state.vehicles || []).filter((v) => v.status === "REMOVIDO").length;
-        const nfsePendCount = (state.vehicles || []).filter((v) => v.nfse_status === "PENDENTE").length;
+        if (elS) elS.textContent = entradasMes.toString();
+        if (elEH) elEH.textContent = saidasMes.toString();
+        if (elSH) elSH.textContent = `${entradasSemana}/${saidasSemana}`;
+        if (elEHMeta) elEHMeta.textContent = `Mês atual: ${currentYm}`;
+        if (elSHMeta) elSHMeta.textContent = `Desde ${formatDateBr(startOfWeekYmd)}`;
         const elVrp = document.getElementById("cardVrp");
         const elNfse = document.getElementById("cardNfsePendente");
-        if (elVrp) elVrp.textContent = String(removidosCount);
-        if (elNfse) elNfse.textContent = String(nfsePendCount);
+        if (elVrp) elVrp.textContent = String(entradasHoje);
+        if (elNfse) elNfse.textContent = String(saidasHoje);
+        const removidosCount = (state.vehicles || []).filter((v) => v.status === "REMOVIDO").length;
+        const nfsePendCount = (state.vehicles || []).filter((v) => v.nfse_status === "PENDENTE").length;
         const piVnp = document.getElementById("patioInicioVnp");
         const piLib = document.getElementById("patioInicioLiberacao");
         const piEH = document.getElementById("patioInicioEntradasHoje");
@@ -11798,6 +11789,8 @@
 
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
       document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
+      document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openMainView("parceiros"));
+      document.getElementById("dashboardOpenConfiguracoes")?.addEventListener("click", () => openMainView("configuracoes"));
 
       document.getElementById("openParceirosFromPatio")?.addEventListener("click", () => openPartnerSubview("localizadores"));
       document.getElementById("openConfigFromPatio")?.addEventListener("click", () => openMainView("configuracoes"));
@@ -12140,10 +12133,10 @@
       // Cards do painel: VNP e veículos em liberação abrem a lista unificada no pátio.
       cardVeiculosLink.addEventListener("click", () => openPatioSubview("no_patio"));
       cardSolicitadasLink.addEventListener("click", () => openPatioSubview("no_patio"));
-      cardEntradasHojeLink?.addEventListener("click", () => openPatioSubview("no_patio"));
-      cardSaidasHojeLink?.addEventListener("click", () => openPatioSubview("removidos"));
-      cardVrpLink?.addEventListener("click", () => openPatioSubview("removidos"));
-      cardNfsePendenteLink?.addEventListener("click", () => openPatioSubview("nfse_pendente"));
+      cardEntradasHojeLink?.addEventListener("click", () => openPatioSubview("removidos"));
+      cardSaidasHojeLink?.addEventListener("click", () => openPatioSubview("no_patio"));
+      cardVrpLink?.addEventListener("click", () => openPatioSubview("no_patio"));
+      cardNfsePendenteLink?.addEventListener("click", () => openPatioSubview("removidos"));
 
       /** Busca só no envio do formulário (OK ou Enter) — digitar não dispara nada. */
       if (plateSearchForm) {
