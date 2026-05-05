@@ -18,12 +18,13 @@ const nextConfig = {
   },
   async headers() {
     const noStore = [{ key: "Cache-Control", value: "no-store, must-revalidate" }];
+    const htmlUtf8 = [{ key: "Content-Type", value: "text/html; charset=utf-8" }];
     return [
-      { source: "/app.html", headers: noStore },
-      { source: "/", headers: noStore },
-      { source: "/app", headers: noStore },
-      { source: "/amplipatio", headers: noStore },
-      { source: "/patio", headers: noStore },
+      { source: "/app.html", headers: [...htmlUtf8, ...noStore] },
+      { source: "/", headers: [...htmlUtf8, ...noStore] },
+      { source: "/app", headers: [...htmlUtf8, ...noStore] },
+      { source: "/amplipatio", headers: [...htmlUtf8, ...noStore] },
+      { source: "/patio", headers: [...htmlUtf8, ...noStore] },
     ];
   },
 };
