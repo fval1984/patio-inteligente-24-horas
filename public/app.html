@@ -13723,119 +13723,6 @@
           alert("Ciclo liberado para o Financeiro (Pré-lançamento).");
           return;
         }
-        const vehicle = state.vehicles.find((v) => v.id === id);
-          const receivable = state.receivables.find((rr) => rr.id === receivableId);
-          if (!vehicle || !receivable || !receivableNaFilaFechamentoCicloPatio(receivable)) {
-            alert("Este registo ja nao esta nesta fila. Atualize o patio.");
-            return;
-          }
-          const novoRfv = prompt("Responsavel financeiro (triagem):", receivable.responsavel_pagamento || vehicle.responsavel_financeiro_nome || "");
-          if (novoRfv == null) return;
-          const periodStartYmd = toYmdLocal(receivable.period_start || vehicle.data_entrada || new Date().toISOString());
-          const periodEndYmd = toYmdLocal(receivable.period_end || vehicle.data_saida || new Date().toISOString());
-          const novoInicio = await openDateModal({ title: "Data inicial do ciclo", label: "Inicio", type: "date", value: periodStartYmd || "" });
-          if (!novoInicio) return;
-          const novoFim = await openDateModal({ title: "Data final do ciclo", label: "Fim", type: "date", value: periodEndYmd || novoInicio });
-          if (!novoFim) return;
-          const isoInicio = startOfLocalDayIso(novoInicio);
-          const isoFim = endOfLocalDayIso(novoFim);
-          if (!isoInicio || !isoFim || new Date(isoFim).getTime() < new Date(isoInicio).getTime()) {
-            alert("Periodo invalido.");
-            return;
-          }
-          const valorSugerido = calcPeriodTotal(vehicle, isoInicio, isoFim);
-          const valorInput = prompt("Valor do ciclo (R$)", String(Number(receivable.valor || valorSugerido || 0).toFixed(2)).replace(".", ","));
-          if (valorInput == null) return;
-          const valorNovo = Number(String(valorInput).replace(/\./g, "").replace(",", "."));
-          if (!Number.isFinite(valorNovo) || valorNovo < 0) {
-            alert("Valor invalido.");
-            return;
-          }
-          const { error: recErr } = await supabase
-            .from("receivables")
-            .update({
-              responsavel_pagamento: String(novoRfv || "").trim() || null,
-              period_start: isoInicio,
-              period_end: isoFim,
-              valor: valorNovo,
-            })
-            .eq("id", receivable.id)
-            .eq("user_id", effectiveUserId());
-          if (recErr) {
-            alert(recErr.message);
-            return;
-          }
-          const { error: vehErr } = await supabase
-            .from("vehicles")
-            .update({ responsavel_financeiro_nome: String(novoRfv || "").trim() || null })
-            .eq("id", vehicle.id)
-            .eq("user_id", effectiveUserId());
-          if (vehErr && !/responsavel_financeiro|column|schema cache|PGRST204/i.test(vehErr.message || "")) {
-            alert(vehErr.message);
-            return;
-          }
-          await loadVehicles();
-          await Promise.all([loadReceivables(), loadCycleClosures()]);
-          renderVehicles();
-          updateDashboard();
-          alert("Triagem atualizada em Fechando ciclo.");
-          return;
-        }
-        if (action === "patio_liberar_financeiro") {
-          if (isGestorPista) return;
-          const receivableId = button.getAttribute("data-receivable-id");
-          const vehicle = state.vehicles.find((v) => v.id === id);
-          const receivable = state.receivables.find((rr) => rr.id === receivableId);
-          if (!vehicle || !receivable || !receivableNaFilaFechamentoCicloPatio(receivable)) {
-            alert("Este registo jÃ¡ nÃ£o estÃ¡ nesta fila. Atualize o pÃ¡tio.");
-            return;
-          }
-          const tr = button.closest("tr");
-          const rfvOk = !!tr?.querySelector(".fechamento-check-rfv")?.checked;
-          const nfEmitOk = !!tr?.querySelector(".fechamento-check-nf-emitida")?.checked;
-          const nfEnvOk = !!tr?.querySelector(".fechamento-check-nf-enviada")?.checked;
-          if (!rfvOk || !nfEmitOk || !nfEnvOk) {
-            alert("Marque os trÃªs itens: RFV conferido, NF emitida confirmada e NF jÃ¡ enviada.");
-            return;
-          }
-          let nfErr = (
-            await supabase
-              .from("vehicles")
-              .update({ nfse_enviada: true })
-              .eq("id", vehicle.id)
-              .eq("user_id", effectiveUserId())
-          ).error;
-          if (nfErr && /nfse_enviada|column|schema cache|PGRST204/i.test(nfErr.message || "")) {
-            nfErr = null;
-            addNfseEnviadaVehicleId(vehicle.id);
-          } else if (nfErr) {
-            alert(nfErr.message);
-            return;
-          }
-          let libErr = (
-            await supabase
-              .from("receivables")
-              .update({ patio_liberado_financeiro: true })
-              .eq("id", receivable.id)
-              .eq("user_id", effectiveUserId())
-          ).error;
-          if (libErr && /patio_liberado|column|schema cache|PGRST204/i.test(libErr.message || "")) {
-            libErr = null;
-          } else if (libErr) {
-            alert(libErr.message);
-            return;
-          }
-          removePatioFinanceiroBloqueadoReceivableId(receivable.id);
-          await loadVehicles();
-          await Promise.all([loadReceivables(), loadCycleClosures()]);
-          renderVehicles();
-          renderFinance();
-          updateDashboard();
-          openMainView("financeiro");
-          openFinanceSubview("aguardando_lancamento");
-          alert("Ciclo libertado para o Financeiro (PrÃ©-lanÃ§amento).");
-          return;
-        }
 
         const vehicle = state.vehicles.find((v) => v.id === id);
         if (!vehicle) return;
@@ -14612,6 +14499,7 @@
           delete fichaModal.dataset.openVehicleId;
           return;
         }
+      }
 
       document.getElementById("viewPatio").addEventListener("click", async (event) => {
         const button = event.target.closest("button[data-action]");
