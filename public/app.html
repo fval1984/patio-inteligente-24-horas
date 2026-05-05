@@ -3031,6 +3031,9 @@
         gap: 10px;
         margin-bottom: 22px;
       }
+      .dashboard-toolbar .dashboard-system-entry {
+        margin: 10px 0 0;
+      }
       .dashboard-system-entry.dashboard-system-entry--single {
         grid-template-columns: 1fr;
       }
@@ -3433,39 +3436,39 @@
             <div class="dashboard-toolbar-text">
               <p class="dashboard-kicker">Visão geral</p>
               <h2>Painel</h2>
-              <p class="subtitle dashboard-subtitle">
-                Use os botões para abrir direto o módulo desejado. Abaixo ficam os indicadores operacionais do pátio
-                por mês, semana e dia.
-              </p>
+              <div class="dashboard-system-entry" id="dashboardSystemEntry">
+                <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenPatio">
+                  <span class="dashboard-system-btn__kicker">Operação</span>
+                  <span class="dashboard-system-btn__title">Pátio</span>
+                  <span class="dashboard-system-btn__desc">Acompanhe veículos, entradas, saídas e fluxo operacional.</span>
+                  <span class="dashboard-system-btn__go">Abrir pátio →</span>
+                </button>
+                <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
+                  <span class="dashboard-system-btn__kicker">Financeiro</span>
+                  <span class="dashboard-system-btn__title">Financeiro</span>
+                  <span class="dashboard-system-btn__desc">Contas, caixa, movimentos e relatórios financeiros.</span>
+                  <span class="dashboard-system-btn__go">Abrir financeiro →</span>
+                </button>
+                <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
+                  <span class="dashboard-system-btn__kicker">Relacionamento</span>
+                  <span class="dashboard-system-btn__title">Parceiros</span>
+                  <span class="dashboard-system-btn__desc">Gerencie localizadores, assessorias, leiloeiros e bancos.</span>
+                  <span class="dashboard-system-btn__go">Abrir parceiros →</span>
+                </button>
+                <button
+                  type="button"
+                  class="dashboard-system-btn dashboard-system-btn--finance"
+                  id="dashboardOpenConfiguracoes"
+                >
+                  <span class="dashboard-system-btn__kicker">Sistema</span>
+                  <span class="dashboard-system-btn__title">Configurações</span>
+                  <span class="dashboard-system-btn__desc">Ajuste dados, usuários e parâmetros operacionais.</span>
+                  <span class="dashboard-system-btn__go">Abrir configurações →</span>
+                </button>
+              </div>
             </div>
             <span class="pill pill--premium"
               ><span class="pill-dot" aria-hidden="true"></span> Dados ao vivo</span>
-          </div>
-          <div class="dashboard-system-entry" id="dashboardSystemEntry">
-            <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenPatio">
-              <span class="dashboard-system-btn__kicker">Operação</span>
-              <span class="dashboard-system-btn__title">Pátio</span>
-              <span class="dashboard-system-btn__desc">Acompanhe veículos, entradas, saídas e fluxo operacional.</span>
-              <span class="dashboard-system-btn__go">Abrir pátio →</span>
-            </button>
-            <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
-              <span class="dashboard-system-btn__kicker">Financeiro</span>
-              <span class="dashboard-system-btn__title">Financeiro</span>
-              <span class="dashboard-system-btn__desc">Contas, caixa, movimentos e relatórios financeiros.</span>
-              <span class="dashboard-system-btn__go">Abrir financeiro →</span>
-            </button>
-            <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
-              <span class="dashboard-system-btn__kicker">Relacionamento</span>
-              <span class="dashboard-system-btn__title">Parceiros</span>
-              <span class="dashboard-system-btn__desc">Gerencie localizadores, assessorias, leiloeiros e bancos.</span>
-              <span class="dashboard-system-btn__go">Abrir parceiros →</span>
-            </button>
-            <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenConfiguracoes">
-              <span class="dashboard-system-btn__kicker">Sistema</span>
-              <span class="dashboard-system-btn__title">Configurações</span>
-              <span class="dashboard-system-btn__desc">Ajuste dados, usuários e parâmetros operacionais.</span>
-              <span class="dashboard-system-btn__go">Abrir configurações →</span>
-            </button>
           </div>
           <div class="grid">
             <div id="dashboardModuleFinanceWrap" class="dashboard-modules hidden" style="grid-column: 1 / -1">
