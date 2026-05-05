@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <!-- amplipatio-static build=finance-layout-patio-par -->
 <html lang="pt-BR">
   <head>
@@ -249,7 +249,7 @@
         max-width: 52rem;
       }
 
-      /* Módulos pátio / financeiro � hero alinhado ao painel premium */
+      /* Módulos pátio / financeiro — hero alinhado ao painel premium */
       .module-kicker {
         margin: 0 0 4px;
         font-size: 11px;
@@ -336,7 +336,7 @@
         text-transform: uppercase;
       }
 
-      /* Parceiros � shell e ribbon (padrão premium) */
+      /* Parceiros — shell e ribbon (padrão premium) */
       #viewParceiros.partners-module-shell {
         position: relative;
         overflow: hidden;
@@ -414,7 +414,7 @@
           var(--shadow-soft);
       }
 
-      /* Configurações � shell e ribbon */
+      /* Configurações — shell e ribbon */
       #viewConfiguracoes.config-module-shell {
         position: relative;
         overflow: hidden;
@@ -1788,14 +1788,14 @@
         display: none;
       }
       .header-menu-details > summary::after {
-        content: "��";
+        content: "\u25B8";
         float: right;
         font-size: 11px;
         opacity: 0.55;
         margin-left: 8px;
       }
       .header-menu-details[open] > summary::after {
-        content: "��";
+        content: "\u25BE";
       }
       .header-menu-details > summary:hover {
         background: var(--primary-weak, rgba(56, 189, 248, 0.12));
@@ -2919,7 +2919,7 @@
         justify-content: space-between;
       }
 
-      /* Painel � visual premium */
+      /* Painel — visual premium */
       #viewDashboard.dashboard-shell {
         position: relative;
         overflow: hidden;
@@ -3487,19 +3487,19 @@
                   <span class="dashboard-system-btn__kicker">Operação</span>
                   <span class="dashboard-system-btn__title">Pátio</span>
                   <span class="dashboard-system-btn__desc">Acompanhe veículos, entradas, saídas e fluxo operacional.</span>
-                  <span class="dashboard-system-btn__go">Abrir pátio � </span>
+                  <span class="dashboard-system-btn__go">Abrir pátio →</span>
                 </button>
                 <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
                   <span class="dashboard-system-btn__kicker">Financeiro</span>
                   <span class="dashboard-system-btn__title">Financeiro</span>
                   <span class="dashboard-system-btn__desc">Contas, caixa, movimentos e relatórios financeiros.</span>
-                  <span class="dashboard-system-btn__go">Abrir financeiro � </span>
+                  <span class="dashboard-system-btn__go">Abrir financeiro →</span>
                 </button>
                 <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
                   <span class="dashboard-system-btn__kicker">Relacionamento</span>
                   <span class="dashboard-system-btn__title">Parceiros</span>
                   <span class="dashboard-system-btn__desc">Gerencie localizadores, assessorias, leiloeiros e bancos.</span>
-                  <span class="dashboard-system-btn__go">Abrir parceiros � </span>
+                  <span class="dashboard-system-btn__go">Abrir parceiros →</span>
                 </button>
                 <button
                   type="button"
@@ -3509,7 +3509,7 @@
                   <span class="dashboard-system-btn__kicker">Sistema</span>
                   <span class="dashboard-system-btn__title">Configurações</span>
                   <span class="dashboard-system-btn__desc">Ajuste dados, usuários e parâmetros operacionais.</span>
-                  <span class="dashboard-system-btn__go">Abrir configurações � </span>
+                  <span class="dashboard-system-btn__go">Abrir configurações →</span>
                 </button>
               </div>
             </div>
@@ -3522,19 +3522,19 @@
                 <span class="dashboard-finance-card__title">Contas a receber</span>
                 <div class="dashboard-finance-card__value" id="dashboardFinanceReceberValue">R$ 0,00</div>
                 <span class="dashboard-finance-card__meta" id="dashboardFinanceReceberMeta">0 em aberto</span>
-                <span class="dashboard-finance-card__go">Abrir financeiro � </span>
+                <span class="dashboard-finance-card__go">Abrir financeiro →</span>
               </div>
               <div class="dashboard-finance-card dashboard-finance-card--pagar" id="cardFinancePagarLink" role="button" tabindex="0">
                 <span class="dashboard-finance-card__title">Contas a pagar</span>
                 <div class="dashboard-finance-card__value" id="dashboardFinancePagarValue">R$ 0,00</div>
                 <span class="dashboard-finance-card__meta" id="dashboardFinancePagarMeta">0 em aberto</span>
-                <span class="dashboard-finance-card__go">Abrir financeiro � </span>
+                <span class="dashboard-finance-card__go">Abrir financeiro →</span>
               </div>
               <div class="dashboard-finance-card dashboard-finance-card--caixa" id="cardFinanceCaixaLink" role="button" tabindex="0">
                 <span class="dashboard-finance-card__title">Saldo em caixa</span>
                 <div class="dashboard-finance-card__value" id="dashboardFinanceCaixaValue">R$ 0,00</div>
                 <span class="dashboard-finance-card__meta" id="dashboardFinanceCaixaMeta">Movimentações: 0</span>
-                <span class="dashboard-finance-card__go">Abrir financeiro � </span>
+                <span class="dashboard-finance-card__go">Abrir financeiro →</span>
               </div>
               <div
                 class="dashboard-finance-card dashboard-finance-card--diarias-patio dashboard-card-static"
@@ -3703,12 +3703,12 @@
                 <div class="dashboard-chart-card">
                   <p class="dashboard-chart-title">Contas a pagar vs receber (aging)</p>
                   <svg id="dashboardAgingSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                  <div class="dashboard-chart-legend">Azul: a receber ⬢ Vermelho: a pagar</div>
+                  <div class="dashboard-chart-legend">Azul: a receber • Vermelho: a pagar</div>
                 </div>
               </div>
             </section>
             <div id="financeTopDashboard" class="section-card finance-top-dashboard dashboard-embed-finance hidden" style="grid-column: 1 / -1; margin-top: 8px">
-              <p class="dashboard-embed-kicker">Resumo � Financeiro</p>
+              <p class="dashboard-embed-kicker">Resumo — Financeiro</p>
               <div class="finance-dashboard-grid">
                 <div class="finance-kpi-card">
                   <div class="finance-kpi-title">Saldo atual em caixa</div>
@@ -3770,7 +3770,7 @@
                 <div class="finance-chart-card">
                   <div class="finance-chart-title">Comparativo mensal receitas x despesas</div>
                   <svg id="fdtTrendSvg" class="finance-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                  <div class="finance-chart-legend">Azul: entradas ⬢ Vermelho: saídas</div>
+                  <div class="finance-chart-legend">Azul: entradas • Vermelho: saídas</div>
                 </div>
                 <div class="finance-chart-card">
                   <div class="finance-chart-title">Fluxo de caixa em gráfico</div>
@@ -3795,7 +3795,7 @@
             <div class="actions lista-toolbar-actions">
               <img
                 src="/assets/lista-logomarca.png"
-                alt="AMPLIAUTO � Pátio inteligente 24hrs"
+                alt="AMPLIAUTO — Pátio inteligente 24hrs"
                 class="lista-toolbar-logo"
                 width="220"
                 height="48"
@@ -3822,7 +3822,7 @@
               <input
                 id="listaFilterBanco"
                 type="search"
-                placeholder="Procura em observações, responsável, descrição⬦"
+                placeholder="Procura em observações, responsável, descrição…"
                 autocomplete="off"
                 style="width: 100%; max-width: 22rem"
               />
@@ -3846,7 +3846,7 @@
               <div id="listaCaptureHeading"></div>
               <img
                 src="/assets/lista-logomarca.png"
-                alt="AMPLIAUTO � Pátio inteligente 24hrs"
+                alt="AMPLIAUTO — Pátio inteligente 24hrs"
                 class="lista-capture-logo-mark"
                 width="180"
                 height="44"
@@ -3945,19 +3945,19 @@
                 <span class="dashboard-system-btn__kicker">Lista</span>
                 <span class="dashboard-system-btn__title">VNP</span>
                 <span class="dashboard-system-btn__desc">Veículos no pátio e em fluxo de liberação ou remoção.</span>
-                <span class="dashboard-system-btn__go">Abrir VNP � </span>
+                <span class="dashboard-system-btn__go">Abrir VNP →</span>
               </button>
               <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" data-patio-inicio-go="removidos">
                 <span class="dashboard-system-btn__kicker">Histórico</span>
                 <span class="dashboard-system-btn__title">VRP</span>
                 <span class="dashboard-system-btn__desc">Veículos removidos e situação pós-saída.</span>
-                <span class="dashboard-system-btn__go">Abrir VRP � </span>
+                <span class="dashboard-system-btn__go">Abrir VRP →</span>
               </button>
               <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" data-patio-inicio-go="nfse_pendente">
                 <span class="dashboard-system-btn__kicker">Fiscal</span>
                 <span class="dashboard-system-btn__title">NFSe pendente</span>
                 <span class="dashboard-system-btn__desc">Veículos com emissão de nota em aberto.</span>
-                <span class="dashboard-system-btn__go">Abrir lista � </span>
+                <span class="dashboard-system-btn__go">Abrir lista →</span>
               </button>
             </div>
           </div>
@@ -4065,7 +4065,7 @@
               <div class="pill">Fechando ciclo</div>
               <p class="notice" style="margin: 0 0 12px">
                 Triagem antes do Financeiro: confira o responsável financeiro (RFV), se a NF foi emitida e se já foi enviada.
-                Marque os três itens e confirme OK para o ciclo entrar em Financeiro �  Pré-lançamento.
+                Marque os três itens e confirme OK para o ciclo entrar em Financeiro → Pré-lançamento.
               </p>
               <div class="table-wrap">
                 <table class="table stacked">
@@ -4076,7 +4076,7 @@
                       <th>Responsável financeiro</th>
                       <th>NF emitida</th>
                       <th>NF enviada</th>
-                      <th>Di�rias / per�odo</th>
+                      <th>Diárias / período</th>
                       <th>Valor do ciclo</th>
                       <th>Triagem</th>
                     </tr>
@@ -4091,7 +4091,7 @@
         <div id="viewParceiros" class="panel hidden partners-module-shell">
           <div class="partners-module-ribbon">
             <div class="partners-module-ribbon-left">
-              <button type="button" class="secondary" id="exitParceirosToPatio">� � Voltar à Gestão de pátio</button>
+              <button type="button" class="secondary" id="exitParceirosToPatio">← Voltar à Gestão de pátio</button>
             </div>
             <div class="partners-module-ribbon-right">
               <div class="partners-module-meta">
@@ -4257,7 +4257,7 @@
           <div class="finance-context-bar">
             <span id="financeViewBadge" class="finance-context-badge">Visão: Dashboard geral</span>
             <span id="financeModeBadge" class="finance-context-badge">Modo executivo</span>
-            <span id="financeCompetenciaBadge" class="finance-context-badge">Competência: �</span>
+            <span id="financeCompetenciaBadge" class="finance-context-badge">Competência: —</span>
             <span class="finance-context-badge">
               <label for="financeDashboardMonth" style="margin-right: 6px; font-weight: 700">Mês</label>
               <input id="financeDashboardMonth" type="month" style="min-width: 9.2rem" />
@@ -4284,7 +4284,7 @@
             <button type="button" class="secondary" id="clearFinancePlateFilter">Limpar</button>
           </form>
           <div id="financeReceberFilters" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; flex-wrap: wrap; align-items: center">
-            <span class="notice" style="font-weight: 600">Contas a receber � filtros:</span>
+            <span class="notice" style="font-weight: 600">Contas a receber — filtros:</span>
             <label for="financeReceberFilterLoc">RPV (remoção)</label>
             <select id="financeReceberFilterLoc" style="min-width: 10rem">
               <option value="">Todos</option>
@@ -4330,13 +4330,13 @@
             </span>
             <button class="secondary" id="applyFilter">Aplicar</button>
             <button class="secondary" id="clearFilter">Limpar</button>
-            <button class="secondary" id="quick7">�altimos 7 dias</button>
-            <button class="secondary" id="quick30">�altimos 30 dias</button>
-            <button class="secondary" id="quick90">�altimos 90 dias</button>
+            <button class="secondary" id="quick7">Últimos 7 dias</button>
+            <button class="secondary" id="quick30">Últimos 30 dias</button>
+            <button class="secondary" id="quick90">Últimos 90 dias</button>
             <button class="secondary" id="exportHistory">Exportar CSV</button>
           </div>
           <div id="financeLancamentosFilters" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; flex-wrap: wrap; align-items: center">
-            <span class="notice" style="font-weight: 600">Lançamentos � filtros:</span>
+            <span class="notice" style="font-weight: 600">Lançamentos — filtros:</span>
             <label for="financeLancTipo">Tipo</label>
             <select id="financeLancTipo">
               <option value="">Todos</option>
@@ -4396,7 +4396,7 @@
             <span id="financeLancResultCount" class="notice">0 registros</span>
           </div>
           <div id="financeCaixaFilters" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; flex-wrap: wrap; align-items: center">
-            <span class="notice" style="font-weight: 600">Fluxo de caixa � mês:</span>
+            <span class="notice" style="font-weight: 600">Fluxo de caixa — mês:</span>
             <label for="financeCaixaMonth">Competência</label>
             <input id="financeCaixaMonth" type="month" />
             <button type="button" class="secondary" id="financeCaixaMonthAtual">Mês atual</button>
@@ -4473,7 +4473,7 @@
                       <div class="finance-monthly-title">Painel mensal inteligente</div>
                       <div class="finance-monthly-sub">Leitura rápida por competência</div>
                     </div>
-                    <span id="financeMonthlyBoardBadge" class="tag">�</span>
+                    <span id="financeMonthlyBoardBadge" class="tag">—</span>
                   </div>
                   <div class="finance-monthly-grid">
                     <div class="finance-monthly-kpi"><span class="k">Receitas</span><span id="fmReceitasMes" class="v">R$ 0,00</span></div>
@@ -4574,13 +4574,13 @@
               <div class="finance-closure-hero">
                 <div>
                   <div class="finance-closure-hero-kicker">Mês operacional aberto</div>
-                  <div id="closureOperationalTitle" class="finance-closure-operational-title">�</div>
+                  <div id="closureOperationalTitle" class="finance-closure-operational-title">—</div>
                   <p class="subtitle" style="margin: 0"></p>
                 </div>
                 <div class="finance-closure-hero-right">
                   <span class="tag warning" id="closureOperationalStatus">Aberto</span>
                   <div class="finance-closure-nextline">
-                    Próximo: <strong><span id="closureNextMonth">�</span></strong>
+                    Próximo: <strong><span id="closureNextMonth">—</span></strong>
                   </div>
                 </div>
               </div>
@@ -4648,7 +4648,7 @@
         <div id="viewConfiguracoes" class="panel hidden config-module-shell">
           <div class="config-module-ribbon">
             <div class="config-module-ribbon-left">
-              <button type="button" class="secondary" id="exitConfigToPatio">� � Voltar à Gestão de pátio</button>
+              <button type="button" class="secondary" id="exitConfigToPatio">← Voltar à Gestão de pátio</button>
             </div>
             <div class="config-module-meta">
               <span class="config-module-name">Definições do sistema</span>
@@ -4688,12 +4688,12 @@
                   <textarea
                     id="settingsEndereco"
                     rows="3"
-                    placeholder="Ex.: Rua Marquês de Baependi, 119 � Campo Grande, Recife � PE"
+                    placeholder="Ex.: Rua Marquês de Baependi, 119 — Campo Grande, Recife — PE"
                     style="width: 100%; resize: vertical; min-height: 72px; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: rgba(0, 0, 0, 0.2); color: var(--text); font: inherit"
                   ></textarea>
                 </div>
                 <div class="full">
-                  <label>Nome do emitente (recibo � quem declara o «Eu, ⬦»)</label>
+                  <label>Nome do emitente (recibo — quem declara o «Eu, …»)</label>
                   <input
                     id="settingsReciboEmitente"
                     type="text"
@@ -4728,9 +4728,9 @@
             <div class="section-card">
               <h3 style="margin: 0 0 10px; font-size: 1.1rem">Gestor geral</h3>
               <p class="notice" style="margin: 0 0 10px">
-                �0 a <strong>conta principal</strong> (tu): acesso completo � financeiro, parceiros, liberações, configurações e dados do pátio.
+                É a <strong>conta principal</strong> (tu): acesso completo — financeiro, parceiros, liberações, configurações e dados do pátio.
               </p>
-              <p style="margin: 0"><strong>Login:</strong> <span id="configGestorGeralEmail">�</span></p>
+              <p style="margin: 0"><strong>Login:</strong> <span id="configGestorGeralEmail">—</span></p>
               <p class="notice" style="margin: 10px 0 0">
                 O login e a palavra-passe são os do registo inicial (Supabase Auth). Não se cria aqui outro «gestor geral».
               </p>
@@ -4738,8 +4738,8 @@
             <div class="section-card" style="margin-top: 18px">
               <h3 style="margin: 0 0 10px; font-size: 1.1rem">Gestor de pista</h3>
               <p class="notice" style="margin: 0 0 12px">
-                Cria um utilizador só para a pista: <strong>Nome</strong> e <strong>senha</strong>. O funcionário abre a <strong>mesma app</strong> (este site) � 
-                <strong>Entrar</strong> �  escreve o <strong>mesmo nome</strong> e a <strong>senha</strong> (se o nome não tiver @, não precisa de e-mail).
+                Cria um utilizador só para a pista: <strong>Nome</strong> e <strong>senha</strong>. O funcionário abre a <strong>mesma app</strong> (este site) →
+                <strong>Entrar</strong> → escreve o <strong>mesmo nome</strong> e a <strong>senha</strong> (se o nome não tiver @, não precisa de e-mail).
               </p>
               <div class="form-actions" style="margin-top: 0; margin-bottom: 10px">
                 <button type="button" class="secondary" id="trackManagerBtnNovo">Novo utilizador</button>
@@ -4946,8 +4946,8 @@
             <div class="full" style="display: flex; flex-wrap: wrap; gap: 8px">
               <span class="notice" style="margin-right: 8px">Atalhos:</span>
               <button type="button" class="secondary" id="printPatioPresetMonth">Este mês</button>
-              <button type="button" class="secondary" id="printPatioPreset30">�altimos 30 dias</button>
-              <button type="button" class="secondary" id="printPatioPreset90">�altimos 90 dias</button>
+              <button type="button" class="secondary" id="printPatioPreset30">Últimos 30 dias</button>
+              <button type="button" class="secondary" id="printPatioPreset90">Últimos 90 dias</button>
             </div>
           </div>
           <div class="form-actions">
@@ -5121,7 +5121,7 @@
               <div>
                 <label>Tipo</label>
                 <select id="payableType">
-                  <option value="UNICA">�anica</option>
+                  <option value="UNICA">Única</option>
                   <option value="RECORRENTE">Recorrente</option>
                   <option value="PARCELADA">Parcelada</option>
                 </select>
@@ -5284,7 +5284,7 @@
         }
       }
 
-      /** html2canvas só quando precisa (ficha PNG / lista PDF) � uma única carga partilhada */
+      /** html2canvas só quando precisa (ficha PNG / lista PDF) — uma única carga partilhada */
       let html2canvasLoadPromise = null;
       function loadHtml2Canvas() {
         if (window.html2canvas) return Promise.resolve(window.html2canvas);
@@ -5728,7 +5728,7 @@
       }
 
       /**
-       * Quando false, o ciclo não entra na fila «Pré-lançamento» até OK em Pátio �  Fechando ciclo.
+       * Quando false, o ciclo não entra na fila «Pré-lançamento» até OK em Pátio → Fechando ciclo.
        * Sem coluna no Supabase: usa lista local de IDs bloqueados após VRP.
        */
       function receivablePatioLiberadoParaFinanceiro(r) {
@@ -6104,7 +6104,7 @@
       function patioPrintVehicleLine(v) {
         const vehicleLine = [v.marca, v.modelo].filter(Boolean).join(" ").trim() || "-";
         const placa = v.placa || "-";
-        return `${escapeHtml(placa)} � ${escapeHtml(vehicleLine)}`;
+        return `${escapeHtml(placa)} — ${escapeHtml(vehicleLine)}`;
       }
 
       function patioPrintPartnerNames(v) {
@@ -6114,7 +6114,7 @@
       }
 
       function patioPrintObsCell(v) {
-        const obsRaw = (v.observacoes || "").trim() || "�";
+        const obsRaw = (v.observacoes || "").trim() || "—";
         return escapeHtml(obsRaw).replace(/\n/g, "<br />");
       }
 
@@ -6321,9 +6321,9 @@
       function listaReceberDiariasCellHtml(r, vehicle) {
         const days = listaReceberDiasNoCiclo(r, vehicle);
         const vd = Number(vehicle?.valor_diaria || 0);
-        if (days == null) return `<span class="lista-receber-diarias">�</span>`;
+        if (days == null) return `<span class="lista-receber-diarias">—</span>`;
         if (vd > 0) {
-          return `<span class="lista-receber-diarias"><span class="lista-receber-dias">${escapeHtml(String(days))} diária(s)</span> � ${escapeHtml(formatCurrency(vd))}</span>`;
+          return `<span class="lista-receber-diarias"><span class="lista-receber-dias">${escapeHtml(String(days))} diária(s)</span> × ${escapeHtml(formatCurrency(vd))}</span>`;
         }
         return `<span class="lista-receber-diarias"><span class="lista-receber-dias">${escapeHtml(String(days))} diária(s)</span> <span style="opacity: 0.75">(sem valor diário no veículo)</span></span>`;
       }
@@ -6411,7 +6411,7 @@
         ]
           .filter(Boolean)
           .join(" · ");
-        hEl.innerHTML = `<strong>${escapeHtml(nomePatio)}</strong> � Lista · ${escapeHtml(viewLabel)}<br /><span style="font-size:0.85rem;color:#444">${escapeHtml(
+        hEl.innerHTML = `<strong>${escapeHtml(nomePatio)}</strong> — Lista · ${escapeHtml(viewLabel)}<br /><span style="font-size:0.85rem;color:#444">${escapeHtml(
           filtros || "Sem filtros de parceiro/texto"
         )}</span><br /><span style="font-size:0.78rem;color:#666">${escapeHtml(formatDateTime(new Date().toISOString()))}</span>`;
         const g = computeListaGrandTotalForCurrentView();
@@ -6509,7 +6509,7 @@
             .forEach((r) => {
               const vehicle = vehicleById.get(r.vehicle_id);
               const vehicleInfo = vehicle
-                ? `${vehicle.placa || "-"} ⬢ ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`
+                ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`
                 : "Veículo não encontrado";
               const ini = r.period_start ? formatDate(r.period_start) : "-";
               const fim = r.period_end
@@ -6518,9 +6518,9 @@
                   ? formatDate(vehicle.data_saida)
                   : "-";
               rows.push(`<tr>
-                <td data-label="Resumo">${escapeHtml(r.responsavel_pagamento || "�")}<br /><span class="notice">${escapeHtml(
+                <td data-label="Resumo">${escapeHtml(r.responsavel_pagamento || "—")}<br /><span class="notice">${escapeHtml(
                   vehicleInfo
-                )}</span><br />${escapeHtml(ini)} �  ${escapeHtml(fim)}</td>
+                )}</span><br />${escapeHtml(ini)} → ${escapeHtml(fim)}</td>
                 <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
                 <td data-label="Estado"><span class="tag warning">Aguardando triagem</span></td>
               </tr>`);
@@ -6557,15 +6557,15 @@
           const rowsHtml = list
             .map((r) => {
               const vehicle = vehicleById.get(r.vehicle_id);
-              const vm = [vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ") || "�";
-              const placa = vehicle?.placa || "�";
+              const vm = [vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ") || "—";
+              const placa = vehicle?.placa || "—";
               const entRaw = vehicle?.data_entrada || r.period_start || r.created_at;
               const saiRaw = vehicle?.data_saida || r.period_end;
-              const entLabel = entRaw ? formatDate(entRaw) : "�";
-              const saiLabel = saiRaw ? formatDate(saiRaw) : "�";
-              const st = r.status === "EM_ABERTO" ? "Em aberto" : r.status || "�";
+              const entLabel = entRaw ? formatDate(entRaw) : "—";
+              const saiLabel = saiRaw ? formatDate(saiRaw) : "—";
+              const st = r.status === "EM_ABERTO" ? "Em aberto" : r.status || "—";
               return `<tr>
-              <td data-label="Veículo / responsável"><span class="lista-receber-placa">${escapeHtml(placa)}</span> · ${escapeHtml(vm)}<br /><span class="notice" style="font-size:0.86rem">${escapeHtml(r.responsavel_pagamento || "�")}</span></td>
+              <td data-label="Veículo / responsável"><span class="lista-receber-placa">${escapeHtml(placa)}</span> · ${escapeHtml(vm)}<br /><span class="notice" style="font-size:0.86rem">${escapeHtml(r.responsavel_pagamento || "—")}</span></td>
               <td data-label="Entrada (pátio)">${escapeHtml(entLabel)}</td>
               <td data-label="Saída">${escapeHtml(saiLabel)}</td>
               <td data-label="Diárias">${listaReceberDiariasCellHtml(r, vehicle)}</td>
@@ -6589,10 +6589,10 @@
           const rowsPagar = list
             .map((p) => {
               return `<tr>
-              <td data-label="Descrição">${escapeHtml(p.descricao || "�")}</td>
-              <td data-label="Vencimento">${escapeHtml(p.data_vencimento ? formatDate(p.data_vencimento) : "�")}</td>
+              <td data-label="Descrição">${escapeHtml(p.descricao || "—")}</td>
+              <td data-label="Vencimento">${escapeHtml(p.data_vencimento ? formatDate(p.data_vencimento) : "—")}</td>
               <td data-label="Valor">${escapeHtml(formatCurrency(Number(p.valor || 0)))}</td>
-              <td data-label="Estado">${escapeHtml(p.status || "�")}</td>
+              <td data-label="Estado">${escapeHtml(p.status || "—")}</td>
             </tr>`;
             })
             .join("");
@@ -6616,8 +6616,8 @@
             .map((mov) => {
               return `<tr>
               <td data-label="Data">${escapeHtml(formatDateTime(mov.data_movimento))}</td>
-              <td data-label="Tipo">${escapeHtml(mov.tipo_conta || "�")}</td>
-              <td data-label="Descrição">${escapeHtml(mov.descricao || "�")}</td>
+              <td data-label="Tipo">${escapeHtml(mov.tipo_conta || "—")}</td>
+              <td data-label="Descrição">${escapeHtml(mov.descricao || "—")}</td>
               <td data-label="Valor">${escapeHtml(formatCurrency(Number(mov.valor || 0)))}</td>
             </tr>`;
             })
@@ -6643,7 +6643,7 @@
         });
       }
 
-      /** Para captura (PDF lista / etc.): html2canvas só «via» a zona visível de .table-wrap com max-height � expande e devolve restore. */
+      /** Para captura (PDF lista / etc.): html2canvas só «via» a zona visível de .table-wrap com max-height — expande e devolve restore. */
       function expandListaCaptureScrollContainersForExport(root) {
         const restoreFns = [];
         root.querySelectorAll(".table-wrap").forEach((el) => {
@@ -6687,7 +6687,7 @@
         const prev = btn?.textContent;
         if (btn) {
           btn.disabled = true;
-          btn.textContent = "A gerar PDF⬦";
+          btn.textContent = "A gerar PDF…";
         }
         try {
           await loadJsPdf();
@@ -6784,8 +6784,8 @@
   @page { margin: 12mm; }`;
         const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(
           nomePatio
-        )} � Lista</title><style>${printCss}</style></head><body>
-  <h1>${escapeHtml(nomePatio)} � Lista · ${escapeHtml(viewLabel)}</h1>
+        )} — Lista</title><style>${printCss}</style></head><body>
+  <h1>${escapeHtml(nomePatio)} — Lista · ${escapeHtml(viewLabel)}</h1>
   <div class="meta">${escapeHtml(meta)}</div>
   <table><thead>${headHtml}</thead><tbody>${bodyHtml}</tbody></table>
   ${totalBlock}
@@ -6916,7 +6916,7 @@
 
         const rowLoc = (v) => {
           const { ass } = patioPrintPartnerNames(v);
-          const sai = v.data_saida ? formatDateTime(v.data_saida) : "�";
+          const sai = v.data_saida ? formatDateTime(v.data_saida) : "—";
           return `<tr>
             <td>${patioPrintVehicleLine(v)}</td>
             <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
@@ -6927,7 +6927,7 @@
         };
         const rowAss = (v) => {
           const { loc } = patioPrintPartnerNames(v);
-          const sai = v.data_saida ? formatDateTime(v.data_saida) : "�";
+          const sai = v.data_saida ? formatDateTime(v.data_saida) : "—";
           return `<tr>
             <td>${patioPrintVehicleLine(v)}</td>
             <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
@@ -6938,7 +6938,7 @@
         };
         const rowRem = (v) => {
           const { loc, ass } = patioPrintPartnerNames(v);
-          const sai = v.data_saida ? formatDateTime(v.data_saida) : "�";
+          const sai = v.data_saida ? formatDateTime(v.data_saida) : "—";
           return `<tr>
             <td>${patioPrintVehicleLine(v)}</td>
             <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
@@ -6952,7 +6952,7 @@
         const blocks = [];
         if (!vehicles.length) {
           blocks.push(
-            `<p class="empty-note">Nenhum veículo neste relatório. Desmarque �SOcultar removidos⬝ ou verifique o cadastro.</p>`
+            `<p class="empty-note">Nenhum veículo neste relatório. Desmarque “Ocultar removidos” ou verifique o cadastro.</p>`
           );
         } else {
           if (byLoc) {
@@ -7031,7 +7031,7 @@
 
         const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Veículos por parceiro e remoção</title>
 <style>${printCss}</style></head><body>
-  <h1>${escapeHtml(nomePatio)} � Veículos por parceiro e remoção</h1>
+  <h1>${escapeHtml(nomePatio)} — Veículos por parceiro e remoção</h1>
   <div class="meta">${escapeHtml(metaLine)}</div>
   ${blocks.join("")}
 </body></html>`;
@@ -7067,7 +7067,7 @@
         const nowStr = formatDateTime(new Date().toISOString());
         const metaLine = [`Total: ${vehicles.length} veículo(s)`, `Emitido em: ${nowStr}`].join(" · ");
 
-        const situacaoCell = (v) => escapeHtml(REMOVAL_FLOW_LABELS[v.status] || v.status || "�");
+        const situacaoCell = (v) => escapeHtml(REMOVAL_FLOW_LABELS[v.status] || v.status || "—");
         const theadLoc =
           "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Situação</th><th>Assessoria</th><th>Observações</th>";
         const theadAss =
@@ -7075,7 +7075,7 @@
 
         const rowLoc = (v) => {
           const { ass } = patioPrintPartnerNames(v);
-          const sai = v.data_saida ? formatDateTime(v.data_saida) : "�";
+          const sai = v.data_saida ? formatDateTime(v.data_saida) : "—";
           return `<tr>
             <td>${patioPrintVehicleLine(v)}</td>
             <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
@@ -7087,7 +7087,7 @@
         };
         const rowAss = (v) => {
           const { loc } = patioPrintPartnerNames(v);
-          const sai = v.data_saida ? formatDateTime(v.data_saida) : "�";
+          const sai = v.data_saida ? formatDateTime(v.data_saida) : "—";
           return `<tr>
             <td>${patioPrintVehicleLine(v)}</td>
             <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
@@ -7154,9 +7154,9 @@
   @page { margin: 12mm; }
   @media print { body { margin: 0; } }`;
 
-        const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Liberados � pátio</title>
+        const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Liberados — pátio</title>
 <style>${printCss}</style></head><body>
-  <h1>${escapeHtml(nomePatio)} � Veículos em liberação e removidos</h1>
+  <h1>${escapeHtml(nomePatio)} — Veículos em liberação e removidos</h1>
   <div class="meta">${escapeHtml(metaLine)}</div>
   <p class="meta">Inclui veículos em fase de liberação e VRP (removidos), conforme filtros.</p>
   ${blocks.join("")}
@@ -7177,12 +7177,12 @@
 
       function formatReceberEntradaVeiculo(v, r) {
         const raw = v?.data_entrada || r.period_start || r.created_at;
-        return raw ? formatDate(raw) : "�";
+        return raw ? formatDate(raw) : "—";
       }
 
       function formatReceberSaidaVeiculo(v, r) {
         const raw = v?.data_saida || r.period_end;
-        return raw ? formatDate(raw) : "�";
+        return raw ? formatDate(raw) : "—";
       }
 
       function receberBarFilterMatches(r, vehicle) {
@@ -7379,13 +7379,13 @@
         const nowMs = Date.now();
         const nowStr = formatDateTime(new Date().toISOString());
         const diasAberto = (r) => {
-          if (!r.created_at) return "�";
+          if (!r.created_at) return "—";
           return String(Math.floor((nowMs - new Date(r.created_at).getTime()) / 86400000));
         };
 
         const veiculoCell = (v) =>
           v
-            ? `${escapeHtml(v.placa || "-")} � ${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}`
+            ? `${escapeHtml(v.placa || "-")} — ${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}`
             : escapeHtml("Veículo não encontrado");
 
         const locNome = (v) =>
@@ -7394,7 +7394,7 @@
           v?.assessoria_id ? partnerByIdMap.get(v.assessoria_id) || "-" : "-";
 
         const diariasPatioCell = (v) => {
-          if (!v?.data_entrada) return "�";
+          if (!v?.data_entrada) return "—";
           return String(calcDays(v));
         };
 
@@ -7433,7 +7433,7 @@
           const v = vehicleById.get(r.vehicle_id);
           return `<tr>
             <td>${veiculoCell(v)}</td>
-            <td>${escapeHtml(r.responsavel_pagamento || "�")}</td>
+            <td>${escapeHtml(r.responsavel_pagamento || "—")}</td>
             <td>${escapeHtml(assNome(v))}</td>
             <td>${escapeHtml(formatReceberEntradaVeiculo(v, r))}</td>
             <td>${escapeHtml(formatReceberSaidaVeiculo(v, r))}</td>
@@ -7459,7 +7459,7 @@
           const v = vehicleById.get(r.vehicle_id);
           return `<tr>
             <td>${veiculoCell(v)}</td>
-            <td>${escapeHtml(r.responsavel_pagamento || "�")}</td>
+            <td>${escapeHtml(r.responsavel_pagamento || "—")}</td>
             <td>${escapeHtml(locNome(v))}</td>
             <td>${escapeHtml(formatReceberEntradaVeiculo(v, r))}</td>
             <td>${escapeHtml(formatReceberSaidaVeiculo(v, r))}</td>
@@ -7546,7 +7546,7 @@
 
         const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>A receber em aberto</title>
 <style>${printCss}</style></head><body>
-  <h1>${escapeHtml(nomePatio)} � Contas a receber em aberto</h1>
+  <h1>${escapeHtml(nomePatio)} — Contas a receber em aberto</h1>
   <div class="meta">${escapeHtml(metaLine)}</div>
   ${blocks.join("")}
 </body></html>`;
@@ -7661,7 +7661,7 @@
             })
             .join("");
           pushTable(
-            "VNP � No pátio e liberação em andamento",
+            "VNP — No pátio e liberação em andamento",
             "Mesma lista unificada do sistema (antes da remoção / VRP)",
             "<th>Veículo</th><th>Data de entrada</th><th>Situação</th><th>RPV</th><th>Assessoria</th><th>Observações</th>",
             rows,
@@ -7692,7 +7692,7 @@
             })
             .join("");
           pushTable(
-            "VRP � Veículos removidos",
+            "VRP — Veículos removidos",
             "Filtrado por data de saída no período (se não houver saída, usa a data de entrada)",
             "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>RPV</th><th>Assessoria</th><th>Observações</th>",
             rows,
@@ -7712,7 +7712,7 @@
           const rows = list
             .map((v) => {
               const { loc, ass } = patioPrintPartnerNames(v);
-              const req = v.nfse_requested_at ? formatDateTime(v.nfse_requested_at) : "�";
+              const req = v.nfse_requested_at ? formatDateTime(v.nfse_requested_at) : "—";
               return `<tr>
                 <td>${patioPrintVehicleLine(v)}</td>
                 <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
@@ -7747,7 +7747,7 @@
   @page { margin: 12mm; }
   @media print { body { margin: 0; } h2 { page-break-before: auto; } }
 </style></head><body>
-  <h1>${escapeHtml(nomePatio)} � Listagens do pátio</h1>
+  <h1>${escapeHtml(nomePatio)} — Listagens do pátio</h1>
   <div class="meta">${escapeHtml(metaLine)}</div>
   ${sections.join("")}
 </body></html>`;
@@ -7785,7 +7785,7 @@
         return dayYmd <= end;
       }
 
-      /** Valor de diária «gerado» só naquele dia civil: 1� valor_diária se houver permanência nesse dia. */
+      /** Valor de diária «gerado» só naquele dia civil: 1× valor_diária se houver permanência nesse dia. */
       function calcDiariaValorGeradoNoDiaLocal(vehicle, dayYmd) {
         if (!vehicleStayIncludesLocalCalendarDay(vehicle, dayYmd)) return 0;
         const vd = Number(vehicle.valor_diaria);
@@ -7817,7 +7817,7 @@
         return new Date(startMs - 1).toISOString();
       }
 
-      /** �altimo instante do dia local YYYY-MM-DD (23:59:59.999). */
+      /** Último instante do dia local YYYY-MM-DD (23:59:59.999). */
       function endOfLocalDayIso(dateStr) {
         const [y, m, d] = (dateStr || "").split("-").map((v) => Number(v));
         if (!y || !m || !d) return null;
@@ -7922,7 +7922,7 @@
 
       function displayManagerIdentity(emailOrLogin) {
         const s = (emailOrLogin || "").trim();
-        if (!s) return "�";
+        if (!s) return "—";
         const m = s.match(/^([a-z0-9._-]+)@gestor\.(local|invalid)$/i);
         if (m) return m[1];
         return s;
@@ -7932,7 +7932,7 @@
         event.preventDefault();
         if (!supabase) {
           setStatus(
-            "Não foi possível carregar o sistema (rede ou bloqueador). Use Wi�Fi, desative bloqueio de scripts/CDN e recarregue.",
+            "Não foi possível carregar o sistema (rede ou bloqueador). Use Wi-Fi, desative bloqueio de scripts/CDN e recarregue.",
             "error"
           );
           return;
@@ -7992,7 +7992,7 @@
           if (/rate limit|429|email rate limit|too many requests|over_email_send_rate|exceeded/i.test(m)) {
             return (
               "Limite de e-mails do Supabase (muitas confirmações enviadas). " +
-              "No painel: Authentication �  Providers �  Email �  desative «Confirm email» para contas de teste, " +
+              "No painel: Authentication → Providers → Email → desative «Confirm email» para contas de teste, " +
               "ou aguarde ~1 hora. Com o deploy atual, o registo normal usa o servidor e não depende desse e-mail."
             );
           }
@@ -8382,7 +8382,7 @@
       }
 
       function formatYearMonthLong(ym) {
-        if (!ym || !/^\d{4}-\d{2}$/.test(ym)) return ym || "�";
+        if (!ym || !/^\d{4}-\d{2}$/.test(ym)) return ym || "—";
         const [y, m] = ym.split("-").map(Number);
         const names = [
           "Janeiro",
@@ -8545,7 +8545,7 @@
         }
         tbody.innerHTML = rows
           .map((r) => {
-            const dt = r.closed_at ? formatDateTime(r.closed_at) : "�";
+            const dt = r.closed_at ? formatDateTime(r.closed_at) : "—";
             return `<tr>
               <td>${formatYearMonthLong(r.year_month)}</td>
               <td>${r.vehicles_entered}</td>
@@ -9182,7 +9182,7 @@
             const assessoria = state.partners.find((p) => p.id === v.assessoria_id)?.nome || "-";
             const valorCell = semValores
               ? "-"
-              : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias ⬢ ${calcHours(v)}h)</span>`;
+              : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
 
             const emPipeline = v.status !== "NO_PATIO";
             const semValorDiaria = !v.valor_diaria || Number(v.valor_diaria) <= 0;
@@ -9354,7 +9354,7 @@
 
             const valorCell = semValores
               ? "-"
-              : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias ⬢ ${calcHours(v)}h)</span>`;
+              : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
 
             let actionsCell = "";
             if (isGestorPista) {
@@ -9403,7 +9403,7 @@
         if (!items.length) {
           setEmptyRow(
             tbody,
-            "Nenhum ciclo aguardando esta triagem. Depois do VRP (sa�da efetiva), o registro aparece aqui at� confirmar OK para o financeiro.",
+            "Nenhum ciclo aguardando esta triagem. Depois do VRP (saída efetiva), o registro aparece aqui até confirmar OK para o financeiro.",
             8
           );
           return;
@@ -9431,11 +9431,11 @@
             return `
               <tr data-closure-row="${c.id}" data-vehicle-row="${vehicle.id}">
                 <td data-label="Placa">${escapeHtml(vehicle.placa || "-")}</td>
-                <td data-label="Ve�culo">${escapeHtml([vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-")}</td>
-                <td data-label="Respons�vel financeiro">${escapeHtml(rfvNome)}</td>
+                <td data-label="Veículo">${escapeHtml([vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-")}</td>
+                <td data-label="Responsável financeiro">${escapeHtml(rfvNome)}</td>
                 <td data-label="NF emitida">${nfEmitTag}<label class="notice" style="display:block;margin-top:6px"><input type="checkbox" class="fechamento-check-nf-emitida"${nfEmitChecked}/> confirmo</label></td>
-                <td data-label="NF enviada"><label><input type="checkbox" class="fechamento-check-nf-enviada"${nfEnvChecked}/> NF j� enviada</label></td>
-                <td data-label="Di�rias / per�odo">${diarias > 0 ? `${diarias} di�ria(s)` : "-"}<span class="notice" style="display:block">${escapeHtml(pIni)} -> ${escapeHtml(pFim)}</span></td>
+                <td data-label="NF enviada"><label><input type="checkbox" class="fechamento-check-nf-enviada"${nfEnvChecked}/> NF já enviada</label></td>
+                <td data-label="Diárias / período">${diarias > 0 ? `${diarias} diária(s)` : "-"}<span class="notice" style="display:block">${escapeHtml(pIni)} -> ${escapeHtml(pFim)}</span></td>
                 <td data-label="Valor do ciclo">${valorCiclo}</td>
                 <td data-label="Triagem">
                   <label style="display:block;margin-bottom:6px"><input type="checkbox" class="fechamento-check-rfv"/> RFV conferido</label>
@@ -9463,7 +9463,7 @@
 
             const valorCell = semValores
               ? "-"
-              : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias ⬢ ${calcHours(v)}h)</span>`;
+              : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
 
             let actionsCell = "";
             if (isGestorPista) {
@@ -9507,7 +9507,7 @@
 
       const RECIBO_EMITENTE_PADRAO = "Fernando Vasconcellos de Albuquerque Lima";
       const RECIBO_CNPJ_PADRAO = "57.936.119/0001-98";
-      const RECIBO_RODAPE_PADRAO = "Rua Marques de Baipendi, 119 � Campo Grande, Recife-PE � (81) 9 9991-8484";
+      const RECIBO_RODAPE_PADRAO = "Rua Marques de Baipendi, 119 — Campo Grande, Recife-PE — (81) 9 9991-8484";
       const RECIBO_PATIO_PADRAO = "AMPLIAUTO";
 
       function reciboEmitenteNome(settings) {
@@ -9526,7 +9526,7 @@
       function reciboFooterLine(settings) {
         const e = (settings?.endereco || "").trim().replace(/\n/g, " ");
         const t = (settings?.recibo_telefone || "").trim();
-        if (e && t) return `${e} � ${t}`;
+        if (e && t) return `${e} — ${t}`;
         if (e) return e;
         if (t) return t;
         return RECIBO_RODAPE_PADRAO;
@@ -9537,7 +9537,7 @@
         const placa = vehicle?.placa || "-";
         const marca = vehicle?.marca || "";
         const modelo = vehicle?.modelo || "";
-        const veiculoDesc = [marca, modelo].filter(Boolean).join(" ").trim() || "�";
+        const veiculoDesc = [marca, modelo].filter(Boolean).join(" ").trim() || "—";
         const emitente = reciboEmitenteNome(cfg);
         const cnpjFmt = reciboCnpjExibicao(cfg);
         const nomePatio = (cfg.nome_patio || "").trim() || RECIBO_PATIO_PADRAO;
@@ -9554,7 +9554,7 @@
         const corpo =
           `Eu, ${emitente}, inscrito no CNPJ ${cnpjFmt}, recebi a quantia de ${formatCurrency(
             valor
-          )} do Sr(a). ${destinatario || "�"}, referente às estadias do veículo ${veiculoDesc}, placa ${placa}, em pátio particular ${nomePatio}, de ${dEntrada} a ${dSaida}.\n\nPor este documento, dou plena e total\nquitação referente ao pagamento das estadias referidas acima.`;
+          )} do Sr(a). ${destinatario || "—"}, referente às estadias do veículo ${veiculoDesc}, placa ${placa}, em pátio particular ${nomePatio}, de ${dEntrada} a ${dSaida}.\n\nPor este documento, dou plena e total\nquitação referente ao pagamento das estadias referidas acima.`;
         const parts = [corpo, "", reciboFooterLine(cfg)];
         return parts.join("\n");
       }
@@ -9599,14 +9599,14 @@
         const emitente = reciboEmitenteNome(s);
         const cnpjFmt = reciboCnpjExibicao(s);
         const nomePatio = (s.nome_patio || "").trim() || RECIBO_PATIO_PADRAO;
-        const pessoa = (destinatarioNome || "").trim() || "�";
-        const pessoaDoc = (destinatarioDoc || "").trim() || "�";
-        const placa = vehicle?.placa || "�";
+        const pessoa = (destinatarioNome || "").trim() || "—";
+        const pessoaDoc = (destinatarioDoc || "").trim() || "—";
+        const placa = vehicle?.placa || "—";
         const marca = (vehicle?.marca || "").trim();
         const modelo = (vehicle?.modelo || "").trim();
-        const veiculoDesc = [marca, modelo].filter(Boolean).join(" ").trim() || "�";
-        const dIni = receivable?.period_start ? formatDateBr(receivable.period_start) : "�";
-        const dFim = receivable?.period_end ? formatDateBr(receivable.period_end) : "�";
+        const veiculoDesc = [marca, modelo].filter(Boolean).join(" ").trim() || "—";
+        const dIni = receivable?.period_start ? formatDateBr(receivable.period_start) : "—";
+        const dFim = receivable?.period_end ? formatDateBr(receivable.period_end) : "—";
         const dEntrada =
           vehicle?.data_entrada != null && vehicle.data_entrada !== ""
             ? formatDateBr(vehicle.data_entrada)
@@ -9658,7 +9658,7 @@
         doc.setTextColor(15, 23, 42);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(13.5);
-        doc.text("RECIBO DE QUITA�!ÒO DE ESTADIAS", pageW / 2, y, { align: "center" });
+        doc.text("RECIBO DE QUITAÇÃO DE ESTADIAS", pageW / 2, y, { align: "center" });
         y += 14;
         y += 26;
 
@@ -9709,7 +9709,7 @@
           doc.setFont("helvetica", "normal");
           doc.setFontSize(10.5);
           doc.setTextColor(15, 23, 42);
-          const lines = doc.splitTextToSize(value || "�", contentW - 118);
+          const lines = doc.splitTextToSize(value || "—", contentW - 118);
           doc.text(lines, marginX + 104, y + 11);
           y += Math.max(22, lines.length * 12 + 10);
         };
@@ -9760,7 +9760,7 @@
 
       async function openNfseModal(vehicle) {
         nfseVehicleId = vehicle.id;
-        nfseResumo.textContent = `Veículo: ${vehicle.placa || "-"} ⬢ ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`;
+        nfseResumo.textContent = `Veículo: ${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`;
         nfseTexto.value = buildNfseText(vehicle);
         if (!vehicle.nfse_status || vehicle.nfse_status === "NAO_SOLICITADA") {
           await supabase
@@ -9777,7 +9777,7 @@
 
       async function openFicha(vehicle) {
         if (fichaModalTitle) {
-          fichaModalTitle.textContent = `Ficha � ${vehicle.placa || "veículo"}`;
+          fichaModalTitle.textContent = `Ficha — ${vehicle.placa || "veículo"}`;
         }
         fichaModal.dataset.openVehicleId = vehicle.id;
 
@@ -9786,12 +9786,12 @@
           const dias = calcDays(vehicle);
           const horas = calcHours(vehicle);
           fichaResumo.innerHTML = `
-            <strong>${vehicle.placa || "-"}</strong> ⬢ ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-"}<br />
+            <strong>${vehicle.placa || "-"}</strong> • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-"}<br />
             RPV: ${escapeHtml(locNome)}<br />
             Entrada: ${formatDateTime(vehicle.data_entrada)}${
-            vehicle.data_saida ? ` ⬢ Saída: ${formatDateTime(vehicle.data_saida)}` : ""
+            vehicle.data_saida ? ` • Saída: ${formatDateTime(vehicle.data_saida)}` : ""
           }<br />
-            <span class="notice">Tempo no pátio: ${dias} dia(s) ⬢ ${horas} h (referência operacional, sem valores).</span>
+            <span class="notice">Tempo no pátio: ${dias} dia(s) • ${horas} h (referência operacional, sem valores).</span>
           `;
           if (fichaSectionSnf) {
             fichaSectionSnf.innerHTML = `<p class="notice" style="margin:0">Nota fiscal e valores não estão disponíveis para o gestor de pista.</p>`;
@@ -9799,7 +9799,7 @@
           if (fichaSectionSlv) {
             const sit = VLS_STATUS_LABELS[vehicle.status] || vehicle.status || "-";
             const remG = isRemocaoSolicitada(vehicle)
-              ? " ⬢ Remoção solicitada (registada)"
+              ? " • Remoção solicitada (registada)"
               : "";
             fichaSectionSlv.innerHTML = `<p class="notice" style="margin:0">Situação: <strong>${escapeHtml(
               sit
@@ -9821,15 +9821,15 @@
                     const inicio = c.period_start ? formatDate(c.period_start) : "-";
                     const fim = c.period_end ? formatDate(c.period_end) : "aberto";
                     const status = formatReceivableStatusLabel(c);
-                    return `Ciclo ${idx + 1}: ${inicio} a ${fim} ⬢ ${c.responsavel_pagamento || "-"} ⬢ ${formatCurrency(
+                    return `Ciclo ${idx + 1}: ${inicio} a ${fim} • ${c.responsavel_pagamento || "-"} • ${formatCurrency(
                       c.valor
                     )} (${status})`;
                   })
                   .join("<br />");
 
           fichaResumo.innerHTML = `
-          <strong>${vehicle.placa || "-"}</strong> ⬢ ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-"}<br />
-          Entrada: ${formatDateTime(vehicle.data_entrada)} ⬢ Saída: ${formatDateTime(vehicle.data_saida)}<br />
+          <strong>${vehicle.placa || "-"}</strong> • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-"}<br />
+          Entrada: ${formatDateTime(vehicle.data_entrada)} • Saída: ${formatDateTime(vehicle.data_saida)}<br />
           Valor de referência (diárias): ${formatCurrency(calcTotal(vehicle))}<br />
           <span class="notice">Cobrança e pagamento: módulo Financeiro (após encerrar o ciclo no pátio).</span><br />
           <span class="notice">Ciclos financeiros:</span><br />
@@ -9842,11 +9842,11 @@
             let statusLine = "";
             if (st === "EMITIDA") {
               statusLine = `Status: <strong>NFSe emitida</strong>${
-                vehicle.nfse_issued_at ? ` ⬢ ${formatDateTime(vehicle.nfse_issued_at)}` : ""
+                vehicle.nfse_issued_at ? ` • ${formatDateTime(vehicle.nfse_issued_at)}` : ""
               }.`;
             } else if (st === "PENDENTE") {
               statusLine = `Status: <strong>Pendente de emissão</strong>${
-                vehicle.nfse_requested_at ? ` ⬢ Solicitada em ${formatDateTime(vehicle.nfse_requested_at)}` : ""
+                vehicle.nfse_requested_at ? ` • Solicitada em ${formatDateTime(vehicle.nfse_requested_at)}` : ""
               }.`;
             } else {
               statusLine =
@@ -9928,15 +9928,15 @@
           fichaSectionVistoria.innerHTML = hasVistoria
             ? `
               <p class="notice" style="margin:0 0 8px">
-                Data: <strong>${escapeHtml(vistoriaData)}</strong> ⬢ Responsável: <strong>${escapeHtml(vistoriaResp)}</strong>
+                Data: <strong>${escapeHtml(vistoriaData)}</strong> • Responsável: <strong>${escapeHtml(vistoriaResp)}</strong>
               </p>
               <p style="margin:0 0 8px">
-                KM: <strong>${escapeHtml(vistoriaKm)}</strong> ⬢ Combustível: <strong>${escapeHtml(vistoriaComb)}</strong>
+                KM: <strong>${escapeHtml(vistoriaKm)}</strong> • Combustível: <strong>${escapeHtml(vistoriaComb)}</strong>
               </p>
               <p style="margin:0 0 8px">
-                Documento: <strong>${boolLabel(!!checklist.documento)}</strong> ⬢
-                Chave: <strong>${boolLabel(!!checklist.chave)}</strong> ⬢
-                Estepe: <strong>${boolLabel(!!checklist.estepe)}</strong> ⬢
+                Documento: <strong>${boolLabel(!!checklist.documento)}</strong> •
+                Chave: <strong>${boolLabel(!!checklist.chave)}</strong> •
+                Estepe: <strong>${boolLabel(!!checklist.estepe)}</strong> •
                 Triângulo/Macaco: <strong>${boolLabel(!!checklist.triangulo_macaco)}</strong>
               </p>
               <p style="margin:0">
@@ -9967,7 +9967,7 @@
                 <div class="timeline-item">
                   <div class="timeline-title">${title}</div>
                   <div>${evt.descricao || "-"}</div>
-                  <div class="timeline-meta">Responsável: ${evt.responsavel || "-"} ⬢ ${formatDateTime(
+                  <div class="timeline-meta">Responsável: ${evt.responsavel || "-"} • ${formatDateTime(
                 evt.data_evento
               )}</div>
                 </div>
@@ -10112,7 +10112,7 @@
           .sort((a, b) => b[1] - a[1])
           .slice(0, 5)
           .map(([id, count], idx) => `${idx + 1}. ${partnerMap.get(id) || "Parceiro"} (${count})`);
-        rankByVehicles.textContent = topVehicles.length ? topVehicles.join(" ⬢ ") : "Sem dados";
+        rankByVehicles.textContent = topVehicles.length ? topVehicles.join(" • ") : "Sem dados";
 
         const receivableMap = new Map(state.receivables.map((r) => [r.id, r]));
         const vehicleMap = new Map(state.vehicles.map((v) => [v.id, v]));
@@ -10134,7 +10134,7 @@
           .sort((a, b) => b[1] - a[1])
           .slice(0, 5)
           .map(([id, total], idx) => `${idx + 1}. ${partnerMap.get(id) || "Parceiro"} (${formatCurrency(total)})`);
-        rankByRevenue.textContent = topRevenue.length ? topRevenue.join(" ⬢ ") : "Sem dados";
+        rankByRevenue.textContent = topRevenue.length ? topRevenue.join(" • ") : "Sem dados";
       }
 
       function renderPartnerOptions() {
@@ -10493,7 +10493,7 @@
             }
             el.innerHTML = items
               .slice(0, 5)
-              .map(([name, total]) => `<li>${escapeHtml(name)} � <strong>${escapeHtml(formatCurrency(total))}</strong></li>`)
+              .map(([name, total]) => `<li>${escapeHtml(name)} — <strong>${escapeHtml(formatCurrency(total))}</strong></li>`)
               .join("");
           };
           const filaFinanceira = [
@@ -10803,7 +10803,7 @@
               ["Separação PF/PJ (a receber)", `PF ${formatCurrency(totalPf)} | PJ ${formatCurrency(totalPj)}`],
               ["Centro de custo líder", centroTop || "Sem dados"],
             ];
-            filaEl.innerHTML = filaExtendida.map(([label, qtd]) => `<li>${escapeHtml(label)} � <strong>${escapeHtml(String(qtd))}</strong></li>`).join("");
+            filaEl.innerHTML = filaExtendida.map(([label, qtd]) => `<li>${escapeHtml(label)} — <strong>${escapeHtml(String(qtd))}</strong></li>`).join("");
           }
           const monthStripEl = document.getElementById("financeMonthStrip");
           const monthTableBody = document.getElementById("financeMonthTableBody");
@@ -10886,7 +10886,7 @@
                     (item) =>
                       `<span class="tag" style="margin:2px 4px 2px 0; display:inline-flex; gap:6px; align-items:center;">
                         ${escapeHtml(item)}
-                        <button class="secondary" type="button" data-action="cadastro-remove-item" data-base-key="${key}" data-base-item="${encodeURIComponent(item)}" style="padding:0 6px; min-width:0;">�</button>
+                        <button class="secondary" type="button" data-action="cadastro-remove-item" data-base-key="${key}" data-base-item="${encodeURIComponent(item)}" style="padding:0 6px; min-width:0;">×</button>
                       </span>`
                   )
                   .join("")
@@ -11087,7 +11087,7 @@
             .forEach((r) => {
               const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
               const vehicleInfo = vehicle
-                ? `${vehicle.placa || "-"} ⬢ ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`
+                ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`
                 : "Veículo não encontrado";
               const ini = r.period_start ? formatDate(r.period_start) : "-";
               const fim = r.period_end
@@ -11098,12 +11098,12 @@
               const valor = Number(r.valor || 0);
               rows.push(`
                 <tr>
-                  <td>Pátio � ciclo encerrado</td>
+                  <td>Pátio — ciclo encerrado</td>
                   <td>
                     <span class="notice">${r.receivable_category || "GUARDA_PATIO"}</span><br />
-                    ${escapeHtml(r.responsavel_pagamento || "�")}<br />
+                    ${escapeHtml(r.responsavel_pagamento || "—")}<br />
                     <span class="notice">${escapeHtml(vehicleInfo)}</span><br />
-                    <span class="notice">${escapeHtml(ini)} �  ${escapeHtml(fim)}</span>
+                    <span class="notice">${escapeHtml(ini)} → ${escapeHtml(fim)}</span>
                   </td>
                   <td>${formatCurrency(valor)}</td>
                   <td><span class="tag warning">Decidir: a receber ou pago</span></td>
@@ -11118,7 +11118,7 @@
           if (!rows.length) {
             setEmptyRow(
               tableFinance,
-              "Nenhum registo nesta fila. Ciclos recém-fechados no pátio passam primeiro por Pátio �  Fechando ciclo (triagem NF e RFV); só depois aparecem aqui para decidires «Contas a receber» ou «Baixar como pago».",
+              "Nenhum registo nesta fila. Ciclos recém-fechados no pátio passam primeiro por Pátio → Fechando ciclo (triagem NF e RFV); só depois aparecem aqui para decidires «Contas a receber» ou «Baixar como pago».",
               5
             );
           } else {
@@ -11308,7 +11308,7 @@
                 mov.tipo_conta === "RECEBER" && recVinculado && recVinculado.status === "PAGO";
               const pagarQuitadoPodeGestionar =
                 mov.tipo_conta === "PAGAR" && payVinculado && payVinculado.status === "PAGO";
-              let acoesCell = "�";
+              let acoesCell = "—";
               if (receberQuitadoPodeGestionar) {
                 const rid = mov.conta_id;
                 acoesCell = `
@@ -11389,7 +11389,7 @@
                 : "Sem alerta";
             const alertaClasse = isOverdue ? "danger" : daysOpen >= 8 ? "warning" : "success";
             const vehicleInfo = vehicle
-              ? `${vehicle.placa || "-"} ⬢ ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`
+              ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`
               : "-";
             rows.push(`
                 <tr>
@@ -11476,7 +11476,7 @@
           }).filter((r) => matchesVehicleId(r.vehicle_id));
           filtered.forEach((r) => {
             const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
-            const origem = vehicle ? `${vehicle.placa || "-"} ⬢ ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}` : "-";
+            const origem = vehicle ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}` : "-";
             const mov = cashByReceivable.get(r.id);
             rows.push(`
               <tr>
@@ -11942,13 +11942,13 @@
           const resumo = document.getElementById("reciboModalResumoAuto");
           if (resumo) {
             if (receivable && vehicle) {
-              const placa = vehicle.placa || "�";
-              const vm = [vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "�";
-              const pi = receivable.period_start ? formatDateBr(receivable.period_start) : "�";
-              const pf = receivable.period_end ? formatDateBr(receivable.period_end) : "�";
+              const placa = vehicle.placa || "—";
+              const vm = [vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "—";
+              const pi = receivable.period_start ? formatDateBr(receivable.period_start) : "—";
+              const pf = receivable.period_end ? formatDateBr(receivable.period_end) : "—";
               const val = formatCurrency(Number(receivable.valor || 0));
               resumo.innerHTML = `<strong>Dados que vão no PDF (automático)</strong><br />
-                Veículo: <strong>${escapeHtml(vm)}</strong> � placa <strong>${escapeHtml(placa)}</strong><br />
+                Veículo: <strong>${escapeHtml(vm)}</strong> — placa <strong>${escapeHtml(placa)}</strong><br />
                 Estadias (período): <strong>${escapeHtml(pi)}</strong> a <strong>${escapeHtml(pf)}</strong><br />
                 Valor: <strong>${escapeHtml(val)}</strong>`;
               resumo.classList.remove("hidden");
@@ -12365,7 +12365,7 @@
           configModuleLede.textContent =
             currentConfigSubview === "usuarios"
               ? "Gestor geral (conta principal) e gestores de pista delegados."
-              : "CNPJ, nome do pátio e textos de cobrança e nota � use Salvar alterações.";
+              : "CNPJ, nome do pátio e textos de cobrança e nota — use Salvar alterações.";
         }
         if (currentConfigSubview === "usuarios") {
           refreshConfigUsuariosPanel();
@@ -12374,7 +12374,7 @@
 
       async function refreshConfigUsuariosPanel() {
         if (configGestorGeralEmail)
-          configGestorGeralEmail.textContent = displayManagerIdentity(state.user?.email || "") || "�";
+          configGestorGeralEmail.textContent = displayManagerIdentity(state.user?.email || "") || "—";
         await loadTrackManagersList();
       }
 
@@ -12407,7 +12407,7 @@
         tableTrackManagersBody.innerHTML = rows
           .map((r) => {
             const perfil = "Gestor de pista";
-            const rotulo = escapeHtml(displayManagerIdentity((r.email || "�").trim()));
+            const rotulo = escapeHtml(displayManagerIdentity((r.email || "—").trim()));
             return `<tr><td data-label="Nome / login">${rotulo}</td><td data-label="Perfil">${escapeHtml(perfil)}</td></tr>`;
           })
           .join("");
@@ -12626,7 +12626,7 @@
       cardVrpLink?.addEventListener("click", () => openPatioSubview("no_patio"));
       cardNfsePendenteLink?.addEventListener("click", () => openPatioSubview("removidos"));
 
-      /** Busca só no envio do formulário (OK ou Enter) � digitar não dispara nada. */
+      /** Busca só no envio do formulário (OK ou Enter) — digitar não dispara nada. */
       if (plateSearchForm) {
         plateSearchForm.addEventListener("submit", (event) => {
           event.preventDefault();
@@ -13385,7 +13385,7 @@
             return;
           }
           const nomeParaEntrar = nomeRaw.includes("@") ? nomeRaw.toLowerCase() : normalizeManagerLogin(nomeRaw) || nomeRaw;
-          if (trackManagerStatus) trackManagerStatus.textContent = "A criar utilizador⬦";
+          if (trackManagerStatus) trackManagerStatus.textContent = "A criar utilizador…";
 
           let accessToken = "";
           try {
@@ -13441,11 +13441,11 @@
                 .filter((x) => typeof x === "string" && String(x).trim())
                 .map((x) => String(x).trim());
               const parts = [...new Set(rawParts)];
-              let msg = parts.join(" � ") || `Erro HTTP ${resp.status} ao criar gestor.`;
+              let msg = parts.join(" — ") || `Erro HTTP ${resp.status} ao criar gestor.`;
               const mlow = msg.toLowerCase();
               if (/rate limit|429|over_email_send_rate|email rate limit|exceeded/i.test(mlow)) {
                 msg =
-                  "Limite de e-mails do Supabase. Desative confirmações por e-mail (Authentication �  Providers �  Email) ou aguarde. A criação pelo painel Admin não deve enviar e-mail se o projeto estiver atualizado.";
+                  "Limite de e-mails do Supabase. Desative confirmações por e-mail (Authentication → Providers → Email) ou aguarde. A criação pelo painel Admin não deve enviar e-mail se o projeto estiver atualizado.";
               }
               if (resp.status === 500 && !json?.error) {
                 msg =
@@ -13474,7 +13474,7 @@
               if (json?.already_linked) {
                 trackManagerStatus.textContent =
                   json?.message ||
-                  `Este utilizador já estava associado. Nome: ${escapeHtml(displayManagerIdentity(loginEmail))} | User ID: ${newUserId || "�"}`;
+                  `Este utilizador já estava associado. Nome: ${escapeHtml(displayManagerIdentity(loginEmail))} | User ID: ${newUserId || "—"}`;
                 hideTrackManagerAccessBox();
               } else if (json?.existing_auth_user && json?.message) {
                 trackManagerStatus.textContent = `${json.message} Nome: ${escapeHtml(displayManagerIdentity(loginEmail))} | User ID: ${newUserId}`;
@@ -13511,7 +13511,7 @@
           if (uid.includes("@")) {
             if (trackManagerLinkStatus)
               trackManagerLinkStatus.textContent =
-                "No campo de cima cola só o UUID do Supabase (Authentication �  Users). Em baixo indique o utilizador (ou e-mail) para a lista.";
+                "No campo de cima cola só o UUID do Supabase (Authentication → Users). Em baixo indique o utilizador (ou e-mail) para a lista.";
             return;
           }
           if (!isTrackManagerUuid(uid)) {
@@ -13530,7 +13530,7 @@
               trackManagerLinkStatus.textContent = "Não pode associar a própria conta como gestor delegado.";
             return;
           }
-          if (trackManagerLinkStatus) trackManagerLinkStatus.textContent = "A associar⬦";
+          if (trackManagerLinkStatus) trackManagerLinkStatus.textContent = "A associar…";
 
           try {
             const { data: dup, error: dupErr } = await supabase
@@ -13584,24 +13584,24 @@
           const closure = (state.cycleClosures || []).find((x) => x.id === closureId);
           const vehicle = state.vehicles.find((v) => v.id === id);
           if (!closure || !vehicle || closure.sent_to_finance) {
-            alert("Este registro j� n�o est� nesta fila. Atualize o p�tio.");
+            alert("Este registro já não está nesta fila. Atualize o pátio.");
             return;
           }
           const novoRfv = prompt(
-            "Respons�vel financeiro (triagem):",
+            "Responsável financeiro (triagem):",
             closure.responsavel_financeiro || vehicle.responsavel_financeiro_nome || ""
           );
           if (novoRfv == null) return;
           const periodStartYmd = toYmdLocal(closure.period_start || vehicle.data_entrada || new Date().toISOString());
           const periodEndYmd = toYmdLocal(closure.period_end || vehicle.data_saida || new Date().toISOString());
-          const novoInicio = await openDateModal({ title: "Data inicial do ciclo", label: "In�cio", type: "date", value: periodStartYmd || "" });
+          const novoInicio = await openDateModal({ title: "Data inicial do ciclo", label: "Início", type: "date", value: periodStartYmd || "" });
           if (!novoInicio) return;
           const novoFim = await openDateModal({ title: "Data final do ciclo", label: "Fim", type: "date", value: periodEndYmd || novoInicio });
           if (!novoFim) return;
           const isoInicio = startOfLocalDayIso(novoInicio);
           const isoFim = endOfLocalDayIso(novoFim);
           if (!isoInicio || !isoFim || new Date(isoFim).getTime() < new Date(isoInicio).getTime()) {
-            alert("Per�odo inv�lido.");
+            alert("Período inválido.");
             return;
           }
           const diariasCalc = Math.max(1, Math.ceil((new Date(isoFim).getTime() - new Date(isoInicio).getTime()) / 86400000));
@@ -13610,7 +13610,7 @@
           if (valorInput == null) return;
           const valorNovo = Number(String(valorInput).replace(/\./g, "").replace(",", "."));
           if (!Number.isFinite(valorNovo) || valorNovo < 0) {
-            alert("Valor inv�lido.");
+            alert("Valor inválido.");
             return;
           }
           const { error: cloErr } = await supabase
@@ -13654,7 +13654,7 @@
           const closure = (state.cycleClosures || []).find((x) => x.id === closureId);
           const vehicle = state.vehicles.find((v) => v.id === id);
           if (!closure || !vehicle || closure.sent_to_finance) {
-            alert("Este registro j� n�o est� nesta fila. Atualize o p�tio.");
+            alert("Este registro já não está nesta fila. Atualize o pátio.");
             return;
           }
           const tr = button.closest("tr");
@@ -13662,7 +13662,7 @@
           const nfEmitOk = !!tr?.querySelector(".fechamento-check-nf-emitida")?.checked;
           const nfEnvOk = !!tr?.querySelector(".fechamento-check-nf-enviada")?.checked;
           if (!rfvOk || !nfEmitOk || !nfEnvOk) {
-            alert("Marque os tr�s itens: RFV conferido, NF emitida confirmada e NF j� enviada.");
+            alert("Marque os três itens: RFV conferido, NF emitida confirmada e NF já enviada.");
             return;
           }
           const { error: cloErr } = await supabase
@@ -13720,7 +13720,7 @@
           updateDashboard();
           openMainView("financeiro");
           openFinanceSubview("aguardando_lancamento");
-          alert("Ciclo liberado para o Financeiro (Pr�-lan�amento).");
+          alert("Ciclo liberado para o Financeiro (Pré-lançamento).");
           return;
         }
 
@@ -13860,7 +13860,7 @@
               vehicle_id: id,
               tipo: "STATUS_REVERTIDO_VNP",
               responsavel: state.user?.email || "Administrador",
-              descricao: `Fluxo revertido manualmente: ${VLS_STATUS_LABELS[vehicle.status] || vehicle.status} �  ${VLS_STATUS_LABELS[previousStatus] || previousStatus}.`,
+              descricao: `Fluxo revertido manualmente: ${VLS_STATUS_LABELS[vehicle.status] || vehicle.status} → ${VLS_STATUS_LABELS[previousStatus] || previousStatus}.`,
             });
             await loadVehicles();
             renderVehicles();
@@ -14164,7 +14164,7 @@
         }
 
         if (action === "trocar-responsavel") {
-          // Responsável atual �Sacerta⬝ diárias até o fim do dia do acerto (inclusive);
+          // Responsável atual “acerta” diárias até o fim do dia do acerto (inclusive);
           // a partir do dia seguinte, o ciclo é do novo responsável.
           const novoResp = prompt("Novo responsável financeiro:");
           if (!novoResp) return;
@@ -14349,7 +14349,7 @@
             vehicle_id: id,
             tipo: "REMOVIDO",
             responsavel,
-            descricao: `Remoção efetivada � veículo removido do pátio. PREV_STATUS=${previousStatus}`,
+            descricao: `Remoção efetivada — veículo removido do pátio. PREV_STATUS=${previousStatus}`,
           });
           if (eventError) {
             alert(eventError.message);
@@ -14493,7 +14493,7 @@
           updateDashboard();
           openPatioSubview("fechando_ciclo");
           alert(
-            "Veículo removido do pátio (VRP). Faça a triagem em «Fechando ciclo» (NF e responsável); ao confirmar OK, o ciclo passa para Financeiro �  «Pré-lançamento»."
+            "Veículo removido do pátio (VRP). Faça a triagem em «Fechando ciclo» (NF e responsável); ao confirmar OK, o ciclo passa para Financeiro → «Pré-lançamento»."
           );
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
@@ -14629,7 +14629,7 @@
           const texto = state.settings?.texto_cobranca || "Cobrança de diárias";
           const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
           const vehicleInfo = vehicle
-            ? `${vehicle.placa || "-"} ⬢ ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`
+            ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`
             : "-";
           const body = `${texto}\nResponsável: ${receivable.responsavel_pagamento || "-"}\nVeículo: ${vehicleInfo}\nValor: ${formatCurrency(
             receivable.valor
@@ -14719,7 +14719,7 @@
               .eq("user_id", effectiveUserId());
           }
           const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
-          const vehicleInfo = `${vehicle?.placa || "-"} ⬢ ${[vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")}`.trim();
+          const vehicleInfo = `${vehicle?.placa || "-"} • ${[vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")}`.trim();
           await supabase.from("cash_movements").insert({
             user_id: effectiveUserId(),
             tipo_conta: "RECEBER",
@@ -14793,7 +14793,7 @@
             .eq("tipo_conta", "RECEBER")
             .limit(1);
           if (!existingMov || existingMov.length === 0) {
-            const vehicleInfo = `${vehicle?.placa || "-"} ⬢ ${[vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")}`.trim();
+            const vehicleInfo = `${vehicle?.placa || "-"} • ${[vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")}`.trim();
             await supabase.from("cash_movements").insert({
               user_id: effectiveUserId(),
               tipo_conta: "RECEBER",
@@ -14929,7 +14929,7 @@
           const naFilaAguardando = receivableNaFilaAguardandoTriagem(receivable);
           if (!emContaReceber && !naFilaAguardando) {
             alert(
-              "�0 possível editar ciclos somente em «Pré-lançamento» ou «Contas a receber» (ainda não pagos). Atualize o financeiro."
+              "É possível editar ciclos somente em «Pré-lançamento» ou «Contas a receber» (ainda não pagos). Atualize o financeiro."
             );
             return;
           }
@@ -14983,7 +14983,7 @@
             numValor = calcPeriodTotal(vehicle, period_start, period_end);
           } else {
             const valorStr = prompt(
-              "Valor (R$) � não foi possível recalcular automaticamente (veículo sem diária ou sem ligação). Indique manualmente:",
+              "Valor (R$) — não foi possível recalcular automaticamente (veículo sem diária ou sem ligação). Indique manualmente:",
               String(receivable.valor ?? "")
             );
             if (valorStr === null) return;
