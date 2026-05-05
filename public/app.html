@@ -3586,7 +3586,7 @@
             </div>
             <div class="card clickable dashboard-stat-card dashboard-stat--exits" id="cardSaidasHojeLink">
               <div class="card-head">
-                <span class="card-title">Semana (entraram/saíram)</span>
+                <span class="card-title">Entraram na semana</span>
                 <span class="icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none">
                     <path
@@ -3601,6 +3601,24 @@
               </div>
               <div class="card-value" id="cardSaidasHoje">0</div>
               <div class="dashboard-stat-meta" id="cardSaidasHojeMeta">Semana atual</div>
+            </div>
+            <div class="card clickable dashboard-stat-card dashboard-stat--entries" id="cardSaidasSemanaLink">
+              <div class="card-head">
+                <span class="card-title">Saíram na semana</span>
+                <span class="icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M12 20V4M12 4l-4 4m4-4l4 4M5 20h14"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </span>
+              </div>
+              <div class="card-value" id="cardSaidasSemana">0</div>
+              <div class="dashboard-stat-meta" id="cardSaidasSemanaMeta">Semana atual</div>
             </div>
             <div class="card clickable dashboard-stat-card dashboard-stat--exits" id="cardVrpLink">
               <div class="card-head">
@@ -8444,14 +8462,18 @@
         const elS = document.getElementById("cardSolicitadas");
         const elEH = document.getElementById("cardEntradasHoje");
         const elSH = document.getElementById("cardSaidasHoje");
+        const elSS = document.getElementById("cardSaidasSemana");
         const elEHMeta = document.getElementById("cardEntradasHojeMeta");
         const elSHMeta = document.getElementById("cardSaidasHojeMeta");
+        const elSSMeta = document.getElementById("cardSaidasSemanaMeta");
         if (elV) elV.textContent = (noPatio.length + vls.length).toString();
         if (elS) elS.textContent = entradasMes.toString();
         if (elEH) elEH.textContent = saidasMes.toString();
-        if (elSH) elSH.textContent = `${entradasSemana}/${saidasSemana}`;
+        if (elSH) elSH.textContent = String(entradasSemana);
+        if (elSS) elSS.textContent = String(saidasSemana);
         if (elEHMeta) elEHMeta.textContent = `Mês atual: ${currentYm}`;
         if (elSHMeta) elSHMeta.textContent = `Desde ${formatDateBr(startOfWeekYmd)}`;
+        if (elSSMeta) elSSMeta.textContent = `Desde ${formatDateBr(startOfWeekYmd)}`;
         const elVrp = document.getElementById("cardVrp");
         const elNfse = document.getElementById("cardNfsePendente");
         if (elVrp) elVrp.textContent = String(entradasHoje);
@@ -11803,6 +11825,7 @@
       const cardSolicitadasLink = document.getElementById("cardSolicitadasLink");
       const cardEntradasHojeLink = document.getElementById("cardEntradasHojeLink");
       const cardSaidasHojeLink = document.getElementById("cardSaidasHojeLink");
+      const cardSaidasSemanaLink = document.getElementById("cardSaidasSemanaLink");
       const cardVrpLink = document.getElementById("cardVrpLink");
       const cardNfsePendenteLink = document.getElementById("cardNfsePendenteLink");
 
@@ -12135,6 +12158,7 @@
       cardSolicitadasLink.addEventListener("click", () => openPatioSubview("no_patio"));
       cardEntradasHojeLink?.addEventListener("click", () => openPatioSubview("removidos"));
       cardSaidasHojeLink?.addEventListener("click", () => openPatioSubview("no_patio"));
+      cardSaidasSemanaLink?.addEventListener("click", () => openPatioSubview("removidos"));
       cardVrpLink?.addEventListener("click", () => openPatioSubview("no_patio"));
       cardNfsePendenteLink?.addEventListener("click", () => openPatioSubview("removidos"));
 
