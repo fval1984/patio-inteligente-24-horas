@@ -4820,54 +4820,6 @@
                 <label>Observações</label>
                 <input id="vehicleNotes" type="text" placeholder="Observações importantes" />
               </div>
-              <div class="full field-operador-hide" style="margin-top: 6px">
-                <h4 class="ficha-section-title" style="margin: 0 0 6px">Vistoria de entrada</h4>
-              </div>
-              <div class="field-operador-hide">
-                <label>Data da vistoria</label>
-                <input id="vehicleInspectionDate" type="datetime-local" />
-              </div>
-              <div class="field-operador-hide">
-                <label>Responsável pela vistoria</label>
-                <input id="vehicleInspectionResponsible" type="text" placeholder="Nome do vistoriador" />
-              </div>
-              <div class="field-operador-hide">
-                <label>KM</label>
-                <input id="vehicleInspectionKm" type="text" placeholder="Ex.: 123456" />
-              </div>
-              <div class="field-operador-hide">
-                <label>Combustível</label>
-                <select id="vehicleInspectionFuel">
-                  <option value="">Não informado</option>
-                  <option value="VAZIO">Vazio</option>
-                  <option value="1/4">1/4</option>
-                  <option value="1/2">1/2</option>
-                  <option value="3/4">3/4</option>
-                  <option value="CHEIO">Cheio</option>
-                </select>
-              </div>
-              <div class="full field-operador-hide" style="display: flex; flex-wrap: wrap; gap: 10px 16px">
-                <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
-                  <input type="checkbox" id="vehicleInspectionDoc" />
-                  Documento no veículo
-                </label>
-                <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
-                  <input type="checkbox" id="vehicleInspectionKey" />
-                  Chave entregue
-                </label>
-                <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
-                  <input type="checkbox" id="vehicleInspectionStep" />
-                  Estepe presente
-                </label>
-                <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
-                  <input type="checkbox" id="vehicleInspectionTow" />
-                  Triângulo/macaco
-                </label>
-              </div>
-              <div class="full field-operador-hide">
-                <label>Avarias e observações da vistoria</label>
-                <input id="vehicleInspectionDamage" type="text" placeholder="Ex.: para-choque dianteiro riscado, retrovisor esquerdo trincado" />
-              </div>
             </div>
             <div class="form-actions">
               <button type="submit">Salvar</button>
@@ -10027,15 +9979,24 @@
           vehicleAssessor.value = vehicle.assessoria_id || "";
           if (vehicleAuctioneer) vehicleAuctioneer.value = vehicle.leiloeiro_id || "";
           document.getElementById("vehicleNotes").value = vehicle.observacoes || "";
-          document.getElementById("vehicleInspectionDate").value = toLocalInput(vehicle.vistoria_data);
-          document.getElementById("vehicleInspectionResponsible").value = vehicle.vistoria_responsavel || "";
-          document.getElementById("vehicleInspectionKm").value = vehicle.vistoria_km || "";
-          document.getElementById("vehicleInspectionFuel").value = vehicle.vistoria_combustivel || "";
-          document.getElementById("vehicleInspectionDoc").checked = !!vehicle.vistoria_checklist?.documento;
-          document.getElementById("vehicleInspectionKey").checked = !!vehicle.vistoria_checklist?.chave;
-          document.getElementById("vehicleInspectionStep").checked = !!vehicle.vistoria_checklist?.estepe;
-          document.getElementById("vehicleInspectionTow").checked = !!vehicle.vistoria_checklist?.triangulo_macaco;
-          document.getElementById("vehicleInspectionDamage").value = vehicle.vistoria_observacoes || "";
+          const inspectionDateEl = document.getElementById("vehicleInspectionDate");
+          const inspectionResponsibleEl = document.getElementById("vehicleInspectionResponsible");
+          const inspectionKmEl = document.getElementById("vehicleInspectionKm");
+          const inspectionFuelEl = document.getElementById("vehicleInspectionFuel");
+          const inspectionDocEl = document.getElementById("vehicleInspectionDoc");
+          const inspectionKeyEl = document.getElementById("vehicleInspectionKey");
+          const inspectionStepEl = document.getElementById("vehicleInspectionStep");
+          const inspectionTowEl = document.getElementById("vehicleInspectionTow");
+          const inspectionDamageEl = document.getElementById("vehicleInspectionDamage");
+          if (inspectionDateEl) inspectionDateEl.value = toLocalInput(vehicle.vistoria_data);
+          if (inspectionResponsibleEl) inspectionResponsibleEl.value = vehicle.vistoria_responsavel || "";
+          if (inspectionKmEl) inspectionKmEl.value = vehicle.vistoria_km || "";
+          if (inspectionFuelEl) inspectionFuelEl.value = vehicle.vistoria_combustivel || "";
+          if (inspectionDocEl) inspectionDocEl.checked = !!vehicle.vistoria_checklist?.documento;
+          if (inspectionKeyEl) inspectionKeyEl.checked = !!vehicle.vistoria_checklist?.chave;
+          if (inspectionStepEl) inspectionStepEl.checked = !!vehicle.vistoria_checklist?.estepe;
+          if (inspectionTowEl) inspectionTowEl.checked = !!vehicle.vistoria_checklist?.triangulo_macaco;
+          if (inspectionDamageEl) inspectionDamageEl.value = vehicle.vistoria_observacoes || "";
         } else {
           const entryInput = document.getElementById("vehicleEntry");
           if (!entryInput.value) {
@@ -12858,6 +12819,15 @@
           alert("Valor da diária inválido.");
           return;
         }
+        const inspectionDateEl = document.getElementById("vehicleInspectionDate");
+        const inspectionResponsibleEl = document.getElementById("vehicleInspectionResponsible");
+        const inspectionKmEl = document.getElementById("vehicleInspectionKm");
+        const inspectionFuelEl = document.getElementById("vehicleInspectionFuel");
+        const inspectionDocEl = document.getElementById("vehicleInspectionDoc");
+        const inspectionKeyEl = document.getElementById("vehicleInspectionKey");
+        const inspectionStepEl = document.getElementById("vehicleInspectionStep");
+        const inspectionTowEl = document.getElementById("vehicleInspectionTow");
+        const inspectionDamageEl = document.getElementById("vehicleInspectionDamage");
         const payload = {
           user_id: effectiveUserId(),
           placa: document.getElementById("vehiclePlate").value.trim(),
@@ -12875,19 +12845,17 @@
           nfse_status: editingVehicleData?.nfse_status || "NAO_SOLICITADA",
           nfse_requested_at: editingVehicleData?.nfse_requested_at || null,
           nfse_issued_at: editingVehicleData?.nfse_issued_at || null,
-          vistoria_data: document.getElementById("vehicleInspectionDate").value
-            ? new Date(document.getElementById("vehicleInspectionDate").value).toISOString()
-            : null,
-          vistoria_responsavel: document.getElementById("vehicleInspectionResponsible").value.trim(),
-          vistoria_km: document.getElementById("vehicleInspectionKm").value.trim(),
-          vistoria_combustivel: document.getElementById("vehicleInspectionFuel").value,
+          vistoria_data: inspectionDateEl?.value ? new Date(inspectionDateEl.value).toISOString() : null,
+          vistoria_responsavel: inspectionResponsibleEl?.value?.trim() || "",
+          vistoria_km: inspectionKmEl?.value?.trim() || "",
+          vistoria_combustivel: inspectionFuelEl?.value || "",
           vistoria_checklist: {
-            documento: !!document.getElementById("vehicleInspectionDoc").checked,
-            chave: !!document.getElementById("vehicleInspectionKey").checked,
-            estepe: !!document.getElementById("vehicleInspectionStep").checked,
-            triangulo_macaco: !!document.getElementById("vehicleInspectionTow").checked,
+            documento: !!inspectionDocEl?.checked,
+            chave: !!inspectionKeyEl?.checked,
+            estepe: !!inspectionStepEl?.checked,
+            triangulo_macaco: !!inspectionTowEl?.checked,
           },
-          vistoria_observacoes: document.getElementById("vehicleInspectionDamage").value.trim(),
+          vistoria_observacoes: inspectionDamageEl?.value?.trim() || "",
         };
         if (!normalizePlateSearch(payload.placa)) {
           alert("Informe uma placa válida.");
