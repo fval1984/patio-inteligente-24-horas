@@ -755,6 +755,40 @@
         font-size: 12px;
         color: var(--muted);
       }
+      .finance-dashboard-grid--essential {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-bottom: 0;
+      }
+      @media (max-width: 1100px) {
+        .finance-dashboard-grid--essential {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 520px) {
+        .finance-dashboard-grid--essential {
+          grid-template-columns: 1fr;
+        }
+      }
+      #financeDetailDashboard.finance-dash-essential-panel {
+        padding-top: 4px;
+      }
+      .finance-dash-essential-head {
+        margin-bottom: 14px;
+      }
+      .finance-dash-essential-kicker {
+        margin: 0 0 6px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .finance-kpi-card--profit .finance-kpi-value {
+        color: var(--success);
+      }
+      .finance-kpi-card--loss .finance-kpi-value {
+        color: #f87171;
+      }
       .finance-dashboard-sections {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -4217,7 +4251,7 @@
               <div>
                 <p class="module-kicker module-kicker--finance">Financeiro</p>
                 <h2 style="margin: 0">Financeiro</h2>
-                <p class="finance-module-lede">Painel central para acompanhar receita, despesa, fluxo de caixa e prioridades financeiras com leitura mais rápida.</p>
+                <p class="finance-module-lede">Visão geral com resumo; detalhes e listas nas outras abas (Pré-lançamento, Lançamentos, contas, caixa).</p>
               </div>
               <nav id="financeSubnav" class="subnav finance-nav-inline" aria-label="Navegação financeira">
                 <span class="finance-menu-group">Dashboard</span>
@@ -4403,111 +4437,33 @@
           </div>
           </div>
           <div id="financeContent" class="hidden">
-            <div id="financeDetailDashboard" class="section-card hidden" style="margin-top: 0">
-              <div class="finance-dashboard-grid">
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">A receber em aberto</div>
-                  <div class="finance-kpi-value" id="fdTotalReceber">R$ 0,00</div>
-                  <div class="finance-kpi-meta" id="fdQtdReceber">0 contas</div>
-                </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">A pagar em aberto</div>
-                  <div class="finance-kpi-value" id="fdTotalPagar">R$ 0,00</div>
-                  <div class="finance-kpi-meta" id="fdQtdPagar">0 contas</div>
-                </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Caixa atual</div>
-                  <div class="finance-kpi-value" id="fdCaixaAtual">R$ 0,00</div>
-                  <div class="finance-kpi-meta" id="fdCaixaStatus">Neutro</div>
-                </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Projeção de caixa</div>
-                  <div class="finance-kpi-value" id="fdCaixaProjetado">R$ 0,00</div>
-                  <div class="finance-kpi-meta">Caixa + receber - pagar</div>
-                </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Entradas no mês</div>
-                  <div class="finance-kpi-value" id="fdEntradasMes">R$ 0,00</div>
-                  <div class="finance-kpi-meta" id="fdSaidasMesMeta">Saídas no mês: R$ 0,00</div>
-                </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Recebimentos em atraso</div>
-                  <div class="finance-kpi-value" id="fdAtrasoQtd">0</div>
-                  <div class="finance-kpi-meta" id="fdAtrasoValor">Total em atraso: R$ 0,00</div>
-                </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Faturamento anual</div>
-                  <div class="finance-kpi-value" id="fdFaturamentoAnual">R$ 0,00</div>
-                  <div class="finance-kpi-meta" id="fdLucroAnualMeta">Lucro anual: R$ 0,00</div>
-                </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Contas a pagar vencidas</div>
-                  <div class="finance-kpi-value" id="fdPagarVencidasQtd">0</div>
-                  <div class="finance-kpi-meta" id="fdPagarVencidasValor">Total vencido: R$ 0,00</div>
-                </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Meta de faturamento mensal</div>
-                  <div class="finance-kpi-value" id="fdMetaFaturamento">0%</div>
-                  <div class="finance-kpi-meta" id="fdMetaFaturamentoStatus">Aguardando dados</div>
-                </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Indicador de inadimplência</div>
-                  <div class="finance-kpi-value" id="fdInadimplencia">0,0%</div>
-                  <div class="finance-kpi-meta" id="fdInadimplenciaStatus">Sem contas vencidas</div>
-                </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Reserva financeira</div>
-                  <div class="finance-kpi-value" id="fdReservaFinanceira">R$ 0,00</div>
-                  <div class="finance-kpi-meta" id="fdReservaFinanceiraStatus">Cobertura de 0,0 mês</div>
-                </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Projeção de lucro anual</div>
-                  <div class="finance-kpi-value" id="fdProjecaoLucroAnual">R$ 0,00</div>
-                  <div class="finance-kpi-meta" id="fdProjecaoLucroAnualStatus">Estimativa automática</div>
-                </div>
+            <div id="financeDetailDashboard" class="section-card finance-dash-essential-panel hidden" style="margin-top: 0">
+              <div class="finance-dash-essential-head">
+                <p class="finance-dash-essential-kicker">Visão geral</p>
+                <p class="notice" style="margin: 0; max-width: 44rem; line-height: 1.45">
+                  Resumo do mês de competência (seletor «Mês» na barra acima). Sem listas — só indicadores.
+                </p>
               </div>
-              <div class="finance-dashboard-sections">
-                <div class="section-card finance-monthly-board" style="margin: 0; grid-column: 1 / -1">
-                  <div class="finance-monthly-head">
-                    <div>
-                      <div class="finance-monthly-title">Painel mensal inteligente</div>
-                      <div class="finance-monthly-sub">Leitura rápida por competência</div>
-                    </div>
-                    <span id="financeMonthlyBoardBadge" class="tag">—</span>
-                  </div>
-                  <div class="finance-monthly-grid">
-                    <div class="finance-monthly-kpi"><span class="k">Receitas</span><span id="fmReceitasMes" class="v">R$ 0,00</span></div>
-                    <div class="finance-monthly-kpi"><span class="k">Despesas</span><span id="fmDespesasMes" class="v">R$ 0,00</span></div>
-                    <div class="finance-monthly-kpi"><span class="k">Lucro líquido</span><span id="fmLucroMes" class="v">R$ 0,00</span></div>
-                    <div class="finance-monthly-kpi"><span class="k">Saldo acumulado</span><span id="fmSaldoAcumulado" class="v">R$ 0,00</span></div>
-                    <div class="finance-monthly-kpi"><span class="k">Contas pagas</span><span id="fmContasPagas" class="v">0</span></div>
-                    <div class="finance-monthly-kpi"><span class="k">Contas pendentes</span><span id="fmContasPendentes" class="v">0</span></div>
-                    <div class="finance-monthly-kpi"><span class="k">Inadimplência</span><span id="fmInadimplencia" class="v">0,0%</span></div>
-                  </div>
-                  <div id="financeMonthStrip" class="finance-month-strip"></div>
-                  <table class="finance-month-table">
-                    <thead>
-                      <tr>
-                        <th>Mês</th>
-                        <th>Receitas</th>
-                        <th>Despesas</th>
-                        <th>Lucro</th>
-                      </tr>
-                    </thead>
-                    <tbody id="financeMonthTableBody"></tbody>
-                  </table>
+              <div class="finance-dashboard-grid finance-dashboard-grid--essential">
+                <div class="finance-kpi-card">
+                  <div class="finance-kpi-title">💰 Saldo atual</div>
+                  <div class="finance-kpi-value" id="fdCaixaAtual">R$ 0,00</div>
+                  <div class="finance-kpi-meta" id="fdCaixaStatus">Saldo consolidado no caixa</div>
                 </div>
-                <div class="section-card" style="margin: 0">
-                  <div class="card-title">Percentual de despesas por categoria</div>
-                  <ol id="fdDespesasCategoria" class="finance-dashboard-list"></ol>
+                <div class="finance-kpi-card">
+                  <div class="finance-kpi-title">📈 Entradas do mês</div>
+                  <div class="finance-kpi-value" id="fdEntradasMes">R$ 0,00</div>
+                  <div class="finance-kpi-meta" id="fdEntradasMesHint">Recebimentos no caixa (competência)</div>
                 </div>
-                <div class="section-card" style="margin: 0">
-                  <div class="card-title">Ranking maiores gastos</div>
-                  <ol id="fdRankingGastos" class="finance-dashboard-list"></ol>
+                <div class="finance-kpi-card">
+                  <div class="finance-kpi-title">📉 Saídas do mês</div>
+                  <div class="finance-kpi-value" id="fdSaidasMes">R$ 0,00</div>
+                  <div class="finance-kpi-meta" id="fdSaidasMesHint">Pagamentos no caixa (competência)</div>
                 </div>
-                <div class="section-card" style="margin: 0">
-                  <div class="card-title">Indicadores auxiliares</div>
-                  <ol id="fdFilaFinanceira" class="finance-dashboard-list"></ol>
+                <div class="finance-kpi-card" id="fdResultadoCard">
+                  <div class="finance-kpi-title"><span id="fdResultadoTituloEmoji" aria-hidden="true">🟢</span> Resultado</div>
+                  <div class="finance-kpi-value" id="fdResultadoMes">R$ 0,00</div>
+                  <div class="finance-kpi-meta" id="fdResultadoMesLabel">Lucro ou prejuízo no mês (entradas − saídas)</div>
                 </div>
               </div>
             </div>
@@ -10718,54 +10674,42 @@
           if (fdtProjecaoLucroAnualStatus)
             fdtProjecaoLucroAnualStatus.textContent = `Run-rate mensal: ${formatCurrency(projecaoLucroAnual)}/ano`;
 
-          document.getElementById("fdTotalReceber").textContent = formatCurrency(totalReceber);
-          document.getElementById("fdQtdReceber").textContent = `${openReceivablesFinanceiro.length} contas`;
-          document.getElementById("fdTotalPagar").textContent = formatCurrency(totalPagar);
-          document.getElementById("fdQtdPagar").textContent = `${openPayables.length} contas`;
-          document.getElementById("fdCaixaAtual").textContent = formatCurrency(caixa);
-          document.getElementById("fdCaixaStatus").textContent = caixa >= 0 ? "Posição positiva" : "Posição negativa";
-          document.getElementById("fdCaixaProjetado").textContent = formatCurrency(projetado);
-          document.getElementById("fdEntradasMes").textContent = formatCurrency(entradasMes);
-          document.getElementById("fdSaidasMesMeta").textContent = `Saídas em ${monthKey.slice(5, 7)}/${monthKey.slice(0, 4)}: ${formatCurrency(saidasMes)}`;
-          document.getElementById("fdAtrasoQtd").textContent = String(overdueReceivablesDetail.length);
-          document.getElementById("fdAtrasoValor").textContent = `Total em atraso: ${formatCurrency(overdueTotal)}`;
-          const fdFaturamentoAnual = document.getElementById("fdFaturamentoAnual");
-          const fdLucroAnualMeta = document.getElementById("fdLucroAnualMeta");
-          const fdPagarVencidasQtd = document.getElementById("fdPagarVencidasQtd");
-          const fdPagarVencidasValor = document.getElementById("fdPagarVencidasValor");
-          if (fdFaturamentoAnual) fdFaturamentoAnual.textContent = formatCurrency(entradasAno);
-          if (fdLucroAnualMeta) fdLucroAnualMeta.textContent = `Lucro anual: ${formatCurrency(lucroAnual)}`;
-          if (fdPagarVencidasQtd) fdPagarVencidasQtd.textContent = String(overduePayablesDetail.length);
-          if (fdPagarVencidasValor) fdPagarVencidasValor.textContent = `Total vencido: ${formatCurrency(overduePayablesTotal)}`;
-          const fdMetaFaturamento = document.getElementById("fdMetaFaturamento");
-          const fdMetaFaturamentoStatus = document.getElementById("fdMetaFaturamentoStatus");
-          if (fdMetaFaturamento) fdMetaFaturamento.textContent = `${percentualMetaMensal.toFixed(1)}%`;
-          if (fdMetaFaturamentoStatus)
-            fdMetaFaturamentoStatus.textContent =
-              `${formatCurrency(entradasMes)} de ${formatCurrency(metaMensal)}` + (metaMensalConfig > 0 ? "" : " (meta sugerida)");
-          const fdInadimplencia = document.getElementById("fdInadimplencia");
-          const fdInadimplenciaStatus = document.getElementById("fdInadimplenciaStatus");
-          if (fdInadimplencia) fdInadimplencia.textContent = `${inadimplenciaPerc.toFixed(1)}%`;
-          if (fdInadimplenciaStatus) fdInadimplenciaStatus.textContent = `${formatCurrency(overdueTotal)} vencido`;
-          const fdReservaFinanceira = document.getElementById("fdReservaFinanceira");
-          const fdReservaFinanceiraStatus = document.getElementById("fdReservaFinanceiraStatus");
-          if (fdReservaFinanceira) fdReservaFinanceira.textContent = formatCurrency(caixa);
-          if (fdReservaFinanceiraStatus)
-            fdReservaFinanceiraStatus.textContent =
-              `Cobertura de ${reservaCoberturaMeses.toFixed(1)} mês(es) · alvo ${formatCurrency(reservaMeta)}`;
-          const fdProjecaoLucroAnual = document.getElementById("fdProjecaoLucroAnual");
-          const fdProjecaoLucroAnualStatus = document.getElementById("fdProjecaoLucroAnualStatus");
-          if (fdProjecaoLucroAnual) fdProjecaoLucroAnual.textContent = formatCurrency(projecaoLucroAnoCorrente);
-          if (fdProjecaoLucroAnualStatus)
-            fdProjecaoLucroAnualStatus.textContent = `Run-rate mensal: ${formatCurrency(projecaoLucroAnual)}/ano`;
+          const _fd = (id) => document.getElementById(id);
+          const _set = (id, txt) => {
+            const el = _fd(id);
+            if (el) el.textContent = txt;
+          };
+          _set("fdCaixaAtual", formatCurrency(caixa));
+          _set("fdCaixaStatus", caixa >= 0 ? "Saldo positivo no caixa" : "Saldo negativo no caixa");
+          _set("fdEntradasMes", formatCurrency(entradasMes));
+          _set(
+            "fdEntradasMesHint",
+            `Competência ${monthKey.slice(5, 7)}/${monthKey.slice(0, 4)} · recebimentos registrados no caixa`
+          );
+          _set("fdSaidasMes", formatCurrency(saidasMes));
+          _set(
+            "fdSaidasMesHint",
+            `Competência ${monthKey.slice(5, 7)}/${monthKey.slice(0, 4)} · pagamentos registrados no caixa`
+          );
+          _set("fdResultadoMes", formatCurrency(resultadoMes));
+          _set(
+            "fdResultadoMesLabel",
+            resultadoMes >= 0
+              ? "Lucro no mês (entradas − saídas no caixa)"
+              : "Prejuízo no mês (entradas − saídas no caixa)"
+          );
+          const fdResEmoji = _fd("fdResultadoTituloEmoji");
+          if (fdResEmoji) fdResEmoji.textContent = resultadoMes >= 0 ? "🟢" : "🔴";
+          const fdResCard = _fd("fdResultadoCard");
+          if (fdResCard) {
+            fdResCard.classList.remove("finance-kpi-card--profit", "finance-kpi-card--loss", "kpi-alert-success", "kpi-alert-danger");
+            fdResCard.classList.add(resultadoMes >= 0 ? "finance-kpi-card--profit" : "finance-kpi-card--loss");
+            fdResCard.classList.add(resultadoMes >= 0 ? "kpi-alert-success" : "kpi-alert-danger");
+          }
           setKpiCardAlert("fdtMetaFaturamento", percentualMetaMensal >= 100 ? "success" : percentualMetaMensal >= 75 ? "warning" : "danger");
-          setKpiCardAlert("fdMetaFaturamento", percentualMetaMensal >= 100 ? "success" : percentualMetaMensal >= 75 ? "warning" : "danger");
           setKpiCardAlert("fdtInadimplencia", inadimplenciaPerc > 25 ? "danger" : inadimplenciaPerc > 10 ? "warning" : "success");
-          setKpiCardAlert("fdInadimplencia", inadimplenciaPerc > 25 ? "danger" : inadimplenciaPerc > 10 ? "warning" : "success");
           setKpiCardAlert("fdtReservaFinanceira", caixa < reservaMeta ? "warning" : "success");
-          setKpiCardAlert("fdReservaFinanceira", caixa < reservaMeta ? "warning" : "success");
           setKpiCardAlert("fdtProjecaoLucroAnual", projecaoLucroAnoCorrente < 0 ? "danger" : "success");
-          setKpiCardAlert("fdProjecaoLucroAnual", projecaoLucroAnoCorrente < 0 ? "danger" : "success");
           fillTop(
             "fdDespesasCategoria",
             [...byCategoriaDespesa.entries()]
