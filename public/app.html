@@ -3289,6 +3289,11 @@
         font-size: 0.85rem;
         color: var(--muted);
       }
+      .dashboard-chart-legend {
+        margin-top: 6px;
+        font-size: 0.74rem;
+        color: var(--muted);
+      }
       .dashboard-chart-svg {
         width: 100%;
         height: 128px;
@@ -3685,6 +3690,19 @@
                 <div class="dashboard-chart-card">
                   <p class="dashboard-chart-title">Receitas vs despesas</p>
                   <svg id="dashboardCompareSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                </div>
+                <div class="dashboard-chart-card">
+                  <p class="dashboard-chart-title">Despesas por categoria</p>
+                  <svg id="dashboardExpenseCategorySvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                </div>
+                <div class="dashboard-chart-card">
+                  <p class="dashboard-chart-title">Top clientes</p>
+                  <svg id="dashboardTopClientsSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                </div>
+                <div class="dashboard-chart-card">
+                  <p class="dashboard-chart-title">Contas a pagar vs receber (aging)</p>
+                  <svg id="dashboardAgingSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                  <div class="dashboard-chart-legend">Azul: a receber • Vermelho: a pagar</div>
                 </div>
               </div>
             </section>
@@ -8562,6 +8580,106 @@
               return `
                 <rect x="${x}" y="${108 - hIn}" width="${barW}" height="${hIn}" rx="3" fill="#60a5fa"></rect>
                 <rect x="${x + barW + 3}" y="${108 - hOut}" width="${barW}" height="${hOut}" rx="3" fill="#fb7185"></rect>
+              `;
+            })
+            .join("");
+        }
+        const topExpenseCategories = [...(state.payables || [])]
+          .reduce((acc, p) => {
+            const cat =
+              (p.payable_category || p.categoria || p.centro_custo || p.subcategoria || "Outros").toString().trim() || "Outros";
+            acc.set(cat, (acc.get(cat) || 0) + Number(p.valor || 0));
+            return acc;
+          }, new Map());
+        const expenseRows = [...topExpenseCategories.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5);
+        const expenseMax = Math.max(1, ...expenseRows.map(([, v]) => v));
+        const expenseSvg = document.getElementById("dashboardExpenseCategorySvg");
+        if (expenseSvg) {
+          expenseSvg.innerHTML = expenseRows.length
+            ? expenseRows
+                .map(([name, value], idx) => {
+                  const y = 10 + idx * 23;
+                  const w = 180 * (value / expenseMax);
+                  return `
+                    <text x="8" y="${y + 11}" font-size="9" fill="currentColor">${escapeHtml(name).slice(0, 18)}</text>
+                    <rect x="150" y="${y}" width="${w}" height="10" rx="3" fill="#fb7185"></rect>
+                    <text x="${155 + w}" y="${y + 9}" font-size="9" fill="currentColor">${escapeHtml(formatCurrency(value))}</text>
+                  `;
+                })
+                .join("")
+            : `<text x="8" y="20" font-size="10" fill="currentColor">Sem despesas lançadas.</text>`;
+        }
+        const topClientsMap = [...(state.receivables || [])]
+          .reduce((acc, r) => {
+            const client = (r.responsavel_pagamento || r.cliente || "Sem cliente").toString().trim() || "Sem cliente";
+            acc.set(client, (acc.get(client) || 0) + Number(r.valor || 0));
+            return acc;
+          }, new Map());
+        const topClients = [...topClientsMap.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5);
+        const topClientsMax = Math.max(1, ...topClients.map(([, v]) => v));
+        const topClientsSvg = document.getElementById("dashboardTopClientsSvg");
+        if (topClientsSvg) {
+          topClientsSvg.innerHTML = topClients.length
+            ? topClients
+                .map(([name, value], idx) => {
+                  const y = 10 + idx * 23;
+                  const w = 180 * (value / topClientsMax);
+                  return `
+                    <text x="8" y="${y + 11}" font-size="9" fill="currentColor">${escapeHtml(name).slice(0, 18)}</text>
+                    <rect x="150" y="${y}" width="${w}" height="10" rx="3" fill="#60a5fa"></rect>
+                    <text x="${155 + w}" y="${y + 9}" font-size="9" fill="currentColor">${escapeHtml(formatCurrency(value))}</text>
+                  `;
+                })
+                .join("")
+            : `<text x="8" y="20" font-size="10" fill="currentColor">Sem clientes lançados.</text>`;
+        }
+        const agingBuckets = [
+          { key: "vencido", label: "Vencido", receber: 0, pagar: 0 },
+          { key: "d0_30", label: "0-30", receber: 0, pagar: 0 },
+          { key: "d31_60", label: "31-60", receber: 0, pagar: 0 },
+          { key: "d61p", label: "61+", receber: 0, pagar: 0 },
+        ];
+        const daysUntil = (ymd) => {
+          if (!ymd) return null;
+          const due = new Date(`${ymd}T00:00:00`);
+          const diff = Math.floor((due.getTime() - today.getTime()) / 86400000);
+          return Number.isFinite(diff) ? diff : null;
+        };
+        const placeAging = (days, amount, side) => {
+          if (days == null) return;
+          let bucket = null;
+          if (days < 0) bucket = agingBuckets[0];
+          else if (days <= 30) bucket = agingBuckets[1];
+          else if (days <= 60) bucket = agingBuckets[2];
+          else bucket = agingBuckets[3];
+          bucket[side] += amount;
+        };
+        (state.receivables || []).forEach((r) => {
+          if (r.status === "PAGO") return;
+          const ymd = toLocalYmd(r.data_vencimento || r.period_end || r.created_at);
+          placeAging(daysUntil(ymd), Number(r.valor || 0), "receber");
+        });
+        (state.payables || []).forEach((p) => {
+          if (p.status === "PAGO") return;
+          const ymd = toLocalYmd(p.data_vencimento || p.created_at);
+          placeAging(daysUntil(ymd), Number(p.valor || 0), "pagar");
+        });
+        const agingMax = Math.max(1, ...agingBuckets.map((b) => b.receber), ...agingBuckets.map((b) => b.pagar));
+        const agingSvg = document.getElementById("dashboardAgingSvg");
+        if (agingSvg) {
+          agingSvg.innerHTML = agingBuckets
+            .map((b, idx) => {
+              const x = 18 + idx * 78;
+              const hr = Math.max(2, (b.receber / agingMax) * 72);
+              const hp = Math.max(2, (b.pagar / agingMax) * 72);
+              return `
+                <rect x="${x}" y="${104 - hr}" width="20" height="${hr}" rx="3" fill="#60a5fa"></rect>
+                <rect x="${x + 24}" y="${104 - hp}" width="20" height="${hp}" rx="3" fill="#fb7185"></rect>
+                <text x="${x}" y="118" font-size="9" fill="currentColor">${b.label}</text>
               `;
             })
             .join("");
