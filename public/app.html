@@ -14793,11 +14793,15 @@
                 period_end: dataSaida,
                 valor: valorFechamento,
                 status: RECEIVABLE_AGUARDANDO_LANCAMENTO,
-                patio_liberado_financeiro: false,
+                patio_liberado_financeiro: true,
+                financeiro_aprovado_contas_receber: true,
               })
               .eq("id", cycleAberto.id)
               .eq("user_id", effectiveUserId());
-            if (recErr && /patio_liberado|column|schema cache|PGRST204/i.test(recErr.message || "")) {
+            if (
+              recErr &&
+              /patio_liberado|financeiro_aprovado|column|schema cache|PGRST204/i.test(recErr.message || "")
+            ) {
               recErr = (
                 await supabase
                   .from("receivables")
@@ -14809,7 +14813,6 @@
                   .eq("id", cycleAberto.id)
                   .eq("user_id", effectiveUserId())
               ).error;
-              if (!recErr) addPatioFinanceiroBloqueadoReceivableId(cycleAberto.id);
             }
             if (recErr && /invalid input value for enum payment_status/i.test(recErr.message || "")) {
               recErr = (
@@ -14819,12 +14822,16 @@
                     period_end: dataSaida,
                     valor: valorFechamento,
                     status: "EM_ABERTO",
-                    patio_liberado_financeiro: false,
+                    patio_liberado_financeiro: true,
+                    financeiro_aprovado_contas_receber: true,
                   })
                   .eq("id", cycleAberto.id)
                   .eq("user_id", effectiveUserId())
               ).error;
-              if (recErr && /patio_liberado|column|schema cache|PGRST204/i.test(recErr.message || "")) {
+              if (
+                recErr &&
+                /patio_liberado|financeiro_aprovado|column|schema cache|PGRST204/i.test(recErr.message || "")
+              ) {
                 recErr = (
                   await supabase
                     .from("receivables")
@@ -14836,13 +14843,14 @@
                     .eq("id", cycleAberto.id)
                     .eq("user_id", effectiveUserId())
                 ).error;
-                if (!recErr) addPatioFinanceiroBloqueadoReceivableId(cycleAberto.id);
               }
             }
             if (recErr) {
               alert(recErr.message);
               return;
             }
+            removePatioFinanceiroBloqueadoReceivableId(cycleAberto.id);
+            addReceberTriagemId(cycleAberto.id);
 
             const dIni = new Date(cycleAberto.period_start);
             const dFim = new Date(dataSaida);
