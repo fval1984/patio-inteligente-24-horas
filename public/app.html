@@ -6304,13 +6304,14 @@
       }
 
       /**
-       * Após «Ir para contas a receber» (Supabase ou marca local).
-       * Inclui `AGUARDANDO_LANCAMENTO` aprovado quando o status ainda não foi migrado para `EM_ABERTO` no servidor.
+       * Registros exibidos em «Contas a receber».
+       * Com a extinção da aba de pré-lançamento, todo `AGUARDANDO_LANCAMENTO`
+       * também deve aparecer diretamente aqui.
        */
       function receivableIsContaReceberFinanceiro(r) {
         if (!r || r.status === "PAGO") return false;
-        if (!receivableAprovadoParaContasReceber(r)) return false;
         if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return true;
+        if (!receivableAprovadoParaContasReceber(r)) return false;
         if (r.status !== "EM_ABERTO") return false;
         return receivableCicloEncerradoParaFinanceiro(r);
       }
