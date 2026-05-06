@@ -9825,11 +9825,7 @@
               } else if (v.status === "LIBERACAO_SOLICITADA") {
                 fluxoBtn = `<button class="secondary" data-action="confirmar_liberacao" data-id="${v.id}">Confirmar liberação</button>`;
               } else if (v.status === "LIBERACAO_CONFIRMADA") {
-                if (isRemocaoSolicitada(v)) {
-                  fluxoBtn = `<button class="secondary" data-action="confirmar" data-id="${v.id}">VRP</button>`;
-                } else {
-                  fluxoBtn = `<button class="secondary" data-action="remocao_solicitada" data-id="${v.id}">Confirmar remoção</button>`;
-                }
+                fluxoBtn = `<button class="secondary" data-action="confirmar" data-id="${v.id}">VRP</button>`;
               } else if (v.status === "REMocao_CONFIRMADA") {
                 fluxoBtn = `<button class="secondary" data-action="confirmar" data-id="${v.id}">VRP</button>`;
               }
@@ -10476,9 +10472,8 @@
               situacao =
                 '<p class="notice" style="margin:0"><strong>Liberação solicitada</strong>. Próximo passo operacional: <strong>Liberação confirmada</strong> (define responsável financeiro e abre o ciclo).</p>';
             } else if (vehicle.status === "LIBERACAO_CONFIRMADA") {
-              situacao = rem
-                ? '<p class="notice" style="margin:0">Remoção já <strong>confirmada</strong>. Próximo passo: botão <strong>VRP</strong> para finalizar a saída.</p>'
-                : '<p class="notice" style="margin:0">Liberação <strong>confirmada</strong>. Próximo passo: <strong>Confirmar remoção</strong>.</p>';
+              situacao =
+                '<p class="notice" style="margin:0">Liberação <strong>confirmada</strong>. Próximo passo: botão <strong>VRP</strong> para finalizar a saída.</p>';
             } else if (vehicle.status === "REMocao_CONFIRMADA") {
               situacao =
                 '<p class="notice" style="margin:0">Estado <strong>legado</strong> de remoção solicitada. Próximo passo: <strong>Remoção efetivada</strong>.</p>';
@@ -10497,15 +10492,9 @@
                 `<button type="button" class="secondary" data-action="confirmar_liberacao" data-id="${vehicle.id}">Confirmar liberação</button>`
               );
             } else if (vehicle.status === "LIBERACAO_CONFIRMADA") {
-              if (rem) {
-                botoes.push(
-                  `<button type="button" class="secondary" data-action="confirmar" data-id="${vehicle.id}">VRP</button>`
-                );
-              } else {
-                botoes.push(
-                  `<button type="button" class="secondary" data-action="remocao_solicitada" data-id="${vehicle.id}">Confirmar remoção</button>`
-                );
-              }
+              botoes.push(
+                `<button type="button" class="secondary" data-action="confirmar" data-id="${vehicle.id}">VRP</button>`
+              );
             } else if (vehicle.status === "REMocao_CONFIRMADA") {
               botoes.push(
                 `<button type="button" class="secondary" data-action="confirmar" data-id="${vehicle.id}">VRP</button>`
@@ -14786,10 +14775,6 @@
             alert(
               "A remoção só pode ser efetivada depois da liberação confirmada."
             );
-            return;
-          }
-          if (vehicle.status === "LIBERACAO_CONFIRMADA" && !isRemocaoSolicitada(vehicle)) {
-            alert("Antes de enviar para VRP, confirme a remoção (agendamento).");
             return;
           }
           const actors = await getVehicleWorkflowActors(id);
