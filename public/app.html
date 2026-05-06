@@ -3753,20 +3753,6 @@
         <div id="appHeaderMenuWrap" class="header-app-menu-wrap hidden">
           <div id="appHeaderMenuBackdrop" class="header-menu-backdrop hidden" aria-hidden="true"></div>
           <div class="header-menu-tray">
-            <button
-              type="button"
-              id="appHeaderMenuBtn"
-              class="header-menu-trigger"
-              aria-haspopup="true"
-              aria-expanded="false"
-              aria-controls="appHeaderMenu"
-              title="Menu"
-            >
-              <span class="header-menu-bar" aria-hidden="true"></span>
-              <span class="header-menu-bar" aria-hidden="true"></span>
-              <span class="header-menu-bar" aria-hidden="true"></span>
-              <span class="sr-only">Menu</span>
-            </button>
             <div id="appHeaderMenu" class="header-menu-dropdown hidden" aria-label="Menu principal">
               <button type="button" class="header-menu-top" data-view="dashboard">Painel</button>
 
@@ -3846,6 +3832,7 @@
               spellcheck="false"
             />
             <button type="submit" id="plateSearchOk">OK</button>
+            <button type="button" class="secondary" id="goDashboardFromPlate">Painel</button>
             <button type="button" class="secondary" id="clearPlateFilter">Limpar</button>
           </form>
           <p class="notice plate-search-hint header-plate-search-hint hidden" aria-live="polite"></p>
@@ -5933,6 +5920,7 @@
       const partnerSubnav = document.getElementById("partnerSubnav");
       const plateFilter = document.getElementById("plateFilter");
       const plateSearchForm = document.getElementById("plateSearchForm");
+      const goDashboardFromPlate = document.getElementById("goDashboardFromPlate");
       const clearPlateFilter = document.getElementById("clearPlateFilter");
       const plateFilterPatio = document.getElementById("plateFilterPatio");
       const plateSearchFormPatio = document.getElementById("plateSearchFormPatio");
@@ -13091,6 +13079,10 @@
           applyPlateSearchFromDashboard();
         });
       }
+      goDashboardFromPlate?.addEventListener("click", () => {
+        showMainView("dashboard");
+        closeAppHeaderMenu();
+      });
 
       // Busca duplicada dentro do "Gestão de Pátio" (para gestor não precisar abrir Painel).
       if (plateSearchFormPatio) {
