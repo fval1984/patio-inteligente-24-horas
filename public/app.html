@@ -3916,9 +3916,9 @@
                 </button>
                 <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
                   <span class="dashboard-system-btn__kicker">Financeiro</span>
-                  <span class="dashboard-system-btn__title">Visão geral</span>
+                  <span class="dashboard-system-btn__title">Financeiro</span>
                   <span class="dashboard-system-btn__desc">Saldo atual, receitas x despesas, evolução e alertas de vencimento.</span>
-                  <span class="dashboard-system-btn__go">Abrir dashboard financeiro →</span>
+                  <span class="dashboard-system-btn__go">Abrir financeiro →</span>
                 </button>
                 <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
                   <span class="dashboard-system-btn__kicker">Relacionamento</span>
@@ -4133,7 +4133,7 @@
               </div>
             </section>
             <div id="financeTopDashboard" class="section-card finance-top-dashboard dashboard-embed-finance hidden" style="grid-column: 1 / -1; margin-top: 8px">
-              <p class="dashboard-embed-kicker">Resumo — Operação financeira</p>
+              <p class="dashboard-embed-kicker">Resumo — Financeiro</p>
               <p class="notice" style="margin: 0 0 12px; max-width: 42rem; line-height: 1.45; font-size: 13px">
                 Mesmos números da competência das contas no app.
               </p>
@@ -4596,8 +4596,8 @@
           <div class="finance-modern-layout">
             <aside class="finance-modern-sidebar">
               <div>
-                <p class="module-kicker module-kicker--finance">Operação financeira</p>
-                <h2 style="margin: 0">Contas e caixa</h2>
+                <p class="module-kicker module-kicker--finance">Financeiro</p>
+                <h2 style="margin: 0">Financeiro</h2>
                 <p class="finance-module-lede">Layout simplificado para operação diária: menos ruído visual e foco nas sub-abas.</p>
               </div>
               <nav id="financeSubnav" class="subnav finance-nav-inline" aria-label="Navegação financeira">
@@ -4622,8 +4622,8 @@
             <section class="finance-modern-main">
               <div class="finance-modern-topbar">
                 <div>
-                  <h2 style="margin: 0">Operação financeira</h2>
-                  <p id="financeBreadcrumb" class="notice" style="margin: 4px 0 0">Início > Operação financeira > Dashboard</p>
+                  <h2 style="margin: 0">Financeiro</h2>
+                  <p id="financeBreadcrumb" class="notice" style="margin: 4px 0 0">Início > Financeiro > Dashboard</p>
                 </div>
                 <div class="actions">
                   <button class="secondary" type="button" id="financeSidebarToggle" aria-expanded="false">Abas</button>
@@ -12009,8 +12009,7 @@
         }
         if (financeFlyoutClose) financeFlyoutClose.textContent = "X";
         if (financeViewBadge) financeViewBadge.textContent = `Visão: ${viewMap[view] || "Dashboard geral"}`;
-        if (financeBreadcrumb)
-          financeBreadcrumb.textContent = `Início > Operação financeira > ${viewMap[view] || "Dashboard geral"}`;
+        if (financeBreadcrumb) financeBreadcrumb.textContent = `Início > Financeiro > ${viewMap[view] || "Dashboard geral"}`;
         if (financeModeBadge) {
           financeModeBadge.textContent = isDashboard
             ? "Modo executivo"
