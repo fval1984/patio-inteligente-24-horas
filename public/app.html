@@ -9381,6 +9381,35 @@
         if (piSH) piSH.textContent = String(saidasHoje);
         if (piVrp) piVrp.textContent = String(removidosCount);
         if (piNfse) piNfse.textContent = String(nfsePendCount);
+
+        // Cards financeiros do painel principal.
+        const dashboardFinanceReceberValue = document.getElementById("dashboardFinanceReceberValue");
+        const dashboardFinanceReceberMeta = document.getElementById("dashboardFinanceReceberMeta");
+        const dashboardFinancePagarValue = document.getElementById("dashboardFinancePagarValue");
+        const dashboardFinancePagarMeta = document.getElementById("dashboardFinancePagarMeta");
+        const dashboardFinanceCaixaValue = document.getElementById("dashboardFinanceCaixaValue");
+        const dashboardFinanceCaixaMeta = document.getElementById("dashboardFinanceCaixaMeta");
+        const dashboardDiariasPatioValue = document.getElementById("dashboardDiariasPatioValue");
+        const dashboardDiariasPatioMeta = document.getElementById("dashboardDiariasPatioMeta");
+        const openReceivablesFinanceiro = (state.receivables || []).filter((r) => receivableIsContaReceberFinanceiro(r));
+        const openPayablesFinanceiro = (state.payables || []).filter((p) => p.status === "EM_ABERTO");
+        const totalReceberDashboard = openReceivablesFinanceiro.reduce((sum, r) => sum + Number(r.valor || 0), 0);
+        const totalPagarDashboard = openPayablesFinanceiro.reduce((sum, p) => sum + Number(p.valor || 0), 0);
+        const caixaDashboard = (state.cash || []).reduce((sum, mov) => {
+          if (mov.tipo_conta === "PAGAR") return sum - Number(mov.valor || 0);
+          return sum + Number(mov.valor || 0);
+        }, 0);
+        const receitaHojeConfirmada = sumReceivableRevenueByDay(todayYmd, state.receivables || [], state.cash || []);
+        if (dashboardFinanceReceberValue) dashboardFinanceReceberValue.textContent = formatCurrency(totalReceberDashboard);
+        if (dashboardFinanceReceberMeta) dashboardFinanceReceberMeta.textContent = `${openReceivablesFinanceiro.length} em aberto`;
+        if (dashboardFinancePagarValue) dashboardFinancePagarValue.textContent = formatCurrency(totalPagarDashboard);
+        if (dashboardFinancePagarMeta) dashboardFinancePagarMeta.textContent = `${openPayablesFinanceiro.length} em aberto`;
+        if (dashboardFinanceCaixaValue) dashboardFinanceCaixaValue.textContent = formatCurrency(caixaDashboard);
+        if (dashboardFinanceCaixaMeta)
+          dashboardFinanceCaixaMeta.textContent = `Movimentações: ${(state.cash || []).length} · saldo consolidado`;
+        if (dashboardDiariasPatioValue) dashboardDiariasPatioValue.textContent = formatCurrency(receitaHojeConfirmada);
+        if (dashboardDiariasPatioMeta) dashboardDiariasPatioMeta.textContent = `${noPatio.length + vls.length} VNP`;
+
         const chartPeriodEl = document.getElementById("dashboardChartPeriod");
         const selectedPeriod = chartPeriodEl?.value || "mes";
         renderDashboardFinanceCharts(selectedPeriod);
