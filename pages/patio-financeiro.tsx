@@ -80,7 +80,7 @@ export default function PatioFinanceiroPage() {
   return (
     <>
       <Head>
-        <title>Financeiro · Pátio — Amplipatio</title>
+        <title>Painel analítico · Pátio — Amplipatio</title>
       </Head>
       <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
         <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">

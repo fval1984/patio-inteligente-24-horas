@@ -3722,7 +3722,7 @@
               </details>
 
               <details class="header-menu-details" id="headerDetailsFinance">
-                <summary>Financeiro</summary>
+                <summary>Operação financeira</summary>
                 <div class="header-menu-nested">
                   <button type="button" data-header-finance-panel="true">Dashboard geral</button>
                   <button type="button" data-header-finance-action="financeMenuNewPayable">Nova despesa</button>
@@ -3833,10 +3833,10 @@
                   <span class="dashboard-system-btn__go">Abrir pátio →</span>
                 </button>
                 <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
-                  <span class="dashboard-system-btn__kicker">Financeiro</span>
-                  <span class="dashboard-system-btn__title">Financeiro</span>
-                  <span class="dashboard-system-btn__desc">Contas, caixa, movimentos e relatórios financeiros.</span>
-                  <span class="dashboard-system-btn__go">Abrir financeiro →</span>
+                  <span class="dashboard-system-btn__kicker">Operação</span>
+                  <span class="dashboard-system-btn__title">Contas e caixa</span>
+                  <span class="dashboard-system-btn__desc">Lançamentos, receitas, despesas e fluxo no Amplipatio — é o módulo operacional completo.</span>
+                  <span class="dashboard-system-btn__go">Abrir operação financeira →</span>
                 </button>
                 <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
                   <span class="dashboard-system-btn__kicker">Relacionamento</span>
@@ -4051,9 +4051,9 @@
               </div>
             </section>
             <div id="financeTopDashboard" class="section-card finance-top-dashboard dashboard-embed-finance hidden" style="grid-column: 1 / -1; margin-top: 8px">
-              <p class="dashboard-embed-kicker">Resumo — Financeiro</p>
+              <p class="dashboard-embed-kicker">Resumo — Operação financeira</p>
               <p class="notice" style="margin: 0 0 12px; max-width: 42rem; line-height: 1.45; font-size: 13px">
-                Mesmos números da competência do módulo Financeiro. Use «Abrir financeiro» para lançamentos e contas.
+                Mesmos números da competência das contas no app. O relatório visual em <strong>/patio-financeiro</strong> é só leitura e não substitui este módulo.
               </p>
               <div class="finance-dashboard-grid finance-dashboard-grid--essential">
                 <div class="finance-kpi-card">
@@ -4514,9 +4514,11 @@
           <div class="finance-modern-layout">
             <aside class="finance-modern-sidebar">
               <div>
-                <p class="module-kicker module-kicker--finance">Financeiro</p>
-                <h2 style="margin: 0">Financeiro</h2>
-                <p class="finance-module-lede">Abas principais: Receitas, Despesas, Caixa e Fluxo de caixa. Mais opções abaixo.</p>
+                <p class="module-kicker module-kicker--finance">Operação financeira</p>
+                <h2 style="margin: 0">Contas e caixa</h2>
+                <p class="finance-module-lede">
+                  Receitas, despesas, caixa, fluxo, pré-lançamento e cadastro — tudo aqui dentro do app. O painel só leitura em React é outra página (link no fim).
+                </p>
               </div>
               <nav id="financeSubnav" class="subnav finance-nav-inline" aria-label="Navegação financeira">
                 <span class="finance-menu-group">Principal</span>
@@ -4538,15 +4540,34 @@
               <div class="finance-modern-sidebar-actions">
                 <button type="button" class="secondary" id="openParceirosFromFinanceiro">Rede de parceiros</button>
                 <button type="button" class="secondary" id="openConfigFromFinanceiro">Configurações</button>
-                <a class="secondary" href="/caixa" target="_blank" rel="noopener noreferrer" style="text-align:center; text-decoration:none;">Caixa financeiro</a>
-                <a class="secondary" href="/patio-financeiro" target="_blank" rel="noopener noreferrer" style="text-align:center; text-decoration:none;">Dashboard React</a>
+                <a
+                  class="secondary"
+                  href="/caixa"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style="text-align:center; text-decoration:none;"
+                  title="Página Next.js do livro de caixa (se estiver no deploy)"
+                  >Livro caixa (web)</a
+                >
+                <p class="notice" style="margin: 6px 0 4px; font-size: 11px; line-height: 1.35; opacity: 0.92">
+                  Relatório visual, separado deste módulo:
+                </p>
+                <a
+                  class="secondary"
+                  href="/patio-financeiro"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style="text-align:center; text-decoration:none;"
+                  title="Apenas KPIs e extrato; lançamentos ficam neste módulo."
+                  >Painel analítico (só leitura)</a
+                >
               </div>
             </aside>
             <section class="finance-modern-main">
               <div class="finance-modern-topbar">
                 <div>
-                  <h2 style="margin: 0">Financeiro</h2>
-                  <p id="financeBreadcrumb" class="notice" style="margin: 4px 0 0">Início > Financeiro > Dashboard</p>
+                  <h2 style="margin: 0">Operação financeira</h2>
+                  <p id="financeBreadcrumb" class="notice" style="margin: 4px 0 0">Início > Operação financeira > Dashboard</p>
                 </div>
                 <div class="actions">
                   <button class="secondary" type="button" id="financeSidebarToggle" aria-expanded="false">Abas</button>
@@ -11843,7 +11864,8 @@
         }
         if (financeFlyoutClose) financeFlyoutClose.textContent = "X";
         if (financeViewBadge) financeViewBadge.textContent = `Visão: ${viewMap[view] || "Dashboard geral"}`;
-        if (financeBreadcrumb) financeBreadcrumb.textContent = `Início > Financeiro > ${viewMap[view] || "Dashboard geral"}`;
+        if (financeBreadcrumb)
+          financeBreadcrumb.textContent = `Início > Operação financeira > ${viewMap[view] || "Dashboard geral"}`;
         if (financeModeBadge) {
           financeModeBadge.textContent = isDashboard
             ? "Modo executivo"
