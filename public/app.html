@@ -1377,6 +1377,42 @@
         padding-top: 8px;
         border-top: 1px dashed rgba(148, 163, 184, 0.28);
       }
+      /* Desktop: abas do Financeiro sempre visíveis (evita sidebar só atrás de «Menu»). */
+      @media (min-width: 960px) {
+        #viewFinanceiro .finance-modern-layout {
+          grid-template-columns: minmax(252px, 300px) minmax(0, 1fr);
+          gap: 16px;
+          align-items: stretch;
+        }
+        #viewFinanceiro .finance-modern-sidebar {
+          position: sticky;
+          top: 12px;
+          align-self: start;
+          transform: none !important;
+          left: auto;
+          width: auto;
+          max-width: none;
+          height: auto;
+          max-height: calc(100vh - 24px);
+          min-height: 0;
+          z-index: 5;
+          overflow: auto;
+        }
+        #viewFinanceiro.finance-sidebar-open .finance-modern-sidebar {
+          transform: none !important;
+        }
+        #viewFinanceiro #financeSidebarToggle {
+          display: none;
+        }
+        #viewFinanceiro #financeSidebarBackdrop {
+          display: none !important;
+        }
+        #viewFinanceiro .finance-modern-main {
+          position: relative;
+          min-width: 0;
+          min-height: 50vh;
+        }
+      }
       #viewFinanceiro .finance-modern-topbar {
         border: 1px solid rgba(45, 212, 191, 0.2);
         border-radius: 14px;
@@ -1720,6 +1756,16 @@
         height: 100%;
         z-index: 95;
         padding-top: max(10px, calc(8px + env(safe-area-inset-top)));
+      }
+      @media (min-width: 960px) {
+        #viewFinanceiro.finance-subview-fullscreen #financeContent {
+          position: absolute;
+          inset: 0;
+          width: auto;
+          height: auto;
+          max-height: none;
+          z-index: 10;
+        }
       }
       #viewFinanceiro.finance-subview-fullscreen #financeStandardArea {
         height: calc(100dvh - max(18px, env(safe-area-inset-top)) - max(18px, env(safe-area-inset-bottom)));
@@ -3682,10 +3728,10 @@
                   <button type="button" data-header-finance-action="financeMenuNewPayable">Nova despesa</button>
                   <button type="button" data-header-finance-action="financeMenuReload">Atualizar dados</button>
                   <button type="button" data-header-finance-sub="lancamentos">Lançamentos financeiros</button>
-                  <button type="button" data-header-finance-sub="receber">Contas a receber</button>
-                  <button type="button" data-header-finance-sub="pagar">Contas a pagar</button>
+                  <button type="button" data-header-finance-sub="receber">Receitas</button>
+                  <button type="button" data-header-finance-sub="pagar">Despesas</button>
                   <button type="button" data-header-finance-sub="caixa">Caixa</button>
-                <button type="button" data-header-finance-sub="fluxo_caixa">Fluxo de caixa</button>
+                  <button type="button" data-header-finance-sub="fluxo_caixa">Fluxo de caixa</button>
                   <button type="button" data-header-finance-sub="cadastro_base">Cadastro base</button>
                   <button type="button" data-header-finance-sub="relatorios">Relatórios</button>
                 </div>
@@ -4503,7 +4549,7 @@
                   <p id="financeBreadcrumb" class="notice" style="margin: 4px 0 0">Início > Financeiro > Dashboard</p>
                 </div>
                 <div class="actions">
-                  <button class="secondary" type="button" id="financeSidebarToggle" aria-expanded="false">Menu</button>
+                  <button class="secondary" type="button" id="financeSidebarToggle" aria-expanded="false">Abas</button>
                   <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
                 </div>
               </div>
