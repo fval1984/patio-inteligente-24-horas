@@ -3792,7 +3792,6 @@
                   <button type="button" data-header-patio-sub="no_patio">VNP</button>
                   <button type="button" data-header-patio-sub="removidos">VRP</button>
                   <button type="button" data-header-patio-sub="nfse_pendente">NFSe pendente</button>
-                  <button type="button" data-header-patio-sub="fechando_ciclo">Fechando ciclo</button>
                 </div>
               </details>
 
@@ -4287,7 +4286,6 @@
                 <button type="button" class="secondary" data-subview="no_patio">VNP</button>
                 <button type="button" class="secondary" data-subview="removidos">VRP</button>
                 <button type="button" class="secondary" data-subview="nfse_pendente">NFSe pendente</button>
-                <button type="button" class="secondary" data-subview="fechando_ciclo">Fechando ciclo</button>
               </nav>
             </div>
             <div class="actions">
@@ -9505,7 +9503,7 @@
         if (v.nfse_status === "PENDENTE") return "nfse_pendente";
         if (v.status === "REMOVIDO") {
           const r = latestReceivableForVehicle(v.id);
-          if (r && receivableNaFilaFechamentoCicloPatio(r)) return "fechando_ciclo";
+          if (r && receivableNaFilaFechamentoCicloPatio(r)) return "removidos";
           return "removidos";
         }
         return "no_patio";
@@ -12905,6 +12903,7 @@
 
       function openPatioSubview(sub) {
         if (sub === "liberacao_solicitada") sub = "no_patio";
+        if (sub === "fechando_ciclo") sub = "removidos";
         const top = navStack[navStack.length - 1];
         if (!sub) return;
         if (top === `patio:${sub}`) return;
@@ -14976,7 +14975,7 @@
           await Promise.all([loadReceivables(), loadCycleClosures()]);
           renderFinance();
           updateDashboard();
-          openPatioSubview("fechando_ciclo");
+          openPatioSubview("removidos");
           alert(
             "Veículo removido do pátio (VRP). Faça a triagem em «Fechando ciclo» (NF e responsável); ao confirmar OK, o ciclo passa para Financeiro → «Contas a receber»."
           );
