@@ -3721,22 +3721,6 @@
                 </div>
               </details>
 
-              <details class="header-menu-details" id="headerDetailsFinance">
-                <summary>Operação financeira</summary>
-                <div class="header-menu-nested">
-                  <button type="button" data-header-finance-panel="true">Dashboard geral</button>
-                  <button type="button" data-header-finance-action="financeMenuNewPayable">Nova despesa</button>
-                  <button type="button" data-header-finance-action="financeMenuReload">Atualizar dados</button>
-                  <button type="button" data-header-finance-sub="lancamentos">Lançamentos financeiros</button>
-                  <button type="button" data-header-finance-sub="receber">Receitas</button>
-                  <button type="button" data-header-finance-sub="pagar">Despesas</button>
-                  <button type="button" data-header-finance-sub="caixa">Caixa</button>
-                  <button type="button" data-header-finance-sub="fluxo_caixa">Fluxo de caixa</button>
-                  <button type="button" data-header-finance-sub="cadastro_base">Cadastro base</button>
-                  <button type="button" data-header-finance-sub="relatorios">Relatórios</button>
-                </div>
-              </details>
-
               <details class="header-menu-details" id="headerDetailsConfig">
                 <summary>Configurações</summary>
                 <div class="header-menu-nested">
@@ -3831,12 +3815,6 @@
                   <span class="dashboard-system-btn__title">Pátio</span>
                   <span class="dashboard-system-btn__desc">Acompanhe veículos, entradas, saídas e fluxo operacional.</span>
                   <span class="dashboard-system-btn__go">Abrir pátio →</span>
-                </button>
-                <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
-                  <span class="dashboard-system-btn__kicker">Operação</span>
-                  <span class="dashboard-system-btn__title">Contas e caixa</span>
-                  <span class="dashboard-system-btn__desc">Lançamentos, receitas, despesas e fluxo no Amplipatio — é o módulo operacional completo.</span>
-                  <span class="dashboard-system-btn__go">Abrir operação financeira →</span>
                 </button>
                 <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
                   <span class="dashboard-system-btn__kicker">Relacionamento</span>
@@ -4053,7 +4031,7 @@
             <div id="financeTopDashboard" class="section-card finance-top-dashboard dashboard-embed-finance hidden" style="grid-column: 1 / -1; margin-top: 8px">
               <p class="dashboard-embed-kicker">Resumo — Operação financeira</p>
               <p class="notice" style="margin: 0 0 12px; max-width: 42rem; line-height: 1.45; font-size: 13px">
-                Mesmos números da competência das contas no app. O relatório visual em <strong>/patio-financeiro</strong> é só leitura e não substitui este módulo.
+                Mesmos números da competência das contas no app.
               </p>
               <div class="finance-dashboard-grid finance-dashboard-grid--essential">
                 <div class="finance-kpi-card">
@@ -4540,27 +4518,6 @@
               <div class="finance-modern-sidebar-actions">
                 <button type="button" class="secondary" id="openParceirosFromFinanceiro">Rede de parceiros</button>
                 <button type="button" class="secondary" id="openConfigFromFinanceiro">Configurações</button>
-                <a
-                  class="secondary"
-                  href="/caixa"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style="text-align:center; text-decoration:none;"
-                  title="Página Next.js do livro de caixa (se estiver no deploy)"
-                  >Livro caixa (web)</a
-                >
-                <p class="notice" style="margin: 6px 0 4px; font-size: 11px; line-height: 1.35; opacity: 0.92">
-                  Relatório visual, separado deste módulo:
-                </p>
-                <a
-                  class="secondary"
-                  href="/patio-financeiro"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style="text-align:center; text-decoration:none;"
-                  title="Apenas KPIs e extrato; lançamentos ficam neste módulo."
-                  >Painel analítico (só leitura)</a
-                >
               </div>
             </aside>
             <section class="finance-modern-main">
@@ -12565,7 +12522,6 @@
       bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("caixa"));
 
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
-      document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
       document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openMainView("parceiros"));
       document.getElementById("dashboardOpenConfiguracoes")?.addEventListener("click", () => openMainView("configuracoes"));
 
@@ -12711,6 +12667,9 @@
       });
 
       function openMainView(view) {
+        if (view === "financeiro") {
+          view = "dashboard";
+        }
         if (isGestorPista && view !== "patio" && view !== "lista") {
           showMainView("patio");
           setPatioView("inicio");
@@ -14018,7 +13977,7 @@
           renderVehicles();
           renderFinance();
           updateDashboard();
-          openMainView("financeiro");
+          openMainView("dashboard");
           openFinanceSubview("aguardando_lancamento");
           alert("Ciclo liberado para o Financeiro (Pré-lançamento).");
           return;
@@ -15633,7 +15592,7 @@
           e.preventDefault();
           const id = finAct.getAttribute("data-header-finance-action");
           closeFinanceMenu();
-          openMainView("financeiro");
+          openMainView("dashboard");
           document.getElementById(id)?.click();
           closeAppHeaderMenu();
           return;
