@@ -3709,6 +3709,19 @@
       #viewFinanceiro.finance-layout-v2 .finance-cadastro-badges .tag {
         margin-bottom: 6px;
       }
+      #viewFinanceiro.finance-layout-v2 #financeFlyoutBackdrop,
+      #viewFinanceiro.finance-layout-v2 .finance-flyout-close {
+        display: none !important;
+      }
+      #viewFinanceiro.finance-layout-v2 #financeContent {
+        position: relative;
+        inset: auto;
+        width: 100%;
+        height: auto;
+        max-height: none;
+        overflow: visible;
+        z-index: auto;
+      }
     </style>
   </head>
   <body>
@@ -11977,12 +11990,13 @@
         const isNone = !view || view === "none";
         const isDashboard = view === "dashboard";
         const isFiltersView = view === "filtros";
-        const isFlyoutView = !isNone && !isDashboard;
+        const financeRoot = document.getElementById("viewFinanceiro");
+        const isLayoutV2 = !!financeRoot?.classList.contains("finance-layout-v2");
+        const isFlyoutView = !isLayoutV2 && !isNone && !isDashboard;
         if (view === "relatorios" && previousFinanceView !== "relatorios") {
           reportHasRun = false;
         }
         const isFullscreenSubview = isFlyoutView;
-        const financeRoot = document.getElementById("viewFinanceiro");
         if (financeRoot) {
           if (isNone) financeRoot.removeAttribute("data-finance-view");
           else financeRoot.setAttribute("data-finance-view", view);
@@ -12040,7 +12054,7 @@
         financeRoot?.classList.toggle("finance-flyout-open", isFlyoutView);
         financeFlyoutBackdrop?.classList.toggle("hidden", !isFlyoutView);
         const showReportResult = view !== "relatorios" || reportHasRun;
-        const showFinanceBody = (isFlyoutView || isDashboard) && !isFiltersView && showReportResult;
+        const showFinanceBody = (isFlyoutView || isDashboard || isLayoutV2) && !isFiltersView && showReportResult;
         if (financeContent) financeContent.classList.toggle("hidden", !showFinanceBody);
         if (showFinanceBody && financeContent) {
           financeContent.classList.remove("air-open");
