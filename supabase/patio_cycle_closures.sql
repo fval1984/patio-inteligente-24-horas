@@ -60,3 +60,7 @@ CREATE INDEX IF NOT EXISTS patio_cycle_closures_user_sent_idx
 
 COMMENT ON TABLE patio_cycle_closures IS
   'Triagem do pátio para fechamento de ciclo antes de enviar ao financeiro.';
+
+-- API REST (PostgREST): sem isto pode falhar permissões após criar a tabela.
+GRANT SELECT, INSERT, UPDATE, DELETE ON patio_cycle_closures TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON patio_cycle_closures TO service_role;

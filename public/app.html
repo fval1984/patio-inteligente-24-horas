@@ -5942,6 +5942,16 @@
         return state.patioOwnerUserId || state.user?.id || null;
       }
 
+      /** PostgREST: tabela inexistente ou ainda não aplicada no projeto (404 / PGRST205). */
+      function isMissingRelationError(err) {
+        if (!err) return false;
+        const msg = String(err.message || "");
+        const code = String(err.code || "");
+        if (/PGRST205/i.test(code)) return true;
+        if (/patio_cycle_closures|does not exist|relation|schema cache|could not find the table/i.test(msg)) return true;
+        return false;
+      }
+
       let isGestorPista = false;
 
       const RECEIVABLE_AGUARDANDO_LANCAMENTO = "AGUARDANDO_LANCAMENTO";
@@ -8668,7 +8678,7 @@
           .eq("user_id", effectiveUserId())
           .order("created_at", { ascending: false });
         if (error) {
-          if (!/patio_cycle_closures|does not exist|relation/i.test(error.message || "")) console.error(error);
+          if (!isMissingRelationError(error)) console.error(error);
           state.cycleClosures = [];
           return;
         }
@@ -13886,7 +13896,11 @@
             .eq("id", closure.id)
             .eq("user_id", effectiveUserId());
           if (cloErr) {
-            alert(cloErr.message);
+            alert(
+              isMissingRelationError(cloErr)
+                ? "A tabela patio_cycle_closures não existe neste Supabase. Execute supabase/patio_cycle_closures.sql no SQL Editor."
+                : cloErr.message
+            );
             return;
           }
           if (closure.receivable_id) {
@@ -13938,7 +13952,11 @@
             .eq("id", closure.id)
             .eq("user_id", effectiveUserId());
           if (cloErr) {
-            alert(cloErr.message);
+            alert(
+              isMissingRelationError(cloErr)
+                ? "A tabela patio_cycle_closures não existe neste Supabase. Execute supabase/patio_cycle_closures.sql no SQL Editor."
+                : cloErr.message
+            );
             return;
           }
 
@@ -14741,7 +14759,13 @@
               sent_to_finance: false,
             };
             const { error: fechamentoErr } = await supabase.from("patio_cycle_closures").insert(fechamentoPayload);
-            if (fechamentoErr && !/patio_cycle_closures|does not exist|relation/i.test(fechamentoErr.message || "")) {
+            if (fechamentoErr) {
+              if (isMissingRelationError(fechamentoErr)) {
+                alert(
+                  "A tabela patio_cycle_closures ainda não existe neste projeto Supabase. Abra o SQL Editor, execute o script «supabase/patio_cycle_closures.sql» do repositório e recarregue o painel."
+                );
+                return;
+              }
               alert(fechamentoErr.message);
               return;
             }
