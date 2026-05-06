@@ -14975,9 +14975,8 @@
           await Promise.all([loadReceivables(), loadCycleClosures()]);
           renderFinance();
           updateDashboard();
-          openPatioSubview("removidos");
           alert(
-            "Veículo removido do pátio (VRP). Faça a triagem em «Fechando ciclo» (NF e responsável); ao confirmar OK, o ciclo passa para Financeiro → «Contas a receber»."
+            "Veículo removido do pátio (VRP). O registro seguiu para o próximo passo no Financeiro (Contas a receber), sem mudar a página atual."
           );
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
