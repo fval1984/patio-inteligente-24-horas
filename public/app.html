@@ -3863,34 +3863,6 @@
               ><span class="pill-dot" aria-hidden="true"></span> Dados ao vivo</span>
           </div>
           <div class="grid">
-            <div id="dashboardModuleFinanceWrap" class="dashboard-modules hidden" style="grid-column: 1 / -1">
-              <div class="dashboard-finance-card dashboard-finance-card--receber" id="cardFinanceReceberLink" role="button" tabindex="0">
-                <span class="dashboard-finance-card__title">Receitas</span>
-                <div class="dashboard-finance-card__value" id="dashboardFinanceReceberValue">R$ 0,00</div>
-                <span class="dashboard-finance-card__meta" id="dashboardFinanceReceberMeta">0 em aberto</span>
-                <span class="dashboard-finance-card__go">Abrir Receitas →</span>
-              </div>
-              <div class="dashboard-finance-card dashboard-finance-card--pagar" id="cardFinancePagarLink" role="button" tabindex="0">
-                <span class="dashboard-finance-card__title">Despesas</span>
-                <div class="dashboard-finance-card__value" id="dashboardFinancePagarValue">R$ 0,00</div>
-                <span class="dashboard-finance-card__meta" id="dashboardFinancePagarMeta">0 em aberto</span>
-                <span class="dashboard-finance-card__go">Abrir Despesas →</span>
-              </div>
-              <div class="dashboard-finance-card dashboard-finance-card--caixa" id="cardFinanceCaixaLink" role="button" tabindex="0">
-                <span class="dashboard-finance-card__title">Saldo em caixa</span>
-                <div class="dashboard-finance-card__value" id="dashboardFinanceCaixaValue">R$ 0,00</div>
-                <span class="dashboard-finance-card__meta" id="dashboardFinanceCaixaMeta">Movimentações: 0 · resumo no Financeiro</span>
-                <span class="dashboard-finance-card__go">Abrir Caixa →</span>
-              </div>
-              <div
-                class="dashboard-finance-card dashboard-finance-card--diarias-patio dashboard-card-static"
-                aria-live="polite"
-              >
-                <span class="dashboard-finance-card__title">Diárias geradas hoje</span>
-                <div class="dashboard-finance-card__value" id="dashboardDiariasPatioValue">R$ 0,00</div>
-                <span class="dashboard-finance-card__meta" id="dashboardDiariasPatioMeta">0 VNP</span>
-              </div>
-            </div>
             <div class="card clickable dashboard-stat-card dashboard-stat--vnp" id="cardVeiculosLink">
               <div class="card-head">
                 <span class="card-title">Veículos no pátio</span>
@@ -8507,7 +8479,6 @@
         document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
         if (!isGestorPista) {
           document.getElementById("dashboardSystemEntry")?.classList.remove("dashboard-system-entry--single");
-          document.getElementById("dashboardModuleFinanceWrap")?.classList.remove("hidden");
           document.getElementById("financeTopDashboard")?.classList.remove("hidden");
           return;
         }
@@ -8535,7 +8506,6 @@
             '#headerDetailsPatio [data-header-patio-sub="removidos"], #headerDetailsPatio [data-header-patio-sub="nfse_pendente"], #headerDetailsPatio [data-header-patio-sub="fechando_ciclo"]'
           )
           .forEach((el) => el.classList.add("hidden"));
-        document.getElementById("dashboardModuleFinanceWrap")?.classList.add("hidden");
         document.getElementById("financeTopDashboard")?.classList.add("hidden");
         document.getElementById("dashboardSystemEntry")?.classList.add("dashboard-system-entry--single");
         document.getElementById("openConfigFromPatio")?.classList.add("hidden");
@@ -12547,20 +12517,6 @@
         }
         openPatioSubview(button.getAttribute("data-subview"));
       });
-
-      function bindModuleCardActivate(el, fn) {
-        if (!el) return;
-        el.addEventListener("click", fn);
-        el.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            fn();
-          }
-        });
-      }
-      bindModuleCardActivate(document.getElementById("cardFinanceReceberLink"), () => openFinanceSubview("receber"));
-      bindModuleCardActivate(document.getElementById("cardFinancePagarLink"), () => openFinanceSubview("pagar"));
-      bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("caixa"));
 
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
       document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
