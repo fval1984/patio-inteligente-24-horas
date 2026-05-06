@@ -3641,6 +3641,74 @@
         height: 128px;
         display: block;
       }
+      /* Financeiro v2: layout mais simples e legível */
+      #viewFinanceiro.finance-layout-v2 .finance-modern-layout {
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 12px;
+      }
+      #viewFinanceiro.finance-layout-v2 .finance-modern-sidebar {
+        position: static !important;
+        transform: none !important;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        max-height: none;
+        border-radius: 12px;
+        padding: 10px;
+        overflow: visible;
+      }
+      #viewFinanceiro.finance-layout-v2 #financeSidebarToggle,
+      #viewFinanceiro.finance-layout-v2 #financeSidebarBackdrop {
+        display: none !important;
+      }
+      #viewFinanceiro.finance-layout-v2 .finance-modern-sidebar .finance-module-lede {
+        margin: 6px 0 0;
+        font-size: 12px;
+      }
+      #viewFinanceiro.finance-layout-v2 #financeSubnav.finance-nav-inline {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 8px;
+        border: none;
+        background: transparent;
+        padding: 0;
+        margin: 8px 0 0;
+      }
+      #viewFinanceiro.finance-layout-v2 #financeSubnav .finance-menu-group {
+        display: none;
+      }
+      #viewFinanceiro.finance-layout-v2 #financeSubnav button.secondary {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+        min-height: 38px;
+        border-radius: 10px;
+      }
+      #viewFinanceiro.finance-layout-v2 .finance-modern-sidebar-actions {
+        margin-top: 4px;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      }
+      #viewFinanceiro.finance-layout-v2 .finance-modern-sidebar-actions .secondary {
+        justify-content: center;
+      }
+      #viewFinanceiro.finance-layout-v2 .finance-modern-topbar {
+        margin-bottom: 8px;
+      }
+      #viewFinanceiro.finance-layout-v2 .finance-context-bar {
+        margin-bottom: 10px;
+      }
+      #viewFinanceiro.finance-layout-v2 #financeStandardArea .table-wrap {
+        max-height: 65vh;
+        overflow: auto;
+      }
+      #viewFinanceiro.finance-layout-v2 .finance-cadastro-badges {
+        max-height: 150px;
+        overflow: auto;
+        padding-right: 4px;
+      }
+      #viewFinanceiro.finance-layout-v2 .finance-cadastro-badges .tag {
+        margin-bottom: 6px;
+      }
     </style>
   </head>
   <body>
@@ -4511,15 +4579,13 @@
           </div>
         </div>
 
-        <div id="viewFinanceiro" class="panel hidden finance-module-shell">
+        <div id="viewFinanceiro" class="panel hidden finance-module-shell finance-layout-v2">
           <div class="finance-modern-layout">
             <aside class="finance-modern-sidebar">
               <div>
                 <p class="module-kicker module-kicker--finance">Operação financeira</p>
                 <h2 style="margin: 0">Contas e caixa</h2>
-                <p class="finance-module-lede">
-                  Receitas, despesas, caixa, fluxo, pré-lançamento e cadastro — tudo aqui dentro do app. O painel só leitura em React é outra página (link no fim).
-                </p>
+                <p class="finance-module-lede">Layout simplificado para operação diária: menos ruído visual e foco nas sub-abas.</p>
               </div>
               <nav id="financeSubnav" class="subnav finance-nav-inline" aria-label="Navegação financeira">
                 <span class="finance-menu-group">Principal</span>
@@ -11235,7 +11301,7 @@
             rows.push(`
               <tr>
                 <td>${escapeHtml(label)}<br /><span class="notice">${list.length} item(ns)</span></td>
-                <td>${badges}</td>
+                <td><div class="finance-cadastro-badges">${badges}</div></td>
                 <td>
                   <input id="cadastroBaseInput_${key}" type="text" placeholder="Adicionar ${escapeHtml(label.toLowerCase())}" style="min-width: 220px" />
                 </td>
