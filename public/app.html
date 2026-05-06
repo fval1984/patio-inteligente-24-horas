@@ -7192,24 +7192,40 @@
           } finally {
             releaseExpand();
           }
-          const imgData = canvas.toDataURL("image/jpeg", 0.92);
           const doc = new jsPdfCtor({ unit: "pt", format: "a4", orientation: "portrait" });
           const pageW = doc.internal.pageSize.getWidth();
           const pageH = doc.internal.pageSize.getHeight();
           const margin = 36;
           const innerW = pageW - margin * 2;
           const innerH = pageH - margin * 2;
-          const imgW = innerW;
-          const imgH = (canvas.height * imgW) / canvas.width;
-          let hLeft = imgH;
-          let yPos = margin;
-          doc.addImage(imgData, "JPEG", margin, yPos, imgW, imgH);
-          hLeft -= innerH;
-          while (hLeft > 0) {
-            yPos = margin - (imgH - hLeft);
-            doc.addPage();
-            doc.addImage(imgData, "JPEG", margin, yPos, imgW, imgH);
-            hLeft -= innerH;
+          const pxPerPt = canvas.width / innerW;
+          const pageSlicePx = Math.max(1, Math.floor(innerH * pxPerPt));
+          const pageCanvas = document.createElement("canvas");
+          const pageCtx = pageCanvas.getContext("2d");
+          if (!pageCtx) throw new Error("Falha ao preparar paginação do PDF.");
+          pageCanvas.width = canvas.width;
+
+          let offsetY = 0;
+          let pageIndex = 0;
+          while (offsetY < canvas.height) {
+            const sliceH = Math.min(pageSlicePx, canvas.height - offsetY);
+            pageCanvas.height = sliceH;
+            pageCtx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
+            pageCtx.fillStyle = "#ffffff";
+            pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+            pageCtx.drawImage(canvas, 0, offsetY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+
+            const drawW = innerW;
+            const drawH = sliceH / pxPerPt;
+            const drawX = margin + (innerW - drawW) / 2;
+            const drawY = margin + (innerH - drawH) / 2;
+            const pageImg = pageCanvas.toDataURL("image/jpeg", 0.92);
+
+            if (pageIndex > 0) doc.addPage();
+            doc.addImage(pageImg, "JPEG", drawX, drawY, drawW, drawH);
+
+            offsetY += sliceH;
+            pageIndex += 1;
           }
           const safeSub = String(currentListaView || "lista").replace(/[^\w-]+/g, "_");
           const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
