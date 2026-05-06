@@ -10920,6 +10920,7 @@
       function renderFinance() {
         const financeCaixaScrollNotice = document.getElementById("financeCaixaScrollNotice");
         if (financeCaixaScrollNotice) financeCaixaScrollNotice.classList.add("hidden");
+        const todayYmdLocal = toLocalYmd(new Date().toISOString());
         const openReceivablesFinanceiro = state.receivables.filter((r) => receivableIsContaReceberFinanceiro(r));
         const openPayables = state.payables.filter((p) => p.status === "EM_ABERTO");
         const financePlateNorm = normalizePlateSearch(financePlateQuery);
@@ -10971,7 +10972,10 @@
         const caixaMonth = caixaFilter.month || currentYearMonthLocal();
         const cashMonthMovements = state.cash.filter((m) => {
           const ymd = toLocalYmd(m.data_movimento || m.created_at);
-          return ymd && yearMonthFromYmd(ymd) === caixaMonth;
+          if (!ymd || yearMonthFromYmd(ymd) !== caixaMonth) return false;
+          // Fluxo/caixa não deve antecipar lançamentos com data futura.
+          if (todayYmdLocal && ymd > todayYmdLocal) return false;
+          return true;
         });
         const entradasCaixa = cashMonthMovements
           .filter((m) => m.tipo_conta === "RECEBER")
@@ -11703,6 +11707,7 @@
             .filter((mov) => {
               const ymdMov = toLocalYmd(mov.data_movimento || mov.created_at);
               if (!ymdMov || yearMonthFromYmd(ymdMov) !== caixaMonth) return false;
+              if (todayYmdLocal && ymdMov > todayYmdLocal) return false;
               if (!financePlateNorm) return true;
               if (mov.tipo_conta === "RECEBER") {
                 const rec = receivableByContaId(mov.conta_id);
