@@ -3811,7 +3811,6 @@
                   <button type="button" data-header-finance-sub="receber_alerta">Contas a pagar e receber</button>
                   <button type="button" data-header-finance-sub="relatorios">Relatórios</button>
                   <button type="button" data-header-finance-sub="cadastro_base">Categorias</button>
-                  <button type="button" class="hidden" data-header-finance-action="financeMenuNewPayable">Nova despesa</button>
                   <button type="button" data-header-finance-action="financeMenuReload">Atualizar dados</button>
                 </div>
               </details>
@@ -4605,7 +4604,6 @@
                 <button type="button" class="secondary" data-subview="receber_alerta">Contas a pagar e receber</button>
                 <button type="button" class="secondary" data-subview="relatorios">Relatórios</button>
                 <button type="button" class="secondary" data-subview="cadastro_base">Categorias</button>
-                <button type="button" class="secondary hidden" id="financeMenuNewPayable">Nova despesa</button>
                 <button type="button" class="secondary" id="financeMenuReload">Atualizar dados</button>
               </nav>
               <div class="finance-modern-sidebar-actions">
@@ -5816,7 +5814,6 @@
       const receivableAlert = document.getElementById("receivableAlert");
       const financeFlyoutBackdrop = document.getElementById("financeFlyoutBackdrop");
       const financeFlyoutClose = document.getElementById("financeFlyoutClose");
-      const financeMenuNewPayable = document.getElementById("financeMenuNewPayable");
       const financeMenuPrintOpenRec = document.getElementById("financeMenuPrintOpenRec");
       const financeMenuReload = document.getElementById("financeMenuReload");
       const financeMenuReceberFilters = document.getElementById("financeMenuReceberFilters");
@@ -11728,6 +11725,13 @@
         }
 
         if (currentFinanceView === "pagar") {
+          rows.push(`
+            <tr>
+              <td colspan="8" class="actions">
+                <button class="secondary" type="button" data-action="nova-despesa">+ Lançar nova despesa</button>
+              </td>
+            </tr>
+          `);
           state.payables
             .filter(payableDescMatchesPlate)
             .sort((a, b) => String(a.data_vencimento || "").localeCompare(String(b.data_vencimento || "")))
@@ -11912,11 +11916,6 @@
           const isPreLancamentoButton = btnSubview === "pre_lancamento" && view === "aguardando_lancamento";
           btn.classList.toggle("active", !isNone && (btnSubview === view || isPreLancamentoButton));
         });
-        const financeNewPayableBtn = document.getElementById("financeMenuNewPayable");
-        financeNewPayableBtn?.classList.toggle("hidden", view !== "pagar");
-        document
-          .querySelectorAll('[data-header-finance-action="financeMenuNewPayable"]')
-          .forEach((btn) => btn.classList.toggle("hidden", view !== "pagar"));
         if (isNone) {
           financeFiltersHub?.classList.add("hidden");
           financeFilters.classList.add("hidden");
@@ -12049,10 +12048,6 @@
         payableModal.classList.remove("hidden");
       };
       openPayableForm?.addEventListener("click", openNewPayableModal);
-      financeMenuNewPayable?.addEventListener("click", () => {
-        closeFinanceMenu();
-        openNewPayableModal();
-      });
 
       cancelPayableForm.addEventListener("click", () => {
         payableForm.reset();
@@ -15237,6 +15232,11 @@
           await Promise.all([loadPayables(), loadCash()]);
           renderFinance();
           updateDashboard();
+          return;
+        }
+
+        if (action === "nova-despesa") {
+          openNewPayableModal();
           return;
         }
 
