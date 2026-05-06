@@ -3806,10 +3806,8 @@
                 <summary>Financeiro</summary>
                 <div class="header-menu-nested">
                   <button type="button" data-header-finance-panel="true">Dashboard (visão geral)</button>
-                  <button type="button" data-header-finance-sub="metas">Metas financeiras</button>
                   <button type="button" data-header-finance-sub="receber">Receitas (entradas)</button>
                   <button type="button" data-header-finance-sub="pagar">Despesas (saídas)</button>
-                  <button type="button" data-header-finance-sub="caixa">Contas e carteiras</button>
                   <button type="button" data-header-finance-sub="transferencias">Transferências</button>
                   <button type="button" data-header-finance-sub="receber_alerta">Contas a pagar e receber</button>
                   <button type="button" data-header-finance-sub="relatorios">Relatórios</button>
@@ -4603,10 +4601,8 @@
               <nav id="financeSubnav" class="subnav finance-nav-inline" aria-label="Navegação financeira">
                 <span class="finance-menu-group">Principal</span>
                 <button type="button" class="secondary" data-subview="dashboard">Visão geral</button>
-                <button type="button" class="secondary" data-subview="metas">Metas financeiras</button>
                 <button type="button" class="secondary" data-subview="receber">Receitas (entradas)</button>
                 <button type="button" class="secondary" data-subview="pagar">Despesas (saídas)</button>
-                <button type="button" class="secondary" data-subview="caixa">Contas e carteiras</button>
                 <button type="button" class="secondary" data-subview="transferencias">Transferências</button>
                 <button type="button" class="secondary" data-subview="receber_alerta">Contas a pagar e receber</button>
                 <button type="button" class="secondary" data-subview="relatorios">Relatórios</button>
@@ -4822,26 +4818,6 @@
                   <span class="fin-dash-mini-val" id="fdQuickMediaMes">R$ 0,00</span>
                 </div>
               </div>
-              <section id="financeMetasCard" class="section-card" style="margin-top: 12px">
-                <h3 style="margin: 0 0 8px; font-size: 1.02rem">Meta financeira</h3>
-                <p class="notice" style="margin: 0 0 10px; font-size: 12px">Defina um objetivo e acompanhe o progresso com base no saldo atual.</p>
-                <div class="filter-bar" style="margin: 0 0 10px; align-items: end; gap: 8px">
-                  <div>
-                    <label for="financeMetaNome">Objetivo</label>
-                    <input id="financeMetaNome" type="text" placeholder="Ex.: Reserva de emergência" />
-                  </div>
-                  <div>
-                    <label for="financeMetaValor">Valor alvo</label>
-                    <input id="financeMetaValor" type="number" step="0.01" min="0" placeholder="0,00" />
-                  </div>
-                  <button type="button" class="secondary" id="financeMetaSalvar">Salvar meta</button>
-                  <button type="button" class="secondary" id="financeMetaLimpar">Limpar</button>
-                </div>
-                <div style="height: 10px; border-radius: 999px; background: rgba(148,163,184,.25); overflow: hidden">
-                  <div id="financeMetaProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg,#10b981,#34d399)"></div>
-                </div>
-                <p id="financeMetaResumo" class="notice" style="margin: 8px 0 0; font-size: 12px">Sem meta definida.</p>
-              </section>
               <section class="fin-dash-extrato-section">
                 <div class="fin-dash-extrato-head">
                   <h3 class="fin-dash-extrato-title">Fluxo de caixa</h3>
@@ -10946,7 +10922,7 @@
         if (currentFinanceView === "dashboard" && financeFocusMetaGoalCard) {
           financeFocusMetaGoalCard = false;
           setTimeout(() => {
-            document.getElementById("financeMetasCard")?.scrollIntoView({ behavior: "smooth", block: "center" });
+            document.getElementById("financeDetailDashboard")?.scrollIntoView({ behavior: "smooth", block: "start" });
           }, 40);
         }
 
@@ -11986,7 +11962,7 @@
           receber: "Receitas",
           receber_alerta: "Contas a pagar e receber",
           pagar: "Despesas",
-          caixa: "Contas e carteiras",
+          caixa: "Fluxo de caixa",
           fluxo_caixa: "Fluxo de caixa",
           cadastro_base: "Categorias",
           historico_pagar: "Histórico a pagar",
@@ -12706,7 +12682,7 @@
       }
       bindModuleCardActivate(document.getElementById("cardFinanceReceberLink"), () => openFinanceSubview("receber"));
       bindModuleCardActivate(document.getElementById("cardFinancePagarLink"), () => openFinanceSubview("pagar"));
-      bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("caixa"));
+      bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("transferencias"));
 
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
       document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
