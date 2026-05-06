@@ -12078,7 +12078,7 @@
         }
         const showFiltersHub = false;
         const showPlateSearchFilter = false;
-        const showReportFilters = false;
+        const showReportFilters = view === "relatorios";
         const showLancamentosFilters = false;
         const showCaixaFilters = view === "fluxo_caixa" || view === "caixa";
         const showReceberFilters = view === "receber";
@@ -12086,8 +12086,7 @@
         if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", !showPlateSearchFilter);
         financeRoot?.classList.toggle("finance-flyout-open", isFlyoutView);
         financeFlyoutBackdrop?.classList.toggle("hidden", !isFlyoutView);
-        const showReportResult = view !== "relatorios" || reportHasRun;
-        const showFinanceBody = (isFlyoutView || isDashboard || isLayoutV2) && !isFiltersView && showReportResult;
+        const showFinanceBody = (isFlyoutView || isDashboard || isLayoutV2) && !isFiltersView;
         if (financeContent) financeContent.classList.toggle("hidden", !showFinanceBody);
         if (showFinanceBody && financeContent) {
           financeContent.classList.remove("air-open");
@@ -12112,11 +12111,6 @@
         document.getElementById("financeLancamentosScrollNotice")?.classList.toggle("hidden", view !== "lancamentos");
         document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
         document.getElementById("financeReceberFilters")?.classList.toggle("hidden", !showReceberFilters);
-        if (view === "relatorios" && !reportHasRun) {
-          if (financeContent) financeContent.classList.add("hidden");
-          if (financeHead) financeHead.innerHTML = "";
-          if (tableFinance) tableFinance.innerHTML = "";
-        }
         renderFinance();
       }
 
@@ -13394,10 +13388,7 @@
         if (reportClienteFiltro) reportClienteFiltro.value = "";
         if (reportFornecedorFiltro) reportFornecedorFiltro.value = "";
         reportFilter = { tipo: "", categoria: "", cliente: "", fornecedor: "" };
-        if (currentFinanceView === "relatorios") {
-          reportHasRun = false;
-          if (financeContent) financeContent.classList.add("hidden");
-        }
+        if (currentFinanceView === "relatorios") reportHasRun = false;
         renderFinance();
       });
 
@@ -13411,8 +13402,8 @@
         filterTo.value = toStr;
         historyFilter = { from: fromStr, to: toStr };
         if (currentFinanceView === "relatorios") {
-          reportHasRun = false;
-          if (financeContent) financeContent.classList.add("hidden");
+          reportHasRun = true;
+          if (financeContent) financeContent.classList.remove("hidden");
         }
         renderFinance();
       }
