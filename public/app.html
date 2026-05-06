@@ -6311,9 +6311,11 @@
       function receivableIsContaReceberFinanceiro(r) {
         if (!r || r.status === "PAGO") return false;
         if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return true;
-        if (!receivableAprovadoParaContasReceber(r)) return false;
-        if (r.status !== "EM_ABERTO") return false;
-        return receivableCicloEncerradoParaFinanceiro(r);
+        // Sem aba de pré-lançamento: qualquer ciclo encerrado e não pago deve aparecer em contas a receber.
+        if (r.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(r)) return true;
+        // Mantém compatibilidade para registros antigos aprovados localmente/servidor.
+        if (receivableAprovadoParaContasReceber(r) && r.status === "EM_ABERTO") return true;
+        return false;
       }
 
       /** Data de entrada reconhecida: somente quando o recebimento é marcado como PAGO. */
