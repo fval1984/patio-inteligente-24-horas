@@ -1662,7 +1662,8 @@
         border-color: rgba(249, 115, 22, 0.42);
         color: #fdba74;
       }
-      #viewFinanceiro[data-finance-view="caixa"] .finance-context-badge {
+      #viewFinanceiro[data-finance-view="caixa"] .finance-context-badge,
+      #viewFinanceiro[data-finance-view="fluxo_caixa"] .finance-context-badge {
         border-color: rgba(16, 185, 129, 0.42);
         color: #6ee7b7;
       }
@@ -3643,10 +3644,10 @@
                   <button type="button" data-lista-subview="vnp">VNP</button>
                   <button type="button" data-lista-subview="vrp">VRP</button>
                   <button type="button" data-lista-subview="aguardando_lancamento" data-lista-gestor-hide="1">Aguardando lançamento</button>
-                  <button type="button" data-lista-subview="receber" data-lista-gestor-hide="1">Contas a receber</button>
+                  <button type="button" data-lista-subview="receber" data-lista-gestor-hide="1">Receitas</button>
                   <button type="button" data-lista-subview="receber_alerta" data-lista-gestor-hide="1">Recebimentos em alerta</button>
-                  <button type="button" data-lista-subview="pagar" data-lista-gestor-hide="1">Contas a pagar</button>
-                  <button type="button" data-lista-subview="caixa" data-lista-gestor-hide="1">Caixa</button>
+                  <button type="button" data-lista-subview="pagar" data-lista-gestor-hide="1">Despesas</button>
+                  <button type="button" data-lista-subview="caixa" data-lista-gestor-hide="1">Fluxo de caixa</button>
                 </div>
               </details>
 
@@ -3683,7 +3684,8 @@
                   <button type="button" data-header-finance-sub="lancamentos">Lançamentos financeiros</button>
                   <button type="button" data-header-finance-sub="receber">Contas a receber</button>
                   <button type="button" data-header-finance-sub="pagar">Contas a pagar</button>
-                  <button type="button" data-header-finance-sub="caixa">Fluxo de caixa diário</button>
+                  <button type="button" data-header-finance-sub="caixa">Caixa</button>
+                <button type="button" data-header-finance-sub="fluxo_caixa">Fluxo de caixa</button>
                   <button type="button" data-header-finance-sub="cadastro_base">Cadastro base</button>
                   <button type="button" data-header-finance-sub="relatorios">Relatórios</button>
                 </div>
@@ -3814,22 +3816,22 @@
           <div class="grid">
             <div id="dashboardModuleFinanceWrap" class="dashboard-modules hidden" style="grid-column: 1 / -1">
               <div class="dashboard-finance-card dashboard-finance-card--receber" id="cardFinanceReceberLink" role="button" tabindex="0">
-                <span class="dashboard-finance-card__title">Contas a receber</span>
+                <span class="dashboard-finance-card__title">Receitas</span>
                 <div class="dashboard-finance-card__value" id="dashboardFinanceReceberValue">R$ 0,00</div>
                 <span class="dashboard-finance-card__meta" id="dashboardFinanceReceberMeta">0 em aberto</span>
-                <span class="dashboard-finance-card__go">Abrir financeiro →</span>
+                <span class="dashboard-finance-card__go">Abrir Receitas →</span>
               </div>
               <div class="dashboard-finance-card dashboard-finance-card--pagar" id="cardFinancePagarLink" role="button" tabindex="0">
-                <span class="dashboard-finance-card__title">Contas a pagar</span>
+                <span class="dashboard-finance-card__title">Despesas</span>
                 <div class="dashboard-finance-card__value" id="dashboardFinancePagarValue">R$ 0,00</div>
                 <span class="dashboard-finance-card__meta" id="dashboardFinancePagarMeta">0 em aberto</span>
-                <span class="dashboard-finance-card__go">Abrir financeiro →</span>
+                <span class="dashboard-finance-card__go">Abrir Despesas →</span>
               </div>
               <div class="dashboard-finance-card dashboard-finance-card--caixa" id="cardFinanceCaixaLink" role="button" tabindex="0">
                 <span class="dashboard-finance-card__title">Saldo em caixa</span>
                 <div class="dashboard-finance-card__value" id="dashboardFinanceCaixaValue">R$ 0,00</div>
-                <span class="dashboard-finance-card__meta" id="dashboardFinanceCaixaMeta">Movimentações: 0</span>
-                <span class="dashboard-finance-card__go">Abrir financeiro →</span>
+                <span class="dashboard-finance-card__meta" id="dashboardFinanceCaixaMeta">Movimentações: 0 · resumo no Financeiro</span>
+                <span class="dashboard-finance-card__go">Abrir Caixa →</span>
               </div>
               <div
                 class="dashboard-finance-card dashboard-finance-card--diarias-patio dashboard-card-static"
@@ -4087,10 +4089,10 @@
             <button type="button" data-lista-subview="vnp">VNP</button>
             <button type="button" data-lista-subview="vrp">VRP</button>
             <button type="button" data-lista-subview="aguardando_lancamento" data-lista-gestor-hide="1">Aguardando lançamento</button>
-            <button type="button" data-lista-subview="receber" data-lista-gestor-hide="1">Contas a receber</button>
+            <button type="button" data-lista-subview="receber" data-lista-gestor-hide="1">Receitas</button>
             <button type="button" data-lista-subview="receber_alerta" data-lista-gestor-hide="1">Recebimentos em alerta</button>
-            <button type="button" data-lista-subview="pagar" data-lista-gestor-hide="1">Contas a pagar</button>
-            <button type="button" data-lista-subview="caixa" data-lista-gestor-hide="1">Caixa</button>
+            <button type="button" data-lista-subview="pagar" data-lista-gestor-hide="1">Despesas</button>
+            <button type="button" data-lista-subview="caixa" data-lista-gestor-hide="1">Fluxo de caixa</button>
           </div>
           <div id="listaCaptureRoot" class="lista-capture-root" style="background: #fff; color: #111; padding: 16px; border-radius: 12px; border: 1px solid #ddd">
             <div class="lista-capture-heading-row">
@@ -4468,22 +4470,23 @@
               <div>
                 <p class="module-kicker module-kicker--finance">Financeiro</p>
                 <h2 style="margin: 0">Financeiro</h2>
-                <p class="finance-module-lede">Resumo de diárias e caixa, extrato por dia e detalhe sob demanda. Operações nas outras abas.</p>
+                <p class="finance-module-lede">Abas principais: Receitas, Despesas, Caixa e Fluxo de caixa. Mais opções abaixo.</p>
               </div>
               <nav id="financeSubnav" class="subnav finance-nav-inline" aria-label="Navegação financeira">
-                <span class="finance-menu-group">Dashboard</span>
+                <span class="finance-menu-group">Principal</span>
                 <button type="button" class="secondary" data-subview="dashboard">Visão geral</button>
                 <button type="button" class="secondary" id="financeMenuReload">Atualizar dados</button>
 
-                <span class="finance-menu-group">Operação financeira</span>
-                <button type="button" class="secondary" data-subview="pre_lancamento">Pré-lançamento</button>
-                <button type="button" class="secondary" data-subview="lancamentos">Lançamentos</button>
-                <button type="button" class="secondary" data-subview="receber">Contas a receber</button>
-                <button type="button" class="secondary" data-subview="pagar">Contas a pagar</button>
-                <button type="button" class="secondary" data-subview="caixa">Fluxo de caixa</button>
+                <span class="finance-menu-group">Operação</span>
+                <button type="button" class="secondary" data-subview="receber">Receitas</button>
+                <button type="button" class="secondary" data-subview="pagar">Despesas</button>
+                <button type="button" class="secondary" data-subview="caixa">Caixa</button>
+                <button type="button" class="secondary" data-subview="fluxo_caixa">Fluxo de caixa</button>
                 <button type="button" class="secondary" id="financeMenuNewPayable">Nova despesa</button>
 
-                <span class="finance-menu-group">Análise</span>
+                <span class="finance-menu-group">Mais opções</span>
+                <button type="button" class="secondary" data-subview="pre_lancamento">Pré-lançamento</button>
+                <button type="button" class="secondary" data-subview="lancamentos">Lançamentos</button>
                 <button type="button" class="secondary" data-subview="cadastro_base">Cadastro base</button>
               </nav>
               <div class="finance-modern-sidebar-actions">
@@ -4706,6 +4709,37 @@
             </div>
             <div id="financeStandardArea">
               <button type="button" class="secondary finance-flyout-close" id="financeFlyoutClose" aria-label="Fechar subaba">X</button>
+              <div id="financeCaixaResumoPanel" class="section-card hidden" style="margin-top: 0">
+                <h3 style="margin: 0 0 8px; font-size: 1.1rem">Caixa</h3>
+                <p class="notice" style="margin: 0 0 14px; max-width: 44rem; line-height: 1.45; font-size: 13px">
+                  Posição consolidada e totais do mês conforme movimentos registados no caixa. O período segue a competência selecionada na barra acima ou o mês sincronizado ao abrir esta aba.
+                </p>
+                <div class="finance-dashboard-grid finance-dashboard-grid--essential">
+                  <div class="finance-kpi-card">
+                    <div class="finance-kpi-title">Saldo em caixa</div>
+                    <div class="finance-kpi-value" id="fcResumoSaldo">R$ 0,00</div>
+                    <div class="finance-kpi-meta" id="fcResumoSaldoMeta">—</div>
+                  </div>
+                  <div class="finance-kpi-card">
+                    <div class="finance-kpi-title">Entradas no mês</div>
+                    <div class="finance-kpi-value" id="fcResumoEntradas">R$ 0,00</div>
+                    <div class="finance-kpi-meta" id="fcResumoEntradasMeta">Recebimentos no caixa</div>
+                  </div>
+                  <div class="finance-kpi-card">
+                    <div class="finance-kpi-title">Saídas no mês</div>
+                    <div class="finance-kpi-value" id="fcResumoSaidas">R$ 0,00</div>
+                    <div class="finance-kpi-meta" id="fcResumoSaidasMeta">Pagamentos no caixa</div>
+                  </div>
+                  <div class="finance-kpi-card" id="fcResumoResultadoCard">
+                    <div class="finance-kpi-title">Resultado no mês</div>
+                    <div class="finance-kpi-value" id="fcResumoResultado">R$ 0,00</div>
+                    <div class="finance-kpi-meta" id="fcResumoResultadoMeta">Entradas − saídas</div>
+                  </div>
+                </div>
+                <button type="button" class="secondary" id="financeCaixaIrFluxo" style="margin-top: 12px">
+                  Ver fluxo de caixa (lista de movimentos)
+                </button>
+              </div>
               <div id="financeFlyoutSummaryCards" class="grid">
                 <div class="card">
                   <div class="card-title" id="financeCardTitle1">Recebimentos em aberto</div>
@@ -10786,7 +10820,7 @@
         } else if (currentFinanceView === "receber" || currentFinanceView === "receber_alerta") {
           const ticket = receivablesFiltered.length ? sumReceivablesFiltered / receivablesFiltered.length : 0;
           setFinanceSummaryCards({
-            t1: "Contas a receber",
+            t1: "Receitas em aberto",
             v1: formatCurrency(sumReceivablesFiltered),
             m1: `${receivablesFiltered.length} em aberto`,
             t2: "Ticket médio",
@@ -10802,7 +10836,7 @@
         } else if (currentFinanceView === "pagar") {
           const media = payablesFiltered.length ? sumPayablesFiltered / payablesFiltered.length : 0;
           setFinanceSummaryCards({
-            t1: "Contas a pagar",
+            t1: "Despesas em aberto",
             v1: formatCurrency(sumPayablesFiltered),
             m1: `${payablesFiltered.length} em aberto`,
             t2: "Despesa média",
@@ -10815,7 +10849,7 @@
             c2: "tag",
             c3: "tag danger",
           });
-        } else if (currentFinanceView === "caixa") {
+        } else if (currentFinanceView === "caixa" || currentFinanceView === "fluxo_caixa") {
           const [anoCaixa, mesCaixa] = caixaMonth.split("-");
           const competenciaCaixa = mesCaixa && anoCaixa ? `${mesCaixa}/${anoCaixa}` : caixaMonth;
           setFinanceSummaryCards({
@@ -10834,10 +10868,10 @@
           });
         } else {
           setFinanceSummaryCards({
-            t1: "Contas a receber",
+            t1: "Receitas em aberto",
             v1: formatCurrency(totalReceber),
             m1: `${openReceivablesFinanceiro.length} em aberto`,
-            t2: "Contas a pagar",
+            t2: "Despesas em aberto",
             v2: formatCurrency(totalPagar),
             m2: `${openPayables.length} previstas`,
             t3: "Saldo em caixa",
@@ -10866,7 +10900,7 @@
 
         const now = Date.now();
         if (overdueReceivables.length) {
-          receivableAlert.textContent = `Atenção: ${overdueReceivables.length} contas a receber estão em aberto há mais de 10 dias.`;
+          receivableAlert.textContent = `Atenção: ${overdueReceivables.length} receita(s) (contas a receber) estão em aberto há mais de 10 dias.`;
           receivableAlert.classList.remove("hidden");
         } else {
           receivableAlert.classList.add("hidden");
@@ -10999,6 +11033,49 @@
         financeLedgerTable?.classList.remove("finance-ledger--lancamentos");
 
         const rows = [];
+
+        const flySummary = document.getElementById("financeFlyoutSummaryCards");
+        const caixaResumoPanel = document.getElementById("financeCaixaResumoPanel");
+        const financeStdTableWrap = document.querySelector("#financeStandardArea .section-card .table-wrap");
+
+        if (currentFinanceView === "caixa") {
+          if (flySummary) flySummary.classList.add("hidden");
+          if (caixaResumoPanel) caixaResumoPanel.classList.remove("hidden");
+          if (financeStdTableWrap) financeStdTableWrap.classList.add("hidden");
+          document.getElementById("financeCaixaScrollNotice")?.classList.add("hidden");
+          document.getElementById("financeLancamentosScrollNotice")?.classList.add("hidden");
+          const rSaldo = document.getElementById("fcResumoSaldo");
+          const rSaldoM = document.getElementById("fcResumoSaldoMeta");
+          const rEnt = document.getElementById("fcResumoEntradas");
+          const rEntM = document.getElementById("fcResumoEntradasMeta");
+          const rSai = document.getElementById("fcResumoSaidas");
+          const rSaiM = document.getElementById("fcResumoSaidasMeta");
+          const rRes = document.getElementById("fcResumoResultado");
+          const rResM = document.getElementById("fcResumoResultadoMeta");
+          const rCard = document.getElementById("fcResumoResultadoCard");
+          const [anoC, mesC] = caixaMonth.split("-");
+          const compLab = mesC && anoC ? `${mesC}/${anoC}` : caixaMonth;
+          if (rSaldo) rSaldo.textContent = formatCurrency(caixa);
+          if (rSaldoM) rSaldoM.textContent = caixa >= 0 ? "Posição consolidada" : "Saldo negativo";
+          if (rEnt) rEnt.textContent = formatCurrency(entradasCaixa);
+          if (rEntM) rEntM.textContent = `Recebimentos em ${compLab}`;
+          if (rSai) rSai.textContent = formatCurrency(saidasCaixa);
+          if (rSaiM) rSaiM.textContent = `Pagamentos em ${compLab}`;
+          const resMes = entradasCaixa - saidasCaixa;
+          if (rRes) rRes.textContent = formatCurrency(resMes);
+          if (rResM) rResM.textContent = resMes >= 0 ? "Entradas − saídas (superavit)" : "Entradas − saídas (deficit)";
+          if (rCard) {
+            rCard.classList.remove("finance-kpi-card--profit", "finance-kpi-card--loss", "kpi-alert-success", "kpi-alert-danger");
+            rCard.classList.add(resMes >= 0 ? "finance-kpi-card--profit" : "finance-kpi-card--loss");
+            rCard.classList.add(resMes >= 0 ? "kpi-alert-success" : "kpi-alert-danger");
+          }
+          financeHead.innerHTML = "";
+          tableFinance.innerHTML = "";
+          return;
+        }
+        if (flySummary) flySummary.classList.remove("hidden");
+        if (caixaResumoPanel) caixaResumoPanel.classList.add("hidden");
+        if (financeStdTableWrap) financeStdTableWrap.classList.remove("hidden");
 
         if (currentFinanceView === "cadastro_base") {
           financeHead.innerHTML = `
@@ -11390,7 +11467,7 @@
           return;
         }
 
-        if (currentFinanceView === "caixa") {
+        if (currentFinanceView === "fluxo_caixa") {
           if (financeCaixaScrollNotice) financeCaixaScrollNotice.classList.remove("hidden");
           financeHead.innerHTML = `
             <tr>
@@ -11686,9 +11763,10 @@
           dashboard: "Dashboard geral",
           aguardando_lancamento: "Pré-lançamento",
           lancamentos: "Lançamentos financeiros",
-          receber: "Contas a receber",
-          pagar: "Contas a pagar",
-          caixa: "Fluxo de caixa diário",
+          receber: "Receitas",
+          pagar: "Despesas",
+          caixa: "Caixa",
+          fluxo_caixa: "Fluxo de caixa",
           cadastro_base: "Cadastro base",
           historico_pagar: "Histórico a pagar",
           historico_receber: "Histórico a receber",
@@ -11751,7 +11829,7 @@
         const showPlateSearchFilter = false;
         const showReportFilters = false;
         const showLancamentosFilters = false;
-        const showCaixaFilters = false;
+        const showCaixaFilters = view === "fluxo_caixa";
         const showReceberFilters = view === "receber";
         financeFiltersHub?.classList.toggle("hidden", !showFiltersHub);
         if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", !showPlateSearchFilter);
@@ -11773,7 +11851,11 @@
         if (view !== "lancamentos" && view !== "filtros") financeLancSidePanel?.classList.add("hidden");
         financeCaixaFilters?.classList.toggle("hidden", !showCaixaFilters);
         if (view === "caixa") {
-          caixaFilter.month = caixaFilter.month || currentYearMonthLocal();
+          caixaFilter.month = financeCompetencia || currentYearMonthLocal();
+          if (financeCaixaMonth) financeCaixaMonth.value = caixaFilter.month;
+        }
+        if (view === "fluxo_caixa") {
+          caixaFilter.month = caixaFilter.month || financeCompetencia || currentYearMonthLocal();
           if (financeCaixaMonth) financeCaixaMonth.value = caixaFilter.month;
         }
         document.getElementById("financeLancamentosScrollNotice")?.classList.toggle("hidden", view !== "lancamentos");
@@ -12855,13 +12937,14 @@
       financeCaixaMonth?.addEventListener("change", () => {
         caixaFilter.month = (financeCaixaMonth.value || "").trim() || currentYearMonthLocal();
         financeCaixaMonth.value = caixaFilter.month;
-        if (currentFinanceView === "caixa") renderFinance();
+        if (currentFinanceView === "caixa" || currentFinanceView === "fluxo_caixa") renderFinance();
       });
       financeCaixaMonthAtual?.addEventListener("click", () => {
         caixaFilter.month = currentYearMonthLocal();
         if (financeCaixaMonth) financeCaixaMonth.value = caixaFilter.month;
-        if (currentFinanceView === "caixa") renderFinance();
+        if (currentFinanceView === "caixa" || currentFinanceView === "fluxo_caixa") renderFinance();
       });
+      document.getElementById("financeCaixaIrFluxo")?.addEventListener("click", () => setFinanceView("fluxo_caixa"));
       const syncLancamentosFilters = () => {
         lancamentosFilter = {
           tipo: (financeLancTipo?.value || "").trim(),
