@@ -6304,35 +6304,41 @@
         return receivableCicloEncerradoParaFinanceiro(r);
       }
 
-      /** Data de fechamento do ciclo para reconhecimento da receita no dashboard financeiro. */
-      function receivableRevenueClosedYmd(r) {
-        if (!r) return null;
-        if (r.period_end) {
-          const ymd = toLocalYmd(r.period_end);
-          if (ymd) return ymd;
+      /** Data de entrada reconhecida: somente quando o recebimento é marcado como PAGO. */
+      function receivableRevenuePaidYmd(r, cashByContaId) {
+        if (!r || r.status !== "PAGO") return null;
+        const mov = cashByContaId.get(String(r.id));
+        if (mov) {
+          const movYmd = toLocalYmd(mov.data_movimento || mov.created_at);
+          if (movYmd) return movYmd;
         }
-        const v = state.vehicles.find((x) => x.id === r.vehicle_id);
-        if (!v) return null;
-        if (v.status === "REMOVIDO" || v.data_saida) {
-          return toLocalYmd(v.data_saida || v.updated_at || v.created_at);
-        }
-        return null;
+        return toLocalYmd(r.updated_at || r.created_at);
       }
 
-      /** Receita reconhecida apenas quando ciclo fecha (saída/remoção do pátio). */
-      function sumReceivableRevenueByMonth(monthYm, receivables) {
+      /** Receita reconhecida apenas em recebimentos confirmados (PAGO). */
+      function sumReceivableRevenueByMonth(monthYm, receivables, cashMovements) {
         if (!monthYm || !Array.isArray(receivables)) return 0;
+        const cashByContaId = new Map(
+          (Array.isArray(cashMovements) ? cashMovements : [])
+            .filter((m) => m?.tipo_conta === "RECEBER" && m?.conta_id != null)
+            .map((m) => [String(m.conta_id), m])
+        );
         return receivables.reduce((sum, r) => {
-          const closedYmd = receivableRevenueClosedYmd(r);
-          if (!closedYmd || yearMonthFromYmd(closedYmd) !== monthYm) return sum;
+          const paidYmd = receivableRevenuePaidYmd(r, cashByContaId);
+          if (!paidYmd || yearMonthFromYmd(paidYmd) !== monthYm) return sum;
           return sum + Number(r.valor || 0);
         }, 0);
       }
 
-      function sumReceivableRevenueByDay(dayYmd, receivables) {
+      function sumReceivableRevenueByDay(dayYmd, receivables, cashMovements) {
         if (!dayYmd || !Array.isArray(receivables)) return 0;
+        const cashByContaId = new Map(
+          (Array.isArray(cashMovements) ? cashMovements : [])
+            .filter((m) => m?.tipo_conta === "RECEBER" && m?.conta_id != null)
+            .map((m) => [String(m.conta_id), m])
+        );
         return receivables.reduce((sum, r) => {
-          return receivableRevenueClosedYmd(r) === dayYmd ? sum + Number(r.valor || 0) : sum;
+          return receivableRevenuePaidYmd(r, cashByContaId) === dayYmd ? sum + Number(r.valor || 0) : sum;
         }, 0);
       }
 
@@ -11130,7 +11136,7 @@
           if (dashArea) dashArea.classList.remove("hidden");
         };
         const monthKeyFin = financeCompetencia || currentYearMonthLocal();
-        const entradasMesDiarias = sumReceivableRevenueByMonth(monthKeyFin, state.receivables || []);
+        const entradasMesDiarias = sumReceivableRevenueByMonth(monthKeyFin, state.receivables || [], state.cash || []);
         const saidasMesFinance = sumCashPagamentosNoMes(monthKeyFin, state.cash || []);
         const resultadoMesFinance = entradasMesDiarias - saidasMesFinance;
 
@@ -11146,7 +11152,7 @@
           _set("fdtEntradasMes", formatCurrency(entradasMesDiarias));
           _set(
             "fdtEntradasMesHint",
-            `${monthKeyFin.slice(5, 7)}/${monthKeyFin.slice(0, 4)} · ciclos fechados (saída/remoção)`
+            `${monthKeyFin.slice(5, 7)}/${monthKeyFin.slice(0, 4)} · recebimentos confirmados`
           );
           _set("fdtSaidasMes", formatCurrency(saidasMesFinance));
           _set(
@@ -11156,7 +11162,7 @@
           _set("fdtResultadoMes", formatCurrency(resultadoMesFinance));
           _set(
             "fdtResultadoMesLabel",
-            resultadoMesFinance >= 0 ? "Lucro (ciclos fechados − despesas)" : "Prejuízo (ciclos fechados − despesas)"
+            resultadoMesFinance >= 0 ? "Lucro (recebimentos confirmados − despesas)" : "Prejuízo (recebimentos confirmados − despesas)"
           );
           const fdtResEmoji = _fd("fdtResultadoTituloEmoji");
           if (fdtResEmoji) fdtResEmoji.textContent = resultadoMesFinance >= 0 ? "🟢" : "🔴";
@@ -11177,13 +11183,13 @@
             saldoEl.classList.toggle("fin-val-neg", caixa < 0);
           }
           _set("fdEntradasMes", formatCurrency(entradasMesDiarias));
-          _set("fdEntradasMesHint", `Ciclos fechados em ${monthKeyFin.slice(5, 7)}/${monthKeyFin.slice(0, 4)}`);
+          _set("fdEntradasMesHint", `Recebimentos confirmados em ${monthKeyFin.slice(5, 7)}/${monthKeyFin.slice(0, 4)}`);
           _set("fdSaidasMes", formatCurrency(saidasMesFinance));
           _set("fdSaidasMesHint", "Pagamentos registrados no caixa (mês)");
           _set("fdResultadoMes", formatCurrency(resultadoMesFinance));
           _set(
             "fdResultadoMesLabel",
-            resultadoMesFinance >= 0 ? "Ciclos fechados − despesas pagas" : "Ciclos fechados − despesas pagas"
+            resultadoMesFinance >= 0 ? "Recebimentos confirmados − despesas pagas" : "Recebimentos confirmados − despesas pagas"
           );
           const fdResCard = _fd("fdResultadoCard");
           if (fdResCard) {
@@ -11203,7 +11209,7 @@
             rv.classList.toggle("fin-txt-neg", resultadoMesFinance < 0);
           }
           const todayYmd = toLocalYmd(new Date().toISOString());
-          const receitaHoje = sumReceivableRevenueByDay(todayYmd, state.receivables || []);
+          const receitaHoje = sumReceivableRevenueByDay(todayYmd, state.receivables || [], state.cash || []);
           const prm = monthKeyFin.split("-");
           const yyM = Number(prm[0]);
           const mmM = Number(prm[1]);
@@ -11215,7 +11221,7 @@
           _set("fdQuickMediaMes", formatCurrency(mediaMes));
           const insight = _fd("fdInsightLine");
           if (insight) {
-            insight.textContent = `Hoje você faturou ${formatCurrency(receitaHoje)} em ciclos fechados. Você tem ${vnpN} veículo(s) em operação no pátio. Média diária do mês: ${formatCurrency(mediaMes)}.`;
+            insight.textContent = `Hoje você faturou ${formatCurrency(receitaHoje)} em recebimentos confirmados. Você tem ${vnpN} veículo(s) em operação no pátio. Média diária do mês: ${formatCurrency(mediaMes)}.`;
           }
           renderFinanceExtratoDom(monthKeyFin);
         }
