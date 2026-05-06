@@ -10383,6 +10383,75 @@
         doc.save(`recibo_recebimento_${safePlate}.pdf`);
       }
 
+      function printReciboRecebimento({ receivable, vehicle, destinatarioNome, destinatarioDoc, valor }) {
+        const s = state.settings || {};
+        const emitente = reciboEmitenteNome(s);
+        const cnpjFmt = reciboCnpjExibicao(s);
+        const nomePatio = (s.nome_patio || "").trim() || RECIBO_PATIO_PADRAO;
+        const pessoa = (destinatarioNome || "").trim() || "—";
+        const pessoaDoc = (destinatarioDoc || "").trim() || "—";
+        const placa = vehicle?.placa || "—";
+        const marca = (vehicle?.marca || "").trim();
+        const modelo = (vehicle?.modelo || "").trim();
+        const veiculoDesc = [marca, modelo].filter(Boolean).join(" ").trim() || "—";
+        const dIni = receivable?.period_start ? formatDateBr(receivable.period_start) : "—";
+        const dFim = receivable?.period_end ? formatDateBr(receivable.period_end) : "—";
+        const dEntrada =
+          vehicle?.data_entrada != null && vehicle.data_entrada !== ""
+            ? formatDateBr(vehicle.data_entrada)
+            : dIni;
+        const dSaida =
+          vehicle?.data_saida != null && vehicle.data_saida !== ""
+            ? formatDateBr(vehicle.data_saida)
+            : dFim;
+        const valorTxt = formatCurrency(valor);
+        const footerLine = reciboFooterLine(s);
+
+        const printCss = `
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 20px; color: #111827; }
+  h1 { font-size: 1.15rem; margin: 0 0 6px; }
+  .meta { font-size: 0.82rem; color: #334155; margin: 0 0 12px; }
+  .box { border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
+  .label { font-weight: 700; font-size: 0.78rem; color: #475569; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+  .line { margin: 4px 0; font-size: 0.92rem; }
+  .quit { margin-top: 18px; font-style: italic; }
+  .sign { margin-top: 24px; font-size: 0.88rem; }
+  .footer { margin-top: 28px; padding-top: 10px; border-top: 1px solid #cbd5e1; font-size: 0.8rem; color: #475569; text-align: center; }
+  @page { margin: 12mm; }
+  @media print { body { margin: 0; } }`;
+
+        const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Recibo de recebimento</title>
+<style>${printCss}</style></head><body>
+  <h1>RECIBO DE QUITAÇÃO DE ESTADIAS</h1>
+  <div class="meta">${escapeHtml(nomePatio)} • Emitido em ${escapeHtml(formatDateTime(new Date().toISOString()))}</div>
+
+  <div class="box">
+    <div class="label">Emitente</div>
+    <div class="line"><strong>${escapeHtml(emitente)}</strong> — CNPJ ${escapeHtml(cnpjFmt)}</div>
+  </div>
+
+  <div class="box">
+    <div class="label">Quem efetuou o pagamento</div>
+    <div class="line"><strong>Nome:</strong> ${escapeHtml(pessoa)}</div>
+    <div class="line"><strong>CPF/CNPJ:</strong> ${escapeHtml(pessoaDoc)}</div>
+  </div>
+
+  <div class="box">
+    <div class="label">Veículo e período</div>
+    <div class="line"><strong>Veículo:</strong> ${escapeHtml(veiculoDesc)}</div>
+    <div class="line"><strong>Placa:</strong> ${escapeHtml(placa)}</div>
+    <div class="line"><strong>Estadias:</strong> ${escapeHtml(`${dEntrada} até ${dSaida}`)}</div>
+    <div class="line"><strong>Valor recebido:</strong> ${escapeHtml(valorTxt)}</div>
+  </div>
+
+  <p class="quit">Por este documento, dou plena e total quitação referente ao pagamento das estadias acima.</p>
+  <p class="sign">Local e data: Recife-PE, ${escapeHtml(formatDateBr(new Date().toISOString()))}.</p>
+  <div class="footer">${escapeHtml(footerLine)}</div>
+</body></html>`;
+
+        return printHtmlInHiddenIframe(html, { iframeTitle: "Impressão de recibo de recebimento" });
+      }
+
       async function openNfseModal(vehicle) {
         nfseVehicleId = vehicle.id;
         nfseResumo.textContent = `Veículo: ${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`;
@@ -15435,6 +15504,15 @@
             destinatarioDoc: destinatarioInfo.doc,
             valor: totalAtual,
           });
+          if (confirm("Recibo gerado com sucesso. Deseja imprimir agora?")) {
+            printReciboRecebimento({
+              receivable,
+              vehicle,
+              destinatarioNome: destinatarioInfo.nome,
+              destinatarioDoc: destinatarioInfo.doc,
+              valor: totalAtual,
+            });
+          }
           return;
         }
 
