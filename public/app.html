@@ -3808,7 +3808,6 @@
                   <button type="button" data-header-finance-panel="true">Dashboard (visão geral)</button>
                   <button type="button" data-header-finance-sub="receber">Receitas (entradas)</button>
                   <button type="button" data-header-finance-sub="pagar">Despesas (saídas)</button>
-                  <button type="button" data-header-finance-sub="transferencias">Transferências</button>
                   <button type="button" data-header-finance-sub="receber_alerta">Contas a pagar e receber</button>
                   <button type="button" data-header-finance-sub="relatorios">Relatórios</button>
                   <button type="button" data-header-finance-sub="cadastro_base">Categorias</button>
@@ -4603,7 +4602,6 @@
                 <button type="button" class="secondary" data-subview="dashboard">Visão geral</button>
                 <button type="button" class="secondary" data-subview="receber">Receitas (entradas)</button>
                 <button type="button" class="secondary" data-subview="pagar">Despesas (saídas)</button>
-                <button type="button" class="secondary" data-subview="transferencias">Transferências</button>
                 <button type="button" class="secondary" data-subview="receber_alerta">Contas a pagar e receber</button>
                 <button type="button" class="secondary" data-subview="relatorios">Relatórios</button>
                 <button type="button" class="secondary" data-subview="cadastro_base">Categorias</button>
@@ -4611,8 +4609,6 @@
                 <button type="button" class="secondary" id="financeMenuReload">Atualizar dados</button>
               </nav>
               <div class="finance-modern-sidebar-actions">
-                <button type="button" class="secondary" id="openParceirosFromFinanceiro">Rede de parceiros</button>
-                <button type="button" class="secondary" id="openConfigFromFinanceiro">Configurações</button>
               </div>
             </aside>
             <section class="finance-modern-main">
@@ -4855,9 +4851,6 @@
                     <div class="finance-kpi-meta" id="fcResumoResultadoMeta">Entradas − saídas</div>
                   </div>
                 </div>
-                <button type="button" class="secondary" id="financeCaixaIrFluxo" style="margin-top: 12px">
-                  Ver fluxo de caixa (lista de movimentos)
-                </button>
               </div>
               <div id="financeFlyoutSummaryCards" class="grid">
                 <div class="card">
@@ -11951,7 +11944,6 @@
         const previousFinanceView = currentFinanceView;
         if (view === "filtros") view = "dashboard";
         if (view === "pre_lancamento") view = "aguardando_lancamento";
-        if (view === "transferencias") view = "fluxo_caixa";
         if (view === "metas") view = "dashboard";
         currentFinanceView = view;
         const viewMap = {
@@ -12682,7 +12674,7 @@
       }
       bindModuleCardActivate(document.getElementById("cardFinanceReceberLink"), () => openFinanceSubview("receber"));
       bindModuleCardActivate(document.getElementById("cardFinancePagarLink"), () => openFinanceSubview("pagar"));
-      bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("transferencias"));
+      bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("caixa"));
 
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
       document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
@@ -12691,8 +12683,6 @@
 
       document.getElementById("openParceirosFromPatio")?.addEventListener("click", () => openPartnerSubview("localizadores"));
       document.getElementById("openConfigFromPatio")?.addEventListener("click", () => openMainView("configuracoes"));
-      document.getElementById("openParceirosFromFinanceiro")?.addEventListener("click", () => openPartnerSubview("localizadores"));
-      document.getElementById("openConfigFromFinanceiro")?.addEventListener("click", () => openMainView("configuracoes"));
       document.getElementById("exitParceirosToPatio")?.addEventListener("click", () => closeStackTop());
       document.getElementById("exitConfigToPatio")?.addEventListener("click", () => closeStackTop());
 
@@ -12911,7 +12901,6 @@
         if (!sub) return;
         if (sub === "filtros") sub = "dashboard";
         if (sub === "pre_lancamento") sub = "aguardando_lancamento";
-        if (sub === "transferencias") sub = "fluxo_caixa";
         if (sub === "metas") {
           financeFocusMetaGoalCard = true;
           sub = "dashboard";
@@ -13161,7 +13150,6 @@
         if (financeCaixaMonth) financeCaixaMonth.value = caixaFilter.month;
         if (currentFinanceView === "caixa" || currentFinanceView === "fluxo_caixa") renderFinance();
       });
-      document.getElementById("financeCaixaIrFluxo")?.addEventListener("click", () => setFinanceView("fluxo_caixa"));
       const syncLancamentosFilters = () => {
         lancamentosFilter = {
           tipo: (financeLancTipo?.value || "").trim(),
