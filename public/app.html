@@ -11514,10 +11514,10 @@
         }
 
         if (currentFinanceView === "relatorios") {
-          // Garante que, em Relatórios, os filtros dessa própria aba fiquem sempre visíveis.
-          financeFiltersHub?.classList.remove("hidden");
-          financeFilters?.classList.remove("hidden");
-          financeReportExtraFilters?.classList.remove("hidden");
+          // Relatório simplificado: RPV + RF + totais em aberto/aguardando.
+          financeFiltersHub?.classList.add("hidden");
+          financeFilters?.classList.add("hidden");
+          financeReportExtraFilters?.classList.add("hidden");
           financePlateSearchForm?.classList.add("hidden");
           financeLancamentosFilters?.classList.add("hidden");
           financeLancamentosToolbar?.classList.add("hidden");
@@ -11526,121 +11526,46 @@
           financeLancSidePanel?.classList.add("hidden");
           financeHead.innerHTML = `
             <tr>
-              <th>Relatório</th>
-              <th>Valor</th>
+              <th>Nome do RPV</th>
+              <th>RF</th>
+              <th>Pagamento em aberto</th>
+              <th>Aguardando lançamento</th>
             </tr>`;
-          if (!reportHasRun) {
-            setEmptyRow(
-              tableFinance,
-              "Selecione os filtros e clique em «Aplicar» para gerar o relatório.",
-              2
-            );
-            return;
-          }
-          const reportFrom = filterFrom?.value || null;
-          const reportTo = filterTo?.value || null;
-          const toDateOnly = (value) => {
-            if (!value) return null;
-            const d = new Date(value);
-            if (Number.isNaN(d.getTime())) return null;
-            return d.toISOString().slice(0, 10);
-          };
-          const toMonth = (value) => {
-            const ymd = toDateOnly(value);
-            return ymd ? ymd.slice(0, 7) : null;
-          };
-          const monthLabel = (ym) => {
-            if (!ym) return "-";
-            const [y, m] = ym.split("-");
-            return `${m}/${y}`;
-          };
-
-          const entries = [];
-          state.receivables.forEach((r) => {
+          const partnerById = new Map((state.partners || []).map((p) => [String(p.id), p.nome || "-"]));
+          const grouped = new Map();
+          (state.receivables || []).forEach((r) => {
             if (!matchesVehicleId(r.vehicle_id)) return;
-            entries.push({
-              data: toDateOnly(r.period_start || r.created_at),
-              tipo: "RECEITA",
-              categoria: r.receivable_category || "RECEITA",
-              cliente: (r.responsavel_pagamento || "").trim() || "Não informado",
-              fornecedor: "",
-              valor: Number(r.valor || 0),
-            });
+            const v = vehicleById.get(r.vehicle_id);
+            const rpv = v?.localizador_id ? partnerById.get(String(v.localizador_id)) || "-" : "-";
+            const rf = String(r.responsavel_pagamento || "Não informado").trim() || "Não informado";
+            const key = `${rpv}__${rf}`;
+            const cur = grouped.get(key) || { rpv, rf, aberto: 0, aguardando: 0 };
+            const valor = Number(r.valor || 0);
+            if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO || receivableNaFilaAguardandoTriagem(r)) {
+              cur.aguardando += valor;
+            } else if (r.status === "EM_ABERTO" && receivableIsContaReceberFinanceiro(r)) {
+              cur.aberto += valor;
+            }
+            grouped.set(key, cur);
           });
-          state.payables.forEach((p) => {
-            if (!payableDescMatchesPlate(p)) return;
-            entries.push({
-              data: toDateOnly(p.data_vencimento || p.created_at),
-              tipo: "DESPESA",
-              categoria: p.payable_category || "OUTROS",
-              cliente: "",
-              fornecedor: (p.fornecedor || p.descricao || "").trim() || "Não informado",
-              valor: Number(p.valor || 0),
-            });
-          });
-
-          const syncSelectOptions = (selectEl, values, defaultLabel) => {
-            if (!selectEl) return;
-            const current = selectEl.value;
-            const opts = [...new Set(values.map((v) => String(v || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-            selectEl.innerHTML = [`<option value="">${defaultLabel}</option>`, ...opts.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`)].join("");
-            if (current && opts.includes(current)) selectEl.value = current;
-          };
-          syncSelectOptions(reportCategoriaFiltro, entries.map((e) => e.categoria), "Todas");
-          syncSelectOptions(reportClienteFiltro, entries.filter((e) => e.tipo === "RECEITA").map((e) => e.cliente), "Todos");
-          syncSelectOptions(reportFornecedorFiltro, entries.filter((e) => e.tipo === "DESPESA").map((e) => e.fornecedor), "Todos");
-
-          const filtered = entries.filter((e) => {
-            if (!e.data) return false;
-            if (reportFrom && e.data < reportFrom) return false;
-            if (reportTo && e.data > reportTo) return false;
-            if (reportFilter.tipo && e.tipo !== reportFilter.tipo) return false;
-            if (reportFilter.categoria && e.categoria !== reportFilter.categoria) return false;
-            if (reportFilter.cliente && e.cliente !== reportFilter.cliente) return false;
-            if (reportFilter.fornecedor && e.fornecedor !== reportFilter.fornecedor) return false;
-            return true;
-          });
-
-          const receitas = filtered.filter((e) => e.tipo === "RECEITA").reduce((s, e) => s + e.valor, 0);
-          const despesas = filtered.filter((e) => e.tipo === "DESPESA").reduce((s, e) => s + e.valor, 0);
-          const lucro = receitas - despesas;
-          rows.push(`<tr><td><strong>Total receitas (filtro atual)</strong></td><td>${formatCurrency(receitas)}</td></tr>`);
-          rows.push(`<tr><td><strong>Total despesas (filtro atual)</strong></td><td>${formatCurrency(despesas)}</td></tr>`);
-          rows.push(`<tr><td><strong>Lucro (filtro atual)</strong></td><td>${formatCurrency(lucro)}</td></tr>`);
-
-          const lucroMes = new Map();
-          filtered.forEach((e) => {
-            const ym = toMonth(e.data);
-            if (!ym) return;
-            const current = lucroMes.get(ym) || { receitas: 0, despesas: 0 };
-            if (e.tipo === "RECEITA") current.receitas += e.valor;
-            else current.despesas += e.valor;
-            lucroMes.set(ym, current);
-          });
-          rows.push(`<tr><td colspan="2" style="padding-top:16px;"><strong>Lucro por mês</strong></td></tr>`);
-          [...lucroMes.entries()]
-            .sort((a, b) => a[0].localeCompare(b[0]))
-            .forEach(([ym, v]) => {
-              rows.push(`<tr><td>${monthLabel(ym)}</td><td>${formatCurrency(v.receitas - v.despesas)}</td></tr>`);
-            });
-          if (!lucroMes.size) rows.push(`<tr><td>Sem dados no período</td><td>-</td></tr>`);
-
-          const gastosPorSetor = new Map();
-          filtered
-            .filter((e) => e.tipo === "DESPESA")
-            .forEach((e) => gastosPorSetor.set(e.categoria, (gastosPorSetor.get(e.categoria) || 0) + e.valor));
-          rows.push(`<tr><td colspan="2" style="padding-top:16px;"><strong>Gastos por setor (categoria)</strong></td></tr>`);
-          [...gastosPorSetor.entries()]
-            .sort((a, b) => b[1] - a[1])
-            .forEach(([setor, val]) => {
-              rows.push(`<tr><td>${escapeHtml(setor)}</td><td>${formatCurrency(val)}</td></tr>`);
-            });
-          if (!gastosPorSetor.size) rows.push(`<tr><td>Sem despesas no período</td><td>-</td></tr>`);
-
-          if (!rows.length) {
-            setEmptyRow(tableFinance, "Nenhum dado para relatórios.", 2);
+          const reportRows = [...grouped.values()]
+            .filter((x) => x.aberto > 0 || x.aguardando > 0)
+            .sort((a, b) => `${a.rpv} ${a.rf}`.localeCompare(`${b.rpv} ${b.rf}`));
+          if (!reportRows.length) {
+            setEmptyRow(tableFinance, "Sem dados para o relatório simplificado.", 4);
           } else {
-            tableFinance.innerHTML = rows.join("");
+            tableFinance.innerHTML = reportRows
+              .map(
+                (x) => `
+                  <tr>
+                    <td>${escapeHtml(x.rpv)}</td>
+                    <td>${escapeHtml(x.rf)}</td>
+                    <td>${formatCurrency(x.aberto)}</td>
+                    <td>${formatCurrency(x.aguardando)}</td>
+                  </tr>
+                `
+              )
+              .join("");
           }
           return;
         }
