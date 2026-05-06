@@ -3916,6 +3916,12 @@
                   <span class="dashboard-system-btn__desc">Saldo atual, receitas x despesas, evolução e alertas de vencimento.</span>
                   <span class="dashboard-system-btn__go">Abrir financeiro →</span>
                 </button>
+                <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenLista">
+                  <span class="dashboard-system-btn__kicker">Relatórios</span>
+                  <span class="dashboard-system-btn__title">Lista</span>
+                  <span class="dashboard-system-btn__desc">Acesse listagens operacionais, histórico e consultas rápidas.</span>
+                  <span class="dashboard-system-btn__go">Abrir lista →</span>
+                </button>
                 <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
                   <span class="dashboard-system-btn__kicker">Relacionamento</span>
                   <span class="dashboard-system-btn__title">Parceiros</span>
@@ -12692,6 +12698,7 @@
 
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
       document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
+      document.getElementById("dashboardOpenLista")?.addEventListener("click", () => openMainView("lista"));
       document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openMainView("parceiros"));
       document.getElementById("dashboardOpenConfiguracoes")?.addEventListener("click", () => openMainView("configuracoes"));
 
