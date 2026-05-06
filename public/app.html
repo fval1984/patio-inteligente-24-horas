@@ -3721,6 +3721,25 @@
                 </div>
               </details>
 
+              <details class="header-menu-details" id="headerDetailsFinance">
+                <summary>Financeiro</summary>
+                <div class="header-menu-nested">
+                  <button type="button" data-header-finance-panel="true">Dashboard financeiro</button>
+                  <button type="button" data-header-finance-sub="receber">Receitas (entradas)</button>
+                  <button type="button" data-header-finance-sub="historico_receber">Histórico de entradas</button>
+                  <button type="button" data-header-finance-sub="pagar">Despesas (saídas)</button>
+                  <button type="button" data-header-finance-sub="historico_pagar">Histórico de despesas</button>
+                  <button type="button" data-header-finance-sub="caixa">Contas e carteiras</button>
+                  <button type="button" data-header-finance-sub="fluxo_caixa">Saldo por conta</button>
+                  <button type="button" data-header-finance-sub="receber">Contas a pagar e receber</button>
+                  <button type="button" data-header-finance-sub="receber_alerta">Vencimentos e lembretes</button>
+                  <button type="button" data-header-finance-sub="pagar">Parcelamentos/recorrentes</button>
+                  <button type="button" data-header-finance-sub="cadastro_base">Categorias</button>
+                  <button type="button" data-header-finance-sub="transferencias">Transferências</button>
+                  <button type="button" data-header-finance-sub="metas_financeiras">Metas financeiras</button>
+                </div>
+              </details>
+
               <details class="header-menu-details" id="headerDetailsConfig">
                 <summary>Configurações</summary>
                 <div class="header-menu-nested">
@@ -3821,6 +3840,12 @@
                   <span class="dashboard-system-btn__title">Parceiros</span>
                   <span class="dashboard-system-btn__desc">Gerencie localizadores, assessorias, leiloeiros e bancos.</span>
                   <span class="dashboard-system-btn__go">Abrir parceiros →</span>
+                </button>
+                <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
+                  <span class="dashboard-system-btn__kicker">Financeiro</span>
+                  <span class="dashboard-system-btn__title">Visão geral</span>
+                  <span class="dashboard-system-btn__desc">Saldo atual, receitas x despesas, evolução e alertas de vencimento.</span>
+                  <span class="dashboard-system-btn__go">Abrir dashboard financeiro →</span>
                 </button>
                 <button
                   type="button"
@@ -4501,19 +4526,17 @@
               <nav id="financeSubnav" class="subnav finance-nav-inline" aria-label="Navegação financeira">
                 <span class="finance-menu-group">Principal</span>
                 <button type="button" class="secondary" data-subview="dashboard">Visão geral</button>
-                <button type="button" class="secondary" id="financeMenuReload">Atualizar dados</button>
-
-                <span class="finance-menu-group">Operação</span>
                 <button type="button" class="secondary" data-subview="receber">Receitas</button>
+                <button type="button" class="secondary" data-subview="historico_receber">Histórico entradas</button>
                 <button type="button" class="secondary" data-subview="pagar">Despesas</button>
-                <button type="button" class="secondary" data-subview="caixa">Caixa</button>
-                <button type="button" class="secondary" data-subview="fluxo_caixa">Fluxo de caixa</button>
-                <button type="button" class="secondary" id="financeMenuNewPayable">Nova despesa</button>
-
-                <span class="finance-menu-group">Mais opções</span>
-                <button type="button" class="secondary" data-subview="pre_lancamento">Pré-lançamento</button>
-                <button type="button" class="secondary" data-subview="lancamentos">Lançamentos</button>
-                <button type="button" class="secondary" data-subview="cadastro_base">Cadastro base</button>
+                <button type="button" class="secondary" data-subview="historico_pagar">Histórico despesas</button>
+                <button type="button" class="secondary" data-subview="caixa">Contas e carteiras</button>
+                <button type="button" class="secondary" data-subview="fluxo_caixa">Saldo por conta</button>
+                <button type="button" class="secondary" data-subview="receber_alerta">Vencimentos/lembretes</button>
+                <button type="button" class="secondary" data-subview="cadastro_base">Categorias</button>
+                <button type="button" class="secondary" data-subview="transferencias">Transferências</button>
+                <button type="button" class="secondary" data-subview="metas_financeiras">Metas financeiras</button>
+                <button type="button" class="secondary" id="financeMenuReload">Atualizar dados</button>
               </nav>
               <div class="finance-modern-sidebar-actions">
                 <button type="button" class="secondary" id="openParceirosFromFinanceiro">Rede de parceiros</button>
@@ -11792,6 +11815,24 @@
         const previousFinanceView = currentFinanceView;
         if (view === "filtros" || view === "relatorios") view = "dashboard";
         if (view === "pre_lancamento") view = "aguardando_lancamento";
+        if (view === "transferencias") view = "fluxo_caixa";
+        if (view === "metas_financeiras") view = "dashboard";
+        if (
+          view &&
+          ![
+            "none",
+            "dashboard",
+            "receber",
+            "receber_alerta",
+            "historico_receber",
+            "pagar",
+            "historico_pagar",
+            "caixa",
+            "fluxo_caixa",
+            "cadastro_base",
+          ].includes(view)
+        )
+          view = "dashboard";
         currentFinanceView = view;
         const viewMap = {
           dashboard: "Dashboard geral",
@@ -12522,6 +12563,7 @@
       bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("caixa"));
 
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
+      document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
       document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openMainView("parceiros"));
       document.getElementById("dashboardOpenConfiguracoes")?.addEventListener("click", () => openMainView("configuracoes"));
 
@@ -12667,9 +12709,6 @@
       });
 
       function openMainView(view) {
-        if (view === "financeiro") {
-          view = "dashboard";
-        }
         if (isGestorPista && view !== "patio" && view !== "lista") {
           showMainView("patio");
           setPatioView("inicio");
@@ -13977,7 +14016,7 @@
           renderVehicles();
           renderFinance();
           updateDashboard();
-          openMainView("dashboard");
+          openMainView("financeiro");
           openFinanceSubview("aguardando_lancamento");
           alert("Ciclo liberado para o Financeiro (Pré-lançamento).");
           return;
@@ -15592,7 +15631,7 @@
           e.preventDefault();
           const id = finAct.getAttribute("data-header-finance-action");
           closeFinanceMenu();
-          openMainView("dashboard");
+          openMainView("financeiro");
           document.getElementById(id)?.click();
           closeAppHeaderMenu();
           return;
