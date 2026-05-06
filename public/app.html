@@ -6009,6 +6009,20 @@
         return state.patioOwnerUserId || state.user?.id || null;
       }
 
+      async function callFinanceCompetencyApi(path, payload) {
+        const resp = await fetch(path, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload || {}),
+        });
+        const json = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          const msg = json?.error || `Falha ${resp.status} em ${path}`;
+          throw new Error(msg);
+        }
+        return json;
+      }
+
       /** PostgREST: tabela inexistente ou ainda não aplicada no projeto (404 / PGRST205). */
       function isMissingRelationError(err) {
         if (!err) return false;
@@ -9148,6 +9162,13 @@
           loadSettings(),
           loadMonthlyClosures(),
         ]);
+        const userId = effectiveUserId();
+        if (userId) {
+          // Competência: tentativa automática diária (espelho contábil), sem bloquear o fluxo legado.
+          callFinanceCompetencyApi("/api/finance/generate-daily-charges", { userId }).catch((e) =>
+            console.warn("finance competency daily job", e?.message || e)
+          );
+        }
         renderFinance();
         updateDashboard();
       }
@@ -14717,6 +14738,20 @@
           });
 
           await Promise.all([loadReceivables(), loadCycleClosures()]);
+          try {
+            const userId = effectiveUserId();
+            if (userId) {
+              await callFinanceCompetencyApi("/api/finance/close-vehicle-cycle", {
+                userId,
+                vehicleId: id,
+                discountAmount: 0,
+                isFullWaiver: false,
+                closeDate: dataAcerto,
+              });
+            }
+          } catch (e) {
+            console.warn("finance competency close cycle", e?.message || e);
+          }
           renderFinance();
           alert(
             `Ciclo do responsável anterior encerrado em ${dataAcerto} (fim desse dia). O encerramento foi enviado ao Financeiro (aba «Contas a receber»). Novo responsável a partir de ${formatNextCalendarDayPt(
@@ -14958,6 +14993,20 @@
 
           await loadVehicles();
           await Promise.all([loadReceivables(), loadCycleClosures()]);
+          try {
+            const userId = effectiveUserId();
+            if (userId) {
+              await callFinanceCompetencyApi("/api/finance/close-vehicle-cycle", {
+                userId,
+                vehicleId: id,
+                discountAmount: 0,
+                isFullWaiver: false,
+                closeDate: dataSaida,
+              });
+            }
+          } catch (e) {
+            console.warn("finance competency close cycle", e?.message || e);
+          }
           renderFinance();
           updateDashboard();
           alert(
@@ -15195,6 +15244,19 @@
             valor: valorPago,
             descricao: vehicleInfo ? `Diárias - ${vehicleInfo}` : "Diárias",
           });
+          try {
+            const userId = effectiveUserId();
+            if (userId) {
+              await callFinanceCompetencyApi("/api/finance/register-payment", {
+                userId,
+                receivableId: id,
+                vehicleId: receivable.vehicle_id || null,
+                amount: valorPago,
+              });
+            }
+          } catch (e) {
+            console.warn("finance competency register payment", e?.message || e);
+          }
           removeReceberTriagemId(id);
           await Promise.all([loadReceivables(), loadCash(), loadVehicles()]);
           renderFinance();
@@ -15275,6 +15337,19 @@
               .update({ valor: totalAtual })
               .eq("conta_id", id)
               .eq("tipo_conta", "RECEBER");
+          }
+          try {
+            const userId = effectiveUserId();
+            if (userId) {
+              await callFinanceCompetencyApi("/api/finance/register-payment", {
+                userId,
+                receivableId: id,
+                vehicleId: receivable.vehicle_id || null,
+                amount: totalAtual,
+              });
+            }
+          } catch (e) {
+            console.warn("finance competency register payment", e?.message || e);
           }
           removeReceberTriagemId(id);
           await Promise.all([loadReceivables(), loadCash()]);
