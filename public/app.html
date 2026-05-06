@@ -8275,6 +8275,27 @@
           .reduce((s, m) => s + Number(m.valor || 0), 0);
       }
 
+      function isCashMovementSangria(mov, payableById) {
+        if (!mov || mov.tipo_conta !== "PAGAR") return false;
+        const desc = String(mov.descricao || "").toUpperCase();
+        if (desc.includes("SANGRIA")) return true;
+        const payable = payableById.get(String(mov.conta_id || ""));
+        const cat = String(payable?.payable_category || "").toUpperCase();
+        return cat === "SANGRIA_CAIXA";
+      }
+
+      function sumCashSangriaNoMes(monthYm, cashList, payables) {
+        if (!monthYm || !Array.isArray(cashList)) return 0;
+        const payableById = new Map((Array.isArray(payables) ? payables : []).map((p) => [String(p.id), p]));
+        return cashList
+          .filter((m) => {
+            const ymd = toLocalYmd(m.data_movimento || m.created_at);
+            if (!ymd || yearMonthFromYmd(ymd) !== monthYm) return false;
+            return isCashMovementSangria(m, payableById);
+          })
+          .reduce((s, m) => s + Number(m.valor || 0), 0);
+      }
+
       function sumCashPagamentosNoDia(dayYmd, cashList) {
         if (!dayYmd || !cashList) return 0;
         return cashList
@@ -11171,7 +11192,9 @@
         const monthKeyFin = financeCompetencia || currentYearMonthLocal();
         const entradasMesDiarias = sumReceivableRevenueByMonth(monthKeyFin, state.receivables || [], state.cash || []);
         const saidasMesFinance = sumCashPagamentosNoMes(monthKeyFin, state.cash || []);
-        const resultadoMesFinance = entradasMesDiarias - saidasMesFinance;
+        const sangriaMesFinance = sumCashSangriaNoMes(monthKeyFin, state.cash || [], state.payables || []);
+        const saidasOperacionaisMesFinance = Math.max(0, saidasMesFinance - sangriaMesFinance);
+        const resultadoMesFinance = entradasMesDiarias - saidasOperacionaisMesFinance;
 
         const _fd = (id) => document.getElementById(id);
         const _set = (id, txt) => {
@@ -11190,12 +11213,14 @@
           _set("fdtSaidasMes", formatCurrency(saidasMesFinance));
           _set(
             "fdtSaidasMesHint",
-            `${monthKeyFin.slice(5, 7)}/${monthKeyFin.slice(0, 4)} · pagamentos no caixa`
+            `${monthKeyFin.slice(5, 7)}/${monthKeyFin.slice(0, 4)} · pagamentos no caixa (inclui sangria)`
           );
           _set("fdtResultadoMes", formatCurrency(resultadoMesFinance));
           _set(
             "fdtResultadoMesLabel",
-            resultadoMesFinance >= 0 ? "Lucro (recebimentos confirmados − despesas)" : "Prejuízo (recebimentos confirmados − despesas)"
+            resultadoMesFinance >= 0
+              ? "Lucro operacional (recebimentos − despesas, exclui sangria)"
+              : "Prejuízo operacional (recebimentos − despesas, exclui sangria)"
           );
           const fdtResEmoji = _fd("fdtResultadoTituloEmoji");
           if (fdtResEmoji) fdtResEmoji.textContent = resultadoMesFinance >= 0 ? "🟢" : "🔴";
@@ -11218,11 +11243,13 @@
           _set("fdEntradasMes", formatCurrency(entradasMesDiarias));
           _set("fdEntradasMesHint", `Recebimentos confirmados em ${monthKeyFin.slice(5, 7)}/${monthKeyFin.slice(0, 4)}`);
           _set("fdSaidasMes", formatCurrency(saidasMesFinance));
-          _set("fdSaidasMesHint", "Pagamentos registrados no caixa (mês)");
+          _set("fdSaidasMesHint", "Pagamentos registrados no caixa (mês, inclui sangria)");
           _set("fdResultadoMes", formatCurrency(resultadoMesFinance));
           _set(
             "fdResultadoMesLabel",
-            resultadoMesFinance >= 0 ? "Recebimentos confirmados − despesas pagas" : "Recebimentos confirmados − despesas pagas"
+            resultadoMesFinance >= 0
+              ? "Resultado operacional (exclui sangria)"
+              : "Resultado operacional (exclui sangria)"
           );
           const fdResCard = _fd("fdResultadoCard");
           if (fdResCard) {
