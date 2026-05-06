@@ -9399,7 +9399,11 @@
           if (mov.tipo_conta === "PAGAR") return sum - Number(mov.valor || 0);
           return sum + Number(mov.valor || 0);
         }, 0);
-        const receitaHojeConfirmada = sumReceivableRevenueByDay(todayYmd, state.receivables || [], state.cash || []);
+        const veiculosNoPatioHoje = [...noPatio, ...vls];
+        const diariasDemonstrativasHoje = veiculosNoPatioHoje.reduce(
+          (sum, v) => sum + Number(calcDiariaValorGeradoNoDiaLocal(v, todayYmd) || 0),
+          0
+        );
         if (dashboardFinanceReceberValue) dashboardFinanceReceberValue.textContent = formatCurrency(totalReceberDashboard);
         if (dashboardFinanceReceberMeta) dashboardFinanceReceberMeta.textContent = `${openReceivablesFinanceiro.length} em aberto`;
         if (dashboardFinancePagarValue) dashboardFinancePagarValue.textContent = formatCurrency(totalPagarDashboard);
@@ -9407,8 +9411,8 @@
         if (dashboardFinanceCaixaValue) dashboardFinanceCaixaValue.textContent = formatCurrency(caixaDashboard);
         if (dashboardFinanceCaixaMeta)
           dashboardFinanceCaixaMeta.textContent = `Movimentações: ${(state.cash || []).length} · saldo consolidado`;
-        if (dashboardDiariasPatioValue) dashboardDiariasPatioValue.textContent = formatCurrency(receitaHojeConfirmada);
-        if (dashboardDiariasPatioMeta) dashboardDiariasPatioMeta.textContent = `${noPatio.length + vls.length} VNP`;
+        if (dashboardDiariasPatioValue) dashboardDiariasPatioValue.textContent = formatCurrency(diariasDemonstrativasHoje);
+        if (dashboardDiariasPatioMeta) dashboardDiariasPatioMeta.textContent = `${veiculosNoPatioHoje.length} no pátio (demonstrativo)`;
 
         const chartPeriodEl = document.getElementById("dashboardChartPeriod");
         const selectedPeriod = chartPeriodEl?.value || "mes";
