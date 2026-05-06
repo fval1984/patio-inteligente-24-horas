@@ -3596,51 +3596,6 @@
         font-size: 0.78rem;
         color: var(--muted);
       }
-      .dashboard-charts {
-        grid-column: 1 / -1;
-        margin-top: 6px;
-      }
-      .dashboard-charts-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 10px;
-      }
-      .dashboard-charts-head h3 {
-        margin: 0;
-        font-size: 1rem;
-      }
-      .dashboard-charts-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 10px;
-      }
-      .dashboard-chart-card {
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        border-radius: 12px;
-        padding: 10px;
-        background: rgba(15, 19, 26, 0.55);
-      }
-      [data-theme="light"] .dashboard-chart-card {
-        background: #ffffff;
-        border-color: rgba(148, 163, 184, 0.35);
-      }
-      .dashboard-chart-title {
-        margin: 0 0 6px;
-        font-size: 0.85rem;
-        color: var(--muted);
-      }
-      .dashboard-chart-legend {
-        margin-top: 6px;
-        font-size: 0.74rem;
-        color: var(--muted);
-      }
-      .dashboard-chart-svg {
-        width: 100%;
-        height: 128px;
-        display: block;
-      }
     </style>
   </head>
   <body>
@@ -3984,74 +3939,6 @@
                 </span>
               </div>
               <div class="card-value" id="cardNfsePendente">0</div>
-            </div>
-            <section class="dashboard-charts section-card">
-              <div class="dashboard-charts-head">
-                <h3>Financeiro no tempo</h3>
-                <label>
-                  Período
-                  <select id="dashboardChartPeriod">
-                    <option value="dia">Dia</option>
-                    <option value="semana">Semana</option>
-                    <option value="mes" selected>Mês</option>
-                  </select>
-                </label>
-              </div>
-              <div class="dashboard-charts-grid">
-                <div class="dashboard-chart-card">
-                  <p class="dashboard-chart-title">Fluxo de caixa (entrada vs saída)</p>
-                  <svg id="dashboardCashFlowSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                </div>
-                <div class="dashboard-chart-card">
-                  <p class="dashboard-chart-title">Saldo de caixa (evolução)</p>
-                  <svg id="dashboardBalanceSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                </div>
-                <div class="dashboard-chart-card">
-                  <p class="dashboard-chart-title">Receitas vs despesas</p>
-                  <svg id="dashboardCompareSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                </div>
-                <div class="dashboard-chart-card">
-                  <p class="dashboard-chart-title">Despesas por categoria</p>
-                  <svg id="dashboardExpenseCategorySvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                </div>
-                <div class="dashboard-chart-card">
-                  <p class="dashboard-chart-title">Top clientes</p>
-                  <svg id="dashboardTopClientsSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                </div>
-                <div class="dashboard-chart-card">
-                  <p class="dashboard-chart-title">Contas a pagar vs receber (aging)</p>
-                  <svg id="dashboardAgingSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                  <div class="dashboard-chart-legend">Azul: a receber • Vermelho: a pagar</div>
-                </div>
-              </div>
-            </section>
-            <div id="financeTopDashboard" class="section-card finance-top-dashboard dashboard-embed-finance hidden" style="grid-column: 1 / -1; margin-top: 8px">
-              <p class="dashboard-embed-kicker">Resumo — Operação financeira</p>
-              <p class="notice" style="margin: 0 0 12px; max-width: 42rem; line-height: 1.45; font-size: 13px">
-                Mesmos números da competência das contas no app.
-              </p>
-              <div class="finance-dashboard-grid finance-dashboard-grid--essential">
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">💰 Saldo atual</div>
-                  <div class="finance-kpi-value" id="fdtCaixaAtual">R$ 0,00</div>
-                  <div class="finance-kpi-meta" id="fdtCaixaStatus">Saldo consolidado no caixa</div>
-                </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">📈 Entradas do mês</div>
-                  <div class="finance-kpi-value" id="fdtEntradasMes">R$ 0,00</div>
-                  <div class="finance-kpi-meta" id="fdtEntradasMesHint">Recebimentos no caixa (competência)</div>
-                </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">📉 Saídas do mês</div>
-                  <div class="finance-kpi-value" id="fdtSaidasMes">R$ 0,00</div>
-                  <div class="finance-kpi-meta" id="fdtSaidasMesHint">Pagamentos no caixa (competência)</div>
-                </div>
-                <div class="finance-kpi-card" id="fdtResultadoCard">
-                  <div class="finance-kpi-title"><span id="fdtResultadoTituloEmoji" aria-hidden="true">🟢</span> Resultado</div>
-                  <div class="finance-kpi-value" id="fdtResultadoMes">R$ 0,00</div>
-                  <div class="finance-kpi-meta" id="fdtResultadoMesLabel">Lucro ou prejuízo no mês (entradas − saídas)</div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -8479,7 +8366,6 @@
         document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
         if (!isGestorPista) {
           document.getElementById("dashboardSystemEntry")?.classList.remove("dashboard-system-entry--single");
-          document.getElementById("financeTopDashboard")?.classList.remove("hidden");
           return;
         }
 
@@ -8506,7 +8392,6 @@
             '#headerDetailsPatio [data-header-patio-sub="removidos"], #headerDetailsPatio [data-header-patio-sub="nfse_pendente"], #headerDetailsPatio [data-header-patio-sub="fechando_ciclo"]'
           )
           .forEach((el) => el.classList.add("hidden"));
-        document.getElementById("financeTopDashboard")?.classList.add("hidden");
         document.getElementById("dashboardSystemEntry")?.classList.add("dashboard-system-entry--single");
         document.getElementById("openConfigFromPatio")?.classList.add("hidden");
         document.getElementById("openConfigFromFinanceiro")?.classList.add("hidden");
@@ -8927,216 +8812,6 @@
         updateDashboard();
       }
 
-      function renderDashboardFinanceCharts(period) {
-        const mode = ["dia", "semana", "mes"].includes(period) ? period : "mes";
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const buckets = [];
-        const bucketMap = new Map();
-        const mkYmd = (date) =>
-          `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-        const addBucket = (key, label) => {
-          const bucket = { key, label, entrada: 0, saida: 0 };
-          buckets.push(bucket);
-          bucketMap.set(key, bucket);
-        };
-        if (mode === "dia") {
-          for (let i = 13; i >= 0; i--) {
-            const d = new Date(today);
-            d.setDate(d.getDate() - i);
-            const key = mkYmd(d);
-            addBucket(key, `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`);
-          }
-        } else if (mode === "semana") {
-          const base = new Date(today);
-          const day = base.getDay();
-          const diffToMonday = day === 0 ? 6 : day - 1;
-          base.setDate(base.getDate() - diffToMonday);
-          for (let i = 7; i >= 0; i--) {
-            const d = new Date(base);
-            d.setDate(d.getDate() - i * 7);
-            const key = mkYmd(d);
-            addBucket(key, `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`);
-          }
-        } else {
-          for (let i = 5; i >= 0; i--) {
-            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-            addBucket(key, String(d.getMonth() + 1).padStart(2, "0"));
-          }
-        }
-        if (!buckets.length) return;
-        const firstKey = buckets[0].key;
-        let saldoInicial = 0;
-        (state.cash || []).forEach((mov) => {
-          const ymd = toLocalYmd(mov.data_movimento || mov.created_at);
-          if (!ymd) return;
-          let key = null;
-          if (mode === "dia") key = ymd;
-          else if (mode === "semana") {
-            const d = new Date(`${ymd}T00:00:00`);
-            const day = d.getDay();
-            const diffToMonday = day === 0 ? 6 : day - 1;
-            d.setDate(d.getDate() - diffToMonday);
-            key = mkYmd(d);
-          } else key = yearMonthFromYmd(ymd);
-          const val = Number(mov.valor || 0);
-          const signed = mov.tipo_conta === "PAGAR" ? -val : val;
-          if (key && bucketMap.has(key)) {
-            if (mov.tipo_conta === "PAGAR") bucketMap.get(key).saida += val;
-            else bucketMap.get(key).entrada += val;
-          } else if ((mode === "mes" && yearMonthFromYmd(ymd) < firstKey) || (mode !== "mes" && ymd < firstKey)) {
-            saldoInicial += signed;
-          }
-        });
-        const maxFlow = Math.max(1, ...buckets.map((b) => b.entrada), ...buckets.map((b) => b.saida));
-        const flowPointsIn = buckets
-          .map((b, i) => `${18 + (i * 320) / Math.max(1, buckets.length - 1)},${108 - (b.entrada / maxFlow) * 84}`)
-          .join(" ");
-        const flowPointsOut = buckets
-          .map((b, i) => `${18 + (i * 320) / Math.max(1, buckets.length - 1)},${108 - (b.saida / maxFlow) * 84}`)
-          .join(" ");
-        const flowSvg = document.getElementById("dashboardCashFlowSvg");
-        if (flowSvg) {
-          flowSvg.innerHTML = `
-            <polyline points="${flowPointsIn}" fill="none" stroke="#38bdf8" stroke-width="3"></polyline>
-            <polyline points="${flowPointsOut}" fill="none" stroke="#f87171" stroke-width="3"></polyline>
-          `;
-        }
-        const saldos = [];
-        let saldo = saldoInicial;
-        buckets.forEach((b) => {
-          saldo += b.entrada - b.saida;
-          saldos.push(saldo);
-        });
-        const minSaldo = Math.min(0, ...saldos);
-        const maxSaldo = Math.max(1, ...saldos);
-        const spanSaldo = Math.max(1, maxSaldo - minSaldo);
-        const saldoPoints = saldos
-          .map((v, i) => `${18 + (i * 320) / Math.max(1, saldos.length - 1)},${108 - ((v - minSaldo) / spanSaldo) * 84}`)
-          .join(" ");
-        const balanceSvg = document.getElementById("dashboardBalanceSvg");
-        if (balanceSvg) {
-          balanceSvg.innerHTML = `<polyline points="${saldoPoints}" fill="none" stroke="#2dd4bf" stroke-width="3"></polyline>`;
-        }
-        const compareSvg = document.getElementById("dashboardCompareSvg");
-        if (compareSvg) {
-          const slot = 320 / Math.max(1, buckets.length);
-          const barW = Math.max(6, Math.min(16, slot / 3));
-          compareSvg.innerHTML = buckets
-            .map((b, i) => {
-              const x = 18 + i * slot + slot * 0.2;
-              const hIn = Math.max(2, (b.entrada / maxFlow) * 84);
-              const hOut = Math.max(2, (b.saida / maxFlow) * 84);
-              return `
-                <rect x="${x}" y="${108 - hIn}" width="${barW}" height="${hIn}" rx="3" fill="#60a5fa"></rect>
-                <rect x="${x + barW + 3}" y="${108 - hOut}" width="${barW}" height="${hOut}" rx="3" fill="#fb7185"></rect>
-              `;
-            })
-            .join("");
-        }
-        const topExpenseCategories = [...(state.payables || [])]
-          .reduce((acc, p) => {
-            const cat =
-              (p.payable_category || p.categoria || p.centro_custo || p.subcategoria || "Outros").toString().trim() || "Outros";
-            acc.set(cat, (acc.get(cat) || 0) + Number(p.valor || 0));
-            return acc;
-          }, new Map());
-        const expenseRows = [...topExpenseCategories.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 5);
-        const expenseMax = Math.max(1, ...expenseRows.map(([, v]) => v));
-        const expenseSvg = document.getElementById("dashboardExpenseCategorySvg");
-        if (expenseSvg) {
-          expenseSvg.innerHTML = expenseRows.length
-            ? expenseRows
-                .map(([name, value], idx) => {
-                  const y = 10 + idx * 23;
-                  const w = 180 * (value / expenseMax);
-                  return `
-                    <text x="8" y="${y + 11}" font-size="9" fill="currentColor">${escapeHtml(name).slice(0, 18)}</text>
-                    <rect x="150" y="${y}" width="${w}" height="10" rx="3" fill="#fb7185"></rect>
-                    <text x="${155 + w}" y="${y + 9}" font-size="9" fill="currentColor">${escapeHtml(formatCurrency(value))}</text>
-                  `;
-                })
-                .join("")
-            : `<text x="8" y="20" font-size="10" fill="currentColor">Sem despesas lançadas.</text>`;
-        }
-        const topClientsMap = [...(state.receivables || [])]
-          .reduce((acc, r) => {
-            const client = (r.responsavel_pagamento || r.cliente || "Sem cliente").toString().trim() || "Sem cliente";
-            acc.set(client, (acc.get(client) || 0) + Number(r.valor || 0));
-            return acc;
-          }, new Map());
-        const topClients = [...topClientsMap.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 5);
-        const topClientsMax = Math.max(1, ...topClients.map(([, v]) => v));
-        const topClientsSvg = document.getElementById("dashboardTopClientsSvg");
-        if (topClientsSvg) {
-          topClientsSvg.innerHTML = topClients.length
-            ? topClients
-                .map(([name, value], idx) => {
-                  const y = 10 + idx * 23;
-                  const w = 180 * (value / topClientsMax);
-                  return `
-                    <text x="8" y="${y + 11}" font-size="9" fill="currentColor">${escapeHtml(name).slice(0, 18)}</text>
-                    <rect x="150" y="${y}" width="${w}" height="10" rx="3" fill="#60a5fa"></rect>
-                    <text x="${155 + w}" y="${y + 9}" font-size="9" fill="currentColor">${escapeHtml(formatCurrency(value))}</text>
-                  `;
-                })
-                .join("")
-            : `<text x="8" y="20" font-size="10" fill="currentColor">Sem clientes lançados.</text>`;
-        }
-        const agingBuckets = [
-          { key: "vencido", label: "Vencido", receber: 0, pagar: 0 },
-          { key: "d0_30", label: "0-30", receber: 0, pagar: 0 },
-          { key: "d31_60", label: "31-60", receber: 0, pagar: 0 },
-          { key: "d61p", label: "61+", receber: 0, pagar: 0 },
-        ];
-        const daysUntil = (ymd) => {
-          if (!ymd) return null;
-          const due = new Date(`${ymd}T00:00:00`);
-          const diff = Math.floor((due.getTime() - today.getTime()) / 86400000);
-          return Number.isFinite(diff) ? diff : null;
-        };
-        const placeAging = (days, amount, side) => {
-          if (days == null) return;
-          let bucket = null;
-          if (days < 0) bucket = agingBuckets[0];
-          else if (days <= 30) bucket = agingBuckets[1];
-          else if (days <= 60) bucket = agingBuckets[2];
-          else bucket = agingBuckets[3];
-          bucket[side] += amount;
-        };
-        (state.receivables || []).forEach((r) => {
-          if (r.status === "PAGO") return;
-          const ymd = toLocalYmd(r.data_vencimento || r.period_end || r.created_at);
-          placeAging(daysUntil(ymd), Number(r.valor || 0), "receber");
-        });
-        (state.payables || []).forEach((p) => {
-          if (p.status === "PAGO") return;
-          const ymd = toLocalYmd(p.data_vencimento || p.created_at);
-          placeAging(daysUntil(ymd), Number(p.valor || 0), "pagar");
-        });
-        const agingMax = Math.max(1, ...agingBuckets.map((b) => b.receber), ...agingBuckets.map((b) => b.pagar));
-        const agingSvg = document.getElementById("dashboardAgingSvg");
-        if (agingSvg) {
-          agingSvg.innerHTML = agingBuckets
-            .map((b, idx) => {
-              const x = 18 + idx * 78;
-              const hr = Math.max(2, (b.receber / agingMax) * 72);
-              const hp = Math.max(2, (b.pagar / agingMax) * 72);
-              return `
-                <rect x="${x}" y="${104 - hr}" width="20" height="${hr}" rx="3" fill="#60a5fa"></rect>
-                <rect x="${x + 24}" y="${104 - hp}" width="20" height="${hp}" rx="3" fill="#fb7185"></rect>
-                <text x="${x}" y="118" font-size="9" fill="currentColor">${b.label}</text>
-              `;
-            })
-            .join("");
-        }
-      }
-
       function updateDashboard() {
         const noPatio = state.vehicles.filter((v) => v.status === "NO_PATIO");
         const vls = state.vehicles.filter((v) =>
@@ -9205,13 +8880,6 @@
         if (piSH) piSH.textContent = String(saidasHoje);
         if (piVrp) piVrp.textContent = String(removidosCount);
         if (piNfse) piNfse.textContent = String(nfsePendCount);
-        const chartPeriodEl = document.getElementById("dashboardChartPeriod");
-        const selectedPeriod = chartPeriodEl?.value || "mes";
-        renderDashboardFinanceCharts(selectedPeriod);
-        if (chartPeriodEl && !chartPeriodEl.dataset.bound) {
-          chartPeriodEl.addEventListener("change", () => renderDashboardFinanceCharts(chartPeriodEl.value || "mes"));
-          chartPeriodEl.dataset.bound = "1";
-        }
       }
 
       /** Para busca: só letras/números; ignora hífen/espaço (consulta acontece apenas no OK). */
@@ -10937,7 +10605,6 @@
         const stdArea = document.getElementById("financeStandardArea");
         const cloArea = document.getElementById("financeClosureArea");
         const dashArea = document.getElementById("financeDetailDashboard");
-        const dashTopArea = document.getElementById("financeTopDashboard");
         const hideAllFinanceAreas = () => {
           if (stdArea) stdArea.classList.add("hidden");
           if (cloArea) cloArea.classList.add("hidden");
@@ -10958,34 +10625,6 @@
           const el = _fd(id);
           if (el) el.textContent = txt;
         };
-
-        if (dashTopArea) {
-          _set("fdtCaixaAtual", formatCurrency(caixa));
-          _set("fdtCaixaStatus", caixa >= 0 ? "Saldo positivo no caixa" : "Saldo negativo no caixa");
-          _set("fdtEntradasMes", formatCurrency(entradasMesDiarias));
-          _set(
-            "fdtEntradasMesHint",
-            `${monthKeyFin.slice(5, 7)}/${monthKeyFin.slice(0, 4)} · diárias geradas no mês`
-          );
-          _set("fdtSaidasMes", formatCurrency(saidasMesFinance));
-          _set(
-            "fdtSaidasMesHint",
-            `${monthKeyFin.slice(5, 7)}/${monthKeyFin.slice(0, 4)} · pagamentos no caixa`
-          );
-          _set("fdtResultadoMes", formatCurrency(resultadoMesFinance));
-          _set(
-            "fdtResultadoMesLabel",
-            resultadoMesFinance >= 0 ? "Lucro (diárias geradas − despesas)" : "Prejuízo (diárias geradas − despesas)"
-          );
-          const fdtResEmoji = _fd("fdtResultadoTituloEmoji");
-          if (fdtResEmoji) fdtResEmoji.textContent = resultadoMesFinance >= 0 ? "🟢" : "🔴";
-          const fdtResCard = _fd("fdtResultadoCard");
-          if (fdtResCard) {
-            fdtResCard.classList.remove("finance-kpi-card--profit", "finance-kpi-card--loss", "kpi-alert-success", "kpi-alert-danger");
-            fdtResCard.classList.add(resultadoMesFinance >= 0 ? "finance-kpi-card--profit" : "finance-kpi-card--loss");
-            fdtResCard.classList.add(resultadoMesFinance >= 0 ? "kpi-alert-success" : "kpi-alert-danger");
-          }
-        }
 
         if (_fd("fdCaixaAtual")) {
           _set("fdCaixaAtual", formatCurrency(caixa));
