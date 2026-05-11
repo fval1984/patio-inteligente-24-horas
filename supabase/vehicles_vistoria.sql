@@ -1,5 +1,6 @@
 -- Executar uma vez no SQL Editor do Supabase (projeto correto).
 -- Habilita o laudo de vistoria no cadastro/ficha do veículo.
+-- Para vistoria + leiloeiro + RPF juntos: vehicles_recursos_avancados.sql ou início de finance_competency_schema.sql.
 
 ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS vistoria_data timestamptz;
 ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS vistoria_responsavel text;

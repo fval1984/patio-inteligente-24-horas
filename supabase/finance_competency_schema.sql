@@ -1,8 +1,25 @@
 -- Regime de competência para financeiro/contábil.
 -- Não remove histórico: usa status, timestamps e referências de origem.
 
--- Pré-requisito no cadastro de veículos: RPF (responsável financeiro), usado pelo app ao gravar.
--- Idempotente (IF NOT EXISTS). Também existe supabase/vehicles_rpf_responsavel_financeiro.sql isolado.
+-- Pré-requisitos no cadastro de veículos (app): laudo de vistoria, leiloeiro e RPF.
+-- Idempotente (IF NOT EXISTS). Agregado em supabase/vehicles_recursos_avancados.sql; RPF também em vehicles_rpf_responsavel_financeiro.sql.
+
+alter table public.vehicles add column if not exists vistoria_data timestamptz;
+alter table public.vehicles add column if not exists vistoria_responsavel text;
+alter table public.vehicles add column if not exists vistoria_km text;
+alter table public.vehicles add column if not exists vistoria_combustivel text;
+alter table public.vehicles add column if not exists vistoria_checklist jsonb not null default '{}'::jsonb;
+alter table public.vehicles add column if not exists vistoria_observacoes text;
+comment on column public.vehicles.vistoria_data is 'Data/hora da vistoria no cadastro do veículo.';
+comment on column public.vehicles.vistoria_responsavel is 'Nome do responsável pela vistoria.';
+comment on column public.vehicles.vistoria_km is 'Quilometragem no momento da vistoria.';
+comment on column public.vehicles.vistoria_combustivel is 'Nível de combustível na vistoria.';
+comment on column public.vehicles.vistoria_checklist is 'Checklist (documento/chave/estepe/triângulo-macaco).';
+comment on column public.vehicles.vistoria_observacoes is 'Avarias e observações da vistoria.';
+
+alter table public.vehicles add column if not exists leiloeiro_id uuid;
+comment on column public.vehicles.leiloeiro_id is 'Parceiro leiloeiro associado ao veículo.';
+
 alter table public.vehicles add column if not exists responsavel_financeiro_id uuid;
 alter table public.vehicles add column if not exists responsavel_financeiro_nome text;
 comment on column public.vehicles.responsavel_financeiro_id is 'Parceiro RPF (pagamento); pode coincidir com o RPV (localizador_id) ou ser outro.';
