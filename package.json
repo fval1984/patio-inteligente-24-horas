@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "db:apply-vehicles": "node scripts/apply-vehicles-recursos.cjs",
     "dev": "next dev",
     "vercel-build": "next build",
     "build": "next build",
