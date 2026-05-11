@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:apply-financeiro-dual": "node scripts/apply-financeiro-dual.mjs"
+    "db:apply-financeiro-dual": "node scripts/apply-financeiro-dual.mjs",
+    "git:push-main": "git push origin main && git push upstream main"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.0",
