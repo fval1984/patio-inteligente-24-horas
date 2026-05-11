@@ -8,7 +8,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:apply-financeiro-dual": "node scripts/apply-financeiro-dual.mjs",
     "git:push-main": "git push upstream main && git push origin main"
   },
   "dependencies": {
