@@ -1,0 +1,279 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BankProvider {
+  INTER
+  NUBANK
+  ITAU
+  OPEN_FINANCE
+}
+
+enum BankTransactionDirection {
+  CREDIT
+  DEBIT
+}
+
+enum BankTransactionStatus {
+  PENDING
+  POSTED
+  REVERSED
+  UNKNOWN
+}
+
+enum AccountReceivableStatus {
+  OPEN
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+}
+
+enum AccountPayableStatus {
+  OPEN
+  PAID
+  CANCELLED
+}
+
+enum PixPaymentStatus {
+  CREATED
+  PENDING
+  CONFIRMED
+  FAILED
+  CANCELLED
+}
+
+enum ReconciliationMatchType {
+  EXACT
+  PARTIAL
+  POSSIBLE
+}
+
+enum ReconciliationRecordStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+enum WebhookProcessingStatus {
+  RECEIVED
+  VERIFIED
+  PROCESSED
+  FAILED
+}
+
+model BankAccount {
+  id                    String       @id @default(uuid())
+  tenantId              String       @map("tenant_id")
+  provider              BankProvider
+  label                 String?
+  externalAccountKey    String?      @map("external_account_key")
+  agency                String?
+  accountNumber         String?      @map("account_number")
+  currency              String       @default("BRL")
+  isActive              Boolean      @default(true) @map("is_active")
+  metadata              Json?
+  lastStatementSyncAt   DateTime?    @map("last_statement_sync_at")
+  lastIncrementalCursor String?      @map("last_incremental_cursor")
+  createdAt             DateTime     @default(now()) @map("created_at")
+  updatedAt             DateTime     @updatedAt @map("updated_at")
+  deletedAt             DateTime?    @map("deleted_at")
+
+  credential    BankCredential?
+  transactions  BankTransaction[]
+  cashflows     FinancialCashflow[]
+
+  @@index([tenantId, provider, deletedAt])
+  @@map("bank_accounts")
+}
+
+model BankCredential {
+  id             String   @id @default(uuid())
+  bankAccountId  String   @unique @map("bank_account_id")
+  encryptedBlob  String   @map("encrypted_blob")
+  iv             String
+  authTag        String   @map("auth_tag")
+  oauthScopes    String?  @map("oauth_scopes")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+
+  @@map("bank_credentials")
+}
+
+model BankTransaction {
+  id                   String                   @id @default(uuid())
+  bankAccountId        String                   @map("bank_account_id")
+  tenantId             String                   @map("tenant_id")
+  externalId           String                   @map("external_id")
+  amount               Decimal                  @db.Decimal(18, 2)
+  currency             String                   @default("BRL")
+  description          String?
+  bookedAt             DateTime                 @map("booked_at")
+  direction            BankTransactionDirection
+  status               BankTransactionStatus    @default(POSTED)
+  payerDocument        String?                  @map("payer_document")
+  payerName            String?                  @map("payer_name")
+  pixTxid              String?                  @map("pix_txid")
+  endToEndId           String?                  @map("end_to_end_id")
+  rawPayload           Json                     @map("raw_payload")
+  reconciled           Boolean                  @default(false)
+  createdAt            DateTime                 @default(now()) @map("created_at")
+  updatedAt            DateTime                 @updatedAt @map("updated_at")
+  deletedAt            DateTime?                @map("deleted_at")
+
+  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  reconciliations FinancialReconciliation[]
+
+  @@unique([bankAccountId, externalId])
+  @@index([tenantId, bookedAt])
+  @@index([pixTxid])
+  @@index([payerDocument])
+  @@map("bank_transactions")
+}
+
+model AccountReceivable {
+  id              String                  @id @default(uuid())
+  tenantId        String                  @map("tenant_id")
+  title           String?
+  description     String?
+  totalAmount     Decimal                 @map("total_amount") @db.Decimal(18, 2)
+  balanceAmount   Decimal                 @map("balance_amount") @db.Decimal(18, 2)
+  dueDate         DateTime?               @map("due_date")
+  status          AccountReceivableStatus @default(OPEN)
+  payerDocument   String?                 @map("payer_document")
+  linkedPixTxid   String?                 @map("linked_pix_txid")
+  externalRef     String?                 @map("external_ref")
+  metadata        Json?
+  createdAt       DateTime                @default(now()) @map("created_at")
+  updatedAt       DateTime                @updatedAt @map("updated_at")
+  deletedAt       DateTime?               @map("deleted_at")
+
+  pixPayments     PixPayment[]
+  reconciliations FinancialReconciliation[]
+
+  @@index([tenantId, status])
+  @@index([linkedPixTxid])
+  @@map("accounts_receivable")
+}
+
+model AccountPayable {
+  id            String             @id @default(uuid())
+  tenantId      String             @map("tenant_id")
+  title         String?
+  description   String?
+  totalAmount   Decimal            @map("total_amount") @db.Decimal(18, 2)
+  balanceAmount Decimal            @map("balance_amount") @db.Decimal(18, 2)
+  dueDate       DateTime?          @map("due_date")
+  status        AccountPayableStatus @default(OPEN)
+  beneficiaryDocument String?      @map("beneficiary_document")
+  externalRef   String?            @map("external_ref")
+  metadata      Json?
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  deletedAt     DateTime?          @map("deleted_at")
+
+  @@index([tenantId, status])
+  @@map("accounts_payable")
+}
+
+model PixPayment {
+  id                   String           @id @default(uuid())
+  tenantId             String           @map("tenant_id")
+  txid                 String
+  status               PixPaymentStatus @default(PENDING)
+  amount               Decimal?         @db.Decimal(18, 2)
+  payerDocument        String?          @map("payer_document")
+  payerName            String?          @map("payer_name")
+  endToEndId           String?          @map("end_to_end_id")
+  accountsReceivableId String?          @map("accounts_receivable_id")
+  rawPayload           Json             @map("raw_payload")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+  deletedAt            DateTime?        @map("deleted_at")
+
+  receivable AccountReceivable? @relation(fields: [accountsReceivableId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, txid])
+  @@index([endToEndId])
+  @@map("pix_payments")
+}
+
+model WebhookLog {
+  id               String                 @id @default(uuid())
+  provider         BankProvider
+  route            String
+  headersSnapshot  Json                   @map("headers_snapshot")
+  body             Json
+  signatureValid   Boolean                @map("signature_valid")
+  processingStatus WebhookProcessingStatus @map("processing_status")
+  errorMessage     String?                @map("error_message")
+  createdAt        DateTime               @default(now()) @map("created_at")
+  processedAt      DateTime?              @map("processed_at")
+
+  @@index([provider, createdAt])
+  @@map("webhook_logs")
+}
+
+model FinancialReconciliation {
+  id                    String                     @id @default(uuid())
+  tenantId              String                     @map("tenant_id")
+  bankTransactionId     String?                    @map("bank_transaction_id")
+  accountsReceivableId  String?                    @map("accounts_receivable_id")
+  matchType             ReconciliationMatchType  @map("match_type")
+  score                 Decimal                    @db.Decimal(5, 4)
+  status                ReconciliationRecordStatus @default(PENDING)
+  rulesMatched          Json                       @map("rules_matched")
+  notes                 String?
+  createdAt             DateTime                   @default(now()) @map("created_at")
+  updatedAt             DateTime                   @updatedAt @map("updated_at")
+  deletedAt             DateTime?                  @map("deleted_at")
+
+  bankTransaction    BankTransaction?    @relation(fields: [bankTransactionId], references: [id], onDelete: SetNull)
+  accountsReceivable AccountReceivable? @relation(fields: [accountsReceivableId], references: [id], onDelete: SetNull)
+  logs                ReconciliationLog[]
+
+  @@index([tenantId, status])
+  @@index([bankTransactionId])
+  @@map("financial_reconciliation")
+}
+
+model ReconciliationLog {
+  id                String   @id @default(uuid())
+  reconciliationId  String   @map("reconciliation_id")
+  action            String
+  details           Json?
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  reconciliation FinancialReconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+
+  @@index([reconciliationId, createdAt])
+  @@map("reconciliation_logs")
+}
+
+model FinancialCashflow {
+  id              String   @id @default(uuid())
+  bankAccountId   String   @map("bank_account_id")
+  tenantId        String   @map("tenant_id")
+  periodYmd       String   @map("period_ymd")
+  openingBalance  Decimal  @map("opening_balance") @db.Decimal(18, 2)
+  credits         Decimal  @db.Decimal(18, 2)
+  debits          Decimal  @db.Decimal(18, 2)
+  closingBalance  Decimal  @map("closing_balance") @db.Decimal(18, 2)
+  snapshotAt      DateTime @map("snapshot_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([bankAccountId, periodYmd])
+  @@index([tenantId, periodYmd])
+  @@map("financial_cashflow")
+}
