@@ -4162,7 +4162,8 @@
               <p class="module-kicker module-kicker--finance" style="margin: 0 0 4px">Consulta</p>
               <h2 style="margin: 0">Lista</h2>
               <p class="subtitle" style="margin: 6px 0 0; max-width: 42rem">
-                Filtros comuns (RPV, RFV, assessoria e texto tipo banco) aplicam-se à área escolhida. Para editar ou lançar valores, use as abas
+                Filtros comuns (RPV, RPF, assessoria e texto tipo banco) aplicam-se à área escolhida. <strong>RPV</strong> é quem trouxe o veículo;
+                <strong>RPF</strong> é o responsável financeiro / pagamento (lista de parceiros igual à do RPV). Para editar ou lançar valores, use as abas
                 <strong>Gestão de pátio</strong> e <strong>Financeiro</strong>.
               </p>
             </div>
@@ -4192,8 +4193,8 @@
               </select>
             </div>
             <div>
-              <label for="listaFilterRfv">RFV</label>
-              <select id="listaFilterRfv" style="min-width: 11rem" title="Responsável financeiro (como no cadastro do veículo)">
+              <label for="listaFilterRpf">RPF</label>
+              <select id="listaFilterRpf" style="min-width: 11rem" title="Responsável financeiro / pagamento (mesma lista de parceiros RPV; papel diferente no registo)">
                 <option value="">Todos</option>
               </select>
             </div>
@@ -4393,7 +4394,7 @@
                     <th>Veículo</th>
                     <th>RPV</th>
                     <th>Assessoria</th>
-                    <th>RFV</th>
+                    <th>RPF</th>
                     <th>Entrada</th>
                     <th>Valor gerado</th>
                     <th>Ações</th>
@@ -4414,7 +4415,7 @@
                     <th>Veículo</th>
                     <th>RPV</th>
                     <th>Assessoria</th>
-                    <th>RFV</th>
+                    <th>RPF</th>
                     <th>Entrada</th>
                     <th>Saída</th>
                     <th>Valor total</th>
@@ -4436,7 +4437,7 @@
                     <th>Veículo</th>
                     <th>RPV</th>
                     <th>Assessoria</th>
-                    <th>RFV</th>
+                    <th>RPF</th>
                     <th>Entrada</th>
                     <th>Valor gerado</th>
                     <th>Ações</th>
@@ -4449,7 +4450,7 @@
             <div class="section-card patio-subview hidden" data-subview="fechando_ciclo">
               <div class="pill">Fechando ciclo</div>
               <p class="notice" style="margin: 0 0 12px">
-                Triagem antes do Financeiro: confira o responsável financeiro (RFV), se a NF foi emitida e se já foi enviada.
+                Triagem antes do Financeiro: confira o <strong>RPF</strong> (responsável financeiro / pagamento; mesma origem de cadastro que o RPV), se a NF foi emitida e se já foi enviada.
                 Marque os três itens e confirme OK para o ciclo entrar em Financeiro → Contas a receber.
               </p>
               <div class="table-wrap">
@@ -4459,7 +4460,7 @@
                       <th>Placa</th>
                       <th>Registo</th>
                       <th>Veículo</th>
-                      <th>RFV</th>
+                      <th>RPF</th>
                       <th>NF emitida</th>
                       <th>NF enviada</th>
                       <th>Diárias / período</th>
@@ -4669,7 +4670,7 @@
             <select id="financeReceberFilterAss" style="min-width: 10rem">
               <option value="">Todas</option>
             </select>
-            <label for="financeReceberFilterResp">Responsável financeiro</label>
+            <label for="financeReceberFilterResp">RPF (responsável financeiro)</label>
             <select id="financeReceberFilterResp" style="min-width: 11rem">
               <option value="">Todos</option>
             </select>
@@ -5173,7 +5174,7 @@
                 <select id="vehicleAssessor"></select>
               </div>
               <div class="field-operador-hide">
-                <label>Responsável financeiro</label>
+                <label>RPF (responsável financeiro / pagamento; mesma lista de parceiros do RPV)</label>
                 <select id="vehicleFinancialResponsible"></select>
               </div>
               <div class="field-operador-hide">
@@ -5402,7 +5403,7 @@
               </select>
             </div>
             <div class="full">
-              <label for="financePrintFilterResponsavel">Somente responsável financeiro</label>
+              <label for="financePrintFilterResponsavel">Somente RPF (responsável financeiro)</label>
               <select id="financePrintFilterResponsavel">
                 <option value="">Todos os responsáveis</option>
               </select>
@@ -5418,7 +5419,7 @@
               </label>
               <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
                 <input type="checkbox" id="financePrintOpenByResp" checked />
-                Por responsável financeiro
+                Por RPF (responsável financeiro)
               </label>
               <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
                 <input type="checkbox" id="financePrintOpenByAssessoria" checked />
@@ -5451,7 +5452,7 @@
               <input id="libConfirmador" type="text" placeholder="Nome do confirmador" />
             </div>
             <div id="libRowResponsavel" class="hidden" aria-hidden="true">
-              <label id="libResponsavelLabel">Quem será o responsável financeiro?</label>
+              <label id="libResponsavelLabel">Quem será o RPF (responsável financeiro / pagamento)?</label>
               <input id="libResponsavelPagamento" type="text" placeholder="Nome do responsável" />
             </div>
             <div id="libRowSolicRemocao" class="hidden" aria-hidden="true">
@@ -5980,7 +5981,7 @@
       let vlsListFilterAssessoriaId = "";
       let listaFilterLocatorId = "";
       let listaFilterAssessoriaId = "";
-      let listaFilterRfvId = "";
+      let listaFilterRpfId = "";
       let listaFilterBanco = "";
       let currentListaView = "vnp";
       let editingVehicleId = null;
@@ -6686,20 +6687,20 @@
       function readListaFiltersFromDom() {
         listaFilterLocatorId = document.getElementById("listaFilterLocator")?.value || "";
         listaFilterAssessoriaId = document.getElementById("listaFilterAssessoria")?.value || "";
-        listaFilterRfvId = document.getElementById("listaFilterRfv")?.value || "";
+        listaFilterRpfId = document.getElementById("listaFilterRpf")?.value || "";
         listaFilterBanco = (document.getElementById("listaFilterBanco")?.value || "").trim();
       }
 
-      /** RFV efetivo no veículo (igual ao select do cadastro: responsável financeiro ou RPV em falta). */
-      function listaVehicleEffectiveRfvPartnerId(v) {
+      /** RPF efetivo no veículo: responsável financeiro / pagamento; se vazio, usa o RPV (mesma lista de parceiros). */
+      function listaVehicleEffectiveRpfPartnerId(v) {
         if (!v) return "";
         return String(v.responsavel_financeiro_id || v.localizador_id || "").trim();
       }
 
-      /** Nome do RFV para tabelas (parceiro ou nome gravado no veículo). */
-      function vehicleRfvNome(v) {
+      /** Nome do RPF para tabelas (parceiro ou nome gravado no veículo). */
+      function vehicleRpfNome(v) {
         if (!v) return "—";
-        const pid = listaVehicleEffectiveRfvPartnerId(v);
+        const pid = listaVehicleEffectiveRpfPartnerId(v);
         if (!pid) return "—";
         const nome = state.partners.find((p) => p.id === pid)?.nome || v.responsavel_financeiro_nome || "";
         return (nome || "").trim() || "—";
@@ -6717,8 +6718,8 @@
       function syncListaFilterSelects() {
         const locSel = document.getElementById("listaFilterLocator");
         const assSel = document.getElementById("listaFilterAssessoria");
-        const rfvSel = document.getElementById("listaFilterRfv");
-        if (!locSel || !assSel || !rfvSel) return;
+        const rpfSel = document.getElementById("listaFilterRpf");
+        if (!locSel || !assSel || !rpfSel) return;
         const parceiros = state.partners.filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
         const assessorias = state.partners.filter((p) => p.tipo === "ASSESSORIA");
         const opt = (id, label) => {
@@ -6731,8 +6732,8 @@
         assSel.innerHTML =
           `<option value="">Todas as assessorias</option>` +
           assessorias.map((p) => opt(p.id, p.nome || "-")).join("");
-        rfvSel.innerHTML =
-          `<option value="">Todos os RFVs</option>` +
+        rpfSel.innerHTML =
+          `<option value="">Todos os RPF</option>` +
           parceiros.map((p) => opt(p.id, p.nome || "-")).join("");
         if (parceiros.some((p) => p.id === listaFilterLocatorId)) locSel.value = listaFilterLocatorId;
         else {
@@ -6744,10 +6745,10 @@
           assSel.value = "";
           listaFilterAssessoriaId = "";
         }
-        if (parceiros.some((p) => p.id === listaFilterRfvId)) rfvSel.value = listaFilterRfvId;
+        if (parceiros.some((p) => p.id === listaFilterRpfId)) rpfSel.value = listaFilterRpfId;
         else {
-          rfvSel.value = "";
-          listaFilterRfvId = "";
+          rpfSel.value = "";
+          listaFilterRpfId = "";
         }
       }
 
@@ -6770,14 +6771,14 @@
         if (!v) return false;
         if (listaFilterLocatorId && v.localizador_id !== listaFilterLocatorId) return false;
         if (listaFilterAssessoriaId && v.assessoria_id !== listaFilterAssessoriaId) return false;
-        if (listaFilterRfvId && listaVehicleEffectiveRfvPartnerId(v) !== String(listaFilterRfvId)) return false;
+        if (listaFilterRpfId && listaVehicleEffectiveRpfPartnerId(v) !== String(listaFilterRpfId)) return false;
         return listaTextoBancoMatch(v.observacoes, v.placa, state.settings?.conta_bancaria);
       }
 
       function listaReceivableMatches(r, vehicle) {
         if (listaFilterLocatorId && (vehicle?.localizador_id || "") !== listaFilterLocatorId) return false;
         if (listaFilterAssessoriaId && (vehicle?.assessoria_id || "") !== listaFilterAssessoriaId) return false;
-        if (listaFilterRfvId && listaVehicleEffectiveRfvPartnerId(vehicle) !== String(listaFilterRfvId)) return false;
+        if (listaFilterRpfId && listaVehicleEffectiveRpfPartnerId(vehicle) !== String(listaFilterRpfId)) return false;
         return listaTextoBancoMatch(
           r.responsavel_pagamento,
           r.receivable_category,
@@ -6794,12 +6795,12 @@
         const assName = listaFilterAssessoriaId
           ? state.partners.find((x) => x.id === listaFilterAssessoriaId)?.nome || ""
           : "";
-        const rfvName = listaFilterRfvId ? state.partners.find((x) => x.id === listaFilterRfvId)?.nome || "" : "";
+        const rpfName = listaFilterRpfId ? state.partners.find((x) => x.id === listaFilterRpfId)?.nome || "" : "";
         const desc = (p.descricao || "").toLowerCase();
         if (listaFilterLocatorId && locName && !desc.includes(String(locName).toLowerCase())) return false;
         if (listaFilterAssessoriaId && assName && !desc.includes(String(assName).toLowerCase())) return false;
-        if (listaFilterRfvId && rfvName && !desc.includes(String(rfvName).toLowerCase())) return false;
-        if (listaFilterRfvId && !rfvName) return false;
+        if (listaFilterRpfId && rpfName && !desc.includes(String(rpfName).toLowerCase())) return false;
+        if (listaFilterRpfId && !rpfName) return false;
         return listaTextoBancoMatch(p.descricao, p.payable_category, state.settings?.conta_bancaria);
       }
 
@@ -6816,7 +6817,7 @@
         if (rec && !listaReceivableMatches(rec, v)) return false;
         if (pay && !listaPayableMatches(pay)) return false;
         if (!rec && !pay) {
-          if (listaFilterLocatorId || listaFilterAssessoriaId || listaFilterRfvId) return false;
+          if (listaFilterLocatorId || listaFilterAssessoriaId || listaFilterRpfId) return false;
           return listaTextoBancoMatch(mov.descricao, state.settings?.conta_bancaria);
         }
         return listaTextoBancoMatch(mov.descricao);
@@ -6944,7 +6945,7 @@
           listaFilterAssessoriaId
             ? `Assessoria: ${state.partners.find((p) => p.id === listaFilterAssessoriaId)?.nome || ""}`
             : "",
-          listaFilterRfvId ? `RFV: ${state.partners.find((p) => p.id === listaFilterRfvId)?.nome || ""}` : "",
+          listaFilterRpfId ? `RPF: ${state.partners.find((p) => p.id === listaFilterRpfId)?.nome || ""}` : "",
           listaFilterBanco ? `Texto: ${listaFilterBanco}` : "",
         ]
           .filter(Boolean)
@@ -6979,7 +6980,7 @@
 
         try {
         if (currentListaView === "vnp") {
-          head.innerHTML = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>Assessoria</th><th>RFV</th><th>Entrada</th><th>Situação</th>${
+          head.innerHTML = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>Assessoria</th><th>RPF</th><th>Entrada</th><th>Situação</th>${
             semVal ? "" : "<th>Valor estimado</th>"
           }</tr>`;
           const items = buildListaVnpVehicleRows();
@@ -7002,7 +7003,7 @@
                 <td data-label="Veículo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</td>
                 <td data-label="RPV">${escapeHtml(locLabel(v.localizador_id))}</td>
                 <td data-label="Assessoria">${escapeHtml(locLabel(v.assessoria_id))}</td>
-                <td data-label="RFV">${escapeHtml(vehicleRfvNome(v))}</td>
+                <td data-label="RPF">${escapeHtml(vehicleRpfNome(v))}</td>
                 <td data-label="Entrada">${escapeHtml(formatDateTime(v.data_entrada))}</td>
                 <td data-label="Situação">${escapeHtml(sit)}</td>
                 ${val}
@@ -7013,7 +7014,7 @@
         }
 
         if (currentListaView === "vrp") {
-          head.innerHTML = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>Assessoria</th><th>RFV</th><th>Entrada</th><th>Saída</th>${
+          head.innerHTML = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>Assessoria</th><th>RPF</th><th>Entrada</th><th>Saída</th>${
             semVal ? "" : "<th>Valor</th>"
           }</tr>`;
           const items = sortVehiclesByRegistroDesc(
@@ -7032,7 +7033,7 @@
                 <td data-label="Veículo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</td>
                 <td data-label="RPV">${escapeHtml(locLabel(v.localizador_id))}</td>
                 <td data-label="Assessoria">${escapeHtml(locLabel(v.assessoria_id))}</td>
-                <td data-label="RFV">${escapeHtml(vehicleRfvNome(v))}</td>
+                <td data-label="RPF">${escapeHtml(vehicleRpfNome(v))}</td>
                 <td data-label="Entrada">${escapeHtml(formatDateTime(v.data_entrada))}</td>
                 <td data-label="Saída">${escapeHtml(formatDateTime(v.data_saida))}</td>
                 ${val}
@@ -7322,7 +7323,7 @@
         const filtros = [
           listaFilterLocatorId ? `RPV: ${state.partners.find((p) => p.id === listaFilterLocatorId)?.nome || listaFilterLocatorId}` : "",
           listaFilterAssessoriaId ? `Assessoria: ${state.partners.find((p) => p.id === listaFilterAssessoriaId)?.nome || listaFilterAssessoriaId}` : "",
-          listaFilterRfvId ? `RFV: ${state.partners.find((p) => p.id === listaFilterRfvId)?.nome || listaFilterRfvId}` : "",
+          listaFilterRpfId ? `RPF: ${state.partners.find((p) => p.id === listaFilterRpfId)?.nome || listaFilterRpfId}` : "",
           listaFilterBanco ? `Texto: ${listaFilterBanco}` : "",
         ]
           .filter(Boolean)
@@ -7982,11 +7983,11 @@
         const metaLine = metaParts.join(" · ");
 
         const theadLoc =
-          "<th>Veículo</th><th>Responsável financeiro</th><th>Assessoria</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
+          "<th>Veículo</th><th>RPF</th><th>Assessoria</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
         const theadResp =
           "<th>Veículo</th><th>RPV</th><th>Assessoria</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
         const theadAss =
-          "<th>Veículo</th><th>Responsável financeiro</th><th>RPV</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
+          "<th>Veículo</th><th>RPF</th><th>RPV</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
 
         const rowLoc = (r) => {
           const v = vehicleById.get(r.vehicle_id);
@@ -8052,7 +8053,7 @@
         }
 
         if (byResp) {
-          blocks.push(`<h2>Por responsável financeiro</h2>`);
+          blocks.push(`<h2>Por RPF (responsável financeiro)</h2>`);
           const map = bucketOpenReceivablesByKey(
             openRec,
             (r) => (r.responsavel_pagamento || "").trim() || "__sem__"
@@ -9868,7 +9869,7 @@
             const total = calcTotal(v);
             const localizador = state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
             const assessoria = state.partners.find((p) => p.id === v.assessoria_id)?.nome || "-";
-            const rfvNome = vehicleRfvNome(v);
+            const rpfNome = vehicleRpfNome(v);
             const valorCell = semValores
               ? "-"
               : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
@@ -9928,7 +9929,7 @@
                 <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
                 <td data-label="RPV">${localizador}</td>
                 <td data-label="Assessoria">${assessoria}</td>
-                <td data-label="RFV">${escapeHtml(rfvNome)}</td>
+                <td data-label="RPF">${escapeHtml(rpfNome)}</td>
                 <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
                 <td data-label="Valor">${valorCell}</td>
                 <td class="actions" data-label="Ações">${actionsCell}</td>
@@ -10031,7 +10032,7 @@
               state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
             const assessoria =
               state.partners.find((p) => p.id === v.assessoria_id)?.nome || "-";
-            const rfvNome = vehicleRfvNome(v);
+            const rpfNome = vehicleRpfNome(v);
             const actionLabels = {
               solicitar: "Liberação solicitada",
               confirmar_liberacao: "Liberação confirmada",
@@ -10078,7 +10079,7 @@
                 <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
                 <td data-label="RPV">${localizador}</td>
                 <td data-label="Assessoria">${assessoria}</td>
-                <td data-label="RFV">${escapeHtml(rfvNome)}</td>
+                <td data-label="RPF">${escapeHtml(rpfNome)}</td>
                 <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
                 <td data-label="Valor">${valorCell}</td>
                 <td class="actions" data-label="Ações">${actionsCell}</td>
@@ -10103,7 +10104,7 @@
           .map((c) => {
             const vehicle = state.vehicles.find((v) => v.id === c.vehicle_id);
             if (!vehicle) return "";
-            const rfvNome =
+            const rpfNome =
               String(c.responsavel_financeiro || "").trim() ||
               state.partners.find((p) => p.id === vehicle.responsavel_financeiro_id)?.nome ||
               vehicle.responsavel_financeiro_nome ||
@@ -10123,13 +10124,13 @@
                 <td data-label="Placa">${escapeHtml(vehicle.placa || "-")}</td>
                 <td data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td data-label="Veículo">${escapeHtml([vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-")}</td>
-                <td data-label="RFV">${escapeHtml(rfvNome)}</td>
+                <td data-label="RPF">${escapeHtml(rpfNome)}</td>
                 <td data-label="NF emitida">${nfEmitTag}<label class="notice" style="display:block;margin-top:6px"><input type="checkbox" class="fechamento-check-nf-emitida"${nfEmitChecked}/> confirmo</label></td>
                 <td data-label="NF enviada"><label><input type="checkbox" class="fechamento-check-nf-enviada"${nfEnvChecked}/> NF já enviada</label></td>
                 <td data-label="Diárias / período">${diarias > 0 ? `${diarias} diária(s)` : "-"}<span class="notice" style="display:block">${escapeHtml(pIni)} -> ${escapeHtml(pFim)}</span></td>
                 <td data-label="Valor do ciclo">${valorCiclo}</td>
                 <td data-label="Triagem">
-                  <label style="display:block;margin-bottom:6px"><input type="checkbox" class="fechamento-check-rfv"/> RFV conferido</label>
+                  <label style="display:block;margin-bottom:6px"><input type="checkbox" class="fechamento-check-rpf"/> RPF conferido</label>
                   <button type="button" class="secondary" data-action="editar_fechamento_ciclo" data-id="${vehicle.id}" data-closure-id="${c.id}">Editar triagem</button>
                   <button type="button" class="secondary" data-action="patio_liberar_financeiro" data-id="${vehicle.id}" data-closure-id="${c.id}">OK -> Financeiro</button>
                 </td>
@@ -10151,7 +10152,7 @@
               state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
             const assessoria =
               state.partners.find((p) => p.id === v.assessoria_id)?.nome || "-";
-            const rfvNome = vehicleRfvNome(v);
+            const rpfNome = vehicleRpfNome(v);
 
             const valorCell = semValores
               ? "-"
@@ -10178,7 +10179,7 @@
                 <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
                 <td data-label="RPV">${localizador}</td>
                 <td data-label="Assessoria">${assessoria}</td>
-                <td data-label="RFV">${escapeHtml(rfvNome)}</td>
+                <td data-label="RPF">${escapeHtml(rpfNome)}</td>
                 <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
                 <td data-label="Saída">${formatDateTime(v.data_saida)}</td>
                 <td data-label="Valor">${valorCell}</td>
@@ -10631,7 +10632,7 @@
                 '<p class="notice" style="margin:0">Veículo <strong>no pátio</strong>. Pode registar <strong>liberação solicitada</strong>.</p>';
             } else if (vehicle.status === "LIBERACAO_SOLICITADA") {
               situacao =
-                '<p class="notice" style="margin:0"><strong>Liberação solicitada</strong>. Próximo passo operacional: <strong>Liberação confirmada</strong> (define responsável financeiro e abre o ciclo).</p>';
+                '<p class="notice" style="margin:0"><strong>Liberação solicitada</strong>. Próximo passo operacional: <strong>Liberação confirmada</strong> (define o RPF e abre o ciclo).</p>';
             } else if (vehicle.status === "LIBERACAO_CONFIRMADA") {
               situacao =
                 '<p class="notice" style="margin:0">Liberação <strong>confirmada</strong>. Próximo passo: botão <strong>VRP</strong> para finalizar a saída.</p>';
@@ -10895,7 +10896,7 @@
 
       function renderPartnerOptions() {
         vehicleLocator.innerHTML = `<option value="">Sem RPV</option>`;
-        if (vehicleFinancialResponsible) vehicleFinancialResponsible.innerHTML = `<option value="">Sem RFV</option>`;
+        if (vehicleFinancialResponsible) vehicleFinancialResponsible.innerHTML = `<option value="">Sem RPF</option>`;
         vehicleAssessor.innerHTML = `<option value="">Sem assessoria</option>`;
         if (vehicleAuctioneer) vehicleAuctioneer.innerHTML = `<option value="">Sem leiloeiro</option>`;
         state.partners.forEach((p) => {
@@ -10910,10 +10911,10 @@
           } else if (type === "LOCALIZADOR") {
             vehicleLocator.appendChild(option);
             if (vehicleFinancialResponsible) {
-              const optionRfv = document.createElement("option");
-              optionRfv.value = p.id;
-              optionRfv.textContent = p.nome;
-              vehicleFinancialResponsible.appendChild(optionRfv);
+              const optionRpf = document.createElement("option");
+              optionRpf.value = p.id;
+              optionRpf.textContent = p.nome;
+              vehicleFinancialResponsible.appendChild(optionRpf);
             }
           }
         });
@@ -11772,7 +11773,7 @@
           if (!rows.length) {
             setEmptyRow(
               tableFinance,
-              "Nenhum registro nesta fila. Ciclos recém-fechados no pátio passam primeiro por Pátio → Fechando ciclo (triagem NF e RFV); só depois aparecem aqui para decidir entre «Receber» ou «Dar baixa».",
+              "Nenhum registro nesta fila. Ciclos recém-fechados no pátio passam primeiro por Pátio → Fechando ciclo (triagem NF e RPF); só depois aparecem aqui para decidir entre «Receber» ou «Dar baixa».",
               5
             );
           } else {
@@ -12443,7 +12444,7 @@
         if (required.includes("solicitante") && !solicitante) return alert("Informe quem solicitou a liberação.");
         if (required.includes("confirmador") && !confirmador) return alert("Informe quem confirmou a liberação.");
         if (required.includes("responsavelFinanceiro") && !responsavelFinanceiro)
-          return alert("Informe o responsável financeiro.");
+          return alert("Informe o RPF (responsável financeiro / pagamento).");
         if (required.includes("solicitanteRemocao") && !solicitanteRemocao)
           return alert("Informe quem solicitou a remoção.");
         if (required.includes("removeu") && !removeu) return alert("Informe quem removeu o veículo.");
@@ -12669,15 +12670,15 @@
       document.getElementById("listaFiltersClear")?.addEventListener("click", () => {
         listaFilterLocatorId = "";
         listaFilterAssessoriaId = "";
-        listaFilterRfvId = "";
+        listaFilterRpfId = "";
         listaFilterBanco = "";
         const loc = document.getElementById("listaFilterLocator");
         const ass = document.getElementById("listaFilterAssessoria");
-        const rfv = document.getElementById("listaFilterRfv");
+        const rpf = document.getElementById("listaFilterRpf");
         const banco = document.getElementById("listaFilterBanco");
         if (loc) loc.value = "";
         if (ass) ass.value = "";
-        if (rfv) rfv.value = "";
+        if (rpf) rpf.value = "";
         if (banco) banco.value = "";
         syncListaFilterSelects();
         renderListaPanel();
@@ -13747,7 +13748,7 @@
           error = retry.error;
           if (!error) {
             alert(
-              "Veículo salvo com recursos avançados desativados (vistoria, leiloeiro ou RFV). Para habilitar tudo, execute os SQLs de migração no Supabase e tente novamente."
+              "Veículo salvo com recursos avançados desativados (vistoria, leiloeiro ou RPF). Para habilitar tudo, execute os SQLs de migração no Supabase e tente novamente."
             );
           }
         }
@@ -14192,11 +14193,11 @@
             alert("Este registro já não está nesta fila. Atualize o pátio.");
             return;
           }
-          const novoRfv = prompt(
-            "Responsável financeiro (triagem):",
+          const novoRpf = prompt(
+            "RPF — responsável financeiro / pagamento (triagem):",
             closure.responsavel_financeiro || vehicle.responsavel_financeiro_nome || ""
           );
-          if (novoRfv == null) return;
+          if (novoRpf == null) return;
           const periodStartYmd = toYmdLocal(closure.period_start || vehicle.data_entrada || new Date().toISOString());
           const periodEndYmd = toYmdLocal(closure.period_end || vehicle.data_saida || new Date().toISOString());
           const novoInicio = await openDateModal({ title: "Data inicial do ciclo", label: "Início", type: "date", value: periodStartYmd || "" });
@@ -14221,7 +14222,7 @@
           const { error: cloErr } = await supabase
             .from("patio_cycle_closures")
             .update({
-              responsavel_financeiro: String(novoRfv || "").trim() || null,
+              responsavel_financeiro: String(novoRpf || "").trim() || null,
               period_start: isoInicio,
               period_end: isoFim,
               diarias: diariasCalc,
@@ -14242,7 +14243,7 @@
             await supabase
               .from("receivables")
               .update({
-                responsavel_pagamento: String(novoRfv || "").trim() || null,
+                responsavel_pagamento: String(novoRpf || "").trim() || null,
                 period_start: isoInicio,
                 period_end: isoFim,
                 valor: valorNovo,
@@ -14267,11 +14268,11 @@
             return;
           }
           const tr = button.closest("tr");
-          const rfvOk = !!tr?.querySelector(".fechamento-check-rfv")?.checked;
+          const rpfOk = !!tr?.querySelector(".fechamento-check-rpf")?.checked;
           const nfEmitOk = !!tr?.querySelector(".fechamento-check-nf-emitida")?.checked;
           const nfEnvOk = !!tr?.querySelector(".fechamento-check-nf-enviada")?.checked;
-          if (!rfvOk || !nfEmitOk || !nfEnvOk) {
-            alert("Marque os três itens: RFV conferido, NF emitida confirmada e NF já enviada.");
+          if (!rpfOk || !nfEmitOk || !nfEnvOk) {
+            alert("Marque os três itens: RPF conferido, NF emitida confirmada e NF já enviada.");
             return;
           }
           const { error: cloErr } = await supabase
@@ -14701,7 +14702,7 @@
             vehicle_id: id,
             tipo: "LIBERACAO_CONFIRMADA",
             responsavel: confirmador || responsavel,
-            descricao: `Liberação confirmada por ${confirmador || "-"}. Responsável financeiro: ${responsavel}.`,
+            descricao: `Liberação confirmada por ${confirmador || "-"}. RPF: ${responsavel}.`,
           });
           await loadVehicles();
           await Promise.all([loadReceivables(), loadCycleClosures()]);
@@ -14779,7 +14780,7 @@
         if (action === "trocar-responsavel") {
           // Responsável atual “acerta” diárias até o fim do dia do acerto (inclusive);
           // a partir do dia seguinte, o ciclo é do novo responsável.
-          const novoResp = prompt("Novo responsável financeiro:");
+          const novoResp = prompt("Novo RPF (responsável financeiro / pagamento):");
           if (!novoResp) return;
           const dataAcerto = await openDateModal({
             title: "Data do acerto das diárias (até este dia, inclusive, fica com o responsável atual)",
