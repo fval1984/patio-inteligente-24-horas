@@ -1,6 +1,13 @@
 -- Regime de competência para financeiro/contábil.
 -- Não remove histórico: usa status, timestamps e referências de origem.
 
+-- Pré-requisito no cadastro de veículos: RPF (responsável financeiro), usado pelo app ao gravar.
+-- Idempotente (IF NOT EXISTS). Também existe supabase/vehicles_rpf_responsavel_financeiro.sql isolado.
+alter table public.vehicles add column if not exists responsavel_financeiro_id uuid;
+alter table public.vehicles add column if not exists responsavel_financeiro_nome text;
+comment on column public.vehicles.responsavel_financeiro_id is 'Parceiro RPF (pagamento); pode coincidir com o RPV (localizador_id) ou ser outro.';
+comment on column public.vehicles.responsavel_financeiro_nome is 'Nome gravado com o RPF (espelho do parceiro selecionado).';
+
 create table if not exists public.accounts_receivable (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null,
