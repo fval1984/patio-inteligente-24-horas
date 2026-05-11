@@ -4389,9 +4389,11 @@
                 <thead>
                   <tr>
                     <th>Placa</th>
+                    <th>Registo</th>
                     <th>Veículo</th>
                     <th>RPV</th>
                     <th>Assessoria</th>
+                    <th>RFV</th>
                     <th>Entrada</th>
                     <th>Valor gerado</th>
                     <th>Ações</th>
@@ -4408,9 +4410,11 @@
                 <thead>
                   <tr>
                     <th>Placa</th>
+                    <th>Registo</th>
                     <th>Veículo</th>
                     <th>RPV</th>
                     <th>Assessoria</th>
+                    <th>RFV</th>
                     <th>Entrada</th>
                     <th>Saída</th>
                     <th>Valor total</th>
@@ -4428,9 +4432,11 @@
                 <thead>
                   <tr>
                     <th>Placa</th>
+                    <th>Registo</th>
                     <th>Veículo</th>
                     <th>RPV</th>
                     <th>Assessoria</th>
+                    <th>RFV</th>
                     <th>Entrada</th>
                     <th>Valor gerado</th>
                     <th>Ações</th>
@@ -4451,8 +4457,9 @@
                   <thead>
                     <tr>
                       <th>Placa</th>
+                      <th>Registo</th>
                       <th>Veículo</th>
-                      <th>Responsável financeiro</th>
+                      <th>RFV</th>
                       <th>NF emitida</th>
                       <th>NF enviada</th>
                       <th>Diárias / período</th>
@@ -6689,6 +6696,24 @@
         return String(v.responsavel_financeiro_id || v.localizador_id || "").trim();
       }
 
+      /** Nome do RFV para tabelas (parceiro ou nome gravado no veículo). */
+      function vehicleRfvNome(v) {
+        if (!v) return "—";
+        const pid = listaVehicleEffectiveRfvPartnerId(v);
+        if (!pid) return "—";
+        const nome = state.partners.find((p) => p.id === pid)?.nome || v.responsavel_financeiro_nome || "";
+        return (nome || "").trim() || "—";
+      }
+
+      /** Identificação visual VNP (no pátio / fluxo) vs VRP (removido). */
+      function patioRegistoBadgeHtml(kind) {
+        const isVrp = kind === "vrp";
+        const label = isVrp ? "VRP" : "VNP";
+        const cls = isVrp ? "tag success" : "tag warning";
+        const title = isVrp ? "Veículo removido (VRP)" : "No pátio ou em fluxo de liberação (VNP)";
+        return `<span class="${cls}" style="margin-right:6px;vertical-align:middle;white-space:nowrap" title="${title}">${label}</span>`;
+      }
+
       function syncListaFilterSelects() {
         const locSel = document.getElementById("listaFilterLocator");
         const assSel = document.getElementById("listaFilterAssessoria");
@@ -6954,12 +6979,12 @@
 
         try {
         if (currentListaView === "vnp") {
-          head.innerHTML = `<tr><th>Placa</th><th>Veículo</th><th>RPV</th><th>Assessoria</th><th>Entrada</th><th>Situação</th>${
+          head.innerHTML = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>Assessoria</th><th>RFV</th><th>Entrada</th><th>Situação</th>${
             semVal ? "" : "<th>Valor estimado</th>"
           }</tr>`;
           const items = buildListaVnpVehicleRows();
           if (!items.length) {
-            body.innerHTML = `<tr><td colspan="7" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="9" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
             return;
           }
           body.innerHTML = items
@@ -6973,9 +6998,11 @@
               const val = semVal ? "" : `<td data-label="Valor">${escapeHtml(formatCurrency(calcTotal(v)))}</td>`;
               return `<tr>
                 <td data-label="Placa">${escapeHtml(v.placa || "-")}</td>
+                <td data-label="Registo">${patioRegistoBadgeHtml("vnp")}</td>
                 <td data-label="Veículo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</td>
                 <td data-label="RPV">${escapeHtml(locLabel(v.localizador_id))}</td>
                 <td data-label="Assessoria">${escapeHtml(locLabel(v.assessoria_id))}</td>
+                <td data-label="RFV">${escapeHtml(vehicleRfvNome(v))}</td>
                 <td data-label="Entrada">${escapeHtml(formatDateTime(v.data_entrada))}</td>
                 <td data-label="Situação">${escapeHtml(sit)}</td>
                 ${val}
@@ -6986,14 +7013,14 @@
         }
 
         if (currentListaView === "vrp") {
-          head.innerHTML = `<tr><th>Placa</th><th>Veículo</th><th>RPV</th><th>Assessoria</th><th>Entrada</th><th>Saída</th>${
+          head.innerHTML = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>Assessoria</th><th>RFV</th><th>Entrada</th><th>Saída</th>${
             semVal ? "" : "<th>Valor</th>"
           }</tr>`;
           const items = sortVehiclesByRegistroDesc(
             (state.vehicles || []).filter((v) => v.status === "REMOVIDO" && listaVehicleMatches(v))
           );
           if (!items.length) {
-            body.innerHTML = `<tr><td colspan="7" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="9" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
             return;
           }
           body.innerHTML = items
@@ -7001,9 +7028,11 @@
               const val = semVal ? "" : `<td data-label="Valor">${escapeHtml(formatCurrency(calcTotal(v)))}</td>`;
               return `<tr>
                 <td data-label="Placa">${escapeHtml(v.placa || "-")}</td>
+                <td data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td data-label="Veículo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</td>
                 <td data-label="RPV">${escapeHtml(locLabel(v.localizador_id))}</td>
                 <td data-label="Assessoria">${escapeHtml(locLabel(v.assessoria_id))}</td>
+                <td data-label="RFV">${escapeHtml(vehicleRfvNome(v))}</td>
                 <td data-label="Entrada">${escapeHtml(formatDateTime(v.data_entrada))}</td>
                 <td data-label="Saída">${escapeHtml(formatDateTime(v.data_saida))}</td>
                 ${val}
@@ -9830,7 +9859,7 @@
 
       function renderVnpUnifiedTable(tbody, items) {
         if (!items.length) {
-          setEmptyRow(tbody, "Nenhum veículo no pátio.", 7);
+          setEmptyRow(tbody, "Nenhum veículo no pátio.", 9);
           return;
         }
         const semValores = isGestorPista;
@@ -9839,6 +9868,7 @@
             const total = calcTotal(v);
             const localizador = state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
             const assessoria = state.partners.find((p) => p.id === v.assessoria_id)?.nome || "-";
+            const rfvNome = vehicleRfvNome(v);
             const valorCell = semValores
               ? "-"
               : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
@@ -9894,9 +9924,11 @@
             return `
               <tr class="${rowClass}" data-vehicle-row="${v.id}">
                 <td data-label="Placa">${v.placa || "-"}${situacaoHtml}</td>
+                <td data-label="Registo">${patioRegistoBadgeHtml("vnp")}</td>
                 <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
                 <td data-label="RPV">${localizador}</td>
                 <td data-label="Assessoria">${assessoria}</td>
+                <td data-label="RFV">${escapeHtml(rfvNome)}</td>
                 <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
                 <td data-label="Valor">${valorCell}</td>
                 <td class="actions" data-label="Ações">${actionsCell}</td>
@@ -9988,7 +10020,7 @@
 
       function renderVehicleTable(tbody, items, actionType) {
         if (!items.length) {
-          setEmptyRow(tbody, "Nenhum veículo encontrado.", 7);
+          setEmptyRow(tbody, "Nenhum veículo encontrado.", 9);
           return;
         }
         const semValores = isGestorPista;
@@ -9999,6 +10031,7 @@
               state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
             const assessoria =
               state.partners.find((p) => p.id === v.assessoria_id)?.nome || "-";
+            const rfvNome = vehicleRfvNome(v);
             const actionLabels = {
               solicitar: "Liberação solicitada",
               confirmar_liberacao: "Liberação confirmada",
@@ -10041,9 +10074,11 @@
             return `
               <tr data-vehicle-row="${v.id}">
                 <td data-label="Placa">${v.placa || "-"}</td>
+                <td data-label="Registo">${patioRegistoBadgeHtml("vnp")}</td>
                 <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
                 <td data-label="RPV">${localizador}</td>
                 <td data-label="Assessoria">${assessoria}</td>
+                <td data-label="RFV">${escapeHtml(rfvNome)}</td>
                 <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
                 <td data-label="Valor">${valorCell}</td>
                 <td class="actions" data-label="Ações">${actionsCell}</td>
@@ -10059,7 +10094,7 @@
           setEmptyRow(
             tbody,
             "Nenhum ciclo aguardando esta triagem. Depois do VRP (saída efetiva), o registro aparece aqui até confirmar OK para o financeiro.",
-            8
+            9
           );
           return;
         }
@@ -10086,8 +10121,9 @@
             return `
               <tr data-closure-row="${c.id}" data-vehicle-row="${vehicle.id}">
                 <td data-label="Placa">${escapeHtml(vehicle.placa || "-")}</td>
+                <td data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td data-label="Veículo">${escapeHtml([vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-")}</td>
-                <td data-label="Responsável financeiro">${escapeHtml(rfvNome)}</td>
+                <td data-label="RFV">${escapeHtml(rfvNome)}</td>
                 <td data-label="NF emitida">${nfEmitTag}<label class="notice" style="display:block;margin-top:6px"><input type="checkbox" class="fechamento-check-nf-emitida"${nfEmitChecked}/> confirmo</label></td>
                 <td data-label="NF enviada"><label><input type="checkbox" class="fechamento-check-nf-enviada"${nfEnvChecked}/> NF já enviada</label></td>
                 <td data-label="Diárias / período">${diarias > 0 ? `${diarias} diária(s)` : "-"}<span class="notice" style="display:block">${escapeHtml(pIni)} -> ${escapeHtml(pFim)}</span></td>
@@ -10103,7 +10139,7 @@
       }
       function renderRemovedVehicles(tbody, items) {
         if (!items.length) {
-          setEmptyRow(tbody, "Nenhum veículo removido.", 8);
+          setEmptyRow(tbody, "Nenhum veículo removido.", 10);
           return;
         }
         const semValores = isGestorPista;
@@ -10115,6 +10151,7 @@
               state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
             const assessoria =
               state.partners.find((p) => p.id === v.assessoria_id)?.nome || "-";
+            const rfvNome = vehicleRfvNome(v);
 
             const valorCell = semValores
               ? "-"
@@ -10137,9 +10174,11 @@
             return `
               <tr data-vehicle-row="${v.id}">
                 <td data-label="Placa">${v.placa || "-"}</td>
+                <td data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
                 <td data-label="RPV">${localizador}</td>
                 <td data-label="Assessoria">${assessoria}</td>
+                <td data-label="RFV">${escapeHtml(rfvNome)}</td>
                 <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
                 <td data-label="Saída">${formatDateTime(v.data_saida)}</td>
                 <td data-label="Valor">${valorCell}</td>
