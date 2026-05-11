@@ -13724,36 +13724,67 @@
           );
           return;
         }
-        const vehicleOp = editingVehicleId
-          ? supabase.from("vehicles").update(payload).eq("id", editingVehicleId).eq("user_id", effectiveUserId())
-          : supabase.from("vehicles").insert(payload);
-        let { error } = await vehicleOp;
-        if (
-          error &&
-          /vistoria_|leiloeiro_id|responsavel_financeiro_|column|schema cache|PGRST204/i.test(error.message || "")
-        ) {
-          const {
-            vistoria_data: _vd,
-            vistoria_responsavel: _vr,
-            vistoria_km: _vkm,
-            vistoria_combustivel: _vcb,
-            vistoria_checklist: _vck,
-            vistoria_observacoes: _vobs,
-            leiloeiro_id: _lei,
-            responsavel_financeiro_id: _rfvId,
-            responsavel_financeiro_nome: _rfvNome,
-            ...payloadSemVistoria
-          } = payload;
-          const retryOp = editingVehicleId
-            ? supabase.from("vehicles").update(payloadSemVistoria).eq("id", editingVehicleId).eq("user_id", effectiveUserId())
-            : supabase.from("vehicles").insert(payloadSemVistoria);
-          const retry = await retryOp;
-          error = retry.error;
-          if (!error) {
-            alert(
-              "Veículo salvo com recursos avançados desativados (vistoria, leiloeiro ou RPF). Para habilitar tudo, execute os SQLs de migração no Supabase e tente novamente."
-            );
+        const runVehicleSave = (p) =>
+          editingVehicleId
+            ? supabase.from("vehicles").update(p).eq("id", editingVehicleId).eq("user_id", effectiveUserId())
+            : supabase.from("vehicles").insert(p);
+
+        let tryPayload = { ...payload };
+        let { error } = await runVehicleSave(tryPayload);
+        /** @type {string[]} */
+        const degradedGroups = [];
+        const stripVistoriaFrom = (p) => {
+          const o = { ...p };
+          delete o.vistoria_data;
+          delete o.vistoria_responsavel;
+          delete o.vistoria_km;
+          delete o.vistoria_combustivel;
+          delete o.vistoria_checklist;
+          delete o.vistoria_observacoes;
+          return o;
+        };
+        const stripLeiloeiroFrom = (p) => {
+          const o = { ...p };
+          delete o.leiloeiro_id;
+          return o;
+        };
+        const stripRpfFrom = (p) => {
+          const o = { ...p };
+          delete o.responsavel_financeiro_id;
+          delete o.responsavel_financeiro_nome;
+          return o;
+        };
+        const advancedKindsFromError = (msg) => {
+          const m = msg || "";
+          const kinds = [];
+          if (/vistoria_/i.test(m)) kinds.push("vistoria");
+          if (/leiloeiro_id/i.test(m)) kinds.push("leiloeiro");
+          if (/responsavel_financeiro_/i.test(m)) kinds.push("rpf");
+          return kinds;
+        };
+        for (let guard = 0; error && guard < 8; guard++) {
+          const kinds = advancedKindsFromError(error.message || "");
+          if (!kinds.length) break;
+          const before = JSON.stringify(tryPayload);
+          for (const k of kinds) {
+            if (k === "vistoria") tryPayload = stripVistoriaFrom(tryPayload);
+            else if (k === "leiloeiro") tryPayload = stripLeiloeiroFrom(tryPayload);
+            else if (k === "rpf") tryPayload = stripRpfFrom(tryPayload);
+            if (!degradedGroups.includes(k)) degradedGroups.push(k);
           }
+          if (JSON.stringify(tryPayload) === before) break;
+          ({ error } = await runVehicleSave(tryPayload));
+        }
+        if (!error && degradedGroups.length) {
+          const partes = [];
+          if (degradedGroups.includes("vistoria")) partes.push("laudo de vistoria");
+          if (degradedGroups.includes("leiloeiro")) partes.push("leiloeiro");
+          if (degradedGroups.includes("rpf")) partes.push("RPF (responsável financeiro)");
+          alert(
+            "Veículo salvo, mas a base ainda não tem coluna(s) para: " +
+              partes.join(", ") +
+              ". Execute o SQL de migração correspondente na pasta supabase do projeto (ex.: vehicles_vistoria.sql, vehicles_rpf_responsavel_financeiro.sql) no Supabase e grave de novo."
+          );
         }
         if (error) {
           const msg = error.message || "";
