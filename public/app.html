@@ -1551,6 +1551,12 @@
         background: linear-gradient(165deg, rgba(15, 23, 42, 0.5), rgba(2, 6, 23, 0.3));
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
       }
+      @media (max-width: 960px) {
+        #viewFinanceiro .finance-dual-grid {
+          grid-template-columns: 1fr !important;
+        }
+      }
+
       #viewFinanceiro .finance-filter-panel .notice {
         font-weight: 700;
       }
@@ -4596,6 +4602,7 @@
                 <span class="finance-menu-group">Principal</span>
                 <button type="button" class="secondary" data-subview="receber">Receber</button>
                 <button type="button" class="secondary" data-subview="caixa">Caixa</button>
+                <button type="button" class="secondary" data-subview="controle_dual">Pátio × manual</button>
                 <button type="button" class="secondary" data-subview="dashboard">Visão Geral</button>
                 <button type="button" class="secondary" data-subview="ajustes">Ajustes</button>
                 <button type="button" class="secondary" data-subview="faturamento">Faturamento</button>
@@ -4833,6 +4840,75 @@
                     <div class="finance-kpi-meta" id="fcResumoResultadoMeta">Entradas − saídas</div>
                   </div>
                 </div>
+              </div>
+              <div id="financeControleDualPanel" class="section-card hidden" style="margin-top: 0">
+                <h3 style="margin: 0 0 8px; font-size: 1.1rem">Pátio × Financeiro (controlo duplo)</h3>
+                <p class="notice" style="margin: 0 0 14px; max-width: 48rem; line-height: 1.45; font-size: 13px">
+                  <strong>Pátio:</strong> entradas (e saídas no caixa) espelhadas automaticamente a partir dos movimentos de caixa.
+                  <strong>Manual:</strong> lançamentos escritos no financeiro para confrontar. Use «Cruzar» no manual e indique o ID da linha do pátio.
+                </p>
+                <div class="finance-dual-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start">
+                  <div>
+                    <h4 style="margin: 0 0 8px; font-size: 1rem">Registo do pátio (automático)</h4>
+                    <div class="table-wrap" style="max-height: 420px; overflow: auto">
+                      <table class="table finance-ledger">
+                        <thead>
+                          <tr>
+                            <th>Data</th>
+                            <th>Dir.</th>
+                            <th>Valor</th>
+                            <th>Descrição</th>
+                            <th>ID</th>
+                            <th>Cruzado</th>
+                          </tr>
+                        </thead>
+                        <tbody id="financeDualPatioBody"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 style="margin: 0 0 8px; font-size: 1rem">Lançamento manual</h4>
+                    <form id="financeDualManualForm" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; padding: 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.12)">
+                      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px"
+                        >Direção
+                        <select id="financeDualDir">
+                          <option value="ENTRADA">Entrada</option>
+                          <option value="SAIDA">Saída</option>
+                        </select>
+                      </label>
+                      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px"
+                        >Valor (R$)
+                        <input id="financeDualValor" type="number" step="0.01" min="0.01" required />
+                      </label>
+                      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px"
+                        >Descrição
+                        <input id="financeDualDesc" type="text" maxlength="500" required placeholder="Ex.: Ajuste, taxa, conferência" />
+                      </label>
+                      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px"
+                        >Data / hora
+                        <input id="financeDualData" type="datetime-local" />
+                      </label>
+                      <button type="submit" class="secondary">Registar manual</button>
+                    </form>
+                    <h4 style="margin: 0 0 8px; font-size: 1rem">Manuais recentes</h4>
+                    <div class="table-wrap" style="max-height: 280px; overflow: auto">
+                      <table class="table finance-ledger">
+                        <thead>
+                          <tr>
+                            <th>Data</th>
+                            <th>Dir.</th>
+                            <th>Valor</th>
+                            <th>Descrição</th>
+                            <th>Cruzamento</th>
+                            <th></th>
+                          </tr>
+                        </thead>
+                        <tbody id="financeDualManualBody"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                <p id="financeDualHint" class="notice" style="margin-top: 12px; font-size: 12px"></p>
               </div>
               <div id="financeFlyoutSummaryCards" class="grid">
                 <div class="card">
@@ -5983,6 +6059,8 @@
         cycleClosures: [],
         payables: [],
         cash: [],
+        /** Controlo duplo: movimentos PATIO (auto) vs MANUAL — tabela `financeiro_movimentos`. */
+        financeiroMovimentos: [],
         settings: null,
         monthlyClosures: [],
         monthlyClosureLoadError: null,
@@ -6012,7 +6090,7 @@
         const msg = String(err.message || "");
         const code = String(err.code || "");
         if (/PGRST205/i.test(code)) return true;
-        if (/patio_cycle_closures|does not exist|relation|schema cache|could not find the table/i.test(msg)) return true;
+        if (/patio_cycle_closures|financeiro_movimentos|does not exist|relation|schema cache|could not find the table/i.test(msg)) return true;
         return false;
       }
 
@@ -8925,6 +9003,27 @@
         maybeRefreshListaPanel();
       }
 
+      async function loadFinanceiroMovimentos() {
+        const uid = effectiveUserId();
+        if (!uid) {
+          state.financeiroMovimentos = [];
+          return;
+        }
+        const { data, error } = await supabase
+          .from("financeiro_movimentos")
+          .select("*")
+          .eq("user_id", uid)
+          .is("deleted_at", null)
+          .order("data_mov", { ascending: false })
+          .limit(500);
+        if (error) {
+          if (!isMissingRelationError(error)) console.error(error);
+          state.financeiroMovimentos = [];
+          return;
+        }
+        state.financeiroMovimentos = data || [];
+      }
+
       async function loadSettings() {
         const { data, error } = await supabase
           .from("settings")
@@ -9161,6 +9260,7 @@
           loadCycleClosures(),
           loadPayables(),
           loadCash(),
+          loadFinanceiroMovimentos(),
           loadSettings(),
           loadMonthlyClosures(),
         ]);
@@ -11078,6 +11178,67 @@
         });
       }
 
+      function fillFinanceiroDualTables() {
+        const movs = state.financeiroMovimentos || [];
+        const patio = movs.filter((m) => m.origem === "PATIO");
+        const manual = movs.filter((m) => m.origem === "MANUAL");
+        const bodyP = document.getElementById("financeDualPatioBody");
+        const bodyM = document.getElementById("financeDualManualBody");
+        if (bodyP) {
+          bodyP.innerHTML = patio.length
+            ? patio
+                .map((m) => {
+                  const linked = manual.find((x) => String(x.par_movimento_id || "") === String(m.id));
+                  const cru = linked
+                    ? `<span class="tag success">Sim</span><br /><span class="notice" style="font-size:11px">${linked.id.slice(0, 8)}…</span>`
+                    : `<span class="tag warning">Não</span>`;
+                  return `<tr>
+                    <td>${formatDateTime(m.data_mov)}</td>
+                    <td>${escapeHtml(m.direcao || "—")}</td>
+                    <td>${formatCurrency(Number(m.valor || 0))}</td>
+                    <td>${escapeHtml(m.descricao || "—")}</td>
+                    <td><code style="font-size:11px;user-select:all">${escapeHtml(m.id)}</code></td>
+                    <td>${cru}</td>
+                  </tr>`;
+                })
+                .join("")
+            : `<tr><td colspan="6"><em>Nenhum movimento do pátio. Após aplicar o SQL no Supabase, novos recebimentos no caixa aparecem aqui.</em></td></tr>`;
+        }
+        if (bodyM) {
+          bodyM.innerHTML = manual.length
+            ? manual
+                .map((m) => {
+                  const par = m.par_movimento_id
+                    ? `<code style="font-size:11px">${escapeHtml(String(m.par_movimento_id))}</code>`
+                    : "—";
+                  return `<tr>
+                    <td>${formatDateTime(m.data_mov)}</td>
+                    <td>${escapeHtml(m.direcao || "—")}</td>
+                    <td>${formatCurrency(Number(m.valor || 0))}</td>
+                    <td>${escapeHtml(m.descricao || "—")}</td>
+                    <td>${par}</td>
+                    <td class="actions">
+                      <button type="button" class="secondary" data-finance-dual-cruzar="${escapeHtml(m.id)}">Cruzar</button>
+                    </td>
+                  </tr>`;
+                })
+                .join("")
+            : `<tr><td colspan="6"><em>Nenhum lançamento manual.</em></td></tr>`;
+        }
+        const hint = document.getElementById("financeDualHint");
+        if (hint) {
+          hint.textContent =
+            movs.length === 0
+              ? "Se esta área ficar sempre vazia, aplique no Supabase o ficheiro supabase/financeiro_dual_patio_manual.sql (tabela + gatilho a partir do caixa)."
+              : "No «Cruzar», cole o ID completo da linha do pátio (coluna ID à esquerda).";
+        }
+      }
+
+      function renderFinanceiroDualPanel() {
+        fillFinanceiroDualTables();
+        loadFinanceiroMovimentos().then(() => fillFinanceiroDualTables());
+      }
+
       function renderFinance() {
         const financeCaixaScrollNotice = document.getElementById("financeCaixaScrollNotice");
         if (financeCaixaScrollNotice) financeCaixaScrollNotice.classList.add("hidden");
@@ -11244,6 +11405,25 @@
             c2: "tag warning",
             c3: "tag success",
           });
+        } else if (currentFinanceView === "controle_dual") {
+          const movs = state.financeiroMovimentos || [];
+          const patio = movs.filter((m) => m.origem === "PATIO");
+          const manual = movs.filter((m) => m.origem === "MANUAL");
+          const cruz = manual.filter((m) => m.par_movimento_id).length;
+          setFinanceSummaryCards({
+            t1: "Mov. pátio (auto)",
+            v1: String(patio.length),
+            m1: "linhas registadas",
+            t2: "Manuais",
+            v2: String(manual.length),
+            m2: "lançamentos escritos",
+            t3: "Cruzados",
+            v3: String(cruz),
+            m3: "manuais ligados a linha do pátio",
+            c1: "tag",
+            c2: "tag warning",
+            c3: cruz > 0 ? "tag success" : "tag",
+          });
         } else if (currentFinanceView === "caixa" || currentFinanceView === "fluxo_caixa") {
           const [anoCaixa, mesCaixa] = caixaMonth.split("-");
           const competenciaCaixa = mesCaixa && anoCaixa ? `${mesCaixa}/${anoCaixa}` : caixaMonth;
@@ -11310,6 +11490,7 @@
           if (stdArea) stdArea.classList.add("hidden");
           if (cloArea) cloArea.classList.add("hidden");
           if (dashArea) dashArea.classList.add("hidden");
+          document.getElementById("financeControleDualPanel")?.classList.add("hidden");
         };
         const showFinanceDashboardOnly = () => {
           if (stdArea) stdArea.classList.add("hidden");
@@ -11397,6 +11578,27 @@
         }
         if (currentFinanceView === "filtros") {
           hideAllFinanceAreas();
+          return;
+        }
+        if (currentFinanceView === "controle_dual") {
+          hideAllFinanceAreas();
+          if (financeRoot) {
+            financeRoot.classList.remove("finance-flyout-open", "finance-subview-fullscreen");
+            financeFlyoutBackdrop?.classList.add("hidden");
+          }
+          if (stdArea) stdArea.classList.remove("hidden");
+          if (financeContent) financeContent.classList.remove("hidden");
+          const dualPanel = document.getElementById("financeControleDualPanel");
+          const flySummary = document.getElementById("financeFlyoutSummaryCards");
+          const caixaResumoPanel = document.getElementById("financeCaixaResumoPanel");
+          const financeStdTableWrap = document.querySelector("#financeStandardArea .section-card .table-wrap");
+          if (dualPanel) dualPanel.classList.remove("hidden");
+          if (flySummary) flySummary.classList.remove("hidden");
+          if (caixaResumoPanel) caixaResumoPanel.classList.add("hidden");
+          if (financeStdTableWrap) financeStdTableWrap.classList.add("hidden");
+          document.getElementById("financeCaixaScrollNotice")?.classList.add("hidden");
+          document.getElementById("financeLancamentosScrollNotice")?.classList.add("hidden");
+          renderFinanceiroDualPanel();
           return;
         }
         if (currentFinanceView === "fechamento_mensal") {
@@ -12075,6 +12277,7 @@
           receber: "Receber",
           caixa: "Caixa",
           fluxo_caixa: "Caixa",
+          controle_dual: "Pátio × manual",
           ajustes: "Ajustes",
           faturamento: "Faturamento",
         };
@@ -12685,6 +12888,7 @@
           loadCycleClosures(),
           loadPayables(),
           loadCash(),
+          loadFinanceiroMovimentos(),
           loadSettings(),
           loadMonthlyClosures(),
           loadVehicles(),
@@ -12698,6 +12902,68 @@
         closeFinanceMenu();
         triggerFinanceReload();
       });
+
+      document.getElementById("financeDualManualForm")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const uid = effectiveUserId();
+        if (!uid) return;
+        const dir = document.getElementById("financeDualDir")?.value || "ENTRADA";
+        const valor = Number(document.getElementById("financeDualValor")?.value || 0);
+        const desc = String(document.getElementById("financeDualDesc")?.value || "").trim();
+        const dtEl = document.getElementById("financeDualData");
+        const dataMov = dtEl?.value ? new Date(dtEl.value).toISOString() : new Date().toISOString();
+        if (!Number.isFinite(valor) || valor <= 0 || !desc) {
+          alert("Indique valor (> 0) e descrição.");
+          return;
+        }
+        const { error } = await supabase.from("financeiro_movimentos").insert({
+          user_id: uid,
+          origem: "MANUAL",
+          direcao: dir,
+          valor,
+          descricao: desc,
+          data_mov: dataMov,
+          detalhe: {},
+        });
+        if (error) {
+          alert(
+            error.message +
+              (isMissingRelationError(error) ? "\n\nExecute no Supabase: supabase/financeiro_dual_patio_manual.sql" : "")
+          );
+          return;
+        }
+        e.target.reset();
+        await loadFinanceiroMovimentos();
+        fillFinanceiroDualTables();
+      });
+
+      document.getElementById("financeControleDualPanel")?.addEventListener("click", async (ev) => {
+        const btn = ev.target.closest("[data-finance-dual-cruzar]");
+        if (!btn) return;
+        const manualId = btn.getAttribute("data-finance-dual-cruzar");
+        const pid = prompt("Cole o ID (UUID) completo da linha do pátio (coluna à esquerda):");
+        if (!manualId || !pid) return;
+        const clean = pid.trim();
+        const uid = effectiveUserId();
+        const patioRow = (state.financeiroMovimentos || []).find((m) => String(m.id) === clean && m.origem === "PATIO");
+        if (!patioRow) {
+          alert("Esse ID não corresponde a um movimento do pátio na lista atual. Atualize os dados ou confira o UUID.");
+          return;
+        }
+        const { error } = await supabase
+          .from("financeiro_movimentos")
+          .update({ par_movimento_id: clean, updated_at: new Date().toISOString() })
+          .eq("id", manualId)
+          .eq("user_id", uid)
+          .eq("origem", "MANUAL");
+        if (error) {
+          alert(error.message);
+          return;
+        }
+        await loadFinanceiroMovimentos();
+        fillFinanceiroDualTables();
+      });
+
       financeMenuReceberFilters?.addEventListener("click", () => {
         closeFinanceMenu();
         openFinanceSubview("receber");
