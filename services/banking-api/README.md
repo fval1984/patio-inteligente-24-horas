@@ -48,7 +48,11 @@ npx prisma migrate deploy   # ou: npx prisma migrate dev
 npm run start:dev
 ```
 
-Se o `npm install` falhar com **`UNABLE_TO_VERIFY_LEAF_SIGNATURE`** (rede corporativa, proxy ou CAs extra no Windows), com **Node.js 22+** experimenta usar a loja de certificados do sistema antes de instalar:
+Se o `npm install` falhar com **`UNABLE_TO_VERIFY_LEAF_SIGNATURE`** (rede corporativa, proxy ou CAs extra no Windows), com **Node.js 22+** podes usar a loja de certificados do sistema:
+
+- **Recomendado:** `npm run install:with-system-ca` (define `--use-system-ca` só para esse comando).
+
+Ou manualmente em PowerShell:
 
 ```powershell
 $env:NODE_OPTIONS = "--use-system-ca"

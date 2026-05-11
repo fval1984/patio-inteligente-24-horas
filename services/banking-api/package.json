@@ -4,6 +4,7 @@
   "private": true,
   "description": "API financeira com integração oficial Banco Inter (mTLS + OAuth2), conciliação e webhooks PIX",
   "scripts": {
+    "install:with-system-ca": "node scripts/npm-install-use-system-ca.cjs",
     "build": "nest build",
     "start": "nest start",
     "start:dev": "nest start --watch",
