@@ -5166,16 +5166,19 @@
                 <input id="vehicleExit" type="datetime-local" />
               </div>
               <div>
-                <label>RPV (cadastrado)</label>
-                <select id="vehicleLocator"></select>
+                <label>RPV — quem trouxe o veículo</label>
+                <select id="vehicleLocator" title="Parceiro que trouxe o veículo ao pátio"></select>
               </div>
               <div class="field-operador-hide">
                 <label>Assessoria</label>
                 <select id="vehicleAssessor"></select>
               </div>
               <div class="field-operador-hide">
-                <label>RPF (responsável financeiro / pagamento; mesma lista de parceiros do RPV)</label>
-                <select id="vehicleFinancialResponsible"></select>
+                <p class="notice" style="margin: 0 0 8px; font-size: 12px; line-height: 1.45">
+                  <strong>RPV</strong> e <strong>RPF</strong> podem ser <strong>a mesma pessoa</strong> ou <strong>duas distintas</strong>; a lista de parceiros é a mesma nos dois campos.
+                </p>
+                <label>RPF — responsável financeiro / pagamento</label>
+                <select id="vehicleFinancialResponsible" title="Pode coincidir com o RPV ou ser outro parceiro da lista"></select>
               </div>
               <div class="field-operador-hide">
                 <label>Leiloeiro</label>
