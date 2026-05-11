@@ -4168,7 +4168,7 @@
               <p class="module-kicker module-kicker--finance" style="margin: 0 0 4px">Consulta</p>
               <h2 style="margin: 0">Lista</h2>
               <p class="subtitle" style="margin: 6px 0 0; max-width: 42rem">
-                Filtros comuns (RPV, assessoria e texto tipo banco) aplicam-se à área escolhida. Para editar ou lançar valores, use as abas
+                Filtros comuns (RPV, RFV, assessoria e texto tipo banco) aplicam-se à área escolhida. Para editar ou lançar valores, use as abas
                 <strong>Gestão de pátio</strong> e <strong>Financeiro</strong>.
               </p>
             </div>
@@ -4195,6 +4195,12 @@
               <label for="listaFilterAssessoria">Assessoria</label>
               <select id="listaFilterAssessoria" style="min-width: 11rem">
                 <option value="">Todas</option>
+              </select>
+            </div>
+            <div>
+              <label for="listaFilterRfv">RFV</label>
+              <select id="listaFilterRfv" style="min-width: 11rem" title="Responsável financeiro (como no cadastro do veículo)">
+                <option value="">Todos</option>
               </select>
             </div>
             <div style="flex: 1; min-width: 12rem">
@@ -6043,6 +6049,7 @@
       let vlsListFilterAssessoriaId = "";
       let listaFilterLocatorId = "";
       let listaFilterAssessoriaId = "";
+      let listaFilterRfvId = "";
       let listaFilterBanco = "";
       let currentListaView = "vnp";
       let editingVehicleId = null;
@@ -6750,13 +6757,21 @@
       function readListaFiltersFromDom() {
         listaFilterLocatorId = document.getElementById("listaFilterLocator")?.value || "";
         listaFilterAssessoriaId = document.getElementById("listaFilterAssessoria")?.value || "";
+        listaFilterRfvId = document.getElementById("listaFilterRfv")?.value || "";
         listaFilterBanco = (document.getElementById("listaFilterBanco")?.value || "").trim();
+      }
+
+      /** RFV efetivo no veículo (igual ao select do cadastro: responsável financeiro ou RPV em falta). */
+      function listaVehicleEffectiveRfvPartnerId(v) {
+        if (!v) return "";
+        return String(v.responsavel_financeiro_id || v.localizador_id || "").trim();
       }
 
       function syncListaFilterSelects() {
         const locSel = document.getElementById("listaFilterLocator");
         const assSel = document.getElementById("listaFilterAssessoria");
-        if (!locSel || !assSel) return;
+        const rfvSel = document.getElementById("listaFilterRfv");
+        if (!locSel || !assSel || !rfvSel) return;
         const parceiros = state.partners.filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
         const assessorias = state.partners.filter((p) => p.tipo === "ASSESSORIA");
         const opt = (id, label) => {
@@ -6769,6 +6784,9 @@
         assSel.innerHTML =
           `<option value="">Todas as assessorias</option>` +
           assessorias.map((p) => opt(p.id, p.nome || "-")).join("");
+        rfvSel.innerHTML =
+          `<option value="">Todos os RFVs</option>` +
+          parceiros.map((p) => opt(p.id, p.nome || "-")).join("");
         if (parceiros.some((p) => p.id === listaFilterLocatorId)) locSel.value = listaFilterLocatorId;
         else {
           locSel.value = "";
@@ -6778,6 +6796,11 @@
         else {
           assSel.value = "";
           listaFilterAssessoriaId = "";
+        }
+        if (parceiros.some((p) => p.id === listaFilterRfvId)) rfvSel.value = listaFilterRfvId;
+        else {
+          rfvSel.value = "";
+          listaFilterRfvId = "";
         }
       }
 
@@ -6800,12 +6823,14 @@
         if (!v) return false;
         if (listaFilterLocatorId && v.localizador_id !== listaFilterLocatorId) return false;
         if (listaFilterAssessoriaId && v.assessoria_id !== listaFilterAssessoriaId) return false;
+        if (listaFilterRfvId && listaVehicleEffectiveRfvPartnerId(v) !== String(listaFilterRfvId)) return false;
         return listaTextoBancoMatch(v.observacoes, v.placa, state.settings?.conta_bancaria);
       }
 
       function listaReceivableMatches(r, vehicle) {
         if (listaFilterLocatorId && (vehicle?.localizador_id || "") !== listaFilterLocatorId) return false;
         if (listaFilterAssessoriaId && (vehicle?.assessoria_id || "") !== listaFilterAssessoriaId) return false;
+        if (listaFilterRfvId && listaVehicleEffectiveRfvPartnerId(vehicle) !== String(listaFilterRfvId)) return false;
         return listaTextoBancoMatch(
           r.responsavel_pagamento,
           r.receivable_category,
@@ -6822,9 +6847,12 @@
         const assName = listaFilterAssessoriaId
           ? state.partners.find((x) => x.id === listaFilterAssessoriaId)?.nome || ""
           : "";
+        const rfvName = listaFilterRfvId ? state.partners.find((x) => x.id === listaFilterRfvId)?.nome || "" : "";
         const desc = (p.descricao || "").toLowerCase();
         if (listaFilterLocatorId && locName && !desc.includes(String(locName).toLowerCase())) return false;
         if (listaFilterAssessoriaId && assName && !desc.includes(String(assName).toLowerCase())) return false;
+        if (listaFilterRfvId && rfvName && !desc.includes(String(rfvName).toLowerCase())) return false;
+        if (listaFilterRfvId && !rfvName) return false;
         return listaTextoBancoMatch(p.descricao, p.payable_category, state.settings?.conta_bancaria);
       }
 
@@ -6841,7 +6869,7 @@
         if (rec && !listaReceivableMatches(rec, v)) return false;
         if (pay && !listaPayableMatches(pay)) return false;
         if (!rec && !pay) {
-          if (listaFilterLocatorId || listaFilterAssessoriaId) return false;
+          if (listaFilterLocatorId || listaFilterAssessoriaId || listaFilterRfvId) return false;
           return listaTextoBancoMatch(mov.descricao, state.settings?.conta_bancaria);
         }
         return listaTextoBancoMatch(mov.descricao);
@@ -6969,6 +6997,7 @@
           listaFilterAssessoriaId
             ? `Assessoria: ${state.partners.find((p) => p.id === listaFilterAssessoriaId)?.nome || ""}`
             : "",
+          listaFilterRfvId ? `RFV: ${state.partners.find((p) => p.id === listaFilterRfvId)?.nome || ""}` : "",
           listaFilterBanco ? `Texto: ${listaFilterBanco}` : "",
         ]
           .filter(Boolean)
@@ -7342,6 +7371,7 @@
         const filtros = [
           listaFilterLocatorId ? `RPV: ${state.partners.find((p) => p.id === listaFilterLocatorId)?.nome || listaFilterLocatorId}` : "",
           listaFilterAssessoriaId ? `Assessoria: ${state.partners.find((p) => p.id === listaFilterAssessoriaId)?.nome || listaFilterAssessoriaId}` : "",
+          listaFilterRfvId ? `RFV: ${state.partners.find((p) => p.id === listaFilterRfvId)?.nome || listaFilterRfvId}` : "",
           listaFilterBanco ? `Texto: ${listaFilterBanco}` : "",
         ]
           .filter(Boolean)
@@ -12802,12 +12832,15 @@
       document.getElementById("listaFiltersClear")?.addEventListener("click", () => {
         listaFilterLocatorId = "";
         listaFilterAssessoriaId = "";
+        listaFilterRfvId = "";
         listaFilterBanco = "";
         const loc = document.getElementById("listaFilterLocator");
         const ass = document.getElementById("listaFilterAssessoria");
+        const rfv = document.getElementById("listaFilterRfv");
         const banco = document.getElementById("listaFilterBanco");
         if (loc) loc.value = "";
         if (ass) ass.value = "";
+        if (rfv) rfv.value = "";
         if (banco) banco.value = "";
         syncListaFilterSelects();
         renderListaPanel();
