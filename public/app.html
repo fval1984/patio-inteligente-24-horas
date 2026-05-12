@@ -7339,11 +7339,17 @@
           : `<p style="margin-top:12px;font-weight:700;font-size:1.05rem">${escapeHtml(`${g.label}: ${formatCurrency(g.amount)}`)}</p>`;
         const printCss = `
   body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 20px; color: #111; }
-  h1 { font-size: 1.2rem; margin: 0 0 6px; }
-  .meta { font-size: 0.82rem; color: #444; margin-bottom: 12px; }
+  h1 { font-size: 1.2rem; margin: 0 0 6px; color: #111; }
+  .meta { font-size: 0.82rem; color: #333; margin-bottom: 12px; }
   table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
-  th, td { border: 1px solid #bbb; padding: 6px; text-align: left; vertical-align: top; }
+  th, td { border: 1px solid #bbb; padding: 6px; text-align: left; vertical-align: top; color: #111; }
   th { background: #f0f0f0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid #cbd5e1; background: #f1f5f9 !important; color: #0f172a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .tag.success { background: #dcfce7 !important; color: #14532d !important; border-color: #86efac; }
+  .tag.warning { background: #fef9c3 !important; color: #713f12 !important; border-color: #fde047; }
+  .notice { color: #334155 !important; }
+  .lista-receber-valor, .lista-receber-placa { color: #0f172a !important; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .lista-receber-diarias { color: #1e293b !important; }
   @page { margin: 12mm; }`;
         const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(
           nomePatio
@@ -7363,7 +7369,7 @@
         iframe.setAttribute("title", iframeTitle);
         iframe.setAttribute("aria-hidden", "true");
         iframe.style.cssText =
-          "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;";
+          "position:fixed;left:-9999px;top:0;width:900px;height:1200px;border:0;opacity:0;pointer-events:none;z-index:-1;overflow:hidden;";
         document.body.appendChild(iframe);
         const win = iframe.contentWindow;
         if (!win) {
@@ -7468,14 +7474,21 @@
           excludeRemoved ? "Ocultando removidos (VRP)" : "Inclui removidos no agrupamento",
           `Total no relatório: ${vehicles.length} veículo(s)`,
           `Emitido em: ${nowStr}`,
+          ...(isGestorPista ? ["Perfil gestor de pista: colunas monetárias omitidas"] : []),
         ].join(" · ");
 
         const theadLoc =
-          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Assessoria</th><th>Observações</th>";
+          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Assessoria</th>" +
+          patioPrintMoneyHeaderHtml() +
+          "<th>Observações</th>";
         const theadAss =
-          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Empresa de remoção</th><th>Observações</th>";
+          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Empresa de remoção</th>" +
+          patioPrintMoneyHeaderHtml() +
+          "<th>Observações</th>";
         const theadRem =
-          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>RPV</th><th>Assessoria</th><th>Observações</th>";
+          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>RPV</th><th>Assessoria</th>" +
+          patioPrintMoneyHeaderHtml() +
+          "<th>Observações</th>";
 
         const rowLoc = (v) => {
           const { ass } = patioPrintPartnerNames(v);
@@ -7485,6 +7498,7 @@
             <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
             <td>${escapeHtml(sai)}</td>
             <td>${escapeHtml(ass)}</td>
+            ${patioPrintMoneyCellsHtml(v)}
             <td>${patioPrintObsCell(v)}</td>
           </tr>`;
         };
@@ -7496,6 +7510,7 @@
             <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
             <td>${escapeHtml(sai)}</td>
             <td>${escapeHtml(loc)}</td>
+            ${patioPrintMoneyCellsHtml(v)}
             <td>${patioPrintObsCell(v)}</td>
           </tr>`;
         };
@@ -7508,6 +7523,7 @@
             <td>${escapeHtml(sai)}</td>
             <td>${escapeHtml(loc)}</td>
             <td>${escapeHtml(ass)}</td>
+            ${patioPrintMoneyCellsHtml(v)}
             <td>${patioPrintObsCell(v)}</td>
           </tr>`;
         };
@@ -7587,7 +7603,7 @@
   .meta { font-size: 0.8rem; color: #444; margin-bottom: 14px; }
   .empty-note { font-size: 0.85rem; color: #666; font-style: italic; margin: 0 0 12px; }
   table { width: 100%; border-collapse: collapse; font-size: 0.76rem; margin-bottom: 14px; }
-  th, td { border: 1px solid #bbb; padding: 6px; text-align: left; vertical-align: top; }
+  th, td { border: 1px solid #bbb; padding: 6px; text-align: left; vertical-align: top; color: #111; }
   th { background: #f0f0f0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   @page { margin: 12mm; }
   @media print { body { margin: 0; } }`;
@@ -7628,13 +7644,21 @@
 
         const nomePatio = state.settings?.nome_patio || "Pátio";
         const nowStr = formatDateTime(new Date().toISOString());
-        const metaLine = [`Total: ${vehicles.length} veículo(s)`, `Emitido em: ${nowStr}`].join(" · ");
+        const metaLine = [
+          `Total: ${vehicles.length} veículo(s)`,
+          `Emitido em: ${nowStr}`,
+          ...(isGestorPista ? ["Perfil gestor de pista: colunas monetárias omitidas"] : []),
+        ].join(" · ");
 
         const situacaoCell = (v) => escapeHtml(REMOVAL_FLOW_LABELS[v.status] || v.status || "—");
         const theadLoc =
-          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Situação</th><th>Assessoria</th><th>Observações</th>";
+          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Situação</th><th>Assessoria</th>" +
+          patioPrintMoneyHeaderHtml() +
+          "<th>Observações</th>";
         const theadAss =
-          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Situação</th><th>Empresa de remoção</th><th>Observações</th>";
+          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Situação</th><th>Empresa de remoção</th>" +
+          patioPrintMoneyHeaderHtml() +
+          "<th>Observações</th>";
 
         const rowLoc = (v) => {
           const { ass } = patioPrintPartnerNames(v);
@@ -7645,6 +7669,7 @@
             <td>${escapeHtml(sai)}</td>
             <td>${situacaoCell(v)}</td>
             <td>${escapeHtml(ass)}</td>
+            ${patioPrintMoneyCellsHtml(v)}
             <td>${patioPrintObsCell(v)}</td>
           </tr>`;
         };
@@ -7657,6 +7682,7 @@
             <td>${escapeHtml(sai)}</td>
             <td>${situacaoCell(v)}</td>
             <td>${escapeHtml(loc)}</td>
+            ${patioPrintMoneyCellsHtml(v)}
             <td>${patioPrintObsCell(v)}</td>
           </tr>`;
         };
@@ -7712,7 +7738,7 @@
   .meta { font-size: 0.8rem; color: #444; margin-bottom: 14px; }
   .empty-note { font-size: 0.85rem; color: #666; font-style: italic; margin: 0 0 12px; }
   table { width: 100%; border-collapse: collapse; font-size: 0.76rem; margin-bottom: 14px; }
-  th, td { border: 1px solid #bbb; padding: 6px; text-align: left; vertical-align: top; }
+  th, td { border: 1px solid #bbb; padding: 6px; text-align: left; vertical-align: top; color: #111; }
   th { background: #f0f0f0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   @page { margin: 12mm; }
   @media print { body { margin: 0; } }`;
@@ -8102,7 +8128,7 @@
   h3 .count { font-weight: normal; color: #555; }
   .meta { font-size: 0.8rem; color: #444; margin-bottom: 14px; }
   table { width: 100%; border-collapse: collapse; font-size: 0.76rem; margin-bottom: 14px; }
-  th, td { border: 1px solid #bbb; padding: 6px; text-align: left; vertical-align: top; }
+  th, td { border: 1px solid #bbb; padding: 6px; text-align: left; vertical-align: top; color: #111; }
   th { background: #f0f0f0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   @page { margin: 12mm; }
   @media print { body { margin: 0; } }`;
@@ -8182,6 +8208,7 @@
           metaParts.push(`VRP/NFSe: ${formatYmdToBr(fromStr)} a ${formatYmdToBr(toStr)}`);
         }
         metaParts.push(`Emitido em: ${nowStr}`);
+        if (isGestorPista) metaParts.push("Perfil gestor de pista: colunas monetárias omitidas nas tabelas");
         const metaLine = metaParts.join(" · ");
 
         const sections = [];
@@ -8219,6 +8246,7 @@
                 <td>${escapeHtml(sit)}</td>
                 <td>${escapeHtml(loc)}</td>
                 <td>${escapeHtml(ass)}</td>
+                ${patioPrintMoneyCellsHtml(v)}
                 <td>${patioPrintObsCell(v)}</td>
               </tr>`;
             })
@@ -8226,7 +8254,9 @@
           pushTable(
             "VNP — No pátio e liberação em andamento",
             "Mesma lista unificada do sistema (antes da remoção / VRP)",
-            "<th>Veículo</th><th>Data de entrada</th><th>Situação</th><th>RPV</th><th>Assessoria</th><th>Observações</th>",
+            "<th>Veículo</th><th>Data de entrada</th><th>Situação</th><th>RPV</th><th>Assessoria</th>" +
+              patioPrintMoneyHeaderHtml() +
+              "<th>Observações</th>",
             rows,
             list.length,
             "Nenhum veículo nesta lista."
@@ -8250,6 +8280,7 @@
                 <td>${escapeHtml(formatDateTime(v.data_saida))}</td>
                 <td>${escapeHtml(loc)}</td>
                 <td>${escapeHtml(ass)}</td>
+                ${patioPrintMoneyCellsHtml(v)}
                 <td>${patioPrintObsCell(v)}</td>
               </tr>`;
             })
@@ -8257,7 +8288,9 @@
           pushTable(
             "VRP — Veículos removidos",
             "Filtrado por data de saída no período (se não houver saída, usa a data de entrada)",
-            "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>RPV</th><th>Assessoria</th><th>Observações</th>",
+            "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>RPV</th><th>Assessoria</th>" +
+              patioPrintMoneyHeaderHtml() +
+              "<th>Observações</th>",
             rows,
             list.length,
             "Nenhum veículo removido neste período."
@@ -8282,6 +8315,7 @@
                 <td>${escapeHtml(req)}</td>
                 <td>${escapeHtml(loc)}</td>
                 <td>${escapeHtml(ass)}</td>
+                ${patioPrintMoneyCellsHtml(v)}
                 <td>${patioPrintObsCell(v)}</td>
               </tr>`;
             })
@@ -8289,7 +8323,9 @@
           pushTable(
             "NFSe pendente",
             "Mesmo critério da aba do sistema (status pendente); período pela data da solicitação ou, se vazia, pela entrada",
-            "<th>Veículo</th><th>Data de entrada</th><th>Solicitação NFSe</th><th>RPV</th><th>Assessoria</th><th>Observações</th>",
+            "<th>Veículo</th><th>Data de entrada</th><th>Solicitação NFSe</th><th>RPV</th><th>Assessoria</th>" +
+              patioPrintMoneyHeaderHtml() +
+              "<th>Observações</th>",
             rows,
             list.length,
             "Nenhum veículo com NFSe pendente neste período."
@@ -8305,7 +8341,7 @@
   .section-sub { font-size: 0.78rem; color: #555; margin: 0 0 8px; }
   .empty-note { font-size: 0.85rem; color: #666; font-style: italic; margin: 0 0 12px; }
   table { width: 100%; border-collapse: collapse; font-size: 0.78rem; margin-bottom: 8px; }
-  th, td { border: 1px solid #bbb; padding: 7px; text-align: left; vertical-align: top; }
+  th, td { border: 1px solid #bbb; padding: 7px; text-align: left; vertical-align: top; color: #111; }
   th { background: #f0f0f0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   @page { margin: 12mm; }
   @media print { body { margin: 0; } h2 { page-break-before: auto; } }
@@ -8335,6 +8371,19 @@
         const diffMs = end - start;
         const days = Math.max(1, Math.ceil(diffMs / 86400000));
         return days * Number(vehicle.valor_diaria);
+      }
+
+      /** Cabeçalhos HTML de valores nas impressões do pátio (vazio para gestor de pista). */
+      function patioPrintMoneyHeaderHtml() {
+        return isGestorPista ? "" : "<th>Diária</th><th>Total estimado</th>";
+      }
+
+      /** Células HTML de diária + total estimado (vazio para gestor de pista). */
+      function patioPrintMoneyCellsHtml(v) {
+        if (isGestorPista) return "";
+        const vd = Number(v?.valor_diaria);
+        const diaria = Number.isFinite(vd) && vd >= 0 ? vd : 0;
+        return `<td>${escapeHtml(formatCurrency(diaria))}</td><td>${escapeHtml(formatCurrency(calcTotal(v)))}</td>`;
       }
 
       /** O veículo está em permanência no pátio em algum momento do dia civil local `dayYmd` (YYYY-MM-DD)? */
