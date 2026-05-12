@@ -6964,8 +6964,9 @@
         }
       }
 
-      function renderListaPanel() {
+      function renderListaPanel(opts = {}) {
         readListaFiltersFromDom();
+        const listaPrintVnpSemValores = opts.listaPrintVnpSemValores === true;
         const head = document.getElementById("listaTableHead");
         const body = document.getElementById("listaTableBody");
         if (!head || !body) return;
@@ -6983,12 +6984,13 @@
 
         try {
         if (currentListaView === "vnp") {
+          const ocultarValorColuna = semVal || listaPrintVnpSemValores;
           head.innerHTML = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>Assessoria</th><th>RPF</th><th>Entrada</th><th>Situação</th>${
-            semVal ? "" : "<th>Valor estimado</th>"
+            ocultarValorColuna ? "" : "<th>Valor estimado</th>"
           }</tr>`;
           const items = buildListaVnpVehicleRows();
           if (!items.length) {
-            body.innerHTML = `<tr><td colspan="9" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="${ocultarValorColuna ? "8" : "9"}" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
             return;
           }
           body.innerHTML = items
@@ -6999,7 +7001,7 @@
                     ? "No pátio · remoção solicitada"
                     : "No pátio"
                   : VLS_STATUS_LABELS[v.status] || v.status || "-";
-              const val = semVal ? "" : `<td data-label="Valor">${escapeHtml(formatCurrency(calcTotal(v)))}</td>`;
+              const val = ocultarValorColuna ? "" : `<td data-label="Valor">${escapeHtml(formatCurrency(calcTotal(v)))}</td>`;
               return `<tr>
                 <td data-label="Placa">${escapeHtml(v.placa || "-")}</td>
                 <td data-label="Registo">${patioRegistoBadgeHtml("vnp")}</td>
@@ -7319,7 +7321,8 @@
 
       function runListaPrintDocument() {
         readListaFiltersFromDom();
-        renderListaPanel();
+        const listaPrintVnpSemValores = currentListaView === "vnp";
+        renderListaPanel({ listaPrintVnpSemValores });
         const nomePatio = state.settings?.nome_patio || "Pátio";
         const headHtml = document.getElementById("listaTableHead")?.innerHTML || "";
         const bodyHtml = document.getElementById("listaTableBody")?.innerHTML || "";
@@ -7332,11 +7335,15 @@
           .filter(Boolean)
           .join(" · ");
         const viewLabel = document.querySelector(`#listaSubnav button[data-lista-subview="${currentListaView}"]`)?.textContent?.trim() || currentListaView;
-        const meta = [viewLabel, filtros || "Sem filtros adicionais", `Emitido: ${formatDateTime(new Date().toISOString())}`].join(" · ");
+        const metaParts = [viewLabel, filtros || "Sem filtros adicionais", `Emitido: ${formatDateTime(new Date().toISOString())}`];
+        if (listaPrintVnpSemValores) metaParts.push("Impressão sem coluna de valor estimado nem total");
+        const meta = metaParts.join(" · ");
         const g = computeListaGrandTotalForCurrentView();
-        const totalBlock = g.hideAmount
-          ? `<p style="margin-top:12px;font-weight:600">${escapeHtml("Valor total: não disponível neste perfil.")}</p>`
-          : `<p style="margin-top:12px;font-weight:700;font-size:1.05rem">${escapeHtml(`${g.label}: ${formatCurrency(g.amount)}`)}</p>`;
+        const totalBlock = listaPrintVnpSemValores
+          ? ""
+          : g.hideAmount
+            ? `<p style="margin-top:12px;font-weight:600">${escapeHtml("Valor total: não disponível neste perfil.")}</p>`
+            : `<p style="margin-top:12px;font-weight:700;font-size:1.05rem">${escapeHtml(`${g.label}: ${formatCurrency(g.amount)}`)}</p>`;
         const printCss = `
   body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 20px; color: #111; }
   h1 { font-size: 1.2rem; margin: 0 0 6px; color: #111; }
@@ -7360,6 +7367,7 @@
   ${totalBlock}
 </body></html>`;
         printHtmlInHiddenIframe(html, { iframeTitle: "Impressão lista", closeModalId: null });
+        if (listaPrintVnpSemValores) renderListaPanel();
       }
 
       function printHtmlInHiddenIframe(html, opts = {}) {
