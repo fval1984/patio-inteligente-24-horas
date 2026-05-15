@@ -5173,9 +5173,9 @@
                 <label>Assessoria</label>
                 <select id="vehicleAssessor"></select>
               </div>
-              <div class="field-operador-hide">
+              <div>
                 <p class="notice" style="margin: 0 0 8px; font-size: 12px; line-height: 1.45">
-                  <strong>RPV</strong> e <strong>RPF</strong> podem ser <strong>a mesma pessoa</strong> ou <strong>duas distintas</strong>; a lista de parceiros é a mesma nos dois campos.
+                  <strong>RPV</strong> e <strong>RPF</strong> podem ser <strong>a mesma pessoa</strong> ou <strong>duas distintas</strong>; a lista inclui RPV e instituições financeiras.
                 </p>
                 <label>RPF — responsável financeiro / pagamento</label>
                 <select id="vehicleFinancialResponsible" title="Pode coincidir com o RPV ou ser outro parceiro da lista"></select>
@@ -6724,6 +6724,7 @@
         const rpfSel = document.getElementById("listaFilterRpf");
         if (!locSel || !assSel || !rpfSel) return;
         const parceiros = state.partners.filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
+        const parceirosRpf = state.partners.filter((p) => isRpfPartnerType(p.tipo || "PARCEIRO"));
         const assessorias = state.partners.filter((p) => p.tipo === "ASSESSORIA");
         const opt = (id, label) => {
           const vid = String(id).replace(/"/g, "&quot;");
@@ -6737,7 +6738,7 @@
           assessorias.map((p) => opt(p.id, p.nome || "-")).join("");
         rpfSel.innerHTML =
           `<option value="">Todos os RPF</option>` +
-          parceiros.map((p) => opt(p.id, p.nome || "-")).join("");
+          parceirosRpf.map((p) => opt(p.id, p.nome || "-")).join("");
         if (parceiros.some((p) => p.id === listaFilterLocatorId)) locSel.value = listaFilterLocatorId;
         else {
           locSel.value = "";
@@ -6748,7 +6749,7 @@
           assSel.value = "";
           listaFilterAssessoriaId = "";
         }
-        if (parceiros.some((p) => p.id === listaFilterRpfId)) rpfSel.value = listaFilterRpfId;
+        if (parceirosRpf.some((p) => p.id === listaFilterRpfId)) rpfSel.value = listaFilterRpfId;
         else {
           rpfSel.value = "";
           listaFilterRpfId = "";
@@ -9272,6 +9273,7 @@
       async function loadAll() {
         if (isGestorPista) {
           await Promise.all([loadPartners(), loadVehicles()]);
+          probeVehiclesRpfColumns().catch(() => {});
           return;
         }
         await Promise.all([
@@ -9284,6 +9286,7 @@
           loadSettings(),
           loadMonthlyClosures(),
         ]);
+        probeVehiclesRpfColumns().catch(() => {});
         const userId = effectiveUserId();
         if (userId) {
           // Competência: tentativa automática diária (espelho contábil), sem bloquear o fluxo legado.
@@ -9715,6 +9718,49 @@
 
       function isLocalizadorPartnerType(type) {
         return normalizePartnerType(type) === "LOCALIZADOR";
+      }
+
+      function isRpfPartnerType(type) {
+        const t = normalizePartnerType(type || "PARCEIRO");
+        return t === "LOCALIZADOR" || t === "INSTITUICAO_FINANCEIRA";
+      }
+
+      function partnerNomeById(partnerId) {
+        const id = String(partnerId || "").trim();
+        if (!id) return "";
+        return (state.partners.find((p) => String(p.id) === id)?.nome || "").trim();
+      }
+
+      /** null = ainda não verificado; true/false = colunas responsavel_financeiro_* na tabela vehicles */
+      let vehiclesRpfColumnsOk = null;
+
+      async function probeVehiclesRpfColumns() {
+        if (vehiclesRpfColumnsOk !== null) return vehiclesRpfColumnsOk;
+        if (!supabase) {
+          vehiclesRpfColumnsOk = false;
+          return false;
+        }
+        const { error } = await supabase.from("vehicles").select("responsavel_financeiro_id").limit(1);
+        if (!error) {
+          vehiclesRpfColumnsOk = true;
+          return true;
+        }
+        const msg = error.message || "";
+        vehiclesRpfColumnsOk = !/responsavel_financeiro|PGRST204|column|schema cache/i.test(msg);
+        return vehiclesRpfColumnsOk;
+      }
+
+      function readVehicleRpfFields() {
+        const rpfId = String(vehicleFinancialResponsible?.value || "").trim() || null;
+        let rpfNome = rpfId ? partnerNomeById(rpfId) : "";
+        if (!rpfNome && rpfId && vehicleFinancialResponsible?.selectedOptions?.[0]) {
+          const label = (vehicleFinancialResponsible.selectedOptions[0].textContent || "").trim();
+          if (label && label !== "Sem RPF") rpfNome = label;
+        }
+        return {
+          responsavel_financeiro_id: rpfId,
+          responsavel_financeiro_nome: rpfId ? rpfNome || null : null,
+        };
       }
 
       function partnerTypeFromSubview(view) {
@@ -10970,12 +11016,12 @@
             vehicleAuctioneer.appendChild(option);
           } else if (type === "LOCALIZADOR") {
             vehicleLocator.appendChild(option);
-            if (vehicleFinancialResponsible) {
-              const optionRpf = document.createElement("option");
-              optionRpf.value = p.id;
-              optionRpf.textContent = p.nome;
-              vehicleFinancialResponsible.appendChild(optionRpf);
-            }
+          }
+          if (vehicleFinancialResponsible && isRpfPartnerType(type)) {
+            const optionRpf = document.createElement("option");
+            optionRpf.value = p.id;
+            optionRpf.textContent = p.nome;
+            vehicleFinancialResponsible.appendChild(optionRpf);
           }
         });
       }
@@ -11025,7 +11071,7 @@
           vehicleLocator.value = vehicle.localizador_id || "";
           vehicleAssessor.value = vehicle.assessoria_id || "";
           if (vehicleFinancialResponsible)
-            vehicleFinancialResponsible.value = vehicle.responsavel_financeiro_id || vehicle.localizador_id || "";
+            vehicleFinancialResponsible.value = vehicle.responsavel_financeiro_id || "";
           if (vehicleAuctioneer) vehicleAuctioneer.value = vehicle.leiloeiro_id || "";
           document.getElementById("vehicleNotes").value = vehicle.observacoes || "";
           const inspectionDateEl = document.getElementById("vehicleInspectionDate");
@@ -13728,6 +13774,17 @@
         const inspectionStepEl = document.getElementById("vehicleInspectionStep");
         const inspectionTowEl = document.getElementById("vehicleInspectionTow");
         const inspectionDamageEl = document.getElementById("vehicleInspectionDamage");
+        const rpfFields = readVehicleRpfFields();
+        if (rpfFields.responsavel_financeiro_id) {
+          const rpfColsOk = await probeVehiclesRpfColumns();
+          if (!rpfColsOk) {
+            alert(
+              "Não foi possível gravar o RPF: a base de dados ainda não tem as colunas responsavel_financeiro_id / responsavel_financeiro_nome na tabela vehicles.\n\n" +
+                "No Supabase → SQL Editor, execute o ficheiro supabase/vehicles_recursos_avancados.sql (ou npm run db:apply-vehicles com SUPABASE_DB_URL no .env.local) e tente salvar de novo."
+            );
+            return;
+          }
+        }
         const payload = {
           user_id: effectiveUserId(),
           placa: document.getElementById("vehiclePlate").value.trim(),
@@ -13737,12 +13794,8 @@
           data_entrada: new Date(document.getElementById("vehicleEntry").value).toISOString(),
           data_saida: vehicleExit.value ? new Date(vehicleExit.value).toISOString() : null,
           localizador_id: vehicleLocator.value || null,
-          responsavel_financeiro_id: vehicleFinancialResponsible?.value || null,
-          responsavel_financeiro_nome:
-            vehicleFinancialResponsible?.selectedOptions?.[0]?.textContent?.trim() &&
-            vehicleFinancialResponsible?.value
-              ? vehicleFinancialResponsible.selectedOptions[0].textContent.trim()
-              : null,
+          responsavel_financeiro_id: rpfFields.responsavel_financeiro_id,
+          responsavel_financeiro_nome: rpfFields.responsavel_financeiro_nome,
           assessoria_id: vehicleAssessor.value || null,
           leiloeiro_id: vehicleAuctioneer?.value || null,
           observacoes: document.getElementById("vehicleNotes").value.trim(),
@@ -13822,6 +13875,13 @@
         for (let guard = 0; error && guard < 8; guard++) {
           const kinds = advancedKindsFromError(error.message || "");
           if (!kinds.length) break;
+          if (kinds.includes("rpf") && rpfFields.responsavel_financeiro_id) {
+            alert(
+              "Não foi possível gravar o RPF neste veículo. Confirme no Supabase que existem as colunas responsavel_financeiro_id e responsavel_financeiro_nome (execute supabase/vehicles_recursos_avancados.sql) e tente novamente.\n\n" +
+                (error.message || "")
+            );
+            return;
+          }
           const before = JSON.stringify(tryPayload);
           for (const k of kinds) {
             if (k === "vistoria") tryPayload = stripVistoriaFrom(tryPayload);
