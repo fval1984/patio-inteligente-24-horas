@@ -15,3 +15,9 @@ COMMENT ON COLUMN vehicles.vistoria_km IS 'Quilometragem registrada no momento d
 COMMENT ON COLUMN vehicles.vistoria_combustivel IS 'Nível de combustível informado na vistoria.';
 COMMENT ON COLUMN vehicles.vistoria_checklist IS 'Checklist da vistoria (documento/chave/estepe/triângulo-macaco).';
 COMMENT ON COLUMN vehicles.vistoria_observacoes IS 'Avarias e observações da vistoria.';
+
+-- RPF (responsável financeiro / pagamento) — necessário para gravar o campo no cadastro de entrada
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS responsavel_financeiro_id uuid;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS responsavel_financeiro_nome text;
+COMMENT ON COLUMN vehicles.responsavel_financeiro_id IS 'Parceiro RPF (pagamento); pode coincidir com o RPV ou ser outro.';
+COMMENT ON COLUMN vehicles.responsavel_financeiro_nome IS 'Nome gravado com o RPF (espelho do parceiro selecionado).';
