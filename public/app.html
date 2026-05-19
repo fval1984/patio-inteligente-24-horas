@@ -5656,8 +5656,7 @@
             <button class="modal-close" id="closeReciboModal">Fechar</button>
           </div>
           <p class="notice" style="margin: 0 0 12px; font-size: 13px; line-height: 1.45">
-            Preencha <strong>só</strong> o nome e o CPF/CNPJ de quem consta no recibo como direcionado. O PDF usa
-            <strong>automaticamente</strong> marca, modelo, placa, período das estadias e o valor desta conta.
+            Preencha o nome e o CPF/CNPJ de quem consta no recibo. Use <strong>Gerar PDF</strong> ou <strong>Imprimir</strong> — ambos são opcionais.
           </p>
           <div id="reciboModalResumoAuto" class="section-card hidden" style="margin-bottom: 14px; padding: 12px 14px; font-size: 13px; line-height: 1.55"></div>
           <div class="form-grid">
@@ -5671,8 +5670,30 @@
             </div>
           </div>
           <div class="form-actions">
-            <button type="button" id="confirmReciboModal">Confirmar e gerar PDF</button>
-            <button type="button" class="secondary" id="cancelReciboModal">Cancelar</button>
+            <button type="button" id="confirmReciboModal">Gerar PDF</button>
+            <button type="button" class="secondary" id="printReciboModal">Imprimir</button>
+            <button type="button" class="secondary" id="cancelReciboModal">Fechar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="receberBaixaModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 440px">
+          <div class="modal-header">
+            <div>
+              <h3>Confirmar recebimento</h3>
+              <p class="subtitle" style="margin: 4px 0 0">Confirme a baixa e escolha se deseja emitir recibo.</p>
+            </div>
+            <button type="button" class="modal-close" id="closeReceberBaixaModal">Fechar</button>
+          </div>
+          <div id="receberBaixaResumo" class="section-card" style="margin-bottom: 14px; padding: 12px 14px; font-size: 13px; line-height: 1.55"></div>
+          <p class="notice" style="margin: 0 0 12px; font-size: 13px; line-height: 1.45">
+            O recibo é <strong>opcional</strong>. Só abre o formulário de recibo se escolher emitir agora.
+          </p>
+          <div class="form-actions" style="flex-wrap: wrap">
+            <button type="button" id="receberBaixaSemRecibo">Confirmar sem recibo</button>
+            <button type="button" class="secondary" id="receberBaixaComRecibo">Confirmar e emitir recibo</button>
+            <button type="button" class="secondary" id="cancelReceberBaixaModal">Cancelar</button>
           </div>
         </div>
       </div>
@@ -5847,6 +5868,8 @@
       const closeReciboModal = document.getElementById("closeReciboModal");
       const cancelReciboModal = document.getElementById("cancelReciboModal");
       const confirmReciboModal = document.getElementById("confirmReciboModal");
+      const printReciboModal = document.getElementById("printReciboModal");
+      const receberBaixaModal = document.getElementById("receberBaixaModal");
       const reciboDestinatarioNome = document.getElementById("reciboDestinatarioNome");
       const reciboDestinatarioDoc = document.getElementById("reciboDestinatarioDoc");
 
@@ -12210,6 +12233,7 @@
               if (receberQuitadoPodeGestionar) {
                 const rid = mov.conta_id;
                 acoesCell = `
+                  <button class="secondary" type="button" data-action="recibo" data-id="${rid}" title="Gerar recibo de recebimento">Recibo</button>
                   <button class="secondary" type="button" data-action="conciliar-caixa" data-id="${mov.id}" title="Marca este lançamento como conciliado">Conciliar</button>
                   <button class="secondary" type="button" data-action="editar-recebido" data-id="${rid}" title="Ajustar cliente ou valor recebido">Editar</button>
                   <button class="secondary" type="button" data-action="estornar-caixa" data-id="${mov.id}" title="Estorna este lançamento e devolve para receber">Estornar</button>
@@ -12327,7 +12351,7 @@
                     <button class="secondary" data-action="detalhes-receber" data-id="${r.id}">Ver detalhes</button>
                     <button class="secondary" data-action="aplicar-desconto" data-id="${r.id}">Aplicar desconto</button>
                     <button class="secondary" data-action="negociar-receber" data-id="${r.id}">Negociar</button>
-                    <button class="secondary" data-action="receber" data-id="${r.id}" title="Confirma o recebimento e gera recibo">Dar baixa</button>
+                    <button class="secondary" data-action="receber" data-id="${r.id}" title="Confirma o recebimento">Dar baixa</button>
                   </td>
                 </tr>
               `);
@@ -12685,39 +12709,64 @@
           resumo.classList.add("hidden");
         }
       }
-      closeReciboModal?.addEventListener("click", () => {
+      function hideReciboModalAndMaybeReturn() {
         reciboModal.classList.add("hidden");
         hideReciboModalResumo();
         if (reciboModalResolver) {
           reciboModalResolver(null);
           reciboModalResolver = null;
         }
-      });
-      cancelReciboModal?.addEventListener("click", () => {
+      }
+      closeReciboModal?.addEventListener("click", hideReciboModalAndMaybeReturn);
+      cancelReciboModal?.addEventListener("click", hideReciboModalAndMaybeReturn);
+      confirmReciboModal?.addEventListener("click", async () => {
+        const fields = readReciboDestinatarioFields();
+        if (!fields) return;
+        const ctx = pendingReciboContext;
         reciboModal.classList.add("hidden");
         hideReciboModalResumo();
         if (reciboModalResolver) {
-          reciboModalResolver(null);
+          reciboModalResolver(fields);
           reciboModalResolver = null;
+          return;
+        }
+        if (ctx?.receivable) {
+          await downloadReciboPdf({
+            receivable: ctx.receivable,
+            vehicle: ctx.vehicle,
+            destinatarioNome: fields.nome,
+            destinatarioDoc: fields.doc,
+            valor: ctx.valor ?? Number(ctx.receivable.valor || 0),
+          });
+          pendingReciboContext = null;
         }
       });
-      confirmReciboModal?.addEventListener("click", () => {
-        const nome = (reciboDestinatarioNome?.value || "").trim();
-        const doc = (reciboDestinatarioDoc?.value || "").trim();
-        if (!nome) {
-          alert("Informe o nome do direcionado.");
+      printReciboModal?.addEventListener("click", () => {
+        const fields = readReciboDestinatarioFields();
+        if (!fields) return;
+        const ctx = pendingReciboContext;
+        if (!ctx?.receivable) {
+          alert("Abra o recibo a partir de «Dar baixa e emitir recibo» ou do caixa.");
           return;
         }
-        if (!doc) {
-          alert("Informe o CPF ou CNPJ do direcionado.");
-          return;
-        }
-        reciboModal.classList.add("hidden");
-        hideReciboModalResumo();
-        if (reciboModalResolver) {
-          reciboModalResolver({ nome, doc });
-          reciboModalResolver = null;
-        }
+        printReciboRecebimento({
+          receivable: ctx.receivable,
+          vehicle: ctx.vehicle,
+          destinatarioNome: fields.nome,
+          destinatarioDoc: fields.doc,
+          valor: ctx.valor ?? Number(ctx.receivable.valor || 0),
+        });
+      });
+      document.getElementById("closeReceberBaixaModal")?.addEventListener("click", closeReceberBaixaModal);
+      document.getElementById("cancelReceberBaixaModal")?.addEventListener("click", closeReceberBaixaModal);
+      receberBaixaModal?.addEventListener("click", (e) => {
+        if (e.target === e.currentTarget) closeReceberBaixaModal();
+      });
+      document.getElementById("receberBaixaSemRecibo")?.addEventListener("click", () => {
+        void executeReceberBaixa(false);
+      });
+      document.getElementById("receberBaixaComRecibo")?.addEventListener("click", () => {
+        void executeReceberBaixa(true);
       });
       copyTextModal.addEventListener("click", async () => {
         if (!textModalBody.value) return;
@@ -12794,11 +12843,7 @@
               workflowModalConfig = null;
             }
             if (modal === reciboModal) {
-              hideReciboModalResumo();
-              if (reciboModalResolver) {
-                reciboModalResolver(null);
-                reciboModalResolver = null;
-              }
+              hideReciboModalAndMaybeReturn();
             }
           }
         });
@@ -12830,6 +12875,168 @@
         if (!row) return;
         row.classList.toggle("hidden", !visible);
         row.setAttribute("aria-hidden", visible ? "false" : "true");
+      }
+
+      function readReciboDestinatarioFields() {
+        const nome = (reciboDestinatarioNome?.value || "").trim();
+        const doc = (reciboDestinatarioDoc?.value || "").trim();
+        if (!nome) {
+          alert("Informe o nome do direcionado.");
+          return null;
+        }
+        if (!doc) {
+          alert("Informe o CPF ou CNPJ do direcionado.");
+          return null;
+        }
+        return { nome, doc };
+      }
+
+      let pendingReciboContext = null;
+      let pendingBaixaReceber = null;
+
+      function openReceberBaixaModal({ receivable, vehicle, valor }) {
+        if (!receivable) return;
+        pendingBaixaReceber = {
+          receivableId: receivable.id,
+          valor: Number(valor || receivable.valor || 0),
+          receivable,
+          vehicle: vehicle || null,
+        };
+        const resumo = document.getElementById("receberBaixaResumo");
+        if (resumo) {
+          const placa = vehicle?.placa || "—";
+          const vm = [vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ") || "—";
+          const val = formatCurrency(Number(valor || receivable.valor || 0));
+          resumo.innerHTML = `<strong>${escapeHtml(receivable.responsavel_pagamento || "Responsável")}</strong><br />
+            Veículo: <strong>${escapeHtml(vm)}</strong> — placa <strong>${escapeHtml(placa)}</strong><br />
+            Valor a receber: <strong>${escapeHtml(val)}</strong>`;
+        }
+        receberBaixaModal?.classList.remove("hidden");
+      }
+
+      function closeReceberBaixaModal() {
+        receberBaixaModal?.classList.add("hidden");
+        pendingBaixaReceber = null;
+      }
+
+      async function executeReceberBaixa(withRecibo) {
+        const pending = pendingBaixaReceber;
+        if (!pending) return;
+        closeReceberBaixaModal();
+        const result = await finalizeReceivablePayment(pending.receivableId, pending.valor);
+        if (!result) return;
+        if (withRecibo) openReciboModalWithContext(result);
+      }
+
+      function openReciboModalWithContext(ctx) {
+        if (!ctx?.receivable) return;
+        pendingReciboContext = ctx;
+        if (reciboDestinatarioNome) reciboDestinatarioNome.value = ctx.receivable.responsavel_pagamento || "";
+        if (reciboDestinatarioDoc) reciboDestinatarioDoc.value = "";
+        const resumo = document.getElementById("reciboModalResumoAuto");
+        const vehicle = ctx.vehicle;
+        const receivable = ctx.receivable;
+        if (resumo && receivable && vehicle) {
+          const placa = vehicle.placa || "—";
+          const vm = [vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "—";
+          const pi = receivable.period_start ? formatDateBr(receivable.period_start) : "—";
+          const pf = receivable.period_end ? formatDateBr(receivable.period_end) : "—";
+          const val = formatCurrency(ctx.valor ?? Number(receivable.valor || 0));
+          resumo.innerHTML = `<strong>Dados que vão no PDF (automático)</strong><br />
+            Veículo: <strong>${escapeHtml(vm)}</strong> — placa <strong>${escapeHtml(placa)}</strong><br />
+            Estadias (período): <strong>${escapeHtml(pi)}</strong> a <strong>${escapeHtml(pf)}</strong><br />
+            Valor: <strong>${escapeHtml(val)}</strong>`;
+          resumo.classList.remove("hidden");
+        } else if (resumo) {
+          resumo.innerHTML = "";
+          resumo.classList.add("hidden");
+        }
+        reciboModal?.classList.remove("hidden");
+      }
+
+      async function finalizeReceivablePayment(receivableId, totalAtual) {
+        const receivable = state.receivables.find((r) => r.id === receivableId);
+        if (!receivable) {
+          alert("Recebimento não encontrado. Atualize a página (Financeiro) e tente de novo.");
+          return null;
+        }
+        if (receivable.status === "PAGO") {
+          alert("Este recebimento já foi marcado como pago.");
+          return null;
+        }
+        const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
+        const { error } = await supabase
+          .from("receivables")
+          .update({ status: "PAGO", valor: totalAtual, financeiro_aprovado_contas_receber: false })
+          .eq("id", receivableId)
+          .eq("user_id", effectiveUserId());
+        if (error) {
+          const { error: errFallback } = await supabase
+            .from("receivables")
+            .update({ status: "PAGO", valor: totalAtual })
+            .eq("id", receivableId)
+            .eq("user_id", effectiveUserId());
+          if (errFallback) {
+            alert(errFallback.message);
+            return null;
+          }
+        }
+        if (receivable.vehicle_id) {
+          await supabase
+            .from("vehicles")
+            .update({ payment_status: "PAGO" })
+            .eq("id", receivable.vehicle_id)
+            .eq("user_id", effectiveUserId());
+        }
+        const { data: existingMov } = await supabase
+          .from("cash_movements")
+          .select("id")
+          .eq("conta_id", receivableId)
+          .eq("tipo_conta", "RECEBER")
+          .limit(1);
+        const vehicleInfo = `${vehicle?.placa || "-"} • ${[vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")}`.trim();
+        if (!existingMov || existingMov.length === 0) {
+          await supabase.from("cash_movements").insert({
+            user_id: effectiveUserId(),
+            tipo_conta: "RECEBER",
+            conta_id: receivableId,
+            valor: totalAtual,
+            descricao: vehicleInfo ? `Diárias - ${vehicleInfo}` : "Diárias",
+          });
+        } else {
+          await supabase
+            .from("cash_movements")
+            .update({ valor: totalAtual })
+            .eq("conta_id", receivableId)
+            .eq("tipo_conta", "RECEBER");
+        }
+        try {
+          const userId = effectiveUserId();
+          if (userId) {
+            await callFinanceCompetencyApi("/api/finance/register-payment", {
+              userId,
+              receivableId,
+              vehicleId: receivable.vehicle_id || null,
+              amount: totalAtual,
+            });
+          }
+        } catch (e) {
+          console.warn("finance competency register payment", e?.message || e);
+        }
+        removeReceberTriagemId(receivableId);
+        await Promise.all([loadReceivables(), loadCash(), loadVehicles()]);
+        renderFinance();
+        updateDashboard();
+        const paidReceivable = state.receivables.find((r) => r.id === receivableId) || {
+          ...receivable,
+          status: "PAGO",
+          valor: totalAtual,
+        };
+        return {
+          receivable: paidReceivable,
+          vehicle: vehicle || null,
+          valor: totalAtual,
+        };
       }
 
       function openReciboDestinatarioModal({ defaultNome = "", defaultDoc = "", receivable = null, vehicle = null }) {
@@ -15814,55 +16021,26 @@
             alert("Valor inválido para registo de pagamento.");
             return;
           }
-          const { error } = await supabase
-            .from("receivables")
-            .update({ status: "PAGO", valor: valorPago, financeiro_aprovado_contas_receber: false })
-            .eq("id", id)
-            .eq("user_id", effectiveUserId());
-          if (error) {
-            const { error: errFallback } = await supabase
-              .from("receivables")
-              .update({ status: "PAGO", valor: valorPago })
-              .eq("id", id)
-              .eq("user_id", effectiveUserId());
-            if (errFallback) {
-              alert(errFallback.message);
-              return;
-            }
-          }
-          if (receivable.vehicle_id) {
-            await supabase
-              .from("vehicles")
-              .update({ payment_status: "PAGO" })
-              .eq("id", receivable.vehicle_id)
-              .eq("user_id", effectiveUserId());
+          const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
+          openReceberBaixaModal({ receivable, vehicle, valor: valorPago });
+          return;
+        }
+
+        if (action === "recibo") {
+          const receivable = state.receivables.find((r) => r.id === id);
+          if (!receivable || receivable.status !== "PAGO") {
+            alert("Só é possível emitir recibo de recebimentos já pagos.");
+            return;
           }
           const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
-          const vehicleInfo = `${vehicle?.placa || "-"} • ${[vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")}`.trim();
-          await supabase.from("cash_movements").insert({
-            user_id: effectiveUserId(),
-            tipo_conta: "RECEBER",
-            conta_id: id,
-            valor: valorPago,
-            descricao: vehicleInfo ? `Diárias - ${vehicleInfo}` : "Diárias",
+          const mov = (state.cash || []).find(
+            (m) => m.tipo_conta === "RECEBER" && String(m.conta_id) === String(id)
+          );
+          openReciboModalWithContext({
+            receivable,
+            vehicle: vehicle || null,
+            valor: Number(mov?.valor || receivable.valor || 0),
           });
-          try {
-            const userId = effectiveUserId();
-            if (userId) {
-              await callFinanceCompetencyApi("/api/finance/register-payment", {
-                userId,
-                receivableId: id,
-                vehicleId: receivable.vehicle_id || null,
-                amount: valorPago,
-              });
-            }
-          } catch (e) {
-            console.warn("finance competency register payment", e?.message || e);
-          }
-          removeReceberTriagemId(id);
-          await Promise.all([loadReceivables(), loadCash(), loadVehicles()]);
-          renderFinance();
-          updateDashboard();
           return;
         }
 
@@ -15878,101 +16056,13 @@
             );
             return;
           }
-          const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
-          const destinatarioInfo = await openReciboDestinatarioModal({
-            defaultNome: receivable.responsavel_pagamento || "",
-            defaultDoc: "",
-            receivable,
-            vehicle: vehicle || null,
-          });
-          if (!destinatarioInfo) return;
           const totalAtual = Number(receivable.valor || 0);
           if (totalAtual <= 0) {
             alert("Valor inválido para recebimento. Confira o valor do ciclo ou atualize os dados do veículo.");
             return;
           }
-          if (receivable.status === "PAGO") {
-            alert("Este recebimento já foi marcado como pago.");
-            return;
-          }
-          const { error } = await supabase
-            .from("receivables")
-            .update({ status: "PAGO", valor: totalAtual, financeiro_aprovado_contas_receber: false })
-            .eq("id", id)
-            .eq("user_id", effectiveUserId());
-          if (error) {
-            const { error: errFallback } = await supabase
-              .from("receivables")
-              .update({ status: "PAGO", valor: totalAtual })
-              .eq("id", id)
-              .eq("user_id", effectiveUserId());
-            if (errFallback) {
-              alert(errFallback.message);
-              return;
-            }
-          }
-          if (receivable.vehicle_id) {
-            await supabase
-              .from("vehicles")
-              .update({ payment_status: "PAGO" })
-              .eq("id", receivable.vehicle_id)
-              .eq("user_id", effectiveUserId());
-          }
-          const { data: existingMov } = await supabase
-            .from("cash_movements")
-            .select("id")
-            .eq("conta_id", id)
-            .eq("tipo_conta", "RECEBER")
-            .limit(1);
-          if (!existingMov || existingMov.length === 0) {
-            const vehicleInfo = `${vehicle?.placa || "-"} • ${[vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")}`.trim();
-            await supabase.from("cash_movements").insert({
-              user_id: effectiveUserId(),
-              tipo_conta: "RECEBER",
-              conta_id: id,
-              valor: totalAtual,
-              descricao: vehicleInfo ? `Diárias - ${vehicleInfo}` : "Diárias",
-            });
-          } else {
-            await supabase
-              .from("cash_movements")
-              .update({ valor: totalAtual })
-              .eq("conta_id", id)
-              .eq("tipo_conta", "RECEBER");
-          }
-          try {
-            const userId = effectiveUserId();
-            if (userId) {
-              await callFinanceCompetencyApi("/api/finance/register-payment", {
-                userId,
-                receivableId: id,
-                vehicleId: receivable.vehicle_id || null,
-                amount: totalAtual,
-              });
-            }
-          } catch (e) {
-            console.warn("finance competency register payment", e?.message || e);
-          }
-          removeReceberTriagemId(id);
-          await Promise.all([loadReceivables(), loadCash()]);
-          renderFinance();
-          updateDashboard();
-          await downloadReciboPdf({
-            receivable,
-            vehicle,
-            destinatarioNome: destinatarioInfo.nome,
-            destinatarioDoc: destinatarioInfo.doc,
-            valor: totalAtual,
-          });
-          if (confirm("Recibo gerado com sucesso. Deseja imprimir agora?")) {
-            printReciboRecebimento({
-              receivable,
-              vehicle,
-              destinatarioNome: destinatarioInfo.nome,
-              destinatarioDoc: destinatarioInfo.doc,
-              valor: totalAtual,
-            });
-          }
+          const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
+          openReceberBaixaModal({ receivable, vehicle, valor: totalAtual });
           return;
         }
 
