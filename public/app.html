@@ -4211,6 +4211,7 @@
             <button type="button" class="secondary" id="listaFiltersClear">Limpar filtros</button>
             <button type="button" id="listaFiltersApply">Atualizar lista</button>
             <button type="button" class="secondary" id="listaFiltersPrint">Imprimir / PDF</button>
+            <button type="button" class="secondary hidden" id="listaFiltersPrintReceber" title="Relatório agrupado por RPV, RPF ou assessoria">Imprimir relatório</button>
             <button type="button" class="secondary" id="listaFiltersDownloadPdf">Baixar PDF (A4)</button>
           </div>
           <div class="subnav" id="listaSubnav" style="margin-bottom: 12px; flex-wrap: wrap">
@@ -5379,6 +5380,61 @@
           <div class="form-actions">
             <button type="button" id="confirmPatioLiberadosPrintModal">Gerar impressão</button>
             <button type="button" class="secondary" id="cancelPatioLiberadosPrintModal">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="listaReceberPrintModal" class="modal-backdrop hidden">
+        <div class="modal">
+          <div class="modal-header">
+            <div>
+              <h3>Imprimir lista Receber</h3>
+              <p class="subtitle" style="margin: 4px 0 0">Relatório em folha com agrupamento (usa os filtros da lista).</p>
+            </div>
+            <button type="button" class="modal-close" id="closeListaReceberPrintModal">Fechar</button>
+          </div>
+          <div class="form-grid">
+            <p class="notice full" style="margin: 0 0 4px">Restringir quem entra no relatório (opcional)</p>
+            <div>
+              <label for="listaPrintFilterLocator">Somente RPV</label>
+              <select id="listaPrintFilterLocator">
+                <option value="">Todos os RPVs</option>
+              </select>
+            </div>
+            <div>
+              <label for="listaPrintFilterAssessoria">Somente assessoria</label>
+              <select id="listaPrintFilterAssessoria">
+                <option value="">Todas as assessorias</option>
+              </select>
+            </div>
+            <div class="full">
+              <label for="listaPrintFilterRpf">Somente RPF (responsável financeiro)</label>
+              <select id="listaPrintFilterRpf">
+                <option value="">Todos os RPF</option>
+              </select>
+            </div>
+            <div class="full">
+              <button type="button" class="secondary" id="listaPrintFilterClear">Limpar seleção dos filtros</button>
+            </div>
+            <p class="notice full" style="margin: 8px 0 4px">Como organizar na impressão</p>
+            <div class="full" style="display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center">
+              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
+                <input type="checkbox" id="listaPrintOpenByLocator" checked />
+                Por RPV (empresa de remoção)
+              </label>
+              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
+                <input type="checkbox" id="listaPrintOpenByResp" checked />
+                Por RPF (responsável financeiro)
+              </label>
+              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
+                <input type="checkbox" id="listaPrintOpenByAssessoria" checked />
+                Por assessoria
+              </label>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" id="confirmListaReceberPrintModal">Gerar impressão</button>
+            <button type="button" class="secondary" id="cancelListaReceberPrintModal">Cancelar</button>
           </div>
         </div>
       </div>
@@ -6831,6 +6887,305 @@
         document.querySelectorAll("#listaSubnav button[data-lista-subview]").forEach((btn) => {
           btn.classList.toggle("active", btn.getAttribute("data-lista-subview") === currentListaView);
         });
+        updateListaReceberPrintUi();
+      }
+
+      function updateListaReceberPrintUi() {
+        const isReceberView = currentListaView === "receber" || currentListaView === "receber_alerta";
+        document.getElementById("listaFiltersPrintReceber")?.classList.toggle("hidden", !isReceberView);
+        document.getElementById("listaFiltersPrint")?.classList.toggle("hidden", isReceberView);
+      }
+
+      function collectListaReceberFilteredList({
+        alertaOnly = false,
+        filterLocId = "",
+        filterAssId = "",
+        filterRpfId = "",
+      } = {}) {
+        const vehicleById = new Map((state.vehicles || []).map((v) => [v.id, v]));
+        let list = (state.receivables || [])
+          .filter((r) => receivableIsContaReceberFinanceiro(r))
+          .filter((r) => listaReceivableMatches(r, vehicleById.get(r.vehicle_id)));
+        if (filterLocId) {
+          list = list.filter((r) => {
+            const v = vehicleById.get(r.vehicle_id);
+            return (v?.localizador_id || "") === filterLocId;
+          });
+        }
+        if (filterAssId) {
+          list = list.filter((r) => {
+            const v = vehicleById.get(r.vehicle_id);
+            return (v?.assessoria_id || "") === filterAssId;
+          });
+        }
+        if (filterRpfId) {
+          list = list.filter((r) => {
+            const v = vehicleById.get(r.vehicle_id);
+            return listaVehicleEffectiveRpfPartnerId(v) === String(filterRpfId);
+          });
+        }
+        if (alertaOnly) {
+          const now = Date.now();
+          list = list.filter((r) => {
+            if (!r.created_at) return false;
+            return Math.floor((now - new Date(r.created_at).getTime()) / 86400000) > 10;
+          });
+        }
+        return { list, vehicleById };
+      }
+
+      const OPEN_RECEIVABLES_GROUPED_PRINT_CSS = `
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 20px; color: #111; }
+  h1 { font-size: 1.25rem; margin: 0 0 4px; }
+  h2 { font-size: 1.08rem; margin: 22px 0 8px; page-break-after: avoid; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+  h3 { font-size: 0.95rem; margin: 14px 0 6px; page-break-after: avoid; }
+  h3 .count { font-weight: normal; color: #555; }
+  .meta { font-size: 0.8rem; color: #444; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.76rem; margin-bottom: 14px; }
+  th, td { border: 1px solid #bbb; padding: 6px; text-align: left; vertical-align: top; color: #111; }
+  th { background: #f0f0f0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  @page { margin: 12mm; }
+  @media print { body { margin: 0; } }`;
+
+      function buildOpenReceivablesGroupedPrintHtml({
+        openRec,
+        vehicleById,
+        byLoc,
+        byResp,
+        byAss,
+        docTitle,
+        headingTitle,
+        metaLine,
+      }) {
+        const partnerByIdMap = new Map((state.partners || []).map((p) => [p.id, p.nome || "-"]));
+        const partnerTitle = (k) =>
+          k === "__sem__" ? "Não informado" : partnerByIdMap.get(k) || "Parceiro não encontrado";
+        const receivableValor = (r) => Number(r.valor || 0);
+        const nowMs = Date.now();
+        const diasAberto = (r) => {
+          if (!r.created_at) return "—";
+          return String(Math.floor((nowMs - new Date(r.created_at).getTime()) / 86400000));
+        };
+        const veiculoCell = (v) =>
+          v
+            ? `${escapeHtml(v.placa || "-")} — ${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}`
+            : escapeHtml("Veículo não encontrado");
+        const locNome = (v) => (v?.localizador_id ? partnerByIdMap.get(v.localizador_id) || "-" : "-");
+        const assNome = (v) => (v?.assessoria_id ? partnerByIdMap.get(v.assessoria_id) || "-" : "-");
+        const diariasPatioCell = (v) => {
+          if (!v?.data_entrada) return "—";
+          return String(calcDays(v));
+        };
+        const theadLoc =
+          "<th>Veículo</th><th>RPF</th><th>Assessoria</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
+        const theadResp =
+          "<th>Veículo</th><th>RPV</th><th>Assessoria</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
+        const theadAss =
+          "<th>Veículo</th><th>RPF</th><th>RPV</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
+        const rowLoc = (r) => {
+          const v = vehicleById.get(r.vehicle_id);
+          return `<tr>
+            <td>${veiculoCell(v)}</td>
+            <td>${escapeHtml(r.responsavel_pagamento || "—")}</td>
+            <td>${escapeHtml(assNome(v))}</td>
+            <td>${escapeHtml(formatReceberEntradaVeiculo(v, r))}</td>
+            <td>${escapeHtml(formatReceberSaidaVeiculo(v, r))}</td>
+            <td>${escapeHtml(formatCurrency(receivableValor(r)))}</td>
+            <td>${escapeHtml(diariasPatioCell(v))}</td>
+            <td>${escapeHtml(diasAberto(r))}</td>
+          </tr>`;
+        };
+        const rowResp = (r) => {
+          const v = vehicleById.get(r.vehicle_id);
+          return `<tr>
+            <td>${veiculoCell(v)}</td>
+            <td>${escapeHtml(locNome(v))}</td>
+            <td>${escapeHtml(assNome(v))}</td>
+            <td>${escapeHtml(formatReceberEntradaVeiculo(v, r))}</td>
+            <td>${escapeHtml(formatReceberSaidaVeiculo(v, r))}</td>
+            <td>${escapeHtml(formatCurrency(receivableValor(r)))}</td>
+            <td>${escapeHtml(diariasPatioCell(v))}</td>
+            <td>${escapeHtml(diasAberto(r))}</td>
+          </tr>`;
+        };
+        const rowAss = (r) => {
+          const v = vehicleById.get(r.vehicle_id);
+          return `<tr>
+            <td>${veiculoCell(v)}</td>
+            <td>${escapeHtml(r.responsavel_pagamento || "—")}</td>
+            <td>${escapeHtml(locNome(v))}</td>
+            <td>${escapeHtml(formatReceberEntradaVeiculo(v, r))}</td>
+            <td>${escapeHtml(formatReceberSaidaVeiculo(v, r))}</td>
+            <td>${escapeHtml(formatCurrency(receivableValor(r)))}</td>
+            <td>${escapeHtml(diariasPatioCell(v))}</td>
+            <td>${escapeHtml(diasAberto(r))}</td>
+          </tr>`;
+        };
+        const subtotal = (recs) => formatCurrency(recs.reduce((s, r) => s + receivableValor(r), 0));
+        const blocks = [];
+        if (byLoc) {
+          blocks.push(`<h2>Por RPV (empresa de remoção)</h2>`);
+          const map = bucketOpenReceivablesByKey(openRec, (r) => {
+            const v = vehicleById.get(r.vehicle_id);
+            return v?.localizador_id || "__sem__";
+          });
+          const keys = sortPartnerBucketKeys([...map.keys()], partnerByIdMap);
+          keys.forEach((key) => {
+            const items = sortOpenReceivablesByPlaca(map.get(key) || [], vehicleById);
+            const st = subtotal(items);
+            blocks.push(
+              `<h3>${escapeHtml(partnerTitle(key))} <span class="count">(${items.length} · ${escapeHtml(st)})</span></h3>`
+            );
+            blocks.push(
+              `<table><thead><tr>${theadLoc}</tr></thead><tbody>${items.map(rowLoc).join("")}</tbody></table>`
+            );
+          });
+        }
+        if (byResp) {
+          blocks.push(`<h2>Por RPF (responsável financeiro)</h2>`);
+          const map = bucketOpenReceivablesByKey(openRec, (r) => (r.responsavel_pagamento || "").trim() || "__sem__");
+          const keys = sortTextBucketKeys([...map.keys()]);
+          keys.forEach((key) => {
+            const items = sortOpenReceivablesByPlaca(map.get(key) || [], vehicleById);
+            const st = subtotal(items);
+            const title = key === "__sem__" ? "Responsável não informado" : key;
+            blocks.push(
+              `<h3>${escapeHtml(title)} <span class="count">(${items.length} · ${escapeHtml(st)})</span></h3>`
+            );
+            blocks.push(
+              `<table><thead><tr>${theadResp}</tr></thead><tbody>${items.map(rowResp).join("")}</tbody></table>`
+            );
+          });
+        }
+        if (byAss) {
+          blocks.push(`<h2>Por assessoria</h2>`);
+          const map = bucketOpenReceivablesByKey(openRec, (r) => {
+            const v = vehicleById.get(r.vehicle_id);
+            return v?.assessoria_id || "__sem__";
+          });
+          const keys = sortPartnerBucketKeys([...map.keys()], partnerByIdMap);
+          keys.forEach((key) => {
+            const items = sortOpenReceivablesByPlaca(map.get(key) || [], vehicleById);
+            const st = subtotal(items);
+            blocks.push(
+              `<h3>${escapeHtml(partnerTitle(key))} <span class="count">(${items.length} · ${escapeHtml(st)})</span></h3>`
+            );
+            blocks.push(
+              `<table><thead><tr>${theadAss}</tr></thead><tbody>${items.map(rowAss).join("")}</tbody></table>`
+            );
+          });
+        }
+        return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(
+          docTitle
+        )}</title><style>${OPEN_RECEIVABLES_GROUPED_PRINT_CSS}</style></head><body>
+  <h1>${escapeHtml(headingTitle)}</h1>
+  <div class="meta">${escapeHtml(metaLine)}</div>
+  ${blocks.join("")}
+</body></html>`;
+      }
+
+      function syncListaReceberPrintFilterOptions() {
+        const locSel = document.getElementById("listaPrintFilterLocator");
+        const assSel = document.getElementById("listaPrintFilterAssessoria");
+        const rpfSel = document.getElementById("listaPrintFilterRpf");
+        if (!locSel || !assSel || !rpfSel) return;
+        const preserveLoc = locSel.value;
+        const preserveAss = assSel.value;
+        const preserveRpf = rpfSel.value;
+        const parceiros = (state.partners || []).filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
+        const parceirosRpf = (state.partners || []).filter((p) => isRpfPartnerType(p.tipo || "PARCEIRO"));
+        const assessorias = (state.partners || []).filter((p) => p.tipo === "ASSESSORIA");
+        const optId = (id, label) => {
+          const v = String(id).replace(/"/g, "&quot;");
+          return `<option value="${v}">${escapeHtml(label)}</option>`;
+        };
+        locSel.innerHTML = `<option value="">Todos os RPVs</option>` + parceiros.map((p) => optId(p.id, p.nome || "-")).join("");
+        assSel.innerHTML =
+          `<option value="">Todas as assessorias</option>` + assessorias.map((p) => optId(p.id, p.nome || "-")).join("");
+        rpfSel.innerHTML = `<option value="">Todos os RPF</option>` + parceirosRpf.map((p) => optId(p.id, p.nome || "-")).join("");
+        if (parceiros.some((p) => p.id === preserveLoc)) locSel.value = preserveLoc;
+        else locSel.value = "";
+        if (assessorias.some((p) => p.id === preserveAss)) assSel.value = preserveAss;
+        else assSel.value = "";
+        if (parceirosRpf.some((p) => p.id === preserveRpf)) rpfSel.value = preserveRpf;
+        else rpfSel.value = "";
+      }
+
+      function openListaReceberPrintModal() {
+        readListaFiltersFromDom();
+        syncListaReceberPrintFilterOptions();
+        const locSel = document.getElementById("listaPrintFilterLocator");
+        const assSel = document.getElementById("listaPrintFilterAssessoria");
+        const rpfSel = document.getElementById("listaPrintFilterRpf");
+        if (locSel && listaFilterLocatorId) locSel.value = listaFilterLocatorId;
+        if (assSel && listaFilterAssessoriaId) assSel.value = listaFilterAssessoriaId;
+        if (rpfSel && listaFilterRpfId) rpfSel.value = listaFilterRpfId;
+        document.getElementById("listaReceberPrintModal")?.classList.remove("hidden");
+      }
+
+      function runListaReceberGroupedPrint() {
+        readListaFiltersFromDom();
+        const byLoc = document.getElementById("listaPrintOpenByLocator")?.checked;
+        const byResp = document.getElementById("listaPrintOpenByResp")?.checked;
+        const byAss = document.getElementById("listaPrintOpenByAssessoria")?.checked;
+        if (!byLoc && !byResp && !byAss) {
+          alert("Marque pelo menos um agrupamento.");
+          return;
+        }
+        const filterLocId = document.getElementById("listaPrintFilterLocator")?.value || "";
+        const filterAssId = document.getElementById("listaPrintFilterAssessoria")?.value || "";
+        const filterRpfId = document.getElementById("listaPrintFilterRpf")?.value || "";
+        const alertaOnly = currentListaView === "receber_alerta";
+        const { list: openRec, vehicleById } = collectListaReceberFilteredList({
+          alertaOnly,
+          filterLocId,
+          filterAssId,
+          filterRpfId,
+        });
+        if (!openRec.length) {
+          alert(
+            filterLocId || filterAssId || filterRpfId || listaFilterBanco
+              ? "Nenhuma conta em aberto com os filtros escolhidos."
+              : alertaOnly
+                ? "Não há títulos em alerta (+10 dias) para imprimir."
+                : "Não há títulos em aberto para receber."
+          );
+          return;
+        }
+        const partnerByIdMap = new Map((state.partners || []).map((p) => [p.id, p.nome || "-"]));
+        const receivableValor = (r) => Number(r.valor || 0);
+        const totalGeral = openRec.reduce((s, r) => s + receivableValor(r), 0);
+        const nowStr = formatDateTime(new Date().toISOString());
+        const viewLabel =
+          document.querySelector(`#listaSubnav button[data-lista-subview="${currentListaView}"]`)?.textContent?.trim() ||
+          "Receber";
+        const nomePatio = state.settings?.nome_patio || "Pátio";
+        const metaParts = [
+          `Lista · ${viewLabel}`,
+          `${openRec.length} conta(s)`,
+          `Total: ${formatCurrency(totalGeral)}`,
+          `Emitido em: ${nowStr}`,
+        ];
+        const filtroIndiv = [];
+        if (filterLocId) filtroIndiv.push(`Somente RPV: ${partnerByIdMap.get(filterLocId) || "-"}`);
+        if (filterAssId) filtroIndiv.push(`Somente assessoria: ${partnerByIdMap.get(filterAssId) || "-"}`);
+        if (filterRpfId) filtroIndiv.push(`Somente RPF: ${partnerByIdMap.get(filterRpfId) || "-"}`);
+        if (listaFilterBanco) filtroIndiv.push(`Texto: ${listaFilterBanco}`);
+        if (filtroIndiv.length) metaParts.unshift(filtroIndiv.join(" · "));
+        const html = buildOpenReceivablesGroupedPrintHtml({
+          openRec,
+          vehicleById,
+          byLoc,
+          byResp,
+          byAss,
+          docTitle: `Lista ${viewLabel}`,
+          headingTitle: `${nomePatio} — Lista · ${viewLabel}`,
+          metaLine: metaParts.join(" · "),
+        });
+        printHtmlInHiddenIframe(html, {
+          iframeTitle: "Impressão lista receber",
+          closeModalId: "listaReceberPrintModal",
+        });
       }
 
       function buildListaVnpVehicleRows() {
@@ -7968,34 +8323,9 @@
           return;
         }
 
-        const partnerTitle = (k) =>
-          k === "__sem__" ? "Não informado" : partnerByIdMap.get(k) || "Parceiro não encontrado";
-
         const receivableValor = (r) => Number(r.valor || 0);
-
         const nomePatio = state.settings?.nome_patio || "Pátio";
-        const nowMs = Date.now();
         const nowStr = formatDateTime(new Date().toISOString());
-        const diasAberto = (r) => {
-          if (!r.created_at) return "—";
-          return String(Math.floor((nowMs - new Date(r.created_at).getTime()) / 86400000));
-        };
-
-        const veiculoCell = (v) =>
-          v
-            ? `${escapeHtml(v.placa || "-")} — ${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}`
-            : escapeHtml("Veículo não encontrado");
-
-        const locNome = (v) =>
-          v?.localizador_id ? partnerByIdMap.get(v.localizador_id) || "-" : "-";
-        const assNome = (v) =>
-          v?.assessoria_id ? partnerByIdMap.get(v.assessoria_id) || "-" : "-";
-
-        const diariasPatioCell = (v) => {
-          if (!v?.data_entrada) return "—";
-          return String(calcDays(v));
-        };
-
         const totalGeral = openRec.reduce((s, r) => s + receivableValor(r), 0);
         const metaParts = [
           `${openRec.length} conta(s) em aberto`,
@@ -8018,136 +8348,17 @@
         if (filtroIndiv.length) {
           metaParts.unshift(filtroIndiv.join(" · "));
         }
-        const metaLine = metaParts.join(" · ");
 
-        const theadLoc =
-          "<th>Veículo</th><th>RPF</th><th>Assessoria</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
-        const theadResp =
-          "<th>Veículo</th><th>RPV</th><th>Assessoria</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
-        const theadAss =
-          "<th>Veículo</th><th>RPF</th><th>RPV</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
-
-        const rowLoc = (r) => {
-          const v = vehicleById.get(r.vehicle_id);
-          return `<tr>
-            <td>${veiculoCell(v)}</td>
-            <td>${escapeHtml(r.responsavel_pagamento || "—")}</td>
-            <td>${escapeHtml(assNome(v))}</td>
-            <td>${escapeHtml(formatReceberEntradaVeiculo(v, r))}</td>
-            <td>${escapeHtml(formatReceberSaidaVeiculo(v, r))}</td>
-            <td>${escapeHtml(formatCurrency(receivableValor(r)))}</td>
-            <td>${escapeHtml(diariasPatioCell(v))}</td>
-            <td>${escapeHtml(diasAberto(r))}</td>
-          </tr>`;
-        };
-        const rowResp = (r) => {
-          const v = vehicleById.get(r.vehicle_id);
-          return `<tr>
-            <td>${veiculoCell(v)}</td>
-            <td>${escapeHtml(locNome(v))}</td>
-            <td>${escapeHtml(assNome(v))}</td>
-            <td>${escapeHtml(formatReceberEntradaVeiculo(v, r))}</td>
-            <td>${escapeHtml(formatReceberSaidaVeiculo(v, r))}</td>
-            <td>${escapeHtml(formatCurrency(receivableValor(r)))}</td>
-            <td>${escapeHtml(diariasPatioCell(v))}</td>
-            <td>${escapeHtml(diasAberto(r))}</td>
-          </tr>`;
-        };
-        const rowAss = (r) => {
-          const v = vehicleById.get(r.vehicle_id);
-          return `<tr>
-            <td>${veiculoCell(v)}</td>
-            <td>${escapeHtml(r.responsavel_pagamento || "—")}</td>
-            <td>${escapeHtml(locNome(v))}</td>
-            <td>${escapeHtml(formatReceberEntradaVeiculo(v, r))}</td>
-            <td>${escapeHtml(formatReceberSaidaVeiculo(v, r))}</td>
-            <td>${escapeHtml(formatCurrency(receivableValor(r)))}</td>
-            <td>${escapeHtml(diariasPatioCell(v))}</td>
-            <td>${escapeHtml(diasAberto(r))}</td>
-          </tr>`;
-        };
-
-        const subtotal = (recs) => formatCurrency(recs.reduce((s, r) => s + receivableValor(r), 0));
-
-        const blocks = [];
-
-        if (byLoc) {
-          blocks.push(`<h2>Por RPV (empresa de remoção)</h2>`);
-          const map = bucketOpenReceivablesByKey(openRec, (r) => {
-            const v = vehicleById.get(r.vehicle_id);
-            return v?.localizador_id || "__sem__";
-          });
-          const keys = sortPartnerBucketKeys([...map.keys()], partnerByIdMap);
-          keys.forEach((key) => {
-            const items = sortOpenReceivablesByPlaca(map.get(key) || [], vehicleById);
-            const st = subtotal(items);
-            blocks.push(
-              `<h3>${escapeHtml(partnerTitle(key))} <span class="count">(${items.length} · ${escapeHtml(st)})</span></h3>`
-            );
-            blocks.push(
-              `<table><thead><tr>${theadLoc}</tr></thead><tbody>${items.map(rowLoc).join("")}</tbody></table>`
-            );
-          });
-        }
-
-        if (byResp) {
-          blocks.push(`<h2>Por RPF (responsável financeiro)</h2>`);
-          const map = bucketOpenReceivablesByKey(
-            openRec,
-            (r) => (r.responsavel_pagamento || "").trim() || "__sem__"
-          );
-          const keys = sortTextBucketKeys([...map.keys()]);
-          keys.forEach((key) => {
-            const items = sortOpenReceivablesByPlaca(map.get(key) || [], vehicleById);
-            const st = subtotal(items);
-            const title = key === "__sem__" ? "Responsável não informado" : key;
-            blocks.push(
-              `<h3>${escapeHtml(title)} <span class="count">(${items.length} · ${escapeHtml(st)})</span></h3>`
-            );
-            blocks.push(
-              `<table><thead><tr>${theadResp}</tr></thead><tbody>${items.map(rowResp).join("")}</tbody></table>`
-            );
-          });
-        }
-
-        if (byAss) {
-          blocks.push(`<h2>Por assessoria</h2>`);
-          const map = bucketOpenReceivablesByKey(openRec, (r) => {
-            const v = vehicleById.get(r.vehicle_id);
-            return v?.assessoria_id || "__sem__";
-          });
-          const keys = sortPartnerBucketKeys([...map.keys()], partnerByIdMap);
-          keys.forEach((key) => {
-            const items = sortOpenReceivablesByPlaca(map.get(key) || [], vehicleById);
-            const st = subtotal(items);
-            blocks.push(
-              `<h3>${escapeHtml(partnerTitle(key))} <span class="count">(${items.length} · ${escapeHtml(st)})</span></h3>`
-            );
-            blocks.push(
-              `<table><thead><tr>${theadAss}</tr></thead><tbody>${items.map(rowAss).join("")}</tbody></table>`
-            );
-          });
-        }
-
-        const printCss = `
-  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 20px; color: #111; }
-  h1 { font-size: 1.25rem; margin: 0 0 4px; }
-  h2 { font-size: 1.08rem; margin: 22px 0 8px; page-break-after: avoid; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
-  h3 { font-size: 0.95rem; margin: 14px 0 6px; page-break-after: avoid; }
-  h3 .count { font-weight: normal; color: #555; }
-  .meta { font-size: 0.8rem; color: #444; margin-bottom: 14px; }
-  table { width: 100%; border-collapse: collapse; font-size: 0.76rem; margin-bottom: 14px; }
-  th, td { border: 1px solid #bbb; padding: 6px; text-align: left; vertical-align: top; color: #111; }
-  th { background: #f0f0f0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  @page { margin: 12mm; }
-  @media print { body { margin: 0; } }`;
-
-        const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Receber em aberto</title>
-<style>${printCss}</style></head><body>
-  <h1>${escapeHtml(nomePatio)} — Receber em aberto</h1>
-  <div class="meta">${escapeHtml(metaLine)}</div>
-  ${blocks.join("")}
-</body></html>`;
+        const html = buildOpenReceivablesGroupedPrintHtml({
+          openRec,
+          vehicleById,
+          byLoc,
+          byResp,
+          byAss,
+          docTitle: "Receber em aberto",
+          headingTitle: `${nomePatio} — Receber em aberto`,
+          metaLine: metaParts.join(" · "),
+        });
 
         printHtmlInHiddenIframe(html, {
           iframeTitle: "Impressão a receber em aberto",
@@ -12770,8 +12981,30 @@
       document.getElementById("listaFiltersPrint")?.addEventListener("click", () => {
         runListaPrintDocument();
       });
+      document.getElementById("listaFiltersPrintReceber")?.addEventListener("click", () => {
+        openListaReceberPrintModal();
+      });
       document.getElementById("listaFiltersDownloadPdf")?.addEventListener("click", () => {
         void downloadListaCaptureAsPdf();
+      });
+      document.getElementById("closeListaReceberPrintModal")?.addEventListener("click", () => {
+        document.getElementById("listaReceberPrintModal")?.classList.add("hidden");
+      });
+      document.getElementById("cancelListaReceberPrintModal")?.addEventListener("click", () => {
+        document.getElementById("listaReceberPrintModal")?.classList.add("hidden");
+      });
+      document.getElementById("confirmListaReceberPrintModal")?.addEventListener("click", () => {
+        runListaReceberGroupedPrint();
+      });
+      document.getElementById("listaPrintFilterClear")?.addEventListener("click", () => {
+        ["listaPrintFilterLocator", "listaPrintFilterAssessoria", "listaPrintFilterRpf"].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.value = "";
+        });
+        syncListaReceberPrintFilterOptions();
+      });
+      document.getElementById("listaReceberPrintModal")?.addEventListener("click", (e) => {
+        if (e.target === e.currentTarget) e.currentTarget.classList.add("hidden");
       });
       document.getElementById("listaFiltersClear")?.addEventListener("click", () => {
         listaFilterLocatorId = "";
