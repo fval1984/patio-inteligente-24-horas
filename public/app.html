@@ -2969,7 +2969,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 50;
+        z-index: 200;
         padding: 20px;
       }
       .modal {
@@ -12905,7 +12905,7 @@
       let pendingBaixaReceber = null;
 
       function openReceberBaixaModal({ receivable, vehicle, valor }) {
-        if (!receivable) return;
+        if (!receivable || !receberBaixaModal) return;
         pendingBaixaReceber = {
           receivableId: receivable.id,
           valor: Number(valor || receivable.valor || 0),
@@ -12925,7 +12925,11 @@
         const docEl = document.getElementById("receberBaixaReciboDoc");
         if (nomeEl) nomeEl.value = receivable.responsavel_pagamento || "";
         if (docEl) docEl.value = "";
-        receberBaixaModal?.classList.remove("hidden");
+        if (receberBaixaModal.parentElement !== document.body) {
+          document.body.appendChild(receberBaixaModal);
+        }
+        receberBaixaModal.classList.remove("hidden");
+        document.getElementById("receberBaixaOk")?.focus();
       }
 
       function closeReceberBaixaModal() {
