@@ -3647,12 +3647,542 @@
         height: 128px;
         display: block;
       }
-      /* Financeiro v2: layout mais simples e legível */
-      #viewFinanceiro.finance-layout-v2 .finance-modern-layout {
+      /* Financeiro — layout FinTracker + paleta Amplipatio (teal / vermelho / temas) */
+      #viewFinanceiro.finance-fintracker {
+        --ft-bg: color-mix(in srgb, var(--bg) 88%, rgba(13, 148, 136, 0.12));
+        --ft-surface: color-mix(in srgb, var(--card) 94%, rgba(13, 148, 136, 0.06));
+        --ft-surface-elevated: color-mix(in srgb, var(--card) 98%, #fff 2%);
+        --ft-border: var(--border);
+        --ft-text: var(--text);
+        --ft-muted: var(--muted);
+        --ft-accent: #2dd4bf;
+        --ft-accent-strong: #0d9488;
+        --ft-accent-soft: rgba(13, 148, 136, 0.16);
+        --ft-accent-border: rgba(45, 212, 191, 0.42);
+        --ft-shadow: var(--shadow-soft);
+        --ft-radius: 12px;
+        --ft-table-head: color-mix(in srgb, var(--card) 82%, rgba(45, 212, 191, 0.1));
+        --ft-row-hover: color-mix(in srgb, var(--card) 90%, rgba(45, 212, 191, 0.12));
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        overflow: visible;
+      }
+      [data-theme="light"] #viewFinanceiro.finance-fintracker {
+        --ft-bg: color-mix(in srgb, var(--bg) 92%, rgba(13, 148, 136, 0.06));
+        --ft-surface: rgba(255, 255, 255, 0.96);
+        --ft-surface-elevated: #ffffff;
+        --ft-accent-soft: rgba(13, 148, 136, 0.1);
+        --ft-table-head: #f0fdfa;
+        --ft-row-hover: rgba(13, 148, 136, 0.06);
+      }
+      #viewFinanceiro.finance-fintracker::before {
+        display: none;
+      }
+      #viewFinanceiro.finance-fintracker.finance-layout-v2 .finance-modern-layout {
+        grid-template-columns: 260px minmax(0, 1fr) !important;
+        gap: 0;
+        min-height: calc(100vh - 72px);
+        align-items: stretch;
+        border: 1px solid var(--ft-accent-border);
+        border-radius: 16px;
+        overflow: hidden;
+        background: var(--ft-bg);
+        box-shadow: var(--shadow);
+      }
+      #viewFinanceiro.finance-fintracker .finance-modern-sidebar {
+        position: sticky;
+        top: 0;
+        align-self: stretch;
+        transform: none !important;
+        width: auto;
+        height: auto;
+        min-height: calc(100vh - 74px);
+        max-height: none;
+        border-radius: 0;
+        border: none;
+        border-right: 1px solid var(--ft-accent-border);
+        background: var(--ft-surface);
+        padding: 20px 14px;
+        box-shadow: none;
+        overflow: auto;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 4px 8px 18px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--ft-border);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-brand-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, rgba(45, 212, 191, 0.35), rgba(13, 148, 136, 0.55));
+        border: 1px solid var(--ft-accent-border);
+        box-shadow: 0 8px 18px rgba(13, 148, 136, 0.22);
+        overflow: hidden;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-brand-icon img {
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-brand-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-brand-text strong {
+        font-size: 15px;
+        font-weight: 800;
+        color: var(--ft-text);
+        letter-spacing: -0.02em;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-brand-text span {
+        font-size: 12px;
+        color: var(--ft-muted);
+      }
+      #viewFinanceiro.finance-fintracker #financeSubnav.finance-ft-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        border: none;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-nav-btn {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        justify-content: flex-start;
+        text-align: left;
+        gap: 10px;
+        min-height: 42px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--ft-text);
+        font-size: 13px;
+        font-weight: 600;
+        box-shadow: none;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-nav-btn:hover {
+        background: var(--ft-row-hover);
+        border-color: var(--ft-border);
+        color: var(--ft-text);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-nav-btn.active {
+        background: linear-gradient(135deg, var(--ft-accent-soft), rgba(14, 116, 144, 0.12));
+        border-color: var(--ft-accent-border);
+        color: #ccfbf1;
+        box-shadow: inset 3px 0 0 var(--ft-accent);
+      }
+      [data-theme="light"] #viewFinanceiro.finance-fintracker .finance-ft-nav-btn.active {
+        color: #0f766e;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-nav-btn--muted {
+        margin-top: 8px;
+        color: var(--ft-muted);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-nav-icon {
+        width: 1.25rem;
+        text-align: center;
+        flex-shrink: 0;
+        opacity: 0.92;
+      }
+      #viewFinanceiro.finance-fintracker .finance-modern-main {
+        background: var(--ft-bg);
+        padding: 18px 20px 24px;
+        min-width: 0;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-topbar {
+        border: 1px solid var(--ft-border);
+        border-radius: var(--ft-radius);
+        background: var(--ft-surface-elevated);
+        padding: 14px 16px;
+        box-shadow: var(--ft-shadow);
+        margin-bottom: 12px;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-page-kicker {
+        margin: 0 0 4px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ft-accent);
+      }
+      [data-theme="light"] #viewFinanceiro.finance-fintracker .finance-ft-page-kicker {
+        color: var(--ft-accent-strong);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-topbar h2,
+      #viewFinanceiro.finance-fintracker #financePageTitle {
+        color: var(--ft-text);
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-breadcrumb {
+        color: var(--ft-muted) !important;
+        font-size: 12px;
+      }
+      #viewFinanceiro.finance-fintracker .finance-context-bar {
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      #viewFinanceiro.finance-fintracker .finance-context-badge {
+        border: 1px solid var(--ft-border);
+        border-radius: 999px;
+        background: var(--ft-surface-elevated);
+        color: var(--ft-text);
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 12px;
+        box-shadow: var(--ft-shadow);
+      }
+      #viewFinanceiro.finance-fintracker .finance-context-badge input,
+      #viewFinanceiro.finance-fintracker .finance-context-badge select {
+        border: 1px solid var(--ft-border);
+        border-radius: 8px;
+        background: var(--ft-surface);
+        color: var(--ft-text);
+      }
+      #viewFinanceiro.finance-fintracker .section-card,
+      #viewFinanceiro.finance-fintracker .fin-dash-panel {
+        border: 1px solid var(--ft-border) !important;
+        border-radius: var(--ft-radius) !important;
+        background: var(--ft-surface-elevated) !important;
+        box-shadow: var(--ft-shadow) !important;
+        color: var(--ft-text);
+      }
+      #viewFinanceiro.finance-fintracker .finance-kpi-card {
+        border: 1px solid var(--ft-border);
+        border-radius: var(--ft-radius);
+        background: var(--ft-surface-elevated);
+        box-shadow: var(--ft-shadow);
+        padding: 16px;
+      }
+      #viewFinanceiro.finance-fintracker .finance-kpi-card::before {
+        background: linear-gradient(90deg, var(--ft-accent), var(--ft-accent-strong));
+        opacity: 1;
+        height: 3px;
+      }
+      #viewFinanceiro.finance-fintracker .finance-kpi-title {
+        color: var(--ft-muted);
+      }
+      #viewFinanceiro.finance-fintracker .finance-kpi-value {
+        color: var(--ft-text);
+      }
+      #viewFinanceiro.finance-fintracker .finance-kpi-meta {
+        color: var(--ft-muted);
+      }
+      #viewFinanceiro.finance-fintracker .filter-bar,
+      #viewFinanceiro.finance-fintracker .finance-filter-panel {
+        border: 1px solid var(--ft-border);
+        border-radius: var(--ft-radius);
+        background: var(--ft-surface-elevated);
+        box-shadow: var(--ft-shadow);
+      }
+      #viewFinanceiro.finance-fintracker .filter-bar label {
+        color: var(--ft-text);
+      }
+      #viewFinanceiro.finance-fintracker .filter-bar input,
+      #viewFinanceiro.finance-fintracker .filter-bar select {
+        border: 1px solid var(--ft-border);
+        border-radius: 8px;
+        background: var(--ft-surface);
+        color: var(--ft-text);
+      }
+      #viewFinanceiro.finance-fintracker .finance-table-shell,
+      #viewFinanceiro.finance-fintracker .table-wrap {
+        border: 1px solid var(--ft-border);
+        border-radius: var(--ft-radius);
+        background: var(--ft-surface-elevated);
+        box-shadow: var(--ft-shadow);
+      }
+      #viewFinanceiro.finance-fintracker .table thead th {
+        background: var(--ft-table-head) !important;
+        color: var(--ft-text) !important;
+        border-bottom: 1px solid var(--ft-border) !important;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      #viewFinanceiro.finance-fintracker .table tbody td {
+        color: var(--ft-text);
+        border-bottom: 1px solid var(--ft-border);
+      }
+      #viewFinanceiro.finance-fintracker .table tbody tr:hover {
+        background: var(--ft-row-hover);
+      }
+      /* Botões primários: vermelho Amplipatio; secundários: padrão do app */
+      #viewFinanceiro.finance-fintracker button:not(.secondary):not(.close-view):not(.finance-ft-nav-btn) {
+        background: linear-gradient(180deg, var(--primary), var(--primary-strong));
+        border-color: var(--primary-strong);
+        color: #fff;
+        border-radius: 10px;
+        font-weight: 700;
+        box-shadow: 0 1px 2px rgba(225, 29, 46, 0.25);
+      }
+      #viewFinanceiro.finance-fintracker button.secondary:not(.finance-ft-nav-btn) {
+        background: var(--ft-surface);
+        border: 1px solid var(--ft-border);
+        color: var(--ft-text);
+        border-radius: 10px;
+        font-weight: 600;
+      }
+      #viewFinanceiro.finance-fintracker button.secondary:not(.finance-ft-nav-btn):hover {
+        background: var(--ft-row-hover);
+        border-color: var(--ft-accent-border);
+      }
+      #viewFinanceiro.finance-fintracker .notice,
+      #viewFinanceiro.finance-fintracker .subtitle {
+        color: var(--ft-muted);
+      }
+      #viewFinanceiro.finance-fintracker .alert {
+        border-radius: var(--ft-radius);
+        border: 1px solid rgba(245, 158, 11, 0.45);
+        background: color-mix(in srgb, rgba(245, 158, 11, 0.16) 40%, var(--card));
+        color: color-mix(in srgb, var(--text) 70%, #fcd34d);
+      }
+      #viewFinanceiro.finance-fintracker .card,
+      #viewFinanceiro.finance-fintracker .fin-dash-kpi,
+      #viewFinanceiro.finance-fintracker .fin-dash-hero-balance {
+        border-color: var(--ft-border);
+        background: var(--ft-surface-elevated);
+        color: var(--ft-text);
+      }
+      #viewFinanceiro.finance-fintracker #financeFlyoutBackdrop,
+      #viewFinanceiro.finance-fintracker .finance-flyout-close,
+      #viewFinanceiro.finance-fintracker #financeSidebarToggle,
+      #viewFinanceiro.finance-fintracker #financeSidebarBackdrop {
+        display: none !important;
+      }
+      #viewFinanceiro.finance-fintracker #financeContent {
+        position: relative;
+        inset: auto;
+        width: 100%;
+        height: auto;
+        max-height: none;
+        overflow: visible;
+        z-index: auto;
+        background: transparent;
+      }
+      #viewFinanceiro.finance-fintracker #financeStandardArea .table-wrap {
+        max-height: calc(100vh - 280px);
+        overflow: auto;
+      }
+      @media (max-width: 960px) {
+        #viewFinanceiro.finance-fintracker.finance-layout-v2 .finance-modern-layout {
+          grid-template-columns: 1fr !important;
+          border-radius: 12px;
+        }
+        #viewFinanceiro.finance-fintracker .finance-modern-sidebar {
+          position: static;
+          min-height: 0;
+          border-right: none;
+          border-bottom: 1px solid var(--ft-accent-border);
+        }
+        #viewFinanceiro.finance-fintracker #financeSubnav.finance-ft-nav {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-nav-divider {
+        height: 1px;
+        margin: 10px 8px;
+        background: var(--ft-border);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-nav-section {
+        padding: 6px 12px 4px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ft-muted);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-dashboard {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-page-intro h3 {
+        margin: 0 0 4px;
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: var(--ft-text);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-page-intro p {
+        margin: 0;
+        font-size: 13px;
+        color: var(--ft-muted);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-kpi-row {
+        display: grid;
+        gap: 14px;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-kpi-row--4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-kpi-row--3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      @media (max-width: 1100px) {
+        #viewFinanceiro.finance-fintracker .finance-ft-kpi-row--4 {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 640px) {
+        #viewFinanceiro.finance-fintracker .finance-ft-kpi-row--4,
+        #viewFinanceiro.finance-fintracker .finance-ft-kpi-row--3 {
+          grid-template-columns: 1fr;
+        }
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-kpi-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 18px 16px;
+        border-radius: var(--ft-radius);
+        border: 1px solid var(--ft-border);
+        background: var(--ft-surface-elevated);
+        box-shadow: var(--ft-shadow);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-kpi-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-kpi-card--green .finance-ft-kpi-icon {
+        background: rgba(16, 185, 129, 0.15);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-kpi-card--teal .finance-ft-kpi-icon {
+        background: var(--ft-accent-soft);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-kpi-card--red .finance-ft-kpi-icon {
+        background: rgba(239, 68, 68, 0.12);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-kpi-card--amber .finance-ft-kpi-icon {
+        background: rgba(245, 158, 11, 0.14);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-kpi-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ft-muted);
+        margin-bottom: 4px;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-kpi-value {
+        font-size: 1.45rem;
+        font-weight: 800;
+        color: var(--ft-text);
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-kpi-sub {
+        margin-top: 4px;
+        font-size: 11px;
+        color: var(--ft-muted);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-resumo-card {
+        padding: 16px 18px;
+        border-radius: var(--ft-radius);
+        border: 1px solid var(--ft-border);
+        background: var(--ft-surface-elevated);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-resumo-card strong {
+        display: block;
+        font-size: 1.2rem;
+        margin-top: 4px;
+        color: var(--ft-text);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-quick-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-quick-links button {
+        font-size: 13px;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-status {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-status--pago {
+        background: rgba(16, 185, 129, 0.15);
+        color: #059669;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-status--pendente {
+        background: rgba(245, 158, 11, 0.15);
+        color: #d97706;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-status--atrasado {
+        background: rgba(239, 68, 68, 0.12);
+        color: #dc2626;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-page-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-page-toolbar h3 {
+        margin: 0;
+        font-size: 1.15rem;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-page-toolbar p {
+        margin: 4px 0 0;
+        font-size: 12px;
+        color: var(--ft-muted);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-client-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: inline-grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 800;
+        background: var(--ft-accent-soft);
+        color: var(--ft-accent-strong);
+        margin-right: 8px;
+      }
+      #viewFinanceiro.finance-fintracker .finance-lanc-simple-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      #viewFinanceiro.finance-fintracker .finance-lanc-simple-filters input,
+      #viewFinanceiro.finance-fintracker .finance-lanc-simple-filters select {
+        min-width: 8rem;
+      }
+      /* Financeiro v2 legado (fallback) */
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) .finance-modern-layout {
         grid-template-columns: minmax(0, 1fr) !important;
         gap: 12px;
       }
-      #viewFinanceiro.finance-layout-v2 .finance-modern-sidebar {
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) .finance-modern-sidebar {
         position: static !important;
         transform: none !important;
         width: 100%;
@@ -3663,15 +4193,15 @@
         padding: 10px;
         overflow: visible;
       }
-      #viewFinanceiro.finance-layout-v2 #financeSidebarToggle,
-      #viewFinanceiro.finance-layout-v2 #financeSidebarBackdrop {
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) #financeSidebarToggle,
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) #financeSidebarBackdrop {
         display: none !important;
       }
-      #viewFinanceiro.finance-layout-v2 .finance-modern-sidebar .finance-module-lede {
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) .finance-modern-sidebar .finance-module-lede {
         margin: 6px 0 0;
         font-size: 12px;
       }
-      #viewFinanceiro.finance-layout-v2 #financeSubnav.finance-nav-inline {
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) #financeSubnav.finance-nav-inline {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
         gap: 8px;
@@ -3680,46 +4210,46 @@
         padding: 0;
         margin: 8px 0 0;
       }
-      #viewFinanceiro.finance-layout-v2 #financeSubnav .finance-menu-group {
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) #financeSubnav .finance-menu-group {
         display: none;
       }
-      #viewFinanceiro.finance-layout-v2 #financeSubnav button.secondary {
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) #financeSubnav button.secondary {
         width: 100%;
         justify-content: center;
         text-align: center;
         min-height: 38px;
         border-radius: 10px;
       }
-      #viewFinanceiro.finance-layout-v2 .finance-modern-sidebar-actions {
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) .finance-modern-sidebar-actions {
         margin-top: 4px;
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       }
-      #viewFinanceiro.finance-layout-v2 .finance-modern-sidebar-actions .secondary {
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) .finance-modern-sidebar-actions .secondary {
         justify-content: center;
       }
-      #viewFinanceiro.finance-layout-v2 .finance-modern-topbar {
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) .finance-modern-topbar {
         margin-bottom: 8px;
       }
-      #viewFinanceiro.finance-layout-v2 .finance-context-bar {
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) .finance-context-bar {
         margin-bottom: 10px;
       }
-      #viewFinanceiro.finance-layout-v2 #financeStandardArea .table-wrap {
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) #financeStandardArea .table-wrap {
         max-height: 65vh;
         overflow: auto;
       }
-      #viewFinanceiro.finance-layout-v2 .finance-cadastro-badges {
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) .finance-cadastro-badges {
         max-height: 150px;
         overflow: auto;
         padding-right: 4px;
       }
-      #viewFinanceiro.finance-layout-v2 .finance-cadastro-badges .tag {
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) .finance-cadastro-badges .tag {
         margin-bottom: 6px;
       }
-      #viewFinanceiro.finance-layout-v2 #financeFlyoutBackdrop,
-      #viewFinanceiro.finance-layout-v2 .finance-flyout-close {
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) #financeFlyoutBackdrop,
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) .finance-flyout-close {
         display: none !important;
       }
-      #viewFinanceiro.finance-layout-v2 #financeContent {
+      #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) #financeContent {
         position: relative;
         inset: auto;
         width: 100%;
@@ -3796,7 +4326,9 @@
               <details class="header-menu-details" id="headerDetailsFinance">
                 <summary>Financeiro</summary>
                 <div class="header-menu-nested">
-                  <button type="button" data-header-finance-panel="true">Visão geral</button>
+                  <button type="button" data-header-finance-panel="true">Dashboard</button>
+                  <button type="button" data-header-finance-sub="lancamentos">Lançamentos</button>
+                  <button type="button" data-header-finance-sub="clientes">Clientes</button>
                   <button type="button" data-header-finance-sub="triagem">Triagem</button>
                   <button type="button" data-header-finance-sub="receber">Receber</button>
                   <button type="button" data-header-finance-sub="caixa">Caixa</button>
@@ -4601,35 +5133,46 @@
           </div>
         </div>
 
-        <div id="viewFinanceiro" class="panel hidden finance-module-shell finance-layout-v2">
+        <div id="viewFinanceiro" class="panel hidden finance-module-shell finance-layout-v2 finance-fintracker">
           <div class="finance-modern-layout">
             <aside class="finance-modern-sidebar">
-              <div>
-                <p class="module-kicker module-kicker--finance">Financeiro</p>
-                <h2 style="margin: 0">Financeiro</h2>
-                <p class="finance-module-lede">Layout simplificado para operação diária: menos ruído visual e foco nas sub-abas.</p>
+              <div class="finance-ft-brand">
+                <div class="finance-ft-brand-icon" aria-hidden="true">
+                  <img src="/assets/logo.png" alt="" width="28" height="28" />
+                </div>
+                <div class="finance-ft-brand-text">
+                  <strong>Financeiro</strong>
+                  <span>Gestão financeira</span>
+                </div>
               </div>
-              <nav id="financeSubnav" class="subnav finance-nav-inline" aria-label="Navegação financeira">
-                <span class="finance-menu-group">Principal</span>
-                <button type="button" class="secondary" data-subview="triagem">Triagem</button>
-                <button type="button" class="secondary" data-subview="receber">Receber</button>
-                <button type="button" class="secondary" data-subview="caixa">Caixa</button>
-                <button type="button" class="secondary" data-subview="dashboard">Visão Geral</button>
-                <button type="button" class="secondary" data-subview="ajustes">Ajustes</button>
-                <button type="button" class="secondary" data-subview="faturamento">Faturamento</button>
-                <button type="button" class="secondary" data-subview="relatorios">Relatórios</button>
-                <button type="button" class="secondary" id="financeMenuReload">Atualizar dados</button>
+              <nav id="financeSubnav" class="subnav finance-nav-inline finance-ft-nav" aria-label="Navegação financeira">
+                <button type="button" class="secondary finance-ft-nav-btn" data-subview="dashboard"><span class="finance-ft-nav-icon" aria-hidden="true">📊</span>Dashboard</button>
+                <button type="button" class="secondary finance-ft-nav-btn" data-subview="lancamentos"><span class="finance-ft-nav-icon" aria-hidden="true">📒</span>Lançamentos</button>
+                <button type="button" class="secondary finance-ft-nav-btn" data-subview="clientes"><span class="finance-ft-nav-icon" aria-hidden="true">👥</span>Clientes</button>
+                <div class="finance-ft-nav-divider" aria-hidden="true"></div>
+                <div class="finance-ft-nav-section">Operação pátio</div>
+                <button type="button" class="secondary finance-ft-nav-btn" data-subview="triagem"><span class="finance-ft-nav-icon" aria-hidden="true">📋</span>Triagem</button>
+                <button type="button" class="secondary finance-ft-nav-btn" data-subview="receber"><span class="finance-ft-nav-icon" aria-hidden="true">📥</span>Receber</button>
+                <button type="button" class="secondary finance-ft-nav-btn" data-subview="caixa"><span class="finance-ft-nav-icon" aria-hidden="true">💵</span>Caixa</button>
+                <div class="finance-ft-nav-divider" aria-hidden="true"></div>
+                <button type="button" class="secondary finance-ft-nav-btn finance-ft-nav-btn--muted" data-subview="ajustes"><span class="finance-ft-nav-icon" aria-hidden="true">⚙️</span>Ajustes</button>
+                <button type="button" class="secondary finance-ft-nav-btn finance-ft-nav-btn--muted" data-subview="faturamento"><span class="finance-ft-nav-icon" aria-hidden="true">🧾</span>Faturamento</button>
+                <button type="button" class="secondary finance-ft-nav-btn finance-ft-nav-btn--muted" data-subview="relatorios"><span class="finance-ft-nav-icon" aria-hidden="true">📈</span>Relatórios</button>
+                <button type="button" class="secondary finance-ft-nav-btn finance-ft-nav-btn--muted" id="financeMenuReload"><span class="finance-ft-nav-icon" aria-hidden="true">↻</span>Atualizar dados</button>
               </nav>
               <div class="finance-modern-sidebar-actions">
               </div>
             </aside>
             <section class="finance-modern-main">
-              <div class="finance-modern-topbar">
+              <div class="finance-modern-topbar finance-ft-topbar">
                 <div>
-                  <h2 style="margin: 0">Financeiro</h2>
-                  <p id="financeBreadcrumb" class="notice" style="margin: 4px 0 0">Início > Financeiro > Dashboard</p>
+                  <p class="finance-ft-page-kicker">Módulo financeiro</p>
+                  <h2 style="margin: 0" id="financePageTitle">Financeiro</h2>
+                  <p id="financeBreadcrumb" class="notice finance-ft-breadcrumb" style="margin: 4px 0 0">Início › Financeiro › Dashboard</p>
                 </div>
                 <div class="actions">
+                  <button type="button" class="hidden" id="financeNovoClienteBtn">+ Novo cliente</button>
+                  <button type="button" class="hidden" id="financeNovaDespesaBtn">+ Nova despesa</button>
                   <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
                 </div>
               </div>
@@ -4717,38 +5260,24 @@
             <button class="secondary" id="exportHistory">Exportar Excel (CSV)</button>
           </div>
           <div id="financeLancamentosFilters" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; flex-wrap: wrap; align-items: center">
-            <span class="notice" style="font-weight: 600">Lançamentos — filtros:</span>
-            <label for="financeLancTipo">Tipo</label>
-            <select id="financeLancTipo">
-              <option value="">Todos</option>
-              <option value="RECEITA">Receita</option>
-              <option value="DESPESA">Despesa</option>
-            </select>
-            <label for="financeLancStatus">Status</label>
-            <select id="financeLancStatus">
-              <option value="">Todos</option>
-              <option value="ABERTO">Não pago</option>
-              <option value="PAGO">Pago</option>
-            </select>
-            <label for="financeLancCategoria">Categoria</label>
-            <select id="financeLancCategoria">
-              <option value="">Todas</option>
-            </select>
-            <label for="financeLancSubcategoria">Subcategoria</label>
-            <select id="financeLancSubcategoria">
-              <option value="">Todas</option>
-            </select>
-            <label for="financeLancFormaPagamento">Forma de pagamento</label>
-            <select id="financeLancFormaPagamento">
-              <option value="">Todas</option>
-            </select>
-            <label for="financeLancCompetencia">Competência</label>
-            <select id="financeLancCompetencia">
-              <option value="">Todas</option>
-            </select>
-            <label for="financeLancBusca">Descrição / Cliente / Fornecedor</label>
-            <input id="financeLancBusca" type="text" placeholder="Buscar" />
-            <button type="button" class="secondary" id="financeLancLimpar">Limpar filtros</button>
+            <div class="finance-lanc-simple-filters" style="width: 100%; margin: 0">
+              <input id="financeLancBusca" type="search" placeholder="Buscar lançamentos…" style="flex: 1; min-width: 180px" />
+              <select id="financeLancTipo">
+                <option value="">Todos os tipos</option>
+                <option value="RECEITA">Receitas</option>
+                <option value="DESPESA">Despesas</option>
+              </select>
+              <select id="financeLancStatus">
+                <option value="">Todos os status</option>
+                <option value="ABERTO">Pendente</option>
+                <option value="PAGO">Pago</option>
+              </select>
+              <button type="button" class="secondary" id="financeLancLimpar">Limpar</button>
+            </div>
+            <select id="financeLancCategoria" class="hidden" aria-hidden="true"><option value="">Todas</option></select>
+            <select id="financeLancSubcategoria" class="hidden" aria-hidden="true"><option value="">Todas</option></select>
+            <select id="financeLancFormaPagamento" class="hidden" aria-hidden="true"><option value="">Todas</option></select>
+            <select id="financeLancCompetencia" class="hidden" aria-hidden="true"><option value="">Todas</option></select>
           </div>
           <div id="financeLancamentosToolbar" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; gap: 8px; flex-wrap: wrap; align-items: center">
             <span class="notice" style="font-weight: 600">Tabela:</span>
@@ -4784,42 +5313,115 @@
           </div>
           </div>
           <div id="financeContent" class="hidden">
-            <div id="financeDetailDashboard" class="section-card fin-dash-panel finance-dash-essential-panel hidden" style="margin-top: 0">
-              <h3 style="margin: 0 0 8px; font-size: 1.1rem">Visão Geral</h3>
-              <p class="notice" style="margin: 0 0 14px; max-width: 44rem; line-height: 1.45; font-size: 13px">
-                Indicadores comerciais do financeiro para operação diária e tomada de decisão.
-              </p>
-              <div class="finance-dashboard-grid finance-dashboard-grid--essential">
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Total a Receber</div>
-                  <div class="finance-kpi-value" id="fdTotalReceber">R$ 0,00</div>
-                  <div class="finance-kpi-meta" id="fdTotalReceberMeta">Carteira em aberto</div>
+            <div id="financeDetailDashboard" class="section-card fin-dash-panel finance-ft-dashboard hidden" style="margin-top: 0">
+              <div class="finance-ft-page-intro">
+                <h3>Dashboard</h3>
+                <p>Visão geral do seu negócio — indicadores do mês selecionado.</p>
+              </div>
+              <div class="finance-ft-kpi-row finance-ft-kpi-row--4">
+                <div class="finance-ft-kpi-card finance-ft-kpi-card--green">
+                  <div class="finance-ft-kpi-icon" aria-hidden="true">💰</div>
+                  <div>
+                    <div class="finance-ft-kpi-label">Saldo em caixa</div>
+                    <div class="finance-ft-kpi-value" id="fdSaldoTotal">R$ 0,00</div>
+                    <div class="finance-ft-kpi-sub" id="fdSaldoTotalMeta">Posição consolidada</div>
+                  </div>
                 </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Entradas no Caixa (mês)</div>
-                  <div class="finance-kpi-value" id="fdEntradasMes">R$ 0,00</div>
-                  <div class="finance-kpi-meta" id="fdEntradasMesHint">Hoje: R$ 0,00</div>
+                <div class="finance-ft-kpi-card finance-ft-kpi-card--teal">
+                  <div class="finance-ft-kpi-icon" aria-hidden="true">📈</div>
+                  <div>
+                    <div class="finance-ft-kpi-label">Receitas do mês</div>
+                    <div class="finance-ft-kpi-value" id="fdReceitasMes">R$ 0,00</div>
+                    <div class="finance-ft-kpi-sub" id="fdReceitasMesMeta">Entradas no período</div>
+                  </div>
                 </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Faturamento Total</div>
-                  <div class="finance-kpi-value" id="fdFaturamentoTotal">R$ 0,00</div>
-                  <div class="finance-kpi-meta" id="fdFaturamentoTotalMeta">Receita bruta do período</div>
+                <div class="finance-ft-kpi-card finance-ft-kpi-card--red">
+                  <div class="finance-ft-kpi-icon" aria-hidden="true">📉</div>
+                  <div>
+                    <div class="finance-ft-kpi-label">Despesas do mês</div>
+                    <div class="finance-ft-kpi-value" id="fdDespesasMes">R$ 0,00</div>
+                    <div class="finance-ft-kpi-sub" id="fdDespesasMesMeta">Saídas no período</div>
+                  </div>
                 </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Descontos Concedidos</div>
-                  <div class="finance-kpi-value" id="fdDescontosConcedidos">R$ 0,00</div>
-                  <div class="finance-kpi-meta" id="fdDescontosConcedidosMeta">Ajustes e isenções</div>
+                <div class="finance-ft-kpi-card finance-ft-kpi-card--amber">
+                  <div class="finance-ft-kpi-icon" aria-hidden="true">📥</div>
+                  <div>
+                    <div class="finance-ft-kpi-label">Contas a receber</div>
+                    <div class="finance-ft-kpi-value" id="fdContasReceber">R$ 0,00</div>
+                    <div class="finance-ft-kpi-sub" id="fdContasReceberMeta">0 título(s) pendente(s)</div>
+                  </div>
                 </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Valores em Aberto</div>
-                  <div class="finance-kpi-value" id="fdValoresEmAberto">0</div>
-                  <div class="finance-kpi-meta" id="fdValoresEmAbertoMeta">Títulos pendentes</div>
+              </div>
+              <div class="finance-ft-kpi-row finance-ft-kpi-row--3">
+                <div class="finance-ft-resumo-card">
+                  <span class="finance-ft-kpi-label">Lucro líquido do mês</span>
+                  <strong id="fdLucroLiquido">R$ 0,00</strong>
+                  <div class="finance-ft-kpi-sub" id="fdLucroLiquidoMeta">Receitas − despesas operacionais</div>
                 </div>
-                <div class="finance-kpi-card">
-                  <div class="finance-kpi-title">Vencidos</div>
-                  <div class="finance-kpi-value" id="fdVencidos">0</div>
-                  <div class="finance-kpi-meta" id="fdVencidosMeta">Títulos em atraso</div>
+                <div class="finance-ft-resumo-card">
+                  <span class="finance-ft-kpi-label">Clientes (localizadores)</span>
+                  <strong id="fdClientesAtivos">0</strong>
+                  <div class="finance-ft-kpi-sub" id="fdClientesAtivosMeta">Cadastrados no sistema</div>
                 </div>
+                <div class="finance-ft-resumo-card">
+                  <span class="finance-ft-kpi-label">Triagem pendente</span>
+                  <strong id="fdTriagemPendente">0</strong>
+                  <div class="finance-ft-kpi-sub" id="fdTriagemPendenteMeta">Aguardando NF e pagamento</div>
+                </div>
+              </div>
+              <div class="finance-ft-quick-links">
+                <button type="button" class="secondary" data-finance-quick="triagem">Ir para Triagem</button>
+                <button type="button" class="secondary" data-finance-quick="receber">Ir para Receber</button>
+                <button type="button" class="secondary" data-finance-quick="lancamentos">Ver lançamentos</button>
+                <button type="button" class="secondary" data-finance-quick="caixa">Ver caixa</button>
+              </div>
+            </div>
+            <div id="financeClientesArea" class="section-card hidden" style="margin-top: 0">
+              <div class="finance-ft-page-toolbar">
+                <div>
+                  <h3>Clientes</h3>
+                  <p>Localizadores (RPV) — sua base de clientes no financeiro.</p>
+                </div>
+              </div>
+              <div class="finance-ft-kpi-row finance-ft-kpi-row--3" style="margin-bottom: 14px">
+                <div class="finance-ft-kpi-card finance-ft-kpi-card--teal">
+                  <div class="finance-ft-kpi-icon" aria-hidden="true">👥</div>
+                  <div>
+                    <div class="finance-ft-kpi-label">Total de clientes</div>
+                    <div class="finance-ft-kpi-value" id="fcTotalClientes">0</div>
+                  </div>
+                </div>
+                <div class="finance-ft-kpi-card finance-ft-kpi-card--green">
+                  <div class="finance-ft-kpi-icon" aria-hidden="true">💵</div>
+                  <div>
+                    <div class="finance-ft-kpi-label">Receita total</div>
+                    <div class="finance-ft-kpi-value" id="fcReceitaClientes">R$ 0,00</div>
+                  </div>
+                </div>
+                <div class="finance-ft-kpi-card finance-ft-kpi-card--amber">
+                  <div class="finance-ft-kpi-icon" aria-hidden="true">📊</div>
+                  <div>
+                    <div class="finance-ft-kpi-label">Ticket médio</div>
+                    <div class="finance-ft-kpi-value" id="fcTicketClientes">R$ 0,00</div>
+                  </div>
+                </div>
+              </div>
+              <div class="finance-lanc-simple-filters">
+                <input id="financeClientesBusca" type="search" placeholder="Buscar por nome, contato ou documento…" style="flex: 1; min-width: 200px" />
+              </div>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Cliente</th>
+                      <th>Contato</th>
+                      <th>Veículos</th>
+                      <th>Receita</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tableFinanceClientes"></tbody>
+                </table>
               </div>
             </div>
             <div id="financeStandardArea">
@@ -11741,6 +12343,7 @@
           if (stdArea) stdArea.classList.add("hidden");
           if (cloArea) cloArea.classList.add("hidden");
           if (dashArea) dashArea.classList.add("hidden");
+          document.getElementById("financeClientesArea")?.classList.add("hidden");
         };
         const showFinanceDashboardOnly = () => {
           if (stdArea) stdArea.classList.add("hidden");
@@ -11788,7 +12391,7 @@
           }
         }
 
-        if (_fd("fdTotalReceber")) {
+        if (_fd("fdSaldoTotal")) {
           const todayYmd = toLocalYmd(new Date().toISOString());
           const entradasHoje = sumReceivableRevenueByDay(todayYmd, state.receivables || [], state.cash || []);
           const receberFlags = financeReceberFlagsRead();
@@ -11801,29 +12404,37 @@
             const refDate = (r.period_end || r.created_at || "").toString().slice(0, 10);
             return !!refDate && refDate < todayYmd;
           });
-          const totalReceber = receberPendentes.reduce((sum, r) => sum + Number(r.valor || 0), 0);
-          const descontosConcedidosMes = (state.payables || [])
-            .filter((p) => p.status === "PAGO")
-            .filter((p) => String(p.data_vencimento || "").slice(0, 7) === monthKeyFin)
-            .reduce((sum, p) => sum + Number(p.valor || 0), 0);
-          const faturamentoTotal = entradasMesDiarias + descontosConcedidosMes;
+          const totalReceberDash = receberPendentes.reduce((sum, r) => sum + Number(r.valor || 0), 0);
+          const localizadores = (state.partners || []).filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
+          const triagemCount = (state.receivables || []).filter((r) => receivableNaFilaAguardandoTriagem(r)).length;
 
-          _set("fdTotalReceber", formatCurrency(totalReceber));
-          _set("fdTotalReceberMeta", `${receberPendentes.length} título(s) pendente(s)`);
-          _set("fdEntradasMes", formatCurrency(entradasMesDiarias));
-          _set("fdEntradasMesHint", `Hoje: ${formatCurrency(entradasHoje)}`);
-          _set("fdFaturamentoTotal", formatCurrency(faturamentoTotal));
-          _set("fdFaturamentoTotalMeta", `Competência ${monthKeyFin.slice(5, 7)}/${monthKeyFin.slice(0, 4)}`);
-          _set("fdDescontosConcedidos", formatCurrency(descontosConcedidosMes));
-          _set("fdDescontosConcedidosMeta", "Descontos e isenções aplicados");
-          _set("fdValoresEmAberto", String(receberPendentes.length));
-          _set("fdValoresEmAbertoMeta", formatCurrency(totalReceber));
-          _set("fdVencidos", String(vencidos.length));
-          _set("fdVencidosMeta", vencidos.length ? formatCurrency(vencidos.reduce((s, r) => s + Number(r.valor || 0), 0)) : "Sem atraso");
-          renderFinanceExtratoDom(monthKeyFin);
+          _set("fdSaldoTotal", formatCurrency(caixa));
+          _set("fdSaldoTotalMeta", caixa >= 0 ? "Posição consolidada" : "Saldo negativo");
+          _set("fdReceitasMes", formatCurrency(entradasMesDiarias));
+          _set("fdReceitasMesMeta", `Hoje: ${formatCurrency(entradasHoje)}`);
+          _set("fdDespesasMes", formatCurrency(saidasOperacionaisMesFinance));
+          _set("fdDespesasMesMeta", `Competência ${monthKeyFin.slice(5, 7)}/${monthKeyFin.slice(0, 4)}`);
+          _set("fdContasReceber", formatCurrency(totalReceberDash));
+          _set("fdContasReceberMeta", `${receberPendentes.length} título(s) pendente(s)`);
+          _set("fdLucroLiquido", formatCurrency(resultadoMesFinance));
+          _set(
+            "fdLucroLiquidoMeta",
+            resultadoMesFinance >= 0 ? "Receitas − despesas operacionais" : "Resultado negativo no mês"
+          );
+          _set("fdClientesAtivos", String(localizadores.length));
+          _set("fdClientesAtivosMeta", localizadores.length ? "Localizadores cadastrados" : "Cadastre em Clientes");
+          _set("fdTriagemPendente", String(triagemCount));
+          _set("fdTriagemPendenteMeta", vencidos.length ? `${vencidos.length} título(s) vencido(s)` : "Aguardando NF e pagamento");
         }
         if (currentFinanceView === "dashboard") {
           showFinanceDashboardOnly();
+          return;
+        }
+        if (currentFinanceView === "clientes") {
+          hideAllFinanceAreas();
+          const clientesArea = document.getElementById("financeClientesArea");
+          if (clientesArea) clientesArea.classList.remove("hidden");
+          renderFinanceClientes();
           return;
         }
         if (currentFinanceView === "filtros") {
@@ -11849,8 +12460,8 @@
         if (currentFinanceView === "caixa") {
           if (flySummary) flySummary.classList.add("hidden");
           if (caixaResumoPanel) caixaResumoPanel.classList.remove("hidden");
-          if (financeStdTableWrap) financeStdTableWrap.classList.add("hidden");
-          document.getElementById("financeCaixaScrollNotice")?.classList.add("hidden");
+          if (financeStdTableWrap) financeStdTableWrap.classList.remove("hidden");
+          document.getElementById("financeCaixaScrollNotice")?.classList.remove("hidden");
           document.getElementById("financeLancamentosScrollNotice")?.classList.add("hidden");
           const rSaldo = document.getElementById("fcResumoSaldo");
           const rSaldoM = document.getElementById("fcResumoSaldoMeta");
@@ -11877,8 +12488,48 @@
             rCard.classList.add(resMes >= 0 ? "finance-kpi-card--profit" : "finance-kpi-card--loss");
             rCard.classList.add(resMes >= 0 ? "kpi-alert-success" : "kpi-alert-danger");
           }
-          financeHead.innerHTML = "";
-          tableFinance.innerHTML = "";
+          financeHead.innerHTML = `
+            <tr>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th>Descrição</th>
+              <th>Valor</th>
+              <th>Ações</th>
+            </tr>`;
+          const receivableByContaId = (contaId) => {
+            if (contaId == null || contaId === "") return null;
+            return state.receivables.find((r) => String(r.id) === String(contaId)) || null;
+          };
+          state.cash
+            .filter((mov) => {
+              const ymdMov = toLocalYmd(mov.data_movimento || mov.created_at);
+              if (!ymdMov || yearMonthFromYmd(ymdMov) !== caixaMonth) return false;
+              if (todayYmdLocal && ymdMov > todayYmdLocal) return false;
+              return true;
+            })
+            .sort((a, b) => String(b.data_movimento || b.created_at).localeCompare(String(a.data_movimento || a.created_at)))
+            .forEach((mov) => {
+              const isReceber = mov.tipo_conta === "RECEBER";
+              const rec = isReceber ? receivableByContaId(mov.conta_id) : null;
+              const valorFmt = formatCurrency(Number(mov.valor || 0));
+              const valorCell = isReceber ? valorFmt : `− ${valorFmt}`;
+              rows.push(`
+                <tr>
+                  <td>${formatDate(mov.data_movimento || mov.created_at)}</td>
+                  <td>${isReceber ? "Entrada" : "Saída"}</td>
+                  <td>${escapeHtml(mov.descricao || (rec ? "Recebimento" : "Pagamento"))}</td>
+                  <td>${valorCell}</td>
+                  <td class="actions">
+                    ${isReceber && rec ? `<button class="secondary" type="button" data-action="recibo-receber" data-id="${rec.id}">Recibo</button>` : ""}
+                  </td>
+                </tr>
+              `);
+            });
+          if (!rows.length) {
+            setEmptyRow(tableFinance, "Nenhum movimento de caixa neste mês.", 5);
+          } else {
+            tableFinance.innerHTML = rows.join("");
+          }
           return;
         }
         if (flySummary) flySummary.classList.remove("hidden");
@@ -11926,23 +12577,15 @@
         }
 
         if (currentFinanceView === "lancamentos") {
+          if (flySummary) flySummary.classList.remove("hidden");
           financeLedgerTable?.classList.add("finance-ledger--lancamentos");
           financeHead.innerHTML = `
             <tr>
-              <th>Data</th>
-              <th>Mês</th>
-              <th>Ano</th>
-              <th>Competência</th>
-              <th>Tipo</th>
-              <th>Categoria</th>
-              <th>Subcategoria</th>
               <th>Descrição</th>
-              <th>Cliente / Fornecedor</th>
-              <th>Forma de pagamento</th>
+              <th>Categoria</th>
               <th>Valor</th>
+              <th>Data</th>
               <th>Status</th>
-              <th>Data de pagamento</th>
-              <th>Observações</th>
             </tr>`;
           const qBusca = String(lancamentosFilter.busca || "").trim().toLowerCase();
           const cashByReceivable = new Map(
@@ -12061,27 +12704,25 @@
           if (financeLancPrevPage) financeLancPrevPage.disabled = lancamentosPagination.page <= 1;
           if (financeLancNextPage) financeLancNextPage.disabled = lancamentosPagination.page >= pages;
           pageEntries.forEach((entry) => {
+            const statusClass =
+              entry.status === "PAGO" ? "finance-ft-status--pago" : "finance-ft-status--pendente";
+            const statusLabel = entry.status === "PAGO" ? "Pago" : "Pendente";
+            const descLine = entry.parte && entry.parte !== "-"
+              ? `${escapeHtml(entry.descricao)}<br /><span class="notice">${escapeHtml(entry.parte)}</span>`
+              : escapeHtml(entry.descricao);
+            const valorClass = entry.tipo === "RECEITA" ? "" : ' style="color: var(--danger, #dc2626)"';
             rows.push(`
               <tr>
+                <td>${descLine}</td>
+                <td><span class="tag">${escapeHtml(entry.categoria)}</span></td>
+                <td${valorClass}>${entry.tipo === "DESPESA" ? "− " : ""}${formatCurrency(entry.valor)}</td>
                 <td>${formatDate(entry.data)}</td>
-                <td>${escapeHtml(entry.mes || "-")}</td>
-                <td>${escapeHtml(entry.ano || "-")}</td>
-                <td>${escapeHtml(entry.competencia || "-")}</td>
-                <td>${entry.tipo === "RECEITA" ? "Receita" : "Despesa"}</td>
-                <td>${escapeHtml(entry.categoria)}</td>
-                <td>${escapeHtml(entry.subcategoria)}</td>
-                <td>${escapeHtml(entry.descricao)}</td>
-                <td>${escapeHtml(entry.parte)}</td>
-                <td>${escapeHtml(entry.formaPagamento)}</td>
-                <td>${formatCurrency(entry.valor)}</td>
-                <td>${entry.status === "PAGO" ? "Pago" : "Pendente"}</td>
-                <td>${entry.dataPagamento ? formatDate(entry.dataPagamento) : "-"}</td>
-                <td>${escapeHtml(entry.observacoes || "-")}</td>
+                <td><span class="finance-ft-status ${statusClass}">${statusLabel}</span></td>
               </tr>
             `);
           });
           if (!rows.length) {
-            setEmptyRow(tableFinance, "Nenhum lançamento financeiro encontrado.", 14);
+            setEmptyRow(tableFinance, "Nenhum lançamento encontrado.", 5);
           } else {
             tableFinance.innerHTML = rows.join("");
           }
@@ -12507,12 +13148,14 @@
         if (view === "pre_lancamento" || view === "aguardando_lancamento") view = "triagem";
         if (view === "metas") view = "dashboard";
         if (view === "receber_alerta") view = "receber";
-        if (view === "pagar" || view === "cadastro_base" || view === "lancamentos") view = "ajustes";
+        if (view === "pagar" || view === "cadastro_base") view = "ajustes";
         if (view === "historico_receber" || view === "historico_pagar") view = "faturamento";
         if (view === "controle_dual") view = "dashboard";
         currentFinanceView = view;
         const viewMap = {
-          dashboard: "Visão geral",
+          dashboard: "Dashboard",
+          lancamentos: "Lançamentos",
+          clientes: "Clientes",
           relatorios: "Relatórios",
           triagem: "Triagem",
           receber: "Receber",
@@ -12538,7 +13181,10 @@
         }
         if (financeFlyoutClose) financeFlyoutClose.textContent = "X";
         if (financeViewBadge) financeViewBadge.textContent = `Visão: ${viewMap[view] || "Dashboard geral"}`;
-        if (financeBreadcrumb) financeBreadcrumb.textContent = `Início > Financeiro > ${viewMap[view] || "Dashboard geral"}`;
+        const pageTitle = viewMap[view] || "Dashboard geral";
+        const financePageTitle = document.getElementById("financePageTitle");
+        if (financePageTitle) financePageTitle.textContent = pageTitle;
+        if (financeBreadcrumb) financeBreadcrumb.textContent = `Início › Financeiro › ${pageTitle}`;
         if (financeModeBadge) {
           financeModeBadge.textContent = isDashboard
             ? "Modo executivo"
@@ -12578,7 +13224,8 @@
         const showFiltersHub = false;
         const showPlateSearchFilter = false;
         const showReportFilters = view === "relatorios";
-        const showLancamentosFilters = false;
+        const showLancamentosFilters = view === "lancamentos";
+        const showLancamentosToolbar = false;
         const showCaixaFilters = view === "fluxo_caixa" || view === "caixa";
         const showReceberFilters = view === "receber";
         financeFiltersHub?.classList.toggle("hidden", !showFiltersHub);
@@ -12595,7 +13242,7 @@
         financeFilters.classList.toggle("hidden", !showReportFilters);
         financeReportExtraFilters?.classList.toggle("hidden", !showReportFilters);
         financeLancamentosFilters?.classList.toggle("hidden", !showLancamentosFilters);
-        financeLancamentosToolbar?.classList.toggle("hidden", !showLancamentosFilters);
+        financeLancamentosToolbar?.classList.toggle("hidden", !showLancamentosToolbar);
         financeLancPagination?.classList.toggle("hidden", view !== "lancamentos");
         if (view !== "lancamentos" && view !== "filtros") financeLancSidePanel?.classList.add("hidden");
         financeCaixaFilters?.classList.toggle("hidden", !showCaixaFilters);
@@ -12619,7 +13266,88 @@
           }
         }
         document.getElementById("financeReceberFilters")?.classList.toggle("hidden", !showReceberFilters);
+        const financeNovoClienteBtn = document.getElementById("financeNovoClienteBtn");
+        const financeNovaDespesaBtn = document.getElementById("financeNovaDespesaBtn");
+        if (financeNovoClienteBtn) financeNovoClienteBtn.classList.toggle("hidden", view !== "clientes");
+        if (financeNovaDespesaBtn) {
+          financeNovaDespesaBtn.classList.toggle("hidden", view !== "lancamentos" && view !== "ajustes");
+        }
         renderFinance();
+      }
+
+      function renderFinanceClientes() {
+        const tableEl = document.getElementById("tableFinanceClientes");
+        if (!tableEl) return;
+        const busca = String(document.getElementById("financeClientesBusca")?.value || "")
+          .trim()
+          .toLowerCase();
+        const parceiros = (state.partners || []).filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
+        const receivableMap = new Map((state.receivables || []).map((r) => [r.id, r]));
+        const vehicleMap = new Map((state.vehicles || []).map((v) => [v.id, v]));
+        const revenueByPartner = new Map();
+        const vehiclesByPartner = new Map();
+        (state.vehicles || []).forEach((v) => {
+          if (!v.localizador_id) return;
+          vehiclesByPartner.set(v.localizador_id, (vehiclesByPartner.get(v.localizador_id) || 0) + 1);
+        });
+        (state.cash || [])
+          .filter((c) => c.tipo_conta === "RECEBER")
+          .forEach((c) => {
+            const receivable = receivableMap.get(c.conta_id);
+            if (!receivable) return;
+            const vehicle = vehicleMap.get(receivable.vehicle_id);
+            if (!vehicle?.localizador_id) return;
+            revenueByPartner.set(
+              vehicle.localizador_id,
+              (revenueByPartner.get(vehicle.localizador_id) || 0) + Number(c.valor || 0)
+            );
+          });
+        const filtered = parceiros.filter((p) => {
+          if (!busca) return true;
+          const hay = `${p.nome || ""} ${p.contato || ""} ${p.email || ""} ${p.cpf || ""}`.toLowerCase();
+          return hay.includes(busca);
+        });
+        const totalReceita = [...revenueByPartner.values()].reduce((s, v) => s + v, 0);
+        const ticket = filtered.length ? totalReceita / filtered.length : 0;
+        const setEl = (id, txt) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = txt;
+        };
+        setEl("fcTotalClientes", String(filtered.length));
+        setEl("fcReceitaClientes", formatCurrency(totalReceita));
+        setEl("fcTicketClientes", formatCurrency(ticket));
+        if (!filtered.length) {
+          setEmptyRow(tableEl, busca ? "Nenhum cliente encontrado para a busca." : "Nenhum localizador cadastrado. Toque em + Novo cliente.", 5);
+          return;
+        }
+        const initials = (name) => {
+          const parts = String(name || "?").trim().split(/\s+/).filter(Boolean);
+          if (!parts.length) return "?";
+          if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+          return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        };
+        tableEl.innerHTML = filtered
+          .sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || "")))
+          .map((p) => {
+            const receita = revenueByPartner.get(p.id) || 0;
+            const veiculos = vehiclesByPartner.get(p.id) || 0;
+            const contato = [p.contato, p.email].filter(Boolean).join(" • ") || "-";
+            return `
+              <tr>
+                <td>
+                  <span class="finance-ft-client-avatar">${escapeHtml(initials(p.nome))}</span>
+                  ${escapeHtml(p.nome || "-")}
+                </td>
+                <td>${escapeHtml(contato)}</td>
+                <td>${veiculos}</td>
+                <td>${formatCurrency(receita)}</td>
+                <td class="actions">
+                  <button class="secondary" type="button" data-action="editar-parceiro" data-id="${p.id}">Editar</button>
+                </td>
+              </tr>
+            `;
+          })
+          .join("");
       }
 
       function refreshFinanceTableDataLabels() {
@@ -13472,8 +14200,31 @@
         });
       }
       bindModuleCardActivate(document.getElementById("cardFinanceReceberLink"), () => openFinanceSubview("receber"));
-      bindModuleCardActivate(document.getElementById("cardFinancePagarLink"), () => openFinanceSubview("ajustes"));
+      bindModuleCardActivate(document.getElementById("cardFinancePagarLink"), () => {
+        lancamentosFilter.tipo = "DESPESA";
+        if (financeLancTipo) financeLancTipo.value = "DESPESA";
+        openFinanceSubview("lancamentos");
+      });
       bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("caixa"));
+
+      document.getElementById("financeDetailDashboard")?.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-finance-quick]");
+        if (!btn) return;
+        openFinanceSubview(btn.getAttribute("data-finance-quick"));
+      });
+      document.getElementById("financeNovoClienteBtn")?.addEventListener("click", () => {
+        currentPartnerView = "localizadores";
+        if (partnerModalTitle) partnerModalTitle.textContent = "Novo cliente (localizador)";
+        syncPartnerFormForCurrentView();
+        partnerForm?.reset();
+        partnerModal?.classList.remove("hidden");
+      });
+      document.getElementById("financeNovaDespesaBtn")?.addEventListener("click", () => {
+        payableModal?.classList.remove("hidden");
+      });
+      document.getElementById("financeClientesBusca")?.addEventListener("input", () => {
+        if (currentFinanceView === "clientes") renderFinanceClientes();
+      });
 
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
       document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
