@@ -1,0 +1,1276 @@
+﻿=== PT/UI STRINGS (filtered) ===
+
+new RealtimeClient(url, { transport: ws })`}}}return{type:
+ /m├¬s
+ Produtos (
+ Servi├ºos (
+ ap├│s a presta├º├úo dos servi├ºos.
+ e informe nome, contato, e-mail, telefone e categoria de produto/servi├ºo.'},{title:
+ e preencha nome, descri├º├úo, pre├ºo de venda, pre├ºo de custo e unidade.'},{title:
+ e preencha nome, e-mail, telefone, CPF/CNPJ e endere├ºo do cliente.'},{title:
+ no canto superior direito para registrar uma receita ou despesa.'},{title:
+ package and provide it via the transport option:
+import ws from 
+ package:
+
+  npm install ws
+
+  import ws from 
+ para adicionar uma conta corrente, poupan├ºa, cart├úo ou outro tipo de conta.'},{title:
+ para come├ºar a planejar.'})]}):o.jsx(
+ para come├ºar'})]}):o.jsx(
+ para come├ºar.'})]}):o.jsx(
+ para salvar ou compartilhar o relat├│rio gerado.'}],cashflow:[{title:
+ para verificar a situa├º├úo financeira.'})]}):s.map(C=>{const Q=se(C.nivel),re=Q.icon,S=C.status===
+ para visualizar apenas categorias de receita ou apenas de despesa.'},{title:
+#_recoverAndRefresh()
+% do or├ºamento
+' eeee '├ás' p
+'amanh├ú ├ás' p
+'hoje ├ás' p
+'ontem ├ás' p
+),O}},C=async(I,R)=>{if(!confirm(`Excluir o or├ºamento ${R}?`))return;const{error:O}=await Se.from(
+),P.transactions&&_.push(
+),[h,x]=ie.useState(!1),[p,b]=ie.useState(null),[v,y]=ie.useState(!1),_={nome_produto:
+),this._typedRegistries=[this.controllers,this.scales,this.elements]}add(...e){this._each(
+),this.params.config=Object.assign({broadcast:{ack:!1,self:!1},presence:{key:
+).insert({admin_id:n==null?void 0:n.adminId,user_id:n==null?void 0:n.id,description:J,amount:B,type:
+).insert({user_id:X.id,modules:L}),await r(`Funcion├írio criado: ${v.email}`),u(!1),y({nome:
+).length>16?(R.category||
+).toLowerCase().includes(fe)||(J.category||
+):n(!0)};return o.jsxs(o.Fragment,{children:[o.jsxs(
+);return this.url.searchParams.append(s,`in.(${l})`),this}contains(s,i){return typeof i==
+);return}await this._recoverAndRefresh()}))):document.visibilityState===
+)?!0:e.permissions.includes(f):!1,d=()=>(e==null?void 0:e.nivel)===
+)[0],categoria:
+)[0],status:a.status,client:a.client||
+)||null}updateConfig(e){e.options.animation=!1}}const km=
+)}),A.categoria&&o.jsxs(
+)},c=()=>{r.trim()&&l(r)};return o.jsxs(o.Fragment,{children:[o.jsx(
+)}`;S[qe]||(S[qe]={receitas:0,despesas:0,count:0}),le.type===
+)}`;return C[S]||(C[S]={receitas:0,despesas:0}),Q.type===
+)}finally{y(!1)}},U=async(L,C)=>{confirm(`Excluir or├ºamento 
+)}finally{y(!1)}},V=async(L,C)=>{if(confirm(`Excluir produto 
+)}function aE(){return'<office:document-meta xmlns:office=
+)}}`),this}textSearch(s,i,{config:l,type:c}={}){let d=
+*, categories(name)
+*, categories: category_id (name)
+*, categories: category_id (name), clients: client_id (name), suppliers: supplier_id (name)
+, defina o nome, per├¡odo, valor limite e a categoria relacionada.'},{title:
+, defina um nome, valor alvo, per├¡odo e o tipo (receita, despesa ou saldo).'},{title:
+, escolha um nome, tipo (receita ou despesa), cor e ├¡cone representativo.'},{title:
+, informe nome, e-mail, cargo e defina um n├¡vel de acesso para ele.'},{title:
+, selecione o cliente e adicione os produtos ou servi├ºos desejados.'},{title:
+,A.categoria]}),A.cliente_nome&&o.jsxs(
+,A.cliente_nome]})]})]})]}),o.jsxs(
+,C(re.saldoMensal)]}),o.jsx(
+,Category:
+,C||(t==null?void 0:t.adminId)).eq(
+,E.maiorSaldo.toLocaleString(
+,E.menorSaldo.toLocaleString(
+,F=v.admin_id||h.id,y)){const P=y.modules||{};_.push(
+,I.id),await A(),N(!1),alert(`Receita de R$ ${I.valor_total.toLocaleString(
+,J.client]}),J.supplier&&o.jsxs(
+,N.despesas.toLocaleString(
+,N.receitas.toLocaleString(
+,O);if(ue)throw ue;await e(`Atualiza├º├úo removida: ${J}`),await re(),alert(
+,O);if(ye)throw ye;await e(`Usu├írio ${ue===
+,O.id);if(fe)throw fe;await e(`Atualiza├º├úo ${J?
+,R||(t==null?void 0:t.adminId)).eq(
+,W),await r(`Funcion├írio removido: ${X}`),F()}catch(se){console.error(
+,W.despesas.toLocaleString(
+,W.id);if(fe)throw fe;await e(`Atualiza├º├úo editada: ${C.titulo}`)}else{const{error:O}=await Se.from(
+,W.receitas.toLocaleString(
+,W.totalMetasAtivas]}),o.jsx(
+,_);if(F)throw F;await r(`Administrador removido: ${N}`),p()}catch(F){console.error(
+,_e=typeof ye.clients==
+,`R$ ${N.despesas.toLocaleString(
+,`R$ ${N.despesasPagas.toLocaleString(
+,`R$ ${N.receitas.toLocaleString(
+,`R$ ${N.receitasPagas.toLocaleString(
+,address:
+,address:B.address||
+,address:fe.address||
+,address:ue.address||
+,amount:0,category:
+,ativo:L.ativo})):(b(null),F(_)),x(!0)},U=async()=>{if(!N.nome_produto.trim())return alert(
+,categoria:
+,categoria:L.categoria||
+,category:
+,checked:b.pode_editar,onChange:O=>v({...b,pode_editar:O.target.checked}),className:
+,checked:h.pode_editar,onChange:_=>x({...h,pode_editar:_.target.checked}),className:
+,children:
+,children:!h&&p===
+,children:!l&&'Clique em 
+,children:'Clique em 
+,children:'ÔÜá´©Å Nenhuma conta banc├íria cadastrada. Crie contas na se├º├úo 
+,children:A.basedOnMonths===0?o.jsxs(
+,children:A.descricao}),o.jsxs(
+,children:A.descricao})]})}),o.jsx(
+,children:A.map((G,z)=>{const W=G.icon,X={blue:
+,children:A.months.map((re,S)=>o.jsxs(
+,children:A.nome}),A.descricao&&o.jsx(
+,children:A.unidade})}),o.jsx(
+,children:B?o.jsx(
+,children:B})]}),o.jsxs(
+,children:C(A.avgDespesas)}),o.jsxs(
+,children:C(A.avgReceitas)}),o.jsxs(
+,children:C(re.despesas)}),o.jsxs(
+,children:C(re.receitas)}),o.jsx(
+,children:C.descricao})]})]}),o.jsxs(
+,children:C.description}),o.jsxs(
+,children:C.name}),o.jsxs(
+,children:C.title})]}),o.jsxs(
+,children:C.titulo}),S&&o.jsx(Ls,{size:16,className:
+,children:E(W.type)})]}),o.jsxs(
+,children:E.map((G,z)=>o.jsx(OL,{...G},z))}),o.jsx(
+,children:E.map(z=>o.jsxs(
+,children:E.totalTransacoes}),o.jsxs(
+,children:E})]}),o.jsx(cp,{className:
+,children:F.description}),o.jsxs(
+,children:F.map(W=>{const X=V(W.type),se=H[W.id];return o.jsxs(
+,children:F>9?
+,children:F[t.status].map(({status:P,label:T,icon:U,color:V})=>o.jsxs(
+,children:G.subtitle})]})]})},z)})}),o.jsxs(
+,children:G.title}),o.jsx(
+,children:G.value}),o.jsx(
+,children:G})]})]})}),o.jsx(
+,children:I.categoria}),o.jsx(
+,children:I.cliente_nome||o.jsx(
+,children:I.name}),(I.phone||I.document)&&o.jsx(
+,children:I.nome_produto}),o.jsxs(
+,children:I.numero_orcamento})}),o.jsx(
+,children:I.phone||I.document})]})]},I.id))})]}),H&&o.jsxs(
+,children:I.product.nome_produto}),o.jsxs(
+,children:I.unidade_selecionada}),o.jsxs(
+,children:I.unidade_venda}),I.estoque!==null&&o.jsxs(
+,children:I===0?
+,children:J.category}),o.jsx(
+,children:J.description}),J.client&&o.jsxs(
+,children:L.categoria||
+,children:L.charAt(0).toUpperCase()+L.slice(1)},L))})]}),o.jsxs(
+,children:L.descricao}),o.jsx(
+,children:L.description}),o.jsxs(
+,children:L.estoque!==null?o.jsxs(
+,children:L.length>1?o.jsx(
+,children:L.map(J=>o.jsxs(
+,children:L.map(re=>o.jsx(
+,children:L.nome_produto}),o.jsxs(
+,children:L.nome}),o.jsxs(
+,children:L.tipo}),o.jsx(
+,children:N.ativo?
+,children:N.map(I=>o.jsxs(
+,children:Nt(V.date,
+,children:Nt(e,
+,children:Nt(t,
+,children:N})]}),o.jsx(su,{className:
+,children:O.descricao}),O.passo_a_passo&&o.jsxs(
+,children:O.descricao})]}),o.jsxs(
+,children:O.documento})]}),O.empresa&&o.jsxs(
+,children:O.email!==(t==null?void 0:t.email)&&o.jsxs(
+,children:O.email})]}),o.jsxs(
+,children:O.email})}),o.jsx(
+,children:O.empresa})]})]}),O.motivo&&o.jsxs(
+,children:O.motivo})]}),o.jsxs(
+,children:O.nome}),o.jsx(
+,children:O.nome})}),o.jsx(
+,children:O.passo_a_passo.split(`
+`).filter(Boolean).map((ue,ye)=>o.jsxs(
+,children:O.telefone})]}),O.documento&&o.jsxs(
+,children:O.titulo}),!fe&&o.jsx(
+,children:Object.entries(Ip).map(([X,se])=>o.jsx(
+,children:P.descricao}),o.jsx(
+,children:P.nome_arquivo}),o.jsxs(
+,children:P.quantidade}),o.jsxs(
+,children:Q(p.id).map(R=>o.jsx(
+,children:R.description}),o.jsxs(
+,children:R.email||R.phone})]})]}),o.jsxs(
+,children:R.map(ue=>o.jsx(
+,children:R.name}),o.jsx(
+,children:R})]}),o.jsx(
+,children:T.description}),o.jsx(
+,children:T.map(re=>o.jsx(
+,children:T.name}),o.jsx(
+,children:U.length===0?o.jsx(
+,children:U.map(A=>o.jsxs(
+,children:U})]}),o.jsxs(
+,children:V.category||
+,children:V.description})]})]})},V.id)})}),!d&&o.jsxs(
+,children:V.map((re,S)=>{const B=re.transactions.length>0;return o.jsxs(
+,children:V.map(C=>o.jsxs(
+,children:V.meetings})]}),o.jsx(Ac,{className:
+,children:V.title}),o.jsx(
+,children:V.totalEvents}),o.jsxs(
+,children:V>9?
+,children:V})]}),o.jsx(
+,children:W.accountNumber})]}),W.agency&&o.jsxs(
+,children:W.agency})]}),se&&o.jsxs(
+,children:W.bank})]})]}),o.jsxs(
+,children:W.lucro>=0?
+,children:W.margemLucro>=20?
+,children:W.name}),o.jsx(
+,children:W.totalMetasAtivas===0?
+,children:W?
+,children:X.descricao.slice(0,50)})]}),o.jsxs(
+,children:X.description})]}),o.jsx(
+,children:X.length===0?o.jsx(
+,children:X.nome_produto}),o.jsxs(
+,children:X.nome}),X.descricao&&o.jsx(
+,children:Z.aprovados}),o.jsxs(
+,children:Z.total}),o.jsx(
+,children:[
+,children:[!S&&o.jsx(
+,children:[!e&&o.jsx(
+,children:[(n===
+,children:[C.range,
+,children:[E(C.type),o.jsx(
+,children:[E.previstas,
+,children:[E.realizadas,
+,children:[F,
+,children:[G.toFixed(1),
+,children:[H.name,H.phone&&o.jsxs(
+,children:[J.description.startsWith(
+,children:[L.descricao&&o.jsx(
+,children:[L.due_date?zi(new Date(L.due_date)):
+,children:[O.pode_ver&&o.jsx(
+,children:[Q.slice(0,2).map(M=>o.jsx(
+,children:[T.profitMargin.toFixed(1),
+,children:[V.description,V.totalInstallments&&V.totalInstallments>1&&o.jsxs(
+,children:[V.installment,
+,children:[V.payments,
+,children:[V.pending,
+,children:[V.receipts,
+,children:[X.categoria,
+,children:[X.toFixed(1),
+,children:[_.pode_ver&&o.jsx(
+,children:[b.length,
+,children:[f.nome,
+,children:[f===
+,children:[g.map(_=>{const N=_.icon;return o.jsx(
+,children:[h.map(x=>{const p=x.icon,b=t===x.id;return o.jsxs(
+,children:[l,
+,children:[l>0&&o.jsxs(
+,children:[lm.filter(W=>z.modules[W.key]).map(W=>o.jsxs(
+,children:[new Date(P.created_at).toLocaleDateString(
+,children:[o.jsx(
+,children:[o.jsx(BS,{size:20}),o.jsx(rh,{size:16})]}),n&&o.jsx(
+,children:[o.jsx(EL,{activeTab:r,setActiveTab:n}),o.jsxs(
+,children:[o.jsx(Ec,{size:16}),o.jsx(
+,children:[o.jsx(Ec,{size:20}),o.jsx(
+,children:[o.jsx(Fs,{size:22}),
+,children:[o.jsx(Fs,{size:48,className:
+,children:[o.jsx(Gd,{className:
+,children:[o.jsx(IS,{size:12,className:
+,children:[o.jsx(LS,{size:20}),o.jsx(
+,children:[o.jsx(Ls,{size:11}),
+,children:[o.jsx(Ls,{size:16}),o.jsx(
+,children:[o.jsx(Ls,{size:18}),o.jsx(
+,children:[o.jsx(Ls,{size:48,className:
+,children:[o.jsx(Mi,{size:18,className:
+,children:[o.jsx(Mi,{size:48,className:
+,children:[o.jsx(Ms,{className:
+,children:[o.jsx(Ms,{size:14,className:
+,children:[o.jsx(Ms,{size:15,className:
+,children:[o.jsx(Ms,{size:16,className:
+,children:[o.jsx(N,{size:24,className:
+,children:[o.jsx(On,{size:15}),
+,children:[o.jsx(RS,{size:15}),o.jsx(
+,children:[o.jsx(Ra,{className:
+,children:[o.jsx(Ra,{size:12}),o.jsxs(
+,children:[o.jsx(Ra,{size:20,className:
+,children:[o.jsx(Ri,{size:10}),W.label]},W.key)),A(z.modules)===0&&o.jsxs(
+,children:[o.jsx(Ri,{size:11}),
+,children:[o.jsx(Ri,{size:12,className:
+,children:[o.jsx(Ri,{size:18}),u?
+,children:[o.jsx(Ri,{size:20,className:
+,children:[o.jsx(Su,{className:
+,children:[o.jsx(Sy,{size:18}),o.jsx(
+,children:[o.jsx(Sy,{size:32,className:
+,children:[o.jsx(US,{size:20}),o.jsx(
+,children:[o.jsx(Yd,{className:
+,children:[o.jsx(_a,{size:16}),o.jsx(
+,children:[o.jsx(aL,{size:12,className:
+,children:[o.jsx(au,{className:
+,children:[o.jsx(au,{size:20,className:V>0?
+,children:[o.jsx(ax,{className:
+,children:[o.jsx(b_,{onNavigate:i}),o.jsx(
+,children:[o.jsx(b_,{}),o.jsx(
+,children:[o.jsx(dn,{className:
+,children:[o.jsx(dp,{size:18}),o.jsx(
+,children:[o.jsx(fb,{size:16}),o.jsx(
+,children:[o.jsx(fo,{title:
+,children:[o.jsx(gL,{size:28,className:
+,children:[o.jsx(gb,{size:12}),o.jsxs(
+,children:[o.jsx(gb,{size:16}),o.jsx(
+,children:[o.jsx(hb,{size:16}),o.jsx(
+,children:[o.jsx(iL,{size:12,className:
+,children:[o.jsx(kL,{size:12}),o.jsx(
+,children:[o.jsx(ka,{steps:Na.accounts}),o.jsxs(
+,children:[o.jsx(ka,{steps:Na.budgets}),o.jsxs(
+,children:[o.jsx(ka,{steps:Na.calendar}),o.jsxs(
+,children:[o.jsx(ka,{steps:Na.cashflow}),o.jsxs(
+,children:[o.jsx(ka,{steps:Na.categories}),o.jsxs(
+,children:[o.jsx(ka,{steps:Na.clients}),o.jsxs(
+,children:[o.jsx(ka,{steps:Na.employees}),o.jsxs(
+,children:[o.jsx(ka,{steps:Na.goals}),v===
+,children:[o.jsx(ka,{steps:Na.products}),o.jsxs(
+,children:[o.jsx(ka,{steps:Na.quotes}),o.jsxs(
+,children:[o.jsx(ka,{steps:Na.reports}),o.jsxs(
+,children:[o.jsx(ka,{steps:Na.settings}),o.jsxs(
+,children:[o.jsx(ka,{steps:Na.suppliers}),o.jsxs(
+,children:[o.jsx(ka,{steps:Na.transactions}),o.jsxs(
+,children:[o.jsx(kl,{size:12,className:
+,children:[o.jsx(kn,{size:11}),
+,children:[o.jsx(kn,{size:12}),o.jsx(
+,children:[o.jsx(kn,{size:16,className:
+,children:[o.jsx(lM,{onNavigate:t}),o.jsx(cM,{onNavigate:t})]}),o.jsxs(
+,children:[o.jsx(mo,{className:
+,children:[o.jsx(mo,{size:20}),F>0&&o.jsx(
+,children:[o.jsx(nh,{size:16}),o.jsx(
+,children:[o.jsx(ob,{size:16}),o.jsx(
+,children:[o.jsx(qS,{size:16}),o.jsx(
+,children:[o.jsx(re,{size:18,className:S?
+,children:[o.jsx(su,{size:11}),
+,children:[o.jsx(uL,{size:13}),
+,children:[o.jsx(ub,{size:12,className:
+,children:[o.jsx(ub,{size:12}),o.jsx(
+,children:[o.jsx(un,{size:12}),o.jsxs(
+,children:[o.jsx(un,{size:32,className:
+,children:[o.jsx(vl,{size:20}),o.jsx(
+,children:[o.jsx(wm,{size:13,className:
+,children:[o.jsx(wm,{size:15,className:
+,children:[o.jsx(wm,{size:16}),o.jsx(
+,children:[o.jsx(xc,{size:11}),
+,children:[o.jsx(xc,{size:12}),o.jsxs(
+,children:[o.jsx(yL,{size:16}),o.jsx(
+,children:[o.jsx(yc,{size:32,className:
+,children:[o.jsx(yc,{size:48,className:
+,children:[o.jsx(zS,{size:12,className:
+,children:[o.jsx(zh,{className:
+,children:[o.jsx(zh,{size:12}),
+,children:[o.jsx(zh,{size:18,className:
+,children:[o.jsxs(
+,children:[p.email,
+,children:[r+1,
+,children:[se.count,
+,children:[t.tipo,
+,children:[y.installments,
+,children:[z.data.map(L=>o.jsxs(
+,children:[{key:
+,children:[{range:
+,children:_.email})}),o.jsx(
+,children:_.map(R=>o.jsxs(
+,children:_.map(V=>o.jsx(
+,children:_.map(V=>{const E=V.icon;return o.jsx(
+,children:_.message}),(_.type===
+,children:_.message}),_.actionable&&o.jsx(
+,children:_.nome})}),o.jsx(
+,children:_.title}),_.urgent&&o.jsx(
+,children:_.type===
+,children:_})]}),o.jsx(kn,{className:
+,children:a.name||
+,children:a?
+,children:a?o.jsx(db,{size:20}):o.jsx(kl,{size:20})})]})]}),c&&o.jsx(
+,children:b()}),o.jsx(
+,children:c+1}),o.jsx(
+,children:c,...d},u)=>ie.createElement(
+,children:c.category})]})]}),o.jsxs(
+,children:c.description}),o.jsx(
+,children:c.length})]}),o.jsx(
+,children:c.map(O=>o.jsxs(
+,children:cz.map(d=>o.jsx(
+,children:c})}),o.jsx(
+,children:d.length})]}),o.jsx(Ac,{className:
+,children:d.map(P=>o.jsxs(
+,children:d?
+,children:d})}),o.jsx(
+,children:d},u))})]}),o.jsxs(
+,children:e.length})]}),o.jsx(x_,{className:
+,children:e.length})]})]}),o.jsx(
+,children:f.map(x=>{const p=x.icon,b=t===x.id;return o.jsxs(
+,children:f===_.id?o.jsxs(
+,children:f===_.id?o.jsxs(o.Fragment,{children:[o.jsx(
+,children:f==null?void 0:f.email})]}),o.jsxs(
+,children:f==null?void 0:f.name}),o.jsx(
+,children:fe?o.jsx(DS,{size:15}):o.jsx(rh,{size:15})})]})]}),fe&&o.jsxs(
+,children:g}),o.jsxs(
+,children:h?
+,children:h?o.jsx(db,{size:18}):o.jsx(kl,{size:18})})]})]}),o.jsxs(
+,children:h||p!==
+,children:i.filter(O=>O.status===
+,children:i.length===0?
+,children:i.map((d,u)=>o.jsx(
+,children:i.map(A=>o.jsxs(
+,children:i?
+,children:iY.map(L=>o.jsx(
+,children:l.length>0?l.map(c=>o.jsxs(
+,children:l.length})]})]}),!d&&l.length>0&&o.jsxs(
+,children:l.map(V=>o.jsxs(
+,children:l?
+,children:l?o.jsxs(
+,children:lm.map(X=>{const se=X.icon,L=z[X.key],C=X.key===
+,children:lz.map(d=>o.jsx(
+,children:mY.map(L=>o.jsx(
+,children:n.length===0?
+,children:n.length})]}),o.jsx(
+,children:n3.map(C=>o.jsx(
+,children:n?
+,children:n?o.jsx(DS,{size:14}):o.jsx(rh,{size:14})})]})]}),n&&o.jsxs(
+,children:new Date(A.data).toLocaleDateString(
+,children:new Date(C.data_alerta).toLocaleDateString(
+,children:new Date(I.created_at).toLocaleDateString(
+,children:new Date(O.created_at).toLocaleDateString(
+,children:new Date(t.created_at).toLocaleDateString(
+,children:o.jsx(
+,children:o.jsx($S,{size:16})})]})]}),o.jsx(
+,children:o.jsx(Ac,{className:
+,children:o.jsx(Ec,{size:20})})]})]})}),o.jsx(
+,children:o.jsx(Fs,{className:
+,children:o.jsx(Ls,{className:
+,children:o.jsx(Mi,{size:16})}),o.jsx(
+,children:o.jsx(Mi,{size:16})}):J.description.includes(
+,children:o.jsx(Ny,{className:
+,children:o.jsx(Ny,{size:16})}),o.jsx(
+,children:o.jsx(Ny,{size:24})}),t&&o.jsx(
+,children:o.jsx(On,{size:14})})]})]}),o.jsxs(
+,children:o.jsx(On,{size:15})}),o.jsx(
+,children:o.jsx(On,{size:16})})]})]}),o.jsxs(
+,children:o.jsx(On,{size:16})})]})]},P.id))})]}),o.jsxs(
+,children:o.jsx(On,{size:16})})]})})]},A.id))})]})})}),f&&o.jsx(
+,children:o.jsx(On,{size:16})})]})})]},C.id))})]})})}),f&&o.jsx(
+,children:o.jsx(On,{size:16})})]})})]},L.id)})})]})}),h&&o.jsx(
+,children:o.jsx(On,{size:16})})]})})]},R.id))})]})})}),f&&o.jsx(
+,children:o.jsx(On,{size:16})})]})})]},z.id))})]})})}),d&&o.jsx(
+,children:o.jsx(On,{size:16})})})]},se)})}),o.jsxs(
+,children:o.jsx(RS,{size:18,className:
+,children:o.jsx(Ri,{size:14})}),o.jsx(
+,children:o.jsx(Ri,{size:14})}),se&&o.jsx(
+,children:o.jsx(Yd,{className:
+,children:o.jsx(_a,{size:12})})]}),R.length>1?o.jsx(
+,children:o.jsx(au,{size:18,className:
+,children:o.jsx(ax,{size:18,className:
+,children:o.jsx(cp,{className:
+,children:o.jsx(dn,{size:14})}),o.jsx(
+,children:o.jsx(dn,{size:15})}),o.jsx(
+,children:o.jsx(dn,{size:16})}),o.jsx(
+,children:o.jsx(dp,{size:18})})]}),o.jsxs(
+,children:o.jsx(dp,{size:20})})]}),o.jsxs(
+,children:o.jsx(fL,{size:16})}),o.jsx(
+,children:o.jsx(fY,{})})]}),o.jsx(a3,{})]}):o.jsxs(
+,children:o.jsx(gb,{className:
+,children:o.jsx(kl,{size:16})}),o.jsx(
+,children:o.jsx(kn,{size:20,className:
+,children:o.jsx(lb,{size:20})})]}),o.jsxs(
+,children:o.jsx(lb,{size:20})})]})]})}),o.jsx(
+,children:o.jsx(nh,{size:18,className:
+,children:o.jsx(ob,{size:20})}),o.jsx(
+,children:o.jsx(rh,{size:14,className:`transition-transform ${X?
+,children:o.jsx(un,{className:
+,children:o.jsx(un,{size:18,className:
+,children:o.jsx(vL,{size:12})}),o.jsx(
+,children:o.jsx(wm,{size:13,className:
+,children:o.jsx(xc,{className:
+,children:o.jsx(yr,{size:10})})]}),o.jsxs(
+,children:o.jsx(yr,{size:14})})]}),T&&N.length>0&&o.jsx(
+,children:o.jsx(yr,{size:14})})]})]}),o.jsxs(
+,children:o.jsx(yr,{size:14})})]})]})},C.id)})}),v===
+,children:o.jsx(yr,{size:16,className:
+,children:o.jsx(yr,{size:16})})]}),o.jsxs(
+,children:o.jsx(yr,{size:16})})]})]}),o.jsx(
+,children:o.jsx(yr,{size:20})})]}),o.jsxs(
+,children:o.jsx(yr,{size:20})})]})}),o.jsxs(
+,children:o.jsx(yr,{size:22})})]}),o.jsxs(
+,children:o.jsx(yr,{size:22})})]})]})}),o.jsx(
+,children:o.jsx(yr,{size:24})})]}),o.jsxs(
+,children:o.jsx(zh,{className:
+,children:o.jsxs(
+,children:p.ativo?
+,children:p.ativo?o.jsx(Ey,{size:28,className:
+,children:p.name}),o.jsxs(
+,children:p?
+,children:q.length===0?o.jsxs(
+,children:q.map(I=>{const R=Ip[I.status];return o.jsxs(
+,children:r+1})}),o.jsxs(
+,children:r==null?void 0:r.name}),o.jsx(
+,children:r?zi(r):
+,children:re.description}),o.jsxs(
+,children:re.label}),o.jsx(
+,children:re.saldoMensal>=0?o.jsxs(
+,children:re.transactions.map((M,q)=>o.jsxs(
+,children:s.length===0?o.jsxs(
+,children:s.map(_=>o.jsxs(
+,children:s.map(z=>o.jsxs(
+,children:s?o.jsx(
+,children:s?o.jsx(db,{size:20}):o.jsx(kl,{size:20})})]})]}),o.jsxs(
+,children:se.map(L=>o.jsx(
+,children:se})]}),o.jsx(Ac,{className:
+,children:s})]}):g.length===0?o.jsxs(
+,children:t!=null&&t.id?`Editar Or├ºamento ${t.numero_orcamento}`:
+,children:t.cliente_nome||
+,children:t.descricao}),t.passo_a_passo&&o.jsxs(
+,children:t.descricao})]}),o.jsxs(
+,children:t.descricao})]})]}),o.jsxs(
+,children:t.map((a,s)=>o.jsx(
+,children:t.nome}),o.jsxs(
+,children:t.observacoes})]}),o.jsxs(
+,children:t.passo_a_passo.split(`
+`).filter(Boolean).map((l,c)=>o.jsxs(
+,children:t.type===
+,children:t.validade?new Date(t.validade+
+,children:t[r].description})]})]}),r===t.length-1&&o.jsxs(
+,children:t[r].title}),o.jsx(
+,children:t}),o.jsx(
+,children:t})})}function dr(){const t=ie.useContext(PS);if(t===void 0)throw new Error(
+,children:v.length>0?v.map(_=>{const N=_.icon;return o.jsx(
+,children:v.length})]}),o.jsxs(
+,children:vY.map(A=>o.jsx(
+,children:x.map(v=>{const y=v.icon;return o.jsxs(
+,children:x===
+,children:x?o.jsx(_L,{size:16}):o.jsx(bL,{size:16})})]}),o.jsx(
+,children:y.map(T=>o.jsxs(
+,children:ye+1}),o.jsx(
+,children:z(p.id).map(C=>o.jsx(
+,children:z.email})]})]})}),o.jsx(
+,children:z.nome}),o.jsx(
+,children:zi(C.lastPayment)}),o.jsx(
+,children:zi(J.date)}),o.jsx(
+,children:zi(R.lastPurchase)}),o.jsx(
+,children:zi(c.date)})]})]},c.id)):o.jsx(
+,client:
+,cliente_id:
+,cliente_id:t.cliente_id||
+,cliente_nome:
+,companyAddress:
+,companyAddress:(I==null?void 0:I.company_address)||
+,companyAddress:P.companyAddress||
+,data:E.map(A=>V[A].despesas),borderColor:
+,data:E.map(A=>V[A].receitas),borderColor:
+,defaultChecked:_.pode_editar,onChange:N=>_.pode_editar=N.target.checked,className:
+,description:'Clique no bot├úo 
+,description:'Use o filtro 
+,disabled:!0,children:[
+,e==null?void 0:e.adminId),Se.from(
+,empresa:
+,fe),alert(`Erro ao remover atualiza├º├úo: ${fe.message||
+,forma_pagamento:
+,forma_pagamento:t.forma_pagamento||
+,label:`Alertas ${L.length>0?`(${L.length})`:
+,margin:0,padding:0,height:0}})),this.prop.container.style.float=
+,n==null?void 0:n.adminId).eq(
+,n==null?void 0:n.adminId).order(
+,onChange:C=>N({..._,address:C.target.value}),className:
+,onChange:C=>_({...y,category:C.target.value}),className:
+,onClick:()=>b(L),children:[o.jsxs(
+,pode_ver:!0,pode_editar:!0,pode_aprovar:!0}),_()}catch(J){console.error(
+,pode_ver:!0,pode_editar:!1,pode_aprovar:!1}),p()}catch(N){console.error(
+,produto_nome:
+,r==null?void 0:r.adminId),Se.from(
+,r==null?void 0:r.adminId).eq(
+,re.client]})]}),re.supplier&&o.jsxs(o.Fragment,{children:[o.jsx(
+,re.supplier]})]}),re.paymentMethod&&o.jsxs(o.Fragment,{children:[o.jsx(
+,right:0,bottom:0,top:0}}),this.prop.container=a(
+,se),alert(`Erro ao salvar configura├º├Áes: ${se.message}`),i(
+,se.despesas.toLocaleString(
+,se.receitas.toLocaleString(
+,style:i}),this.prop.container.appendChild(l),this.prop.container.firstChild.appendChild(a(
+,style:{backgroundColor:T.color},children:T.icon}),o.jsxs(
+,style:{backgroundColor:a.color},children:a.icon}),o.jsxs(
+,t.adminId).order(
+,t==null?void 0:t.adminId),O=String((R||0)+1).padStart(4,
+,t==null?void 0:t.adminId),Se.from(
+,t==null?void 0:t.adminId).eq(
+,t==null?void 0:t.adminId).order(
+,t==null?void 0:t.adminId);if(fe)throw fe;c((J||[]).map(ue=>({id:ue.id,name:ue.name,email:ue.email||
+,t==null?void 0:t.adminId);if(fe)throw fe;i((J||[]).map(ue=>({id:ue.id,name:ue.name,email:ue.email||
+,tension:.4,fill:!0}]}},[l]),H=ie.useMemo(()=>{const V=l.reduce((G,z)=>{const W=`${z.category||
+,this.refEvent=null,this.receivedResp=null,this.sent=!1,this.send()}send(){this._hasReceived(
+,u.userPermissions=u.userPermissions||[]),l=typeof t.userUnit==
+,value:N.alerta_percentual,onChange:L=>F({...N,alerta_percentual:Number(L.target.value)}),className:
+,value:N.nome_produto,onChange:L=>F({...N,nome_produto:L.target.value}),placeholder:
+,value:n.empresa,onChange:x=>a({...n,empresa:x.target.value}),className:
+,value:p.categoria,onChange:A=>b({...p,categoria:A.target.value}),className:
+,value:p.cliente_nome,onChange:A=>b({...p,cliente_nome:A.target.value}),className:
+,value:p.produto_nome,onChange:A=>b({...p,produto_nome:A.target.value}),className:
+,value:y.category||
+,y.type,' primeiro na se├º├úo 
+,{children:
+,{children:A(C.type)})]}),C.location&&o.jsxs(
+,{children:C.category}),o.jsx(
+,{children:C.location})]}),C.amount&&o.jsxs(
+,{children:R.category}),o.jsx(
+,{children:[
+,{children:[C.startTime,
+,{children:[_,
+,{children:[o.jsx(
+,{children:[o.jsxs(
+,{children:[y.recurringType===
+,{children:g.nome})]}),o.jsx(
+,{children:h?
+,{children:o.jsx(
+,{children:o.jsxs(
+,{children:re.category}),o.jsx(
+,{children:re.paymentMethod})]})]})]})]}),o.jsxs(
+,{children:zi(C.date)})]})]}),o.jsxs(
+,{children:zi(R.date)})]})]}),o.jsxs(
+,{children:zi(re.date)}),re.client&&o.jsxs(o.Fragment,{children:[o.jsx(
+,{className:`bg-gradient-to-r ${a.gradient} p-6 rounded-t-2xl`,children:o.jsxs(
+,{className:`p-2 bg-gradient-to-r ${s.gradient} rounded-xl`,children:o.jsx(Sy,{size:20,className:
+,{className:`p-3 rounded-full ${i[s]}`,children:o.jsx(a,{size:24})}),o.jsx(
+,{className:`p-3 rounded-xl ${X[G.color]}`,children:o.jsx(W,{size:22})}),o.jsxs(
+,{className:`p-4 rounded-lg border ${p(_.color,_.urgent)}`,children:o.jsxs(
+,{className:`px-4 py-3 text-right font-bold ${re.saldoAcumulado>=0?
+,{className:`px-4 py-3 text-right font-semibold ${re.saldoMensal>=0?
+,{className:`text-2xl font-bold ${E.saldoLiquido>=0?
+,{className:`text-2xl font-bold ${W.cor}`,children:W.classificacao})]}),o.jsxs(
+,{className:`text-4xl font-black ${C}`,children:se}),o.jsx(
+,{className:`text-lg font-bold ${W.taxaMetas>=60?
+,{className:`text-sm font-bold ${re.saldoAcumulado>0?
+,{className:`text-sm font-bold mt-2 ${C}`,children:L})]}),o.jsxs(
+,{className:`text-sm font-medium ${re.saldo>0?
+,{className:`text-sm font-semibold ${C.textColor}`,children:C.label}),o.jsxs(
+,{className:`text-xl font-bold ${A.months[A.months.length-1].saldoAcumulado>=0?
+,{className:`text-xs mt-1 ${A.despesaTrend<=0?
+,{className:`text-xs mt-1 ${A.receitaTrend>=0?
+,{configurable:!0,enumerable:!0,get:function(){return s},set:function(v){s=v}});var i=
+,{configurable:!0,value:r?
+,{enumerable:!0,configurable:!0,get:function(){return e.CA||
+,{enumerable:!0,configurable:!0,get:function(){return i},set:function(v){i=v}});var l=
+,{enumerable:!0,configurable:!0,get:function(){return n.CA||
+,{enumerable:!0,configurable:!0,get:function(){return this.Rect}}),Object.defineProperty(this,
+,{enumerable:!0,configurable:!1,get:function(){if(!s||s.length<1){if(this instanceof kp)return;s=
+,{enumerable:!0,configurable:!1,get:function(){return a},set:function(v){switch(v){case
+,{enumerable:!0,configurable:!1,get:function(){return this.hasAnnotation?
+,{locale:Rr})}`],[`Data de Gera├º├úo: ${Nt(new Date,
+,{minimumFractionDigits:2})}`,`R$ ${(ue.saldoAcumulado||0).toLocaleString(
+,{minimumFractionDigits:2})}`,`R$ ${(ue.saldo||0).toLocaleString(
+,{onClick:()=>V(L.id,L.nome_produto),className:
+,{required:!0,value:y.category,onChange:E=>_({...y,category:E.target.value}),className:
+,{value:12,children:
+,{value:3,children:
+,{value:6,children:
+,{value:A.value,children:A.label},A.value))})]})]}),o.jsxs(
+,{value:C.value,children:C.label},C.value))})]}),o.jsxs(
+,{value:E.id,children:[E.name,
+,{value:E.name,children:E.name},E.id))]})]}),o.jsxs(
+,{value:E.name,children:E.name},E.id))]})]}):o.jsxs(
+,{value:E.name,children:[E.icon,
+,{value:F.companyAddress,onChange:L=>H({...F,companyAddress:L.target.value}),className:
+,{value:I,children:R.label},I))]})]})}),f?o.jsx(
+,{value:L,children:L},L))]}),o.jsxs(
+,{value:L,children:L},L))})]}),o.jsxs(
+,{value:L.value,children:L.label},L.value))})]}),o.jsxs(
+,{value:N.categoria,onChange:L=>F({...N,categoria:L.target.value}),className:
+,{value:P.address||
+,{value:V.id,children:V.title},V.id))})]}),o.jsxs(
+,{value:X,children:se.label},X))})]})]}),o.jsxs(
+,{value:X.id,children:X.name},X.id))]})]}),o.jsxs(
+,{value:_.address||
+,{value:re,children:re},re))}):o.jsx(
+,{value:ue,children:ue},ue))}):o.jsx(
+,{value:v.cliente_id,onChange:X=>y({...v,cliente_id:X.target.value}),className:
+,{value:v.forma_pagamento,onChange:X=>y({...v,forma_pagamento:X.target.value}),className:
+,{value:y.client,onChange:E=>_({...y,client:E.target.value}),className:
+:Q.bg}`,children:o.jsxs(
+:Q.color}`,children:Q.label}),o.jsx(
+:R.category||
+:R.description,(R.category||
+:`${W.taxaMetas.toFixed(0)}% atingidas`})]})]}),o.jsxs(
+:re.saldo<0?
+</x:ClientData>
+><jspdf:metadata>',a=unescape(encodeURIComponent('<x:xmpmeta xmlns:x=
+? Todos os lan├ºamentos ser├úo removidos.`)&&(await Se.from(
+?(qe=ye.clients)==null?void 0:qe.name:
+Adicione pelo menos um item com descri├º├úo
+Administradores
+Agenda financeira
+Alerta
+An├ílise de alertas conclu├¡da!
+Aten├º├úo
+Ativar usu├írio
+Atualiza├º├úo salva com sucesso!
+Atualiza├º├Áes
+Buscar cliente (opcional)...
+Buscar or├ºamentos...
+Buscar produtos...
+Buscar transa├º├Áes...
+CLIENT
+CLIENTE
+Cadastro de produtos
+Calendar
+Calend├írio
+Cart├úo de Cr├®dito
+Categoria
+Categoria:
+Categorias
+Categorias financeiras
+Category
+Cliente n├úo encontrado
+Cliente/Fornecedor
+Cliente:
+Clientes
+Clique para ver lan├ºamentos
+Como fazer um lan├ºamento?
+Compara├º├úo entre per├¡odos
+Conclu├¡do
+Configura├º├Áes
+Configura├º├Áes importadas com sucesso!
+Configura├º├Áes salvas com sucesso!
+Confirmar e Lan├ºar
+Conta Corrente
+Conta Principal
+Contas
+Contas banc├írias
+Contas em Atraso
+Contas em atraso:
+Controle or├ºament├írio
+Converter em Receita
+Corre├º├úo
+Corre├º├Áes
+Criar Admin
+Criar Administrador
+Criar Atualiza├º├úo
+Criar Funcion├írio
+Criar Servi├ºo
+Cr├¡tica
+Cr├¡tico
+Dashboard
+Data de Vencimento:
+Data inv├ílida
+Descri├º├úo
+Descri├º├úo (Opcional)
+Descri├º├úo detalhada...
+Descri├º├úo do item...
+Descri├º├úo:
+Despesa
+Despesas
+Despesas Projetadas
+Despesas superam receitas
+Distribui├º├úo por categoria
+D├║vida sobre categorias
+Editar
+Empresa
+Entradas e sa├¡das por per├¡odo
+Enviar Solicita├º├úo
+Erro ao aprovar solicita├º├úo
+Erro ao aprovar solicita├º├úo:
+Erro ao atualizar permiss├Áes
+Erro ao atualizar permiss├Áes:
+Erro ao autorizar atualiza├º├úo
+Erro ao carregar administradores:
+Erro ao carregar categorias:
+Erro ao carregar clientes:
+Erro ao carregar dados de alertas:
+Erro ao carregar dados do dashboard:
+Erro ao carregar fluxo de caixa:
+Erro ao carregar fornecedores:
+Erro ao carregar or├ºamentos:
+Erro ao carregar relat├│rios:
+Erro ao carregar transa├º├Áes:
+Erro ao carregar visualiza├º├Áes
+Erro ao carregar visualiza├º├Áes:
+Erro ao criar solicita├º├úo. Tente novamente.
+Erro ao criar solicita├º├úo:
+Erro ao exportar Calend├írio:
+Erro ao exportar Fluxo de Caixa:
+Erro ao exportar para Excel. Verifique o console para mais detalhes.
+Erro ao gerar PDF de or├ºamento
+Erro ao gerar PDF de or├ºamento:
+Erro ao importar configura├º├Áes. Verifique o arquivo.
+Erro ao negar solicita├º├úo
+Erro ao negar solicita├º├úo:
+Erro ao remover usu├írio:
+Erro ao salvar atualiza├º├úo:
+Erro ao salvar categoria
+Erro ao salvar categoria:
+Erro ao salvar cliente
+Erro ao salvar cliente:
+Erro ao salvar configura├º├Áes. Tente novamente.
+Erro ao salvar parcelas
+Erro ao salvar parcelas:
+Este evento se repetir├í toda semana
+Este evento se repetir├í todo ano
+Este evento se repetir├í todo m├¬s
+Este evento se repetir├í todos os dias
+Excluir
+Excluir usu├írio permanentemente
+Existe um cliente similar cadastrado. Deseja salvar mesmo assim?
+Exporta├º├úo conclu├¡da com sucesso!
+FORMA DE PAGAMENTO
+Faturamento
+FinTracker-V7 Empresa
+FinTracker-V7 ÔÇö Sistema de Gest├úo Financeira
+Fluxo de Caixa
+Font does not exist in vFS, import fonts or remove declaration doc.addFont('
+Font is not stored as string-data in vFS, import fonts or remove declaration doc.addFont('
+Format string contains an unescaped latin alphabet character `
+Fornecedor:
+Fornecedores
+ForwardRef
+ForwardRef(
+Funcion├írios
+Gerar PDF de Or├ºamento
+Gest├úo de clientes
+Gest├úo de fornecedores
+Hor├írio
+Imagem muito grande. M├íximo 2MB.
+Informa├º├Áes da Transa├º├úo
+Iniciando exporta├º├úo de Fluxo de Caixa...
+Invalid arguments passed to jsPDF.roundedRect
+Invalid permission: 
+Ir para Lan├ºamentos
+J├í existe uma solicita├º├úo pendente para este email
+Lan├ºamentos
+Logo n├úo encontrada em /image.png
+Logo n├úo p├┤de ser carregada
+Lucro L├¡quido
+MOVIMENTA├ç├òES DETALHADAS
+Metas
+Metas e Alertas
+Metas financeiras
+M├úo de Obra
+M├®dia
+M├®todo
+M├®todo de Pagamento:
+Nenhum cliente cadastrado
+Nenhum or├ºamento ainda
+Nenhum or├ºamento criado
+Nenhum produto cadastrado
+Nenhum servi├ºo cadastrado
+Nenhuma atualiza├º├úo com este filtro
+Nome da Categoria
+Nome do Or├ºamento 
+Nome do Produto 
+Nome do cliente ├® obrigat├│rio
+Nome ├® obrigat├│rio
+Nova Atualiza├º├úo
+Nova Categoria
+Nova Conta
+Nova Funcionalidade
+Nova Meta Financeira
+Novo Admin
+Novo Cliente
+Novo Evento
+Novo Fornecedor
+Novo Funcion├írio
+Novo Lan├ºamento
+Novo Or├ºamento
+Novo Or├ºamento Interno
+Novo Produto
+Novo Servi├ºo
+N├║mero do or├ºamento n├úo encontrado
+OBSERVA├ç├òES
+OUTROS SERVICOS DISPONIVEIS
+Observa├º├Áes
+Observa├º├Áes:
+Or├º. Internos
+Or├ºado
+Or├ºamento excedido!
+Or├ºamento n├úo encontrado
+Or├ºamento vs Realizado
+Or├ºamentos
+Or├ºamentos internos
+Or├ºamentos para clientes
+PRE├çO UNIT.
+PRODUTO
+PRODUTOS DA VENDA
+Pagamento
+Pagamento com 
+Por Categorias
+Poupan├ºa
+Preencha descri├º├úo e valor
+Problema com relat├│rios
+Produto
+Produto inativo
+Produto/Servico
+Produtos
+Produtos / Itens
+Produtos Cadastrados
+Proje├º├Áes
+Proje├º├Áes de caixa
+Pr├│ximos vencimentos:
+P├ígina 1
+Qualidade, seguran├ºa e responsabilidade em cada servi├ºo prestado.
+RELAT├ôRIO DE FLUXO DE CAIXA
+RELAT├ôRIO FINANCEIRO
+RESUMO DO PER├ìODO
+React.Children.only expected to receive a single React element child.
+Receita
+Receitas
+Receitas Projetadas
+Receitas e despesas
+Receitas, despesas e lucro l├¡quido
+Redu├º├úo de Despesas
+Registrar Pagamento
+Relat├│rio
+Relat├│rio Financeiro
+Relat├│rios
+Relat├│rios e an├ílises
+Reuni├úo
+Rua das Empresas, 123 - S├úo Paulo/SP
+Saldo Acumulado
+Saldo Baixo
+Saldo Di├írio
+Saldo Final:
+Saldo Inicial:
+Saldo Negativo
+Saldo Total
+Saldo do Per├¡odo:
+Salvando configura├º├Áes...
+Salvar
+Salvar Altera├º├Áes
+Salvar Or├ºamento
+Salvar Permiss├Áes
+Saud├ível
+Sa├¡da
+Sa├¡das
+Selecione uma imagem v├ílida
+Sem cliente informado
+Servi├ºo
+Servi├ºo inativo
+Servi├ºos
+Solicita├º├Áes 
+Suporte t├®cnico
+S├íb
+TOTAL DO PER├ìODO
+Tem certeza que deseja excluir esta categoria?
+Tem certeza que deseja excluir esta transa├º├úo?
+Tem certeza que deseja excluir este cliente?
+Tend├¬ncia: 
+Tipo de Transa├º├úo
+Total Despesas
+Total Receitas
+Total de Sa├¡das:
+Transa├º├Áes
+T├¡tulo
+T├¡tulo 
+T├¡tulo ├® obrigat├│rio
+Valor da meta ├® obrigat├│rio
+Valor or├ºado ├® obrigat├│rio
+Vencimento Pr├│ximo
+Vendas de Produtos
+Ver contas
+Vis├úo geral e indicadores
+X-Client-Info
+],[`Per├¡odo: ${Nt(t,
+],[`Per├¡odo: ${b()}`],[`Gerado em: ${Nt(new Date,
+];const se=r.find(L=>L.id===X.produto_id);return se?m2(se.unidade_venda):[X.unidade||
+];function dz({isOpen:t,onClose:e,onSave:r,editingCategory:n}){const[a,s]=ie.useState({name:
+a Non-Webauthn related error has occurred
+admin
+admin_id
+admin_requests
+admins
+alertas
+alertas_inteligentes
+application/vnd.openxmlformats-package.relationships+xml
+approve_transactions
+calendar
+categories
+category
+children
+clientHeight
+clientWidth
+clients
+company_name, company_document, company_email, company_phone, company_address, logo_url
+container
+contains
+contato@fintracker.com
+could not get user data, skipping SIGNED_IN notification
+create_transactions
+dashboard
+dd/MM/yyyy '├ás' HH:mm
+despesa
+edit_transactions
+eeee '├ás' p
+error getting user data, skipping SIGNED_IN notification
+faturamento
+fintracker_categories
+fintracker_clients
+fintracker_notifications
+fintracker_transactions
+foo bar baz├ó┬ÿ┬â├░┬ƒ┬ì┬ú
+funcionario
+http://purl.oclc.org/ooxml/officeDocument/relationships/worksheet
+http://schemas.microsoft.com/office/2006/relationships/vbaProject
+http://schemas.microsoft.com/office/2006/relationships/xlMacrosheet
+http://schemas.microsoft.com/office/2017/10/relationships/person
+http://schemas.microsoft.com/office/2017/10/relationships/threadedComment
+http://schemas.openxmlformats.org/officeDocument/2006/relationships
+http://schemas.openxmlformats.org/officeDocument/2006/relationships/dialogsheet
+http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing
+http://schemas.openxmlformats.org/officeDocument/2006/relationships/image
+http://schemas.openxmlformats.org/officeDocument/2006/relationships/sheetMetadata
+http://schemas.openxmlformats.org/package/2006/relationships
+id, name, email, phone, cpf_cnpj, address
+id, nome, email, categoria, created_at
+id, nome_produto
+important
+mar├ºo
+metas
+metas_financeiras
+mismatch between server and client bindings for postgres changes
+noExport
+novas atualiza├º├Áes
+orcamentos_empresa
+pagamento
+permissions
+produto_id
+produtos
+receita
+received broadcast notification from other tab or client
+reducao_despesas
+relative
+relative flex-1
+risco_financeiro
+saldo_negativo
+services
+servicos
+s├íbado
+ter├ºa
+ter├ºa-feira
+transactions
+transa├º├Áes
+urn:oasis:names:tc:opendocument:xmlns:config:1.0
+userId n├úo dispon├¡vel
+user_id, pode_ver, pode_editar, pode_aprovar
+view_calendar
+view_categories
+view_clients
+view_dashboard
+view_transactions
+xmlns:config
+||L.categoria===d,re=f===
+} nos pr├│ximos 3 dias`,icon:xc,color:
+} nos pr├│ximos 3 dias`,urgent:!1,color:
+}),C.address]})]})]})}),o.jsxs(
+}),O.pode_editar&&o.jsx(
+}),_.pode_editar&&o.jsx(
+})]}),e&&o.jsx(dM,{steps:t,onClose:()=>r(!1)})]})}const Na={transactions:[{title:
+})]}),o.jsx(ka,{steps:Na.dashboard})]}),o.jsx(
+})]}):o.jsxs(o.Fragment,{children:[o.jsxs(
+})},T=L=>{L?(b(L),F({nome_produto:L.nome_produto,descricao:L.descricao||
+}R$ ${re.saldo.toLocaleString(
+}],calendar:[{title:
+}],categories:[{title:
+}],clients:[{title:
+}],dashboard:[{title:
+}`,children:
+}`,children:[J.icon,J.label]},O)})})]}),o.jsxs(
+}`,children:[o.jsx(
+}`,children:[o.jsxs(
+}`,children:d},d))})]}),o.jsxs(
+}`,children:h===
+├ìcone
+├ìndigo
+├║ltima
+­ƒÆ¥ Categoria salva no banco de dados!
+­ƒÆ¥ Conta salva no banco de dados!
+­ƒÆ¥ Fornecedor salvo no banco de dados!
+­ƒôñ Configura├º├Áes exportadas com sucesso!
+­ƒôÑ Configura├º├Áes importadas e salvas automaticamente!
+­ƒöä Backup autom├ítico criado:
+
+=== id: strings ===
+id:"accounts"
+id:"admins"
+id:"appearance"
+id:"autorizado"
+id:"backup"
+id:"budget"
+id:"budgets"
+id:"calendar"
+id:"cartao_credito"
+id:"cartao_debito"
+id:"cashflow"
+id:"categories"
+id:"cheque"
+id:"clients"
+id:"company"
+id:"comparison"
+id:"dashboard"
+id:"dinheiro"
+id:"employees"
+id:"filler"
+id:"financial"
+id:"general"
+id:"goals"
+id:"legend"
+id:"notifications"
+id:"overdue"
+id:"pix"
+id:"products"
+id:"quotes"
+id:"reports"
+id:"services"
+id:"settings"
+id:"suppliers"
+id:"title"
+id:"tooltip"
+id:"transactions"
+id:"transferencia"
+
+=== label: strings ===
+label:"Administradores"
+label:"Alerta"
+label:"Apar├¬ncia"
+label:"Aprovado"
+label:"Aten├º├úo"
+label:"Aviso"
+label:"Azul"
+label:"Backup"
+label:"Bom"
+label:"Calend├írio"
+label:"Cart├úo de Cr├®dito"
+label:"Cart├úo de D├®bito"
+label:"Categorias"
+label:"Cheque"
+label:"Clientes"
+label:"Conclu├¡do"
+label:"Configura├º├Áes"
+label:"Consulta"
+label:"Contas"
+label:"Converter em Venda"
+label:"Convertido"
+label:"Corre├º├úo"
+label:"Crescimento"
+label:"Cr├¡tico"
+label:"Dashboard"
+label:"Despesas Projetadas"
+label:"Despesas"
+label:"Dinheiro"
+label:"Di├íria"
+label:"Empresa"
+label:"Entradas"
+label:"Enviado"
+label:"Excedido"
+label:"Faturamento"
+label:"Fluxo de Caixa"
+label:"Fornecedores"
+label:"Funcion├írios"
+label:"Geral"
+label:"Hora (h)"
+label:"Info"
+label:"Instala├º├úo"
+label:"Lan├ºamentos"
+label:"Laranja"
+label:"Lucro L├¡quido"
+label:"Lucro"
+label:"Marcar como Aprovado"
+label:"Marcar como Enviado"
+label:"Marcar como Recusado"
+label:"Melhoria"
+label:"Metas Financeiras"
+label:"Metas e Alertas"
+label:"Metro (m)"
+label:"Metro Quadrado (m┬▓)"
+label:"M├¬s"
+label:"Normal"
+label:"Notifica├º├Áes"
+label:"Nova Funcionalidade"
+label:"Or├º. Internos"
+label:"Or├ºamentos"
+label:"PIX"
+label:"Pausado"
+label:"Produtos / Itens"
+label:"Projeto"
+label:"Quil├┤metro (km)"
+label:"Rascunho"
+label:"Receitas Projetadas"
+label:"Receitas"
+label:"Recusado"
+label:"Redu├º├úo de Despesas"
+label:"Relat├│rios"
+label:"Risco"
+label:"Rosa"
+label:"Roxo"
+label:"Saldo Acumulado"
+label:"Saud├ível"
+label:"Sa├¡das"
+label:"Sa├║de Financeira"
+label:"Semana"
+label:"Servi├ºos"
+label:"Teal"
+label:"Total Despesas"
+label:"Total Receitas"
+label:"Transfer├¬ncia Banc├íria"
+label:"Unidade (un)"
+label:"Verde"
+label:"Vermelho"
+label:"Visita"
+label:"cm ÔÇö Cent├¡metro"
+label:"cx ÔÇö Caixa"
+label:"g ÔÇö Grama"
+label:"kg ÔÇö Quilograma"
+label:"l ÔÇö Litro"
+label:"m ÔÇö Metro"
+label:"ml ÔÇö Mililitro"
+label:"par ÔÇö Par"
+label:"pct ÔÇö Pacote"
+label:"un ÔÇö Unidade"
+label:"├ìndigo"
+
+=== pages at 742766 ===
+ pages[1].join(`
+`);De({data:xe,additionalKeyValues:K,objectId:k.objectNumber}),le("endobj")},ot=function(){for(var k in mn)mn.hasOwnProperty(k)&&Qe(mn[k])},Je=function(k,K){var xe,ve=[],je=1/(K-1);for(xe=0;xe<1;xe+=je)ve.push(xe);if(ve.push(1),k[0].offset!=0){var Ie={offset:0,color:k[0].color};k.unshift(Ie)}if(k[k.length-1].offset!=1){var Ge={offset:1,color:k[k.length-1].color};k.push(Ge)}for(var lt="",pt=0,Pt=0;Pt<ve.length;Pt++){for(xe=ve[Pt];xe>k[pt+1].offset;)pt++;var Ct=k[pt].offset,qt=(xe-Ct)/(k[pt+1].offset-Ct),Fr=k[pt].color,$r=k[pt+1].color;lt+=q(Math.round((1-qt)*Fr[0]+qt*$r[0]).toString(16))+q(Math.round((1-qt)*Fr[1]+qt*$r[1]).toString(16))+q(Math.round((1-qt)*Fr[2]+qt*$r[2]).toString(16))}return lt.trim()},it=function(k,K){K||(K=21);var xe=Gr(),ve=Je(k.colors,K),je=[];je.push({key:"FunctionType",value:"0"}),je.push({key:"Domain",value:"[0.0 1.0]"}),je.push({key:"Size",value:"["+K+"]"}),je.push({key:"BitsPerSample",value:"8"}),je.push({key:"Range",value:"[0.0 1.0 0.0 1.0 0.0 1.0]"}),je.push({key:"Decode",value:"[0.0 1.0 0.0 1.0 0.0 1.0]"}),De({data:ve,additionalKeyValues:je,alreadyAppliedFilters:["/ASCIIHexDecode"],objectId:xe}),le("endobj"),k.objectNumber=Gr(),le("<< /ShadingType "+k.type),le("/ColorSpace /DeviceRGB");var Ie="/Coords ["+P(parseFloat(k.coords[0]))+" "+P(parseFloat(k.coords[1]))+" ";k.type===2?Ie+=P(parseFloat(k.coords[2]))+" "+P(parseFloat(k.coords[3])):Ie+=P(parseFloat(k.coords[2]))+" "+P(parseFloat(k.coords[3]))+" "+P(parseFloat(k.coords[4]))+" 
+
+=== React component functions (sample) ===
+function RA(
+function MA(
+function IA(
+function XA(
+function Pu(
+function KA(
+function JA(
+function QA(
+function N(
+function F(
+function E(
+function A(
+function X(
+function Ke(
+function Oc(
+function O0(
+function N3(
+function S3(
+function Lm(
+function Rw(
+function Mw(
+function N2(
+function Jd(
+function S2(
+function Iw(
+function E3(
+function Bw(
+function A3(
+function T3(
+function P3(
+function E2(
+function A2(
+function L3(
+function F3(
+function O3(
+function D3(
+function R3(
+function Dc(
+function M3(
+function I3(
+function B3(
+function CC(
+function R0(
+function Rm(
+function TC(
+function PC(
+function F2(
+function LC(
+function W3(
+function OC(
+function X3(
+function Ww(
+function DC(
+function RC(
+function MC(
+function D2(
+function K3(
+function J3(
+function Hw(
+function KC(
