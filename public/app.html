@@ -1690,6 +1690,7 @@
       }
       #viewFinanceiro[data-finance-view="receber"] .finance-context-badge,
       #viewFinanceiro[data-finance-view="receber_alerta"] .finance-context-badge,
+      #viewFinanceiro[data-finance-view="triagem"] .finance-context-badge,
       #viewFinanceiro[data-finance-view="aguardando_lancamento"] .finance-context-badge {
         border-color: rgba(59, 130, 246, 0.42);
         color: #93c5fd;
@@ -3796,6 +3797,7 @@
                 <summary>Financeiro</summary>
                 <div class="header-menu-nested">
                   <button type="button" data-header-finance-panel="true">Visão geral</button>
+                  <button type="button" data-header-finance-sub="triagem">Triagem</button>
                   <button type="button" data-header-finance-sub="receber">Receber</button>
                   <button type="button" data-header-finance-sub="caixa">Caixa</button>
                   <button type="button" data-header-finance-sub="ajustes">Ajustes</button>
@@ -4609,6 +4611,7 @@
               </div>
               <nav id="financeSubnav" class="subnav finance-nav-inline" aria-label="Navegação financeira">
                 <span class="finance-menu-group">Principal</span>
+                <button type="button" class="secondary" data-subview="triagem">Triagem</button>
                 <button type="button" class="secondary" data-subview="receber">Receber</button>
                 <button type="button" class="secondary" data-subview="caixa">Caixa</button>
                 <button type="button" class="secondary" data-subview="dashboard">Visão Geral</button>
@@ -6425,18 +6428,26 @@
       }
 
       /**
-       * Registros exibidos em «Contas a receber».
-       * Com a extinção da aba de pré-lançamento, todo `AGUARDANDO_LANCAMENTO`
-       * também deve aparecer diretamente aqui.
+       * Registros exibidos em «Contas a receber» (Receber).
+       * Só entra aqui após OK na aba Triagem (`financeiro_aprovado_contas_receber`).
        */
       function receivableIsContaReceberFinanceiro(r) {
         if (!r || r.status === "PAGO") return false;
-        if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return true;
-        // Sem aba de pré-lançamento: qualquer ciclo encerrado e não pago deve aparecer em contas a receber.
-        if (r.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(r)) return true;
-        // Mantém compatibilidade para registros antigos aprovados localmente/servidor.
+        if (receivableNaFilaAguardandoTriagem(r)) return false;
+        if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return receivableAprovadoParaContasReceber(r);
+        if (r.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(r)) {
+          return receivableAprovadoParaContasReceber(r);
+        }
         if (receivableAprovadoParaContasReceber(r) && r.status === "EM_ABERTO") return true;
         return false;
+      }
+
+      function triagemDefaultNfEmitida(receivable, vehicle) {
+        const closure = (state.cycleClosures || []).find(
+          (c) => String(c.receivable_id) === String(receivable?.id)
+        );
+        if (closure?.nf_emitida) return true;
+        return vehicle?.nfse_status === "EMITIDA";
       }
 
       /** Data de entrada reconhecida: somente quando o recebimento é marcado como PAGO. */
@@ -6481,10 +6492,10 @@
         if (!c) return "-";
         if (c.status === "PAGO") return "Pago";
         if (receivableNaFilaFechamentoCicloPatio(c)) return "Fechando ciclo (pátio)";
-        if (c.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return "Pré-lançamento (financeiro)";
+        if (c.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return "Aguardando triagem (financeiro)";
         if (c.status === "EM_ABERTO" && receivableIsCicloPatioAberto(c)) return "Em curso (pátio)";
         if (c.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(c) && !receivableAprovadoParaContasReceber(c))
-          return "Pré-lançamento (financeiro)";
+          return "Aguardando triagem (financeiro)";
         if (c.status === "EM_ABERTO") return "Em aberto (conta a receber)";
         return c.status || "-";
       }
@@ -11584,7 +11595,7 @@
             financeCaixaStatus.className = c3 || "tag success";
           }
         };
-        if (currentFinanceView === "aguardando_lancamento") {
+        if (currentFinanceView === "triagem") {
           setFinanceSummaryCards({
             t1: "Na fila de triagem",
             v1: formatCurrency(sumTriagem),
@@ -11592,9 +11603,9 @@
             t2: "Receber em atraso",
             v2: formatCurrency(overdueReceivables.reduce((s, r) => s + Number(r.valor || 0), 0)),
             m2: `${overdueReceivables.length} conta(s)`,
-            t3: "Decisões pendentes",
+            t3: "Pendentes de OK",
             v3: String(triagemList.length),
-            m3: "Ir para receber ou baixar",
+            m3: "NF e pagamento",
             c1: "tag warning",
             c2: "tag danger",
             c3: "tag warning",
@@ -12077,14 +12088,15 @@
           return;
         }
 
-        if (currentFinanceView === "aguardando_lancamento") {
+        if (currentFinanceView === "triagem") {
           financeHead.innerHTML = `
             <tr>
-              <th>Origem</th>
-              <th>Período / Responsável / Veículo</th>
+              <th>Veículo / responsável</th>
+              <th>Período</th>
               <th>Valor</th>
-              <th>Triagem</th>
-              <th>Decisão</th>
+              <th>Nota fiscal</th>
+              <th>Pagamento</th>
+              <th>Ação</th>
             </tr>`;
           state.receivables
             .filter((r) => receivableNaFilaAguardandoTriagem(r))
@@ -12101,21 +12113,29 @@
                   ? formatDate(vehicle.data_saida)
                   : "-";
               const valor = Number(r.valor || 0);
+              const nfChecked = triagemDefaultNfEmitida(r, vehicle) ? " checked" : "";
               rows.push(`
                 <tr>
-                  <td>Pátio — ciclo encerrado</td>
                   <td>
-                    <span class="notice">${r.receivable_category || "GUARDA_PATIO"}</span><br />
                     ${escapeHtml(r.responsavel_pagamento || "—")}<br />
-                    <span class="notice">${escapeHtml(vehicleInfo)}</span><br />
-                    <span class="notice">${escapeHtml(ini)} → ${escapeHtml(fim)}</span>
+                    <span class="notice">${escapeHtml(vehicleInfo)}</span>
                   </td>
+                  <td>${escapeHtml(ini)} → ${escapeHtml(fim)}</td>
                   <td>${formatCurrency(valor)}</td>
-                  <td><span class="tag warning">Decidir: a receber ou pago</span></td>
+                  <td>
+                    <label class="finance-check" style="margin: 0">
+                      <input type="checkbox" class="triagem-nf-emitida"${nfChecked} />
+                      NF emitida
+                    </label>
+                  </td>
+                  <td>
+                    <select class="triagem-pagamento" style="min-width: 11rem">
+                      <option value="aguardando" selected>Aguardando pagamento</option>
+                      <option value="pago">Já pago</option>
+                    </select>
+                  </td>
                   <td class="actions">
-                    <button class="secondary" type="button" data-action="editar-conta-receber" data-id="${r.id}" title="Ajustar responsável, valor, categoria ou período antes de lançar">Editar</button>
-                    <button class="secondary" type="button" data-action="lancar_conta" data-id="${r.id}" title="Envia para a aba Receber (valor em aberto)">Ir para Receber</button>
-                    <button class="secondary" type="button" data-action="receber_aguardando" data-id="${r.id}" title="Quita o ciclo e lança entrada em caixa">Baixar como pago</button>
+                    <button type="button" data-action="confirmar_triagem" data-id="${r.id}" title="Concluir triagem e enviar para Contas a receber">OK</button>
                   </td>
                 </tr>
               `);
@@ -12123,8 +12143,8 @@
           if (!rows.length) {
             setEmptyRow(
               tableFinance,
-              "Nenhum registro nesta fila. Ciclos recém-fechados no pátio passam primeiro por Pátio → Fechando ciclo (triagem NF e RPF); só depois aparecem aqui para decidir entre «Receber» ou «Dar baixa».",
-              5
+              "Nenhum registro em triagem. Após liberar um veículo (VRP), o ciclo aparece aqui até informar NF e pagamento.",
+              6
             );
           } else {
             tableFinance.innerHTML = rows.join("");
@@ -12484,7 +12504,7 @@
       function setFinanceView(view) {
         const previousFinanceView = currentFinanceView;
         if (view === "filtros") view = "dashboard";
-        if (view === "pre_lancamento" || view === "aguardando_lancamento") view = "receber";
+        if (view === "pre_lancamento" || view === "aguardando_lancamento") view = "triagem";
         if (view === "metas") view = "dashboard";
         if (view === "receber_alerta") view = "receber";
         if (view === "pagar" || view === "cadastro_base" || view === "lancamentos") view = "ajustes";
@@ -12494,6 +12514,7 @@
         const viewMap = {
           dashboard: "Visão geral",
           relatorios: "Relatórios",
+          triagem: "Triagem",
           receber: "Receber",
           caixa: "Caixa",
           fluxo_caixa: "Caixa",
@@ -12587,7 +12608,16 @@
           if (financeCaixaMonth) financeCaixaMonth.value = caixaFilter.month;
         }
         document.getElementById("financeLancamentosScrollNotice")?.classList.toggle("hidden", view !== "lancamentos");
-        document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
+        const triagemIntro = document.getElementById("financeAguardandoIntro");
+        if (triagemIntro) {
+          if (view === "triagem") {
+            triagemIntro.textContent =
+              "Veículos liberados (VRP) entram aqui. Informe se a nota fiscal já foi emitida e se o pagamento já foi feito ou ainda aguarda. Toque em OK para enviar o registro a Contas a receber.";
+            triagemIntro.classList.remove("hidden");
+          } else {
+            triagemIntro.classList.add("hidden");
+          }
+        }
         document.getElementById("financeReceberFilters")?.classList.toggle("hidden", !showReceberFilters);
         renderFinance();
       }
@@ -13672,7 +13702,7 @@
         if (!sub) return;
         if (sub === "controle_dual") sub = "dashboard";
         if (sub === "filtros") sub = "dashboard";
-        if (sub === "pre_lancamento" || sub === "aguardando_lancamento") sub = "receber";
+        if (sub === "pre_lancamento" || sub === "aguardando_lancamento") sub = "triagem";
         if (sub === "metas") {
           financeFocusMetaGoalCard = true;
           sub = "dashboard";
@@ -15669,7 +15699,7 @@
                 valor: valorFechamento,
                 status: RECEIVABLE_AGUARDANDO_LANCAMENTO,
                 patio_liberado_financeiro: true,
-                financeiro_aprovado_contas_receber: true,
+                financeiro_aprovado_contas_receber: false,
               })
               .eq("id", cycleAberto.id)
               .eq("user_id", effectiveUserId());
@@ -15698,7 +15728,7 @@
                     valor: valorFechamento,
                     status: "EM_ABERTO",
                     patio_liberado_financeiro: true,
-                    financeiro_aprovado_contas_receber: true,
+                    financeiro_aprovado_contas_receber: false,
                   })
                   .eq("id", cycleAberto.id)
                   .eq("user_id", effectiveUserId())
@@ -15725,7 +15755,7 @@
               return;
             }
             removePatioFinanceiroBloqueadoReceivableId(cycleAberto.id);
-            addReceberTriagemId(cycleAberto.id);
+            removeReceberTriagemId(cycleAberto.id);
 
             const dIni = new Date(cycleAberto.period_start);
             const dFim = new Date(dataSaida);
@@ -15776,8 +15806,9 @@
           renderFinance();
           updateDashboard();
           alert(
-            "Veículo removido do pátio (VRP). O registro seguiu para o próximo passo no Financeiro (Receber), sem mudar a página atual."
+            "Veículo removido do pátio (VRP). O registro foi para Financeiro → Triagem. Informe NF e pagamento e toque em OK."
           );
+          openFinanceSubview("triagem");
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
           return;
@@ -16011,6 +16042,99 @@
           await loadReceivables();
           renderFinance();
           updateDashboard();
+          return;
+        }
+
+        if (action === "confirmar_triagem") {
+          const receivable = state.receivables.find((r) => r.id === id);
+          if (!receivable || !receivableNaFilaAguardandoTriagem(receivable)) {
+            alert("Registo não encontrado ou já tratado. Atualize o financeiro.");
+            return;
+          }
+          const tr = button.closest("tr");
+          const nfEmitida = !!tr?.querySelector(".triagem-nf-emitida")?.checked;
+          const pagamento = tr?.querySelector(".triagem-pagamento")?.value || "aguardando";
+          const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
+          const valor = Number(receivable.valor || 0);
+          const closure = (state.cycleClosures || []).find(
+            (c) => String(c.receivable_id) === String(id) && !c.sent_to_finance
+          );
+          if (closure?.id) {
+            const { error: cloErr } = await supabase
+              .from("patio_cycle_closures")
+              .update({
+                nf_emitida: nfEmitida,
+                triagem_ok: true,
+                sent_to_finance: true,
+                triaged_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", closure.id)
+              .eq("user_id", effectiveUserId());
+            if (cloErr && !isMissingRelationError(cloErr)) {
+              console.warn("patio_cycle_closures triagem", cloErr);
+            }
+          }
+          if (nfEmitida && vehicle?.id && vehicle.nfse_status !== "EMITIDA") {
+            await supabase
+              .from("vehicles")
+              .update({ nfse_status: "EMITIDA", nfse_issued_at: new Date().toISOString() })
+              .eq("id", vehicle.id)
+              .eq("user_id", effectiveUserId());
+          }
+          if (pagamento === "pago") {
+            if (valor <= 0) {
+              alert("Valor inválido para registo de pagamento.");
+              return;
+            }
+            const patchPago = { financeiro_aprovado_contas_receber: true };
+            const { error: preErr } = await supabase
+              .from("receivables")
+              .update(patchPago)
+              .eq("id", id)
+              .eq("user_id", effectiveUserId());
+            if (preErr && !/financeiro_aprovado|column|schema cache|PGRST204/i.test(preErr.message || "")) {
+              alert(preErr.message);
+              return;
+            }
+            addReceberTriagemId(id);
+            const result = await finalizeReceivablePayment(id, valor);
+            if (!result) return;
+            await Promise.all([loadReceivables(), loadCycleClosures(), loadCash(), loadVehicles()]);
+            renderFinance();
+            updateDashboard();
+            alert("Triagem concluída. Pagamento registrado no caixa.");
+            return;
+          }
+          const patch = { financeiro_aprovado_contas_receber: true };
+          if (receivable.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) {
+            patch.status = "EM_ABERTO";
+          }
+          const { error } = await supabase.from("receivables").update(patch).eq("id", id).eq("user_id", effectiveUserId());
+          if (error) {
+            const colMissing = /financeiro_aprovado|column|schema cache|PGRST204/i.test(error.message || "");
+            if (colMissing && receivable.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) {
+              const { error: err2 } = await supabase
+                .from("receivables")
+                .update({ status: "EM_ABERTO" })
+                .eq("id", id)
+                .eq("user_id", effectiveUserId());
+              if (err2) {
+                alert(err2.message);
+                return;
+              }
+            } else if (colMissing && receivable.status === "EM_ABERTO") {
+              /* coluna ainda não criada: só marca local */
+            } else {
+              alert(error.message);
+              return;
+            }
+          }
+          addReceberTriagemId(id);
+          await Promise.all([loadReceivables(), loadCycleClosures(), loadVehicles()]);
+          renderFinance();
+          updateDashboard();
+          alert("Triagem concluída. Registro enviado para Contas a receber (Receber).");
           return;
         }
 
