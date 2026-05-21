@@ -5682,17 +5682,27 @@
           <div class="modal-header">
             <div>
               <h3>Confirmar recebimento</h3>
-              <p class="subtitle" style="margin: 4px 0 0">Confirme a baixa e escolha se deseja emitir recibo.</p>
+              <p class="subtitle" style="margin: 4px 0 0">Confirme a baixa ou gere o recibo em PDF.</p>
             </div>
             <button type="button" class="modal-close" id="closeReceberBaixaModal">Fechar</button>
           </div>
           <div id="receberBaixaResumo" class="section-card" style="margin-bottom: 14px; padding: 12px 14px; font-size: 13px; line-height: 1.55"></div>
+          <div class="form-grid" style="margin-bottom: 12px">
+            <div>
+              <label for="receberBaixaReciboNome">Nome no recibo (só para PDF)</label>
+              <input id="receberBaixaReciboNome" type="text" placeholder="Responsável pelo pagamento" />
+            </div>
+            <div>
+              <label for="receberBaixaReciboDoc">CPF ou CNPJ (só para PDF)</label>
+              <input id="receberBaixaReciboDoc" type="text" placeholder="Opcional para gerar PDF" />
+            </div>
+          </div>
           <p class="notice" style="margin: 0 0 12px; font-size: 13px; line-height: 1.45">
-            O recibo é <strong>opcional</strong>. Só abre o formulário de recibo se escolher emitir agora.
+            <strong>OK</strong> — confirma a baixa <strong>sem</strong> recibo. <strong>Gerar PDF</strong> — confirma a baixa e baixa o recibo.
           </p>
           <div class="form-actions" style="flex-wrap: wrap">
-            <button type="button" id="receberBaixaSemRecibo">Confirmar sem recibo</button>
-            <button type="button" class="secondary" id="receberBaixaComRecibo">Confirmar e emitir recibo</button>
+            <button type="button" id="receberBaixaOk">OK</button>
+            <button type="button" class="secondary" id="receberBaixaGerarPdf">Gerar PDF</button>
             <button type="button" class="secondary" id="cancelReceberBaixaModal">Cancelar</button>
           </div>
         </div>
@@ -12762,11 +12772,11 @@
       receberBaixaModal?.addEventListener("click", (e) => {
         if (e.target === e.currentTarget) closeReceberBaixaModal();
       });
-      document.getElementById("receberBaixaSemRecibo")?.addEventListener("click", () => {
-        void executeReceberBaixa(false);
+      document.getElementById("receberBaixaOk")?.addEventListener("click", () => {
+        void executeReceberBaixa("ok");
       });
-      document.getElementById("receberBaixaComRecibo")?.addEventListener("click", () => {
-        void executeReceberBaixa(true);
+      document.getElementById("receberBaixaGerarPdf")?.addEventListener("click", () => {
+        void executeReceberBaixa("pdf");
       });
       copyTextModal.addEventListener("click", async () => {
         if (!textModalBody.value) return;
@@ -12911,6 +12921,10 @@
             Veículo: <strong>${escapeHtml(vm)}</strong> — placa <strong>${escapeHtml(placa)}</strong><br />
             Valor a receber: <strong>${escapeHtml(val)}</strong>`;
         }
+        const nomeEl = document.getElementById("receberBaixaReciboNome");
+        const docEl = document.getElementById("receberBaixaReciboDoc");
+        if (nomeEl) nomeEl.value = receivable.responsavel_pagamento || "";
+        if (docEl) docEl.value = "";
         receberBaixaModal?.classList.remove("hidden");
       }
 
@@ -12919,13 +12933,36 @@
         pendingBaixaReceber = null;
       }
 
-      async function executeReceberBaixa(withRecibo) {
+      async function executeReceberBaixa(mode) {
         const pending = pendingBaixaReceber;
         if (!pending) return;
+        let destinatarioNome = "";
+        let destinatarioDoc = "";
+        if (mode === "pdf") {
+          destinatarioNome = (document.getElementById("receberBaixaReciboNome")?.value || "").trim();
+          destinatarioDoc = (document.getElementById("receberBaixaReciboDoc")?.value || "").trim();
+          if (!destinatarioNome) {
+            alert("Informe o nome para o recibo em PDF.");
+            return;
+          }
+        }
         closeReceberBaixaModal();
         const result = await finalizeReceivablePayment(pending.receivableId, pending.valor);
         if (!result) return;
-        if (withRecibo) openReciboModalWithContext(result);
+        if (mode === "pdf") {
+          try {
+            await downloadReciboPdf({
+              receivable: result.receivable,
+              vehicle: result.vehicle,
+              destinatarioNome,
+              destinatarioDoc: destinatarioDoc || "—",
+              valor: result.valor,
+            });
+          } catch (e) {
+            console.error(e);
+            alert("Baixa confirmada, mas não foi possível gerar o PDF do recibo.");
+          }
+        }
       }
 
       function openReciboModalWithContext(ctx) {
