@@ -4381,9 +4381,9 @@
                   <button type="button" data-header-finance-panel="true">Dashboard</button>
                   <button type="button" data-header-finance-sub="lancamentos">Lançamentos</button>
                   <button type="button" data-header-finance-sub="clientes">Clientes</button>
-                  <button type="button" data-header-finance-sub="triagem">Triagem</button>
                   <button type="button" data-header-finance-sub="receber">Receber</button>
                   <button type="button" data-header-finance-sub="caixa">Caixa</button>
+                  <button type="button" data-header-finance-sub="triagem" class="hidden" id="financeHeaderTriagem">Triagem</button>
                   <button type="button" data-header-finance-sub="ajustes">Ajustes</button>
                   <button type="button" data-header-finance-sub="faturamento">Faturamento</button>
                   <button type="button" data-header-finance-sub="relatorios">Relatórios</button>
@@ -5202,10 +5202,10 @@
                 <button type="button" class="secondary finance-ft-nav-btn" data-subview="lancamentos"><span class="finance-ft-nav-icon" aria-hidden="true">📒</span>Lançamentos</button>
                 <button type="button" class="secondary finance-ft-nav-btn" data-subview="clientes"><span class="finance-ft-nav-icon" aria-hidden="true">👥</span>Clientes</button>
                 <div class="finance-ft-nav-divider" aria-hidden="true"></div>
-                <div class="finance-ft-nav-section">Operação pátio</div>
-                <button type="button" class="secondary finance-ft-nav-btn" data-subview="triagem"><span class="finance-ft-nav-icon" aria-hidden="true">📋</span>Triagem</button>
+                <div class="finance-ft-nav-section">Operação</div>
                 <button type="button" class="secondary finance-ft-nav-btn" data-subview="receber"><span class="finance-ft-nav-icon" aria-hidden="true">📥</span>Receber</button>
                 <button type="button" class="secondary finance-ft-nav-btn" data-subview="caixa"><span class="finance-ft-nav-icon" aria-hidden="true">💵</span>Caixa</button>
+                <button type="button" class="secondary finance-ft-nav-btn finance-ft-nav-btn--muted hidden" data-subview="triagem" id="financeNavTriagem"><span class="finance-ft-nav-icon" aria-hidden="true">📋</span>Triagem</button>
                 <div class="finance-ft-nav-divider" aria-hidden="true"></div>
                 <button type="button" class="secondary finance-ft-nav-btn finance-ft-nav-btn--muted" data-subview="ajustes"><span class="finance-ft-nav-icon" aria-hidden="true">⚙️</span>Ajustes</button>
                 <button type="button" class="secondary finance-ft-nav-btn finance-ft-nav-btn--muted" data-subview="faturamento"><span class="finance-ft-nav-icon" aria-hidden="true">🧾</span>Faturamento</button>
@@ -5416,13 +5416,12 @@
                   <div class="finance-ft-kpi-sub" id="fdClientesAtivosMeta">Cadastrados no sistema</div>
                 </div>
                 <div class="finance-ft-resumo-card">
-                  <span class="finance-ft-kpi-label">Triagem pendente</span>
+                  <span class="finance-ft-kpi-label">Lançamentos pendentes</span>
                   <strong id="fdTriagemPendente">0</strong>
-                  <div class="finance-ft-kpi-sub" id="fdTriagemPendenteMeta">Aguardando NF e pagamento</div>
+                  <div class="finance-ft-kpi-sub" id="fdTriagemPendenteMeta">Receitas e despesas manuais em aberto</div>
                 </div>
               </div>
               <div class="finance-ft-quick-links">
-                <button type="button" class="secondary" data-finance-quick="triagem">Ir para Triagem</button>
                 <button type="button" class="secondary" data-finance-quick="receber">Ir para Receber</button>
                 <button type="button" class="secondary" data-finance-quick="lancamentos">Ver lançamentos</button>
                 <button type="button" class="secondary" data-finance-quick="caixa">Ver caixa</button>
@@ -6673,7 +6672,7 @@
         }
         if (error) return { error };
         const receivableId = inserted?.id;
-        if (receivableId && !pago) addReceberTriagemId(receivableId);
+        if (receivableId && !pago && !FINANCE_MANUAL_ONLY) addReceberTriagemId(receivableId);
         if (pago && receivableId) {
           await supabase.from("cash_movements").insert({
             user_id: effectiveUserId(),
@@ -6999,6 +6998,21 @@
 
       let isGestorPista = false;
 
+      /** Pátio não alimenta mais o financeiro — lançamentos só via modal manual. */
+      const FINANCE_MANUAL_ONLY = true;
+
+      function isManualFinanceLancamento(r) {
+        if (!r) return false;
+        if (String(r.subcategoria || "").toUpperCase() === "MANUAL") return true;
+        return r.vehicle_id == null || r.vehicle_id === "";
+      }
+
+      function receivableCountsForFinanceUi(receivables) {
+        const list = Array.isArray(receivables) ? receivables : [];
+        if (!FINANCE_MANUAL_ONLY) return list;
+        return list.filter(isManualFinanceLancamento);
+      }
+
       const RECEIVABLE_AGUARDANDO_LANCAMENTO = "AGUARDANDO_LANCAMENTO";
       /** Fallback se a coluna `financeiro_aprovado_contas_receber` ainda não existir no Supabase. */
       const RECEBER_TRIAGEM_IDS_KEY = "amplipatio_triagem_em_contas_ids";
@@ -7152,6 +7166,7 @@
 
       /** Na fila «Fechando ciclo»: pré-lançamento operacional, ainda sem liberação para o financeiro. */
       function receivableNaFilaFechamentoCicloPatio(r) {
+        if (FINANCE_MANUAL_ONLY) return false;
         if (!r || receivableAprovadoParaContasReceber(r)) return false;
         if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return !receivablePatioLiberadoParaFinanceiro(r);
         if (r.status !== "EM_ABERTO") return false;
@@ -7306,6 +7321,7 @@
        * ainda não aprovado para «Contas a receber» (Supabase ou fallback local).
        */
       function receivableNaFilaAguardandoTriagem(r) {
+        if (FINANCE_MANUAL_ONLY) return false;
         if (!r) return false;
         if (receivableAprovadoParaContasReceber(r)) return false;
         if (!receivablePatioLiberadoParaFinanceiro(r)) return false;
@@ -7321,6 +7337,9 @@
        */
       function receivableIsContaReceberFinanceiro(r) {
         if (!r || r.status === "PAGO") return false;
+        if (FINANCE_MANUAL_ONLY) {
+          return isManualFinanceLancamento(r) && r.status === "EM_ABERTO";
+        }
         if (receivableNaFilaAguardandoTriagem(r)) return false;
         if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return receivableAprovadoParaContasReceber(r);
         if (r.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(r)) {
@@ -7358,6 +7377,7 @@
             .map((m) => [String(m.conta_id), m])
         );
         return receivables.reduce((sum, r) => {
+          if (FINANCE_MANUAL_ONLY && !isManualFinanceLancamento(r)) return sum;
           const paidYmd = receivableRevenuePaidYmd(r, cashByContaId);
           if (!paidYmd || yearMonthFromYmd(paidYmd) !== monthYm) return sum;
           return sum + Number(r.valor || 0);
@@ -7372,6 +7392,7 @@
             .map((m) => [String(m.conta_id), m])
         );
         return receivables.reduce((sum, r) => {
+          if (FINANCE_MANUAL_ONLY && !isManualFinanceLancamento(r)) return sum;
           return receivableRevenuePaidYmd(r, cashByContaId) === dayYmd ? sum + Number(r.valor || 0) : sum;
         }, 0);
       }
@@ -10431,7 +10452,7 @@
         ]);
         probeVehiclesRpfColumns().catch(() => {});
         const userId = effectiveUserId();
-        if (userId) {
+        if (userId && !FINANCE_MANUAL_ONLY) {
           // Competência: tentativa automática diária (espelho contábil), sem bloquear o fluxo legado.
           callFinanceCompetencyApi("/api/finance/generate-daily-charges", { userId }).catch((e) =>
             console.warn("finance competency daily job", e?.message || e)
@@ -11381,7 +11402,11 @@
                 <td data-label="Triagem">
                   <label style="display:block;margin-bottom:6px"><input type="checkbox" class="fechamento-check-rpf"/> RPF conferido</label>
                   <button type="button" class="secondary" data-action="editar_fechamento_ciclo" data-id="${vehicle.id}" data-closure-id="${c.id}">Editar triagem</button>
-                  <button type="button" class="secondary" data-action="patio_liberar_financeiro" data-id="${vehicle.id}" data-closure-id="${c.id}">OK -> Financeiro</button>
+                  ${
+                    FINANCE_MANUAL_ONLY
+                      ? `<span class="notice" style="display:block;margin-top:6px">Financeiro manual — registre em Lançamentos.</span>`
+                      : `<button type="button" class="secondary" data-action="patio_liberar_financeiro" data-id="${vehicle.id}" data-closure-id="${c.id}">OK -> Financeiro</button>`
+                  }
                 </td>
               </tr>`;
           })
@@ -12597,20 +12622,22 @@
           });
         }
 
-        state.receivables.forEach((r) => {
-          if (!receivableIsCicloPatioAberto(r)) return;
-          const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
-          if (!vehicle) return;
-          const totalAtual = calcTotal(vehicle);
-          if (Number(r.valor || 0) !== Number(totalAtual)) {
-            supabase
-              .from("receivables")
-              .update({ valor: totalAtual })
-              .eq("id", r.id)
-              .eq("user_id", effectiveUserId());
-            r.valor = totalAtual;
-          }
-        });
+        if (!FINANCE_MANUAL_ONLY) {
+          state.receivables.forEach((r) => {
+            if (!receivableIsCicloPatioAberto(r)) return;
+            const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
+            if (!vehicle) return;
+            const totalAtual = calcTotal(vehicle);
+            if (Number(r.valor || 0) !== Number(totalAtual)) {
+              supabase
+                .from("receivables")
+                .update({ valor: totalAtual })
+                .eq("id", r.id)
+                .eq("user_id", effectiveUserId());
+              r.valor = totalAtual;
+            }
+          });
+        }
 
         const now = Date.now();
         if (overdueReceivables.length) {
@@ -12692,7 +12719,9 @@
           });
           const totalReceberDash = receberPendentes.reduce((sum, r) => sum + Number(r.valor || 0), 0);
           const localizadores = (state.partners || []).filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
-          const triagemCount = (state.receivables || []).filter((r) => receivableNaFilaAguardandoTriagem(r)).length;
+          const triagemCount = FINANCE_MANUAL_ONLY
+            ? receberPendentes.length + (state.payables || []).filter((p) => p.status === "EM_ABERTO").length
+            : (state.receivables || []).filter((r) => receivableNaFilaAguardandoTriagem(r)).length;
 
           _set("fdSaldoTotal", formatCurrency(caixa));
           _set("fdSaldoTotalMeta", caixa >= 0 ? "Posição consolidada" : "Saldo negativo");
@@ -12710,7 +12739,7 @@
           _set("fdClientesAtivos", String(localizadores.length));
           _set("fdClientesAtivosMeta", localizadores.length ? "Localizadores cadastrados" : "Cadastre em Clientes");
           _set("fdTriagemPendente", String(triagemCount));
-          _set("fdTriagemPendenteMeta", vencidos.length ? `${vencidos.length} título(s) vencido(s)` : "Aguardando NF e pagamento");
+          _set("fdTriagemPendenteMeta", FINANCE_MANUAL_ONLY ? "Títulos manuais em aberto" : vencidos.length ? `${vencidos.length} título(s) vencido(s)` : "Aguardando NF e pagamento");
         }
         if (currentFinanceView === "dashboard") {
           showFinanceDashboardOnly();
@@ -12893,6 +12922,7 @@
           const entries = [];
           state.receivables
             .filter((r) => matchesVehicleId(r.vehicle_id))
+            .filter((r) => !FINANCE_MANUAL_ONLY || isManualFinanceLancamento(r))
             .forEach((r) => {
               const dataBase = (r.period_start || r.created_at || "").toString().slice(0, 10);
               const mov = cashByReceivable.get(String(r.id));
@@ -13431,7 +13461,7 @@
       function setFinanceView(view) {
         const previousFinanceView = currentFinanceView;
         if (view === "filtros") view = "dashboard";
-        if (view === "pre_lancamento" || view === "aguardando_lancamento") view = "triagem";
+        if (view === "pre_lancamento" || view === "aguardando_lancamento") view = FINANCE_MANUAL_ONLY ? "lancamentos" : "triagem";
         if (view === "metas") view = "dashboard";
         if (view === "receber_alerta") view = "receber";
         if (view === "pagar" || view === "cadastro_base") view = "ajustes";
@@ -14804,7 +14834,7 @@
         if (!sub) return;
         if (sub === "controle_dual") sub = "dashboard";
         if (sub === "filtros") sub = "dashboard";
-        if (sub === "pre_lancamento" || sub === "aguardando_lancamento") sub = "triagem";
+        if (sub === "pre_lancamento" || sub === "aguardando_lancamento") sub = FINANCE_MANUAL_ONLY ? "lancamentos" : "triagem";
         if (sub === "metas") {
           financeFocusMetaGoalCard = true;
           sub = "dashboard";
@@ -16003,7 +16033,7 @@
             );
             return;
           }
-          if (closure.receivable_id) {
+          if (closure.receivable_id && !FINANCE_MANUAL_ONLY) {
             await supabase
               .from("receivables")
               .update({
@@ -16023,6 +16053,10 @@
         }
 
         if (action === "patio_liberar_financeiro") {
+          if (FINANCE_MANUAL_ONLY) {
+            alert("O financeiro é lançado manualmente. Use Financeiro → Lançamentos para registrar receitas e despesas.");
+            return;
+          }
           if (isGestorPista) return;
           const closureId = button.getAttribute("data-closure-id");
           const closure = (state.cycleClosures || []).find((x) => x.id === closureId);
@@ -16318,6 +16352,7 @@
           }
 
           // Reabre o ciclo financeiro fechado no momento da remoção (quando existir).
+          if (!FINANCE_MANUAL_ONLY) {
           const { data: lastCycle, error: qCycleErr } = await supabase
             .from("receivables")
             .select("id,period_start,period_end,status")
@@ -16376,6 +16411,7 @@
               .eq("tipo_conta", "RECEBER")
               .eq("user_id", effectiveUserId());
           }
+          }
 
           await supabase.from("vehicle_events").insert({
             vehicle_id: id,
@@ -16384,8 +16420,10 @@
             descricao: `Remoção desfeita manualmente. Veículo retornado ao passo anterior (${VLS_STATUS_LABELS[previousStatus] || previousStatus}).`,
           });
 
-          await Promise.all([loadVehicles(), loadReceivables(), loadCash()]);
-          renderFinance();
+          await Promise.all(
+            FINANCE_MANUAL_ONLY ? [loadVehicles()] : [loadVehicles(), loadReceivables(), loadCash()]
+          );
+          if (!FINANCE_MANUAL_ONLY) renderFinance();
           updateDashboard();
           await refreshFichaIfOpen(id);
           return;
@@ -16421,6 +16459,7 @@
             return;
           }
 
+          if (!FINANCE_MANUAL_ONLY) {
           const { data: existingCycle, error: cycleCheckErr } = await supabase
             .from("receivables")
             .select("id,period_start,period_end,status")
@@ -16461,6 +16500,7 @@
               return;
             }
           }
+          }
 
           await supabase.from("vehicle_events").insert({
             vehicle_id: id,
@@ -16469,9 +16509,10 @@
             descricao: `Liberação confirmada por ${confirmador || "-"}. RPF: ${responsavel}.`,
           });
           await loadVehicles();
-          await Promise.all([loadReceivables(), loadCycleClosures()]);
+          if (!FINANCE_MANUAL_ONLY) await Promise.all([loadReceivables(), loadCycleClosures()]);
+          else await loadCycleClosures();
           renderVehicles();
-          renderFinance();
+          if (!FINANCE_MANUAL_ONLY) renderFinance();
           updateDashboard();
           await refreshFichaIfOpen(id);
           return;
@@ -16542,6 +16583,12 @@
         }
 
         if (action === "trocar-responsavel") {
+          if (FINANCE_MANUAL_ONLY) {
+            alert(
+              "O financeiro é lançado manualmente. Atualize o RPF no cadastro do veículo e registre valores em Financeiro → Lançamentos."
+            );
+            return;
+          }
           // Responsável atual “acerta” diárias até o fim do dia do acerto (inclusive);
           // a partir do dia seguinte, o ciclo é do novo responsável.
           const novoResp = prompt("Novo RPF (responsável financeiro / pagamento):");
@@ -16778,6 +16825,7 @@
             return;
           }
 
+          if (!FINANCE_MANUAL_ONLY) {
           const { data: cycleAberto, error: cycleQErr } = await supabase
             .from("receivables")
             .select("id,period_start")
@@ -16888,9 +16936,12 @@
               return;
             }
           }
+          }
 
           await loadVehicles();
-          await Promise.all([loadReceivables(), loadCycleClosures()]);
+          if (!FINANCE_MANUAL_ONLY) await Promise.all([loadReceivables(), loadCycleClosures()]);
+          else await loadCycleClosures();
+          if (!FINANCE_MANUAL_ONLY) {
           try {
             const userId = effectiveUserId();
             if (userId) {
@@ -16905,12 +16956,15 @@
           } catch (e) {
             console.warn("finance competency close cycle", e?.message || e);
           }
-          renderFinance();
+          }
+          if (!FINANCE_MANUAL_ONLY) renderFinance();
           updateDashboard();
           alert(
-            "Veículo removido do pátio (VRP). O registro foi para Financeiro → Triagem. Informe NF e pagamento e toque em OK."
+            FINANCE_MANUAL_ONLY
+              ? "Veículo removido do pátio (VRP). Registre o financeiro manualmente em Financeiro → Lançamentos."
+              : "Veículo removido do pátio (VRP). O registro foi para Financeiro → Triagem. Informe NF e pagamento e toque em OK."
           );
-          openFinanceSubview("triagem");
+          if (!FINANCE_MANUAL_ONLY) openFinanceSubview("triagem");
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
           return;
@@ -17130,7 +17184,7 @@
           financeReceberFlagsWrite(flags);
           try {
             const userId = effectiveUserId();
-            if (userId && receivable.vehicle_id) {
+            if (userId && receivable.vehicle_id && !FINANCE_MANUAL_ONLY) {
               await callFinanceCompetencyApi("/api/finance/close-vehicle-cycle", {
                 userId,
                 vehicleId: receivable.vehicle_id,
