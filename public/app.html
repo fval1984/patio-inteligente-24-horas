@@ -6324,7 +6324,7 @@
             <div class="form-grid">
               <div class="full">
                 <label for="lancDesc">Descrição</label>
-                <input id="lancDesc" type="text" required placeholder="Ex.: Serviço de guincho, aluguel…" />
+                <input id="lancDesc" type="text" required placeholder="Ex.: diária de guarda, mensalidade, remoção…" />
               </div>
               <div>
                 <label for="lancValor">Valor (R$)</label>
@@ -6335,7 +6335,7 @@
                 <input id="lancData" type="date" required />
               </div>
               <div>
-                <label for="lancCategoria">Categoria</label>
+                <label for="lancCategoria" id="lancCategoriaLabel">Serviço</label>
                 <select id="lancCategoria" required></select>
               </div>
               <div>
@@ -6691,6 +6691,10 @@
         lancClienteWrap?.classList.toggle("hidden", lancamentoTipoAtual !== "RECEITA");
         lancFornecedorWrap?.classList.toggle("hidden", lancamentoTipoAtual !== "DESPESA");
         syncLancamentoCategoriaOptions();
+        const categoriaLabel = document.getElementById("lancCategoriaLabel");
+        if (categoriaLabel) {
+          categoriaLabel.textContent = lancamentoTipoAtual === "RECEITA" ? "Serviço" : "Categoria";
+        }
         const title = document.getElementById("lancamentoModalTitle");
         if (title) {
           title.textContent = lancamentoTipoAtual === "RECEITA" ? "Novo lançamento — Receita" : "Novo lançamento — Despesa";
@@ -7103,12 +7107,12 @@
         { key: "bancos", label: "Bancos" },
         { key: "centros_custo", label: "Centros de custo" },
       ];
-      const LANC_RECEITA_CATEGORIAS = [
-        { value: "SERVICO", label: "Serviços" },
-        { value: "PRODUTO", label: "Produtos" },
+      const SERVICOS_RECEITAS = [
         { value: "GUARDA_PATIO", label: "Guarda de pátio" },
-        { value: "OUTROS", label: "Outros" },
+        { value: "ESTACIONAMENTO_MENSALISTA", label: "Estacionamento mensalista" },
+        { value: "REMOCAO_VEICULOS", label: "Remoção de veículos" },
       ];
+      const LANC_RECEITA_CATEGORIAS = SERVICOS_RECEITAS;
       const LANC_DESPESA_CATEGORIAS = [
         { value: "ALUGUEL", label: "Aluguel" },
         { value: "ENERGIA", label: "Energia" },
@@ -7120,6 +7124,20 @@
         { value: "SANGRIA_CAIXA", label: "Sangria de caixa" },
         { value: "OUTROS", label: "Outros" },
       ];
+
+      function receivableCategoryLabel(code) {
+        const key = String(code || "GUARDA_PATIO").trim();
+        const found = SERVICOS_RECEITAS.find((c) => c.value === key);
+        if (found) return found.label;
+        const legacy = {
+          SERVICO: "Serviços",
+          PRODUTO: "Produtos",
+          OUTROS: "Outros",
+          RECEITA: "Receita",
+        };
+        if (legacy[key]) return legacy[key];
+        return key.replace(/_/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase());
+      }
 
       function receberTriagemIdSet() {
         try {
@@ -12518,7 +12536,7 @@
               <div class="finance-lanc-valor finance-lanc-valor--${tipoClass}">${valorFmt}</div>
             </div>
             <div class="finance-lanc-foot">
-              <span class="tag">${escapeHtml(entry.categoria)}</span>
+              <span class="tag">${escapeHtml(receivableCategoryLabel(entry.categoria))}</span>
               <span class="finance-lanc-tipo finance-lanc-tipo--${tipoClass}">${isReceita ? "Receita" : "Despesa"}</span>
               <span class="finance-lanc-data">${formatDate(entry.data)}</span>
               <span class="finance-ft-status ${statusClass}">${statusLabel}</span>
@@ -13027,7 +13045,7 @@
                 mes: dataBase ? dataBase.slice(5, 7) : "-",
                 ano: dataBase ? dataBase.slice(0, 4) : "-",
                 tipo: "RECEITA",
-                categoria: r.receivable_category || "RECEITA",
+                categoria: r.receivable_category || "GUARDA_PATIO",
                 subcategoria: r.subcategoria || "Geral",
                 descricao: r.observacoes || "Lançamento de receita",
                 parte: r.responsavel_pagamento || "-",
@@ -13346,7 +13364,7 @@
             <tr>
               <th>Vencimento</th>
               <th>Cliente</th>
-              <th>Serviço / Produto</th>
+              <th>Serviço</th>
               <th>Valor</th>
               <th>Status</th>
               <th>Dias em atraso</th>
@@ -13405,7 +13423,7 @@
                   <td>${formatDate(r.period_end || r.created_at)}</td>
                   <td>${r.responsavel_pagamento || "Responsável não informado"}</td>
                   <td>
-                    <span class="notice">${r.receivable_category || "GUARDA_PATIO"}</span><br />
+                    <span class="notice">${escapeHtml(receivableCategoryLabel(r.receivable_category))}</span><br />
                     <span class="notice">${vehicleInfo}</span>
                   </td>
                   <td>${formatCurrency(valorCobranca)}</td>
@@ -13845,7 +13863,8 @@
         const valor = Number(document.getElementById("lancValor")?.value || 0);
         const data = document.getElementById("lancData")?.value || "";
         const vencimento = document.getElementById("lancVencimento")?.value || data;
-        const categoria = lancCategoria?.value || "OUTROS";
+        const categoria =
+          lancCategoria?.value || (lancamentoTipoAtual === "RECEITA" ? "GUARDA_PATIO" : "OUTROS");
         const formaPagamento = document.getElementById("lancFormaPagamento")?.value || "PIX";
         const observacoes = document.getElementById("lancObs")?.value?.trim() || "";
         const pago = document.getElementById("lancStatus")?.value === "PAGO";
@@ -17204,7 +17223,7 @@
           const texto = [
             `Cliente: ${receivable.responsavel_pagamento || "-"}`,
             `Veículo: ${vehicle ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}` : "-"}`,
-            `Categoria: ${receivable.receivable_category || "GUARDA_PATIO"}`,
+            `Categoria: ${receivableCategoryLabel(receivable.receivable_category)}`,
             `Valor em aberto: ${formatCurrency(Number(receivable.valor || 0))}`,
             `Período: ${formatDate(receivable.period_start)} até ${formatDate(receivable.period_end || receivable.created_at)}`,
           ].join("\n");
@@ -17590,7 +17609,11 @@
           const responsavel = prompt("Responsável pelo pagamento:", receivable.responsavel_pagamento || "");
           if (responsavel === null) return;
 
-          const catRaw = prompt("Categoria:", receivable.receivable_category || "GUARDA_PATIO");
+          const catOptions = SERVICOS_RECEITAS.map((c) => `${c.value} — ${c.label}`).join("\n");
+          const catRaw = prompt(
+            `Serviço (código — nome):\n${catOptions}\n\nInforme o código:`,
+            receivable.receivable_category || "GUARDA_PATIO"
+          );
           if (catRaw === null) return;
           const receivable_category = catRaw.trim() || "GUARDA_PATIO";
 
