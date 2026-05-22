@@ -4177,6 +4177,58 @@
       #viewFinanceiro.finance-fintracker .finance-lanc-simple-filters select {
         min-width: 8rem;
       }
+      .lancamento-modal .modal {
+        max-width: 520px;
+        width: min(520px, calc(100vw - 24px));
+      }
+      .lanc-tipo-toggle {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .lanc-tipo-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 2px solid var(--border);
+        background: var(--card);
+        color: var(--text);
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+      }
+      .lanc-tipo-btn:hover {
+        border-color: color-mix(in srgb, var(--border) 60%, var(--text) 40%);
+      }
+      .lanc-tipo-btn--receita.active {
+        border-color: #10b981;
+        background: rgba(16, 185, 129, 0.12);
+        color: #059669;
+        box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25);
+      }
+      .lanc-tipo-btn--despesa.active {
+        border-color: #ef4444;
+        background: rgba(239, 68, 68, 0.1);
+        color: #dc2626;
+        box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.22);
+      }
+      .lanc-field-receita-only.hidden,
+      .lanc-field-despesa-only.hidden {
+        display: none !important;
+      }
+      .lancamento-modal .form-grid {
+        gap: 12px;
+      }
+      .lancamento-modal label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+      }
       /* Financeiro v2 legado (fallback) */
       #viewFinanceiro.finance-layout-v2:not(.finance-fintracker) .finance-modern-layout {
         grid-template-columns: minmax(0, 1fr) !important;
@@ -5172,7 +5224,7 @@
                 </div>
                 <div class="actions">
                   <button type="button" class="hidden" id="financeNovoClienteBtn">+ Novo cliente</button>
-                  <button type="button" class="hidden" id="financeNovaDespesaBtn">+ Nova despesa</button>
+                  <button type="button" class="hidden" id="financeNovoLancamentoBtn">+ Novo lançamento</button>
                   <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
                 </div>
               </div>
@@ -6186,6 +6238,83 @@
         </div>
       </div>
 
+      <div id="lancamentoModal" class="modal-backdrop hidden lancamento-modal">
+        <div class="modal">
+          <div class="modal-header">
+            <div>
+              <h3 id="lancamentoModalTitle">Novo lançamento</h3>
+              <p class="notice" style="margin: 4px 0 0; font-size: 12px">Registre uma receita ou despesa manualmente.</p>
+            </div>
+            <button class="modal-close" type="button" id="closeLancamentoModal">Fechar</button>
+          </div>
+          <form id="lancamentoForm">
+            <div class="lanc-tipo-toggle" role="group" aria-label="Tipo de transação">
+              <button type="button" class="lanc-tipo-btn lanc-tipo-btn--receita active" data-lanc-tipo="RECEITA">📈 Receita</button>
+              <button type="button" class="lanc-tipo-btn lanc-tipo-btn--despesa" data-lanc-tipo="DESPESA">📉 Despesa</button>
+            </div>
+            <div class="form-grid">
+              <div class="full">
+                <label for="lancDesc">Descrição</label>
+                <input id="lancDesc" type="text" required placeholder="Ex.: Serviço de guincho, aluguel…" />
+              </div>
+              <div>
+                <label for="lancValor">Valor (R$)</label>
+                <input id="lancValor" type="number" step="0.01" min="0.01" required />
+              </div>
+              <div>
+                <label for="lancData">Data</label>
+                <input id="lancData" type="date" required />
+              </div>
+              <div>
+                <label for="lancCategoria">Categoria</label>
+                <select id="lancCategoria" required></select>
+              </div>
+              <div>
+                <label for="lancStatus">Status</label>
+                <select id="lancStatus">
+                  <option value="PENDENTE">Pendente</option>
+                  <option value="PAGO">Pago</option>
+                </select>
+              </div>
+              <div class="lanc-field-receita-only" id="lancClienteWrap">
+                <label for="lancCliente">Cliente (localizador)</label>
+                <select id="lancCliente">
+                  <option value="">Sem cliente</option>
+                </select>
+              </div>
+              <div class="lanc-field-despesa-only hidden" id="lancFornecedorWrap">
+                <label for="lancFornecedor">Fornecedor</label>
+                <input id="lancFornecedor" type="text" placeholder="Nome do fornecedor" />
+              </div>
+              <div>
+                <label for="lancFormaPagamento">Forma de pagamento</label>
+                <select id="lancFormaPagamento">
+                  <option value="Dinheiro">Dinheiro</option>
+                  <option value="PIX">PIX</option>
+                  <option value="Cartão Débito">Cartão Débito</option>
+                  <option value="Cartão Crédito">Cartão Crédito</option>
+                  <option value="Transferência">Transferência</option>
+                  <option value="Boleto">Boleto</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+              </div>
+              <div>
+                <label for="lancVencimento">Vencimento</label>
+                <input id="lancVencimento" type="date" />
+              </div>
+              <div class="full">
+                <label for="lancObs">Observações</label>
+                <textarea id="lancObs" rows="2" placeholder="Opcional" style="width: 100%; resize: vertical; min-height: 56px; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.2); color: var(--text); font: inherit"></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" id="lancSubmitBtn">Confirmar e lançar</button>
+              <button type="button" class="secondary" id="cancelLancamentoForm">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div id="fichaModal" class="modal-backdrop hidden">
         <div class="modal">
           <div class="modal-header">
@@ -6456,6 +6585,146 @@
       const payableForm = document.getElementById("payableForm");
       const cancelPayableForm = document.getElementById("cancelPayableForm");
       const payableCategory = document.getElementById("payableCategory");
+      const lancamentoModal = document.getElementById("lancamentoModal");
+      const lancamentoForm = document.getElementById("lancamentoForm");
+      const closeLancamentoModal = document.getElementById("closeLancamentoModal");
+      const cancelLancamentoForm = document.getElementById("cancelLancamentoForm");
+      const lancCategoria = document.getElementById("lancCategoria");
+      const lancCliente = document.getElementById("lancCliente");
+      const lancClienteWrap = document.getElementById("lancClienteWrap");
+      const lancFornecedorWrap = document.getElementById("lancFornecedorWrap");
+      let lancamentoTipoAtual = "RECEITA";
+
+      function syncLancamentoCategoriaOptions() {
+        if (!lancCategoria) return;
+        const list = lancamentoTipoAtual === "RECEITA" ? LANC_RECEITA_CATEGORIAS : LANC_DESPESA_CATEGORIAS;
+        lancCategoria.innerHTML = list.map((c) => `<option value="${c.value}">${escapeHtml(c.label)}</option>`).join("");
+      }
+
+      function populateLancamentoClienteOptions() {
+        if (!lancCliente) return;
+        const current = lancCliente.value;
+        const parceiros = (state.partners || []).filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
+        lancCliente.innerHTML =
+          `<option value="">Sem cliente</option>` +
+          parceiros
+            .sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || "")))
+            .map((p) => `<option value="${escapeHtml(p.nome || "")}">${escapeHtml(p.nome || "-")}</option>`)
+            .join("");
+        if (current && [...lancCliente.options].some((o) => o.value === current)) lancCliente.value = current;
+      }
+
+      function syncLancamentoModalTipo(tipo) {
+        lancamentoTipoAtual = tipo === "DESPESA" ? "DESPESA" : "RECEITA";
+        document.querySelectorAll(".lanc-tipo-btn").forEach((btn) => {
+          btn.classList.toggle("active", btn.getAttribute("data-lanc-tipo") === lancamentoTipoAtual);
+        });
+        lancClienteWrap?.classList.toggle("hidden", lancamentoTipoAtual !== "RECEITA");
+        lancFornecedorWrap?.classList.toggle("hidden", lancamentoTipoAtual !== "DESPESA");
+        syncLancamentoCategoriaOptions();
+        const title = document.getElementById("lancamentoModalTitle");
+        if (title) {
+          title.textContent = lancamentoTipoAtual === "RECEITA" ? "Novo lançamento — Receita" : "Novo lançamento — Despesa";
+        }
+      }
+
+      function openLancamentoModal(presetTipo = "RECEITA") {
+        if (!lancamentoModal || !lancamentoForm) return;
+        lancamentoForm.reset();
+        const today = toLocalYmd(new Date().toISOString());
+        const lancData = document.getElementById("lancData");
+        const lancVencimento = document.getElementById("lancVencimento");
+        if (lancData) lancData.value = today;
+        if (lancVencimento) lancVencimento.value = today;
+        populateLancamentoClienteOptions();
+        syncLancamentoModalTipo(presetTipo);
+        lancamentoModal.classList.remove("hidden");
+      }
+
+      function closeLancamentoModalFn() {
+        lancamentoModal?.classList.add("hidden");
+        lancamentoForm?.reset();
+      }
+
+      async function insertManualReceivableLancamento({ descricao, valor, data, vencimento, categoria, cliente, formaPagamento, observacoes, pago }) {
+        const clienteNome = String(cliente || "").trim();
+        const payload = {
+          user_id: effectiveUserId(),
+          responsavel_pagamento: clienteNome || descricao,
+          receivable_category: categoria,
+          valor,
+          status: pago ? "PAGO" : "EM_ABERTO",
+          period_start: data,
+          period_end: vencimento || data,
+          observacoes: observacoes || descricao,
+          forma_pagamento: formaPagamento,
+          subcategoria: "MANUAL",
+          financeiro_aprovado_contas_receber: true,
+          patio_liberado_financeiro: true,
+        };
+        let { data: inserted, error } = await supabase.from("receivables").insert(payload).select("id").single();
+        if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
+          const fallback = { ...payload };
+          delete fallback.patio_liberado_financeiro;
+          delete fallback.financeiro_aprovado_contas_receber;
+          delete fallback.forma_pagamento;
+          delete fallback.subcategoria;
+          ({ data: inserted, error } = await supabase.from("receivables").insert(fallback).select("id").single());
+        }
+        if (error) return { error };
+        const receivableId = inserted?.id;
+        if (receivableId && !pago) addReceberTriagemId(receivableId);
+        if (pago && receivableId) {
+          await supabase.from("cash_movements").insert({
+            user_id: effectiveUserId(),
+            tipo_conta: "RECEBER",
+            conta_id: receivableId,
+            valor,
+            descricao: descricao || "Receita manual",
+            data_movimento: data,
+            forma_pagamento: formaPagamento,
+          });
+        }
+        return { id: receivableId };
+      }
+
+      async function insertManualPayableLancamento({ descricao, valor, vencimento, categoria, fornecedor, formaPagamento, observacoes, pago }) {
+        const payload = {
+          user_id: effectiveUserId(),
+          tipo: "UNICA",
+          payable_category: categoria,
+          descricao,
+          valor,
+          data_vencimento: vencimento,
+          status: pago ? "PAGO" : "EM_ABERTO",
+          fornecedor: fornecedor || null,
+          forma_pagamento: formaPagamento,
+          observacoes: observacoes || null,
+        };
+        let { data: inserted, error } = await supabase.from("payables").insert(payload).select("id").single();
+        if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
+          const fallback = { ...payload };
+          delete fallback.fornecedor;
+          delete fallback.forma_pagamento;
+          delete fallback.observacoes;
+          ({ data: inserted, error } = await supabase.from("payables").insert(fallback).select("id").single());
+        }
+        if (error) return { error };
+        const payableId = inserted?.id;
+        if (pago && payableId) {
+          await supabase.from("cash_movements").insert({
+            user_id: effectiveUserId(),
+            tipo_conta: "PAGAR",
+            conta_id: payableId,
+            valor,
+            descricao: descricao || "Despesa manual",
+            data_movimento: vencimento,
+            forma_pagamento: formaPagamento,
+          });
+        }
+        return { id: payableId };
+      }
+
       const fichaModal = document.getElementById("fichaModal");
       const closeFichaModal = document.getElementById("closeFichaModal");
       const printFicha = document.getElementById("printFicha");
@@ -6748,6 +7017,23 @@
         { key: "formas_pagamento", label: "Formas de pagamento" },
         { key: "bancos", label: "Bancos" },
         { key: "centros_custo", label: "Centros de custo" },
+      ];
+      const LANC_RECEITA_CATEGORIAS = [
+        { value: "SERVICO", label: "Serviços" },
+        { value: "PRODUTO", label: "Produtos" },
+        { value: "GUARDA_PATIO", label: "Guarda de pátio" },
+        { value: "OUTROS", label: "Outros" },
+      ];
+      const LANC_DESPESA_CATEGORIAS = [
+        { value: "ALUGUEL", label: "Aluguel" },
+        { value: "ENERGIA", label: "Energia" },
+        { value: "AGUA", label: "Água" },
+        { value: "TELEFONE_INTERNET", label: "Telefone / Internet" },
+        { value: "FUNCIONARIO", label: "Funcionário" },
+        { value: "GUINCHO", label: "Guincho" },
+        { value: "MANUTENCAO", label: "Manutenção" },
+        { value: "SANGRIA_CAIXA", label: "Sangria de caixa" },
+        { value: "OUTROS", label: "Outros" },
       ];
 
       function receberTriagemIdSet() {
@@ -13267,10 +13553,10 @@
         }
         document.getElementById("financeReceberFilters")?.classList.toggle("hidden", !showReceberFilters);
         const financeNovoClienteBtn = document.getElementById("financeNovoClienteBtn");
-        const financeNovaDespesaBtn = document.getElementById("financeNovaDespesaBtn");
+        const financeNovoLancamentoBtn = document.getElementById("financeNovoLancamentoBtn");
         if (financeNovoClienteBtn) financeNovoClienteBtn.classList.toggle("hidden", view !== "clientes");
-        if (financeNovaDespesaBtn) {
-          financeNovaDespesaBtn.classList.toggle("hidden", view !== "lancamentos" && view !== "ajustes");
+        if (financeNovoLancamentoBtn) {
+          financeNovoLancamentoBtn.classList.toggle("hidden", view !== "lancamentos" && view !== "ajustes");
         }
         renderFinance();
       }
@@ -13414,7 +13700,7 @@
       });
 
       const openNewPayableModal = () => {
-        payableModal.classList.remove("hidden");
+        openLancamentoModal("DESPESA");
       };
       openPayableForm?.addEventListener("click", openNewPayableModal);
 
@@ -13440,6 +13726,71 @@
         }
       });
       closePayableModal.addEventListener("click", () => payableModal.classList.add("hidden"));
+      closeLancamentoModal?.addEventListener("click", closeLancamentoModalFn);
+      cancelLancamentoForm?.addEventListener("click", closeLancamentoModalFn);
+      document.querySelectorAll(".lanc-tipo-btn").forEach((btn) => {
+        btn.addEventListener("click", () => syncLancamentoModalTipo(btn.getAttribute("data-lanc-tipo")));
+      });
+      lancamentoForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const descricao = document.getElementById("lancDesc")?.value?.trim() || "";
+        const valor = Number(document.getElementById("lancValor")?.value || 0);
+        const data = document.getElementById("lancData")?.value || "";
+        const vencimento = document.getElementById("lancVencimento")?.value || data;
+        const categoria = lancCategoria?.value || "OUTROS";
+        const formaPagamento = document.getElementById("lancFormaPagamento")?.value || "PIX";
+        const observacoes = document.getElementById("lancObs")?.value?.trim() || "";
+        const pago = document.getElementById("lancStatus")?.value === "PAGO";
+        if (!descricao || !data || !(valor > 0)) {
+          alert("Preencha descrição, valor e data.");
+          return;
+        }
+        const submitBtn = document.getElementById("lancSubmitBtn");
+        if (submitBtn) submitBtn.disabled = true;
+        try {
+          if (lancamentoTipoAtual === "RECEITA") {
+            const cliente = lancCliente?.value || "";
+            const result = await insertManualReceivableLancamento({
+              descricao,
+              valor,
+              data,
+              vencimento,
+              categoria,
+              cliente,
+              formaPagamento,
+              observacoes,
+              pago,
+            });
+            if (result.error) {
+              alert(result.error.message || "Não foi possível salvar a receita.");
+              return;
+            }
+            await Promise.all([loadReceivables(), loadCash()]);
+          } else {
+            const fornecedor = document.getElementById("lancFornecedor")?.value?.trim() || "";
+            const result = await insertManualPayableLancamento({
+              descricao,
+              valor,
+              vencimento,
+              categoria,
+              fornecedor,
+              formaPagamento,
+              observacoes,
+              pago,
+            });
+            if (result.error) {
+              alert(result.error.message || "Não foi possível salvar a despesa.");
+              return;
+            }
+            await Promise.all([loadPayables(), loadCash()]);
+          }
+          closeLancamentoModalFn();
+          renderFinance();
+          updateDashboard();
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
       closeFichaModal.addEventListener("click", () => {
         fichaModal.classList.add("hidden");
         delete fichaModal.dataset.openVehicleId;
@@ -13596,7 +13947,7 @@
         workflowModalConfig = null;
       });
 
-      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, fichaModal, nfseModal, textModal, reciboModal].forEach((modal) => {
+      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, lancamentoModal, fichaModal, nfseModal, textModal, reciboModal].forEach((modal) => {
         modal.addEventListener("click", (event) => {
           if (event.target === modal) {
             modal.classList.add("hidden");
@@ -14219,8 +14570,8 @@
         partnerForm?.reset();
         partnerModal?.classList.remove("hidden");
       });
-      document.getElementById("financeNovaDespesaBtn")?.addEventListener("click", () => {
-        payableModal?.classList.remove("hidden");
+      document.getElementById("financeNovoLancamentoBtn")?.addEventListener("click", () => {
+        openLancamentoModal(lancamentosFilter.tipo === "DESPESA" ? "DESPESA" : "RECEITA");
       });
       document.getElementById("financeClientesBusca")?.addEventListener("input", () => {
         if (currentFinanceView === "clientes") renderFinanceClientes();
@@ -17045,7 +17396,7 @@
         }
 
         if (action === "nova-despesa") {
-          openNewPayableModal();
+          openLancamentoModal("DESPESA");
           return;
         }
 
