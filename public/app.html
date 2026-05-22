@@ -2624,51 +2624,124 @@
       #viewFinanceiro .finance-ledger {
         min-width: 880px;
       }
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos {
-        min-width: 100%;
-        width: 100%;
-        table-layout: fixed;
+      /* Lançamentos — lista em cards (sem scroll horizontal) */
+      .finance-lanc-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
       }
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th,
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos tbody td {
-        white-space: normal;
+      .finance-lanc-item {
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--card);
+        box-shadow: var(--shadow-soft);
+        transition: border-color 0.15s ease, background 0.15s ease;
+      }
+      #viewFinanceiro.finance-fintracker .finance-lanc-item {
+        background: var(--ft-surface-elevated, var(--card));
+        border-color: var(--ft-border, var(--border));
+      }
+      .finance-lanc-item:hover {
+        border-color: rgba(225, 29, 46, 0.28);
+      }
+      .finance-lanc-item--receita {
+        border-left: 3px solid rgba(16, 185, 129, 0.55);
+      }
+      .finance-lanc-item--despesa {
+        border-left: 3px solid rgba(220, 38, 38, 0.45);
+      }
+      .finance-lanc-main {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 10px;
+      }
+      .finance-lanc-desc {
+        min-width: 0;
+        flex: 1;
+      }
+      .finance-lanc-desc strong {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.4;
+        color: var(--text);
         word-break: break-word;
-        overflow-wrap: anywhere;
+      }
+      .finance-lanc-parte {
+        display: block;
+        margin-top: 4px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .finance-lanc-valor {
+        font-size: 1.05rem;
+        font-weight: 800;
+        white-space: nowrap;
+        letter-spacing: -0.02em;
+        flex-shrink: 0;
+      }
+      .finance-lanc-valor--receita {
+        color: #059669;
+      }
+      .finance-lanc-valor--despesa {
+        color: #dc2626;
+      }
+      [data-theme="light"] .finance-lanc-valor--receita {
+        color: #047857;
+      }
+      [data-theme="light"] .finance-lanc-valor--despesa {
+        color: #b91c1c;
+      }
+      .finance-lanc-foot {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
+      }
+      .finance-lanc-foot .tag {
         font-size: 11px;
-        line-height: 1.2;
-        padding: 8px 6px;
+        padding: 3px 8px;
       }
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th:last-child,
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos tbody td:last-child {
-        position: static;
-        box-shadow: none;
-      }
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th {
+      .finance-lanc-tipo {
         font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: 999px;
       }
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th:nth-child(1),
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos tbody td:nth-child(1) {
-        width: 7%;
+      .finance-lanc-tipo--receita {
+        background: rgba(16, 185, 129, 0.14);
+        color: #059669;
       }
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th:nth-child(2),
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos tbody td:nth-child(2) {
-        width: 5%;
+      .finance-lanc-tipo--despesa {
+        background: rgba(220, 38, 38, 0.12);
+        color: #dc2626;
       }
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th:nth-child(8),
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos tbody td:nth-child(8) {
-        width: 8%;
+      .finance-lanc-data {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
       }
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th:nth-child(9),
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos tbody td:nth-child(9) {
-        width: 6%;
+      .finance-lanc-empty {
+        text-align: center;
+        padding: 36px 20px;
+        color: var(--muted);
+        font-size: 14px;
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.2);
       }
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos thead th:nth-child(11),
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos tbody td:nth-child(11) {
-        width: 7%;
+      [data-theme="light"] .finance-lanc-empty {
+        background: rgba(248, 250, 252, 0.8);
       }
-      #viewFinanceiro .finance-ledger.finance-ledger--lancamentos .tag {
-        font-size: 10px;
-        padding: 3px 6px;
+      #viewFinanceiro.finance-fintracker #financeStandardArea .finance-lanc-list {
+        max-height: calc(100vh - 280px);
+        overflow-y: auto;
+        padding-right: 2px;
       }
       #viewFinanceiro .finance-ledger thead th:last-child,
       #viewFinanceiro .finance-ledger tbody td:last-child {
@@ -5525,9 +5598,7 @@
                 <p id="financeCaixaScrollNotice" class="notice hidden" style="margin: 0 0 10px; font-size: 12px">
                   A coluna «Ações» fica à direita. Se não a vir, deslize esta tabela para o lado (barra de deslocamento por baixo).
                 </p>
-                <p id="financeLancamentosScrollNotice" class="notice hidden" style="margin: 0 0 10px; font-size: 12px">
-                  Lançamentos financeiros: para ver todas as colunas, deslize horizontalmente a tabela.
-                </p>
+                <div id="financeLancList" class="finance-lanc-list hidden" aria-live="polite"></div>
                 <div class="table-wrap">
                   <table class="table finance-ledger">
                   <thead id="financeHead"></thead>
@@ -6768,7 +6839,6 @@
       const tableRemocoes = document.getElementById("tableRemocoes");
       const tableFinance = document.getElementById("tableFinance");
       const financeHead = document.getElementById("financeHead");
-      const financeLedgerTable = document.querySelector("#financeStandardArea .finance-ledger");
       const rankByVehicles = document.getElementById("rankByVehicles");
       const rankByRevenue = document.getElementById("rankByRevenue");
 
@@ -6832,6 +6902,8 @@
       const financeLancOpenPanel = document.getElementById("financeLancOpenPanel");
       const financeLancResultCount = document.getElementById("financeLancResultCount");
       const financeLancPagination = document.getElementById("financeLancPagination");
+      const financeLancList = document.getElementById("financeLancList");
+      const financeStdTableWrap = document.querySelector("#financeStandardArea .table-wrap");
       const financeLancPageInfo = document.getElementById("financeLancPageInfo");
       const financeLancPrevPage = document.getElementById("financeLancPrevPage");
       const financeLancNextPage = document.getElementById("financeLancNextPage");
@@ -12421,6 +12493,40 @@
         });
       }
 
+      function setFinanceLancListMode(active) {
+        financeLancList?.classList.toggle("hidden", !active);
+        financeStdTableWrap?.classList.toggle("hidden", !!active);
+      }
+
+      function renderFinanceLancItem(entry) {
+        const isReceita = entry.tipo === "RECEITA";
+        const tipoClass = isReceita ? "receita" : "despesa";
+        const statusClass = entry.status === "PAGO" ? "finance-ft-status--pago" : "finance-ft-status--pendente";
+        const statusLabel = entry.status === "PAGO" ? "Pago" : "Pendente";
+        const parteHtml =
+          entry.parte && entry.parte !== "-"
+            ? `<span class="finance-lanc-parte">${escapeHtml(entry.parte)}</span>`
+            : "";
+        const valorFmt = `${isReceita ? "" : "− "}${formatCurrency(entry.valor)}`;
+        return `
+          <article class="finance-lanc-item finance-lanc-item--${tipoClass}">
+            <div class="finance-lanc-main">
+              <div class="finance-lanc-desc">
+                <strong>${escapeHtml(entry.descricao)}</strong>
+                ${parteHtml}
+              </div>
+              <div class="finance-lanc-valor finance-lanc-valor--${tipoClass}">${valorFmt}</div>
+            </div>
+            <div class="finance-lanc-foot">
+              <span class="tag">${escapeHtml(entry.categoria)}</span>
+              <span class="finance-lanc-tipo finance-lanc-tipo--${tipoClass}">${isReceita ? "Receita" : "Despesa"}</span>
+              <span class="finance-lanc-data">${formatDate(entry.data)}</span>
+              <span class="finance-ft-status ${statusClass}">${statusLabel}</span>
+            </div>
+          </article>
+        `;
+      }
+
       function renderFinance() {
         const financeCaixaScrollNotice = document.getElementById("financeCaixaScrollNotice");
         if (financeCaixaScrollNotice) financeCaixaScrollNotice.classList.add("hidden");
@@ -12763,20 +12869,18 @@
         }
         hideAllFinanceAreas();
         if (stdArea) stdArea.classList.remove("hidden");
-        financeLedgerTable?.classList.remove("finance-ledger--lancamentos");
+        setFinanceLancListMode(false);
 
         const rows = [];
 
         const flySummary = document.getElementById("financeFlyoutSummaryCards");
         const caixaResumoPanel = document.getElementById("financeCaixaResumoPanel");
-        const financeStdTableWrap = document.querySelector("#financeStandardArea .section-card .table-wrap");
 
         if (currentFinanceView === "caixa") {
           if (flySummary) flySummary.classList.add("hidden");
           if (caixaResumoPanel) caixaResumoPanel.classList.remove("hidden");
           if (financeStdTableWrap) financeStdTableWrap.classList.remove("hidden");
           document.getElementById("financeCaixaScrollNotice")?.classList.remove("hidden");
-          document.getElementById("financeLancamentosScrollNotice")?.classList.add("hidden");
           const rSaldo = document.getElementById("fcResumoSaldo");
           const rSaldoM = document.getElementById("fcResumoSaldoMeta");
           const rEnt = document.getElementById("fcResumoEntradas");
@@ -12892,15 +12996,7 @@
 
         if (currentFinanceView === "lancamentos") {
           if (flySummary) flySummary.classList.remove("hidden");
-          financeLedgerTable?.classList.add("finance-ledger--lancamentos");
-          financeHead.innerHTML = `
-            <tr>
-              <th>Descrição</th>
-              <th>Categoria</th>
-              <th>Valor</th>
-              <th>Data</th>
-              <th>Status</th>
-            </tr>`;
+          setFinanceLancListMode(true);
           const qBusca = String(lancamentosFilter.busca || "").trim().toLowerCase();
           const cashByReceivable = new Map(
             state.cash
@@ -13018,28 +13114,12 @@
           if (financeLancPageInfo) financeLancPageInfo.textContent = `Página ${lancamentosPagination.page} de ${pages}`;
           if (financeLancPrevPage) financeLancPrevPage.disabled = lancamentosPagination.page <= 1;
           if (financeLancNextPage) financeLancNextPage.disabled = lancamentosPagination.page >= pages;
-          pageEntries.forEach((entry) => {
-            const statusClass =
-              entry.status === "PAGO" ? "finance-ft-status--pago" : "finance-ft-status--pendente";
-            const statusLabel = entry.status === "PAGO" ? "Pago" : "Pendente";
-            const descLine = entry.parte && entry.parte !== "-"
-              ? `${escapeHtml(entry.descricao)}<br /><span class="notice">${escapeHtml(entry.parte)}</span>`
-              : escapeHtml(entry.descricao);
-            const valorClass = entry.tipo === "RECEITA" ? "" : ' style="color: var(--danger, #dc2626)"';
-            rows.push(`
-              <tr>
-                <td>${descLine}</td>
-                <td><span class="tag">${escapeHtml(entry.categoria)}</span></td>
-                <td${valorClass}>${entry.tipo === "DESPESA" ? "− " : ""}${formatCurrency(entry.valor)}</td>
-                <td>${formatDate(entry.data)}</td>
-                <td><span class="finance-ft-status ${statusClass}">${statusLabel}</span></td>
-              </tr>
-            `);
-          });
-          if (!rows.length) {
-            setEmptyRow(tableFinance, "Nenhum lançamento encontrado.", 5);
-          } else {
-            tableFinance.innerHTML = rows.join("");
+          if (financeLancList) {
+            if (!pageEntries.length) {
+              financeLancList.innerHTML = `<div class="finance-lanc-empty">Nenhum lançamento encontrado.</div>`;
+            } else {
+              financeLancList.innerHTML = pageEntries.map((entry) => renderFinanceLancItem(entry)).join("");
+            }
           }
           return;
         }
@@ -13569,7 +13649,6 @@
           caixaFilter.month = caixaFilter.month || financeCompetencia || currentYearMonthLocal();
           if (financeCaixaMonth) financeCaixaMonth.value = caixaFilter.month;
         }
-        document.getElementById("financeLancamentosScrollNotice")?.classList.toggle("hidden", view !== "lancamentos");
         const triagemIntro = document.getElementById("financeAguardandoIntro");
         if (triagemIntro) {
           if (view === "triagem") {
