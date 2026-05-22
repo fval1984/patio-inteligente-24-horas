@@ -4337,7 +4337,7 @@
           <div id="appHeaderMenuBackdrop" class="header-menu-backdrop hidden" aria-hidden="true"></div>
           <div class="header-menu-tray">
             <div id="appHeaderMenu" class="header-menu-dropdown hidden" aria-label="Menu principal">
-              <button type="button" class="header-menu-top" data-view="dashboard">Painel</button>
+              <button type="button" class="header-menu-top" data-view="dashboard">AMPLIPATIO</button>
 
               <details class="header-menu-details" id="headerDetailsLista">
                 <summary>Lista</summary>
@@ -4418,7 +4418,7 @@
               spellcheck="false"
             />
             <button type="submit" id="plateSearchOk">OK</button>
-            <button type="button" class="secondary" id="goDashboardFromPlate">Painel</button>
+            <button type="button" class="secondary" id="goDashboardFromPlate">AMPLIPATIO</button>
             <button type="button" class="secondary" id="clearPlateFilter">Limpar</button>
           </form>
           <p class="notice plate-search-hint header-plate-search-hint hidden" aria-live="polite"></p>
@@ -4469,7 +4469,7 @@
       <section id="appPanel" class="hidden">
         <div id="gestorPistaWelcomeBanner" class="gestor-pista-welcome hidden" role="status">
           <p class="notice gestor-pista-welcome-text">
-            <strong>Gestor de pista.</strong> Entrou com o acesso que o gestor geral criou. Fica na <strong>Gestão de pátio</strong> (cadastro e consultas permitidas; sem valores completos, financeiro nem definições do dono). No <strong>menu</strong> (canto superior direito), use <strong>Painel</strong> para o resumo.
+            <strong>Gestor de pista.</strong> Entrou com o acesso que o gestor geral criou. Fica na <strong>Gestão de pátio</strong> (cadastro e consultas permitidas; sem valores completos, financeiro nem definições do dono). No <strong>menu</strong> (canto superior direito), use <strong>AMPLIPATIO</strong> para o resumo.
           </p>
           <button type="button" class="secondary" id="gestorPistaWelcomeDismiss">Entendi</button>
         </div>
@@ -4478,8 +4478,8 @@
         <div id="viewDashboard" class="panel dashboard-shell">
           <div class="toolbar dashboard-toolbar">
             <div class="dashboard-toolbar-text">
-              <p class="dashboard-kicker">Visão geral</p>
-              <h2>Painel</h2>
+              <p class="dashboard-kicker">Amplipatio</p>
+              <h2>AMPLIPATIO</h2>
               <div class="dashboard-system-entry" id="dashboardSystemEntry">
                 <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenPatio">
                   <span class="dashboard-system-btn__kicker">Operação</span>
@@ -4878,7 +4878,7 @@
             <div class="patio-inicio-head">
               <h3>Visão geral · Gestão de pátio</h3>
               <p class="patio-inicio-lede">
-                Resumo operacional só do pátio. Use os atalhos para abrir listas e fluxos. Para o hub dos dois sistemas, use <strong>Painel</strong> no menu (canto superior direito).
+                Resumo operacional só do pátio. Use os atalhos para abrir listas e fluxos. Para o hub dos dois sistemas, use <strong>AMPLIPATIO</strong> no menu (canto superior direito).
               </p>
             </div>
             <div class="patio-inicio-grid" aria-label="Indicadores do pátio">
@@ -14664,6 +14664,8 @@
           document.title = "Amplipatio · Gestão de pátio";
         } else if (view === "lista") {
           document.title = "Amplipatio · Lista";
+        } else if (view === "dashboard") {
+          document.title = "Amplipatio · AMPLIPATIO";
         } else {
           document.title = "Amplipatio";
         }
