@@ -4433,7 +4433,6 @@
                   <button type="button" data-header-patio="print">Imprimir</button>
                   <button type="button" data-header-patio-sub="no_patio">VNP</button>
                   <button type="button" data-header-patio-sub="removidos">VRP</button>
-                  <button type="button" data-header-patio-sub="nfse_pendente">NFSe pendente</button>
                 </div>
               </details>
 
@@ -4938,7 +4937,6 @@
                 <button type="button" class="secondary" id="patioMenuPrintList">Imprimir</button>
                 <button type="button" class="secondary" data-subview="no_patio">VNP</button>
                 <button type="button" class="secondary" data-subview="removidos">VRP</button>
-                <button type="button" class="secondary" data-subview="nfse_pendente">NFSe pendente</button>
               </nav>
             </div>
             <div class="actions">
@@ -4974,10 +4972,6 @@
                 <span class="label">VRP</span>
                 <span class="value" id="patioInicioVrp">0</span>
               </div>
-              <div class="patio-inicio-stat">
-                <span class="label">NFSe pendente</span>
-                <span class="value" id="patioInicioNfse">0</span>
-              </div>
             </div>
             <div class="dashboard-system-entry" style="margin-bottom: 0">
               <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" data-patio-inicio-go="no_patio">
@@ -4991,12 +4985,6 @@
                 <span class="dashboard-system-btn__title">VRP</span>
                 <span class="dashboard-system-btn__desc">Veículos removidos e situação pós-saída.</span>
                 <span class="dashboard-system-btn__go">Abrir VRP →</span>
-              </button>
-              <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" data-patio-inicio-go="nfse_pendente">
-                <span class="dashboard-system-btn__kicker">Fiscal</span>
-                <span class="dashboard-system-btn__title">NFSe pendente</span>
-                <span class="dashboard-system-btn__desc">Veículos com emissão de nota em aberto.</span>
-                <span class="dashboard-system-btn__go">Abrir lista →</span>
               </button>
             </div>
           </div>
@@ -5082,27 +5070,6 @@
                   </tr>
                 </thead>
                 <tbody id="tableRemovidos"></tbody>
-                </table>
-              </div>
-            </div>
-            <div class="section-card patio-subview hidden" data-subview="nfse_pendente">
-              <div class="pill">NFSe pendente</div>
-              <div class="table-wrap">
-                <table class="table stacked">
-                <thead>
-                  <tr>
-                    <th>Placa</th>
-                    <th>Registo</th>
-                    <th>Veículo</th>
-                    <th>RPV</th>
-                    <th>Assessoria</th>
-                    <th>RPF</th>
-                    <th>Entrada</th>
-                    <th>Valor gerado</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody id="tableNfsePendentes"></tbody>
                 </table>
               </div>
             </div>
@@ -6834,7 +6801,6 @@
       const tableConfirmada = document.getElementById("tableConfirmada");
       const tableRemocaoConfirmada = document.getElementById("tableRemocaoConfirmada");
       const tableRemovidos = document.getElementById("tableRemovidos");
-      const tableNfsePendentes = document.getElementById("tableNfsePendentes");
       const tableFechamentoCiclo = document.getElementById("tableFechamentoCiclo");
       const tableLocalizadores = document.getElementById("tableLocalizadores");
       const tableAssessorias = document.getElementById("tableAssessorias");
@@ -9584,7 +9550,7 @@
             .join("");
           pushTable(
             "NFSe pendente",
-            "Mesmo critério da aba do sistema (status pendente); período pela data da solicitação ou, se vazia, pela entrada",
+            "Veículos com NFSe pendente; período pela data da solicitação ou, se vazia, pela entrada",
             "<th>Veículo</th><th>Data de entrada</th><th>Solicitação NFSe</th><th>RPV</th><th>Assessoria</th>" +
               patioPrintMoneyHeaderHtml() +
               "<th>Observações</th>",
@@ -10082,7 +10048,6 @@
         document.getElementById("printPatioByPartner")?.classList.remove("hidden");
         document.getElementById("printPatioLiberados")?.classList.remove("hidden");
         patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.remove("hidden");
-        patioSubnav?.querySelector('[data-subview="nfse_pendente"]')?.classList.remove("hidden");
         patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.remove("hidden");
         const vehicleDailyReset = document.getElementById("vehicleDaily");
         const vehicleDailyWrap = vehicleDailyReset?.closest("div");
@@ -10117,7 +10082,7 @@
         });
         document
           .querySelectorAll(
-            '#headerDetailsPatio [data-header-patio-sub="removidos"], #headerDetailsPatio [data-header-patio-sub="nfse_pendente"], #headerDetailsPatio [data-header-patio-sub="fechando_ciclo"]'
+            '#headerDetailsPatio [data-header-patio-sub="removidos"], #headerDetailsPatio [data-header-patio-sub="fechando_ciclo"]'
           )
           .forEach((el) => el.classList.add("hidden"));
         document.getElementById("dashboardModuleFinanceWrap")?.classList.add("hidden");
@@ -10135,7 +10100,6 @@
         document.getElementById("printPatioByPartner")?.classList.add("hidden");
         document.getElementById("printPatioLiberados")?.classList.add("hidden");
         patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.add("hidden");
-        patioSubnav?.querySelector('[data-subview="nfse_pendente"]')?.classList.add("hidden");
         patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.add("hidden");
 
         const style = document.createElement("style");
@@ -10143,10 +10107,6 @@
         let css = `
           #viewPatio [data-subview="no_patio"] table thead th:nth-child(6),
           #viewPatio [data-subview="no_patio"] table tbody td:nth-child(6) {
-            display: none !important;
-          }
-          #viewPatio [data-subview="nfse_pendente"] table thead th:nth-child(6),
-          #viewPatio [data-subview="nfse_pendente"] table tbody td:nth-child(6) {
             display: none !important;
           }
           #viewPatio [data-subview="removidos"] table thead th:nth-child(7),
@@ -10816,19 +10776,16 @@
         if (elVrp) elVrp.textContent = String(entradasHoje);
         if (elNfse) elNfse.textContent = String(saidasHoje);
         const removidosCount = (state.vehicles || []).filter((v) => v.status === "REMOVIDO").length;
-        const nfsePendCount = (state.vehicles || []).filter((v) => v.nfse_status === "PENDENTE").length;
         const piVnp = document.getElementById("patioInicioVnp");
         const piLib = document.getElementById("patioInicioLiberacao");
         const piEH = document.getElementById("patioInicioEntradasHoje");
         const piSH = document.getElementById("patioInicioSaidasHoje");
         const piVrp = document.getElementById("patioInicioVrp");
-        const piNfse = document.getElementById("patioInicioNfse");
         if (piVnp) piVnp.textContent = String(noPatio.length + vls.length);
         if (piLib) piLib.textContent = String(vls.length);
         if (piEH) piEH.textContent = String(entradasHoje);
         if (piSH) piSH.textContent = String(saidasHoje);
         if (piVrp) piVrp.textContent = String(removidosCount);
-        if (piNfse) piNfse.textContent = String(nfsePendCount);
 
         // Cards financeiros do painel principal.
         const dashboardFinanceReceberValue = document.getElementById("dashboardFinanceReceberValue");
@@ -10899,7 +10856,6 @@
 
       function resolvePlateSearchSubview(v) {
         if (!v) return "no_patio";
-        if (v.nfse_status === "PENDENTE") return "nfse_pendente";
         if (v.status === "REMOVIDO") {
           const r = latestReceivableForVehicle(v.id);
           if (r && receivableNaFilaFechamentoCicloPatio(r)) return "removidos";
@@ -11083,7 +11039,6 @@
             byStatus[v.status].push(v);
           }
         });
-        const nfsePendentes = filteredVehicles.filter((v) => v.nfse_status === "PENDENTE");
         const fechamentoCicloReceivables = (state.receivables || []).filter(
           (r) =>
             receivableNaFilaFechamentoCicloPatio(r) && filteredVehicles.some((v) => v.id === r.vehicle_id)
@@ -11122,19 +11077,6 @@
           if (patioCardMeta1) patioCardMeta1.textContent = "veículos removidos";
           if (patioCardMeta2) patioCardMeta2.textContent = isGestorPista ? "valores ocultos" : "soma dos removidos";
           if (patioCardMeta3) patioCardMeta3.textContent = "com data de saída";
-        } else if (currentPatioView === "nfse_pendente") {
-          if (patioCardTitle1) patioCardTitle1.textContent = "NFSe pendente";
-          if (patioCardTitle2) patioCardTitle2.textContent = "Valor estimado";
-          if (patioCardTitle3) patioCardTitle3.textContent = "Veículos em liberação";
-          if (patioCardValue1) patioCardValue1.textContent = String(nfsePendentes.length);
-          if (patioCardValue2)
-            patioCardValue2.textContent = formatCurrency(
-              nfsePendentes.reduce((s, v) => s + (isGestorPista ? 0 : Number(calcTotal(v) || 0)), 0)
-            );
-          if (patioCardValue3) patioCardValue3.textContent = String(vlsForTable.length);
-          if (patioCardMeta1) patioCardMeta1.textContent = "aguardando emissão";
-          if (patioCardMeta2) patioCardMeta2.textContent = isGestorPista ? "valores ocultos" : "base operacional";
-          if (patioCardMeta3) patioCardMeta3.textContent = "pipeline atual";
         } else if (currentPatioView === "fechando_ciclo") {
           if (patioCardTitle1) patioCardTitle1.textContent = "Fechando ciclo";
           if (patioCardTitle2) patioCardTitle2.textContent = "Valor em triagem";
@@ -11163,19 +11105,18 @@
 
         renderVnpUnifiedTable(tableNoPatio, vnpUnified);
         renderRemovedVehicles(tableRemovidos, byStatus.REMOVIDO);
-        renderVehicleTable(tableNfsePendentes, nfsePendentes, "nfse_pendente");
         renderFechamentoCicloTable(tableFechamentoCiclo, fechamentoCicloReceivables);
         updateDashboard();
 
         if (qNorm) {
-          applyGlobalPlateSearchLayout(byStatus, nfsePendentes, vlsForTable.length, fechamentoCicloReceivables.length);
+          applyGlobalPlateSearchLayout(byStatus, vlsForTable.length, fechamentoCicloReceivables.length);
         } else {
           setPlateSearchHints("", false);
           setPatioView(currentPatioView, { silent: true });
         }
       }
 
-      function applyGlobalPlateSearchLayout(byStatus, nfsePendentesList, vlsFilteredCount, fechandoCicloCount) {
+      function applyGlobalPlateSearchLayout(byStatus, vlsFilteredCount, fechandoCicloCount) {
         const vlsCount =
           typeof vlsFilteredCount === "number"
             ? vlsFilteredCount
@@ -11185,10 +11126,9 @@
         const counts = {
           no_patio: unifiedVnpCount,
           removidos: byStatus.REMOVIDO.length,
-          nfse_pendente: nfsePendentesList.length,
           fechando_ciclo: nFech,
         };
-        const total = counts.no_patio + counts.removidos + counts.nfse_pendente + counts.fechando_ciclo;
+        const total = counts.no_patio + counts.removidos + counts.fechando_ciclo;
 
         setPlateSearchHints(total === 0 ? "Nenhum veículo com esta placa." : "", total === 0);
 
@@ -11301,6 +11241,7 @@
       function setPatioView(view, opts = {}) {
         const silent = opts.silent === true;
         if (view === "liberacao_solicitada") view = "no_patio";
+        if (view === "nfse_pendente") view = "no_patio";
         currentPatioView = view;
         const isNone = !view || view === "none";
         const isDashboard = view === "dashboard";
@@ -11376,76 +11317,6 @@
         }
         if (partnerEmailWrap) partnerEmailWrap.classList.toggle("hidden", isAssessoria);
         if (isAssessoria && partnerEmailInput) partnerEmailInput.value = "";
-      }
-
-      function renderVehicleTable(tbody, items, actionType) {
-        if (!items.length) {
-          setEmptyRow(tbody, "Nenhum veículo encontrado.", 9);
-          return;
-        }
-        const semValores = isGestorPista;
-        tbody.innerHTML = items
-          .map((v) => {
-            const total = calcTotal(v);
-            const localizador =
-              state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
-            const assessoria =
-              state.partners.find((p) => p.id === v.assessoria_id)?.nome || "-";
-            const rpfNome = vehicleRpfNome(v);
-            const actionLabels = {
-              solicitar: "Liberação solicitada",
-              confirmar_liberacao: "Liberação confirmada",
-              remocao_solicitada: "Remoção solicitada",
-              confirmar: "Remoção efetivada",
-              nfse_pendente: "NFSe solicitada",
-            };
-
-            const valorCell = semValores
-              ? "-"
-              : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
-
-            let actionsCell = "";
-            if (isGestorPista) {
-              if (actionType === "confirmar_liberacao") {
-                actionsCell = `<button class="secondary" data-action="confirmar_liberacao" data-id="${v.id}">Liberação confirmada</button>`;
-              } else {
-                actionsCell = `<span class="notice">Sem permissão de ação</span>`;
-              }
-            } else {
-              const voltarBtn =
-                ["LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA"].includes(v.status) ||
-                (v.status === "NO_PATIO" && isRemocaoSolicitada(v))
-                  ? `<button class="secondary" data-action="voltar" data-id="${v.id}" title="Volta um passo no fluxo de liberação">Voltar</button>`
-                  : "";
-              actionsCell = `
-                  <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
-                  ${
-                    actionType === "nfse_pendente"
-                      ? `<button class="secondary" data-action="nfse" data-id="${v.id}">${actionLabels[actionType]}</button>`
-                      : `<button class="secondary" data-action="nfse" data-id="${v.id}">NFSe solicitada</button>
-                         <button class="secondary" data-action="${actionType}" data-id="${v.id}">${actionLabels[actionType]}</button>`
-                  }
-                  ${voltarBtn}
-                  <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
-                  <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
-                `;
-            }
-
-            return `
-              <tr data-vehicle-row="${v.id}">
-                <td data-label="Placa">${v.placa || "-"}</td>
-                <td data-label="Registo">${patioRegistoBadgeHtml("vnp")}</td>
-                <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
-                <td data-label="RPV">${localizador}</td>
-                <td data-label="Assessoria">${assessoria}</td>
-                <td data-label="RPF">${escapeHtml(rpfNome)}</td>
-                <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
-                <td data-label="Valor">${valorCell}</td>
-                <td class="actions" data-label="Ações">${actionsCell}</td>
-              </tr>
-            `;
-          })
-          .join("");
       }
 
       function renderFechamentoCicloTable(tbody, items) {
@@ -14893,6 +14764,7 @@
 
       function openPatioSubview(sub) {
         if (sub === "liberacao_solicitada") sub = "no_patio";
+        if (sub === "nfse_pendente") sub = "no_patio";
         if (sub === "fechando_ciclo") sub = "removidos";
         const top = navStack[navStack.length - 1];
         if (!sub) return;
