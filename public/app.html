@@ -4132,14 +4132,81 @@
       #viewFinanceiro.finance-fintracker .finance-ft-kpi-row--3 {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
+      #viewFinanceiro.finance-fintracker .finance-ft-kpi-row--6 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-resumo-card--profit strong {
+        color: #86efac;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-resumo-card--loss strong {
+        color: #fca5a5;
+      }
+      [data-theme="light"] #viewFinanceiro.finance-fintracker .finance-ft-resumo-card--profit strong {
+        color: #166534;
+      }
+      [data-theme="light"] #viewFinanceiro.finance-fintracker .finance-ft-resumo-card--loss strong {
+        color: #b91c1c;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-charts {
+        border-radius: var(--ft-radius);
+        border: 1px solid var(--ft-border);
+        background: var(--ft-surface-elevated);
+        padding: 18px 16px;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-charts-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-charts-head h4 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--ft-text);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-charts-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-chart-card {
+        border: 1px solid var(--ft-border);
+        border-radius: 12px;
+        padding: 12px;
+        background: rgba(15, 19, 26, 0.35);
+      }
+      [data-theme="light"] #viewFinanceiro.finance-fintracker .finance-ft-chart-card {
+        background: rgba(248, 250, 252, 0.9);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-chart-title {
+        margin: 0 0 8px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--ft-muted);
+      }
+      #viewFinanceiro.finance-fintracker .finance-ft-chart-svg {
+        width: 100%;
+        height: 130px;
+        display: block;
+      }
       @media (max-width: 1100px) {
         #viewFinanceiro.finance-fintracker .finance-ft-kpi-row--4 {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
+        #viewFinanceiro.finance-fintracker .finance-ft-kpi-row--6 {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        #viewFinanceiro.finance-fintracker .finance-ft-charts-grid {
+          grid-template-columns: 1fr;
+        }
       }
       @media (max-width: 640px) {
         #viewFinanceiro.finance-fintracker .finance-ft-kpi-row--4,
-        #viewFinanceiro.finance-fintracker .finance-ft-kpi-row--3 {
+        #viewFinanceiro.finance-fintracker .finance-ft-kpi-row--3,
+        #viewFinanceiro.finance-fintracker .finance-ft-kpi-row--6 {
           grid-template-columns: 1fr;
         }
       }
@@ -4472,14 +4539,10 @@
                 <summary>Financeiro</summary>
                 <div class="header-menu-nested">
                   <button type="button" data-header-finance-panel="true">Dashboard</button>
-                  <button type="button" data-header-finance-sub="lancamentos">Lançamentos</button>
-                  <button type="button" data-header-finance-sub="clientes">Clientes</button>
-                  <button type="button" data-header-finance-sub="receber">Receber</button>
-                  <button type="button" data-header-finance-sub="caixa">Caixa</button>
-                  <button type="button" data-header-finance-sub="triagem" class="hidden" id="financeHeaderTriagem">Triagem</button>
-                  <button type="button" data-header-finance-sub="ajustes">Ajustes</button>
-                  <button type="button" data-header-finance-sub="faturamento">Faturamento</button>
-                  <button type="button" data-header-finance-sub="relatorios">Relatórios</button>
+                  <button type="button" data-header-finance-sub="receitas">Controle de Receitas</button>
+                  <button type="button" data-header-finance-sub="despesas">Controle de Despesas</button>
+                  <button type="button" data-header-finance-sub="contas_pagar">Contas a Pagar</button>
+                  <button type="button" data-header-finance-sub="contas_receber">Contas a Receber</button>
                   <button type="button" data-header-finance-action="financeMenuReload">Atualizar dados</button>
                 </div>
               </details>
@@ -5260,17 +5323,11 @@
               </div>
               <nav id="financeSubnav" class="subnav finance-nav-inline finance-ft-nav" aria-label="Navegação financeira">
                 <button type="button" class="secondary finance-ft-nav-btn" data-subview="dashboard"><span class="finance-ft-nav-icon" aria-hidden="true">📊</span>Dashboard</button>
-                <button type="button" class="secondary finance-ft-nav-btn" data-subview="lancamentos"><span class="finance-ft-nav-icon" aria-hidden="true">📒</span>Lançamentos</button>
-                <button type="button" class="secondary finance-ft-nav-btn" data-subview="clientes"><span class="finance-ft-nav-icon" aria-hidden="true">👥</span>Clientes</button>
+                <button type="button" class="secondary finance-ft-nav-btn" data-subview="receitas"><span class="finance-ft-nav-icon" aria-hidden="true">📈</span>Controle de Receitas</button>
+                <button type="button" class="secondary finance-ft-nav-btn" data-subview="despesas"><span class="finance-ft-nav-icon" aria-hidden="true">📉</span>Controle de Despesas</button>
+                <button type="button" class="secondary finance-ft-nav-btn" data-subview="contas_pagar"><span class="finance-ft-nav-icon" aria-hidden="true">📤</span>Contas a Pagar</button>
+                <button type="button" class="secondary finance-ft-nav-btn" data-subview="contas_receber"><span class="finance-ft-nav-icon" aria-hidden="true">📥</span>Contas a Receber</button>
                 <div class="finance-ft-nav-divider" aria-hidden="true"></div>
-                <div class="finance-ft-nav-section">Operação</div>
-                <button type="button" class="secondary finance-ft-nav-btn" data-subview="receber"><span class="finance-ft-nav-icon" aria-hidden="true">📥</span>Receber</button>
-                <button type="button" class="secondary finance-ft-nav-btn" data-subview="caixa"><span class="finance-ft-nav-icon" aria-hidden="true">💵</span>Caixa</button>
-                <button type="button" class="secondary finance-ft-nav-btn finance-ft-nav-btn--muted hidden" data-subview="triagem" id="financeNavTriagem"><span class="finance-ft-nav-icon" aria-hidden="true">📋</span>Triagem</button>
-                <div class="finance-ft-nav-divider" aria-hidden="true"></div>
-                <button type="button" class="secondary finance-ft-nav-btn finance-ft-nav-btn--muted" data-subview="ajustes"><span class="finance-ft-nav-icon" aria-hidden="true">⚙️</span>Ajustes</button>
-                <button type="button" class="secondary finance-ft-nav-btn finance-ft-nav-btn--muted" data-subview="faturamento"><span class="finance-ft-nav-icon" aria-hidden="true">🧾</span>Faturamento</button>
-                <button type="button" class="secondary finance-ft-nav-btn finance-ft-nav-btn--muted" data-subview="relatorios"><span class="finance-ft-nav-icon" aria-hidden="true">📈</span>Relatórios</button>
                 <button type="button" class="secondary finance-ft-nav-btn finance-ft-nav-btn--muted" id="financeMenuReload"><span class="finance-ft-nav-icon" aria-hidden="true">↻</span>Atualizar dados</button>
               </nav>
               <div class="finance-modern-sidebar-actions">
@@ -5336,7 +5393,7 @@
             </select>
             <button type="button" class="secondary" id="clearFinanceReceberFilters">Limpar filtros</button>
             <span class="notice" style="flex-basis: 100%; margin-top: 6px; line-height: 1.45">
-              Esses filtros aplicam-se apenas à subaba <strong>Receber</strong>.
+              Esses filtros aplicam-se apenas à subaba <strong>Contas a Receber</strong>.
             </span>
           </div>
           <p id="financeAguardandoIntro" class="notice hidden" style="margin: 4px 0 14px; max-width: 56rem; line-height: 1.45"></p>
@@ -5429,13 +5486,13 @@
             <div id="financeDetailDashboard" class="section-card fin-dash-panel finance-ft-dashboard hidden" style="margin-top: 0">
               <div class="finance-ft-page-intro">
                 <h3>Dashboard</h3>
-                <p>Visão geral do seu negócio — indicadores do mês selecionado.</p>
+                <p>Visão geral financeira do mês selecionado — saldo, fluxo e pendências.</p>
               </div>
-              <div class="finance-ft-kpi-row finance-ft-kpi-row--4">
+              <div class="finance-ft-kpi-row finance-ft-kpi-row--6">
                 <div class="finance-ft-kpi-card finance-ft-kpi-card--green">
                   <div class="finance-ft-kpi-icon" aria-hidden="true">💰</div>
                   <div>
-                    <div class="finance-ft-kpi-label">Saldo em caixa</div>
+                    <div class="finance-ft-kpi-label">Saldo atual</div>
                     <div class="finance-ft-kpi-value" id="fdSaldoTotal">R$ 0,00</div>
                     <div class="finance-ft-kpi-sub" id="fdSaldoTotalMeta">Posição consolidada</div>
                   </div>
@@ -5456,6 +5513,19 @@
                     <div class="finance-ft-kpi-sub" id="fdDespesasMesMeta">Saídas no período</div>
                   </div>
                 </div>
+                <div class="finance-ft-resumo-card" id="fdLucroCard">
+                  <span class="finance-ft-kpi-label">Lucro ou prejuízo</span>
+                  <strong id="fdLucroLiquido">R$ 0,00</strong>
+                  <div class="finance-ft-kpi-sub" id="fdLucroLiquidoMeta">Receitas − despesas operacionais</div>
+                </div>
+                <div class="finance-ft-kpi-card finance-ft-kpi-card--amber">
+                  <div class="finance-ft-kpi-icon" aria-hidden="true">📤</div>
+                  <div>
+                    <div class="finance-ft-kpi-label">Contas a pagar</div>
+                    <div class="finance-ft-kpi-value" id="fdContasPagar">R$ 0,00</div>
+                    <div class="finance-ft-kpi-sub" id="fdContasPagarMeta">0 título(s) pendente(s)</div>
+                  </div>
+                </div>
                 <div class="finance-ft-kpi-card finance-ft-kpi-card--amber">
                   <div class="finance-ft-kpi-icon" aria-hidden="true">📥</div>
                   <div>
@@ -5466,26 +5536,68 @@
                 </div>
               </div>
               <div class="finance-ft-kpi-row finance-ft-kpi-row--3">
-                <div class="finance-ft-resumo-card">
-                  <span class="finance-ft-kpi-label">Lucro líquido do mês</span>
-                  <strong id="fdLucroLiquido">R$ 0,00</strong>
-                  <div class="finance-ft-kpi-sub" id="fdLucroLiquidoMeta">Receitas − despesas operacionais</div>
+                <div class="finance-ft-kpi-card">
+                  <div class="finance-ft-kpi-icon" aria-hidden="true">💵</div>
+                  <div>
+                    <div class="finance-ft-kpi-label">Caixa</div>
+                    <div class="finance-ft-kpi-value" id="fdIndCaixa">R$ 0,00</div>
+                    <div class="finance-ft-kpi-sub" id="fdIndCaixaMeta">Movimentos em dinheiro</div>
+                  </div>
                 </div>
-                <div class="finance-ft-resumo-card">
-                  <span class="finance-ft-kpi-label">Clientes (localizadores)</span>
-                  <strong id="fdClientesAtivos">0</strong>
-                  <div class="finance-ft-kpi-sub" id="fdClientesAtivosMeta">Cadastrados no sistema</div>
+                <div class="finance-ft-kpi-card">
+                  <div class="finance-ft-kpi-icon" aria-hidden="true">🏦</div>
+                  <div>
+                    <div class="finance-ft-kpi-label">Banco</div>
+                    <div class="finance-ft-kpi-value" id="fdIndBanco">R$ 0,00</div>
+                    <div class="finance-ft-kpi-sub" id="fdIndBancoMeta">PIX, transferência, boleto</div>
+                  </div>
                 </div>
-                <div class="finance-ft-resumo-card">
-                  <span class="finance-ft-kpi-label">Lançamentos pendentes</span>
-                  <strong id="fdTriagemPendente">0</strong>
-                  <div class="finance-ft-kpi-sub" id="fdTriagemPendenteMeta">Receitas e despesas manuais em aberto</div>
+                <div class="finance-ft-kpi-card">
+                  <div class="finance-ft-kpi-icon" aria-hidden="true">💳</div>
+                  <div>
+                    <div class="finance-ft-kpi-label">Cartões</div>
+                    <div class="finance-ft-kpi-value" id="fdIndCartoes">R$ 0,00</div>
+                    <div class="finance-ft-kpi-sub" id="fdIndCartoesMeta">Crédito e débito</div>
+                  </div>
+                </div>
+              </div>
+              <div class="finance-ft-charts">
+                <div class="finance-ft-charts-head">
+                  <h4>Evolução financeira</h4>
+                  <label style="font-size: 12px; color: var(--ft-muted)">
+                    Período
+                    <select id="financeChartPeriod" style="margin-left: 6px; min-width: 7rem">
+                      <option value="dia">Dia</option>
+                      <option value="semana">Semana</option>
+                      <option value="mes" selected>Mês</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="finance-ft-charts-grid">
+                  <div class="finance-ft-chart-card">
+                    <p class="finance-ft-chart-title">Fluxo de caixa (entrada vs saída)</p>
+                    <svg id="ffCashFlowSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                  </div>
+                  <div class="finance-ft-chart-card">
+                    <p class="finance-ft-chart-title">Saldo (evolução)</p>
+                    <svg id="ffBalanceSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                  </div>
+                  <div class="finance-ft-chart-card">
+                    <p class="finance-ft-chart-title">Receitas vs despesas</p>
+                    <svg id="ffCompareSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                  </div>
+                  <div class="finance-ft-chart-card">
+                    <p class="finance-ft-chart-title">Contas a pagar vs receber (aging)</p>
+                    <svg id="ffAgingSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                    <div class="finance-ft-kpi-sub" style="margin-top: 6px">Azul: a receber • Vermelho: a pagar</div>
+                  </div>
                 </div>
               </div>
               <div class="finance-ft-quick-links">
-                <button type="button" class="secondary" data-finance-quick="receber">Ir para Receber</button>
-                <button type="button" class="secondary" data-finance-quick="lancamentos">Ver lançamentos</button>
-                <button type="button" class="secondary" data-finance-quick="caixa">Ver caixa</button>
+                <button type="button" class="secondary" data-finance-quick="receitas">Controle de receitas</button>
+                <button type="button" class="secondary" data-finance-quick="despesas">Controle de despesas</button>
+                <button type="button" class="secondary" data-finance-quick="contas_pagar">Contas a pagar</button>
+                <button type="button" class="secondary" data-finance-quick="contas_receber">Contas a receber</button>
               </div>
             </div>
             <div id="financeClientesArea" class="section-card hidden" style="margin-top: 0">
@@ -6959,6 +7071,62 @@
 
       /** Pátio não alimenta mais o financeiro — lançamentos só via modal manual. */
       const FINANCE_MANUAL_ONLY = true;
+
+      const FINANCE_VIEW_LABELS = {
+        dashboard: "Dashboard",
+        receitas: "Controle de Receitas",
+        despesas: "Controle de Despesas",
+        contas_pagar: "Contas a Pagar",
+        contas_receber: "Contas a Receber",
+        lancamentos: "Controle de Receitas",
+        receber: "Contas a Receber",
+        ajustes: "Contas a Pagar",
+        caixa: "Dashboard",
+        clientes: "Clientes",
+        triagem: "Triagem",
+        relatorios: "Relatórios",
+        faturamento: "Faturamento",
+      };
+
+      function financeNormalizeSubview(view) {
+        if (!view || view === "none") return view;
+        if (view === "filtros" || view === "metas" || view === "controle_dual") return "dashboard";
+        if (view === "lancamentos") return "receitas";
+        if (view === "ajustes" || view === "pagar") return "contas_pagar";
+        if (view === "receber" || view === "receber_alerta") return "contas_receber";
+        if (view === "caixa" || view === "fluxo_caixa") return "dashboard";
+        if (view === "pre_lancamento" || view === "aguardando_lancamento") {
+          return FINANCE_MANUAL_ONLY ? "receitas" : "triagem";
+        }
+        return view;
+      }
+
+      function financeIsLancamentosView(view) {
+        return ["lancamentos", "receitas", "despesas"].includes(view);
+      }
+
+      function financeIsPagarView(view) {
+        return ["ajustes", "contas_pagar", "pagar"].includes(view);
+      }
+
+      function financeIsReceberView(view) {
+        return ["receber", "contas_receber", "receber_alerta"].includes(view);
+      }
+
+      function financePaymentChannelTotals(monthYm, cashList) {
+        const totals = { caixa: 0, banco: 0, cartoes: 0 };
+        (cashList || []).forEach((mov) => {
+          const ymd = toLocalYmd(mov.data_movimento || mov.created_at);
+          if (!ymd || yearMonthFromYmd(ymd) !== monthYm) return;
+          const val = Number(mov.valor || 0);
+          if (!val) return;
+          const fp = (mov.forma_pagamento || "").toLowerCase();
+          if (/cart|cred|deb/.test(fp)) totals.cartoes += val;
+          else if (/pix|transf|boleto|ted|doc|bank|banc/.test(fp)) totals.banco += val;
+          else totals.caixa += val;
+        });
+        return totals;
+      }
 
       function isManualFinanceLancamento(r) {
         if (!r) return false;
@@ -10423,7 +10591,15 @@
         updateDashboard();
       }
 
-      function renderDashboardFinanceCharts(period) {
+      function renderDashboardFinanceCharts(period, svgIds) {
+        const ids = svgIds || {
+          flow: "dashboardCashFlowSvg",
+          balance: "dashboardBalanceSvg",
+          compare: "dashboardCompareSvg",
+          expense: "dashboardExpenseCategorySvg",
+          clients: "dashboardTopClientsSvg",
+          aging: "dashboardAgingSvg",
+        };
         const mode = ["dia", "semana", "mes"].includes(period) ? period : "mes";
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -10492,7 +10668,7 @@
         const flowPointsOut = buckets
           .map((b, i) => `${18 + (i * 320) / Math.max(1, buckets.length - 1)},${108 - (b.saida / maxFlow) * 84}`)
           .join(" ");
-        const flowSvg = document.getElementById("dashboardCashFlowSvg");
+        const flowSvg = document.getElementById(ids.flow);
         if (flowSvg) {
           flowSvg.innerHTML = `
             <polyline points="${flowPointsIn}" fill="none" stroke="#38bdf8" stroke-width="3"></polyline>
@@ -10511,11 +10687,11 @@
         const saldoPoints = saldos
           .map((v, i) => `${18 + (i * 320) / Math.max(1, saldos.length - 1)},${108 - ((v - minSaldo) / spanSaldo) * 84}`)
           .join(" ");
-        const balanceSvg = document.getElementById("dashboardBalanceSvg");
+        const balanceSvg = document.getElementById(ids.balance);
         if (balanceSvg) {
           balanceSvg.innerHTML = `<polyline points="${saldoPoints}" fill="none" stroke="#e11d2e" stroke-width="3"></polyline>`;
         }
-        const compareSvg = document.getElementById("dashboardCompareSvg");
+        const compareSvg = document.getElementById(ids.compare);
         if (compareSvg) {
           const slot = 320 / Math.max(1, buckets.length);
           const barW = Math.max(6, Math.min(16, slot / 3));
@@ -10542,7 +10718,7 @@
           .sort((a, b) => b[1] - a[1])
           .slice(0, 5);
         const expenseMax = Math.max(1, ...expenseRows.map(([, v]) => v));
-        const expenseSvg = document.getElementById("dashboardExpenseCategorySvg");
+        const expenseSvg = document.getElementById(ids.expense);
         if (expenseSvg) {
           expenseSvg.innerHTML = expenseRows.length
             ? expenseRows
@@ -10568,7 +10744,7 @@
           .sort((a, b) => b[1] - a[1])
           .slice(0, 5);
         const topClientsMax = Math.max(1, ...topClients.map(([, v]) => v));
-        const topClientsSvg = document.getElementById("dashboardTopClientsSvg");
+        const topClientsSvg = document.getElementById(ids.clients);
         if (topClientsSvg) {
           topClientsSvg.innerHTML = topClients.length
             ? topClients
@@ -10616,7 +10792,7 @@
           placeAging(daysUntil(ymd), Number(p.valor || 0), "pagar");
         });
         const agingMax = Math.max(1, ...agingBuckets.map((b) => b.receber), ...agingBuckets.map((b) => b.pagar));
-        const agingSvg = document.getElementById("dashboardAgingSvg");
+        const agingSvg = document.getElementById(ids.aging);
         if (agingSvg) {
           agingSvg.innerHTML = agingBuckets
             .map((b, idx) => {
@@ -10631,6 +10807,16 @@
             })
             .join("");
         }
+      }
+
+      function renderFinanceModuleCharts() {
+        const period = document.getElementById("financeChartPeriod")?.value || "mes";
+        renderDashboardFinanceCharts(period, {
+          flow: "ffCashFlowSvg",
+          balance: "ffBalanceSvg",
+          compare: "ffCompareSvg",
+          aging: "ffAgingSvg",
+        });
       }
 
       function updateDashboard() {
@@ -12479,7 +12665,7 @@
             c2: "tag danger",
             c3: "tag warning",
           });
-        } else if (currentFinanceView === "lancamentos") {
+        } else if (financeIsLancamentosView(currentFinanceView)) {
           setFinanceSummaryCards({
             t1: "Total de receitas em aberto",
             v1: formatCurrency(sumReceivablesFiltered),
@@ -12494,7 +12680,7 @@
             c2: "tag danger",
             c3: caixa >= 0 ? "tag success" : "tag warning",
           });
-        } else if (currentFinanceView === "receber") {
+        } else if (financeIsReceberView(currentFinanceView)) {
           const ticket = receivablesFiltered.length ? sumReceivablesFiltered / receivablesFiltered.length : 0;
           setFinanceSummaryCards({
             t1: "Total a receber",
@@ -12510,18 +12696,22 @@
             c2: "tag",
             c3: "tag danger",
           });
-        } else if (currentFinanceView === "ajustes") {
+        } else if (financeIsPagarView(currentFinanceView)) {
           const media = payablesFiltered.length ? sumPayablesFiltered / Math.max(1, payablesFiltered.length) : 0;
+          const overduePagar = payablesFiltered.filter((p) => {
+            const due = (p.data_vencimento || "").slice(0, 10);
+            return due && due < todayYmdLocal;
+          });
           setFinanceSummaryCards({
-            t1: "Descontos / ajustes",
+            t1: "Total a pagar",
             v1: formatCurrency(sumPayablesFiltered),
-            m1: `${payablesFiltered.length} ajuste(s)`,
-            t2: "Médio por ajuste",
+            m1: `${payablesFiltered.length} pendente(s)`,
+            t2: "Ticket médio",
             v2: formatCurrency(media),
-            m2: "valor médio",
-            t3: "Maior ajuste",
-            v3: formatCurrency(maxPagar),
-            m3: "valor unitário",
+            m2: "por título",
+            t3: "Vencidas",
+            v3: String(overduePagar.length),
+            m3: "em atraso",
             c1: "tag warning",
             c2: "tag",
             c3: "tag danger",
@@ -12669,15 +12859,10 @@
             const flags = receberFlags[String(r.id)] || {};
             return r.status !== "PAGO" && !flags.isento;
           });
-          const vencidos = receberPendentes.filter((r) => {
-            const refDate = (r.period_end || r.created_at || "").toString().slice(0, 10);
-            return !!refDate && refDate < todayYmd;
-          });
+          const pagarPendentes = (state.payables || []).filter((p) => p.status === "EM_ABERTO");
+          const totalPagarDash = pagarPendentes.reduce((sum, p) => sum + Number(p.valor || 0), 0);
           const totalReceberDash = receberPendentes.reduce((sum, r) => sum + Number(r.valor || 0), 0);
-          const localizadores = (state.partners || []).filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
-          const triagemCount = FINANCE_MANUAL_ONLY
-            ? receberPendentes.length + (state.payables || []).filter((p) => p.status === "EM_ABERTO").length
-            : (state.receivables || []).filter((r) => receivableNaFilaAguardandoTriagem(r)).length;
+          const payChannels = financePaymentChannelTotals(monthKeyFin, state.cash || []);
 
           _set("fdSaldoTotal", formatCurrency(caixa));
           _set("fdSaldoTotalMeta", caixa >= 0 ? "Posição consolidada" : "Saldo negativo");
@@ -12685,20 +12870,30 @@
           _set("fdReceitasMesMeta", `Hoje: ${formatCurrency(entradasHoje)}`);
           _set("fdDespesasMes", formatCurrency(saidasOperacionaisMesFinance));
           _set("fdDespesasMesMeta", `Competência ${monthKeyFin.slice(5, 7)}/${monthKeyFin.slice(0, 4)}`);
+          _set("fdContasPagar", formatCurrency(totalPagarDash));
+          _set("fdContasPagarMeta", `${pagarPendentes.length} título(s) pendente(s)`);
           _set("fdContasReceber", formatCurrency(totalReceberDash));
           _set("fdContasReceberMeta", `${receberPendentes.length} título(s) pendente(s)`);
           _set("fdLucroLiquido", formatCurrency(resultadoMesFinance));
           _set(
             "fdLucroLiquidoMeta",
-            resultadoMesFinance >= 0 ? "Receitas − despesas operacionais" : "Resultado negativo no mês"
+            resultadoMesFinance >= 0 ? "Receitas − despesas operacionais" : "Prejuízo no mês"
           );
-          _set("fdClientesAtivos", String(localizadores.length));
-          _set("fdClientesAtivosMeta", localizadores.length ? "Localizadores cadastrados" : "Cadastre em Clientes");
-          _set("fdTriagemPendente", String(triagemCount));
-          _set("fdTriagemPendenteMeta", FINANCE_MANUAL_ONLY ? "Títulos manuais em aberto" : vencidos.length ? `${vencidos.length} título(s) vencido(s)` : "Aguardando NF e pagamento");
+          const lucroCard = _fd("fdLucroCard");
+          if (lucroCard) {
+            lucroCard.classList.toggle("finance-ft-resumo-card--profit", resultadoMesFinance >= 0);
+            lucroCard.classList.toggle("finance-ft-resumo-card--loss", resultadoMesFinance < 0);
+          }
+          _set("fdIndCaixa", formatCurrency(payChannels.caixa));
+          _set("fdIndCaixaMeta", "Entradas e saídas em dinheiro");
+          _set("fdIndBanco", formatCurrency(payChannels.banco));
+          _set("fdIndBancoMeta", "PIX, transferência, boleto");
+          _set("fdIndCartoes", formatCurrency(payChannels.cartoes));
+          _set("fdIndCartoesMeta", "Crédito e débito");
         }
         if (currentFinanceView === "dashboard") {
           showFinanceDashboardOnly();
+          renderFinanceModuleCharts();
           return;
         }
         if (currentFinanceView === "clientes") {
@@ -12845,7 +13040,7 @@
           return;
         }
 
-        if (currentFinanceView === "lancamentos") {
+        if (financeIsLancamentosView(currentFinanceView)) {
           if (flySummary) flySummary.classList.remove("hidden");
           setFinanceLancListMode(true);
           const qBusca = String(lancamentosFilter.busca || "").trim().toLowerCase();
@@ -13180,7 +13375,7 @@
           return;
         }
 
-        if (currentFinanceView === "ajustes") {
+        if (financeIsPagarView(currentFinanceView)) {
           financeHead.innerHTML = `
             <tr>
               <th>Vencimento</th>
@@ -13207,7 +13402,7 @@
             </tr>`;
         }
 
-        if (currentFinanceView === "receber") {
+        if (financeIsReceberView(currentFinanceView)) {
           syncFinanceReceberBarOptions();
           const { list: recvFiltered } = collectFinanceReceberFilteredList({ alertaOnly: false });
           const receberFlags = financeReceberFlagsRead();
@@ -13275,11 +13470,11 @@
           });
         }
 
-        if (currentFinanceView === "ajustes") {
+        if (financeIsPagarView(currentFinanceView)) {
           rows.push(`
             <tr>
               <td colspan="8" class="actions">
-                <button class="secondary" type="button" data-action="nova-despesa">+ Novo ajuste</button>
+                <button class="secondary" type="button" data-action="nova-despesa">+ Nova conta a pagar</button>
               </td>
             </tr>
           `);
@@ -13377,10 +13572,13 @@
         }
 
         if (!rows.length) {
-          const emptyMsg =
-            currentFinanceView === "receber" || currentFinanceView === "receber_alerta"
+          const emptyMsg = financeIsReceberView(currentFinanceView)
               ? "Nenhum título em receber com os filtros atuais (placa, RPV, assessoria ou responsável)."
-              : "Nenhum registro financeiro.";
+              : financeIsPagarView(currentFinanceView)
+                ? "Nenhuma conta a pagar com os filtros atuais."
+                : financeIsLancamentosView(currentFinanceView)
+                  ? "Nenhum lançamento encontrado com os filtros atuais."
+                  : "Nenhum registro financeiro.";
           setEmptyRow(tableFinance, emptyMsg, 6);
         } else {
           tableFinance.innerHTML = rows.join("");
@@ -13390,29 +13588,20 @@
 
       function setFinanceView(view) {
         const previousFinanceView = currentFinanceView;
-        if (view === "filtros") view = "dashboard";
-        if (view === "pre_lancamento" || view === "aguardando_lancamento") view = FINANCE_MANUAL_ONLY ? "lancamentos" : "triagem";
-        if (view === "metas") view = "dashboard";
-        if (view === "receber_alerta") view = "receber";
-        if (view === "pagar" || view === "cadastro_base") view = "ajustes";
-        if (view === "historico_receber" || view === "historico_pagar") view = "faturamento";
-        if (view === "controle_dual") view = "dashboard";
+        view = financeNormalizeSubview(view);
+        if (view === "historico_receber" || view === "historico_pagar") view = "dashboard";
+        if (view === "cadastro_base") view = "contas_pagar";
         currentFinanceView = view;
-        const viewMap = {
-          dashboard: "Dashboard",
-          lancamentos: "Lançamentos",
-          clientes: "Clientes",
-          relatorios: "Relatórios",
-          triagem: "Triagem",
-          receber: "Receber",
-          caixa: "Caixa",
-          fluxo_caixa: "Caixa",
-          ajustes: "Ajustes",
-          faturamento: "Faturamento",
-        };
+        if (view === "receitas") {
+          lancamentosFilter.tipo = "RECEITA";
+          if (financeLancTipo) financeLancTipo.value = "RECEITA";
+        } else if (view === "despesas") {
+          lancamentosFilter.tipo = "DESPESA";
+          if (financeLancTipo) financeLancTipo.value = "DESPESA";
+        }
         const isNone = !view || view === "none";
         const isDashboard = view === "dashboard";
-        const isFiltersView = view === "filtros";
+        const isFiltersView = false;
         const financeRoot = document.getElementById("viewFinanceiro");
         const isLayoutV2 = !!financeRoot?.classList.contains("finance-layout-v2");
         const isFlyoutView = !isLayoutV2 && !isNone && !isDashboard;
@@ -13426,8 +13615,8 @@
           financeRoot.classList.toggle("finance-subview-fullscreen", isFullscreenSubview);
         }
         if (financeFlyoutClose) financeFlyoutClose.textContent = "X";
-        if (financeViewBadge) financeViewBadge.textContent = `Visão: ${viewMap[view] || "Dashboard geral"}`;
-        const pageTitle = viewMap[view] || "Dashboard geral";
+        if (financeViewBadge) financeViewBadge.textContent = `Visão: ${FINANCE_VIEW_LABELS[view] || "Dashboard"}`;
+        const pageTitle = FINANCE_VIEW_LABELS[view] || "Dashboard";
         const financePageTitle = document.getElementById("financePageTitle");
         if (financePageTitle) financePageTitle.textContent = pageTitle;
         if (financeBreadcrumb) financeBreadcrumb.textContent = `Início › Financeiro › ${pageTitle}`;
@@ -13470,10 +13659,10 @@
         const showFiltersHub = false;
         const showPlateSearchFilter = false;
         const showReportFilters = view === "relatorios";
-        const showLancamentosFilters = view === "lancamentos";
-        const showLancamentosToolbar = false;
-        const showCaixaFilters = view === "fluxo_caixa" || view === "caixa";
-        const showReceberFilters = view === "receber";
+        const showLancamentosFilters = financeIsLancamentosView(view);
+        const showLancamentosToolbar = financeIsLancamentosView(view);
+        const showCaixaFilters = false;
+        const showReceberFilters = financeIsReceberView(view);
         financeFiltersHub?.classList.toggle("hidden", !showFiltersHub);
         if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", !showPlateSearchFilter);
         financeRoot?.classList.toggle("finance-flyout-open", isFlyoutView);
@@ -13489,8 +13678,8 @@
         financeReportExtraFilters?.classList.toggle("hidden", !showReportFilters);
         financeLancamentosFilters?.classList.toggle("hidden", !showLancamentosFilters);
         financeLancamentosToolbar?.classList.toggle("hidden", !showLancamentosToolbar);
-        financeLancPagination?.classList.toggle("hidden", view !== "lancamentos");
-        if (view !== "lancamentos" && view !== "filtros") financeLancSidePanel?.classList.add("hidden");
+        financeLancPagination?.classList.toggle("hidden", !financeIsLancamentosView(view));
+        if (!financeIsLancamentosView(view)) financeLancSidePanel?.classList.add("hidden");
         financeCaixaFilters?.classList.toggle("hidden", !showCaixaFilters);
         if (view === "caixa") {
           caixaFilter.month = financeCompetencia || currentYearMonthLocal();
@@ -13515,7 +13704,15 @@
         const financeNovoLancamentoBtn = document.getElementById("financeNovoLancamentoBtn");
         if (financeNovoClienteBtn) financeNovoClienteBtn.classList.toggle("hidden", view !== "clientes");
         if (financeNovoLancamentoBtn) {
-          financeNovoLancamentoBtn.classList.toggle("hidden", view !== "lancamentos" && view !== "ajustes");
+          financeNovoLancamentoBtn.classList.toggle(
+            "hidden",
+            !financeIsLancamentosView(view) && !financeIsPagarView(view)
+          );
+          financeNovoLancamentoBtn.textContent =
+            view === "despesas" || view === "contas_pagar" ? "+ Nova despesa" : "+ Nova receita";
+        }
+        if (financeLancTipo) {
+          financeLancTipo.disabled = view === "receitas" || view === "despesas";
         }
         renderFinance();
       }
@@ -14469,13 +14666,13 @@
           }
         });
       }
-      bindModuleCardActivate(document.getElementById("cardFinanceReceberLink"), () => openFinanceSubview("receber"));
+      bindModuleCardActivate(document.getElementById("cardFinanceReceberLink"), () => openFinanceSubview("contas_receber"));
       bindModuleCardActivate(document.getElementById("cardFinancePagarLink"), () => {
         lancamentosFilter.tipo = "DESPESA";
         if (financeLancTipo) financeLancTipo.value = "DESPESA";
-        openFinanceSubview("lancamentos");
+        openFinanceSubview("despesas");
       });
-      bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("caixa"));
+      bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("dashboard"));
 
       document.getElementById("financeDetailDashboard")?.addEventListener("click", (e) => {
         const btn = e.target.closest("[data-finance-quick]");
@@ -14490,7 +14687,12 @@
         partnerModal?.classList.remove("hidden");
       });
       document.getElementById("financeNovoLancamentoBtn")?.addEventListener("click", () => {
-        openLancamentoModal(lancamentosFilter.tipo === "DESPESA" ? "DESPESA" : "RECEITA");
+        const tipo =
+          currentFinanceView === "despesas" || financeIsPagarView(currentFinanceView) ? "DESPESA" : "RECEITA";
+        openLancamentoModal(tipo);
+      });
+      document.getElementById("financeChartPeriod")?.addEventListener("change", () => {
+        if (currentFinanceView === "dashboard") renderFinanceModuleCharts();
       });
       document.getElementById("financeClientesBusca")?.addEventListener("input", () => {
         if (currentFinanceView === "clientes") renderFinanceClientes();
@@ -14724,9 +14926,8 @@
       function openFinanceSubview(sub) {
         const top = navStack[navStack.length - 1];
         if (!sub) return;
+        sub = financeNormalizeSubview(sub);
         if (sub === "controle_dual") sub = "dashboard";
-        if (sub === "filtros") sub = "dashboard";
-        if (sub === "pre_lancamento" || sub === "aguardando_lancamento") sub = FINANCE_MANUAL_ONLY ? "lancamentos" : "triagem";
         if (sub === "metas") {
           financeFocusMetaGoalCard = true;
           sub = "dashboard";
@@ -14984,7 +15185,7 @@
           busca: (financeLancBusca?.value || "").trim(),
         };
         lancamentosPagination.page = 1;
-        if (currentFinanceView === "lancamentos") renderFinance();
+        if (financeIsLancamentosView(currentFinanceView)) renderFinance();
       };
       const syncLancamentosSort = () => {
         lancamentosSort = {
@@ -14992,12 +15193,12 @@
           dir: (financeLancSortDir?.value || "desc").trim() || "desc",
         };
         lancamentosPagination.page = 1;
-        if (currentFinanceView === "lancamentos") renderFinance();
+        if (financeIsLancamentosView(currentFinanceView)) renderFinance();
       };
       const syncLancamentosPageSize = () => {
         lancamentosPagination.pageSize = Math.max(1, Number(financeLancPageSize?.value || 20));
         lancamentosPagination.page = 1;
-        if (currentFinanceView === "lancamentos") renderFinance();
+        if (financeIsLancamentosView(currentFinanceView)) renderFinance();
       };
       const syncLancamentosAdvanced = () => {
         lancamentosAdvanced = {
@@ -15021,7 +15222,7 @@
         lancamentosAdvanced.semObs = !!financeLancSemObs?.checked;
         lancamentosAdvanced.comObs = !!financeLancComObs?.checked;
         lancamentosPagination.page = 1;
-        if (currentFinanceView === "lancamentos") renderFinance();
+        if (financeIsLancamentosView(currentFinanceView)) renderFinance();
       };
       financeLancTipo?.addEventListener("change", syncLancamentosFilters);
       financeLancStatus?.addEventListener("change", syncLancamentosFilters);
@@ -15035,11 +15236,11 @@
       financeLancPageSize?.addEventListener("change", syncLancamentosPageSize);
       financeLancPrevPage?.addEventListener("click", () => {
         lancamentosPagination.page = Math.max(1, Number(lancamentosPagination.page || 1) - 1);
-        if (currentFinanceView === "lancamentos") renderFinance();
+        if (financeIsLancamentosView(currentFinanceView)) renderFinance();
       });
       financeLancNextPage?.addEventListener("click", () => {
         lancamentosPagination.page = Number(lancamentosPagination.page || 1) + 1;
-        if (currentFinanceView === "lancamentos") renderFinance();
+        if (financeIsLancamentosView(currentFinanceView)) renderFinance();
       });
       [
         financeLancOnlyPago,
