@@ -4968,7 +4968,7 @@
             <div class="patio-inicio-head">
               <h3>Dashboard</h3>
               <p class="patio-inicio-lede">
-                Indicadores operacionais do pátio. Use os atalhos abaixo para abrir as listas VNP e VRP.
+                Indicadores operacionais do pátio.
               </p>
             </div>
             <div class="patio-inicio-grid" aria-label="Dashboard do pátio">
@@ -5007,22 +5007,9 @@
                 <span class="value" id="patioDashSaidasMes">0</span>
               </div>
             </div>
-            <div class="dashboard-system-entry" style="margin-bottom: 0">
-              <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" data-patio-inicio-go="no_patio">
-                <span class="dashboard-system-btn__kicker">Lista</span>
-                <span class="dashboard-system-btn__title">VNP</span>
-                <span class="dashboard-system-btn__desc">Veículos no pátio e em fluxo de liberação ou remoção.</span>
-                <span class="dashboard-system-btn__go">Abrir VNP →</span>
-              </button>
-              <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" data-patio-inicio-go="removidos">
-                <span class="dashboard-system-btn__kicker">Histórico</span>
-                <span class="dashboard-system-btn__title">VRP</span>
-                <span class="dashboard-system-btn__desc">Veículos removidos e situação pós-saída.</span>
-                <span class="dashboard-system-btn__go">Abrir VRP →</span>
-              </button>
-            </div>
           </div>
-          <p class="notice plate-search-hint hidden" style="margin: 6px 0 10px"></p>
+          <div id="patioPlateSearchBar">
+          <p id="patioPlateSearchHint" class="notice plate-search-hint hidden" style="margin: 6px 0 10px"></p>
           <form
             id="plateSearchFormPatio"
             class="filter-bar patio-plate-bar"
@@ -5046,6 +5033,7 @@
             <button type="submit" id="plateSearchOkPatio">OK</button>
             <button type="button" class="secondary" id="clearPlateFilterPatio">Limpar</button>
           </form>
+          </div>
           <div id="patioContent" class="hidden" style="margin-top: 18px;">
               <button type="button" class="secondary patio-flyout-close" id="patioFlyoutClose" aria-label="Fechar subaba">X</button>
             <div id="patioFlyoutSummaryCards" class="grid" style="margin-bottom: 12px">
@@ -11180,7 +11168,7 @@
         patioSubnav.querySelectorAll("button[data-subview]").forEach((btn) => {
           btn.classList.toggle("active", !isNone && btn.getAttribute("data-subview") === view);
         });
-        if (plateSearchFormPatio) plateSearchFormPatio.classList.toggle("hidden", isDashboard);
+        document.getElementById("patioPlateSearchBar")?.classList.toggle("hidden", isDashboard || isInicio);
         const patioRoot = document.getElementById("viewPatio");
         patioRoot?.classList.toggle("patio-flyout-open", isFlyoutView);
         patioRoot?.classList.toggle("patio-subview-fullscreen", isFlyoutView);
@@ -14855,13 +14843,6 @@
         }
       }
 
-      document.getElementById("patioInicioPanel")?.addEventListener("click", (event) => {
-        const go = event.target.closest("[data-patio-inicio-go]");
-        if (!go) return;
-        openPatioSubview(go.getAttribute("data-patio-inicio-go"));
-      });
-
-      // Cards do painel: VNP e veículos em liberação abrem a lista unificada no pátio.
       cardVeiculosLink.addEventListener("click", () => openPatioSubview("no_patio"));
       cardSolicitadasLink.addEventListener("click", () => openPatioSubview("no_patio"));
       cardEntradasHojeLink?.addEventListener("click", () => openPatioSubview("removidos"));
@@ -14870,7 +14851,6 @@
       cardVrpLink?.addEventListener("click", () => openPatioSubview("no_patio"));
       cardNfsePendenteLink?.addEventListener("click", () => openPatioSubview("removidos"));
 
-      /** Busca só no envio do formulário (OK ou Enter) — digitar não dispara nada. */
       if (plateSearchForm) {
         plateSearchForm.addEventListener("submit", (event) => {
           event.preventDefault();
