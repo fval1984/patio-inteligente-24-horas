@@ -2829,6 +2829,44 @@
         max-height: 320px;
         overflow-y: auto;
       }
+      .finance-fase4-panel {
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+      }
+      .finance-fase4-panel h4 {
+        margin: 0 0 10px;
+        font-size: 0.95rem;
+      }
+      .finance-fase4-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .finance-dre-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      .finance-dre-table th,
+      .finance-dre-table td {
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+      }
+      .finance-dre-table td:last-child,
+      .finance-dre-table th:last-child {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .finance-conciliacao-table-wrap {
+        max-height: 280px;
+        overflow: auto;
+      }
+      .finance-conciliacao-table-wrap .tag.success {
+        font-size: 10px;
+      }
       .lanc-field-row--modo {
         grid-column: 1 / -1;
       }
@@ -5605,7 +5643,7 @@
             <div id="financeDetailDashboard" class="section-card fin-dash-panel finance-ft-dashboard hidden" style="margin-top: 0">
               <div class="finance-ft-page-intro">
                 <h3>Dashboard</h3>
-                <p>Visão geral financeira do mês selecionado — saldo, fluxo e pendências.</p>
+                <p>Visão geral financeira do mês selecionado — saldo, fluxo, relatórios DRE e conciliação bancária.</p>
               </div>
               <div class="finance-ft-kpi-row finance-ft-kpi-row--6">
                 <div class="finance-ft-kpi-card finance-ft-kpi-card--green">
@@ -5717,6 +5755,58 @@
                 <button type="button" class="secondary" data-finance-quick="despesas">Controle de despesas</button>
                 <button type="button" class="secondary" data-finance-quick="contas_pagar">Contas a pagar</button>
                 <button type="button" class="secondary" data-finance-quick="contas_receber">Contas a receber</button>
+              </div>
+              <div id="financeReportsPanel" class="finance-fase4-panel">
+                <h4>Relatórios — DRE e fluxo de caixa</h4>
+                <p class="notice" style="margin: 0 0 10px; font-size: 12px; max-width: 52rem">
+                  Demonstrativo do mês da competência selecionada. Exporte CSV para Excel ou contabilidade.
+                </p>
+                <div class="finance-fase4-actions">
+                  <button type="button" class="secondary" id="financeExportDreBtn">Exportar DRE (CSV)</button>
+                  <button type="button" class="secondary" id="financeExportFluxoBtn">Exportar fluxo de caixa (CSV)</button>
+                </div>
+                <div class="table-wrap">
+                  <table class="finance-dre-table">
+                    <thead>
+                      <tr>
+                        <th>Linha</th>
+                        <th>Valor</th>
+                      </tr>
+                    </thead>
+                    <tbody id="financeDreTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="financeConciliacaoPanel" class="finance-fase4-panel">
+                <h4>Conciliação bancária</h4>
+                <p class="notice" style="margin: 0 0 10px; font-size: 12px">
+                  Movimentos do mês — marque como conciliados após conferir com extrato bancário.
+                </p>
+                <div class="finance-fase4-actions">
+                  <label style="font-size: 12px">
+                    Filtro
+                    <select id="financeConciliacaoFilter" style="margin-left: 6px">
+                      <option value="pendentes">Pendentes</option>
+                      <option value="conciliados">Conciliados</option>
+                      <option value="todos">Todos</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="finance-conciliacao-table-wrap table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                        <th>Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody id="financeConciliacaoBody"></tbody>
+                  </table>
+                </div>
               </div>
             </div>
             <div id="financeClientesArea" class="section-card hidden" style="margin-top: 0">
@@ -6743,9 +6833,16 @@
             <button type="button" class="modal-close" id="closeFinanceCobrancaModal">Fechar</button>
           </div>
           <textarea id="financeCobrancaTexto" rows="8" style="width: 100%; resize: vertical; min-height: 140px; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.2); color: var(--text); font: inherit"></textarea>
+          <div class="form-grid" style="margin-top: 12px">
+            <div class="full">
+              <label for="financeCobrancaTelefone">WhatsApp do cliente (opcional)</label>
+              <input id="financeCobrancaTelefone" type="tel" placeholder="Ex.: 11999998888 ou +5511999998888" />
+            </div>
+          </div>
           <p id="financeCobrancaUltima" class="notice" style="margin: 10px 0 0; font-size: 12px"></p>
           <div class="form-actions" style="margin-top: 14px; flex-wrap: wrap">
             <button type="button" id="financeCobrancaCopiar">Copiar e registrar envio</button>
+            <button type="button" class="secondary" id="financeCobrancaWhatsapp">Abrir WhatsApp</button>
             <button type="button" class="secondary" id="cancelFinanceCobrancaModal">Cancelar</button>
           </div>
         </div>
@@ -7442,6 +7539,7 @@
       let financeReceberBuscaFilter = "";
       let financePagarStatusFilter = "aberto";
       let financePagarBuscaFilter = "";
+      let financeConciliacaoFilter = "pendentes";
       let financePlateInputTimer = null;
       let vlsListFilterLocatorId = "";
       let vlsListFilterAssessoriaId = "";
@@ -7609,6 +7707,7 @@
       ];
 
       const FINANCE_ATTACHMENTS_KEY = "amplipatio_finance_attachments_v1";
+      const FINANCE_STORAGE_BUCKET = "finance-attachments";
       const FINANCE_CUSTOM_RECEITA_CATS_KEY = "amplipatio_finance_cats_receita_v1";
       const FINANCE_CUSTOM_DESPESA_CATS_KEY = "amplipatio_finance_cats_despesa_v1";
       const FINANCE_META_PREFIX = "[[finmeta:";
@@ -7665,8 +7764,177 @@
           dataUrl: payload.dataUrl || "",
           size: Number(payload.size || 0),
           savedAt: new Date().toISOString(),
+          storagePath: payload.storagePath || all[financeAttachmentKey(kind, id)]?.storagePath || null,
         };
         financeAttachmentsWrite(all);
+      }
+
+      async function financeAttachmentSave(kind, id, payload) {
+        if (!kind || id == null || !payload) return;
+        financeAttachmentSet(kind, id, payload);
+        if (!supabase || !payload.dataUrl || !effectiveUserId()) return;
+        try {
+          const safeName = String(payload.name || "anexo").replace(/[^\w.\-]+/g, "_").slice(0, 80);
+          const path = `${effectiveUserId()}/${kind}/${id}/${Date.now()}_${safeName}`;
+          const res = await fetch(payload.dataUrl);
+          const blob = await res.blob();
+          const { error } = await supabase.storage.from(FINANCE_STORAGE_BUCKET).upload(path, blob, {
+            upsert: true,
+            contentType: blob.type || "application/octet-stream",
+          });
+          if (!error) {
+            financeAttachmentSet(kind, id, { ...payload, storagePath: path });
+          }
+        } catch (e) {
+          console.warn("finance attachment cloud upload", e);
+        }
+      }
+
+      function financeWhatsappDigits(raw) {
+        let d = String(raw || "").replace(/\D/g, "");
+        if (d.length === 10 || d.length === 11) d = `55${d}`;
+        if (d.startsWith("0")) d = d.replace(/^0+/, "");
+        return d.length >= 12 ? d : "";
+      }
+
+      function cashMovementIsConciliado(mov) {
+        return /\[CONCILIADO\]/i.test(String(mov?.descricao || ""));
+      }
+
+      function downloadFinanceCsv(filename, headers, rows) {
+        const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+        const csv = [headers.map(esc).join(","), ...rows.map((r) => r.map(esc).join(","))].join("\n");
+        const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      function buildFinanceDre(monthYm) {
+        const ym = monthYm || financeCompetencia || currentYearMonthLocal();
+        const receitas = sumReceivableRevenueByMonth(ym, state.receivables || [], state.cash || []);
+        const despesas = sumCashPagamentosNoMes(ym, state.cash || []);
+        const sangria = sumCashSangriaNoMes(ym, state.cash || [], state.payables || []);
+        const despesasOp = Math.max(0, despesas - sangria);
+        const lucro = receitas - despesasOp;
+        const pagarPend = (state.payables || [])
+          .filter((p) => p.status === "EM_ABERTO")
+          .reduce((s, p) => s + Number(p.valor || 0), 0);
+        const receberPend = (state.receivables || [])
+          .filter((r) => receivableIsContaReceberFinanceiro(r))
+          .reduce((s, r) => s + Number(r.valor || 0), 0);
+        const [ano, mes] = ym.split("-");
+        const competenciaLabel = mes && ano ? `${mes}/${ano}` : ym;
+        return {
+          ym,
+          competenciaLabel,
+          receitas,
+          despesas: despesasOp,
+          sangria,
+          lucro,
+          pagarPend,
+          receberPend,
+          rows: [
+            ["Receitas (recebidas no período)", receitas],
+            ["Despesas operacionais (pagas)", despesasOp],
+            ["Sangrias de caixa", sangria],
+            ["Resultado (lucro / prejuízo)", lucro],
+            ["Contas a receber (saldo em aberto)", receberPend],
+            ["Contas a pagar (saldo em aberto)", pagarPend],
+          ],
+        };
+      }
+
+      function exportFinanceDreCsv() {
+        const dre = buildFinanceDre();
+        downloadFinanceCsv(
+          `dre-${dre.ym}.csv`,
+          ["Linha", "Valor (R$)", "Competência"],
+          dre.rows.map(([label, val]) => [label, Number(val || 0).toFixed(2).replace(".", ","), dre.competenciaLabel])
+        );
+      }
+
+      function exportFinanceFluxoCsv() {
+        const ym = financeCompetencia || currentYearMonthLocal();
+        const movs = (state.cash || [])
+          .filter((m) => {
+            const ymd = toLocalYmd(m.data_movimento || m.created_at);
+            return ymd && yearMonthFromYmd(ymd) === ym;
+          })
+          .sort((a, b) =>
+            String(a.data_movimento || a.created_at).localeCompare(String(b.data_movimento || b.created_at))
+          );
+        const rows = movs.map((m) => {
+          const tipo = m.tipo_conta === "RECEBER" ? "Entrada" : "Saída";
+          const val = Number(m.valor || 0);
+          const sinal = m.tipo_conta === "PAGAR" ? -val : val;
+          return [
+            formatDate(m.data_movimento || m.created_at),
+            tipo,
+            m.descricao || "-",
+            m.forma_pagamento || "-",
+            sinal.toFixed(2).replace(".", ","),
+            cashMovementIsConciliado(m) ? "Conciliado" : "Pendente",
+          ];
+        });
+        downloadFinanceCsv(`fluxo-caixa-${ym}.csv`, ["Data", "Tipo", "Descrição", "Forma pagamento", "Valor", "Conciliação"], rows);
+      }
+
+      function renderFinanceDrePanel() {
+        const body = document.getElementById("financeDreTableBody");
+        if (!body) return;
+        const dre = buildFinanceDre();
+        body.innerHTML = dre.rows
+          .map(([label, val]) => {
+            const isResult = label.includes("Resultado");
+            return `<tr${isResult ? ' style="font-weight:700"' : ""}><td>${escapeHtml(label)}</td><td>${formatCurrency(val)}</td></tr>`;
+          })
+          .join("");
+      }
+
+      function renderFinanceConciliacaoPanel() {
+        const body = document.getElementById("financeConciliacaoBody");
+        if (!body) return;
+        const ym = financeCompetencia || currentYearMonthLocal();
+        const filter = financeConciliacaoFilter || "pendentes";
+        const movs = (state.cash || [])
+          .filter((m) => {
+            const ymd = toLocalYmd(m.data_movimento || m.created_at);
+            if (!ymd || yearMonthFromYmd(ymd) !== ym) return false;
+            const conc = cashMovementIsConciliado(m);
+            if (filter === "pendentes") return !conc;
+            if (filter === "conciliados") return conc;
+            return true;
+          })
+          .sort((a, b) =>
+            String(b.data_movimento || b.created_at).localeCompare(String(a.data_movimento || a.created_at))
+          );
+        if (!movs.length) {
+          body.innerHTML = `<tr><td colspan="6" class="notice">Nenhum movimento para o filtro selecionado.</td></tr>`;
+          return;
+        }
+        body.innerHTML = movs
+          .map((m) => {
+            const conc = cashMovementIsConciliado(m);
+            const tipo = m.tipo_conta === "RECEBER" ? "Entrada" : "Saída";
+            const acao = conc
+              ? `<span class="tag success">OK</span>`
+              : `<button type="button" class="secondary" data-action="conciliar-caixa" data-id="${m.id}">Conciliar</button>`;
+            return `<tr>
+              <td>${formatDate(m.data_movimento || m.created_at)}</td>
+              <td>${tipo}</td>
+              <td>${escapeHtml(m.descricao || "-")}</td>
+              <td>${formatCurrency(m.valor)}</td>
+              <td><span class="tag ${conc ? "success" : "warning"}">${conc ? "Conciliado" : "Pendente"}</span></td>
+              <td class="actions">${acao}</td>
+            </tr>`;
+          })
+          .join("");
       }
 
       function financeCustomCatsRead(key) {
@@ -7814,10 +8082,29 @@
         });
       }
 
-      function openFinanceAttachment(kind, id) {
+      async function openFinanceAttachment(kind, id) {
         const att = financeAttachmentGet(kind, id);
-        if (!att?.dataUrl) {
+        if (!att) {
           alert("Nenhum comprovante anexado para este registro.");
+          return;
+        }
+        let src = att.dataUrl || "";
+        if (att.storagePath && supabase) {
+          try {
+            const { data, error } = await supabase.storage
+              .from(FINANCE_STORAGE_BUCKET)
+              .createSignedUrl(att.storagePath, 3600);
+            if (!error && data?.signedUrl) src = data.signedUrl;
+          } catch (e) {
+            console.warn("signed url attachment", e);
+          }
+        }
+        if (!src) {
+          alert("Comprovante indisponível neste dispositivo.");
+          return;
+        }
+        if (String(src).startsWith("http")) {
+          window.open(src, "_blank");
           return;
         }
         const w = window.open("", "_blank");
@@ -7825,10 +8112,10 @@
           alert("Permita pop-ups para visualizar o comprovante.");
           return;
         }
-        if (String(att.dataUrl).startsWith("data:application/pdf")) {
-          w.document.write(`<iframe src="${att.dataUrl}" style="width:100%;height:100%;border:0" title="Comprovante"></iframe>`);
+        if (String(src).startsWith("data:application/pdf")) {
+          w.document.write(`<iframe src="${src}" style="width:100%;height:100%;border:0" title="Comprovante"></iframe>`);
         } else {
-          w.document.write(`<img src="${att.dataUrl}" alt="${escapeHtml(att.name)}" style="max-width:100%;height:auto" />`);
+          w.document.write(`<img src="${src}" alt="${escapeHtml(att.name)}" style="max-width:100%;height:auto" />`);
         }
       }
 
@@ -13830,6 +14117,8 @@
         if (currentFinanceView === "dashboard") {
           showFinanceDashboardOnly();
           renderFinanceModuleCharts();
+          renderFinanceDrePanel();
+          renderFinanceConciliacaoPanel();
           return;
         }
         if (currentFinanceView === "clientes") {
@@ -14954,9 +15243,9 @@
               return;
             }
             if (anexo && result.ids?.length) {
-              result.ids.forEach((id) => financeAttachmentSet("receivable", id, anexo));
+              for (const rid of result.ids) await financeAttachmentSave("receivable", rid, anexo);
             } else if (anexo && result.id) {
-              financeAttachmentSet("receivable", result.id, anexo);
+              await financeAttachmentSave("receivable", result.id, anexo);
             }
             await Promise.all([loadReceivables(), loadCash()]);
           } else {
@@ -14980,9 +15269,9 @@
               return;
             }
             if (anexo && result.ids?.length) {
-              result.ids.forEach((id) => financeAttachmentSet("payable", id, anexo));
+              for (const pid of result.ids) await financeAttachmentSave("payable", pid, anexo);
             } else if (anexo && result.id) {
-              financeAttachmentSet("payable", result.id, anexo);
+              await financeAttachmentSave("payable", result.id, anexo);
             }
             await Promise.all([loadPayables(), loadCash()]);
           }
@@ -15138,9 +15427,34 @@
         }
         const flags = financeReceberFlagsRead();
         flags[String(id)] = { ...(flags[String(id)] || {}), ultima_cobranca: new Date().toISOString() };
+        const tel = document.getElementById("financeCobrancaTelefone")?.value?.trim();
+        if (tel) flags[String(id)].telefone_cobranca = tel;
         financeReceberFlagsWrite(flags);
         closeFinanceCobrancaModal();
         alert("Mensagem copiada e envio registrado.");
+        renderFinance();
+      });
+      document.getElementById("financeCobrancaWhatsapp")?.addEventListener("click", async () => {
+        const id = pendingCobrancaReceivableId;
+        const txt = document.getElementById("financeCobrancaTexto")?.value || "";
+        const telRaw = document.getElementById("financeCobrancaTelefone")?.value || "";
+        const digits = financeWhatsappDigits(telRaw);
+        if (!digits) {
+          alert("Informe um número de WhatsApp válido (DDD + número).");
+          return;
+        }
+        if (id) {
+          const flags = financeReceberFlagsRead();
+          flags[String(id)] = {
+            ...(flags[String(id)] || {}),
+            ultima_cobranca: new Date().toISOString(),
+            telefone_cobranca: telRaw.trim(),
+          };
+          financeReceberFlagsWrite(flags);
+        }
+        const url = `https://wa.me/${digits}?text=${encodeURIComponent(txt)}`;
+        window.open(url, "_blank");
+        closeFinanceCobrancaModal();
         renderFinance();
       });
       document.getElementById("closeFinanceContaEditModal")?.addEventListener("click", closeFinanceContaEditModal);
@@ -15402,6 +15716,15 @@
             ? `Última cobrança registrada em ${financeFormatUltimaCobranca(flags.ultima_cobranca)}`
             : "Nenhuma cobrança registrada ainda para este título.";
         }
+        const telEl = document.getElementById("financeCobrancaTelefone");
+        if (telEl) {
+          const nome = String(receivable.responsavel_pagamento || "").trim().toLowerCase();
+          const parceiro = (state.partners || []).find(
+            (p) => String(p.nome || "").trim().toLowerCase() === nome
+          );
+          const contato = parceiro?.contato || flags.telefone_cobranca || "";
+          telEl.value = contato.replace(/\D/g, "").length >= 10 ? contato : "";
+        }
         if (financeCobrancaModal.parentElement !== document.body) document.body.appendChild(financeCobrancaModal);
         financeCobrancaModal.classList.remove("hidden");
         txt?.focus();
@@ -15601,7 +15924,7 @@
             .eq("conta_id", receivableId)
             .eq("tipo_conta", "RECEBER");
         }
-        if (opts.anexo) financeAttachmentSet("receivable", receivableId, opts.anexo);
+        if (opts.anexo) await financeAttachmentSave("receivable", receivableId, opts.anexo);
         try {
           const userId = effectiveUserId();
           if (userId) {
@@ -15669,7 +15992,7 @@
           data_movimento: dataMov,
           forma_pagamento: formaPagamento,
         });
-        if (opts.anexo) financeAttachmentSet("payable", payableId, opts.anexo);
+        if (opts.anexo) await financeAttachmentSave("payable", payableId, opts.anexo);
 
         if ((payable.tipo || "").toUpperCase() === "RECORRENTE" || financeEntryModoFromRecord(payable, "payable") === "RECORRENTE") {
           const nextDue = addMonthsToYmd(payable.data_vencimento, 1);
@@ -16037,6 +16360,12 @@
       });
       bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("dashboard"));
 
+      document.getElementById("financeExportDreBtn")?.addEventListener("click", exportFinanceDreCsv);
+      document.getElementById("financeExportFluxoBtn")?.addEventListener("click", exportFinanceFluxoCsv);
+      document.getElementById("financeConciliacaoFilter")?.addEventListener("change", () => {
+        financeConciliacaoFilter = document.getElementById("financeConciliacaoFilter")?.value || "pendentes";
+        renderFinanceConciliacaoPanel();
+      });
       document.getElementById("financeDetailDashboard")?.addEventListener("click", (e) => {
         const btn = e.target.closest("[data-finance-quick]");
         if (!btn) return;
