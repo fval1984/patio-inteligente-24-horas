@@ -3604,18 +3604,6 @@
         color: var(--muted);
         line-height: 1.35;
       }
-      .patio-inicio-stat--saldo-pos .value {
-        color: #86efac;
-      }
-      .patio-inicio-stat--saldo-neg .value {
-        color: #fca5a5;
-      }
-      [data-theme="light"] .patio-inicio-stat--saldo-pos .value {
-        color: #166534;
-      }
-      [data-theme="light"] .patio-inicio-stat--saldo-neg .value {
-        color: #b91c1c;
-      }
       .patio-inicio-actions {
         display: flex;
         flex-wrap: wrap;
@@ -5017,11 +5005,6 @@
               <div class="patio-inicio-stat">
                 <span class="label">Saídas no Mês</span>
                 <span class="value" id="patioDashSaidasMes">0</span>
-              </div>
-              <div class="patio-inicio-stat" id="patioDashSaldoCard">
-                <span class="label">Saldo do Mês</span>
-                <span class="value" id="patioDashSaldo">0</span>
-                <span class="patio-inicio-stat-meta" id="patioDashSaldoMeta">Entradas − saídas</span>
               </div>
             </div>
             <div class="dashboard-system-entry" style="margin-bottom: 0">
@@ -10716,7 +10699,6 @@
         const elNfse = document.getElementById("cardNfsePendente");
         if (elVrp) elVrp.textContent = String(entradasHoje);
         if (elNfse) elNfse.textContent = String(saidasHoje);
-        const saldoMes = entradasMes - saidasMes;
         const pdVnp = document.getElementById("patioDashVnp");
         const pdVlp = document.getElementById("patioDashVlp");
         const pdED = document.getElementById("patioDashEntradasDia");
@@ -10725,9 +10707,6 @@
         const pdSS = document.getElementById("patioDashSaidasSemana");
         const pdEM = document.getElementById("patioDashEntradasMes");
         const pdSM = document.getElementById("patioDashSaidasMes");
-        const pdSaldo = document.getElementById("patioDashSaldo");
-        const pdSaldoCard = document.getElementById("patioDashSaldoCard");
-        const pdSaldoMeta = document.getElementById("patioDashSaldoMeta");
         if (pdVnp) pdVnp.textContent = String(noPatio.length);
         if (pdVlp) pdVlp.textContent = String(vls.length);
         if (pdED) pdED.textContent = String(entradasHoje);
@@ -10736,16 +10715,6 @@
         if (pdSS) pdSS.textContent = String(saidasSemana);
         if (pdEM) pdEM.textContent = String(entradasMes);
         if (pdSM) pdSM.textContent = String(saidasMes);
-        if (pdSaldo) {
-          pdSaldo.textContent = saldoMes > 0 ? `+${saldoMes}` : String(saldoMes);
-        }
-        if (pdSaldoMeta) {
-          pdSaldoMeta.textContent = `${entradasMes} entradas − ${saidasMes} saídas`;
-        }
-        if (pdSaldoCard) {
-          pdSaldoCard.classList.toggle("patio-inicio-stat--saldo-pos", saldoMes > 0);
-          pdSaldoCard.classList.toggle("patio-inicio-stat--saldo-neg", saldoMes < 0);
-        }
 
         // Cards financeiros do painel principal.
         const dashboardFinanceReceberValue = document.getElementById("dashboardFinanceReceberValue");
