@@ -2738,6 +2738,100 @@
       [data-theme="light"] .finance-lanc-empty {
         background: rgba(248, 250, 252, 0.8);
       }
+      .finance-subview-intro {
+        margin-bottom: 14px;
+      }
+      .finance-subview-intro h3 {
+        margin: 0 0 6px;
+        font-size: 1.05rem;
+      }
+      .finance-subview-intro p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--muted);
+        max-width: 52rem;
+      }
+      .finance-category-bar {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+      }
+      .finance-category-bar > label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--muted);
+      }
+      .finance-category-inline {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+      .finance-category-inline input {
+        flex: 1;
+        min-width: 160px;
+      }
+      .finance-category-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .finance-category-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(225, 29, 46, 0.08);
+        border: 1px solid rgba(225, 29, 46, 0.18);
+      }
+      .finance-category-tag button {
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+        font-size: 14px;
+      }
+      .finance-lanc-badges {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .finance-lanc-badge {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.15);
+        color: var(--muted);
+      }
+      .finance-lanc-badge--recorrente {
+        background: rgba(59, 130, 246, 0.14);
+        color: #2563eb;
+      }
+      .finance-lanc-badge--parcelada {
+        background: rgba(168, 85, 247, 0.14);
+        color: #7c3aed;
+      }
+      .finance-historico-panel h4 {
+        margin: 0 0 10px;
+        font-size: 0.95rem;
+      }
+      .finance-historico-panel .finance-lanc-list {
+        max-height: 320px;
+        overflow-y: auto;
+      }
+      .lanc-field-row--modo {
+        grid-column: 1 / -1;
+      }
       #viewFinanceiro.finance-fintracker #financeStandardArea .finance-lanc-list {
         max-height: calc(100vh - 280px);
         overflow-y: auto;
@@ -5650,6 +5744,22 @@
             </div>
             <div id="financeStandardArea">
               <button type="button" class="secondary finance-flyout-close" id="financeFlyoutClose" aria-label="Fechar subaba">X</button>
+              <div id="financeSubviewIntro" class="section-card finance-subview-intro hidden" style="margin-top: 0">
+                <h3 id="financeSubviewTitle">—</h3>
+                <p id="financeSubviewDesc">—</p>
+                <div id="financeSubviewCategoryBar" class="finance-category-bar hidden">
+                  <label for="financeNewCategoryInput">Categorias personalizadas</label>
+                  <div class="finance-category-inline">
+                    <input id="financeNewCategoryInput" type="text" placeholder="Nova categoria…" />
+                    <button type="button" class="secondary" id="financeAddCategoryBtn">Adicionar</button>
+                  </div>
+                  <div id="financeCategoryTags" class="finance-category-tags"></div>
+                </div>
+              </div>
+              <div id="financeHistoricoPanel" class="section-card finance-historico-panel hidden" style="margin-top: 0">
+                <h4 id="financeHistoricoTitle">Histórico</h4>
+                <div id="financeHistoricoList" class="finance-lanc-list" aria-live="polite"></div>
+              </div>
               <div id="financeCaixaResumoPanel" class="section-card hidden" style="margin-top: 0">
                 <h3 style="margin: 0 0 8px; font-size: 1.1rem">Caixa</h3>
                 <p class="notice" style="margin: 0 0 14px; max-width: 44rem; line-height: 1.45; font-size: 13px">
@@ -6364,6 +6474,36 @@
                 <label for="lancVencimento">Vencimento</label>
                 <input id="lancVencimento" type="date" />
               </div>
+              <div class="lanc-field-row--modo">
+                <label for="lancModo">Tipo de lançamento</label>
+                <select id="lancModo">
+                  <option value="UNICA">Única</option>
+                  <option value="RECORRENTE">Recorrente (mensal)</option>
+                  <option value="PARCELADA">Parcelada</option>
+                </select>
+              </div>
+              <div class="hidden" id="lancParcelasWrap">
+                <label for="lancParcelas">Nº de parcelas</label>
+                <input id="lancParcelas" type="number" min="2" max="60" value="2" />
+              </div>
+              <div class="lanc-field-despesa-only hidden" id="lancNaturezaWrap">
+                <label for="lancNatureza">Natureza</label>
+                <select id="lancNatureza">
+                  <option value="VARIAVEL">Variável</option>
+                  <option value="FIXA">Fixa</option>
+                </select>
+              </div>
+              <div class="lanc-field-despesa-only hidden" id="lancCentroCustoWrap">
+                <label for="lancCentroCusto">Centro de custo</label>
+                <select id="lancCentroCusto">
+                  <option value="">Sem centro de custo</option>
+                </select>
+              </div>
+              <div class="full">
+                <label for="lancAnexo">Comprovante / NF (opcional)</label>
+                <input id="lancAnexo" type="file" accept="image/*,.pdf,.png,.jpg,.jpeg,.webp" />
+                <p class="notice" style="margin: 4px 0 0; font-size: 11px">Até 500 KB. Armazenado localmente neste dispositivo.</p>
+              </div>
               <div class="full">
                 <label for="lancObs">Observações</label>
                 <textarea id="lancObs" rows="2" placeholder="Opcional" style="width: 100%; resize: vertical; min-height: 56px; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.2); color: var(--text); font: inherit"></textarea>
@@ -6661,10 +6801,27 @@
       const lancClienteWrap = document.getElementById("lancClienteWrap");
       const lancFornecedorWrap = document.getElementById("lancFornecedorWrap");
       let lancamentoTipoAtual = "RECEITA";
+      let lancamentoLockTipo = false;
+
+      function syncLancamentoModoFields() {
+        const modo = document.getElementById("lancModo")?.value || "UNICA";
+        document.getElementById("lancParcelasWrap")?.classList.toggle("hidden", modo !== "PARCELADA");
+      }
+
+      function populateLancCentroCustoOptions() {
+        const sel = document.getElementById("lancCentroCusto");
+        if (!sel) return;
+        const current = sel.value;
+        const centros = cadastroBaseMerged().centros_custo || [];
+        sel.innerHTML =
+          `<option value="">Sem centro de custo</option>` +
+          centros.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+        if (current && [...sel.options].some((o) => o.value === current)) sel.value = current;
+      }
 
       function syncLancamentoCategoriaOptions() {
         if (!lancCategoria) return;
-        const list = lancamentoTipoAtual === "RECEITA" ? LANC_RECEITA_CATEGORIAS : LANC_DESPESA_CATEGORIAS;
+        const list = lancamentoTipoAtual === "RECEITA" ? getLancReceitaCategorias() : getLancDespesaCategorias();
         lancCategoria.innerHTML = list.map((c) => `<option value="${c.value}">${escapeHtml(c.label)}</option>`).join("");
       }
 
@@ -6688,7 +6845,11 @@
         });
         lancClienteWrap?.classList.toggle("hidden", lancamentoTipoAtual !== "RECEITA");
         lancFornecedorWrap?.classList.toggle("hidden", lancamentoTipoAtual !== "DESPESA");
+        document.getElementById("lancNaturezaWrap")?.classList.toggle("hidden", lancamentoTipoAtual !== "DESPESA");
+        document.getElementById("lancCentroCustoWrap")?.classList.toggle("hidden", lancamentoTipoAtual !== "DESPESA");
         syncLancamentoCategoriaOptions();
+        if (lancamentoTipoAtual === "DESPESA") populateLancCentroCustoOptions();
+        syncLancamentoModoFields();
         const categoriaLabel = document.getElementById("lancCategoriaLabel");
         if (categoriaLabel) {
           categoriaLabel.textContent = lancamentoTipoAtual === "RECEITA" ? "Serviço" : "Categoria";
@@ -6699,101 +6860,217 @@
         }
       }
 
-      function openLancamentoModal(presetTipo = "RECEITA") {
+      function openLancamentoModal(presetTipo = "RECEITA", opts = {}) {
         if (!lancamentoModal || !lancamentoForm) return;
+        lancamentoLockTipo = !!opts.lockTipo;
         lancamentoForm.reset();
         const today = toLocalYmd(new Date().toISOString());
         const lancData = document.getElementById("lancData");
         const lancVencimento = document.getElementById("lancVencimento");
         if (lancData) lancData.value = today;
         if (lancVencimento) lancVencimento.value = today;
+        const lancModo = document.getElementById("lancModo");
+        if (lancModo) lancModo.value = "UNICA";
         populateLancamentoClienteOptions();
+        populateLancCentroCustoOptions();
         syncLancamentoModalTipo(presetTipo);
+        if (lancamentoLockTipo) {
+          lancamentoTipoAtual = presetTipo === "DESPESA" ? "DESPESA" : "RECEITA";
+          document.querySelectorAll(".lanc-tipo-btn").forEach((btn) => {
+            btn.classList.toggle("active", btn.getAttribute("data-lanc-tipo") === lancamentoTipoAtual);
+          });
+          lancClienteWrap?.classList.toggle("hidden", lancamentoTipoAtual !== "RECEITA");
+          lancFornecedorWrap?.classList.toggle("hidden", lancamentoTipoAtual !== "DESPESA");
+          document.getElementById("lancNaturezaWrap")?.classList.toggle("hidden", lancamentoTipoAtual !== "DESPESA");
+          document.getElementById("lancCentroCustoWrap")?.classList.toggle("hidden", lancamentoTipoAtual !== "DESPESA");
+        }
+        document.querySelector(".lanc-tipo-toggle")?.classList.toggle("hidden", lancamentoLockTipo);
+        syncLancamentoModoFields();
         lancamentoModal.classList.remove("hidden");
       }
 
       function closeLancamentoModalFn() {
         lancamentoModal?.classList.add("hidden");
         lancamentoForm?.reset();
+        lancamentoLockTipo = false;
+        document.querySelector(".lanc-tipo-toggle")?.classList.remove("hidden");
       }
 
-      async function insertManualReceivableLancamento({ descricao, valor, data, vencimento, categoria, cliente, formaPagamento, observacoes, pago }) {
+      async function insertManualReceivableLancamento({
+        descricao,
+        valor,
+        data,
+        vencimento,
+        categoria,
+        cliente,
+        formaPagamento,
+        observacoes,
+        pago,
+        modo = "UNICA",
+        parcelas = 2,
+      }) {
         const clienteNome = String(cliente || "").trim();
+        const modoUp = String(modo || "UNICA").toUpperCase();
+        const count = modoUp === "PARCELADA" ? Math.max(2, Math.min(60, Number(parcelas) || 2)) : 1;
+        const valorParcela = modoUp === "PARCELADA" ? Number(valor) / count : Number(valor);
+        const grupoId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        const insertedIds = [];
+
+        for (let i = 0; i < count; i++) {
+          const dueDate = addMonthsToYmd(vencimento || data, i) || vencimento || data;
+          const meta = {
+            modo: modoUp,
+            ...(modoUp === "PARCELADA" ? { parcela: i + 1, parcelas_total: count, grupo_id: grupoId } : {}),
+          };
+          const obsPacked = financeMetaPack(meta, observacoes || descricao);
+          const sub =
+            modoUp === "RECORRENTE" ? "RECORRENTE" : modoUp === "PARCELADA" ? `PARCELADA_${i + 1}` : "MANUAL";
+          const isLast = i === count - 1;
+          const markPago = pago && (count === 1 || isLast);
+          const payload = {
+            user_id: effectiveUserId(),
+            responsavel_pagamento: clienteNome || descricao,
+            receivable_category: categoria,
+            valor: valorParcela,
+            status: markPago ? "PAGO" : "EM_ABERTO",
+            period_start: data,
+            period_end: dueDate,
+            observacoes: obsPacked,
+            forma_pagamento: formaPagamento,
+            subcategoria: sub,
+            financeiro_aprovado_contas_receber: true,
+            patio_liberado_financeiro: true,
+          };
+          let { data: inserted, error } = await supabase.from("receivables").insert(payload).select("id").single();
+          if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
+            const fallback = { ...payload };
+            delete fallback.patio_liberado_financeiro;
+            delete fallback.financeiro_aprovado_contas_receber;
+            delete fallback.forma_pagamento;
+            delete fallback.subcategoria;
+            ({ data: inserted, error } = await supabase.from("receivables").insert(fallback).select("id").single());
+          }
+          if (error) return { error };
+          const receivableId = inserted?.id;
+          if (receivableId) insertedIds.push(receivableId);
+          if (receivableId && !markPago && !FINANCE_MANUAL_ONLY) addReceberTriagemId(receivableId);
+          if (markPago && receivableId) {
+            await supabase.from("cash_movements").insert({
+              user_id: effectiveUserId(),
+              tipo_conta: "RECEBER",
+              conta_id: receivableId,
+              valor: valorParcela,
+              descricao: descricao || "Receita manual",
+              data_movimento: data,
+              forma_pagamento: formaPagamento,
+            });
+          }
+        }
+        return { id: insertedIds[0], ids: insertedIds };
+      }
+
+      async function insertManualPayableLancamento({
+        descricao,
+        valor,
+        vencimento,
+        categoria,
+        fornecedor,
+        formaPagamento,
+        observacoes,
+        pago,
+        modo = "UNICA",
+        parcelas = 2,
+        natureza = "VARIAVEL",
+        centroCusto = "",
+      }) {
+        const modoUp = String(modo || "UNICA").toUpperCase();
+        const count = modoUp === "PARCELADA" ? Math.max(2, Math.min(60, Number(parcelas) || 2)) : 1;
+        const valorParcela = modoUp === "PARCELADA" ? Number(valor) / count : Number(valor);
+        const grupoId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        const insertedIds = [];
+
+        for (let i = 0; i < count; i++) {
+          const dueDate = addMonthsToYmd(vencimento, i) || vencimento;
+          const meta = {
+            modo: modoUp,
+            natureza: String(natureza || "VARIAVEL").toUpperCase(),
+            centro_custo: String(centroCusto || "").trim() || null,
+            ...(modoUp === "PARCELADA" ? { parcela: i + 1, parcelas_total: count, grupo_id: grupoId } : {}),
+          };
+          const obsPacked = financeMetaPack(meta, observacoes);
+          const isLast = i === count - 1;
+          const markPago = pago && (count === 1 || isLast);
+          const payload = {
+            user_id: effectiveUserId(),
+            tipo: modoUp === "RECORRENTE" ? "RECORRENTE" : modoUp === "PARCELADA" ? "PARCELADA" : "UNICA",
+            payable_category: categoria,
+            descricao: count > 1 ? `${descricao} (${i + 1}/${count})` : descricao,
+            valor: valorParcela,
+            data_vencimento: dueDate,
+            status: markPago ? "PAGO" : "EM_ABERTO",
+            fornecedor: fornecedor || null,
+            forma_pagamento: formaPagamento,
+            observacoes: obsPacked || null,
+            centro_custo: centroCusto || null,
+          };
+          let { data: inserted, error } = await supabase.from("payables").insert(payload).select("id").single();
+          if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
+            const fallback = { ...payload };
+            delete fallback.fornecedor;
+            delete fallback.forma_pagamento;
+            delete fallback.observacoes;
+            delete fallback.centro_custo;
+            ({ data: inserted, error } = await supabase.from("payables").insert(fallback).select("id").single());
+          }
+          if (error) return { error };
+          const payableId = inserted?.id;
+          if (payableId) insertedIds.push(payableId);
+          if (markPago && payableId) {
+            await supabase.from("cash_movements").insert({
+              user_id: effectiveUserId(),
+              tipo_conta: "PAGAR",
+              conta_id: payableId,
+              valor: valorParcela,
+              descricao: descricao || "Despesa manual",
+              data_movimento: dueDate,
+              forma_pagamento: formaPagamento,
+            });
+          }
+        }
+        return { id: insertedIds[0], ids: insertedIds };
+      }
+
+      async function createNextRecorrenteReceivable(receivable) {
+        if (!receivable) return;
+        const modo = financeEntryModoFromRecord(receivable, "receivable");
+        if (modo !== "RECORRENTE") return;
+        const due = String(receivable.period_end || receivable.period_start || "").trim();
+        const nextDue = addMonthsToYmd(due, 1);
+        const { meta, text } = financeMetaUnpack(receivable.observacoes);
         const payload = {
           user_id: effectiveUserId(),
-          responsavel_pagamento: clienteNome || descricao,
-          receivable_category: categoria,
-          valor,
-          status: pago ? "PAGO" : "EM_ABERTO",
-          period_start: data,
-          period_end: vencimento || data,
-          observacoes: observacoes || descricao,
-          forma_pagamento: formaPagamento,
-          subcategoria: "MANUAL",
+          responsavel_pagamento: receivable.responsavel_pagamento,
+          receivable_category: receivable.receivable_category || "GUARDA_PATIO",
+          valor: Number(receivable.valor || 0),
+          status: "EM_ABERTO",
+          period_start: nextDue,
+          period_end: nextDue,
+          observacoes: financeMetaPack({ ...meta, modo: "RECORRENTE" }, text),
+          forma_pagamento: receivable.forma_pagamento,
+          subcategoria: "RECORRENTE",
           financeiro_aprovado_contas_receber: true,
           patio_liberado_financeiro: true,
         };
-        let { data: inserted, error } = await supabase.from("receivables").insert(payload).select("id").single();
+        let { error } = await supabase.from("receivables").insert(payload);
         if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
           const fallback = { ...payload };
           delete fallback.patio_liberado_financeiro;
           delete fallback.financeiro_aprovado_contas_receber;
           delete fallback.forma_pagamento;
           delete fallback.subcategoria;
-          ({ data: inserted, error } = await supabase.from("receivables").insert(fallback).select("id").single());
+          ({ error } = await supabase.from("receivables").insert(fallback));
         }
-        if (error) return { error };
-        const receivableId = inserted?.id;
-        if (receivableId && !pago && !FINANCE_MANUAL_ONLY) addReceberTriagemId(receivableId);
-        if (pago && receivableId) {
-          await supabase.from("cash_movements").insert({
-            user_id: effectiveUserId(),
-            tipo_conta: "RECEBER",
-            conta_id: receivableId,
-            valor,
-            descricao: descricao || "Receita manual",
-            data_movimento: data,
-            forma_pagamento: formaPagamento,
-          });
-        }
-        return { id: receivableId };
-      }
-
-      async function insertManualPayableLancamento({ descricao, valor, vencimento, categoria, fornecedor, formaPagamento, observacoes, pago }) {
-        const payload = {
-          user_id: effectiveUserId(),
-          tipo: "UNICA",
-          payable_category: categoria,
-          descricao,
-          valor,
-          data_vencimento: vencimento,
-          status: pago ? "PAGO" : "EM_ABERTO",
-          fornecedor: fornecedor || null,
-          forma_pagamento: formaPagamento,
-          observacoes: observacoes || null,
-        };
-        let { data: inserted, error } = await supabase.from("payables").insert(payload).select("id").single();
-        if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
-          const fallback = { ...payload };
-          delete fallback.fornecedor;
-          delete fallback.forma_pagamento;
-          delete fallback.observacoes;
-          ({ data: inserted, error } = await supabase.from("payables").insert(fallback).select("id").single());
-        }
-        if (error) return { error };
-        const payableId = inserted?.id;
-        if (pago && payableId) {
-          await supabase.from("cash_movements").insert({
-            user_id: effectiveUserId(),
-            tipo_conta: "PAGAR",
-            conta_id: payableId,
-            valor,
-            descricao: descricao || "Despesa manual",
-            data_movimento: vencimento,
-            forma_pagamento: formaPagamento,
-          });
-        }
-        return { id: payableId };
+        if (error) console.warn("recorrente receita", error.message);
       }
 
       const fichaModal = document.getElementById("fichaModal");
@@ -7177,9 +7454,413 @@
         { value: "OUTROS", label: "Outros" },
       ];
 
+      const LANC_DESPESA_CATEGORIAS = [
+        { value: "ALUGUEL", label: "Aluguel" },
+        { value: "ENERGIA", label: "Energia" },
+        { value: "AGUA", label: "Água" },
+        { value: "TELEFONE_INTERNET", label: "Telefone / Internet" },
+        { value: "FUNCIONARIO", label: "Funcionário" },
+        { value: "GUINCHO", label: "Guincho" },
+        { value: "MANUTENCAO", label: "Manutenção" },
+        { value: "SANGRIA_CAIXA", label: "Sangria de caixa" },
+        { value: "OUTROS", label: "Outros" },
+      ];
+
+      const FINANCE_ATTACHMENTS_KEY = "amplipatio_finance_attachments_v1";
+      const FINANCE_CUSTOM_RECEITA_CATS_KEY = "amplipatio_finance_cats_receita_v1";
+      const FINANCE_CUSTOM_DESPESA_CATS_KEY = "amplipatio_finance_cats_despesa_v1";
+      const FINANCE_META_PREFIX = "[[finmeta:";
+
+      function financeMetaPack(meta, userText) {
+        const clean = String(userText || "").replace(/^\[\[finmeta:[\s\S]*?\]\]\s*/, "").trim();
+        if (!meta || !Object.keys(meta).length) return clean;
+        return `${FINANCE_META_PREFIX}${JSON.stringify(meta)}]] ${clean}`.trim();
+      }
+
+      function financeMetaUnpack(obs) {
+        const raw = String(obs || "");
+        const m = raw.match(/^\[\[finmeta:(\{.*?\})\]\]\s*([\s\S]*)$/);
+        if (!m) return { meta: {}, text: raw };
+        try {
+          return { meta: JSON.parse(m[1]), text: m[2] || "" };
+        } catch (e) {
+          return { meta: {}, text: raw };
+        }
+      }
+
+      function financeAttachmentsRead() {
+        try {
+          const raw = localStorage.getItem(FINANCE_ATTACHMENTS_KEY);
+          const obj = JSON.parse(raw || "{}");
+          return obj && typeof obj === "object" ? obj : {};
+        } catch (e) {
+          return {};
+        }
+      }
+
+      function financeAttachmentsWrite(all) {
+        try {
+          localStorage.setItem(FINANCE_ATTACHMENTS_KEY, JSON.stringify(all || {}));
+        } catch (e) {
+          console.warn("finance attachments storage", e);
+        }
+      }
+
+      function financeAttachmentKey(kind, id) {
+        return `${kind}:${String(id)}`;
+      }
+
+      function financeAttachmentGet(kind, id) {
+        if (!kind || id == null) return null;
+        return financeAttachmentsRead()[financeAttachmentKey(kind, id)] || null;
+      }
+
+      function financeAttachmentSet(kind, id, payload) {
+        if (!kind || id == null || !payload) return;
+        const all = financeAttachmentsRead();
+        all[financeAttachmentKey(kind, id)] = {
+          name: payload.name || "anexo",
+          dataUrl: payload.dataUrl || "",
+          size: Number(payload.size || 0),
+          savedAt: new Date().toISOString(),
+        };
+        financeAttachmentsWrite(all);
+      }
+
+      function financeCustomCatsRead(key) {
+        try {
+          const raw = localStorage.getItem(key);
+          const arr = JSON.parse(raw || "[]");
+          return Array.isArray(arr) ? arr.filter(Boolean) : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function financeCustomCatsWrite(key, list) {
+        try {
+          localStorage.setItem(key, JSON.stringify(list || []));
+        } catch (e) {
+          console.warn("finance custom cats", e);
+        }
+      }
+
+      function financeCustomCatValue(label) {
+        return String(label || "")
+          .trim()
+          .toUpperCase()
+          .replace(/\s+/g, "_")
+          .replace(/[^\w]/g, "")
+          .slice(0, 40) || "CUSTOM";
+      }
+
+      function getLancReceitaCategorias() {
+        const custom = financeCustomCatsRead(FINANCE_CUSTOM_RECEITA_CATS_KEY).map((label) => ({
+          value: financeCustomCatValue(label),
+          label: String(label).trim(),
+        }));
+        const seen = new Set(LANC_RECEITA_CATEGORIAS.map((c) => c.value));
+        const extra = custom.filter((c) => c.label && !seen.has(c.value));
+        return [...LANC_RECEITA_CATEGORIAS, ...extra];
+      }
+
+      function getLancDespesaCategorias() {
+        const custom = financeCustomCatsRead(FINANCE_CUSTOM_DESPESA_CATS_KEY).map((label) => ({
+          value: financeCustomCatValue(label),
+          label: String(label).trim(),
+        }));
+        const seen = new Set(LANC_DESPESA_CATEGORIAS.map((c) => c.value));
+        const extra = custom.filter((c) => c.label && !seen.has(c.value));
+        return [...LANC_DESPESA_CATEGORIAS, ...extra];
+      }
+
+      function addFinanceCustomCategory(tipo, label) {
+        const text = String(label || "").trim();
+        if (!text) return false;
+        const key = tipo === "DESPESA" ? FINANCE_CUSTOM_DESPESA_CATS_KEY : FINANCE_CUSTOM_RECEITA_CATS_KEY;
+        const list = financeCustomCatsRead(key);
+        if (list.some((x) => String(x).toLowerCase() === text.toLowerCase())) return false;
+        list.push(text);
+        financeCustomCatsWrite(key, list);
+        return true;
+      }
+
+      function removeFinanceCustomCategory(tipo, value) {
+        const key = tipo === "DESPESA" ? FINANCE_CUSTOM_DESPESA_CATS_KEY : FINANCE_CUSTOM_RECEITA_CATS_KEY;
+        const list = financeCustomCatsRead(key);
+        const cats = tipo === "DESPESA" ? getLancDespesaCategorias() : getLancReceitaCategorias();
+        const found = cats.find((c) => c.value === value);
+        if (!found || LANC_RECEITA_CATEGORIAS.some((c) => c.value === value) || LANC_DESPESA_CATEGORIAS.some((c) => c.value === value)) {
+          return false;
+        }
+        financeCustomCatsWrite(
+          key,
+          list.filter((x) => financeCustomCatValue(x) !== value)
+        );
+        return true;
+      }
+
+      function payableCategoryLabel(code) {
+        const key = String(code || "OUTROS").trim();
+        const found = getLancDespesaCategorias().find((c) => c.value === key);
+        if (found) return found.label;
+        return key.replace(/_/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase());
+      }
+
+      function addMonthsToYmd(ymd, months) {
+        const due = String(ymd || "").trim();
+        if (!due) return null;
+        const [y, m, d] = due.split("-").map((v) => Number(v));
+        if (!y || !m || !d) return due;
+        const base = new Date(y, m - 1, d, 12, 0, 0, 0);
+        if (Number.isNaN(base.getTime())) return due;
+        const originalDay = base.getDate();
+        base.setDate(1);
+        base.setMonth(base.getMonth() + Number(months || 0));
+        const lastDay = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+        base.setDate(Math.min(originalDay, lastDay));
+        const yy = base.getFullYear();
+        const mm = String(base.getMonth() + 1).padStart(2, "0");
+        const dd = String(base.getDate()).padStart(2, "0");
+        return `${yy}-${mm}-${dd}`;
+      }
+
+      function financeEntryModoFromRecord(record, kind) {
+        if (kind === "payable") {
+          const tipo = String(record?.tipo || "UNICA").toUpperCase();
+          if (tipo === "RECORRENTE" || tipo === "PARCELADA") return tipo;
+          const { meta } = financeMetaUnpack(record?.observacoes);
+          return meta.modo || "UNICA";
+        }
+        const sub = String(record?.subcategoria || "").toUpperCase();
+        if (sub === "RECORRENTE") return "RECORRENTE";
+        if (sub.startsWith("PARCELADA")) return "PARCELADA";
+        const { meta } = financeMetaUnpack(record?.observacoes);
+        return meta.modo || "UNICA";
+      }
+
+      function financeModoBadgeHtml(modo, meta) {
+        const m = String(modo || "UNICA").toUpperCase();
+        if (m === "RECORRENTE") return `<span class="finance-lanc-badge finance-lanc-badge--recorrente">Recorrente</span>`;
+        if (m === "PARCELADA") {
+          const p = meta?.parcela && meta?.parcelas_total ? ` ${meta.parcela}/${meta.parcelas_total}` : "";
+          return `<span class="finance-lanc-badge finance-lanc-badge--parcelada">Parcelada${escapeHtml(p)}</span>`;
+        }
+        return "";
+      }
+
+      function financeNaturezaBadgeHtml(natureza) {
+        const n = String(natureza || "").toUpperCase();
+        if (n !== "FIXA" && n !== "VARIAVEL") return "";
+        return `<span class="finance-lanc-badge">${n === "FIXA" ? "Fixa" : "Variável"}</span>`;
+      }
+
+      async function readLancAnexoFile() {
+        const input = document.getElementById("lancAnexo");
+        const file = input?.files?.[0];
+        if (!file) return null;
+        if (file.size > 512000) {
+          alert("Arquivo muito grande. Use até 500 KB.");
+          return null;
+        }
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () =>
+            resolve({ name: file.name, dataUrl: reader.result, size: file.size });
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function openFinanceAttachment(kind, id) {
+        const att = financeAttachmentGet(kind, id);
+        if (!att?.dataUrl) {
+          alert("Nenhum comprovante anexado para este registro.");
+          return;
+        }
+        const w = window.open("", "_blank");
+        if (!w) {
+          alert("Permita pop-ups para visualizar o comprovante.");
+          return;
+        }
+        if (String(att.dataUrl).startsWith("data:application/pdf")) {
+          w.document.write(`<iframe src="${att.dataUrl}" style="width:100%;height:100%;border:0" title="Comprovante"></iframe>`);
+        } else {
+          w.document.write(`<img src="${att.dataUrl}" alt="${escapeHtml(att.name)}" style="max-width:100%;height:auto" />`);
+        }
+      }
+
+      function buildCobrancaMessage(receivable) {
+        const template = String(state.settings?.texto_cobranca || settingsCharge?.value || "").trim();
+        const cliente = receivable?.responsavel_pagamento || "Cliente";
+        const valor = formatCurrency(Number(receivable?.valor || 0));
+        const venc = receivable?.period_end ? formatDate(receivable.period_end) : "—";
+        const servico = receivableCategoryLabel(receivable?.receivable_category);
+        const base =
+          template ||
+          "Olá {cliente}, identificamos pendência de {valor} referente a {servico}, com vencimento em {vencimento}. Por favor, entre em contato para regularização.";
+        return base
+          .replace(/\{cliente\}/gi, cliente)
+          .replace(/\{valor\}/gi, valor)
+          .replace(/\{vencimento\}/gi, venc)
+          .replace(/\{servico\}/gi, servico);
+      }
+
+      const FINANCE_SUBVIEW_INTRO = {
+        receitas: {
+          title: "Controle de Receitas",
+          desc: "Cadastre receitas únicas, recorrentes ou parceladas. Organize por serviço, anexe comprovantes e acompanhe o histórico de recebimentos.",
+          showCats: true,
+          catTipo: "RECEITA",
+        },
+        despesas: {
+          title: "Controle de Despesas",
+          desc: "Registre despesas fixas ou variáveis, com categorias personalizadas, centro de custo e anexo de nota fiscal.",
+          showCats: true,
+          catTipo: "DESPESA",
+        },
+        contas_pagar: {
+          title: "Contas a Pagar",
+          desc: "Acompanhe vencimentos, fornecedores e alertas de atraso. Registre pagamentos e consulte comprovantes anexados.",
+          showCats: false,
+          histView: "despesas",
+        },
+        contas_receber: {
+          title: "Contas a Receber",
+          desc: "Gestão de títulos em aberto: cliente, vencimento, status, cobrança automática e histórico de recebimentos.",
+          showCats: false,
+          histView: "receitas",
+        },
+      };
+
+      function renderFinanceSubviewIntro(view) {
+        const panel = document.getElementById("financeSubviewIntro");
+        const histPanel = document.getElementById("financeHistoricoPanel");
+        const cfg = FINANCE_SUBVIEW_INTRO[view];
+        if (!panel || !cfg) {
+          panel?.classList.add("hidden");
+          histPanel?.classList.add("hidden");
+          return;
+        }
+        panel.classList.remove("hidden");
+        const titleEl = document.getElementById("financeSubviewTitle");
+        const descEl = document.getElementById("financeSubviewDesc");
+        if (titleEl) titleEl.textContent = cfg.title;
+        if (descEl) descEl.textContent = cfg.desc;
+        const catBar = document.getElementById("financeSubviewCategoryBar");
+        if (catBar) {
+          catBar.classList.toggle("hidden", !cfg.showCats);
+          if (cfg.showCats) renderFinanceCategoryTags(cfg.catTipo);
+        }
+        if (histPanel) {
+          const histView = cfg.histView || (financeIsLancamentosView(view) ? view : null);
+          histPanel.classList.toggle("hidden", !histView);
+          if (histView) renderFinanceHistoricoPanel(histView);
+        }
+      }
+
+      function renderFinanceCategoryTags(tipo) {
+        const wrap = document.getElementById("financeCategoryTags");
+        if (!wrap) return;
+        const cats = tipo === "DESPESA" ? getLancDespesaCategorias() : getLancReceitaCategorias();
+        const baseValues = new Set(
+          (tipo === "DESPESA" ? LANC_DESPESA_CATEGORIAS : LANC_RECEITA_CATEGORIAS).map((c) => c.value)
+        );
+        const custom = cats.filter((c) => !baseValues.has(c.value));
+        if (!custom.length) {
+          wrap.innerHTML = `<span class="notice" style="font-size:12px">Nenhuma categoria personalizada ainda.</span>`;
+          return;
+        }
+        wrap.innerHTML = custom
+          .map(
+            (c) => `
+              <span class="finance-category-tag">
+                ${escapeHtml(c.label)}
+                <button type="button" data-action="remover-categoria" data-tipo="${tipo}" data-value="${escapeHtml(c.value)}" title="Remover">×</button>
+              </span>
+            `
+          )
+          .join("");
+      }
+
+      function renderFinanceHistoricoPanel(view) {
+        const listEl = document.getElementById("financeHistoricoList");
+        const titleEl = document.getElementById("financeHistoricoTitle");
+        if (!listEl) return;
+        const isReceita = view === "receitas";
+        if (titleEl) {
+          titleEl.textContent = isReceita ? "Histórico de recebimentos (últimos 90 dias)" : "Histórico de pagamentos (últimos 90 dias)";
+        }
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 90);
+        const cutoffMs = cutoff.getTime();
+        const cashByReceivable = new Map(
+          state.cash.filter((c) => c.tipo_conta === "RECEBER").map((c) => [String(c.conta_id), c])
+        );
+        const cashByPayable = new Map(
+          state.cash.filter((c) => c.tipo_conta === "PAGAR").map((c) => [String(c.conta_id), c])
+        );
+        const entries = [];
+        if (isReceita) {
+          state.receivables
+            .filter((r) => !FINANCE_MANUAL_ONLY || isManualFinanceLancamento(r))
+            .filter((r) => r.status === "PAGO")
+            .forEach((r) => {
+              const mov = cashByReceivable.get(String(r.id));
+              const paidAt = mov?.data_movimento || r.updated_at || r.created_at;
+              const paidMs = paidAt ? new Date(paidAt).getTime() : 0;
+              if (paidMs && paidMs < cutoffMs) return;
+              const { meta, text } = financeMetaUnpack(r.observacoes);
+              entries.push({
+                data: (r.period_start || paidAt || "").toString().slice(0, 10),
+                tipo: "RECEITA",
+                descricao: text || r.observacoes || "Receita",
+                parte: r.responsavel_pagamento || "-",
+                valor: Number(r.valor || 0),
+                status: "PAGO",
+                categoria: r.receivable_category || "GUARDA_PATIO",
+                modo: financeEntryModoFromRecord(r, "receivable"),
+                meta,
+                recordKind: "receivable",
+                recordId: r.id,
+              });
+            });
+        } else {
+          state.payables
+            .filter((p) => p.status === "PAGO")
+            .forEach((p) => {
+              const mov = cashByPayable.get(String(p.id));
+              const paidAt = mov?.data_movimento || p.updated_at || p.created_at;
+              const paidMs = paidAt ? new Date(paidAt).getTime() : 0;
+              if (paidMs && paidMs < cutoffMs) return;
+              const { meta, text } = financeMetaUnpack(p.observacoes);
+              entries.push({
+                data: (p.data_vencimento || paidAt || "").toString().slice(0, 10),
+                tipo: "DESPESA",
+                descricao: p.descricao || text || "Despesa",
+                parte: p.fornecedor || "-",
+                valor: Number(p.valor || 0),
+                status: "PAGO",
+                categoria: p.payable_category || "OUTROS",
+                modo: financeEntryModoFromRecord(p, "payable"),
+                meta,
+                natureza: meta.natureza,
+                recordKind: "payable",
+                recordId: p.id,
+              });
+            });
+        }
+        entries.sort((a, b) => String(b.data).localeCompare(String(a.data)));
+        if (!entries.length) {
+          listEl.innerHTML = `<div class="finance-lanc-empty">Nenhum registro quitado nos últimos 90 dias.</div>`;
+          return;
+        }
+        listEl.innerHTML = entries.slice(0, 30).map((e) => renderFinanceLancItem(e)).join("");
+      }
+
       function receivableCategoryLabel(code) {
         const key = String(code || "GUARDA_PATIO").trim();
-        const found = SERVICOS_RECEITAS.find((c) => c.value === key);
+        const found = getLancReceitaCategorias().find((c) => c.value === key);
         if (found) return found.label;
         const legacy = {
           SERVICO: "Serviços",
@@ -12545,6 +13226,21 @@
             ? `<span class="finance-lanc-parte">${escapeHtml(entry.parte)}</span>`
             : "";
         const valorFmt = `${isReceita ? "" : "− "}${formatCurrency(entry.valor)}`;
+        const catLabel = isReceita ? receivableCategoryLabel(entry.categoria) : payableCategoryLabel(entry.categoria);
+        const badges = [
+          financeModoBadgeHtml(entry.modo, entry.meta),
+          financeNaturezaBadgeHtml(entry.natureza || entry.meta?.natureza),
+        ]
+          .filter(Boolean)
+          .join("");
+        const badgesHtml = badges ? `<span class="finance-lanc-badges">${badges}</span>` : "";
+        const attKind = entry.recordKind;
+        const attId = entry.recordId;
+        const hasAtt = attKind && attId && financeAttachmentGet(attKind, attId);
+        const attBtn =
+          hasAtt && attKind && attId
+            ? `<button type="button" class="secondary" style="font-size:11px;padding:3px 8px" data-action="ver-comprovante" data-kind="${escapeHtml(attKind)}" data-id="${escapeHtml(attId)}">📎 Comprovante</button>`
+            : "";
         return `
           <article class="finance-lanc-item finance-lanc-item--${tipoClass}">
             <div class="finance-lanc-main">
@@ -12555,10 +13251,12 @@
               <div class="finance-lanc-valor finance-lanc-valor--${tipoClass}">${valorFmt}</div>
             </div>
             <div class="finance-lanc-foot">
-              <span class="tag">${escapeHtml(receivableCategoryLabel(entry.categoria))}</span>
+              <span class="tag">${escapeHtml(catLabel)}</span>
+              ${badgesHtml}
               <span class="finance-lanc-tipo finance-lanc-tipo--${tipoClass}">${isReceita ? "Receita" : "Despesa"}</span>
               <span class="finance-lanc-data">${formatDate(entry.data)}</span>
               <span class="finance-ft-status ${statusClass}">${statusLabel}</span>
+              ${attBtn}
             </div>
           </article>
         `;
@@ -13041,6 +13739,7 @@
         }
 
         if (financeIsLancamentosView(currentFinanceView)) {
+          renderFinanceSubviewIntro(currentFinanceView);
           if (flySummary) flySummary.classList.remove("hidden");
           setFinanceLancListMode(true);
           const qBusca = String(lancamentosFilter.busca || "").trim().toLowerCase();
@@ -13068,6 +13767,7 @@
               const dataBase = (r.period_start || r.created_at || "").toString().slice(0, 10);
               const mov = cashByReceivable.get(String(r.id));
               const dataPagamento = r.status === "PAGO" ? (mov?.data_movimento || r.updated_at || r.created_at || "") : "";
+              const { meta, text } = financeMetaUnpack(r.observacoes);
               entries.push({
                 data: dataBase,
                 mes: dataBase ? dataBase.slice(5, 7) : "-",
@@ -13075,14 +13775,18 @@
                 tipo: "RECEITA",
                 categoria: r.receivable_category || "GUARDA_PATIO",
                 subcategoria: r.subcategoria || "Geral",
-                descricao: r.observacoes || "Lançamento de receita",
+                descricao: text || r.observacoes || "Lançamento de receita",
                 parte: r.responsavel_pagamento || "-",
                 formaPagamento: mov?.forma_pagamento || r.forma_pagamento || "Não informado",
                 valor: Number(r.valor || 0),
                 status: r.status === "PAGO" ? "PAGO" : "ABERTO",
                 dataPagamento,
                 competencia: toCompetencia(dataBase),
-                observacoes: r.observacoes || "-",
+                observacoes: text || r.observacoes || "-",
+                modo: financeEntryModoFromRecord(r, "receivable"),
+                meta,
+                recordKind: "receivable",
+                recordId: r.id,
               });
             });
           state.payables
@@ -13091,6 +13795,7 @@
               const dataBase = (p.data_vencimento || p.created_at || "").toString().slice(0, 10);
               const mov = cashByPayable.get(String(p.id));
               const dataPagamento = p.status === "PAGO" ? (mov?.data_movimento || p.updated_at || p.created_at || "") : "";
+              const { meta, text } = financeMetaUnpack(p.observacoes);
               entries.push({
                 data: dataBase,
                 mes: dataBase ? dataBase.slice(5, 7) : "-",
@@ -13098,16 +13803,26 @@
                 tipo: "DESPESA",
                 categoria: p.payable_category || "OUTROS",
                 subcategoria: p.subcategoria || p.tipo || "Geral",
-                descricao: p.descricao || "-",
+                descricao: p.descricao || text || "-",
                 parte: p.fornecedor || "-",
                 formaPagamento: mov?.forma_pagamento || p.forma_pagamento || "Não informado",
                 valor: Number(p.valor || 0),
                 status: p.status === "PAGO" ? "PAGO" : "ABERTO",
                 dataPagamento,
                 competencia: toCompetencia(dataBase),
-                observacoes: p.observacoes || p.tipo || "-",
+                observacoes: text || p.observacoes || p.tipo || "-",
+                modo: financeEntryModoFromRecord(p, "payable"),
+                meta,
+                natureza: meta.natureza || p.centro_custo,
+                recordKind: "payable",
+                recordId: p.id,
               });
             });
+          if (currentFinanceView === "receitas") {
+            entries.splice(0, entries.length, ...entries.filter((e) => e.tipo === "RECEITA"));
+          } else if (currentFinanceView === "despesas") {
+            entries.splice(0, entries.length, ...entries.filter((e) => e.tipo === "DESPESA"));
+          }
           const syncSelectOptions = (selectEl, values, defaultLabel = "Todas") => {
             if (!selectEl) return;
             const current = selectEl.value;
@@ -13376,6 +14091,7 @@
         }
 
         if (financeIsPagarView(currentFinanceView)) {
+          renderFinanceSubviewIntro("contas_pagar");
           financeHead.innerHTML = `
             <tr>
               <th>Vencimento</th>
@@ -13387,7 +14103,23 @@
               <th>Status</th>
               <th>Ações</th>
             </tr>`;
+        } else if (financeIsReceberView(currentFinanceView)) {
+          renderFinanceSubviewIntro("contas_receber");
+          financeHead.innerHTML = `
+            <tr>
+              <th>Vencimento</th>
+              <th>Cliente</th>
+              <th>Serviço</th>
+              <th>Valor</th>
+              <th>Status</th>
+              <th>Dias em atraso</th>
+              <th>Recebido em</th>
+              <th>Alertas automáticos</th>
+              <th>Ações</th>
+            </tr>`;
         } else {
+          document.getElementById("financeSubviewIntro")?.classList.add("hidden");
+          document.getElementById("financeHistoricoPanel")?.classList.add("hidden");
           financeHead.innerHTML = `
             <tr>
               <th>Vencimento</th>
@@ -13408,9 +14140,15 @@
           const receberFlags = financeReceberFlagsRead();
 
           recvFiltered.forEach((r) => {
+            const dueYmd = (r.period_end || r.created_at || "").toString().slice(0, 10);
             const created = r.created_at ? new Date(r.created_at).getTime() : 0;
-            const daysOpen = created ? Math.floor((now - created) / 86400000) : 0;
-            const isOverdue = created ? daysOpen > 10 : false;
+            const daysFromDue =
+              dueYmd && todayYmdLocal
+                ? Math.floor((new Date(todayYmdLocal).getTime() - new Date(dueYmd).getTime()) / 86400000)
+                : created
+                  ? Math.floor((now - created) / 86400000)
+                  : 0;
+            const isOverdue = r.status !== "PAGO" && !!(dueYmd && todayYmdLocal && dueYmd < todayYmdLocal);
             const vehicle = vehicleById.get(r.vehicle_id);
             const valorCobranca = Number(r.valor || 0);
             const movRec = (state.cash || []).find((m) => m.tipo_conta === "RECEBER" && String(m.conta_id) === String(r.id));
@@ -13436,16 +14174,19 @@
               statusLabel = "Vencido";
               statusClass = "danger";
             }
-            const diasAtraso = isOverdue ? Math.max(0, daysOpen - 10) : 0;
+            const diasAtraso = isOverdue ? Math.max(0, daysFromDue) : 0;
             const alertaTexto = isOverdue
-              ? "Em atraso (+10 dias)"
-              : daysOpen >= 8
-                ? "Próximo de vencer"
+              ? `Vencido há ${diasAtraso} dia(s)`
+              : dueYmd && daysFromDue >= -3 && daysFromDue < 0
+                ? `Vence em ${Math.abs(daysFromDue)} dia(s)`
                 : "Sem alerta";
-            const alertaClasse = isOverdue ? "danger" : daysOpen >= 8 ? "warning" : "success";
+            const alertaClasse = isOverdue ? "danger" : dueYmd && daysFromDue >= -3 && daysFromDue < 0 ? "warning" : "success";
             const vehicleInfo = vehicle
               ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`
-              : "-";
+              : isManualFinanceLancamento(r)
+                ? "Lançamento manual"
+                : "-";
+            const hasAtt = financeAttachmentGet("receivable", r.id);
             rows.push(`
                 <tr>
                   <td>${formatDate(r.period_end || r.created_at)}</td>
@@ -13461,6 +14202,8 @@
                   <td><span class="tag ${alertaClasse}">${alertaTexto}</span></td>
                   <td class="actions">
                     <button class="secondary" data-action="detalhes-receber" data-id="${r.id}">Ver detalhes</button>
+                    <button class="secondary" data-action="cobrar-receber" data-id="${r.id}" title="Copiar mensagem de cobrança">Cobrar</button>
+                    ${hasAtt ? `<button class="secondary" data-action="ver-comprovante" data-kind="receivable" data-id="${r.id}">Comprovante</button>` : ""}
                     <button class="secondary" data-action="aplicar-desconto" data-id="${r.id}">Aplicar desconto</button>
                     <button class="secondary" data-action="negociar-receber" data-id="${r.id}">Negociar</button>
                     <button class="secondary" data-action="receber" data-id="${r.id}" title="Confirma o recebimento">Dar baixa</button>
@@ -13489,9 +14232,12 @@
             const atrasoDias = isOverdue ? Math.max(0, Math.floor((new Date(today).getTime() - new Date(due).getTime()) / 86400000)) : 0;
             const statusLabel = isPaid ? "Pago" : isOverdue ? "Vencido" : "Pendente";
             const statusClass = isPaid ? "success" : isOverdue ? "danger" : "warning";
+            const alertaPagar = isPaid ? "—" : isOverdue ? `Vencido há ${atrasoDias} dia(s)` : "No prazo";
+            const hasAtt = financeAttachmentGet("payable", p.id);
             const acoes = isPaid
               ? `
                   <button class="secondary" data-action="editar-pago" data-id="${p.id}">Editar</button>
+                  ${hasAtt ? `<button class="secondary" data-action="ver-comprovante" data-kind="payable" data-id="${p.id}">Comprovante</button>` : ""}
                   <button class="secondary" data-action="apagar-pago" data-id="${p.id}">Apagar</button>
                 `
               : `
@@ -13504,9 +14250,9 @@
                 <td>${formatDate(p.data_vencimento)}</td>
                 <td>${escapeHtml(p.descricao || "Despesa")}</td>
                 <td>${escapeHtml(p.fornecedor || "Fornecedor não informado")}</td>
-                <td>${escapeHtml(p.payable_category || "OUTROS")}</td>
+                <td>${escapeHtml(payableCategoryLabel(p.payable_category))}</td>
                 <td>${formatCurrency(p.valor)}</td>
-                <td>${atrasoDias} dia(s)</td>
+                <td>${isPaid ? "—" : `${atrasoDias} dia(s)`}<br /><span class="notice">${alertaPagar}</span></td>
                 <td><span class="tag ${statusClass}">${statusLabel}</span></td>
                 <td class="actions">${acoes}</td>
               </tr>
@@ -13885,8 +14631,12 @@
       closeLancamentoModal?.addEventListener("click", closeLancamentoModalFn);
       cancelLancamentoForm?.addEventListener("click", closeLancamentoModalFn);
       document.querySelectorAll(".lanc-tipo-btn").forEach((btn) => {
-        btn.addEventListener("click", () => syncLancamentoModalTipo(btn.getAttribute("data-lanc-tipo")));
+        btn.addEventListener("click", () => {
+          if (lancamentoLockTipo) return;
+          syncLancamentoModalTipo(btn.getAttribute("data-lanc-tipo"));
+        });
       });
+      document.getElementById("lancModo")?.addEventListener("change", syncLancamentoModoFields);
       lancamentoForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
         const descricao = document.getElementById("lancDesc")?.value?.trim() || "";
@@ -13898,13 +14648,22 @@
         const formaPagamento = document.getElementById("lancFormaPagamento")?.value || "PIX";
         const observacoes = document.getElementById("lancObs")?.value?.trim() || "";
         const pago = document.getElementById("lancStatus")?.value === "PAGO";
+        const modo = document.getElementById("lancModo")?.value || "UNICA";
+        const parcelas = Number(document.getElementById("lancParcelas")?.value || 2);
+        const natureza = document.getElementById("lancNatureza")?.value || "VARIAVEL";
+        const centroCusto = document.getElementById("lancCentroCusto")?.value || "";
         if (!descricao || !data || !(valor > 0)) {
           alert("Preencha descrição, valor e data.");
+          return;
+        }
+        if (modo === "PARCELADA" && parcelas < 2) {
+          alert("Informe pelo menos 2 parcelas.");
           return;
         }
         const submitBtn = document.getElementById("lancSubmitBtn");
         if (submitBtn) submitBtn.disabled = true;
         try {
+          const anexo = await readLancAnexoFile();
           if (lancamentoTipoAtual === "RECEITA") {
             const cliente = lancCliente?.value || "";
             const result = await insertManualReceivableLancamento({
@@ -13917,10 +14676,17 @@
               formaPagamento,
               observacoes,
               pago,
+              modo,
+              parcelas,
             });
             if (result.error) {
               alert(result.error.message || "Não foi possível salvar a receita.");
               return;
+            }
+            if (anexo && result.ids?.length) {
+              result.ids.forEach((id) => financeAttachmentSet("receivable", id, anexo));
+            } else if (anexo && result.id) {
+              financeAttachmentSet("receivable", result.id, anexo);
             }
             await Promise.all([loadReceivables(), loadCash()]);
           } else {
@@ -13934,10 +14700,19 @@
               formaPagamento,
               observacoes,
               pago,
+              modo,
+              parcelas,
+              natureza,
+              centroCusto,
             });
             if (result.error) {
               alert(result.error.message || "Não foi possível salvar a despesa.");
               return;
+            }
+            if (anexo && result.ids?.length) {
+              result.ids.forEach((id) => financeAttachmentSet("payable", id, anexo));
+            } else if (anexo && result.id) {
+              financeAttachmentSet("payable", result.id, anexo);
             }
             await Promise.all([loadPayables(), loadCash()]);
           }
@@ -14356,6 +15131,7 @@
           console.warn("finance competency register payment", e?.message || e);
         }
         removeReceberTriagemId(receivableId);
+        await createNextRecorrenteReceivable(receivable);
         await Promise.all([loadReceivables(), loadCash(), loadVehicles()]);
         renderFinance();
         updateDashboard();
@@ -14689,7 +15465,42 @@
       document.getElementById("financeNovoLancamentoBtn")?.addEventListener("click", () => {
         const tipo =
           currentFinanceView === "despesas" || financeIsPagarView(currentFinanceView) ? "DESPESA" : "RECEITA";
-        openLancamentoModal(tipo);
+        openLancamentoModal(tipo, { lockTipo: financeIsLancamentosView(currentFinanceView) });
+      });
+      document.getElementById("financeAddCategoryBtn")?.addEventListener("click", () => {
+        const input = document.getElementById("financeNewCategoryInput");
+        const label = input?.value?.trim();
+        if (!label) return;
+        const tipo =
+          currentFinanceView === "despesas" ? "DESPESA" : currentFinanceView === "receitas" ? "RECEITA" : "RECEITA";
+        if (!addFinanceCustomCategory(tipo, label)) {
+          alert("Categoria já existe ou nome inválido.");
+          return;
+        }
+        if (input) input.value = "";
+        syncLancamentoCategoriaOptions();
+        renderFinanceCategoryTags(tipo);
+        renderFinance();
+      });
+      document.getElementById("financeCategoryTags")?.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-action='remover-categoria']");
+        if (!btn) return;
+        const tipo = btn.getAttribute("data-tipo") === "DESPESA" ? "DESPESA" : "RECEITA";
+        const value = btn.getAttribute("data-value");
+        if (!removeFinanceCustomCategory(tipo, value)) return;
+        syncLancamentoCategoriaOptions();
+        renderFinanceCategoryTags(tipo);
+        renderFinance();
+      });
+      document.getElementById("financeHistoricoList")?.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-action='ver-comprovante']");
+        if (!btn) return;
+        openFinanceAttachment(btn.getAttribute("data-kind"), btn.getAttribute("data-id"));
+      });
+      document.getElementById("financeLancList")?.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-action='ver-comprovante']");
+        if (!btn) return;
+        openFinanceAttachment(btn.getAttribute("data-kind"), btn.getAttribute("data-id"));
       });
       document.getElementById("financeChartPeriod")?.addEventListener("change", () => {
         if (currentFinanceView === "dashboard") renderFinanceModuleCharts();
@@ -17177,6 +17988,25 @@
           delete saved[baseKey];
           cadastroBaseWriteSaved(saved);
           renderFinance();
+          return;
+        }
+
+        if (action === "cobrar-receber") {
+          const receivable = state.receivables.find((r) => r.id === id);
+          if (!receivable) return;
+          const msg = buildCobrancaMessage(receivable);
+          try {
+            await navigator.clipboard.writeText(msg);
+            alert("Mensagem de cobrança copiada. Cole no WhatsApp ou e-mail do cliente.");
+          } catch (e) {
+            openTextModal("Cobrança automática", msg);
+          }
+          return;
+        }
+
+        if (action === "ver-comprovante") {
+          const kind = button.getAttribute("data-kind");
+          openFinanceAttachment(kind, id);
           return;
         }
 
