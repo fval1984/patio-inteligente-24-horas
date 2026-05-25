@@ -2341,7 +2341,7 @@
                 <div class="header-menu-nested">
                   <button type="button" data-lista-subview="vnp">VNP</button>
                   <button type="button" data-lista-subview="vrp">VRP</button>
-                  <button type="button" data-lista-subview="aguardando_lancamento" data-lista-gestor-hide="1">Aguardando lançamento</button>
+                  <button type="button" data-lista-subview="pre_lancamento" data-lista-gestor-hide="1">Pré lançamento</button>
                   <button type="button" data-lista-subview="receber" data-lista-gestor-hide="1">Contas a receber</button>
                   <button type="button" data-lista-subview="receber_alerta" data-lista-gestor-hide="1">Recebimentos em alerta</button>
                   <button type="button" data-lista-subview="pagar" data-lista-gestor-hide="1">Contas a pagar</button>
@@ -2376,7 +2376,7 @@
                   <button type="button" data-header-finance-action="financeMenuPrintOpenRec">Imprimir a receber em aberto</button>
                   <button type="button" data-header-finance-action="financeMenuReload">Atualizar dados</button>
                   <button type="button" data-header-finance-action="financeMenuReceberFilters">Filtro de contas a receber</button>
-                  <button type="button" data-header-finance-sub="aguardando_lancamento">Aguardando lançamento</button>
+                  <button type="button" data-header-finance-sub="pre_lancamento">Pré lançamento</button>
                   <button type="button" data-header-finance-sub="receber">Contas a receber</button>
                   <button type="button" data-header-finance-sub="receber_alerta">Recebimentos em alerta</button>
                   <button type="button" data-header-finance-sub="pagar">Contas a pagar</button>
@@ -2710,7 +2710,7 @@
           <div class="subnav" id="listaSubnav" style="margin-bottom: 12px; flex-wrap: wrap">
             <button type="button" data-lista-subview="vnp">VNP</button>
             <button type="button" data-lista-subview="vrp">VRP</button>
-            <button type="button" data-lista-subview="aguardando_lancamento" data-lista-gestor-hide="1">Aguardando lançamento</button>
+            <button type="button" data-lista-subview="pre_lancamento" data-lista-gestor-hide="1">Pré lançamento</button>
             <button type="button" data-lista-subview="receber" data-lista-gestor-hide="1">Contas a receber</button>
             <button type="button" data-lista-subview="receber_alerta" data-lista-gestor-hide="1">Recebimentos em alerta</button>
             <button type="button" data-lista-subview="pagar" data-lista-gestor-hide="1">Contas a pagar</button>
@@ -2984,7 +2984,7 @@
             <button type="button" id="financeMenuPrintOpenRec">Imprimir a receber em aberto</button>
             <button type="button" id="financeMenuReload">Atualizar dados</button>
             <button type="button" id="financeMenuReceberFilters">Filtro de contas a receber</button>
-            <button data-subview="aguardando_lancamento">Aguardando lançamento</button>
+            <button data-subview="pre_lancamento">Pré lançamento</button>
             <button data-subview="receber">Contas a receber</button>
             <button data-subview="receber_alerta">Recebimentos em alerta</button>
             <button data-subview="pagar">Contas a pagar</button>
@@ -4068,6 +4068,8 @@
       let currentPatioView = null;
       let currentFinanceView = null;
       let currentPartnerView = null;
+      const FINANCE_PRE_LANCAMENTO_VIEW = "pre_lancamento";
+      const FINANCE_PRE_LANCAMENTO_LEGACY_VIEW = "aguardando_lancamento";
       const navStack = ["dashboard"];
       let historyFilter = { from: null, to: null };
       let plateQuery = "";
@@ -4106,6 +4108,20 @@
       const RECEIVABLE_AGUARDANDO_LANCAMENTO = "AGUARDANDO_LANCAMENTO";
       /** Fallback se a coluna `financeiro_aprovado_contas_receber` ainda não existir no Supabase. */
       const RECEBER_TRIAGEM_IDS_KEY = "amplipatio_triagem_em_contas_ids";
+
+      function isFinancePreLancamentoView(view) {
+        return view === FINANCE_PRE_LANCAMENTO_VIEW || view === FINANCE_PRE_LANCAMENTO_LEGACY_VIEW;
+      }
+
+      function normalizeFinanceSubview(view) {
+        if (isFinancePreLancamentoView(view)) return FINANCE_PRE_LANCAMENTO_VIEW;
+        return view;
+      }
+
+      function normalizeListaSubview(view) {
+        if (isFinancePreLancamentoView(view)) return FINANCE_PRE_LANCAMENTO_VIEW;
+        return view;
+      }
 
       function receberTriagemIdSet() {
         try {
@@ -4160,7 +4176,7 @@
       }
 
       /**
-       * Fila «Aguardando lançamento»: status AGUARDANDO no Supabase OU EM_ABERTO com ciclo encerrado
+       * Fila «Pré lançamento»: status AGUARDANDO no Supabase OU EM_ABERTO com ciclo encerrado
        * ainda não aprovado para «Contas a receber» (Supabase ou fallback local).
        */
       function receivableNaFilaAguardandoTriagem(r) {
@@ -4187,10 +4203,10 @@
       function formatReceivableStatusLabel(c) {
         if (!c) return "-";
         if (c.status === "PAGO") return "Pago";
-        if (c.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return "Aguardando lançamento (financeiro)";
+        if (c.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return "Pré lançamento (financeiro)";
         if (c.status === "EM_ABERTO" && receivableIsCicloPatioAberto(c)) return "Em curso (pátio)";
         if (c.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(c) && !receivableAprovadoParaContasReceber(c))
-          return "Aguardando lançamento (financeiro)";
+          return "Pré lançamento (financeiro)";
         if (c.status === "EM_ABERTO") return "Em aberto (conta a receber)";
         return c.status || "-";
       }
@@ -4625,7 +4641,7 @@
             hideAmount: false,
           };
         }
-        if (currentListaView === "aguardando_lancamento") {
+        if (currentListaView === FINANCE_PRE_LANCAMENTO_VIEW) {
           const rows = (state.receivables || [])
             .filter((r) => receivableNaFilaAguardandoTriagem(r))
             .filter((r) => listaReceivableMatches(r, vehicleById.get(r.vehicle_id)));
@@ -4768,7 +4784,7 @@
           return;
         }
 
-        if (currentListaView === "aguardando_lancamento") {
+        if (currentListaView === FINANCE_PRE_LANCAMENTO_VIEW) {
           head.innerHTML = `<tr><th>Resumo</th><th>Valor</th><th>Estado</th></tr>`;
           const rows = [];
           state.receivables
@@ -8029,7 +8045,7 @@
             financeCaixaStatus.className = c3 || "tag success";
           }
         };
-        if (currentFinanceView === "aguardando_lancamento") {
+        if (isFinancePreLancamentoView(currentFinanceView)) {
           setFinanceSummaryCards({
             t1: "Na fila de triagem",
             v1: formatCurrency(sumTriagem),
@@ -8194,7 +8210,7 @@
               .join("");
           };
           const filaFinanceira = [
-            ["Aguardando lançamento", state.receivables.filter((r) => receivableNaFilaAguardandoTriagem(r)).length],
+            ["Pré lançamento", state.receivables.filter((r) => receivableNaFilaAguardandoTriagem(r)).length],
             ["Contas a receber em aberto", openReceivablesFinanceiro.length],
             ["Contas a pagar em aberto", openPayables.length],
           ];
@@ -8323,7 +8339,7 @@
 
         const rows = [];
 
-        if (currentFinanceView === "aguardando_lancamento") {
+        if (isFinancePreLancamentoView(currentFinanceView)) {
           financeHead.innerHTML = `
             <tr>
               <th>Origem</th>
@@ -8853,6 +8869,7 @@
       }
 
       function setFinanceView(view) {
+        view = normalizeFinanceSubview(view);
         currentFinanceView = view;
         const isNone = !view || view === "none";
         const isDashboard = view === "dashboard";
@@ -8881,7 +8898,7 @@
           financeContent.classList.add("air-open");
         }
         financeFilters.classList.toggle("hidden", !["historico_receber", "historico_pagar", "relatorios"].includes(view));
-        document.getElementById("financeAguardandoIntro")?.classList.toggle("hidden", view !== "aguardando_lancamento");
+        document.getElementById("financeAguardandoIntro")?.classList.toggle("hidden", view !== FINANCE_PRE_LANCAMENTO_VIEW);
         const receberExtras = view === "receber" || view === "receber_alerta";
         document.getElementById("financeReceberFilters")?.classList.toggle("hidden", !receberExtras);
         renderFinance();
@@ -9705,6 +9722,7 @@
 
       function openFinanceSubview(sub) {
         const top = navStack[navStack.length - 1];
+        sub = normalizeFinanceSubview(sub);
         if (!sub) return;
         if (top === `financeiro:${sub}`) return;
         if (top && typeof top === "string" && top.startsWith("financeiro:")) navStack.pop();
@@ -9727,10 +9745,11 @@
       }
 
       function openListaSubview(sub) {
+        sub = normalizeListaSubview(sub);
         if (!sub) return;
         if (
           isGestorPista &&
-          ["aguardando_lancamento", "receber", "receber_alerta", "pagar", "caixa"].includes(sub)
+          [FINANCE_PRE_LANCAMENTO_VIEW, "receber", "receber_alerta", "pagar", "caixa"].includes(sub)
         ) {
           alert("Com o perfil de gestor de pista só estão disponíveis as listas VNP e VRP.");
           sub = "vnp";
@@ -11054,7 +11073,7 @@
           await loadReceivables();
           renderFinance();
           alert(
-            `Ciclo do responsável anterior encerrado em ${dataAcerto} (fim desse dia). O encerramento foi enviado ao Financeiro (aba «Aguardando lançamento»). Novo responsável a partir de ${formatNextCalendarDayPt(
+            `Ciclo do responsável anterior encerrado em ${dataAcerto} (fim desse dia). O encerramento foi enviado ao Financeiro (aba «Pré lançamento»). Novo responsável a partir de ${formatNextCalendarDayPt(
               dataAcerto
             )}.`
           );
@@ -11234,7 +11253,7 @@
           updateDashboard();
           openPatioSubview("removidos");
           alert(
-            "Veículo removido do pátio (VRP). O ciclo vai primeiro para Financeiro → «Aguardando lançamento»; depois do teu OK passa a «Contas a receber» ou baixa em caixa."
+            "Veículo removido do pátio (VRP). O ciclo vai primeiro para Financeiro → «Pré lançamento»; depois do teu OK passa a «Contas a receber» ou baixa em caixa."
           );
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
@@ -11427,7 +11446,7 @@
           }
           if (!receivableIsContaReceberFinanceiro(receivable)) {
             alert(
-              "Este registo não está em «Contas a receber». Se o ciclo acabou de sair do pátio, use a aba «Aguardando lançamento»."
+              "Este registo não está em «Contas a receber». Se o ciclo acabou de sair do pátio, use a aba «Pré lançamento»."
             );
             return;
           }
@@ -11577,7 +11596,7 @@
           const naFilaAguardando = receivableNaFilaAguardandoTriagem(receivable);
           if (!emContaReceber && !naFilaAguardando) {
             alert(
-              "Só é possível editar ciclos em «Aguardando lançamento» ou «Contas a receber» (ainda não pagos). Atualize o financeiro."
+              "Só é possível editar ciclos em «Pré lançamento» ou «Contas a receber» (ainda não pagos). Atualize o financeiro."
             );
             return;
           }
