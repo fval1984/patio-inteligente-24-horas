@@ -5486,8 +5486,33 @@
               <option value="">Todos</option>
             </select>
             <button type="button" class="secondary" id="clearFinanceReceberFilters">Limpar filtros</button>
+            <label for="financeReceberFilterStatus">Situação</label>
+            <select id="financeReceberFilterStatus" style="min-width: 10rem">
+              <option value="aberto">Em aberto</option>
+              <option value="vencido">Vencidas</option>
+              <option value="vencendo">Vencendo (7 dias)</option>
+              <option value="pago">Pagas (histórico)</option>
+              <option value="todas">Todas</option>
+            </select>
+            <input id="financeReceberFilterBusca" type="search" placeholder="Buscar cliente…" style="min-width: 11rem" />
             <span class="notice" style="flex-basis: 100%; margin-top: 6px; line-height: 1.45">
               Esses filtros aplicam-se apenas à subaba <strong>Contas a Receber</strong>.
+            </span>
+          </div>
+          <div id="financePagarFilters" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; flex-wrap: wrap; align-items: center">
+            <span class="notice" style="font-weight: 600">Contas a Pagar — filtros:</span>
+            <label for="financePagarFilterStatus">Situação</label>
+            <select id="financePagarFilterStatus" style="min-width: 10rem">
+              <option value="aberto">Em aberto</option>
+              <option value="vencido">Vencidas</option>
+              <option value="vencendo">Vencendo (7 dias)</option>
+              <option value="pago">Pagas (histórico)</option>
+              <option value="todas">Todas</option>
+            </select>
+            <input id="financePagarFilterBusca" type="search" placeholder="Buscar fornecedor ou descrição…" style="min-width: 12rem" />
+            <button type="button" class="secondary" id="clearFinancePagarFilters">Limpar filtros</button>
+            <span class="notice" style="flex-basis: 100%; margin-top: 6px; line-height: 1.45">
+              Filtros da subaba <strong>Contas a Pagar</strong> — vencidas, a vencer e histórico de pagamentos.
             </span>
           </div>
           <p id="financeAguardandoIntro" class="notice hidden" style="margin: 4px 0 14px; max-width: 56rem; line-height: 1.45"></p>
@@ -6630,6 +6655,26 @@
           <div id="receberBaixaResumo" class="section-card" style="margin-bottom: 14px; padding: 12px 14px; font-size: 13px; line-height: 1.55"></div>
           <div class="form-grid" style="margin-bottom: 12px">
             <div>
+              <label for="receberBaixaData">Data do recebimento</label>
+              <input id="receberBaixaData" type="date" required />
+            </div>
+            <div>
+              <label for="receberBaixaForma">Forma de pagamento</label>
+              <select id="receberBaixaForma">
+                <option value="Dinheiro">Dinheiro</option>
+                <option value="PIX">PIX</option>
+                <option value="Cartão Débito">Cartão Débito</option>
+                <option value="Cartão Crédito">Cartão Crédito</option>
+                <option value="Transferência">Transferência</option>
+                <option value="Boleto">Boleto</option>
+                <option value="Cheque">Cheque</option>
+              </select>
+            </div>
+            <div class="full">
+              <label for="receberBaixaAnexo">Comprovante (opcional)</label>
+              <input id="receberBaixaAnexo" type="file" accept="image/*,.pdf,.png,.jpg,.jpeg,.webp" />
+            </div>
+            <div>
               <label for="receberBaixaReciboNome">Nome no recibo (só para PDF)</label>
               <input id="receberBaixaReciboNome" type="text" placeholder="Responsável pelo pagamento" />
             </div>
@@ -6646,6 +6691,107 @@
             <button type="button" class="secondary" id="receberBaixaGerarPdf">Gerar PDF</button>
             <button type="button" class="secondary" id="cancelReceberBaixaModal">Cancelar</button>
           </div>
+        </div>
+      </div>
+
+      <div id="pagarBaixaModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 440px">
+          <div class="modal-header">
+            <div>
+              <h3>Registrar pagamento</h3>
+              <p class="subtitle" style="margin: 4px 0 0">Confirme a saída com data, forma de pagamento e comprovante.</p>
+            </div>
+            <button type="button" class="modal-close" id="closePagarBaixaModal">Fechar</button>
+          </div>
+          <div id="pagarBaixaResumo" class="section-card" style="margin-bottom: 14px; padding: 12px 14px; font-size: 13px; line-height: 1.55"></div>
+          <div class="form-grid" style="margin-bottom: 12px">
+            <div>
+              <label for="pagarBaixaData">Data do pagamento</label>
+              <input id="pagarBaixaData" type="date" required />
+            </div>
+            <div>
+              <label for="pagarBaixaForma">Forma de pagamento</label>
+              <select id="pagarBaixaForma">
+                <option value="Dinheiro">Dinheiro</option>
+                <option value="PIX">PIX</option>
+                <option value="Cartão Débito">Cartão Débito</option>
+                <option value="Cartão Crédito">Cartão Crédito</option>
+                <option value="Transferência">Transferência</option>
+                <option value="Boleto">Boleto</option>
+                <option value="Cheque">Cheque</option>
+              </select>
+            </div>
+            <div class="full">
+              <label for="pagarBaixaAnexo">Comprovante / NF (opcional)</label>
+              <input id="pagarBaixaAnexo" type="file" accept="image/*,.pdf,.png,.jpg,.jpeg,.webp" />
+            </div>
+          </div>
+          <div class="form-actions" style="flex-wrap: wrap">
+            <button type="button" id="pagarBaixaConfirm">Confirmar pagamento</button>
+            <button type="button" class="secondary" id="cancelPagarBaixaModal">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="financeCobrancaModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 520px">
+          <div class="modal-header">
+            <div>
+              <h3>Cobrança automática</h3>
+              <p class="subtitle" style="margin: 4px 0 0">Revise a mensagem antes de enviar ao cliente.</p>
+            </div>
+            <button type="button" class="modal-close" id="closeFinanceCobrancaModal">Fechar</button>
+          </div>
+          <textarea id="financeCobrancaTexto" rows="8" style="width: 100%; resize: vertical; min-height: 140px; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.2); color: var(--text); font: inherit"></textarea>
+          <p id="financeCobrancaUltima" class="notice" style="margin: 10px 0 0; font-size: 12px"></p>
+          <div class="form-actions" style="margin-top: 14px; flex-wrap: wrap">
+            <button type="button" id="financeCobrancaCopiar">Copiar e registrar envio</button>
+            <button type="button" class="secondary" id="cancelFinanceCobrancaModal">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="financeContaEditModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 480px">
+          <div class="modal-header">
+            <div>
+              <h3 id="financeContaEditTitle">Editar título</h3>
+              <p class="subtitle" style="margin: 4px 0 0">Altere dados do título em aberto.</p>
+            </div>
+            <button type="button" class="modal-close" id="closeFinanceContaEditModal">Fechar</button>
+          </div>
+          <form id="financeContaEditForm">
+            <div class="form-grid">
+              <div class="full" id="financeContaEditDescWrap">
+                <label for="financeContaEditDesc">Descrição</label>
+                <input id="financeContaEditDesc" type="text" />
+              </div>
+              <div class="full" id="financeContaEditClienteWrap">
+                <label for="financeContaEditCliente">Cliente / responsável</label>
+                <input id="financeContaEditCliente" type="text" />
+              </div>
+              <div id="financeContaEditFornecedorWrap">
+                <label for="financeContaEditFornecedor">Fornecedor</label>
+                <input id="financeContaEditFornecedor" type="text" />
+              </div>
+              <div>
+                <label for="financeContaEditValor">Valor (R$)</label>
+                <input id="financeContaEditValor" type="number" step="0.01" min="0.01" required />
+              </div>
+              <div>
+                <label for="financeContaEditVencimento">Vencimento</label>
+                <input id="financeContaEditVencimento" type="date" required />
+              </div>
+              <div>
+                <label for="financeContaEditCategoria">Categoria / serviço</label>
+                <select id="financeContaEditCategoria"></select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit">Salvar alterações</button>
+              <button type="button" class="secondary" id="cancelFinanceContaEditModal">Cancelar</button>
+            </div>
+          </form>
         </div>
       </div>
     </main>
@@ -7106,6 +7252,10 @@
       const confirmReciboModal = document.getElementById("confirmReciboModal");
       const printReciboModal = document.getElementById("printReciboModal");
       const receberBaixaModal = document.getElementById("receberBaixaModal");
+      const pagarBaixaModal = document.getElementById("pagarBaixaModal");
+      const financeCobrancaModal = document.getElementById("financeCobrancaModal");
+      const financeContaEditModal = document.getElementById("financeContaEditModal");
+      const financeContaEditForm = document.getElementById("financeContaEditForm");
       const reciboDestinatarioNome = document.getElementById("reciboDestinatarioNome");
       const reciboDestinatarioDoc = document.getElementById("reciboDestinatarioDoc");
 
@@ -7288,6 +7438,10 @@
       let caixaFilter = { month: "" };
       let plateQuery = "";
       let financePlateQuery = "";
+      let financeReceberStatusFilter = "aberto";
+      let financeReceberBuscaFilter = "";
+      let financePagarStatusFilter = "aberto";
+      let financePagarBuscaFilter = "";
       let financePlateInputTimer = null;
       let vlsListFilterLocatorId = "";
       let vlsListFilterAssessoriaId = "";
@@ -7709,13 +7863,13 @@
         },
         contas_pagar: {
           title: "Contas a Pagar",
-          desc: "Acompanhe vencimentos, fornecedores e alertas de atraso. Registre pagamentos e consulte comprovantes anexados.",
+          desc: "Filtre por vencidas, a vencer ou pagas. Registre pagamentos com data, forma de pagamento e comprovante. Edite títulos em aberto.",
           showCats: false,
           histView: "despesas",
         },
         contas_receber: {
           title: "Contas a Receber",
-          desc: "Gestão de títulos em aberto: cliente, vencimento, status, cobrança automática e histórico de recebimentos.",
+          desc: "Gestão completa de títulos: filtros, cobrança com preview, baixa com comprovante, histórico de pagamentos e edição de lançamentos manuais.",
           showCats: false,
           histView: "receitas",
         },
@@ -7742,8 +7896,11 @@
         }
         if (histPanel) {
           const histView = cfg.histView || (financeIsLancamentosView(view) ? view : null);
-          histPanel.classList.toggle("hidden", !histView);
-          if (histView) renderFinanceHistoricoPanel(histView);
+          const statusHideHist =
+            (view === "contas_receber" && ["pago", "todas"].includes(financeReceberStatusFilter)) ||
+            (view === "contas_pagar" && ["pago", "todas"].includes(financePagarStatusFilter));
+          histPanel.classList.toggle("hidden", !histView || statusHideHist);
+          if (histView && !statusHideHist) renderFinanceHistoricoPanel(histView);
         }
       }
 
@@ -8045,6 +8202,75 @@
         } catch (e) {
           console.warn("localStorage receber flags", e);
         }
+      }
+
+      function financeContaDueYmd(record, kind) {
+        if (!record) return "";
+        if (kind === "receivable") return String(record.period_end || record.created_at || "").slice(0, 10);
+        return String(record.data_vencimento || record.created_at || "").slice(0, 10);
+      }
+
+      function financeContaDueDays(dueYmd, todayYmd) {
+        if (!dueYmd || !todayYmd) return null;
+        return Math.floor((new Date(todayYmd).getTime() - new Date(dueYmd).getTime()) / 86400000);
+      }
+
+      function financeContaMatchesStatusFilter(record, kind, statusFilter, todayYmd) {
+        const filter = String(statusFilter || "aberto").toLowerCase();
+        const isPaid = String(record?.status || "").toUpperCase() === "PAGO";
+        if (filter === "pago") return isPaid;
+        if (filter === "todas") return true;
+        if (isPaid) return false;
+        if (filter === "aberto") return true;
+        const due = financeContaDueYmd(record, kind);
+        const days = financeContaDueDays(due, todayYmd);
+        if (days == null) return filter === "aberto";
+        if (filter === "vencido") return days > 0;
+        if (filter === "vencendo") return days >= -7 && days <= 0;
+        return true;
+      }
+
+      function financeFormatUltimaCobranca(iso) {
+        if (!iso) return "";
+        try {
+          return formatDateTime(iso);
+        } catch (e) {
+          return String(iso);
+        }
+      }
+
+      function collectFinancePagarFilteredList() {
+        const todayYmd = toLocalYmd(new Date().toISOString());
+        const q = String(financePagarBuscaFilter || "").trim().toLowerCase();
+        const financePlateNorm = normalizePlateSearch(financePlateQuery);
+        const list = (state.payables || [])
+          .filter((p) => {
+            if (financePlateNorm) {
+              const descNorm = normalizePlateSearch(p.descricao || "");
+              if (!descNorm.includes(financePlateNorm)) return false;
+            }
+            if (!financeContaMatchesStatusFilter(p, "payable", financePagarStatusFilter, todayYmd)) return false;
+            if (!q) return true;
+            const blob = `${p.descricao || ""} ${p.fornecedor || ""} ${p.payable_category || ""}`.toLowerCase();
+            return blob.includes(q);
+          })
+          .sort((a, b) => String(a.data_vencimento || "").localeCompare(String(b.data_vencimento || "")));
+        return { list, todayYmd };
+      }
+
+      function readFinanceFileInput(inputEl) {
+        const file = inputEl?.files?.[0];
+        if (!file) return Promise.resolve(null);
+        if (file.size > 512000) {
+          alert("Arquivo muito grande. Use até 500 KB.");
+          return Promise.resolve(null);
+        }
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve({ name: file.name, dataUrl: reader.result, size: file.size });
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(file);
+        });
       }
 
       function renderFinanceMetaCard(saldoAtual) {
@@ -9961,18 +10187,42 @@
       function collectFinanceReceberFilteredList({ alertaOnly = false } = {}) {
         const vehicleById = new Map(state.vehicles.map((v) => [v.id, v]));
         const financePlateNorm = normalizePlateSearch(financePlateQuery);
-        let list = (state.receivables || [])
-          .filter((r) => receivableIsContaReceberFinanceiro(r))
-          .filter((r) => financeReceivableMatchesPlateQuery(r, vehicleById, financePlateNorm))
-          .filter((r) => receberBarFilterMatches(r, vehicleById.get(r.vehicle_id)));
+        const todayYmd = toLocalYmd(new Date().toISOString());
+        const q = String(financeReceberBuscaFilter || "").trim().toLowerCase();
+        let list = (state.receivables || []).filter((r) => {
+          const isPaid = r.status === "PAGO";
+          const isManual = isManualFinanceLancamento(r);
+          const isOpenConta = receivableIsContaReceberFinanceiro(r);
+          const statusF = String(financeReceberStatusFilter || "aberto").toLowerCase();
+          if (statusF === "pago") {
+            if (!isPaid) return false;
+            if (FINANCE_MANUAL_ONLY && !isManual) return false;
+          } else if (statusF === "todas") {
+            if (isPaid) {
+              if (FINANCE_MANUAL_ONLY && !isManual) return false;
+            } else if (!isOpenConta) {
+              return false;
+            }
+          } else if (!isOpenConta) {
+            return false;
+          }
+          if (!financeReceivableMatchesPlateQuery(r, vehicleById, financePlateNorm)) return false;
+          if (!receberBarFilterMatches(r, vehicleById.get(r.vehicle_id))) return false;
+          if (!financeContaMatchesStatusFilter(r, "receivable", financeReceberStatusFilter, todayYmd)) return false;
+          if (q) {
+            const blob = `${r.responsavel_pagamento || ""} ${r.observacoes || ""}`.toLowerCase();
+            if (!blob.includes(q)) return false;
+          }
+          return true;
+        });
         if (alertaOnly) {
-          const now = Date.now();
           list = list.filter((r) => {
-            if (!r.created_at) return false;
-            return Math.floor((now - new Date(r.created_at).getTime()) / 86400000) > 10;
+            const due = financeContaDueYmd(r, "receivable");
+            const days = financeContaDueDays(due, todayYmd);
+            return days != null && days > 0;
           });
         }
-        return { list, vehicleById };
+        return { list, vehicleById, todayYmd };
       }
 
       function syncFinanceOpenRecPrintFilterOptions() {
@@ -13947,6 +14197,7 @@
           financeLancamentosToolbar?.classList.add("hidden");
           financeCaixaFilters?.classList.add("hidden");
           document.getElementById("financeReceberFilters")?.classList.add("hidden");
+          document.getElementById("financePagarFilters")?.classList.add("hidden");
           financeLancSidePanel?.classList.add("hidden");
           financeHead.innerHTML = `
             <tr>
@@ -14124,23 +14375,19 @@
 
         if (financeIsReceberView(currentFinanceView)) {
           syncFinanceReceberBarOptions();
-          const { list: recvFiltered } = collectFinanceReceberFilteredList({ alertaOnly: false });
+          const { list: recvFiltered, todayYmd: recvToday } = collectFinanceReceberFilteredList({ alertaOnly: false });
           const receberFlags = financeReceberFlagsRead();
+          const showPaidRows = financeReceberStatusFilter === "pago" || financeReceberStatusFilter === "todas";
 
           recvFiltered.forEach((r) => {
-            const dueYmd = (r.period_end || r.created_at || "").toString().slice(0, 10);
-            const created = r.created_at ? new Date(r.created_at).getTime() : 0;
-            const daysFromDue =
-              dueYmd && todayYmdLocal
-                ? Math.floor((new Date(todayYmdLocal).getTime() - new Date(dueYmd).getTime()) / 86400000)
-                : created
-                  ? Math.floor((now - created) / 86400000)
-                  : 0;
-            const isOverdue = r.status !== "PAGO" && !!(dueYmd && todayYmdLocal && dueYmd < todayYmdLocal);
+            const dueYmd = financeContaDueYmd(r, "receivable");
+            const daysFromDue = financeContaDueDays(dueYmd, recvToday);
+            const isPaid = r.status === "PAGO";
+            const isOverdue = !isPaid && !!(dueYmd && recvToday && dueYmd < recvToday);
             const vehicle = vehicleById.get(r.vehicle_id);
             const valorCobranca = Number(r.valor || 0);
             const movRec = (state.cash || []).find((m) => m.tipo_conta === "RECEBER" && String(m.conta_id) === String(r.id));
-            const pagoParcial = !!(movRec && Number(movRec.valor || 0) > 0 && r.status !== "PAGO" && Number(movRec.valor || 0) < valorCobranca);
+            const pagoParcial = !!(movRec && Number(movRec.valor || 0) > 0 && !isPaid && Number(movRec.valor || 0) < valorCobranca);
             const flags = receberFlags[String(r.id)] || {};
             const emNegociacao = !!flags.negociacao;
             const isento = !!flags.isento;
@@ -14149,7 +14396,7 @@
             if (isento) {
               statusLabel = "Isento";
               statusClass = "success";
-            } else if (r.status === "PAGO") {
+            } else if (isPaid) {
               statusLabel = "Pago";
               statusClass = "success";
             } else if (emNegociacao) {
@@ -14161,44 +14408,63 @@
             } else if (isOverdue) {
               statusLabel = "Vencido";
               statusClass = "danger";
+            } else if (daysFromDue != null && daysFromDue >= -7 && daysFromDue < 0) {
+              statusLabel = "A vencer";
+              statusClass = "warning";
             }
             const diasAtraso = isOverdue ? Math.max(0, daysFromDue) : 0;
-            const alertaTexto = isOverdue
-              ? `Vencido há ${diasAtraso} dia(s)`
-              : dueYmd && daysFromDue >= -3 && daysFromDue < 0
-                ? `Vence em ${Math.abs(daysFromDue)} dia(s)`
-                : "Sem alerta";
-            const alertaClasse = isOverdue ? "danger" : dueYmd && daysFromDue >= -3 && daysFromDue < 0 ? "warning" : "success";
+            const alertaTexto = isPaid
+              ? "Quitado"
+              : isOverdue
+                ? `Vencido há ${diasAtraso} dia(s)`
+                : daysFromDue != null && daysFromDue >= -3 && daysFromDue < 0
+                  ? `Vence em ${Math.abs(daysFromDue)} dia(s)`
+                  : daysFromDue != null && daysFromDue >= -7 && daysFromDue < -3
+                    ? `Vence em ${Math.abs(daysFromDue)} dia(s)`
+                    : "Sem alerta";
+            const alertaClasse = isPaid ? "success" : isOverdue ? "danger" : daysFromDue != null && daysFromDue < 0 ? "warning" : "success";
             const vehicleInfo = vehicle
               ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`
               : isManualFinanceLancamento(r)
                 ? "Lançamento manual"
                 : "-";
             const hasAtt = financeAttachmentGet("receivable", r.id);
+            const ultimaCob = flags.ultima_cobranca ? financeFormatUltimaCobranca(flags.ultima_cobranca) : "";
+            const cobrancaHint = ultimaCob ? `<br /><span class="notice">Última cobrança: ${escapeHtml(ultimaCob)}</span>` : "";
+            const acoesAberto = `
+                    <button class="secondary" data-action="detalhes-receber" data-id="${r.id}">Ver detalhes</button>
+                    <button class="secondary" data-action="cobrar-receber" data-id="${r.id}" title="Preview e copiar cobrança">Cobrar</button>
+                    ${isManualFinanceLancamento(r) ? `<button class="secondary" data-action="editar-receber" data-id="${r.id}">Editar</button>` : ""}
+                    ${hasAtt ? `<button class="secondary" data-action="ver-comprovante" data-kind="receivable" data-id="${r.id}">Comprovante</button>` : ""}
+                    <button class="secondary" data-action="aplicar-desconto" data-id="${r.id}">Aplicar desconto</button>
+                    <button class="secondary" data-action="negociar-receber" data-id="${r.id}">Negociar</button>
+                    <button class="secondary" data-action="receber" data-id="${r.id}" title="Confirma o recebimento">Dar baixa</button>
+                  `;
+            const acoesPago = `
+                    <button class="secondary" data-action="detalhes-receber" data-id="${r.id}">Ver detalhes</button>
+                    ${hasAtt ? `<button class="secondary" data-action="ver-comprovante" data-kind="receivable" data-id="${r.id}">Comprovante</button>` : ""}
+                    <button class="secondary" data-action="recibo" data-id="${r.id}">Recibo</button>
+                  `;
             rows.push(`
                 <tr>
                   <td>${formatDate(r.period_end || r.created_at)}</td>
-                  <td>${r.responsavel_pagamento || "Responsável não informado"}</td>
+                  <td>${escapeHtml(r.responsavel_pagamento || "Responsável não informado")}${cobrancaHint}</td>
                   <td>
                     <span class="notice">${escapeHtml(receivableCategoryLabel(r.receivable_category))}</span><br />
                     <span class="notice">${vehicleInfo}</span>
                   </td>
                   <td>${formatCurrency(valorCobranca)}</td>
                   <td><span class="tag ${statusClass}">${statusLabel}</span></td>
-                  <td>${diasAtraso} dia(s)</td>
-                  <td>${r.status === "PAGO" ? formatDate(r.updated_at || r.created_at) : "-"}</td>
+                  <td>${isPaid ? "—" : `${diasAtraso} dia(s)`}</td>
+                  <td>${isPaid ? formatDate(movRec?.data_movimento || r.updated_at || r.created_at) : "-"}</td>
                   <td><span class="tag ${alertaClasse}">${alertaTexto}</span></td>
-                  <td class="actions">
-                    <button class="secondary" data-action="detalhes-receber" data-id="${r.id}">Ver detalhes</button>
-                    <button class="secondary" data-action="cobrar-receber" data-id="${r.id}" title="Copiar mensagem de cobrança">Cobrar</button>
-                    ${hasAtt ? `<button class="secondary" data-action="ver-comprovante" data-kind="receivable" data-id="${r.id}">Comprovante</button>` : ""}
-                    <button class="secondary" data-action="aplicar-desconto" data-id="${r.id}">Aplicar desconto</button>
-                    <button class="secondary" data-action="negociar-receber" data-id="${r.id}">Negociar</button>
-                    <button class="secondary" data-action="receber" data-id="${r.id}" title="Confirma o recebimento">Dar baixa</button>
-                  </td>
+                  <td class="actions">${isPaid ? acoesPago : acoesAberto}</td>
                 </tr>
               `);
           });
+          if (!recvFiltered.length && !showPaidRows && financeReceberStatusFilter === "aberto") {
+            /* empty handled below */
+          }
         }
 
         if (financeIsPagarView(currentFinanceView)) {
@@ -14209,19 +14475,24 @@
               </td>
             </tr>
           `);
-          state.payables
-            .filter(payableDescMatchesPlate)
-            .sort((a, b) => String(a.data_vencimento || "").localeCompare(String(b.data_vencimento || "")))
-            .forEach((p) => {
+          const { list: pagarFiltered, todayYmd: pagarToday } = collectFinancePagarFilteredList();
+          pagarFiltered.forEach((p) => {
             const due = (p.data_vencimento || "").slice(0, 10);
-            const today = new Date().toISOString().slice(0, 10);
             const isPaid = p.status === "PAGO";
-            const isOverdue = !isPaid && !!(due && due < today);
-            const atrasoDias = isOverdue ? Math.max(0, Math.floor((new Date(today).getTime() - new Date(due).getTime()) / 86400000)) : 0;
-            const statusLabel = isPaid ? "Pago" : isOverdue ? "Vencido" : "Pendente";
-            const statusClass = isPaid ? "success" : isOverdue ? "danger" : "warning";
-            const alertaPagar = isPaid ? "—" : isOverdue ? `Vencido há ${atrasoDias} dia(s)` : "No prazo";
+            const daysFromDue = financeContaDueDays(due, pagarToday);
+            const isOverdue = !isPaid && !!(due && pagarToday && due < pagarToday);
+            const atrasoDias = isOverdue ? Math.max(0, daysFromDue) : 0;
+            const statusLabel = isPaid ? "Pago" : isOverdue ? "Vencido" : daysFromDue != null && daysFromDue >= -7 && daysFromDue < 0 ? "A vencer" : "Pendente";
+            const statusClass = isPaid ? "success" : isOverdue ? "danger" : daysFromDue != null && daysFromDue < 0 ? "warning" : "warning";
+            const alertaPagar = isPaid
+              ? "Quitado"
+              : isOverdue
+                ? `Vencido há ${atrasoDias} dia(s)`
+                : daysFromDue != null && daysFromDue >= -7 && daysFromDue < 0
+                  ? `Vence em ${Math.abs(daysFromDue)} dia(s)`
+                  : "No prazo";
             const hasAtt = financeAttachmentGet("payable", p.id);
+            const movPay = (state.cash || []).find((m) => m.tipo_conta === "PAGAR" && String(m.conta_id) === String(p.id));
             const acoes = isPaid
               ? `
                   <button class="secondary" data-action="editar-pago" data-id="${p.id}">Editar</button>
@@ -14240,12 +14511,12 @@
                 <td>${escapeHtml(p.fornecedor || "Fornecedor não informado")}</td>
                 <td>${escapeHtml(payableCategoryLabel(p.payable_category))}</td>
                 <td>${formatCurrency(p.valor)}</td>
-                <td>${isPaid ? "—" : `${atrasoDias} dia(s)`}<br /><span class="notice">${alertaPagar}</span></td>
+                <td>${isPaid ? formatDate(movPay?.data_movimento || p.updated_at) : `${atrasoDias} dia(s)`}<br /><span class="notice">${alertaPagar}</span></td>
                 <td><span class="tag ${statusClass}">${statusLabel}</span></td>
                 <td class="actions">${acoes}</td>
               </tr>
             `);
-            });
+          });
         }
 
         if (currentFinanceView === "faturamento") {
@@ -14387,6 +14658,7 @@
           financeFlyoutBackdrop?.classList.add("hidden");
           document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
           document.getElementById("financeReceberFilters")?.classList.add("hidden");
+          document.getElementById("financePagarFilters")?.classList.add("hidden");
           renderFinance();
           return;
         }
@@ -14397,6 +14669,7 @@
         const showLancamentosToolbar = financeIsLancamentosView(view);
         const showCaixaFilters = false;
         const showReceberFilters = financeIsReceberView(view);
+        const showPagarFilters = financeIsPagarView(view);
         financeFiltersHub?.classList.toggle("hidden", !showFiltersHub);
         if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", !showPlateSearchFilter);
         financeRoot?.classList.toggle("finance-flyout-open", isFlyoutView);
@@ -14434,6 +14707,15 @@
           }
         }
         document.getElementById("financeReceberFilters")?.classList.toggle("hidden", !showReceberFilters);
+        document.getElementById("financePagarFilters")?.classList.toggle("hidden", !showPagarFilters);
+        if (showReceberFilters) {
+          const st = document.getElementById("financeReceberFilterStatus");
+          if (st && st.value !== financeReceberStatusFilter) st.value = financeReceberStatusFilter;
+        }
+        if (showPagarFilters) {
+          const st = document.getElementById("financePagarFilterStatus");
+          if (st && st.value !== financePagarStatusFilter) st.value = financePagarStatusFilter;
+        }
         const financeNovoClienteBtn = document.getElementById("financeNovoClienteBtn");
         const financeNovoLancamentoBtn = document.getElementById("financeNovoLancamentoBtn");
         if (financeNovoClienteBtn) financeNovoClienteBtn.classList.toggle("hidden", view !== "clientes");
@@ -14832,6 +15114,92 @@
       document.getElementById("receberBaixaGerarPdf")?.addEventListener("click", () => {
         void executeReceberBaixa("pdf");
       });
+      document.getElementById("closePagarBaixaModal")?.addEventListener("click", closePagarBaixaModal);
+      document.getElementById("cancelPagarBaixaModal")?.addEventListener("click", closePagarBaixaModal);
+      pagarBaixaModal?.addEventListener("click", (e) => {
+        if (e.target === e.currentTarget) closePagarBaixaModal();
+      });
+      document.getElementById("pagarBaixaConfirm")?.addEventListener("click", () => {
+        void executePagarBaixa();
+      });
+      document.getElementById("closeFinanceCobrancaModal")?.addEventListener("click", closeFinanceCobrancaModal);
+      document.getElementById("cancelFinanceCobrancaModal")?.addEventListener("click", closeFinanceCobrancaModal);
+      financeCobrancaModal?.addEventListener("click", (e) => {
+        if (e.target === e.currentTarget) closeFinanceCobrancaModal();
+      });
+      document.getElementById("financeCobrancaCopiar")?.addEventListener("click", async () => {
+        const id = pendingCobrancaReceivableId;
+        const txt = document.getElementById("financeCobrancaTexto")?.value || "";
+        if (!id || !txt.trim()) return;
+        try {
+          await navigator.clipboard.writeText(txt);
+        } catch (e) {
+          /* fallback abaixo */
+        }
+        const flags = financeReceberFlagsRead();
+        flags[String(id)] = { ...(flags[String(id)] || {}), ultima_cobranca: new Date().toISOString() };
+        financeReceberFlagsWrite(flags);
+        closeFinanceCobrancaModal();
+        alert("Mensagem copiada e envio registrado.");
+        renderFinance();
+      });
+      document.getElementById("closeFinanceContaEditModal")?.addEventListener("click", closeFinanceContaEditModal);
+      document.getElementById("cancelFinanceContaEditModal")?.addEventListener("click", closeFinanceContaEditModal);
+      financeContaEditModal?.addEventListener("click", (e) => {
+        if (e.target === e.currentTarget) closeFinanceContaEditModal();
+      });
+      financeContaEditForm?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const ctx = pendingContaEdit;
+        if (!ctx?.record?.id) return;
+        const valor = Number(document.getElementById("financeContaEditValor")?.value || 0);
+        const vencimento = document.getElementById("financeContaEditVencimento")?.value || "";
+        const categoria = document.getElementById("financeContaEditCategoria")?.value || "";
+        if (!(valor > 0) || !vencimento) {
+          alert("Informe valor e vencimento.");
+          return;
+        }
+        if (ctx.kind === "receivable") {
+          const cliente = document.getElementById("financeContaEditCliente")?.value?.trim() || "";
+          const { error } = await supabase
+            .from("receivables")
+            .update({
+              responsavel_pagamento: cliente || ctx.record.responsavel_pagamento,
+              valor,
+              period_end: vencimento,
+              receivable_category: categoria,
+            })
+            .eq("id", ctx.record.id)
+            .eq("user_id", effectiveUserId());
+          if (error) {
+            alert(error.message);
+            return;
+          }
+          await loadReceivables();
+        } else {
+          const descricao = document.getElementById("financeContaEditDesc")?.value?.trim() || "";
+          const fornecedor = document.getElementById("financeContaEditFornecedor")?.value?.trim() || "";
+          const { error } = await supabase
+            .from("payables")
+            .update({
+              descricao: descricao || null,
+              fornecedor: fornecedor || null,
+              valor,
+              data_vencimento: vencimento,
+              payable_category: categoria,
+            })
+            .eq("id", ctx.record.id)
+            .eq("user_id", effectiveUserId());
+          if (error) {
+            alert(error.message);
+            return;
+          }
+          await loadPayables();
+        }
+        closeFinanceContaEditModal();
+        renderFinance();
+        updateDashboard();
+      });
       copyTextModal.addEventListener("click", async () => {
         if (!textModalBody.value) return;
         await navigator.clipboard.writeText(textModalBody.value);
@@ -14892,7 +15260,7 @@
         workflowModalConfig = null;
       });
 
-      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, lancamentoModal, fichaModal, nfseModal, textModal, reciboModal].forEach((modal) => {
+      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, lancamentoModal, fichaModal, nfseModal, textModal, reciboModal, receberBaixaModal, pagarBaixaModal, financeCobrancaModal, financeContaEditModal].forEach((modal) => {
         modal.addEventListener("click", (event) => {
           if (event.target === modal) {
             modal.classList.add("hidden");
@@ -14957,6 +15325,9 @@
 
       let pendingReciboContext = null;
       let pendingBaixaReceber = null;
+      let pendingBaixaPagar = null;
+      let pendingCobrancaReceivableId = null;
+      let pendingContaEdit = null;
 
       function openReceberBaixaModal({ receivable, vehicle, valor }) {
         if (!receivable || !receberBaixaModal) return;
@@ -14971,10 +15342,18 @@
           const placa = vehicle?.placa || "—";
           const vm = [vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ") || "—";
           const val = formatCurrency(Number(valor || receivable.valor || 0));
+          const servico = receivableCategoryLabel(receivable.receivable_category);
           resumo.innerHTML = `<strong>${escapeHtml(receivable.responsavel_pagamento || "Responsável")}</strong><br />
-            Veículo: <strong>${escapeHtml(vm)}</strong> — placa <strong>${escapeHtml(placa)}</strong><br />
+            ${vehicle ? `Veículo: <strong>${escapeHtml(vm)}</strong> — placa <strong>${escapeHtml(placa)}</strong><br />` : ""}
+            Serviço: <strong>${escapeHtml(servico)}</strong><br />
             Valor a receber: <strong>${escapeHtml(val)}</strong>`;
         }
+        const dataEl = document.getElementById("receberBaixaData");
+        const formaEl = document.getElementById("receberBaixaForma");
+        const anexoEl = document.getElementById("receberBaixaAnexo");
+        if (dataEl) dataEl.value = toLocalYmd(new Date().toISOString());
+        if (formaEl) formaEl.value = receivable.forma_pagamento || "PIX";
+        if (anexoEl) anexoEl.value = "";
         const nomeEl = document.getElementById("receberBaixaReciboNome");
         const docEl = document.getElementById("receberBaixaReciboDoc");
         if (nomeEl) nomeEl.value = receivable.responsavel_pagamento || "";
@@ -14984,6 +15363,101 @@
         }
         receberBaixaModal.classList.remove("hidden");
         document.getElementById("receberBaixaOk")?.focus();
+      }
+
+      function openPagarBaixaModal(payable) {
+        if (!payable || !pagarBaixaModal) return;
+        pendingBaixaPagar = { payableId: payable.id, payable };
+        const resumo = document.getElementById("pagarBaixaResumo");
+        if (resumo) {
+          resumo.innerHTML = `<strong>${escapeHtml(payable.descricao || "Despesa")}</strong><br />
+            Fornecedor: <strong>${escapeHtml(payable.fornecedor || "—")}</strong><br />
+            Vencimento: <strong>${escapeHtml(formatDate(payable.data_vencimento))}</strong><br />
+            Valor: <strong>${escapeHtml(formatCurrency(Number(payable.valor || 0)))}</strong>`;
+        }
+        const dataEl = document.getElementById("pagarBaixaData");
+        const formaEl = document.getElementById("pagarBaixaForma");
+        const anexoEl = document.getElementById("pagarBaixaAnexo");
+        if (dataEl) dataEl.value = toLocalYmd(new Date().toISOString());
+        if (formaEl) formaEl.value = payable.forma_pagamento || "PIX";
+        if (anexoEl) anexoEl.value = "";
+        if (pagarBaixaModal.parentElement !== document.body) document.body.appendChild(pagarBaixaModal);
+        pagarBaixaModal.classList.remove("hidden");
+      }
+
+      function closePagarBaixaModal() {
+        pagarBaixaModal?.classList.add("hidden");
+        pendingBaixaPagar = null;
+      }
+
+      function openFinanceCobrancaModal(receivable) {
+        if (!receivable || !financeCobrancaModal) return;
+        pendingCobrancaReceivableId = receivable.id;
+        const txt = document.getElementById("financeCobrancaTexto");
+        const ult = document.getElementById("financeCobrancaUltima");
+        if (txt) txt.value = buildCobrancaMessage(receivable);
+        const flags = financeReceberFlagsRead()[String(receivable.id)] || {};
+        if (ult) {
+          ult.textContent = flags.ultima_cobranca
+            ? `Última cobrança registrada em ${financeFormatUltimaCobranca(flags.ultima_cobranca)}`
+            : "Nenhuma cobrança registrada ainda para este título.";
+        }
+        if (financeCobrancaModal.parentElement !== document.body) document.body.appendChild(financeCobrancaModal);
+        financeCobrancaModal.classList.remove("hidden");
+        txt?.focus();
+      }
+
+      function closeFinanceCobrancaModal() {
+        financeCobrancaModal?.classList.add("hidden");
+        pendingCobrancaReceivableId = null;
+      }
+
+      function openFinanceContaEditModal(ctx) {
+        if (!ctx?.kind || !ctx?.record || !financeContaEditModal) return;
+        pendingContaEdit = ctx;
+        const r = ctx.record;
+        const title = document.getElementById("financeContaEditTitle");
+        const catSel = document.getElementById("financeContaEditCategoria");
+        const descWrap = document.getElementById("financeContaEditDescWrap");
+        const cliWrap = document.getElementById("financeContaEditClienteWrap");
+        const forWrap = document.getElementById("financeContaEditFornecedorWrap");
+        if (ctx.kind === "receivable") {
+          if (title) title.textContent = "Editar conta a receber";
+          descWrap?.classList.add("hidden");
+          cliWrap?.classList.remove("hidden");
+          forWrap?.classList.add("hidden");
+          document.getElementById("financeContaEditCliente").value = r.responsavel_pagamento || "";
+          if (catSel) {
+            catSel.innerHTML = getLancReceitaCategorias()
+              .map((c) => `<option value="${c.value}">${escapeHtml(c.label)}</option>`)
+              .join("");
+            catSel.value = r.receivable_category || "GUARDA_PATIO";
+          }
+          document.getElementById("financeContaEditVencimento").value = (r.period_end || r.period_start || "").slice(0, 10);
+        } else {
+          if (title) title.textContent = "Editar conta a pagar";
+          descWrap?.classList.remove("hidden");
+          cliWrap?.classList.add("hidden");
+          forWrap?.classList.remove("hidden");
+          document.getElementById("financeContaEditDesc").value = r.descricao || "";
+          document.getElementById("financeContaEditFornecedor").value = r.fornecedor || "";
+          if (catSel) {
+            catSel.innerHTML = getLancDespesaCategorias()
+              .map((c) => `<option value="${c.value}">${escapeHtml(c.label)}</option>`)
+              .join("");
+            catSel.value = r.payable_category || "OUTROS";
+          }
+          document.getElementById("financeContaEditVencimento").value = (r.data_vencimento || "").slice(0, 10);
+        }
+        document.getElementById("financeContaEditValor").value = Number(r.valor || 0);
+        if (financeContaEditModal.parentElement !== document.body) document.body.appendChild(financeContaEditModal);
+        financeContaEditModal.classList.remove("hidden");
+      }
+
+      function closeFinanceContaEditModal() {
+        financeContaEditModal?.classList.add("hidden");
+        pendingContaEdit = null;
+        financeContaEditForm?.reset();
       }
 
       function closeReceberBaixaModal() {
@@ -15004,8 +15478,15 @@
             return;
           }
         }
+        const dataMov = document.getElementById("receberBaixaData")?.value || toLocalYmd(new Date().toISOString());
+        const formaPagamento = document.getElementById("receberBaixaForma")?.value || "PIX";
+        const anexo = await readFinanceFileInput(document.getElementById("receberBaixaAnexo"));
         closeReceberBaixaModal();
-        const result = await finalizeReceivablePayment(pending.receivableId, pending.valor);
+        const result = await finalizeReceivablePayment(pending.receivableId, pending.valor, {
+          dataMovimento: dataMov,
+          formaPagamento,
+          anexo,
+        });
         if (!result) return;
         if (mode === "pdf") {
           try {
@@ -15021,6 +15502,16 @@
             alert("Baixa confirmada, mas não foi possível gerar o PDF do recibo.");
           }
         }
+      }
+
+      async function executePagarBaixa() {
+        const pending = pendingBaixaPagar;
+        if (!pending) return;
+        const dataMov = document.getElementById("pagarBaixaData")?.value || toLocalYmd(new Date().toISOString());
+        const formaPagamento = document.getElementById("pagarBaixaForma")?.value || "PIX";
+        const anexo = await readFinanceFileInput(document.getElementById("pagarBaixaAnexo"));
+        closePagarBaixaModal();
+        await finalizePayablePayment(pending.payableId, { dataMovimento: dataMov, formaPagamento, anexo });
       }
 
       function openReciboModalWithContext(ctx) {
@@ -15049,7 +15540,7 @@
         reciboModal?.classList.remove("hidden");
       }
 
-      async function finalizeReceivablePayment(receivableId, totalAtual) {
+      async function finalizeReceivablePayment(receivableId, totalAtual, opts = {}) {
         const receivable = state.receivables.find((r) => r.id === receivableId);
         if (!receivable) {
           alert("Recebimento não encontrado. Atualize a página (Financeiro) e tente de novo.");
@@ -15059,10 +15550,12 @@
           alert("Este recebimento já foi marcado como pago.");
           return null;
         }
+        const dataMov = opts.dataMovimento || toLocalYmd(new Date().toISOString());
+        const formaPagamento = opts.formaPagamento || receivable.forma_pagamento || "PIX";
         const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
         const { error } = await supabase
           .from("receivables")
-          .update({ status: "PAGO", valor: totalAtual, financeiro_aprovado_contas_receber: false })
+          .update({ status: "PAGO", valor: totalAtual, financeiro_aprovado_contas_receber: false, forma_pagamento: formaPagamento })
           .eq("id", receivableId)
           .eq("user_id", effectiveUserId());
         if (error) {
@@ -15090,21 +15583,25 @@
           .eq("tipo_conta", "RECEBER")
           .limit(1);
         const vehicleInfo = `${vehicle?.placa || "-"} • ${[vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")}`.trim();
+        const descMov = vehicleInfo ? `Diárias - ${vehicleInfo}` : receivable.responsavel_pagamento || "Receita";
         if (!existingMov || existingMov.length === 0) {
           await supabase.from("cash_movements").insert({
             user_id: effectiveUserId(),
             tipo_conta: "RECEBER",
             conta_id: receivableId,
             valor: totalAtual,
-            descricao: vehicleInfo ? `Diárias - ${vehicleInfo}` : "Diárias",
+            descricao: descMov,
+            data_movimento: dataMov,
+            forma_pagamento: formaPagamento,
           });
         } else {
           await supabase
             .from("cash_movements")
-            .update({ valor: totalAtual })
+            .update({ valor: totalAtual, data_movimento: dataMov, forma_pagamento: formaPagamento })
             .eq("conta_id", receivableId)
             .eq("tipo_conta", "RECEBER");
         }
+        if (opts.anexo) financeAttachmentSet("receivable", receivableId, opts.anexo);
         try {
           const userId = effectiveUserId();
           if (userId) {
@@ -15133,6 +15630,76 @@
           vehicle: vehicle || null,
           valor: totalAtual,
         };
+      }
+
+      async function finalizePayablePayment(payableId, opts = {}) {
+        const payable = state.payables.find((p) => p.id === payableId);
+        if (!payable) {
+          alert("Conta a pagar não encontrada.");
+          return false;
+        }
+        if (payable.status === "PAGO") {
+          alert("Esta conta já foi paga.");
+          return false;
+        }
+        const dataMov = opts.dataMovimento || toLocalYmd(new Date().toISOString());
+        const formaPagamento = opts.formaPagamento || payable.forma_pagamento || "PIX";
+        const { error } = await supabase
+          .from("payables")
+          .update({ status: "PAGO", forma_pagamento: formaPagamento })
+          .eq("id", payableId)
+          .eq("user_id", effectiveUserId());
+        if (error) {
+          const { error: errFb } = await supabase
+            .from("payables")
+            .update({ status: "PAGO" })
+            .eq("id", payableId)
+            .eq("user_id", effectiveUserId());
+          if (errFb) {
+            alert(errFb.message);
+            return false;
+          }
+        }
+        await supabase.from("cash_movements").insert({
+          user_id: effectiveUserId(),
+          tipo_conta: "PAGAR",
+          conta_id: payableId,
+          valor: payable.valor,
+          descricao: payable.descricao,
+          data_movimento: dataMov,
+          forma_pagamento: formaPagamento,
+        });
+        if (opts.anexo) financeAttachmentSet("payable", payableId, opts.anexo);
+
+        if ((payable.tipo || "").toUpperCase() === "RECORRENTE" || financeEntryModoFromRecord(payable, "payable") === "RECORRENTE") {
+          const nextDue = addMonthsToYmd(payable.data_vencimento, 1);
+          const { meta, text } = financeMetaUnpack(payable.observacoes);
+          const nextPayload = {
+            user_id: effectiveUserId(),
+            tipo: "RECORRENTE",
+            payable_category: payable.payable_category || "OUTROS",
+            descricao: payable.descricao || null,
+            valor: Number(payable.valor || 0),
+            data_vencimento: nextDue,
+            status: "EM_ABERTO",
+            fornecedor: payable.fornecedor || null,
+            observacoes: financeMetaPack({ ...meta, modo: "RECORRENTE" }, text),
+          };
+          let { error: nextErr } = await supabase.from("payables").insert(nextPayload);
+          if (nextErr && /column|schema cache|PGRST204/i.test(nextErr.message || "")) {
+            const fb = { ...nextPayload };
+            delete fb.fornecedor;
+            delete fb.observacoes;
+            ({ error: nextErr } = await supabase.from("payables").insert(fb));
+          }
+          if (nextErr) {
+            alert(`Pagamento registrado, mas falhou ao gerar o próximo título recorrente: ${nextErr.message}`);
+          }
+        }
+        await Promise.all([loadPayables(), loadCash()]);
+        renderFinance();
+        updateDashboard();
+        return true;
       }
 
       function openReciboDestinatarioModal({ defaultNome = "", defaultDoc = "", receivable = null, vehicle = null }) {
@@ -15318,14 +15885,46 @@
         if (e.target === e.currentTarget) e.currentTarget.classList.add("hidden");
       });
 
-      ["financeReceberFilterLoc", "financeReceberFilterAss", "financeReceberFilterResp"].forEach((id) => {
-        document.getElementById(id)?.addEventListener("change", () => renderFinance());
+      ["financeReceberFilterLoc", "financeReceberFilterAss", "financeReceberFilterResp", "financeReceberFilterStatus"].forEach((id) => {
+        document.getElementById(id)?.addEventListener("change", () => {
+          if (id === "financeReceberFilterStatus") {
+            financeReceberStatusFilter = document.getElementById("financeReceberFilterStatus")?.value || "aberto";
+          }
+          renderFinance();
+        });
+      });
+      document.getElementById("financeReceberFilterBusca")?.addEventListener("input", () => {
+        financeReceberBuscaFilter = document.getElementById("financeReceberFilterBusca")?.value || "";
+        renderFinance();
       });
       document.getElementById("clearFinanceReceberFilters")?.addEventListener("click", () => {
         ["financeReceberFilterLoc", "financeReceberFilterAss", "financeReceberFilterResp"].forEach((sid) => {
           const el = document.getElementById(sid);
           if (el) el.value = "";
         });
+        financeReceberStatusFilter = "aberto";
+        financeReceberBuscaFilter = "";
+        const st = document.getElementById("financeReceberFilterStatus");
+        const busca = document.getElementById("financeReceberFilterBusca");
+        if (st) st.value = "aberto";
+        if (busca) busca.value = "";
+        renderFinance();
+      });
+      document.getElementById("financePagarFilterStatus")?.addEventListener("change", () => {
+        financePagarStatusFilter = document.getElementById("financePagarFilterStatus")?.value || "aberto";
+        renderFinance();
+      });
+      document.getElementById("financePagarFilterBusca")?.addEventListener("input", () => {
+        financePagarBuscaFilter = document.getElementById("financePagarFilterBusca")?.value || "";
+        renderFinance();
+      });
+      document.getElementById("clearFinancePagarFilters")?.addEventListener("click", () => {
+        financePagarStatusFilter = "aberto";
+        financePagarBuscaFilter = "";
+        const st = document.getElementById("financePagarFilterStatus");
+        const busca = document.getElementById("financePagarFilterBusca");
+        if (st) st.value = "aberto";
+        if (busca) busca.value = "";
         renderFinance();
       });
 
@@ -17982,13 +18581,7 @@
         if (action === "cobrar-receber") {
           const receivable = state.receivables.find((r) => r.id === id);
           if (!receivable) return;
-          const msg = buildCobrancaMessage(receivable);
-          try {
-            await navigator.clipboard.writeText(msg);
-            alert("Mensagem de cobrança copiada. Cole no WhatsApp ou e-mail do cliente.");
-          } catch (e) {
-            openTextModal("Cobrança automática", msg);
-          }
+          openFinanceCobrancaModal(receivable);
           return;
         }
 
@@ -18026,13 +18619,21 @@
           const receivable = state.receivables.find((r) => r.id === id);
           if (!receivable) return;
           const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
+          const flags = financeReceberFlagsRead()[String(receivable.id)] || {};
+          const mov = (state.cash || []).find((m) => m.tipo_conta === "RECEBER" && String(m.conta_id) === String(receivable.id));
           const texto = [
             `Cliente: ${receivable.responsavel_pagamento || "-"}`,
             `Veículo: ${vehicle ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}` : "-"}`,
             `Categoria: ${receivableCategoryLabel(receivable.receivable_category)}`,
-            `Valor em aberto: ${formatCurrency(Number(receivable.valor || 0))}`,
+            `Valor: ${formatCurrency(Number(receivable.valor || 0))}`,
+            `Status: ${receivable.status === "PAGO" ? "Pago" : "Em aberto"}`,
+            `Vencimento: ${formatDate(receivable.period_end || receivable.created_at)}`,
+            receivable.status === "PAGO" && mov ? `Recebido em: ${formatDate(mov.data_movimento)} (${mov.forma_pagamento || "—"})` : null,
+            flags.ultima_cobranca ? `Última cobrança: ${financeFormatUltimaCobranca(flags.ultima_cobranca)}` : null,
             `Período: ${formatDate(receivable.period_start)} até ${formatDate(receivable.period_end || receivable.created_at)}`,
-          ].join("\n");
+          ]
+            .filter(Boolean)
+            .join("\n");
           openTextModal("Detalhes do recebimento", texto);
           return;
         }
@@ -18292,65 +18893,21 @@
           return;
         }
 
+        if (action === "editar-receber") {
+          const receivable = state.receivables.find((r) => r.id === id);
+          if (!receivable || receivable.status === "PAGO") return;
+          if (!isManualFinanceLancamento(receivable)) {
+            alert("Só é possível editar títulos manuais.");
+            return;
+          }
+          openFinanceContaEditModal({ kind: "receivable", record: receivable });
+          return;
+        }
+
         if (action === "pagar") {
           const payable = state.payables.find((p) => p.id === id);
           if (!payable) return;
-          const { error } = await supabase
-            .from("payables")
-            .update({ status: "PAGO" })
-            .eq("id", id)
-            .eq("user_id", effectiveUserId());
-          if (error) {
-            alert(error.message);
-            return;
-          }
-          await supabase.from("cash_movements").insert({
-            user_id: effectiveUserId(),
-            tipo_conta: "PAGAR",
-            conta_id: id,
-            valor: payable.valor,
-            descricao: payable.descricao,
-          });
-
-          // Para despesas recorrentes, cria automaticamente o próximo lançamento em aberto.
-          if ((payable.tipo || "").toUpperCase() === "RECORRENTE") {
-            const due = String(payable.data_vencimento || "").trim();
-            let nextDue = null;
-            if (due) {
-              const [y, m, d] = due.split("-").map((v) => Number(v));
-              if (y && m && d) {
-                const base = new Date(y, m - 1, d, 12, 0, 0, 0);
-                if (!Number.isNaN(base.getTime())) {
-                  const originalDay = base.getDate();
-                  base.setDate(1);
-                  base.setMonth(base.getMonth() + 1);
-                  const lastDay = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
-                  base.setDate(Math.min(originalDay, lastDay));
-                  const yy = base.getFullYear();
-                  const mm = String(base.getMonth() + 1).padStart(2, "0");
-                  const dd = String(base.getDate()).padStart(2, "0");
-                  nextDue = `${yy}-${mm}-${dd}`;
-                }
-              }
-            }
-
-            const nextPayload = {
-              user_id: effectiveUserId(),
-              tipo: "RECORRENTE",
-              payable_category: payable.payable_category || "OUTROS",
-              descricao: payable.descricao || null,
-              valor: Number(payable.valor || 0),
-              data_vencimento: nextDue,
-              status: "EM_ABERTO",
-            };
-            const { error: nextErr } = await supabase.from("payables").insert(nextPayload);
-            if (nextErr) {
-              alert(`Pagamento registrado, mas falhou ao gerar o próximo ajuste recorrente: ${nextErr.message}`);
-            }
-          }
-          await Promise.all([loadPayables(), loadCash()]);
-          renderFinance();
-          updateDashboard();
+          openPagarBaixaModal(payable);
           return;
         }
 
@@ -18361,24 +18918,8 @@
 
         if (action === "editar-despesa") {
           const payable = state.payables.find((p) => p.id === id);
-          if (!payable) return;
-          const descricao = prompt("Descrição:", payable.descricao || "");
-          const valor = prompt("Valor:", payable.valor || "");
-          const vencimento = await openDateModal({
-            title: "Vencimento",
-            label: "Data",
-            type: "date",
-            value: payable.data_vencimento || "",
-          });
-          if (!vencimento) return;
-          const { error } = await supabase
-            .from("payables")
-            .update({ descricao: descricao || null, valor: Number(valor || 0), data_vencimento: vencimento || null })
-            .eq("id", id)
-            .eq("user_id", effectiveUserId());
-          if (error) alert(error.message);
-          await loadPayables();
-          renderFinance();
+          if (!payable || payable.status === "PAGO") return;
+          openFinanceContaEditModal({ kind: "payable", record: payable });
           return;
         }
 
