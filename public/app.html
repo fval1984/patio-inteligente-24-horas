@@ -2912,6 +2912,21 @@
         background: rgba(225, 29, 46, 0.12);
         color: #b81422;
       }
+      .table td.actions button.nfse-action-btn--emitida,
+      [data-theme="light"] .table td.actions button.nfse-action-btn--emitida {
+        border-color: rgba(34, 197, 94, 0.55) !important;
+        background: rgba(34, 197, 94, 0.22) !important;
+        color: #86efac !important;
+      }
+      [data-theme="light"] .table td.actions button.nfse-action-btn--emitida {
+        background: rgba(34, 197, 94, 0.16) !important;
+        color: #166534 !important;
+      }
+      #nfseModal .nfse-copy-hint {
+        margin: 0 0 10px;
+        font-size: 13px;
+        color: var(--muted);
+      }
       .section-card {
         padding: 20px;
         border-radius: var(--radius);
@@ -4430,7 +4445,6 @@
                 <div class="header-menu-nested">
                   <button type="button" data-header-patio-sub="inicio">Visão geral do pátio</button>
                   <button type="button" data-header-patio="new-vehicle">Registrar veículo</button>
-                  <button type="button" data-header-patio="print">Imprimir</button>
                   <button type="button" data-header-patio-sub="no_patio">VNP</button>
                   <button type="button" data-header-patio-sub="removidos">VRP</button>
                 </div>
@@ -4934,7 +4948,6 @@
               <nav id="patioSubnav" class="subnav patio-nav-inline" aria-label="Secções do pátio">
                 <button type="button" class="secondary" data-subview="inicio">Visão geral</button>
                 <button type="button" class="secondary" id="patioMenuNewVehicle">Registrar veículo</button>
-                <button type="button" class="secondary" id="patioMenuPrintList">Imprimir</button>
                 <button type="button" class="secondary" data-subview="no_patio">VNP</button>
                 <button type="button" class="secondary" data-subview="removidos">VRP</button>
               </nav>
@@ -5017,7 +5030,7 @@
             <div id="patioFlyoutSummaryCards" class="grid" style="margin-bottom: 12px">
               <div class="card"><div class="card-title" id="patioCardTitle1">VNP</div><div class="card-value" id="patioCardValue1">0</div><span class="tag warning" id="patioCardMeta1">-</span></div>
               <div class="card"><div class="card-title" id="patioCardTitle2">VRP</div><div class="card-value" id="patioCardValue2">0</div><span class="tag" id="patioCardMeta2">-</span></div>
-              <div class="card"><div class="card-title" id="patioCardTitle3">NFSe pendente</div><div class="card-value" id="patioCardValue3">0</div><span class="tag success" id="patioCardMeta3">-</span></div>
+              <div class="card"><div class="card-title" id="patioCardTitle3">Remoção solicitada</div><div class="card-value" id="patioCardValue3">0</div><span class="tag success" id="patioCardMeta3">-</span></div>
             </div>
             <div class="section-card patio-subview hidden" data-subview="no_patio">
               <div class="pill">VNP</div>
@@ -5969,114 +5982,6 @@
         </div>
       </div>
 
-      <div id="patioPrintModal" class="modal-backdrop hidden">
-        <div class="modal">
-          <div class="modal-header">
-            <div>
-              <h3>Imprimir listagens do pátio</h3>
-            </div>
-            <button type="button" class="modal-close" id="closePatioPrintModal">Fechar</button>
-          </div>
-          <div class="form-grid">
-            <div>
-              <label for="printPatioFrom">Data inicial (VRP / NFSe)</label>
-              <input id="printPatioFrom" type="date" />
-            </div>
-            <div>
-              <label for="printPatioTo">Data final (VRP / NFSe)</label>
-              <input id="printPatioTo" type="date" />
-            </div>
-            <p class="notice full" style="margin: 0">Período obrigatório só se você marcar VRP ou NFSe pendente.</p>
-            <div class="full" style="display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center">
-              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
-                <input type="checkbox" id="printPatioIncludeVnp" checked />
-                VNP (no pátio + liberação em andamento)
-              </label>
-              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
-                <input type="checkbox" id="printPatioIncludeVrp" checked />
-                VRP (removidos)
-              </label>
-              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
-                <input type="checkbox" id="printPatioIncludeNfse" checked />
-                NFSe pendente
-              </label>
-            </div>
-            <div class="full" style="display: flex; flex-wrap: wrap; gap: 8px">
-              <span class="notice" style="margin-right: 8px">Atalhos:</span>
-              <button type="button" class="secondary" id="printPatioPresetMonth">Este mês</button>
-              <button type="button" class="secondary" id="printPatioPreset30">Últimos 30 dias</button>
-              <button type="button" class="secondary" id="printPatioPreset90">Últimos 90 dias</button>
-            </div>
-          </div>
-          <div class="form-actions">
-            <button type="button" id="confirmPatioPrintModal">Gerar impressão</button>
-            <button type="button" class="secondary" id="cancelPatioPrintModal">Cancelar</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="patioPartnerPrintModal" class="modal-backdrop hidden">
-        <div class="modal">
-          <div class="modal-header">
-            <div>
-              <h3>Imprimir por parceiro e remoção</h3>
-            </div>
-            <button type="button" class="modal-close" id="closePatioPartnerPrintModal">Fechar</button>
-          </div>
-          <div class="form-grid">
-            <div class="full" style="display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center">
-              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
-                <input type="checkbox" id="printPartnerByLocator" checked />
-                Por empresa de remoção (RPV)
-              </label>
-              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
-                <input type="checkbox" id="printPartnerByAssessoria" checked />
-                Por assessoria
-              </label>
-              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
-                <input type="checkbox" id="printPartnerByRemoval" checked />
-                Por etapa de remoção (fluxo)
-              </label>
-            </div>
-            <label style="display: flex; gap: 8px; align-items: center; font-weight: normal; margin-top: 4px">
-              <input type="checkbox" id="printPartnerExcludeRemoved" />
-              Ocultar removidos (VRP) deste relatório
-            </label>
-          </div>
-          <div class="form-actions">
-            <button type="button" id="confirmPatioPartnerPrintModal">Gerar impressão</button>
-            <button type="button" class="secondary" id="cancelPatioPartnerPrintModal">Cancelar</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="patioLiberadosPrintModal" class="modal-backdrop hidden">
-        <div class="modal">
-          <div class="modal-header">
-            <div>
-              <h3>Liberados: filtro e impressão</h3>
-            </div>
-            <button type="button" class="modal-close" id="closePatioLiberadosPrintModal">Fechar</button>
-          </div>
-          <div class="form-grid">
-            <div class="full" style="display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center">
-              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
-                <input type="checkbox" id="printLibByLocator" checked />
-                Agrupar por RPV (empresa de remoção)
-              </label>
-              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
-                <input type="checkbox" id="printLibByAssessoria" checked />
-                Agrupar por assessoria
-              </label>
-            </div>
-          </div>
-          <div class="form-actions">
-            <button type="button" id="confirmPatioLiberadosPrintModal">Gerar impressão</button>
-            <button type="button" class="secondary" id="cancelPatioLiberadosPrintModal">Cancelar</button>
-          </div>
-        </div>
-      </div>
-
       <div id="listaReceberPrintModal" class="modal-backdrop hidden">
         <div class="modal">
           <div class="modal-header">
@@ -6387,7 +6292,8 @@
         <div class="modal">
           <div class="modal-header">
             <div>
-              <h3>NFSe solicitada</h3>
+              <h3>NFSe</h3>
+              <p class="notice" style="margin: 4px 0 0; font-size: 12px">Copie o texto abaixo e confirme após emitir a nota.</p>
             </div>
             <button class="modal-close" id="closeNfseModal">Fechar</button>
           </div>
@@ -6395,9 +6301,13 @@
             <div id="nfseResumo" class="notice"></div>
           </div>
           <textarea id="nfseTexto" class="textarea" readonly></textarea>
-          <div class="form-actions">
-            <button id="confirmNfse">Confirmar emissão</button>
-            <button class="secondary" id="closeNfseModal2">Cancelar</button>
+          <p id="nfseCopyHint" class="nfse-copy-hint">Toque em «Copiar texto» e depois confirme se a nota já foi emitida.</p>
+          <div class="form-actions" id="nfseCopyActions">
+            <button type="button" id="nfseCopyBtn">Copiar texto</button>
+          </div>
+          <div class="form-actions hidden" id="nfseConfirmActions">
+            <button type="button" id="confirmNfse">Confirmar</button>
+            <button type="button" class="secondary" id="cancelNfseConfirm">Cancelar</button>
           </div>
         </div>
       </div>
@@ -6778,10 +6688,14 @@
       const fichaModalTitle = document.getElementById("fichaModalTitle");
       const nfseModal = document.getElementById("nfseModal");
       const closeNfseModal = document.getElementById("closeNfseModal");
-      const closeNfseModal2 = document.getElementById("closeNfseModal2");
       const nfseResumo = document.getElementById("nfseResumo");
       const nfseTexto = document.getElementById("nfseTexto");
       const confirmNfse = document.getElementById("confirmNfse");
+      const nfseCopyBtn = document.getElementById("nfseCopyBtn");
+      const nfseCopyActions = document.getElementById("nfseCopyActions");
+      const nfseConfirmActions = document.getElementById("nfseConfirmActions");
+      const cancelNfseConfirm = document.getElementById("cancelNfseConfirm");
+      const nfseCopyHint = document.getElementById("nfseCopyHint");
       const textModal = document.getElementById("textModal");
       const textModalTitle = document.getElementById("textModalTitle");
       const textModalBody = document.getElementById("textModalBody");
@@ -6923,15 +6837,9 @@
       let currentConfigSubview = "dados";
 
       const reloadPatio = document.getElementById("reloadPatio");
-      const printPatioVehicleListBtn = document.getElementById("printPatioVehicleList");
-      const printPatioByPartnerBtn = document.getElementById("printPatioByPartner");
-      const printPatioLiberadosBtn = document.getElementById("printPatioLiberados");
       const patioFlyoutBackdrop = document.getElementById("patioFlyoutBackdrop");
       const patioFlyoutClose = document.getElementById("patioFlyoutClose");
       const patioMenuNewVehicle = document.getElementById("patioMenuNewVehicle");
-      const patioMenuPrintList = document.getElementById("patioMenuPrintList");
-      const patioMenuPrintPartner = document.getElementById("patioMenuPrintPartner");
-      const patioMenuPrintLiberados = document.getElementById("patioMenuPrintLiberados");
       const patioMenuReload = document.getElementById("patioMenuReload");
       const patioMenuPlateFilter = document.getElementById("patioMenuPlateFilter");
       const reloadFinanceiro = document.getElementById("reloadFinanceiro");
@@ -6993,6 +6901,7 @@
       let editingVehicleId = null;
       let editingVehicleData = null;
       let nfseVehicleId = null;
+      let nfseStatusBeforeOpen = null;
 
       const state = {
         user: null,
@@ -10044,9 +9953,6 @@
         document.getElementById("openParceirosFromFinanceiro")?.classList.remove("hidden");
         document.getElementById("openConfigFromPatio")?.classList.remove("hidden");
         document.getElementById("openConfigFromFinanceiro")?.classList.remove("hidden");
-        document.getElementById("printPatioVehicleList")?.classList.remove("hidden");
-        document.getElementById("printPatioByPartner")?.classList.remove("hidden");
-        document.getElementById("printPatioLiberados")?.classList.remove("hidden");
         patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.remove("hidden");
         patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.remove("hidden");
         const vehicleDailyReset = document.getElementById("vehicleDaily");
@@ -10096,9 +10002,6 @@
 
         document.getElementById("openParceirosFromPatio")?.classList.add("hidden");
         document.getElementById("openParceirosFromFinanceiro")?.classList.add("hidden");
-        document.getElementById("printPatioVehicleList")?.classList.add("hidden");
-        document.getElementById("printPatioByPartner")?.classList.add("hidden");
-        document.getElementById("printPatioLiberados")?.classList.add("hidden");
         patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.add("hidden");
         patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.add("hidden");
 
@@ -11215,6 +11118,7 @@
               actionsCell = `
                   ${fluxoBtn}
                   <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
+                  ${nfseActionButtonHtml(v)}
                   <button class="secondary" data-action="voltar" data-id="${v.id}" title="Volta um passo no fluxo">Voltar</button>
                   <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
                   <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
@@ -11399,7 +11303,7 @@
               actionsCell = `
                   <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
                   <button class="secondary" data-action="voltar" data-id="${v.id}" title="Desfaz remoção feita por engano e volta para o passo anterior">Voltar</button>
-                  <button class="secondary" data-action="nfse" data-id="${v.id}">NFSe solicitada</button>
+                  ${nfseActionButtonHtml(v)}
                   <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
                   <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
                   <span class="tag success">${status}</span>
@@ -11432,6 +11336,44 @@
         const placa = vehicle.placa || "-";
         const veiculo = [vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-";
         return `Serviço de guarda e custódia de veículo automotor realizado em pátio particular. Veículo: ${veiculo} de placa ${placa} Período de permanência:\n${entrada} a ${saida} (${dias} diárias) Valor total a pagar: ${total}. Dados para Pagamento: Fernando Vasconcellos de Albuquerque Lima CNPJ: 57.936.119/0001-98 Banco Inter (Código 077) Agência: 0001 Conta Corrente PJ: 44506284-3 PIX (CNPJ): 57.936.119/0001-98.`;
+      }
+
+      function nfseActionButtonHtml(vehicle) {
+        const emitida = vehicle.nfse_status === "EMITIDA";
+        const cls = emitida ? " nfse-action-btn--emitida" : "";
+        return `<button type="button" class="secondary nfse-action-btn${cls}" data-action="nfse" data-id="${vehicle.id}">NFSe</button>`;
+      }
+
+      function resetNfseModalUi() {
+        nfseCopyActions?.classList.remove("hidden");
+        nfseConfirmActions?.classList.add("hidden");
+        if (nfseCopyHint) nfseCopyHint.classList.remove("hidden");
+      }
+
+      async function cancelNfseModal() {
+        const vid = nfseVehicleId;
+        const prev = nfseStatusBeforeOpen;
+        nfseModal?.classList.add("hidden");
+        nfseVehicleId = null;
+        nfseStatusBeforeOpen = null;
+        resetNfseModalUi();
+        if (!vid || !supabase) return;
+        const current = state.vehicles.find((v) => String(v.id) === String(vid));
+        if (
+          prev &&
+          prev !== "EMITIDA" &&
+          current?.nfse_status === "PENDENTE" &&
+          (prev === "NAO_SOLICITADA" || !prev)
+        ) {
+          await supabase
+            .from("vehicles")
+            .update({ nfse_status: "NAO_SOLICITADA", nfse_requested_at: null })
+            .eq("id", vid)
+            .eq("user_id", effectiveUserId());
+          await loadVehicles();
+          updateDashboard();
+        }
+        await refreshFichaIfOpen(vid);
       }
 
       const RECIBO_EMITENTE_PADRAO = "Fernando Vasconcellos de Albuquerque Lima";
@@ -11758,9 +11700,14 @@
 
       async function openNfseModal(vehicle) {
         nfseVehicleId = vehicle.id;
-        nfseResumo.textContent = `Veículo: ${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`;
+        nfseStatusBeforeOpen = vehicle.nfse_status || "NAO_SOLICITADA";
+        resetNfseModalUi();
+        const emitida = vehicle.nfse_status === "EMITIDA";
+        nfseResumo.textContent = `Veículo: ${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}${
+          emitida ? " • Nota já emitida" : ""
+        }`;
         nfseTexto.value = buildNfseText(vehicle);
-        if (!vehicle.nfse_status || vehicle.nfse_status === "NAO_SOLICITADA") {
+        if (!emitida && (!vehicle.nfse_status || vehicle.nfse_status === "NAO_SOLICITADA")) {
           await supabase
             .from("vehicles")
             .update({ nfse_status: "PENDENTE", nfse_requested_at: new Date().toISOString() })
@@ -11768,6 +11715,12 @@
             .eq("user_id", effectiveUserId());
           await loadVehicles();
           updateDashboard();
+        }
+        if (emitida) {
+          nfseCopyHint.textContent = "Nota já confirmada como emitida. Você pode copiar o texto novamente se precisar.";
+          nfseConfirmActions?.classList.add("hidden");
+        } else if (nfseCopyHint) {
+          nfseCopyHint.textContent = "Toque em «Copiar texto» e depois confirme se a nota já foi emitida.";
         }
         await refreshFichaIfOpen(vehicle.id);
         nfseModal.classList.remove("hidden");
@@ -11848,14 +11801,9 @@
               }.`;
             } else {
               statusLine =
-                "Status: nota fiscal ainda <strong>não solicitada</strong>. Use o botão para registrar a solicitação e abrir o texto.";
+                "Status: nota fiscal ainda <strong>não solicitada</strong>. Use o botão <strong>NFSe</strong> na lista VNP.";
             }
-            fichaSectionSnf.innerHTML = `
-              <p class="notice" style="margin:0">${statusLine}</p>
-              <div class="ficha-inline-actions">
-                <button type="button" class="secondary" data-action="nfse" data-id="${vehicle.id}">Abrir NFSe</button>
-              </div>
-            `;
+            fichaSectionSnf.innerHTML = `<p class="notice" style="margin:0">${statusLine}</p>`;
         }
 
         if (fichaSectionSlv && !isGestorPista) {
@@ -13793,8 +13741,33 @@
         fichaModal.classList.add("hidden");
         delete fichaModal.dataset.openVehicleId;
       });
-      closeNfseModal.addEventListener("click", () => nfseModal.classList.add("hidden"));
-      closeNfseModal2.addEventListener("click", () => nfseModal.classList.add("hidden"));
+      closeNfseModal.addEventListener("click", () => {
+        void cancelNfseModal();
+      });
+      cancelNfseConfirm?.addEventListener("click", () => {
+        void cancelNfseModal();
+      });
+      nfseCopyBtn?.addEventListener("click", async () => {
+        if (!nfseTexto?.value) return;
+        try {
+          await navigator.clipboard.writeText(nfseTexto.value);
+        } catch (e) {
+          nfseTexto.focus();
+          nfseTexto.select();
+          try {
+            document.execCommand("copy");
+          } catch (err) {
+            alert("Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.");
+            return;
+          }
+        }
+        const vehicle = state.vehicles.find((v) => String(v.id) === String(nfseVehicleId));
+        if (vehicle?.nfse_status === "EMITIDA") return;
+        nfseConfirmActions?.classList.remove("hidden");
+        if (nfseCopyHint) {
+          nfseCopyHint.textContent = "Texto copiado. Confirme se a nota já foi emitida ou cancele para manter como estava.";
+        }
+      });
       printFicha.addEventListener("click", () => window.print());
       downloadFicha.addEventListener("click", async () => {
         if (!fichaCapture) return;
@@ -14263,47 +14236,10 @@
         closePatioMenu();
         triggerPatioReload();
       });
-
-      printPatioVehicleListBtn?.addEventListener("click", () => {
-        openPatioPrintModal();
-      });
-      patioMenuPrintList?.addEventListener("click", () => {
-        closePatioMenu();
-        openPatioPrintModal();
-      });
-
-      printPatioByPartnerBtn?.addEventListener("click", () => {
-        openPatioPartnerPrintModal();
-      });
-      patioMenuPrintPartner?.addEventListener("click", () => {
-        closePatioMenu();
-        openPatioPartnerPrintModal();
-      });
-
-      printPatioLiberadosBtn?.addEventListener("click", () => {
-        openPatioLiberadosPrintModal();
-      });
-      patioMenuPrintLiberados?.addEventListener("click", () => {
-        closePatioMenu();
-        openPatioLiberadosPrintModal();
-      });
       patioMenuPlateFilter?.addEventListener("click", () => {
         closePatioMenu();
         openPatioSubview("no_patio");
         setTimeout(() => document.getElementById("plateFilterPatio")?.focus(), 60);
-      });
-
-      document.getElementById("closePatioLiberadosPrintModal")?.addEventListener("click", () => {
-        document.getElementById("patioLiberadosPrintModal")?.classList.add("hidden");
-      });
-      document.getElementById("cancelPatioLiberadosPrintModal")?.addEventListener("click", () => {
-        document.getElementById("patioLiberadosPrintModal")?.classList.add("hidden");
-      });
-      document.getElementById("confirmPatioLiberadosPrintModal")?.addEventListener("click", () => {
-        runPatioLiberadosPrintDocument();
-      });
-      document.getElementById("patioLiberadosPrintModal")?.addEventListener("click", (e) => {
-        if (e.target === e.currentTarget) e.currentTarget.classList.add("hidden");
       });
 
       document.getElementById("vlsFilterLocator")?.addEventListener("change", (e) => {
@@ -14376,35 +14312,6 @@
         if (banco) banco.value = "";
         syncListaFilterSelects();
         renderListaPanel();
-      });
-
-      document.getElementById("closePatioPartnerPrintModal")?.addEventListener("click", () => {
-        document.getElementById("patioPartnerPrintModal")?.classList.add("hidden");
-      });
-      document.getElementById("cancelPatioPartnerPrintModal")?.addEventListener("click", () => {
-        document.getElementById("patioPartnerPrintModal")?.classList.add("hidden");
-      });
-      document.getElementById("confirmPatioPartnerPrintModal")?.addEventListener("click", () => {
-        runPatioPartnerPrintDocument();
-      });
-
-      document.getElementById("closePatioPrintModal")?.addEventListener("click", () => {
-        document.getElementById("patioPrintModal")?.classList.add("hidden");
-      });
-      document.getElementById("cancelPatioPrintModal")?.addEventListener("click", () => {
-        document.getElementById("patioPrintModal")?.classList.add("hidden");
-      });
-      document.getElementById("confirmPatioPrintModal")?.addEventListener("click", () => {
-        runPatioPrintDocument();
-      });
-      document.getElementById("printPatioPresetMonth")?.addEventListener("click", () => {
-        applyPatioPrintPreset("month");
-      });
-      document.getElementById("printPatioPreset30")?.addEventListener("click", () => {
-        applyPatioPrintPreset(30);
-      });
-      document.getElementById("printPatioPreset90")?.addEventListener("click", () => {
-        applyPatioPrintPreset(90);
       });
 
       document.getElementById("openFinanceOpenRecPrint")?.addEventListener("click", () => {
@@ -15549,9 +15456,11 @@
           alert(error.message);
           return;
         }
-        nfseModal.classList.add("hidden");
         const vid = nfseVehicleId;
         nfseVehicleId = null;
+        nfseStatusBeforeOpen = null;
+        nfseModal.classList.add("hidden");
+        resetNfseModalUi();
         await loadVehicles();
         updateDashboard();
         await refreshFichaIfOpen(vid);
@@ -17898,7 +17807,6 @@
           const k = patioAct.getAttribute("data-header-patio");
           openMainView("patio");
           if (k === "new-vehicle") openVehicleModal("create");
-          else if (k === "print") openPatioPrintModal();
           closeAppHeaderMenu();
           return;
         }
