@@ -3597,6 +3597,25 @@
         font-weight: 800;
         letter-spacing: -0.02em;
       }
+      .patio-inicio-stat-meta {
+        display: block;
+        margin-top: 4px;
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.35;
+      }
+      .patio-inicio-stat--saldo-pos .value {
+        color: #86efac;
+      }
+      .patio-inicio-stat--saldo-neg .value {
+        color: #fca5a5;
+      }
+      [data-theme="light"] .patio-inicio-stat--saldo-pos .value {
+        color: #166534;
+      }
+      [data-theme="light"] .patio-inicio-stat--saldo-neg .value {
+        color: #b91c1c;
+      }
       .patio-inicio-actions {
         display: flex;
         flex-wrap: wrap;
@@ -4443,7 +4462,7 @@
               <details class="header-menu-details" id="headerDetailsPatio">
                 <summary>Gestão de pátio</summary>
                 <div class="header-menu-nested">
-                  <button type="button" data-header-patio-sub="inicio">Visão geral do pátio</button>
+                  <button type="button" data-header-patio-sub="inicio">Dashboard</button>
                   <button type="button" data-header-patio="new-vehicle">Registrar veículo</button>
                   <button type="button" data-header-patio-sub="no_patio">VNP</button>
                   <button type="button" data-header-patio-sub="removidos">VRP</button>
@@ -4946,7 +4965,7 @@
               <p class="module-kicker module-kicker--patio">Operação</p>
               <h2>Gestão de Pátio</h2>
               <nav id="patioSubnav" class="subnav patio-nav-inline" aria-label="Secções do pátio">
-                <button type="button" class="secondary" data-subview="inicio">Visão geral</button>
+                <button type="button" class="secondary" data-subview="inicio">Dashboard</button>
                 <button type="button" class="secondary" id="patioMenuNewVehicle">Registrar veículo</button>
                 <button type="button" class="secondary" data-subview="no_patio">VNP</button>
                 <button type="button" class="secondary" data-subview="removidos">VRP</button>
@@ -4959,31 +4978,50 @@
           <div id="patioFlyoutBackdrop" class="patio-flyout-backdrop hidden"></div>
           <div id="patioInicioPanel" class="patio-inicio-panel hidden">
             <div class="patio-inicio-head">
-              <h3>Visão geral · Gestão de pátio</h3>
+              <h3>Dashboard</h3>
               <p class="patio-inicio-lede">
-                Resumo operacional só do pátio. Use os atalhos para abrir listas e fluxos. Para o hub dos dois sistemas, use <strong>AMPLIPATIO</strong> no menu (canto superior direito).
+                Indicadores operacionais do pátio. Use os atalhos abaixo para abrir as listas VNP e VRP.
               </p>
             </div>
-            <div class="patio-inicio-grid" aria-label="Indicadores do pátio">
+            <div class="patio-inicio-grid" aria-label="Dashboard do pátio">
               <div class="patio-inicio-stat">
                 <span class="label">VNP</span>
-                <span class="value" id="patioInicioVnp">0</span>
+                <span class="value" id="patioDashVnp">0</span>
+                <span class="patio-inicio-stat-meta">No pátio</span>
               </div>
               <div class="patio-inicio-stat">
-                <span class="label">Em liberação</span>
-                <span class="value" id="patioInicioLiberacao">0</span>
+                <span class="label">VLP</span>
+                <span class="value" id="patioDashVlp">0</span>
+                <span class="patio-inicio-stat-meta">Em liberação</span>
               </div>
               <div class="patio-inicio-stat">
-                <span class="label">Entradas hoje</span>
-                <span class="value" id="patioInicioEntradasHoje">0</span>
+                <span class="label">Entradas no Dia</span>
+                <span class="value" id="patioDashEntradasDia">0</span>
               </div>
               <div class="patio-inicio-stat">
-                <span class="label">Saídas hoje</span>
-                <span class="value" id="patioInicioSaidasHoje">0</span>
+                <span class="label">Saídas no Dia</span>
+                <span class="value" id="patioDashSaidasDia">0</span>
               </div>
               <div class="patio-inicio-stat">
-                <span class="label">VRP</span>
-                <span class="value" id="patioInicioVrp">0</span>
+                <span class="label">Entradas na Semana</span>
+                <span class="value" id="patioDashEntradasSemana">0</span>
+              </div>
+              <div class="patio-inicio-stat">
+                <span class="label">Saídas na Semana</span>
+                <span class="value" id="patioDashSaidasSemana">0</span>
+              </div>
+              <div class="patio-inicio-stat">
+                <span class="label">Entradas no Mês</span>
+                <span class="value" id="patioDashEntradasMes">0</span>
+              </div>
+              <div class="patio-inicio-stat">
+                <span class="label">Saídas no Mês</span>
+                <span class="value" id="patioDashSaidasMes">0</span>
+              </div>
+              <div class="patio-inicio-stat" id="patioDashSaldoCard">
+                <span class="label">Saldo do Mês</span>
+                <span class="value" id="patioDashSaldo">0</span>
+                <span class="patio-inicio-stat-meta" id="patioDashSaldoMeta">Entradas − saídas</span>
               </div>
             </div>
             <div class="dashboard-system-entry" style="margin-bottom: 0">
@@ -10678,17 +10716,36 @@
         const elNfse = document.getElementById("cardNfsePendente");
         if (elVrp) elVrp.textContent = String(entradasHoje);
         if (elNfse) elNfse.textContent = String(saidasHoje);
-        const removidosCount = (state.vehicles || []).filter((v) => v.status === "REMOVIDO").length;
-        const piVnp = document.getElementById("patioInicioVnp");
-        const piLib = document.getElementById("patioInicioLiberacao");
-        const piEH = document.getElementById("patioInicioEntradasHoje");
-        const piSH = document.getElementById("patioInicioSaidasHoje");
-        const piVrp = document.getElementById("patioInicioVrp");
-        if (piVnp) piVnp.textContent = String(noPatio.length + vls.length);
-        if (piLib) piLib.textContent = String(vls.length);
-        if (piEH) piEH.textContent = String(entradasHoje);
-        if (piSH) piSH.textContent = String(saidasHoje);
-        if (piVrp) piVrp.textContent = String(removidosCount);
+        const saldoMes = entradasMes - saidasMes;
+        const pdVnp = document.getElementById("patioDashVnp");
+        const pdVlp = document.getElementById("patioDashVlp");
+        const pdED = document.getElementById("patioDashEntradasDia");
+        const pdSD = document.getElementById("patioDashSaidasDia");
+        const pdES = document.getElementById("patioDashEntradasSemana");
+        const pdSS = document.getElementById("patioDashSaidasSemana");
+        const pdEM = document.getElementById("patioDashEntradasMes");
+        const pdSM = document.getElementById("patioDashSaidasMes");
+        const pdSaldo = document.getElementById("patioDashSaldo");
+        const pdSaldoCard = document.getElementById("patioDashSaldoCard");
+        const pdSaldoMeta = document.getElementById("patioDashSaldoMeta");
+        if (pdVnp) pdVnp.textContent = String(noPatio.length);
+        if (pdVlp) pdVlp.textContent = String(vls.length);
+        if (pdED) pdED.textContent = String(entradasHoje);
+        if (pdSD) pdSD.textContent = String(saidasHoje);
+        if (pdES) pdES.textContent = String(entradasSemana);
+        if (pdSS) pdSS.textContent = String(saidasSemana);
+        if (pdEM) pdEM.textContent = String(entradasMes);
+        if (pdSM) pdSM.textContent = String(saidasMes);
+        if (pdSaldo) {
+          pdSaldo.textContent = saldoMes > 0 ? `+${saldoMes}` : String(saldoMes);
+        }
+        if (pdSaldoMeta) {
+          pdSaldoMeta.textContent = `${entradasMes} entradas − ${saidasMes} saídas`;
+        }
+        if (pdSaldoCard) {
+          pdSaldoCard.classList.toggle("patio-inicio-stat--saldo-pos", saldoMes > 0);
+          pdSaldoCard.classList.toggle("patio-inicio-stat--saldo-neg", saldoMes < 0);
+        }
 
         // Cards financeiros do painel principal.
         const dashboardFinanceReceberValue = document.getElementById("dashboardFinanceReceberValue");
