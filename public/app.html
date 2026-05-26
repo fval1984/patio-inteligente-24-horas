@@ -17133,13 +17133,6 @@
       };
       function returnToPainelFromPatioFlyout() {
         setPatioView("none", { silent: true });
-        const top = navStack[navStack.length - 1];
-        if (navStack[0] === "dashboard" && top?.startsWith?.("patio:")) {
-          navStack.splice(0, navStack.length, "dashboard");
-          showMainView("dashboard");
-          setFinanceView("none");
-          return;
-        }
         navStack.splice(0, navStack.length, "patio", "patio:inicio");
         showMainView("patio");
         setPatioView("inicio");
@@ -18845,18 +18838,12 @@
         if (top === `patio:${sub}`) return;
         if (top && typeof top === "string" && top.startsWith("patio:")) navStack.pop();
 
-        if (isNavOnModule("patio")) {
-          if (navStack[navStack.length - 1] !== "patio") {
-            navStack.push("patio");
-          }
-          showMainView("patio");
-          navStack.push(`patio:${sub}`);
-          setPatioView(sub);
-          return;
+        if (!isNavOnModule("patio")) {
+          navStack.splice(0, navStack.length, "patio");
         }
 
-        navStack.splice(0, navStack.length, "dashboard", `patio:${sub}`);
-        showMainView("dashboard");
+        showMainView("patio");
+        navStack.push(`patio:${sub}`);
         setPatioView(sub);
       }
 
