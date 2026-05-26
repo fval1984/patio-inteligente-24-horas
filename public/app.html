@@ -4386,12 +4386,17 @@
         text-transform: uppercase;
         color: var(--ft-muted);
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-dashboard {
         display: flex;
         flex-direction: column;
         gap: 20px;
       }
+      #viewFinanceiro #financeInicioPanel.finance-inicio-panel {
+        margin-top: 0;
+      }
       /* Painéis com display:flex no tema FinTracker precisam respeitar .hidden */
+      #viewFinanceiro #financeInicioPanel.hidden,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-dashboard.hidden,
       #viewFinanceiro .finance-receitas-panel.hidden,
       #viewFinanceiro .finance-submodule-panel.hidden,
@@ -4403,48 +4408,59 @@
       #viewFinanceiro #financeClosureArea.hidden {
         display: none !important;
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-page-intro h3,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-page-intro h3 {
         margin: 0 0 4px;
         font-size: 1.35rem;
         font-weight: 800;
         color: var(--ft-text);
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-page-intro p,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-page-intro p {
         margin: 0;
         font-size: 13px;
         color: var(--ft-muted);
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-kpi-row,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row {
         display: grid;
         gap: 14px;
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-kpi-row--4,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row--4 {
         grid-template-columns: repeat(4, minmax(0, 1fr));
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-kpi-row--3,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row--3 {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row--6 {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-resumo-card--profit strong,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-resumo-card--profit strong {
         color: #86efac;
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-resumo-card--loss strong,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-resumo-card--loss strong {
         color: #fca5a5;
       }
+      [data-theme="light"] #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-resumo-card--profit strong,
       [data-theme="light"] #viewFinanceiro #financeContent.finance-fintracker .finance-ft-resumo-card--profit strong {
         color: #166534;
       }
+      [data-theme="light"] #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-resumo-card--loss strong,
       [data-theme="light"] #viewFinanceiro #financeContent.finance-fintracker .finance-ft-resumo-card--loss strong {
         color: #b91c1c;
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-charts,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-charts {
         border-radius: var(--ft-radius);
         border: 1px solid var(--ft-border);
         background: var(--ft-surface-elevated);
         padding: 18px 16px;
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-charts-head,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-charts-head {
         display: flex;
         flex-wrap: wrap;
@@ -4453,55 +4469,66 @@
         gap: 10px;
         margin-bottom: 14px;
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-charts-head h4,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-charts-head h4 {
         margin: 0;
         font-size: 1rem;
         font-weight: 800;
         color: var(--ft-text);
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-charts-grid,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-charts-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 14px;
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-chart-card,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-chart-card {
         border: 1px solid var(--ft-border);
         border-radius: 12px;
         padding: 12px;
         background: rgba(15, 19, 26, 0.35);
       }
+      [data-theme="light"] #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-chart-card,
       [data-theme="light"] #viewFinanceiro #financeContent.finance-fintracker .finance-ft-chart-card {
         background: rgba(248, 250, 252, 0.9);
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-chart-title,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-chart-title {
         margin: 0 0 8px;
         font-size: 12px;
         font-weight: 700;
         color: var(--ft-muted);
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-chart-svg,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-chart-svg {
         width: 100%;
         height: 130px;
         display: block;
       }
       @media (max-width: 1100px) {
+        #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-kpi-row--4,
         #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row--4 {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
         #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row--6 {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
+        #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-charts-grid,
         #viewFinanceiro #financeContent.finance-fintracker .finance-ft-charts-grid {
           grid-template-columns: 1fr;
         }
       }
       @media (max-width: 640px) {
+        #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-kpi-row--4,
+        #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-kpi-row--3,
         #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row--4,
         #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row--3,
         #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row--6 {
           grid-template-columns: 1fr;
         }
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-kpi-card,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-card {
         display: flex;
         align-items: flex-start;
@@ -4563,6 +4590,7 @@
         margin-top: 4px;
         color: var(--ft-text);
       }
+      #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-quick-links,
       #viewFinanceiro #financeContent.finance-fintracker .finance-ft-quick-links {
         display: flex;
         flex-wrap: wrap;
@@ -4830,8 +4858,7 @@
               <details class="header-menu-details" id="headerDetailsFinance">
                 <summary>Financeiro</summary>
                 <div class="header-menu-nested">
-                  <button type="button" data-header-finance-panel="dashboard_financeiro">Dashboard Financeiro</button>
-                  <button type="button" data-header-finance-panel="dashboard_resultado">Dashboard Resultado</button>
+                  <button type="button" data-header-finance-panel="inicio">Dashboard</button>
                   <button type="button" data-header-finance-sub="receitas">Controle de Receitas</button>
                   <button type="button" data-header-finance-sub="despesas">Controle de Despesas</button>
                   <button type="button" data-header-finance-sub="contas_pagar">Contas a Pagar</button>
@@ -5616,8 +5643,7 @@
               <h2 style="margin: 0" id="financePageTitle">Financeiro</h2>
               <p id="financeBreadcrumb" class="notice" style="margin: 4px 0 0">Início › Financeiro › Dashboard</p>
               <nav id="financeSubnav" class="subnav finance-nav-inline patio-nav-inline" aria-label="Navegação financeira">
-                <button type="button" class="secondary" data-subview="dashboard_financeiro">Dashboard Financeiro</button>
-                <button type="button" class="secondary" data-subview="dashboard_resultado">Dashboard Resultado</button>
+                <button type="button" class="secondary" data-subview="inicio">Dashboard</button>
                 <button type="button" class="secondary" data-subview="receitas">Controle de Receitas</button>
                 <button type="button" class="secondary" data-subview="despesas">Controle de Despesas</button>
                 <button type="button" class="secondary" data-subview="contas_pagar">Contas a Pagar</button>
@@ -5783,192 +5809,135 @@
             <button type="button" class="secondary" id="financeCaixaMonthAtual">Mês atual</button>
           </div>
           </div>
+          <div id="financeInicioPanel" class="section-card fin-dash-panel finance-ft-dashboard finance-inicio-panel hidden">
+            <div class="finance-ft-page-intro">
+              <h3>Dashboard</h3>
+              <p>Visão integrada — operação do pátio, receitas, despesas e resultado do período.</p>
+            </div>
+            <div class="finance-module-rules">
+              <strong>Capa do módulo</strong> — acompanhe faturamento e recebimentos da operação, títulos em aberto, receitas/despesas e lucro ou prejuízo. Use as abas acima para filas e lançamentos detalhados.
+            </div>
+            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--ft-muted)">Operação</h4>
+            <div class="finance-ft-kpi-row finance-ft-kpi-row--4">
+              <div class="finance-ft-kpi-card finance-ft-kpi-card--teal">
+                <div class="finance-ft-kpi-icon" aria-hidden="true">🧾</div>
+                <div>
+                  <div class="finance-ft-kpi-label">Faturado no mês</div>
+                  <div class="finance-ft-kpi-value" id="fdFaturadoMes">R$ 0,00</div>
+                  <div class="finance-ft-kpi-sub" id="fdFaturadoMesMeta">Cobranças geradas</div>
+                </div>
+              </div>
+              <div class="finance-ft-kpi-card finance-ft-kpi-card--green">
+                <div class="finance-ft-kpi-icon" aria-hidden="true">✅</div>
+                <div>
+                  <div class="finance-ft-kpi-label">Recebido no mês</div>
+                  <div class="finance-ft-kpi-value" id="fdRecebidoMes">R$ 0,00</div>
+                  <div class="finance-ft-kpi-sub" id="fdRecebidoMesMeta">Pagamentos confirmados</div>
+                </div>
+              </div>
+              <div class="finance-ft-kpi-card finance-ft-kpi-card--amber" data-finance-subtab="contas_receber" role="button" tabindex="0" title="Abrir Contas a Receber">
+                <div class="finance-ft-kpi-icon" aria-hidden="true">📥</div>
+                <div>
+                  <div class="finance-ft-kpi-label">Em aberto</div>
+                  <div class="finance-ft-kpi-value" id="fdEmAberto">R$ 0,00</div>
+                  <div class="finance-ft-kpi-sub" id="fdEmAbertoMeta">0 título(s)</div>
+                </div>
+              </div>
+              <div class="finance-ft-kpi-card finance-ft-kpi-card--red" data-finance-subtab="contas_receber" role="button" tabindex="0" title="Ver vencidos">
+                <div class="finance-ft-kpi-icon" aria-hidden="true">⚠️</div>
+                <div>
+                  <div class="finance-ft-kpi-label">Vencido</div>
+                  <div class="finance-ft-kpi-value" id="fdVencido">R$ 0,00</div>
+                  <div class="finance-ft-kpi-sub" id="fdVencidoMeta">0 título(s)</div>
+                </div>
+              </div>
+            </div>
+            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--ft-muted)">Resultado</h4>
+            <div class="finance-ft-kpi-row finance-ft-kpi-row--3">
+              <div class="finance-ft-kpi-card finance-ft-kpi-card--teal" data-finance-subtab="receitas" role="button" tabindex="0" title="Abrir Controle de Receitas">
+                <div class="finance-ft-kpi-icon" aria-hidden="true">📈</div>
+                <div>
+                  <div class="finance-ft-kpi-label">Receitas do mês</div>
+                  <div class="finance-ft-kpi-value" id="fdReceitasMes">R$ 0,00</div>
+                  <div class="finance-ft-kpi-sub" id="fdReceitasMesMeta">Entradas no período</div>
+                </div>
+              </div>
+              <div class="finance-ft-kpi-card finance-ft-kpi-card--red" data-finance-subtab="despesas" role="button" tabindex="0" title="Abrir Controle de Despesas">
+                <div class="finance-ft-kpi-icon" aria-hidden="true">📉</div>
+                <div>
+                  <div class="finance-ft-kpi-label">Despesas do mês</div>
+                  <div class="finance-ft-kpi-value" id="fdDespesasMes">R$ 0,00</div>
+                  <div class="finance-ft-kpi-sub" id="fdDespesasMesMeta">Saídas no período</div>
+                </div>
+              </div>
+              <div class="finance-ft-resumo-card" id="fdLucroCard">
+                <span class="finance-ft-kpi-label">Lucro ou prejuízo</span>
+                <strong id="fdLucroLiquido">R$ 0,00</strong>
+                <div class="finance-ft-kpi-sub" id="fdLucroLiquidoMeta">Receitas − despesas operacionais</div>
+              </div>
+            </div>
+            <div class="finance-ft-charts">
+              <div class="finance-ft-charts-head">
+                <h4>Indicadores</h4>
+                <label style="font-size: 12px; color: var(--ft-muted)">
+                  Período
+                  <select id="financeChartPeriod" style="margin-left: 6px; min-width: 7rem">
+                    <option value="mes" selected>Mês</option>
+                    <option value="semana">Semana</option>
+                    <option value="dia">Dia</option>
+                  </select>
+                </label>
+              </div>
+              <div class="finance-ft-charts-grid">
+                <div class="finance-ft-chart-card">
+                  <p class="finance-ft-chart-title">Faturamento</p>
+                  <svg id="ffFaturamentoMesSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                </div>
+                <div class="finance-ft-chart-card">
+                  <p class="finance-ft-chart-title">Recebimentos</p>
+                  <svg id="ffRecebimentosMesSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                </div>
+                <div class="finance-ft-chart-card">
+                  <p class="finance-ft-chart-title">Inadimplência</p>
+                  <svg id="ffInadimplenciaSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                  <div class="finance-ft-kpi-sub" style="margin-top: 6px">Valor vencido vs em aberto no prazo</div>
+                </div>
+                <div class="finance-ft-chart-card">
+                  <p class="finance-ft-chart-title">Receitas vs despesas</p>
+                  <svg id="ffCompareSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                </div>
+              </div>
+            </div>
+            <div class="finance-ft-quick-links">
+              <button type="button" class="secondary" data-finance-quick="aguardando_faturamento">Aguardando Faturamento</button>
+              <button type="button" class="secondary" data-finance-quick="contas_receber">Contas a receber</button>
+              <button type="button" class="secondary" data-finance-quick="contas_pagar">Contas a pagar</button>
+              <button type="button" class="secondary" data-finance-quick="receitas">Controle de receitas</button>
+              <button type="button" class="secondary" data-finance-quick="despesas">Controle de despesas</button>
+            </div>
+            <div id="financeReportsPanel" class="finance-fase4-panel">
+              <h4>Demonstrativo de Resultado (DRE)</h4>
+              <p class="notice" style="margin: 0 0 10px; font-size: 12px; max-width: 52rem">
+                Receitas e despesas do mês da competência selecionada. Exporte CSV para Excel ou contabilidade.
+              </p>
+              <div class="finance-fase4-actions">
+                <button type="button" class="secondary" id="financeExportDreBtn">Exportar DRE (CSV)</button>
+                <button type="button" class="secondary" id="financeExportFluxoBtn">Exportar fluxo de caixa (CSV)</button>
+              </div>
+              <div class="table-wrap">
+                <table class="finance-dre-table">
+                  <thead>
+                    <tr>
+                      <th>Linha</th>
+                      <th>Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody id="financeDreTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
           <div id="financeContent" class="hidden finance-fintracker">
-            <div id="financeDetailDashboard" class="section-card fin-dash-panel finance-ft-dashboard hidden" style="margin-top: 0">
-              <div class="finance-ft-page-intro">
-                <h3>Dashboard Financeiro</h3>
-                <p>Operação do pátio — faturamento, recebimentos e inadimplência.</p>
-              </div>
-              <div class="finance-module-rules">
-                <strong>Controle operacional</strong> — acompanhe cobranças geradas pela saída dos veículos, recebimentos confirmados e títulos em aberto. Para análise de receitas/despesas e DRE, use o <em>Dashboard Resultado</em>.
-              </div>
-              <div class="finance-ft-kpi-row finance-ft-kpi-row--4">
-                <div class="finance-ft-kpi-card finance-ft-kpi-card--teal">
-                  <div class="finance-ft-kpi-icon" aria-hidden="true">🧾</div>
-                  <div>
-                    <div class="finance-ft-kpi-label">Faturado no mês</div>
-                    <div class="finance-ft-kpi-value" id="fdFaturadoMes">R$ 0,00</div>
-                    <div class="finance-ft-kpi-sub" id="fdFaturadoMesMeta">Cobranças geradas</div>
-                  </div>
-                </div>
-                <div class="finance-ft-kpi-card finance-ft-kpi-card--green">
-                  <div class="finance-ft-kpi-icon" aria-hidden="true">✅</div>
-                  <div>
-                    <div class="finance-ft-kpi-label">Recebido no mês</div>
-                    <div class="finance-ft-kpi-value" id="fdRecebidoMes">R$ 0,00</div>
-                    <div class="finance-ft-kpi-sub" id="fdRecebidoMesMeta">Pagamentos confirmados</div>
-                  </div>
-                </div>
-                <div class="finance-ft-kpi-card finance-ft-kpi-card--amber" data-finance-subtab="contas_receber" role="button" tabindex="0" title="Abrir Contas a Receber">
-                  <div class="finance-ft-kpi-icon" aria-hidden="true">📥</div>
-                  <div>
-                    <div class="finance-ft-kpi-label">Em aberto</div>
-                    <div class="finance-ft-kpi-value" id="fdEmAberto">R$ 0,00</div>
-                    <div class="finance-ft-kpi-sub" id="fdEmAbertoMeta">0 título(s)</div>
-                  </div>
-                </div>
-                <div class="finance-ft-kpi-card finance-ft-kpi-card--red" data-finance-subtab="contas_receber" role="button" tabindex="0" title="Ver vencidos">
-                  <div class="finance-ft-kpi-icon" aria-hidden="true">⚠️</div>
-                  <div>
-                    <div class="finance-ft-kpi-label">Vencido</div>
-                    <div class="finance-ft-kpi-value" id="fdVencido">R$ 0,00</div>
-                    <div class="finance-ft-kpi-sub" id="fdVencidoMeta">0 título(s)</div>
-                  </div>
-                </div>
-              </div>
-              <div class="finance-ft-charts">
-                <div class="finance-ft-charts-head">
-                  <h4>Indicadores operacionais</h4>
-                  <label style="font-size: 12px; color: var(--ft-muted)">
-                    Período
-                    <select id="financeChartPeriod" style="margin-left: 6px; min-width: 7rem">
-                      <option value="mes" selected>Mês</option>
-                      <option value="semana">Semana</option>
-                      <option value="dia">Dia</option>
-                    </select>
-                  </label>
-                </div>
-                <div class="finance-ft-charts-grid">
-                  <div class="finance-ft-chart-card">
-                    <p class="finance-ft-chart-title">Faturamento por mês</p>
-                    <svg id="ffFaturamentoMesSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                  </div>
-                  <div class="finance-ft-chart-card">
-                    <p class="finance-ft-chart-title">Recebimentos por mês</p>
-                    <svg id="ffRecebimentosMesSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                  </div>
-                  <div class="finance-ft-chart-card">
-                    <p class="finance-ft-chart-title">Inadimplência</p>
-                    <svg id="ffInadimplenciaSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                    <div class="finance-ft-kpi-sub" style="margin-top: 6px">Valor vencido vs em aberto no prazo</div>
-                  </div>
-                </div>
-              </div>
-              <div class="finance-ft-quick-links">
-                <button type="button" class="secondary" data-finance-quick="aguardando_faturamento">Aguardando Faturamento</button>
-                <button type="button" class="secondary" data-finance-quick="contas_receber">Contas a receber</button>
-                <button type="button" class="secondary" data-finance-quick="contas_pagar">Contas a pagar</button>
-                <button type="button" class="secondary" data-finance-quick="dashboard_resultado">Ver resultado (DRE)</button>
-              </div>
-              <div id="financeConciliacaoPanel" class="finance-fase4-panel hidden">
-                <h4>Conciliação bancária</h4>
-                <p class="notice" style="margin: 0 0 10px; font-size: 12px">
-                  Movimentos do mês — marque como conciliados após conferir com extrato bancário.
-                </p>
-                <div class="finance-fase4-actions">
-                  <label style="font-size: 12px">
-                    Filtro
-                    <select id="financeConciliacaoFilter" style="margin-left: 6px">
-                      <option value="pendentes">Pendentes</option>
-                      <option value="conciliados">Conciliados</option>
-                      <option value="todos">Todos</option>
-                    </select>
-                  </label>
-                </div>
-                <div class="finance-conciliacao-table-wrap table-wrap">
-                  <table class="table">
-                    <thead>
-                      <tr>
-                        <th>Data</th>
-                        <th>Tipo</th>
-                        <th>Descrição</th>
-                        <th>Valor</th>
-                        <th>Status</th>
-                        <th>Ação</th>
-                      </tr>
-                    </thead>
-                    <tbody id="financeConciliacaoBody"></tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-            <div id="financeDashboardResultado" class="section-card fin-dash-panel finance-ft-dashboard hidden" style="margin-top: 0">
-              <div class="finance-ft-page-intro">
-                <h3>Dashboard Resultado</h3>
-                <p>Desempenho econômico — receitas, despesas e lucro ou prejuízo do período.</p>
-              </div>
-              <div class="finance-module-rules">
-                <strong>Análise de resultado</strong> — este painel consolida receitas e despesas por competência para avaliar lucro/prejuízo. Títulos em aberto e fluxo de caixa ficam no <em>Dashboard Financeiro</em>.
-              </div>
-              <div class="finance-ft-kpi-row finance-ft-kpi-row--3">
-                <div class="finance-ft-kpi-card finance-ft-kpi-card--teal" data-finance-subtab="receitas" role="button" tabindex="0" title="Abrir Controle de Receitas">
-                  <div class="finance-ft-kpi-icon" aria-hidden="true">📈</div>
-                  <div>
-                    <div class="finance-ft-kpi-label">Receitas do mês</div>
-                    <div class="finance-ft-kpi-value" id="fdReceitasMes">R$ 0,00</div>
-                    <div class="finance-ft-kpi-sub" id="fdReceitasMesMeta">Entradas no período</div>
-                  </div>
-                </div>
-                <div class="finance-ft-kpi-card finance-ft-kpi-card--red" data-finance-subtab="despesas" role="button" tabindex="0" title="Abrir Controle de Despesas">
-                  <div class="finance-ft-kpi-icon" aria-hidden="true">📉</div>
-                  <div>
-                    <div class="finance-ft-kpi-label">Despesas do mês</div>
-                    <div class="finance-ft-kpi-value" id="fdDespesasMes">R$ 0,00</div>
-                    <div class="finance-ft-kpi-sub" id="fdDespesasMesMeta">Saídas no período</div>
-                  </div>
-                </div>
-                <div class="finance-ft-resumo-card" id="fdLucroCard">
-                  <span class="finance-ft-kpi-label">Lucro ou prejuízo</span>
-                  <strong id="fdLucroLiquido">R$ 0,00</strong>
-                  <div class="finance-ft-kpi-sub" id="fdLucroLiquidoMeta">Receitas − despesas operacionais</div>
-                </div>
-              </div>
-              <div class="finance-ft-charts">
-                <div class="finance-ft-charts-head">
-                  <h4>Receitas vs despesas</h4>
-                  <label style="font-size: 12px; color: var(--ft-muted)">
-                    Período
-                    <select id="financeChartPeriodResultado" style="margin-left: 6px; min-width: 7rem">
-                      <option value="dia">Dia</option>
-                      <option value="semana">Semana</option>
-                      <option value="mes" selected>Mês</option>
-                    </select>
-                  </label>
-                </div>
-                <div class="finance-ft-charts-grid">
-                  <div class="finance-ft-chart-card">
-                    <p class="finance-ft-chart-title">Receitas vs despesas</p>
-                    <svg id="ffCompareSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                  </div>
-                </div>
-              </div>
-              <div class="finance-ft-quick-links">
-                <button type="button" class="secondary" data-finance-quick="receitas">Controle de receitas</button>
-                <button type="button" class="secondary" data-finance-quick="despesas">Controle de despesas</button>
-                <button type="button" class="secondary" data-finance-quick="dashboard_financeiro">Ver financeiro (caixa)</button>
-              </div>
-              <div id="financeReportsPanel" class="finance-fase4-panel">
-                <h4>Demonstrativo de Resultado (DRE)</h4>
-                <p class="notice" style="margin: 0 0 10px; font-size: 12px; max-width: 52rem">
-                  Receitas e despesas do mês da competência selecionada. Exporte CSV para Excel ou contabilidade.
-                </p>
-                <div class="finance-fase4-actions">
-                  <button type="button" class="secondary" id="financeExportDreBtn">Exportar DRE (CSV)</button>
-                  <button type="button" class="secondary" id="financeExportFluxoBtn">Exportar fluxo de caixa (CSV)</button>
-                </div>
-                <div class="table-wrap">
-                  <table class="finance-dre-table">
-                    <thead>
-                      <tr>
-                        <th>Linha</th>
-                        <th>Valor</th>
-                      </tr>
-                    </thead>
-                    <tbody id="financeDreTableBody"></tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
             <div id="financeClientesArea" class="section-card hidden" style="margin-top: 0">
               <div class="finance-ft-page-toolbar">
                 <div>
@@ -8169,9 +8138,10 @@
       const FINANCE_MANUAL_ONLY = false;
 
       const FINANCE_VIEW_LABELS = {
-        dashboard: "Dashboard Financeiro",
-        dashboard_financeiro: "Dashboard Financeiro",
-        dashboard_resultado: "Dashboard Resultado",
+        inicio: "Dashboard",
+        dashboard: "Dashboard",
+        dashboard_financeiro: "Dashboard",
+        dashboard_resultado: "Dashboard",
         receitas: "Controle de Receitas",
         despesas: "Controle de Despesas",
         contas_pagar: "Contas a Pagar",
@@ -8179,7 +8149,7 @@
         lancamentos: "Controle de Receitas",
         receber: "Contas a Receber",
         ajustes: "Contas a Pagar",
-        caixa: "Dashboard Financeiro",
+        caixa: "Dashboard",
         clientes: "Clientes",
         triagem: "Aguardando Faturamento",
         aguardando_faturamento: "Aguardando Faturamento",
@@ -8188,8 +8158,7 @@
       };
 
       function financeIsDashboardView(view) {
-        const v = financeNormalizeSubview(view);
-        return v === "dashboard_financeiro" || v === "dashboard_resultado";
+        return financeNormalizeSubview(view) === "inicio";
       }
 
       function financeOrigemLabel(entry) {
@@ -8261,18 +8230,14 @@
       }
 
       function applyFinanceSubTabShell(view) {
-        const dashArea = document.getElementById("financeDetailDashboard");
         const stdArea = document.getElementById("financeStandardArea");
         const flySummary = document.getElementById("financeFlyoutSummaryCards");
-        const isDashboard = financeIsDashboardView(view);
         const isSubTab = financeIsSubTabView(view);
-        if (isDashboard) {
-          dashArea?.classList.remove("hidden");
+        if (financeIsDashboardView(view)) {
           stdArea?.classList.add("hidden");
           flySummary?.classList.add("hidden");
           return;
         }
-        dashArea?.classList.add("hidden");
         if (isSubTab) {
           stdArea?.classList.remove("hidden");
           flySummary?.classList.add("hidden");
@@ -8281,12 +8246,24 @@
 
       function financeNormalizeSubview(view) {
         if (!view || view === "none") return view;
-        if (view === "dashboard") return "dashboard_financeiro";
-        if (view === "filtros" || view === "metas" || view === "controle_dual") return "dashboard_financeiro";
+        if (
+          view === "dashboard" ||
+          view === "inicio" ||
+          view === "dashboard_financeiro" ||
+          view === "dashboard_resultado" ||
+          view === "filtros" ||
+          view === "metas" ||
+          view === "controle_dual" ||
+          view === "caixa" ||
+          view === "fluxo_caixa" ||
+          view === "historico_receber" ||
+          view === "historico_pagar"
+        ) {
+          return "inicio";
+        }
         if (view === "lancamentos") return "receitas";
         if (view === "ajustes" || view === "pagar") return "contas_pagar";
         if (view === "receber" || view === "receber_alerta") return "contas_receber";
-        if (view === "caixa" || view === "fluxo_caixa") return "dashboard_financeiro";
         if (view === "pre_lancamento" || view === "aguardando_lancamento" || view === "triagem") {
           return FINANCE_MANUAL_ONLY ? "receitas" : "aguardando_faturamento";
         }
@@ -13570,6 +13547,29 @@
         _setOp("fdVencidoMeta", `${vencidosList.length} título(s)`);
       }
 
+      function renderFinanceResultadoDashboard(monthYm) {
+        const entradas = sumReceivableRevenueByMonth(monthYm, state.receivables || [], state.cash || []);
+        const saidasCash = sumCashPagamentosNoMes(monthYm, state.cash || []);
+        const sangria = sumCashSangriaNoMes(monthYm, state.cash || [], state.payables || []);
+        const saidas = Math.max(0, saidasCash - sangria);
+        const lucro = entradas - saidas;
+        const _setRes = (id, txt) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = txt;
+        };
+        _setRes("fdReceitasMes", formatCurrency(entradas));
+        _setRes("fdDespesasMes", formatCurrency(saidas));
+        _setRes("fdLucroLiquido", formatCurrency(lucro));
+        _setRes("fdReceitasMesMeta", `Competência ${monthYm.slice(5, 7)}/${monthYm.slice(0, 4)}`);
+        _setRes("fdDespesasMesMeta", "Saídas operacionais no período");
+        _setRes("fdLucroLiquidoMeta", lucro >= 0 ? "Superavit no período" : "Deficit no período");
+        const card = document.getElementById("fdLucroCard");
+        if (card) {
+          card.classList.remove("finance-ft-resumo-card--profit", "finance-ft-resumo-card--loss");
+          card.classList.add(lucro >= 0 ? "finance-ft-resumo-card--profit" : "finance-ft-resumo-card--loss");
+        }
+      }
+
       function renderFinanceOperacionalCharts(period) {
         const today = new Date();
         const buckets = [];
@@ -13643,15 +13643,13 @@
       }
 
       function renderFinanceModuleCharts() {
-        if (currentFinanceView === "dashboard_resultado") {
-          const period = document.getElementById("financeChartPeriodResultado")?.value || "mes";
-          renderDashboardFinanceCharts(period, { compare: "ffCompareSvg" });
-          return;
-        }
+        if (!financeIsDashboardView(currentFinanceView)) return;
         const monthKeyFin = financeCompetencia || currentYearMonthLocal();
         renderFinanceOperacionalDashboard(monthKeyFin);
+        renderFinanceResultadoDashboard(monthKeyFin);
         const period = document.getElementById("financeChartPeriod")?.value || "mes";
         renderFinanceOperacionalCharts(period);
+        renderDashboardFinanceCharts(period, { compare: "ffCompareSvg" });
       }
 
       function updateDashboard() {
@@ -15493,7 +15491,7 @@
         if (financeIsDashboardView(currentFinanceView) && financeFocusMetaGoalCard) {
           financeFocusMetaGoalCard = false;
           setTimeout(() => {
-            document.getElementById("financeDashboardResultado")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            document.getElementById("fdLucroCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
           }, 40);
         }
 
@@ -15696,21 +15694,10 @@
 
         const stdArea = document.getElementById("financeStandardArea");
         const cloArea = document.getElementById("financeClosureArea");
-        const dashArea = document.getElementById("financeDetailDashboard");
-        const dashTopArea = document.getElementById("financeTopDashboard");
         const hideAllFinanceAreas = () => {
           if (stdArea) stdArea.classList.add("hidden");
           if (cloArea) cloArea.classList.add("hidden");
-          if (dashArea) dashArea.classList.add("hidden");
-          document.getElementById("financeDashboardResultado")?.classList.add("hidden");
           document.getElementById("financeClientesArea")?.classList.add("hidden");
-          document.getElementById("financeFlyoutSummaryCards")?.classList.add("hidden");
-        };
-        const showFinanceDashboardOnly = (resultado = false) => {
-          if (stdArea) stdArea.classList.add("hidden");
-          if (cloArea) cloArea.classList.add("hidden");
-          if (dashArea) dashArea.classList.toggle("hidden", resultado);
-          document.getElementById("financeDashboardResultado")?.classList.toggle("hidden", !resultado);
           document.getElementById("financeFlyoutSummaryCards")?.classList.add("hidden");
         };
         const monthKeyFin = financeCompetencia || currentYearMonthLocal();
@@ -15726,6 +15713,7 @@
           if (el) el.textContent = txt;
         };
 
+        const dashTopArea = document.getElementById("financeTopDashboard");
         if (dashTopArea) {
           _set("fdtCaixaAtual", formatCurrency(caixa));
           _set("fdtCaixaStatus", caixa >= 0 ? "Entradas no caixa (consolidado)" : "Caixa com saldo negativo");
@@ -15758,10 +15746,8 @@
           renderFinanceOperacionalDashboard(monthKeyFin);
         }
         if (financeIsDashboardView(currentFinanceView)) {
-          const isResultado = currentFinanceView === "dashboard_resultado";
-          showFinanceDashboardOnly(isResultado);
           renderFinanceModuleCharts();
-          if (isResultado) renderFinanceDrePanel();
+          renderFinanceDrePanel();
           return;
         }
         if (currentFinanceView === "clientes") {
@@ -16538,7 +16524,6 @@
       function setFinanceView(view) {
         const previousFinanceView = currentFinanceView;
         view = financeNormalizeSubview(view);
-        if (view === "historico_receber" || view === "historico_pagar") view = "dashboard_financeiro";
         if (view === "cadastro_base") view = "contas_pagar";
         currentFinanceView = view;
         if (view === "receitas") {
@@ -16555,11 +16540,12 @@
           if (previousFinanceView !== "contas_receber") currentContasReceberSubView = "inicio";
         }
         const isNone = !view || view === "none";
-        const isDashboard = financeIsDashboardView(view);
+        const isInicio = view === "inicio";
+        const isDashboard = isInicio;
         const isFiltersView = false;
         const financeRoot = document.getElementById("viewFinanceiro");
         const isLayoutV2 = !!financeRoot?.classList.contains("finance-module-shell");
-        const isFlyoutView = !isLayoutV2 && !isNone && !isDashboard;
+        const isFlyoutView = !isLayoutV2 && !isNone && !isInicio;
         if (view === "relatorios" && previousFinanceView !== "relatorios") {
           reportHasRun = false;
         }
@@ -16600,6 +16586,7 @@
           financeCaixaFilters?.classList.add("hidden");
           receivableAlert.classList.add("hidden");
           if (financeContent) financeContent.classList.add("hidden");
+          document.getElementById("financeInicioPanel")?.classList.add("hidden");
           financeRoot?.classList.remove("finance-flyout-open", "finance-subview-fullscreen");
           financeSidebarOpen = false;
           financeRoot?.classList.remove("finance-sidebar-open");
@@ -16626,9 +16613,18 @@
         if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", !showPlateSearchFilter);
         financeRoot?.classList.toggle("finance-flyout-open", isFlyoutView);
         financeFlyoutBackdrop?.classList.toggle("hidden", !isFlyoutView);
-        const showFinanceBody = (isFlyoutView || isDashboard || isLayoutV2) && !isFiltersView;
-        if (financeContent) financeContent.classList.toggle("hidden", !showFinanceBody);
-        if (showFinanceBody && financeContent) {
+        const financeInicioPanel = document.getElementById("financeInicioPanel");
+        if (financeInicioPanel) {
+          financeInicioPanel.classList.toggle("hidden", !isInicio);
+          if (isInicio) {
+            financeInicioPanel.classList.remove("air-open");
+            void financeInicioPanel.offsetWidth;
+            financeInicioPanel.classList.add("air-open");
+          }
+        }
+        const showFinanceContent = !isInicio && !isFiltersView;
+        if (financeContent) financeContent.classList.toggle("hidden", !showFinanceContent);
+        if (showFinanceContent && financeContent) {
           financeContent.classList.remove("air-open");
           void financeContent.offsetWidth;
           financeContent.classList.add("air-open");
@@ -16796,9 +16792,9 @@
         setFinanceView("none");
       }
       function returnToPainelFromFinanceFlyout() {
-        navStack.splice(0, navStack.length, "financeiro", "financeiro:dashboard_financeiro");
+        navStack.splice(0, navStack.length, "financeiro", "financeiro:inicio");
         showMainView("financeiro");
-        setFinanceView("dashboard_financeiro");
+        setFinanceView("inicio");
         setPatioView("dashboard");
       }
       patioFlyoutBackdrop?.addEventListener("click", returnToPainelFromPatioFlyout);
@@ -18059,7 +18055,7 @@
       }
       bindModuleCardActivate(document.getElementById("cardFinanceReceberLink"), () => openFinanceSubview("contas_receber"));
       bindModuleCardActivate(document.getElementById("cardFinancePagarLink"), () => openFinanceSubview("contas_pagar"));
-      bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("dashboard_financeiro"));
+      bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("inicio"));
 
       document.getElementById("financeExportDreBtn")?.addEventListener("click", exportFinanceDreCsv);
       document.getElementById("financeExportFluxoBtn")?.addEventListener("click", exportFinanceFluxoCsv);
@@ -18067,7 +18063,7 @@
         financeConciliacaoFilter = document.getElementById("financeConciliacaoFilter")?.value || "pendentes";
         renderFinanceConciliacaoPanel();
       });
-      document.getElementById("financeDetailDashboard")?.addEventListener("click", (e) => {
+      document.getElementById("financeInicioPanel")?.addEventListener("click", (e) => {
         const quickBtn = e.target.closest("[data-finance-quick]");
         if (quickBtn) {
           openFinanceSubview(quickBtn.getAttribute("data-finance-quick"));
@@ -18078,7 +18074,7 @@
           openFinanceSubview(subBtn.getAttribute("data-finance-subtab"));
         }
       });
-      document.getElementById("financeDetailDashboard")?.addEventListener("keydown", (e) => {
+      document.getElementById("financeInicioPanel")?.addEventListener("keydown", (e) => {
         if (e.key !== "Enter" && e.key !== " ") return;
         const subBtn = e.target.closest("[data-finance-subtab]");
         if (!subBtn) return;
@@ -18279,9 +18275,6 @@
       document.getElementById("financeChartPeriod")?.addEventListener("change", () => {
         if (financeIsDashboardView(currentFinanceView)) renderFinanceModuleCharts();
       });
-      document.getElementById("financeChartPeriodResultado")?.addEventListener("change", () => {
-        if (currentFinanceView === "dashboard_resultado") renderFinanceModuleCharts();
-      });
       document.getElementById("financeClientesBusca")?.addEventListener("input", () => {
         if (currentFinanceView === "clientes") renderFinanceClientes();
       });
@@ -18454,8 +18447,8 @@
         }
         if (view === "parceiros") setPartnerView("none");
         if (view === "financeiro") {
-          setFinanceView("dashboard_financeiro");
-          navStack.push("financeiro:dashboard_financeiro");
+          setFinanceView("inicio");
+          navStack.push("financeiro:inicio");
         }
         if (view === "lista") {
           syncListaFilterSelects();
@@ -18514,16 +18507,12 @@
       function openFinanceSubview(sub) {
         const top = navStack[navStack.length - 1];
         if (!sub) return;
+        if (sub === "metas") financeFocusMetaGoalCard = true;
         sub = financeNormalizeSubview(sub);
-        if (sub === "controle_dual") sub = "dashboard_financeiro";
-        if (sub === "metas") {
-          financeFocusMetaGoalCard = true;
-          sub = "dashboard_resultado";
-        }
         const sameSub = top === `financeiro:${sub}`;
         if (top && typeof top === "string" && top.startsWith("financeiro:") && !sameSub) navStack.pop();
 
-        if (sub === "dashboard" || sub === "dashboard_financeiro") {
+        if (sub === "inicio") {
           closeFinanceMenu?.();
           if (navStack[navStack.length - 1] !== "financeiro") {
             navStack.push("financeiro");
@@ -18531,21 +18520,8 @@
           } else {
             showMainView("financeiro");
           }
-          if (!sameSub) navStack.push("financeiro:dashboard_financeiro");
-          setFinanceView("dashboard_financeiro");
-          return;
-        }
-
-        if (sub === "dashboard_resultado") {
-          closeFinanceMenu?.();
-          if (navStack[navStack.length - 1] !== "financeiro") {
-            navStack.push("financeiro");
-            showMainView("financeiro");
-          } else {
-            showMainView("financeiro");
-          }
-          if (!sameSub) navStack.push("financeiro:dashboard_resultado");
-          setFinanceView("dashboard_resultado");
+          if (!sameSub) navStack.push("financeiro:inicio");
+          setFinanceView("inicio");
           return;
         }
 
@@ -18608,7 +18584,7 @@
         }
         if (top === "financeiro") {
           showMainView("financeiro");
-          return setFinanceView("dashboard_financeiro");
+          return setFinanceView("inicio");
         }
         if (top === "configuracoes") return showMainView("configuracoes");
 
@@ -21653,7 +21629,7 @@
           e.preventDefault();
           closeFinanceMenu();
           closeAppHeaderMenu();
-          openFinanceSubview(finPanel.getAttribute("data-header-finance-panel") || "dashboard_financeiro");
+          openFinanceSubview(finPanel.getAttribute("data-header-finance-panel") || "inicio");
           return;
         }
 
