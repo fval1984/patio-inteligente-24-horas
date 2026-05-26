@@ -1797,6 +1797,28 @@
         font-size: 14px;
         font-weight: 700;
       }
+      #viewPatio.patio-module-shell #patioFlyoutBackdrop,
+      #viewPatio.patio-module-shell .patio-flyout-close {
+        display: none !important;
+      }
+      #viewPatio.patio-module-shell #patioContent {
+        position: relative;
+        inset: auto;
+        width: 100%;
+        height: auto;
+        max-height: none;
+        min-height: 0;
+        overflow: visible;
+        z-index: auto;
+        border-radius: 0;
+        border: none;
+        background: transparent;
+        padding: 0;
+      }
+      #viewPatio.patio-module-shell #patioContent .table-wrap {
+        max-height: 65vh;
+        overflow: auto;
+      }
       .patio-menu-toggle {
         min-width: 96px;
       }
@@ -14266,20 +14288,18 @@
         const isNone = !view || view === "none";
         const isDashboard = view === "dashboard";
         const isInicio = view === "inicio";
-        const isFlyoutView = !isNone && !isDashboard && !isInicio;
+        const isContentView = !isNone && !isDashboard && !isInicio;
         patioSubnav.querySelectorAll("button[data-subview]").forEach((btn) => {
           btn.classList.toggle("active", !isNone && btn.getAttribute("data-subview") === view);
         });
         document.getElementById("patioPlateSearchBar")?.classList.toggle("hidden", isDashboard || isInicio);
         const patioRoot = document.getElementById("viewPatio");
-        patioRoot?.classList.toggle("patio-flyout-open", isFlyoutView);
-        patioRoot?.classList.toggle("patio-subview-fullscreen", isFlyoutView);
-        if (patioFlyoutClose) patioFlyoutClose.textContent = "X";
-        patioFlyoutBackdrop?.classList.toggle("hidden", !isFlyoutView);
+        patioRoot?.classList.remove("patio-flyout-open", "patio-subview-fullscreen");
+        patioFlyoutBackdrop?.classList.add("hidden");
         const patioContent = document.getElementById("patioContent");
         const patioInicioPanel = document.getElementById("patioInicioPanel");
         if (patioInicioPanel) patioInicioPanel.classList.toggle("hidden", !isInicio);
-        if (patioContent) patioContent.classList.toggle("hidden", !isFlyoutView);
+        if (patioContent) patioContent.classList.toggle("hidden", !isContentView);
         let shownPanel = null;
         patioSubviews.forEach((panel) => {
           const match = !isNone && !isInicio && panel.getAttribute("data-subview") === view;
@@ -21743,7 +21763,11 @@
         if (patioAct && !patioAct.hasAttribute("data-header-patio-sub")) {
           e.preventDefault();
           const k = patioAct.getAttribute("data-header-patio");
-          openMainView("patio");
+          const onPatio =
+            navStack[navStack.length - 1] === "patio" ||
+            (typeof navStack[navStack.length - 1] === "string" && navStack[navStack.length - 1].startsWith("patio:"));
+          if (!onPatio) openMainView("patio");
+          else showMainView("patio");
           if (k === "new-vehicle") openVehicleModal("create");
           closeAppHeaderMenu();
           return;
