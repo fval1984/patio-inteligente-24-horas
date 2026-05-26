@@ -1983,7 +1983,7 @@
         flex-wrap: wrap;
         align-items: center;
         gap: 4px 6px;
-        max-width: min(100vw - 48px, 320px);
+        max-width: min(100vw - 48px, 420px);
         justify-content: flex-end;
       }
       .header-plate-search .header-plate-label {
@@ -2028,10 +2028,36 @@
       }
       .header-plate-search-hint {
         margin: 0;
-        max-width: min(100vw - 48px, 320px);
+        max-width: min(100vw - 48px, 420px);
         font-size: 10px;
         text-align: right;
         line-height: 1.25;
+      }
+      .header-module-nav.dashboard-system-entry {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 4px;
+        margin: 0;
+        max-width: min(100vw - 48px, 420px);
+      }
+      .header-module-nav .dashboard-system-btn {
+        min-height: 26px;
+        padding: 2px 8px;
+        font-size: 10px;
+        font-weight: 600;
+        border-radius: 6px;
+        transform: none;
+      }
+      .header-module-nav .dashboard-system-btn:hover {
+        transform: none;
+      }
+      .header-module-nav .dashboard-system-btn__title {
+        font-size: 10px;
+        font-weight: 600;
+      }
+      .header-module-nav.dashboard-system-entry--single .dashboard-system-btn:not(#dashboardOpenPatio) {
+        display: none;
       }
       .header-menu-trigger {
         display: inline-flex;
@@ -3741,9 +3767,6 @@
         gap: 10px;
         margin-bottom: 22px;
       }
-      .dashboard-toolbar .dashboard-system-entry {
-        margin: 10px 0 0;
-      }
       .dashboard-system-entry.dashboard-system-entry--single {
         grid-template-columns: 1fr;
       }
@@ -4916,6 +4939,42 @@
             <button type="button" class="secondary" id="goDashboardFromPlate">AMPLIPATIO</button>
             <button type="button" class="secondary" id="clearPlateFilter">Limpar</button>
           </form>
+          <div class="dashboard-system-entry header-module-nav" id="dashboardSystemEntry">
+            <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenPatio">
+              <span class="dashboard-system-btn__kicker">Operação</span>
+              <span class="dashboard-system-btn__title">Pátio</span>
+              <span class="dashboard-system-btn__desc">Acompanhe veículos, entradas, saídas e fluxo operacional.</span>
+              <span class="dashboard-system-btn__go">Abrir pátio →</span>
+            </button>
+            <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
+              <span class="dashboard-system-btn__kicker">Financeiro</span>
+              <span class="dashboard-system-btn__title">Financeiro</span>
+              <span class="dashboard-system-btn__desc">Saldo atual, receitas x despesas, evolução e alertas de vencimento.</span>
+              <span class="dashboard-system-btn__go">Abrir financeiro →</span>
+            </button>
+            <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenLista">
+              <span class="dashboard-system-btn__kicker">Relatórios</span>
+              <span class="dashboard-system-btn__title">Lista</span>
+              <span class="dashboard-system-btn__desc">Acesse listagens operacionais, histórico e consultas rápidas.</span>
+              <span class="dashboard-system-btn__go">Abrir lista →</span>
+            </button>
+            <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
+              <span class="dashboard-system-btn__kicker">Relacionamento</span>
+              <span class="dashboard-system-btn__title">Parceiros</span>
+              <span class="dashboard-system-btn__desc">Gerencie localizadores, assessorias, leiloeiros e bancos.</span>
+              <span class="dashboard-system-btn__go">Abrir parceiros →</span>
+            </button>
+            <button
+              type="button"
+              class="dashboard-system-btn dashboard-system-btn--finance"
+              id="dashboardOpenConfiguracoes"
+            >
+              <span class="dashboard-system-btn__kicker">Sistema</span>
+              <span class="dashboard-system-btn__title">Configurações</span>
+              <span class="dashboard-system-btn__desc">Ajuste dados, usuários e parâmetros operacionais.</span>
+              <span class="dashboard-system-btn__go">Abrir configurações →</span>
+            </button>
+          </div>
           <p class="notice plate-search-hint header-plate-search-hint hidden" aria-live="polite"></p>
         </div>
       </div>
@@ -4974,42 +5033,6 @@
           <div class="toolbar dashboard-toolbar">
             <div class="dashboard-toolbar-text">
               <h2>AMPLIPATIO</h2>
-              <div class="dashboard-system-entry" id="dashboardSystemEntry">
-                <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenPatio">
-                  <span class="dashboard-system-btn__kicker">Operação</span>
-                  <span class="dashboard-system-btn__title">Pátio</span>
-                  <span class="dashboard-system-btn__desc">Acompanhe veículos, entradas, saídas e fluxo operacional.</span>
-                  <span class="dashboard-system-btn__go">Abrir pátio →</span>
-                </button>
-                <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
-                  <span class="dashboard-system-btn__kicker">Financeiro</span>
-                  <span class="dashboard-system-btn__title">Financeiro</span>
-                  <span class="dashboard-system-btn__desc">Saldo atual, receitas x despesas, evolução e alertas de vencimento.</span>
-                  <span class="dashboard-system-btn__go">Abrir financeiro →</span>
-                </button>
-                <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenLista">
-                  <span class="dashboard-system-btn__kicker">Relatórios</span>
-                  <span class="dashboard-system-btn__title">Lista</span>
-                  <span class="dashboard-system-btn__desc">Acesse listagens operacionais, histórico e consultas rápidas.</span>
-                  <span class="dashboard-system-btn__go">Abrir lista →</span>
-                </button>
-                <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
-                  <span class="dashboard-system-btn__kicker">Relacionamento</span>
-                  <span class="dashboard-system-btn__title">Parceiros</span>
-                  <span class="dashboard-system-btn__desc">Gerencie localizadores, assessorias, leiloeiros e bancos.</span>
-                  <span class="dashboard-system-btn__go">Abrir parceiros →</span>
-                </button>
-                <button
-                  type="button"
-                  class="dashboard-system-btn dashboard-system-btn--finance"
-                  id="dashboardOpenConfiguracoes"
-                >
-                  <span class="dashboard-system-btn__kicker">Sistema</span>
-                  <span class="dashboard-system-btn__title">Configurações</span>
-                  <span class="dashboard-system-btn__desc">Ajuste dados, usuários e parâmetros operacionais.</span>
-                  <span class="dashboard-system-btn__go">Abrir configurações →</span>
-                </button>
-              </div>
             </div>
             <span class="pill pill--premium"
               ><span class="pill-dot" aria-hidden="true"></span> Dados ao vivo</span>
