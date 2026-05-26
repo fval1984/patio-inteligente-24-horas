@@ -2832,8 +2832,87 @@
       .finance-receitas-panel {
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 0;
         margin-bottom: 14px;
+      }
+      .finance-receitas-header {
+        margin-bottom: 12px;
+      }
+      .finance-receitas-header h3 {
+        margin: 0 0 4px;
+        font-size: 1.15rem;
+      }
+      .finance-receitas-header .notice {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.45;
+        max-width: 48rem;
+      }
+      .finance-receitas-subnav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 10px 12px;
+        margin-bottom: 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--card, #fff);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      }
+      .finance-receitas-sub-btn {
+        font-size: 12px !important;
+        padding: 6px 12px !important;
+        border-radius: 999px !important;
+      }
+      .finance-receitas-sub-btn.active {
+        background: #2563eb !important;
+        color: #fff !important;
+        border-color: #2563eb !important;
+      }
+      [data-theme="light"] .finance-receitas-sub-btn.active {
+        background: #2563eb !important;
+        color: #fff !important;
+      }
+      .finance-receitas-pages {
+        min-height: 200px;
+      }
+      .finance-receitas-page {
+        animation: financeSubtabIn 0.2s ease;
+      }
+      .finance-receitas-page.hidden {
+        display: none !important;
+      }
+      .finance-receitas-hub-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 12px;
+      }
+      .finance-receitas-hub-card {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        text-align: left;
+        padding: 14px 16px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--card, #fff);
+        cursor: pointer;
+        transition: box-shadow 0.15s ease, border-color 0.15s ease;
+        font: inherit;
+        color: inherit;
+      }
+      .finance-receitas-hub-card:hover {
+        border-color: rgba(37, 99, 235, 0.45);
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+      }
+      .finance-receitas-hub-card strong {
+        font-size: 14px;
+      }
+      .finance-receitas-hub-card span {
+        font-size: 12px;
+        color: var(--muted, #64748b);
+        line-height: 1.4;
       }
       .finance-receitas-section {
         background: var(--card, #fff);
@@ -2861,7 +2940,7 @@
         max-width: 44rem;
       }
       .finance-receitas-section .finance-lanc-list {
-        max-height: 280px;
+        max-height: min(58vh, 520px);
         overflow-y: auto;
         margin-top: 8px;
       }
@@ -5934,65 +6013,110 @@
                 </div>
               </div>
               <div id="financeReceitasPanel" class="finance-receitas-panel hidden">
-                <section class="finance-receitas-section" id="financeReceitasCadastroSection">
-                  <div class="finance-receitas-section-head">
-                    <div>
-                      <h4>Cadastro de receitas</h4>
-                      <p class="notice">Registre receitas únicas com cliente, serviço, valor, vencimento e comprovante opcional.</p>
+                <header class="finance-receitas-header">
+                  <h3 id="financeReceitasPageTitle">Controle de Receitas</h3>
+                  <p id="financeReceitasPageDesc" class="notice">
+                    Escolha uma área abaixo ou use o menu de sub-abas para abrir cada função em página dedicada.
+                  </p>
+                </header>
+                <nav id="financeReceitasSubnav" class="finance-receitas-subnav" aria-label="Sub-abas de Controle de Receitas">
+                  <button type="button" class="secondary finance-receitas-sub-btn active" data-receitas-sub="inicio">Início</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-receitas-sub="cadastro">Cadastro</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-receitas-sub="categorias">Categorias</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-receitas-sub="recorrentes">Recorrentes</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-receitas-sub="parceladas">Parceladas</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-receitas-sub="anexos">Comprovantes</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-receitas-sub="historico">Histórico</button>
+                </nav>
+                <div id="financeReceitasPages" class="finance-receitas-pages">
+                  <div class="finance-receitas-page finance-receitas-section" data-receitas-page="inicio">
+                    <div class="finance-receitas-hub-grid">
+                      <button type="button" class="finance-receitas-hub-card" data-receitas-goto="cadastro">
+                        <strong>Cadastro de receitas</strong>
+                        <span>Registre receitas únicas com cliente, serviço e valor.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-receitas-goto="categorias">
+                        <strong>Categorias de receita</strong>
+                        <span>Serviços padrão e categorias personalizadas.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-receitas-goto="recorrentes">
+                        <strong>Receitas recorrentes</strong>
+                        <span>Mensalidades e cobranças fixas mensais.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-receitas-goto="parceladas">
+                        <strong>Receitas parceladas</strong>
+                        <span>Divida um valor em parcelas com vencimentos automáticos.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-receitas-goto="anexos">
+                        <strong>Anexar comprovantes</strong>
+                        <span>PDF ou imagem ligados a cada receita.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-receitas-goto="historico">
+                        <strong>Histórico de recebimentos</strong>
+                        <span>Receitas pagas nos últimos 90 dias.</span>
+                      </button>
                     </div>
-                    <button type="button" id="financeReceitasNovaBtn">+ Nova receita</button>
                   </div>
-                  <div id="financeReceitasCadastroList" class="finance-lanc-list" aria-live="polite"></div>
-                  <div id="financeReceitasCadastroPagination" class="hidden" style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap">
-                    <span id="financeReceitasCadastroPageInfo" class="notice">Página 1 de 1</span>
-                    <div style="display:flex; gap:6px; align-items:center">
-                      <button type="button" class="secondary" id="financeReceitasCadastroPrev">Anterior</button>
-                      <button type="button" class="secondary" id="financeReceitasCadastroNext">Próxima</button>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-receitas-page="cadastro" id="financeReceitasCadastroSection">
+                    <div class="finance-receitas-section-head">
+                      <div>
+                        <h4>Cadastro de receitas</h4>
+                        <p class="notice">Registre receitas únicas com cliente, serviço, valor, vencimento e comprovante opcional.</p>
+                      </div>
+                      <button type="button" id="financeReceitasNovaBtn">+ Nova receita</button>
                     </div>
-                  </div>
-                </section>
-                <section class="finance-receitas-section" id="financeReceitasCatsSection">
-                  <h4>Categorias de receita</h4>
-                  <p class="notice">Serviços padrão e categorias personalizadas para classificar cada receita.</p>
-                  <div id="financeReceitasCatsDefault" class="finance-receitas-cats-default"></div>
-                  <div class="finance-category-bar">
-                    <label for="financeReceitasCategoryInput">Categorias personalizadas</label>
-                    <div class="finance-category-inline">
-                      <input id="financeReceitasCategoryInput" type="text" placeholder="Nova categoria…" />
-                      <button type="button" class="secondary" id="financeReceitasAddCategoryBtn">Adicionar</button>
+                    <div id="financeReceitasCadastroList" class="finance-lanc-list" aria-live="polite"></div>
+                    <div id="financeReceitasCadastroPagination" class="hidden" style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap">
+                      <span id="financeReceitasCadastroPageInfo" class="notice">Página 1 de 1</span>
+                      <div style="display:flex; gap:6px; align-items:center">
+                        <button type="button" class="secondary" id="financeReceitasCadastroPrev">Anterior</button>
+                        <button type="button" class="secondary" id="financeReceitasCadastroNext">Próxima</button>
+                      </div>
                     </div>
-                    <div id="financeReceitasCategoryTags" class="finance-category-tags"></div>
-                  </div>
-                </section>
-                <section class="finance-receitas-section">
-                  <div class="finance-receitas-section-head">
-                    <div>
-                      <h4>Receitas recorrentes</h4>
-                      <p class="notice">Mensalidades e cobranças fixas — ao confirmar o pagamento, o próximo título é gerado automaticamente.</p>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-receitas-page="categorias" id="financeReceitasCatsSection">
+                    <h4>Categorias de receita</h4>
+                    <p class="notice">Serviços padrão e categorias personalizadas para classificar cada receita.</p>
+                    <div id="financeReceitasCatsDefault" class="finance-receitas-cats-default"></div>
+                    <div class="finance-category-bar">
+                      <label for="financeReceitasCategoryInput">Categorias personalizadas</label>
+                      <div class="finance-category-inline">
+                        <input id="financeReceitasCategoryInput" type="text" placeholder="Nova categoria…" />
+                        <button type="button" class="secondary" id="financeReceitasAddCategoryBtn">Adicionar</button>
+                      </div>
+                      <div id="financeReceitasCategoryTags" class="finance-category-tags"></div>
                     </div>
-                    <button type="button" class="secondary" id="financeReceitasNovaRecorrenteBtn">+ Recorrente</button>
-                  </div>
-                  <div id="financeReceitasRecorrentesList" class="finance-lanc-list" aria-live="polite"></div>
-                </section>
-                <section class="finance-receitas-section">
-                  <div class="finance-receitas-section-head">
-                    <div>
-                      <h4>Receitas parceladas</h4>
-                      <p class="notice">Divida um valor total em parcelas mensais com vencimentos automáticos.</p>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-receitas-page="recorrentes">
+                    <div class="finance-receitas-section-head">
+                      <div>
+                        <h4>Receitas recorrentes</h4>
+                        <p class="notice">Mensalidades e cobranças fixas — ao confirmar o pagamento, o próximo título é gerado automaticamente.</p>
+                      </div>
+                      <button type="button" class="secondary" id="financeReceitasNovaRecorrenteBtn">+ Recorrente</button>
                     </div>
-                    <button type="button" class="secondary" id="financeReceitasNovaParceladaBtn">+ Parcelada</button>
-                  </div>
-                  <div id="financeReceitasParceladasList" class="finance-lanc-list" aria-live="polite"></div>
-                </section>
-                <section class="finance-receitas-section">
-                  <h4>Anexar comprovantes</h4>
-                  <p class="notice">Anexe PDF ou imagem ao cadastrar a receita ou ao dar baixa em Contas a receber. Clique em «Comprovante» para visualizar.</p>
-                  <div id="financeReceitasAnexosList" class="finance-lanc-list" aria-live="polite"></div>
-                </section>
-                <section class="finance-receitas-section finance-historico-panel" id="financeReceitasHistoricoSection">
-                  <h4 id="financeReceitasHistoricoTitle">Histórico de recebimentos</h4>
-                  <div id="financeReceitasHistoricoList" class="finance-lanc-list" aria-live="polite"></div>
-                </section>
+                    <div id="financeReceitasRecorrentesList" class="finance-lanc-list" aria-live="polite"></div>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-receitas-page="parceladas">
+                    <div class="finance-receitas-section-head">
+                      <div>
+                        <h4>Receitas parceladas</h4>
+                        <p class="notice">Divida um valor total em parcelas mensais com vencimentos automáticos.</p>
+                      </div>
+                      <button type="button" class="secondary" id="financeReceitasNovaParceladaBtn">+ Parcelada</button>
+                    </div>
+                    <div id="financeReceitasParceladasList" class="finance-lanc-list" aria-live="polite"></div>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-receitas-page="anexos">
+                    <h4>Anexar comprovantes</h4>
+                    <p class="notice">Anexe PDF ou imagem ao cadastrar a receita ou ao dar baixa em Contas a receber. Clique em «Comprovante» para visualizar.</p>
+                    <div id="financeReceitasAnexosList" class="finance-lanc-list" aria-live="polite"></div>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section finance-historico-panel hidden" data-receitas-page="historico" id="financeReceitasHistoricoSection">
+                    <h4 id="financeReceitasHistoricoTitle">Histórico de recebimentos</h4>
+                    <div id="financeReceitasHistoricoList" class="finance-lanc-list" aria-live="polite"></div>
+                  </section>
+                </div>
               </div>
               <div id="financeHistoricoPanel" class="section-card finance-historico-panel hidden" style="margin-top: 0">
                 <h4 id="financeHistoricoTitle">Histórico</h4>
@@ -7633,6 +7757,7 @@
 
       let currentPatioView = null;
       let currentFinanceView = null;
+      let currentReceitasSubView = "inicio";
       let currentPartnerView = null;
       let reportHasRun = false;
       let financeCompetencia = currentYearMonthLocal();
@@ -8325,6 +8450,78 @@
         },
       };
 
+      const FINANCE_RECEITAS_SUBVIEWS = {
+        inicio: {
+          label: "Início",
+          title: "Controle de Receitas",
+          desc: "Escolha uma área abaixo ou use o menu de sub-abas para abrir cada função em página dedicada.",
+        },
+        cadastro: {
+          label: "Cadastro",
+          title: "Cadastro de receitas",
+          desc: "Registre receitas únicas com cliente, serviço, valor, vencimento e comprovante opcional.",
+        },
+        categorias: {
+          label: "Categorias",
+          title: "Categorias de receita",
+          desc: "Serviços padrão e categorias personalizadas para classificar cada receita.",
+        },
+        recorrentes: {
+          label: "Recorrentes",
+          title: "Receitas recorrentes",
+          desc: "Mensalidades e cobranças fixas — o próximo título é gerado ao confirmar o pagamento.",
+        },
+        parceladas: {
+          label: "Parceladas",
+          title: "Receitas parceladas",
+          desc: "Divida um valor total em parcelas mensais com vencimentos automáticos.",
+        },
+        anexos: {
+          label: "Comprovantes",
+          title: "Anexar comprovantes",
+          desc: "Comprovantes anexados no cadastro ou na baixa em Contas a receber.",
+        },
+        historico: {
+          label: "Histórico",
+          title: "Histórico de recebimentos",
+          desc: "Receitas pagas nos últimos 90 dias.",
+        },
+      };
+
+      function setReceitasSubView(sub) {
+        const key = FINANCE_RECEITAS_SUBVIEWS[sub] ? sub : "inicio";
+        currentReceitasSubView = key;
+        syncReceitasSubViewUi();
+        if (currentFinanceView === "receitas") {
+          const pages = document.getElementById("financeReceitasPages");
+          pages?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+
+      function syncReceitasSubViewUi() {
+        const cfg = FINANCE_RECEITAS_SUBVIEWS[currentReceitasSubView] || FINANCE_RECEITAS_SUBVIEWS.inicio;
+        const titleEl = document.getElementById("financeReceitasPageTitle");
+        const descEl = document.getElementById("financeReceitasPageDesc");
+        if (titleEl) titleEl.textContent = cfg.title;
+        if (descEl) descEl.textContent = cfg.desc;
+        document.querySelectorAll("[data-receitas-page]").forEach((el) => {
+          const page = el.getAttribute("data-receitas-page");
+          el.classList.toggle("hidden", page !== currentReceitasSubView);
+        });
+        document.querySelectorAll("#financeReceitasSubnav [data-receitas-sub]").forEach((btn) => {
+          btn.classList.toggle("active", btn.getAttribute("data-receitas-sub") === currentReceitasSubView);
+        });
+        if (financeBreadcrumb && currentFinanceView === "receitas") {
+          const suffix = currentReceitasSubView === "inicio" ? "" : ` › ${cfg.label}`;
+          financeBreadcrumb.textContent = `Início › Financeiro › Controle de Receitas${suffix}`;
+        }
+        const financePageTitle = document.getElementById("financePageTitle");
+        if (financePageTitle && currentFinanceView === "receitas") {
+          financePageTitle.textContent =
+            currentReceitasSubView === "inicio" ? "Controle de Receitas" : cfg.title;
+        }
+      }
+
       function renderFinanceSubviewIntro(view) {
         const panel = document.getElementById("financeSubviewIntro");
         const receitasPanel = document.getElementById("financeReceitasPanel");
@@ -8334,6 +8531,7 @@
           panel?.classList.add("hidden");
           receitasPanel?.classList.remove("hidden");
           histPanel?.classList.add("hidden");
+          syncReceitasSubViewUi();
           return;
         }
         receitasPanel?.classList.add("hidden");
@@ -8451,6 +8649,7 @@
           "Nenhum comprovante anexado ainda. Anexe ao cadastrar ou na baixa em Contas a receber."
         );
         renderFinanceReceitasHistorico();
+        syncReceitasSubViewUi();
       }
 
       function renderFinanceReceitasHistorico() {
@@ -15184,6 +15383,7 @@
         if (view === "receitas") {
           lancamentosFilter.tipo = "RECEITA";
           if (financeLancTipo) financeLancTipo.value = "RECEITA";
+          if (previousFinanceView !== "receitas") currentReceitasSubView = "inicio";
         } else if (view === "despesas") {
           lancamentosFilter.tipo = "DESPESA";
           if (financeLancTipo) financeLancTipo.value = "DESPESA";
@@ -16730,7 +16930,17 @@
         lancamentosPagination.page = Number(lancamentosPagination.page || 1) + 1;
         renderFinance();
       });
+      document.getElementById("financeReceitasSubnav")?.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-receitas-sub]");
+        if (!btn) return;
+        setReceitasSubView(btn.getAttribute("data-receitas-sub"));
+      });
       document.getElementById("financeReceitasPanel")?.addEventListener("click", (e) => {
+        const gotoBtn = e.target.closest("[data-receitas-goto]");
+        if (gotoBtn) {
+          setReceitasSubView(gotoBtn.getAttribute("data-receitas-goto"));
+          return;
+        }
         const btn = e.target.closest("[data-action='ver-comprovante']");
         if (!btn) return;
         openFinanceAttachment(btn.getAttribute("data-kind"), btn.getAttribute("data-id"));
