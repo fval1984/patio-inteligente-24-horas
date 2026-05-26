@@ -3419,51 +3419,54 @@
         backdrop-filter: blur(12px);
         box-sizing: border-box;
       }
-      .modal-backdrop.module-view-modal {
-        z-index: 170;
+      #viewPatio.module-overlay-modal,
+      #viewFinanceiro.module-overlay-modal,
+      #viewLista.module-overlay-modal,
+      #viewParceiros.module-overlay-modal {
         position: fixed !important;
         inset: 0 !important;
+        z-index: 170 !important;
         display: flex !important;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 20px;
+        padding: 20px !important;
         margin: 0 !important;
         max-width: none !important;
         width: auto !important;
-        overflow: visible !important;
+        overflow: hidden !important;
         background: rgba(15, 23, 42, 0.55) !important;
         backdrop-filter: blur(12px);
         border: none !important;
         box-shadow: none !important;
         box-sizing: border-box;
       }
-      #viewPatio.modal-backdrop.module-view-modal.patio-module-shell::before,
-      #viewFinanceiro.modal-backdrop.module-view-modal.finance-module-shell::before,
-      #viewParceiros.modal-backdrop.module-view-modal.partners-module-shell::before {
-        display: none;
+      #viewPatio.module-overlay-modal::before,
+      #viewFinanceiro.module-overlay-modal::before,
+      #viewParceiros.module-overlay-modal::before {
+        display: none !important;
       }
       #viewDashboard.dashboard-behind-modal {
         position: relative;
         z-index: 0;
         pointer-events: none;
       }
-      .modal-backdrop.module-view-modal.panel {
-        max-width: none !important;
-        width: auto;
+      .module-overlay-header {
+        width: min(1180px, 96vw);
+        flex-shrink: 0;
+        margin-bottom: 0;
+      }
+      .module-overlay-panel {
+        width: min(1180px, 96vw);
+        max-height: calc(100vh - 40px);
+        overflow: auto;
         margin: 0 !important;
-        padding: 0;
-        border: none;
-        box-shadow: none;
       }
       .modal.modal--wide {
         width: min(1180px, 96vw);
       }
       #patioContent.modal-backdrop,
-      #financeContent.modal-backdrop,
-      #viewPatio.modal-backdrop,
-      #viewFinanceiro.modal-backdrop,
-      #viewLista.modal-backdrop,
-      #viewParceiros.modal-backdrop {
+      #financeContent.modal-backdrop {
         margin-top: 0 !important;
       }
       .tab-modal-backdrop {
@@ -8415,57 +8418,7 @@
         return backdropEl;
       }
 
-      function ensureModuleModalShell(moduleEl, viewKey) {
-        if (!moduleEl) return moduleEl;
-        if (moduleEl.dataset.moduleModalReady !== "1") {
-          moduleEl.dataset.moduleModalReady = "1";
-          moduleEl.classList.add("modal-backdrop", "module-view-modal");
-          moduleEl.style.marginTop = "0";
-
-          const panel = document.createElement("div");
-          panel.className = "modal modal--wide";
-
-          const header = document.createElement("div");
-          header.className = "modal-header";
-          const meta = MODULE_VIEW_LABELS[viewKey] || { title: viewKey, subtitle: "" };
-          header.innerHTML = `
-          <div>
-            <h3 data-tab-modal-title>${meta.title}</h3>
-            <p class="subtitle" data-tab-modal-subtitle>${meta.subtitle || ""}</p>
-          </div>
-          <button type="button" class="modal-close" data-tab-modal-close>Fechar</button>
-        `;
-
-          const body = document.createElement("div");
-          body.className = "tab-modal-body tab-modal-body--module";
-
-          while (moduleEl.firstChild) body.appendChild(moduleEl.firstChild);
-
-          panel.appendChild(header);
-          panel.appendChild(body);
-          moduleEl.appendChild(panel);
-
-          moduleEl._tabModalTitle = header.querySelector("[data-tab-modal-title]");
-          moduleEl._tabModalSubtitle = header.querySelector("[data-tab-modal-subtitle]");
-          if (moduleEl._tabModalSubtitle && !meta.subtitle) {
-            moduleEl._tabModalSubtitle.style.display = "none";
-          }
-
-          const closeModule = () => closeModuleModalAndGoDashboard(viewKey);
-          header.querySelector("[data-tab-modal-close]")?.addEventListener("click", (e) => {
-            e.stopPropagation();
-            closeModule();
-          });
-          moduleEl.addEventListener("click", (e) => {
-            if (e.target === moduleEl) closeModule();
-          });
-          panel.addEventListener("click", (e) => e.stopPropagation());
-        }
-        relocateTabModalEl(moduleEl);
-        return moduleEl;
-      }
-
-      function closeModuleModalAndGoDashboard(viewKey) {
+      function closeModuleOverlayAndGoDashboard(viewKey) {
         if (viewKey === "patio") {
           document.getElementById("patioContent")?.classList.add("hidden");
           setPatioView("none", { silent: true });
@@ -8479,23 +8432,53 @@
         showMainView("dashboard");
       }
 
-      function unwrapModuleModalShell(el) {
-        if (!el?.dataset?.moduleModalReady) return;
-        const body = el.querySelector(":scope > .modal.modal--wide > .tab-modal-body");
-        if (body) {
-          while (body.firstChild) el.appendChild(body.firstChild);
-          el.querySelector(":scope > .modal.modal--wide")?.remove();
+      function restoreModuleOverlayDom(moduleEl) {
+        if (!moduleEl) return;
+        const panel = moduleEl.querySelector(":scope > .module-overlay-panel");
+        if (panel) {
+          while (panel.firstChild) moduleEl.appendChild(panel.firstChild);
+          panel.remove();
         }
-        el.classList.remove("modal-backdrop", "module-view-modal");
-        delete el.dataset.moduleModalReady;
-        el._tabModalTitle = null;
-        el._tabModalSubtitle = null;
+        moduleEl.querySelector(":scope > .module-overlay-header")?.remove();
+        moduleEl.classList.remove("module-overlay-modal");
+        delete moduleEl.dataset.moduleOverlayReady;
       }
 
-      function initModuleModals() {
+      function ensureModuleOverlayShell(moduleEl, viewKey) {
+        if (!moduleEl || moduleEl.dataset.moduleOverlayReady === "1") return;
+
+        moduleEl.dataset.moduleOverlayReady = "1";
+        const meta = MODULE_VIEW_LABELS[viewKey] || { title: viewKey, subtitle: "" };
+        const header = document.createElement("div");
+        header.className = "modal-header module-overlay-header";
+        header.innerHTML = `
+            <div>
+              <h3>${meta.title}</h3>
+              <p class="subtitle"${meta.subtitle ? "" : ' style="display:none"'}>${meta.subtitle || ""}</p>
+            </div>
+            <button type="button" class="modal-close" data-module-overlay-close>Fechar</button>
+          `;
+        header.querySelector("[data-module-overlay-close]")?.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          closeModuleOverlayAndGoDashboard(viewKey);
+        });
+        moduleEl.insertBefore(header, moduleEl.firstChild);
+
+        const panel = document.createElement("div");
+        panel.className = "module-overlay-panel modal modal--wide";
+        while (header.nextSibling) panel.appendChild(header.nextSibling);
+        moduleEl.appendChild(panel);
+
+        moduleEl.addEventListener("click", (e) => {
+          if (e.target === moduleEl) closeModuleOverlayAndGoDashboard(viewKey);
+        });
+        panel.addEventListener("click", (e) => e.stopPropagation());
+      }
+
+      function initModuleOverlays() {
         MODULE_MODAL_VIEWS.forEach((viewKey) => {
-          const el = document.getElementById(MODULE_VIEW_IDS[viewKey]);
-          if (el) ensureModuleModalShell(el, viewKey);
+          ensureModuleOverlayShell(document.getElementById(MODULE_VIEW_IDS[viewKey]), viewKey);
         });
       }
 
@@ -8540,7 +8523,7 @@
 
       function restoreTabModalDom() {
         MODULE_MODAL_VIEWS.forEach((key) => {
-          unwrapModuleModalShell(document.getElementById(MODULE_VIEW_IDS[key]));
+          restoreModuleOverlayDom(document.getElementById(MODULE_VIEW_IDS[key]));
         });
 
         unwrapTabModalShell(document.getElementById("patioContent"));
@@ -8579,7 +8562,7 @@
 
         restoreTabModalDom();
 
-        initModuleModals();
+        initModuleOverlays();
 
         const patioContent = document.getElementById("patioContent");
         if (patioContent) {
@@ -13286,6 +13269,7 @@
           document.getElementById("dashboardSystemEntry")?.classList.remove("dashboard-system-entry--single");
           document.getElementById("dashboardModuleFinanceWrap")?.classList.remove("hidden");
           document.getElementById("financeTopDashboard")?.classList.remove("hidden");
+          showMainView("dashboard");
           return;
         }
 
@@ -18844,7 +18828,9 @@
 
         if (view === "dashboard") {
           MODULE_MODAL_VIEWS.forEach((key) => {
-            document.getElementById(MODULE_VIEW_IDS[key])?.classList.add("hidden");
+            const modEl = document.getElementById(MODULE_VIEW_IDS[key]);
+            modEl?.classList.add("hidden");
+            modEl?.classList.remove("module-overlay-modal");
           });
           document.getElementById("patioContent")?.classList.add("hidden");
           document.getElementById("financeContent")?.classList.add("hidden");
@@ -18867,14 +18853,12 @@
             const modEl = document.getElementById(MODULE_VIEW_IDS[key]);
             if (!modEl) return;
             if (key === view) {
+              relocateTabModalEl(modEl);
+              modEl.classList.add("module-overlay-modal");
               modEl.classList.remove("hidden");
-              const meta = MODULE_VIEW_LABELS[key] || { title: key, subtitle: "" };
-              setTabModalMeta(modEl, meta.title, meta.subtitle);
-              modEl.classList.remove("air-open");
-              void modEl.offsetWidth;
-              modEl.classList.add("air-open");
             } else {
               modEl.classList.add("hidden");
+              modEl.classList.remove("module-overlay-modal");
               if (key === "patio") {
                 document.getElementById("patioContent")?.classList.add("hidden");
                 setPatioView("none", { silent: true });
@@ -18889,7 +18873,9 @@
         } else {
           dashboardEl?.classList.remove("dashboard-behind-modal");
           MODULE_MODAL_VIEWS.forEach((key) => {
-            document.getElementById(MODULE_VIEW_IDS[key])?.classList.add("hidden");
+            const modEl = document.getElementById(MODULE_VIEW_IDS[key]);
+            modEl?.classList.add("hidden");
+            modEl?.classList.remove("module-overlay-modal");
           });
           Object.values(views).forEach((panel) => panel?.classList.add("hidden"));
           if (views[view]) {
