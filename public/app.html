@@ -3406,6 +3406,16 @@
         box-shadow: none;
         padding: 6px 10px;
       }
+      .modal-backdrop.tab-view-modal {
+        z-index: 190;
+      }
+      .modal.modal--wide {
+        width: min(1180px, 96vw);
+      }
+      #patioContent.modal-backdrop,
+      #financeContent.modal-backdrop {
+        margin-top: 0 !important;
+      }
       .tab-modal-backdrop {
         position: fixed;
         inset: 0;
@@ -8310,16 +8320,18 @@
       }
 
       function ensureTabModalShell(backdropEl, onClose) {
-        if (!backdropEl || backdropEl.dataset.tabModalReady === "1") return backdropEl;
-        backdropEl.dataset.tabModalReady = "1";
-        backdropEl.classList.add("tab-modal-backdrop");
+        if (!backdropEl) return backdropEl;
+        if (backdropEl.dataset.tabModalReady !== "1") {
+          backdropEl.dataset.tabModalReady = "1";
+          backdropEl.classList.add("modal-backdrop", "tab-view-modal");
+          backdropEl.style.marginTop = "0";
 
-        const panel = document.createElement("div");
-        panel.className = "tab-modal-panel";
+          const panel = document.createElement("div");
+          panel.className = "modal modal--wide";
 
-        const header = document.createElement("div");
-        header.className = "modal-header";
-        header.innerHTML = `
+          const header = document.createElement("div");
+          header.className = "modal-header";
+          header.innerHTML = `
           <div>
             <h3 data-tab-modal-title>—</h3>
             <p class="subtitle" data-tab-modal-subtitle></p>
@@ -8327,27 +8339,28 @@
           <button type="button" class="modal-close" data-tab-modal-close>Fechar</button>
         `;
 
-        const body = document.createElement("div");
-        body.className = "tab-modal-body";
+          const body = document.createElement("div");
+          body.className = "tab-modal-body";
 
-        while (backdropEl.firstChild) body.appendChild(backdropEl.firstChild);
+          while (backdropEl.firstChild) body.appendChild(backdropEl.firstChild);
 
-        panel.appendChild(header);
-        panel.appendChild(body);
-        backdropEl.appendChild(panel);
+          panel.appendChild(header);
+          panel.appendChild(body);
+          backdropEl.appendChild(panel);
 
-        backdropEl._tabModalTitle = header.querySelector("[data-tab-modal-title]");
-        backdropEl._tabModalSubtitle = header.querySelector("[data-tab-modal-subtitle]");
+          backdropEl._tabModalTitle = header.querySelector("[data-tab-modal-title]");
+          backdropEl._tabModalSubtitle = header.querySelector("[data-tab-modal-subtitle]");
 
-        header.querySelector("[data-tab-modal-close]")?.addEventListener("click", (e) => {
-          e.stopPropagation();
-          onClose?.();
-        });
-        backdropEl.addEventListener("click", (e) => {
-          if (e.target === backdropEl) onClose?.();
-        });
-        panel.addEventListener("click", (e) => e.stopPropagation());
-
+          header.querySelector("[data-tab-modal-close]")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            onClose?.();
+          });
+          backdropEl.addEventListener("click", (e) => {
+            if (e.target === backdropEl) onClose?.();
+          });
+          panel.addEventListener("click", (e) => e.stopPropagation());
+        }
+        relocateTabModalEl(backdropEl);
         return backdropEl;
       }
 
@@ -8370,15 +8383,24 @@
 
       function unwrapTabModalShell(el) {
         if (!el?.dataset?.tabModalReady) return;
-        const body = el.querySelector(":scope > .tab-modal-panel > .tab-modal-body");
+        const body = el.querySelector(":scope > .modal.modal--wide > .tab-modal-body, :scope > .tab-modal-panel > .tab-modal-body");
         if (body) {
           while (body.firstChild) el.appendChild(body.firstChild);
-          el.querySelector(":scope > .tab-modal-panel")?.remove();
+          el.querySelector(":scope > .modal.modal--wide, :scope > .tab-modal-panel")?.remove();
         }
-        el.classList.remove("tab-modal-backdrop", "module-tab-modal");
+        el.classList.remove("modal-backdrop", "tab-view-modal", "tab-modal-backdrop", "module-tab-modal");
         delete el.dataset.tabModalReady;
         el._tabModalTitle = null;
         el._tabModalSubtitle = null;
+      }
+
+      function isNavOnModule(moduleName) {
+        return (
+          navStack.includes(moduleName) &&
+          (navStack[navStack.length - 1] === moduleName ||
+            (typeof navStack[navStack.length - 1] === "string" &&
+              navStack[navStack.length - 1].startsWith(`${moduleName}:`)))
+        );
       }
 
       function restoreTabModalDom() {
@@ -8386,21 +8408,8 @@
           unwrapTabModalShell(document.getElementById(MODULE_VIEW_IDS[key]));
         });
 
-        const viewPatio = document.getElementById("viewPatio");
-        const patioContent = document.getElementById("patioContent");
-        if (patioContent && viewPatio && !viewPatio.contains(patioContent)) {
-          const plateBar = document.getElementById("patioPlateSearchBar");
-          if (plateBar) plateBar.insertAdjacentElement("afterend", patioContent);
-          else viewPatio.appendChild(patioContent);
-        }
-        unwrapTabModalShell(patioContent);
-
-        const viewFinanceiro = document.getElementById("viewFinanceiro");
-        const financeContent = document.getElementById("financeContent");
-        if (financeContent && viewFinanceiro && !viewFinanceiro.contains(financeContent)) {
-          viewFinanceiro.appendChild(financeContent);
-        }
-        unwrapTabModalShell(financeContent);
+        unwrapTabModalShell(document.getElementById("patioContent"));
+        unwrapTabModalShell(document.getElementById("financeContent"));
 
         const partnerModal = document.getElementById("partnerTabModal");
         const partnerHost = document.getElementById("viewParceiros");
@@ -8436,12 +8445,12 @@
         restoreTabModalDom();
 
         const patioContent = document.getElementById("patioContent");
-        if (patioContent && patioContent.dataset.tabModalReady !== "1") {
+        if (patioContent) {
           ensureTabModalShell(patioContent, returnToPainelFromPatioFlyout);
         }
 
         const financeContent = document.getElementById("financeContent");
-        if (financeContent && financeContent.dataset.tabModalReady !== "1") {
+        if (financeContent) {
           ensureTabModalShell(financeContent, returnToPainelFromFinanceFlyout);
         }
       }
@@ -14502,6 +14511,7 @@
         if (patioContent) {
           patioContent.classList.toggle("hidden", !isContentView);
           if (isContentView) {
+            ensureTabModalShell(patioContent, returnToPainelFromPatioFlyout);
             const meta = PATIO_TAB_LABELS[view] || { title: view, subtitle: "" };
             setTabModalMeta(patioContent, meta.title, meta.subtitle);
           }
@@ -16956,6 +16966,7 @@
         if (financeContent) {
           financeContent.classList.toggle("hidden", !showFinanceContent);
           if (showFinanceContent) {
+            ensureTabModalShell(financeContent, returnToPainelFromFinanceFlyout);
             setTabModalMeta(financeContent, pageTitle, "");
             financeContent.classList.remove("air-open");
             void financeContent.offsetWidth;
@@ -17121,16 +17132,30 @@
         patioSubnav?.classList.remove("open");
       };
       function returnToPainelFromPatioFlyout() {
+        setPatioView("none", { silent: true });
+        const top = navStack[navStack.length - 1];
+        if (navStack[0] === "dashboard" && top?.startsWith?.("patio:")) {
+          navStack.splice(0, navStack.length, "dashboard");
+          showMainView("dashboard");
+          setFinanceView("none");
+          return;
+        }
         navStack.splice(0, navStack.length, "patio", "patio:inicio");
         showMainView("patio");
         setPatioView("inicio");
         setFinanceView("none");
       }
       function returnToPainelFromFinanceFlyout() {
+        setFinanceView("none");
+        const top = navStack[navStack.length - 1];
+        if (navStack[0] === "dashboard" && top?.startsWith?.("financeiro:")) {
+          navStack.splice(0, navStack.length, "dashboard");
+          showMainView("dashboard");
+          return;
+        }
         navStack.splice(0, navStack.length, "financeiro", "financeiro:inicio");
         showMainView("financeiro");
         setFinanceView("inicio");
-        setPatioView("dashboard");
       }
       patioFlyoutBackdrop?.addEventListener("click", returnToPainelFromPatioFlyout);
 
@@ -18820,14 +18845,18 @@
         if (top === `patio:${sub}`) return;
         if (top && typeof top === "string" && top.startsWith("patio:")) navStack.pop();
 
-        if (navStack[navStack.length - 1] !== "patio") {
-          navStack.push("patio");
+        if (isNavOnModule("patio")) {
+          if (navStack[navStack.length - 1] !== "patio") {
+            navStack.push("patio");
+          }
           showMainView("patio");
-        } else {
-          showMainView("patio");
+          navStack.push(`patio:${sub}`);
+          setPatioView(sub);
+          return;
         }
 
-        navStack.push(`patio:${sub}`);
+        navStack.splice(0, navStack.length, "dashboard", `patio:${sub}`);
+        showMainView("dashboard");
         setPatioView(sub);
       }
 
@@ -18870,14 +18899,18 @@
           return;
         }
 
-        if (navStack[navStack.length - 1] !== "financeiro") {
-          navStack.push("financeiro");
+        if (isNavOnModule("financeiro")) {
+          if (navStack[navStack.length - 1] !== "financeiro") {
+            navStack.push("financeiro");
+          }
           showMainView("financeiro");
-        } else {
-          showMainView("financeiro");
+          if (!sameSub) navStack.push(`financeiro:${sub}`);
+          setFinanceView(sub);
+          return;
         }
 
-        if (!sameSub) navStack.push(`financeiro:${sub}`);
+        navStack.splice(0, navStack.length, "dashboard", `financeiro:${sub}`);
+        showMainView("dashboard");
         setFinanceView(sub);
       }
 
