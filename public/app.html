@@ -3409,11 +3409,26 @@
       .modal-backdrop.tab-view-modal {
         z-index: 190;
       }
+      .modal-backdrop.module-view-modal {
+        z-index: 170;
+      }
+      .modal-backdrop.module-view-modal.panel {
+        max-width: none !important;
+        width: auto;
+        margin: 0 !important;
+        padding: 0;
+        border: none;
+        box-shadow: none;
+      }
       .modal.modal--wide {
         width: min(1180px, 96vw);
       }
       #patioContent.modal-backdrop,
-      #financeContent.modal-backdrop {
+      #financeContent.modal-backdrop,
+      #viewPatio.modal-backdrop,
+      #viewFinanceiro.modal-backdrop,
+      #viewLista.modal-backdrop,
+      #viewParceiros.modal-backdrop {
         margin-top: 0 !important;
       }
       .tab-modal-backdrop {
@@ -8294,6 +8309,7 @@
       };
 
       const MODULE_VIEWS = ["patio", "financeiro", "lista", "parceiros", "configuracoes"];
+      const MODULE_MODAL_VIEWS = ["patio", "financeiro", "lista", "parceiros"];
 
       const MODULE_VIEW_IDS = {
         patio: "viewPatio",
@@ -8364,6 +8380,90 @@
         return backdropEl;
       }
 
+      function ensureModuleModalShell(moduleEl, viewKey) {
+        if (!moduleEl) return moduleEl;
+        if (moduleEl.dataset.moduleModalReady !== "1") {
+          moduleEl.dataset.moduleModalReady = "1";
+          moduleEl.classList.add("modal-backdrop", "module-view-modal");
+          moduleEl.style.marginTop = "0";
+
+          const panel = document.createElement("div");
+          panel.className = "modal modal--wide";
+
+          const header = document.createElement("div");
+          header.className = "modal-header";
+          const meta = MODULE_VIEW_LABELS[viewKey] || { title: viewKey, subtitle: "" };
+          header.innerHTML = `
+          <div>
+            <h3 data-tab-modal-title>${meta.title}</h3>
+            <p class="subtitle" data-tab-modal-subtitle>${meta.subtitle || ""}</p>
+          </div>
+          <button type="button" class="modal-close" data-tab-modal-close>Fechar</button>
+        `;
+
+          const body = document.createElement("div");
+          body.className = "tab-modal-body tab-modal-body--module";
+
+          while (moduleEl.firstChild) body.appendChild(moduleEl.firstChild);
+
+          panel.appendChild(header);
+          panel.appendChild(body);
+          moduleEl.appendChild(panel);
+
+          moduleEl._tabModalTitle = header.querySelector("[data-tab-modal-title]");
+          moduleEl._tabModalSubtitle = header.querySelector("[data-tab-modal-subtitle]");
+          if (moduleEl._tabModalSubtitle && !meta.subtitle) {
+            moduleEl._tabModalSubtitle.style.display = "none";
+          }
+
+          const closeModule = () => closeModuleModalAndGoDashboard(viewKey);
+          header.querySelector("[data-tab-modal-close]")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            closeModule();
+          });
+          moduleEl.addEventListener("click", (e) => {
+            if (e.target === moduleEl) closeModule();
+          });
+          panel.addEventListener("click", (e) => e.stopPropagation());
+        }
+        relocateTabModalEl(moduleEl);
+        return moduleEl;
+      }
+
+      function closeModuleModalAndGoDashboard(viewKey) {
+        if (viewKey === "patio") {
+          document.getElementById("patioContent")?.classList.add("hidden");
+          setPatioView("none", { silent: true });
+        } else if (viewKey === "financeiro") {
+          document.getElementById("financeContent")?.classList.add("hidden");
+          setFinanceView("none");
+        } else if (viewKey === "parceiros") {
+          setPartnerView("none");
+        }
+        navStack.splice(0, navStack.length, "dashboard");
+        showMainView("dashboard");
+      }
+
+      function unwrapModuleModalShell(el) {
+        if (!el?.dataset?.moduleModalReady) return;
+        const body = el.querySelector(":scope > .modal.modal--wide > .tab-modal-body");
+        if (body) {
+          while (body.firstChild) el.appendChild(body.firstChild);
+          el.querySelector(":scope > .modal.modal--wide")?.remove();
+        }
+        el.classList.remove("modal-backdrop", "module-view-modal");
+        delete el.dataset.moduleModalReady;
+        el._tabModalTitle = null;
+        el._tabModalSubtitle = null;
+      }
+
+      function initModuleModals() {
+        MODULE_MODAL_VIEWS.forEach((viewKey) => {
+          const el = document.getElementById(MODULE_VIEW_IDS[viewKey]);
+          if (el) ensureModuleModalShell(el, viewKey);
+        });
+      }
+
       function setTabModalMeta(backdropEl, title, subtitle) {
         if (!backdropEl) return;
         if (backdropEl._tabModalTitle) backdropEl._tabModalTitle.textContent = title || "—";
@@ -8404,8 +8504,8 @@
       }
 
       function restoreTabModalDom() {
-        MODULE_VIEWS.forEach((key) => {
-          unwrapTabModalShell(document.getElementById(MODULE_VIEW_IDS[key]));
+        MODULE_MODAL_VIEWS.forEach((key) => {
+          unwrapModuleModalShell(document.getElementById(MODULE_VIEW_IDS[key]));
         });
 
         unwrapTabModalShell(document.getElementById("patioContent"));
@@ -8443,6 +8543,8 @@
         tabModalSystemReady = true;
 
         restoreTabModalDom();
+
+        initModuleModals();
 
         const patioContent = document.getElementById("patioContent");
         if (patioContent) {
@@ -17140,12 +17242,6 @@
       }
       function returnToPainelFromFinanceFlyout() {
         setFinanceView("none");
-        const top = navStack[navStack.length - 1];
-        if (navStack[0] === "dashboard" && top?.startsWith?.("financeiro:")) {
-          navStack.splice(0, navStack.length, "dashboard");
-          showMainView("dashboard");
-          return;
-        }
         navStack.splice(0, navStack.length, "financeiro", "financeiro:inicio");
         showMainView("financeiro");
         setFinanceView("inicio");
@@ -18679,13 +18775,17 @@
           patioSubnav?.classList.remove("open");
           patioFlyoutBackdrop?.classList.add("hidden");
           document.getElementById("viewPatio")?.classList.remove("patio-flyout-open", "patio-subview-fullscreen");
-          setPatioView("none", { silent: true });
+          if (view === "dashboard" || !MODULE_MODAL_VIEWS.includes(view)) {
+            setPatioView("none", { silent: true });
+          }
         }
         if (view !== "financeiro") {
           financeSubnav?.classList.remove("open");
           financeFlyoutBackdrop?.classList.add("hidden");
           document.getElementById("viewFinanceiro")?.classList.remove("finance-flyout-open", "finance-subview-fullscreen");
-          setFinanceView("none");
+          if (view === "dashboard" || !MODULE_MODAL_VIEWS.includes(view)) {
+            setFinanceView("none");
+          }
         }
         document.querySelectorAll("#appHeaderMenu button[data-view]").forEach((btn) => {
           btn.classList.toggle("active", btn.getAttribute("data-view") === view);
@@ -18704,13 +18804,64 @@
         } else {
           document.title = "Amplipatio";
         }
-        Object.values(views).forEach((panel) => panel?.classList.add("hidden"));
-        if (views[view]) {
-          views[view].classList.remove("hidden");
-          views[view].classList.remove("air-open");
-          void views[view].offsetWidth;
-          views[view].classList.add("air-open");
+
+        const dashboardEl = views.dashboard;
+
+        if (view === "dashboard") {
+          MODULE_MODAL_VIEWS.forEach((key) => {
+            document.getElementById(MODULE_VIEW_IDS[key])?.classList.add("hidden");
+          });
+          document.getElementById("patioContent")?.classList.add("hidden");
+          document.getElementById("financeContent")?.classList.add("hidden");
+          setPatioView("none", { silent: true });
+          setFinanceView("none");
+          setPartnerView("none");
+          Object.values(views).forEach((panel) => panel?.classList.add("hidden"));
+          dashboardEl?.classList.remove("hidden");
+          dashboardEl?.classList.remove("air-open");
+          if (dashboardEl) {
+            void dashboardEl.offsetWidth;
+            dashboardEl.classList.add("air-open");
+          }
+        } else if (MODULE_MODAL_VIEWS.includes(view)) {
+          dashboardEl?.classList.remove("hidden");
+          views.configuracoes?.classList.add("hidden");
+          MODULE_MODAL_VIEWS.forEach((key) => {
+            const modEl = document.getElementById(MODULE_VIEW_IDS[key]);
+            if (!modEl) return;
+            if (key === view) {
+              modEl.classList.remove("hidden");
+              const meta = MODULE_VIEW_LABELS[key] || { title: key, subtitle: "" };
+              setTabModalMeta(modEl, meta.title, meta.subtitle);
+              modEl.classList.remove("air-open");
+              void modEl.offsetWidth;
+              modEl.classList.add("air-open");
+            } else {
+              modEl.classList.add("hidden");
+              if (key === "patio") {
+                document.getElementById("patioContent")?.classList.add("hidden");
+                setPatioView("none", { silent: true });
+              } else if (key === "financeiro") {
+                document.getElementById("financeContent")?.classList.add("hidden");
+                setFinanceView("none");
+              } else if (key === "parceiros") {
+                setPartnerView("none");
+              }
+            }
+          });
+        } else {
+          MODULE_MODAL_VIEWS.forEach((key) => {
+            document.getElementById(MODULE_VIEW_IDS[key])?.classList.add("hidden");
+          });
+          Object.values(views).forEach((panel) => panel?.classList.add("hidden"));
+          if (views[view]) {
+            views[view].classList.remove("hidden");
+            views[view].classList.remove("air-open");
+            void views[view].offsetWidth;
+            views[view].classList.add("air-open");
+          }
         }
+
         if (view === "configuracoes") {
           setConfigSubview("dados");
         }
@@ -18853,12 +19004,13 @@
         if (top === `parceiros:${sub}`) return;
         if (top && typeof top === "string" && top.startsWith("parceiros:")) navStack.pop();
 
+        if (!isNavOnModule("parceiros")) {
+          navStack.splice(0, navStack.length, "parceiros");
+        }
+
+        showMainView("parceiros");
         if (navStack[navStack.length - 1] !== "parceiros") {
-          navStack.push("parceiros");
-          showMainView("parceiros");
           setPartnerView("none");
-        } else {
-          showMainView("parceiros");
         }
 
         navStack.push(`parceiros:${sub}`);
@@ -18896,8 +19048,9 @@
           return;
         }
 
-        navStack.splice(0, navStack.length, "dashboard", `financeiro:${sub}`);
-        showMainView("dashboard");
+        navStack.splice(0, navStack.length, "financeiro");
+        showMainView("financeiro");
+        navStack.push(`financeiro:${sub}`);
         setFinanceView(sub);
       }
 
@@ -18920,12 +19073,11 @@
         }
         if (top && typeof top === "string" && top.startsWith("lista:")) navStack.pop();
 
-        if (navStack[navStack.length - 1] !== "lista") {
-          navStack.push("lista");
-          showMainView("lista");
-        } else {
-          showMainView("lista");
+        if (!isNavOnModule("lista")) {
+          navStack.splice(0, navStack.length, "lista");
         }
+
+        showMainView("lista");
 
         navStack.push(`lista:${sub}`);
         currentListaView = sub;
@@ -21933,14 +22085,22 @@
       }
 
       function syncHeaderMenuHighlightFromDom() {
-        const order = ["dashboard", "patio", "parceiros", "financeiro", "lista", "configuracoes"];
-        for (const name of order) {
+        for (const name of MODULE_MODAL_VIEWS) {
           const el = views[name];
           if (el && !el.classList.contains("hidden")) {
             lastAppHeaderModuleView = name;
             syncHeaderMenuModuleHighlight(name);
             return;
           }
+        }
+        if (views.configuracoes && !views.configuracoes.classList.contains("hidden")) {
+          lastAppHeaderModuleView = "configuracoes";
+          syncHeaderMenuModuleHighlight("configuracoes");
+          return;
+        }
+        if (views.dashboard && !views.dashboard.classList.contains("hidden")) {
+          lastAppHeaderModuleView = "dashboard";
+          syncHeaderMenuModuleHighlight("dashboard");
         }
       }
 
