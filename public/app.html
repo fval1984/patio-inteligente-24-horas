@@ -4388,6 +4388,8 @@
       /* Painéis com display:flex no tema FinTracker precisam respeitar .hidden */
       #viewFinanceiro.finance-fintracker .finance-ft-dashboard.hidden,
       #viewFinanceiro .finance-receitas-panel.hidden,
+      #viewFinanceiro .finance-submodule-panel.hidden,
+      #viewFinanceiro #financeContasTableShell.hidden,
       #viewFinanceiro #financeStandardArea.hidden,
       #viewFinanceiro #financeClientesArea.hidden,
       #viewFinanceiro #financeFlyoutSummaryCards.hidden,
@@ -6012,7 +6014,7 @@
                   <div id="financeCategoryTags" class="finance-category-tags"></div>
                 </div>
               </div>
-              <div id="financeReceitasPanel" class="finance-receitas-panel hidden">
+              <div id="financeReceitasPanel" class="finance-receitas-panel finance-submodule-panel hidden">
                 <header class="finance-receitas-header">
                   <h3 id="financeReceitasPageTitle">Controle de Receitas</h3>
                   <p id="financeReceitasPageDesc" class="notice">
@@ -6118,6 +6120,259 @@
                   </section>
                 </div>
               </div>
+              <div id="financeDespesasPanel" class="finance-receitas-panel finance-submodule-panel hidden">
+                <header class="finance-receitas-header">
+                  <h3 id="financeDespesasPageTitle">Controle de Despesas</h3>
+                  <p id="financeDespesasPageDesc" class="notice">
+                    Escolha uma área abaixo ou use o menu de sub-abas para abrir cada função em página dedicada.
+                  </p>
+                </header>
+                <nav id="financeDespesasSubnav" class="finance-receitas-subnav" aria-label="Sub-abas de Controle de Despesas">
+                  <button type="button" class="secondary finance-receitas-sub-btn active" data-despesas-sub="inicio">Início</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-despesas-sub="cadastro">Cadastro</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-despesas-sub="categorias">Categorias</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-despesas-sub="recorrentes">Recorrentes</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-despesas-sub="parceladas">Parceladas</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-despesas-sub="anexos">Comprovantes</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-despesas-sub="historico">Histórico</button>
+                </nav>
+                <div id="financeDespesasPages" class="finance-receitas-pages">
+                  <div class="finance-receitas-page finance-receitas-section" data-despesas-page="inicio">
+                    <div class="finance-receitas-hub-grid">
+                      <button type="button" class="finance-receitas-hub-card" data-despesas-goto="cadastro">
+                        <strong>Cadastro de despesas</strong>
+                        <span>Registre despesas únicas com fornecedor, categoria e valor.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-despesas-goto="categorias">
+                        <strong>Categorias de despesa</strong>
+                        <span>Categorias padrão e personalizadas.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-despesas-goto="recorrentes">
+                        <strong>Despesas recorrentes</strong>
+                        <span>Contas fixas mensais e assinaturas.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-despesas-goto="parceladas">
+                        <strong>Despesas parceladas</strong>
+                        <span>Divida um valor em parcelas com vencimentos automáticos.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-despesas-goto="anexos">
+                        <strong>Anexar comprovantes</strong>
+                        <span>Nota fiscal ou comprovante ligado a cada despesa.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-despesas-goto="historico">
+                        <strong>Histórico de pagamentos</strong>
+                        <span>Despesas pagas nos últimos 90 dias.</span>
+                      </button>
+                    </div>
+                  </div>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-despesas-page="cadastro" id="financeDespesasCadastroSection">
+                    <div class="finance-receitas-section-head">
+                      <div>
+                        <h4>Cadastro de despesas</h4>
+                        <p class="notice">Registre despesas únicas com fornecedor, categoria, valor, vencimento e comprovante opcional.</p>
+                      </div>
+                      <button type="button" id="financeDespesasNovaBtn">+ Nova despesa</button>
+                    </div>
+                    <div id="financeDespesasCadastroList" class="finance-lanc-list" aria-live="polite"></div>
+                    <div id="financeDespesasCadastroPagination" class="hidden" style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap">
+                      <span id="financeDespesasCadastroPageInfo" class="notice">Página 1 de 1</span>
+                      <div style="display:flex; gap:6px; align-items:center">
+                        <button type="button" class="secondary" id="financeDespesasCadastroPrev">Anterior</button>
+                        <button type="button" class="secondary" id="financeDespesasCadastroNext">Próxima</button>
+                      </div>
+                    </div>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-despesas-page="categorias" id="financeDespesasCatsSection">
+                    <h4>Categorias de despesa</h4>
+                    <p class="notice">Categorias padrão e personalizadas para classificar cada despesa.</p>
+                    <div id="financeDespesasCatsDefault" class="finance-receitas-cats-default"></div>
+                    <div class="finance-category-bar">
+                      <label for="financeDespesasCategoryInput">Categorias personalizadas</label>
+                      <div class="finance-category-inline">
+                        <input id="financeDespesasCategoryInput" type="text" placeholder="Nova categoria…" />
+                        <button type="button" class="secondary" id="financeDespesasAddCategoryBtn">Adicionar</button>
+                      </div>
+                      <div id="financeDespesasCategoryTags" class="finance-category-tags"></div>
+                    </div>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-despesas-page="recorrentes">
+                    <div class="finance-receitas-section-head">
+                      <div>
+                        <h4>Despesas recorrentes</h4>
+                        <p class="notice">Contas fixas — ao confirmar o pagamento, o próximo título é gerado automaticamente.</p>
+                      </div>
+                      <button type="button" class="secondary" id="financeDespesasNovaRecorrenteBtn">+ Recorrente</button>
+                    </div>
+                    <div id="financeDespesasRecorrentesList" class="finance-lanc-list" aria-live="polite"></div>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-despesas-page="parceladas">
+                    <div class="finance-receitas-section-head">
+                      <div>
+                        <h4>Despesas parceladas</h4>
+                        <p class="notice">Divida um valor total em parcelas mensais com vencimentos automáticos.</p>
+                      </div>
+                      <button type="button" class="secondary" id="financeDespesasNovaParceladaBtn">+ Parcelada</button>
+                    </div>
+                    <div id="financeDespesasParceladasList" class="finance-lanc-list" aria-live="polite"></div>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-despesas-page="anexos">
+                    <h4>Anexar comprovantes</h4>
+                    <p class="notice">Anexe nota fiscal ou comprovante ao cadastrar a despesa ou ao dar baixa em Contas a pagar.</p>
+                    <div id="financeDespesasAnexosList" class="finance-lanc-list" aria-live="polite"></div>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section finance-historico-panel hidden" data-despesas-page="historico" id="financeDespesasHistoricoSection">
+                    <h4 id="financeDespesasHistoricoTitle">Histórico de pagamentos</h4>
+                    <div id="financeDespesasHistoricoList" class="finance-lanc-list" aria-live="polite"></div>
+                  </section>
+                </div>
+              </div>
+              <div id="financeContasPagarPanel" class="finance-receitas-panel finance-submodule-panel hidden">
+                <header class="finance-receitas-header">
+                  <h3 id="financeContasPagarPageTitle">Contas a Pagar</h3>
+                  <p id="financeContasPagarPageDesc" class="notice">
+                    Escolha uma área abaixo ou use o menu de sub-abas para gerenciar títulos a pagar.
+                  </p>
+                </header>
+                <nav id="financeContasPagarSubnav" class="finance-receitas-subnav" aria-label="Sub-abas de Contas a Pagar">
+                  <button type="button" class="secondary finance-receitas-sub-btn active" data-contas-pagar-sub="inicio">Início</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-contas-pagar-sub="aberto">Em aberto</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-contas-pagar-sub="vencidas">Vencidas</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-contas-pagar-sub="a_vencer">A vencer</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-contas-pagar-sub="historico">Pagas</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-contas-pagar-sub="anexos">Comprovantes</button>
+                </nav>
+                <div id="financeContasPagarPages" class="finance-receitas-pages">
+                  <div class="finance-receitas-page finance-receitas-section" data-contas-pagar-page="inicio">
+                    <div class="finance-receitas-hub-grid">
+                      <button type="button" class="finance-receitas-hub-card" data-contas-pagar-goto="aberto">
+                        <strong>Títulos em aberto</strong>
+                        <span>Contas pendentes de pagamento.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-contas-pagar-goto="vencidas">
+                        <strong>Vencidas</strong>
+                        <span>Títulos com vencimento ultrapassado.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-contas-pagar-goto="a_vencer">
+                        <strong>A vencer</strong>
+                        <span>Vencimento nos próximos 7 dias.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-contas-pagar-goto="historico">
+                        <strong>Pagas (histórico)</strong>
+                        <span>Pagamentos confirmados nos últimos 90 dias.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-contas-pagar-goto="anexos">
+                        <strong>Comprovantes</strong>
+                        <span>Notas fiscais e comprovantes anexados.</span>
+                      </button>
+                    </div>
+                  </div>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-contas-pagar-page="aberto">
+                    <div class="finance-receitas-section-head">
+                      <div>
+                        <h4>Títulos em aberto</h4>
+                        <p class="notice">Contas pendentes — registre pagamento com data, forma e comprovante.</p>
+                      </div>
+                      <button type="button" id="financeContasPagarNovaBtn">+ Nova despesa</button>
+                    </div>
+                    <p class="notice" style="margin: 0">A tabela de títulos aparece abaixo. Use os filtros para refinar a busca.</p>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-contas-pagar-page="vencidas">
+                    <h4>Títulos vencidos</h4>
+                    <p class="notice">Contas com vencimento ultrapassado — priorize o pagamento ou renegocie.</p>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-contas-pagar-page="a_vencer">
+                    <h4>A vencer (7 dias)</h4>
+                    <p class="notice">Títulos com vencimento nos próximos 7 dias.</p>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section finance-historico-panel hidden" data-contas-pagar-page="historico">
+                    <h4>Histórico de pagamentos</h4>
+                    <div id="financeContasPagarHistoricoList" class="finance-lanc-list" aria-live="polite"></div>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-contas-pagar-page="anexos">
+                    <h4>Comprovantes de pagamento</h4>
+                    <p class="notice">Comprovantes anexados na baixa ou no cadastro da despesa.</p>
+                    <div id="financeContasPagarAnexosList" class="finance-lanc-list" aria-live="polite"></div>
+                  </section>
+                </div>
+              </div>
+              <div id="financeContasReceberPanel" class="finance-receitas-panel finance-submodule-panel hidden">
+                <header class="finance-receitas-header">
+                  <h3 id="financeContasReceberPageTitle">Contas a Receber</h3>
+                  <p id="financeContasReceberPageDesc" class="notice">
+                    Escolha uma área abaixo ou use o menu de sub-abas para gerenciar títulos a receber.
+                  </p>
+                </header>
+                <nav id="financeContasReceberSubnav" class="finance-receitas-subnav" aria-label="Sub-abas de Contas a Receber">
+                  <button type="button" class="secondary finance-receitas-sub-btn active" data-contas-receber-sub="inicio">Início</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-contas-receber-sub="aberto">Em aberto</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-contas-receber-sub="vencidas">Vencidas</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-contas-receber-sub="a_vencer">A vencer</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-contas-receber-sub="cobranca">Cobrança</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-contas-receber-sub="historico">Pagas</button>
+                  <button type="button" class="secondary finance-receitas-sub-btn" data-contas-receber-sub="anexos">Comprovantes</button>
+                </nav>
+                <div id="financeContasReceberPages" class="finance-receitas-pages">
+                  <div class="finance-receitas-page finance-receitas-section" data-contas-receber-page="inicio">
+                    <div class="finance-receitas-hub-grid">
+                      <button type="button" class="finance-receitas-hub-card" data-contas-receber-goto="aberto">
+                        <strong>Títulos em aberto</strong>
+                        <span>Recebimentos pendentes.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-contas-receber-goto="vencidas">
+                        <strong>Vencidas</strong>
+                        <span>Títulos com vencimento ultrapassado.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-contas-receber-goto="a_vencer">
+                        <strong>A vencer</strong>
+                        <span>Vencimento nos próximos 7 dias.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-contas-receber-goto="cobranca">
+                        <strong>Cobrança</strong>
+                        <span>Preview e registro de cobrança ao cliente.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-contas-receber-goto="historico">
+                        <strong>Pagas (histórico)</strong>
+                        <span>Recebimentos confirmados nos últimos 90 dias.</span>
+                      </button>
+                      <button type="button" class="finance-receitas-hub-card" data-contas-receber-goto="anexos">
+                        <strong>Comprovantes</strong>
+                        <span>Comprovantes anexados na baixa.</span>
+                      </button>
+                    </div>
+                  </div>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-contas-receber-page="aberto">
+                    <div class="finance-receitas-section-head">
+                      <div>
+                        <h4>Títulos em aberto</h4>
+                        <p class="notice">Recebimentos pendentes — confirme baixa com data, forma e comprovante.</p>
+                      </div>
+                      <button type="button" id="financeContasReceberNovaBtn">+ Nova receita</button>
+                    </div>
+                    <p class="notice" style="margin: 0">A tabela de títulos aparece abaixo. Use os filtros para refinar a busca.</p>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-contas-receber-page="vencidas">
+                    <h4>Títulos vencidos</h4>
+                    <p class="notice">Contas com vencimento ultrapassado — acione cobrança ou negocie.</p>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-contas-receber-page="a_vencer">
+                    <h4>A vencer (7 dias)</h4>
+                    <p class="notice">Títulos com vencimento nos próximos 7 dias.</p>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-contas-receber-page="cobranca">
+                    <h4>Cobrança</h4>
+                    <p class="notice">Títulos em aberto — use «Cobrar» na tabela abaixo para preview e registro da cobrança.</p>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section finance-historico-panel hidden" data-contas-receber-page="historico">
+                    <h4>Histórico de recebimentos</h4>
+                    <div id="financeContasReceberHistoricoList" class="finance-lanc-list" aria-live="polite"></div>
+                  </section>
+                  <section class="finance-receitas-page finance-receitas-section hidden" data-contas-receber-page="anexos">
+                    <h4>Comprovantes de recebimento</h4>
+                    <p class="notice">Comprovantes anexados na baixa ou no cadastro da receita.</p>
+                    <div id="financeContasReceberAnexosList" class="finance-lanc-list" aria-live="polite"></div>
+                  </section>
+                </div>
+              </div>
               <div id="financeHistoricoPanel" class="section-card finance-historico-panel hidden" style="margin-top: 0">
                 <h4 id="financeHistoricoTitle">Histórico</h4>
                 <div id="financeHistoricoList" class="finance-lanc-list" aria-live="polite"></div>
@@ -6167,7 +6422,7 @@
                   <span class="tag success" id="financeCaixaStatus">Positivo</span>
                 </div>
               </div>
-              <div class="section-card" style="margin-top: 18px;">
+              <div id="financeContasTableShell" class="section-card" style="margin-top: 18px;">
                 <p id="financeCaixaScrollNotice" class="notice hidden" style="margin: 0 0 10px; font-size: 12px">
                   A coluna «Ações» fica à direita. Se não a vir, deslize esta tabela para o lado (barra de deslocamento por baixo).
                 </p>
@@ -7758,6 +8013,9 @@
       let currentPatioView = null;
       let currentFinanceView = null;
       let currentReceitasSubView = "inicio";
+      let currentDespesasSubView = "inicio";
+      let currentContasPagarSubView = "inicio";
+      let currentContasReceberSubView = "inicio";
       let currentPartnerView = null;
       let reportHasRun = false;
       let financeCompetencia = currentYearMonthLocal();
@@ -8488,6 +8746,146 @@
         },
       };
 
+      const FINANCE_DESPESAS_SUBVIEWS = {
+        inicio: {
+          label: "Início",
+          title: "Controle de Despesas",
+          desc: "Escolha uma área abaixo ou use o menu de sub-abas para abrir cada função em página dedicada.",
+        },
+        cadastro: {
+          label: "Cadastro",
+          title: "Cadastro de despesas",
+          desc: "Registre despesas únicas com fornecedor, categoria, valor, vencimento e comprovante opcional.",
+        },
+        categorias: {
+          label: "Categorias",
+          title: "Categorias de despesa",
+          desc: "Categorias padrão e personalizadas para classificar cada despesa.",
+        },
+        recorrentes: {
+          label: "Recorrentes",
+          title: "Despesas recorrentes",
+          desc: "Contas fixas — o próximo título é gerado ao confirmar o pagamento.",
+        },
+        parceladas: {
+          label: "Parceladas",
+          title: "Despesas parceladas",
+          desc: "Divida um valor total em parcelas mensais com vencimentos automáticos.",
+        },
+        anexos: {
+          label: "Comprovantes",
+          title: "Anexar comprovantes",
+          desc: "Comprovantes anexados no cadastro ou na baixa em Contas a pagar.",
+        },
+        historico: {
+          label: "Histórico",
+          title: "Histórico de pagamentos",
+          desc: "Despesas pagas nos últimos 90 dias.",
+        },
+      };
+
+      const FINANCE_CONTAS_PAGAR_SUBVIEWS = {
+        inicio: {
+          label: "Início",
+          title: "Contas a Pagar",
+          desc: "Escolha uma área abaixo ou use o menu de sub-abas para gerenciar títulos a pagar.",
+        },
+        aberto: {
+          label: "Em aberto",
+          title: "Títulos em aberto",
+          desc: "Contas pendentes — registre pagamento com data, forma e comprovante.",
+        },
+        vencidas: {
+          label: "Vencidas",
+          title: "Títulos vencidos",
+          desc: "Contas com vencimento ultrapassado.",
+        },
+        a_vencer: {
+          label: "A vencer",
+          title: "A vencer (7 dias)",
+          desc: "Títulos com vencimento nos próximos 7 dias.",
+        },
+        historico: {
+          label: "Pagas",
+          title: "Histórico de pagamentos",
+          desc: "Pagamentos confirmados nos últimos 90 dias.",
+        },
+        anexos: {
+          label: "Comprovantes",
+          title: "Comprovantes de pagamento",
+          desc: "Notas fiscais e comprovantes anexados às despesas.",
+        },
+      };
+
+      const FINANCE_CONTAS_RECEBER_SUBVIEWS = {
+        inicio: {
+          label: "Início",
+          title: "Contas a Receber",
+          desc: "Escolha uma área abaixo ou use o menu de sub-abas para gerenciar títulos a receber.",
+        },
+        aberto: {
+          label: "Em aberto",
+          title: "Títulos em aberto",
+          desc: "Recebimentos pendentes — confirme baixa com data, forma e comprovante.",
+        },
+        vencidas: {
+          label: "Vencidas",
+          title: "Títulos vencidos",
+          desc: "Contas com vencimento ultrapassado — acione cobrança.",
+        },
+        a_vencer: {
+          label: "A vencer",
+          title: "A vencer (7 dias)",
+          desc: "Títulos com vencimento nos próximos 7 dias.",
+        },
+        cobranca: {
+          label: "Cobrança",
+          title: "Cobrança",
+          desc: "Títulos em aberto — use «Cobrar» na tabela para preview e registro.",
+        },
+        historico: {
+          label: "Pagas",
+          title: "Histórico de recebimentos",
+          desc: "Recebimentos confirmados nos últimos 90 dias.",
+        },
+        anexos: {
+          label: "Comprovantes",
+          title: "Comprovantes de recebimento",
+          desc: "Comprovantes anexados na baixa ou no cadastro.",
+        },
+      };
+
+      const CONTAS_PAGAR_SUB_STATUS = {
+        aberto: "aberto",
+        vencidas: "vencido",
+        a_vencer: "vencendo",
+        historico: "pago",
+      };
+
+      const CONTAS_RECEBER_SUB_STATUS = {
+        aberto: "aberto",
+        vencidas: "vencido",
+        a_vencer: "vencendo",
+        cobranca: "aberto",
+        historico: "pago",
+      };
+
+      function financeContasPagarSubShowsTable(sub) {
+        return ["aberto", "vencidas", "a_vencer"].includes(sub);
+      }
+
+      function financeContasReceberSubShowsTable(sub) {
+        return ["aberto", "vencidas", "a_vencer", "cobranca"].includes(sub);
+      }
+
+      function financeModuleMainTitle(module) {
+        if (module === "receitas") return "Controle de Receitas";
+        if (module === "despesas") return "Controle de Despesas";
+        if (module === "contas_pagar") return "Contas a Pagar";
+        if (module === "contas_receber") return "Contas a Receber";
+        return "";
+      }
+
       function setReceitasSubView(sub) {
         const key = FINANCE_RECEITAS_SUBVIEWS[sub] ? sub : "inicio";
         currentReceitasSubView = key;
@@ -8522,19 +8920,162 @@
         }
       }
 
+      function setDespesasSubView(sub) {
+        const key = FINANCE_DESPESAS_SUBVIEWS[sub] ? sub : "inicio";
+        currentDespesasSubView = key;
+        syncDespesasSubViewUi();
+        if (currentFinanceView === "despesas") {
+          document.getElementById("financeDespesasPages")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+
+      function syncDespesasSubViewUi() {
+        const cfg = FINANCE_DESPESAS_SUBVIEWS[currentDespesasSubView] || FINANCE_DESPESAS_SUBVIEWS.inicio;
+        const titleEl = document.getElementById("financeDespesasPageTitle");
+        const descEl = document.getElementById("financeDespesasPageDesc");
+        if (titleEl) titleEl.textContent = cfg.title;
+        if (descEl) descEl.textContent = cfg.desc;
+        document.querySelectorAll("[data-despesas-page]").forEach((el) => {
+          el.classList.toggle("hidden", el.getAttribute("data-despesas-page") !== currentDespesasSubView);
+        });
+        document.querySelectorAll("#financeDespesasSubnav [data-despesas-sub]").forEach((btn) => {
+          btn.classList.toggle("active", btn.getAttribute("data-despesas-sub") === currentDespesasSubView);
+        });
+        if (financeBreadcrumb && currentFinanceView === "despesas") {
+          const suffix = currentDespesasSubView === "inicio" ? "" : ` › ${cfg.label}`;
+          financeBreadcrumb.textContent = `Início › Financeiro › Controle de Despesas${suffix}`;
+        }
+        const financePageTitle = document.getElementById("financePageTitle");
+        if (financePageTitle && currentFinanceView === "despesas") {
+          financePageTitle.textContent =
+            currentDespesasSubView === "inicio" ? "Controle de Despesas" : cfg.title;
+        }
+      }
+
+      function setContasPagarSubView(sub) {
+        const key = FINANCE_CONTAS_PAGAR_SUBVIEWS[sub] ? sub : "inicio";
+        currentContasPagarSubView = key;
+        if (CONTAS_PAGAR_SUB_STATUS[key]) {
+          financePagarStatusFilter = CONTAS_PAGAR_SUB_STATUS[key];
+          const st = document.getElementById("financePagarFilterStatus");
+          if (st) st.value = financePagarStatusFilter;
+        }
+        syncContasPagarSubViewUi();
+        if (currentFinanceView === "contas_pagar") {
+          renderFinance();
+          document.getElementById("financeContasPagarPages")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+
+      function syncContasPagarSubViewUi() {
+        const cfg = FINANCE_CONTAS_PAGAR_SUBVIEWS[currentContasPagarSubView] || FINANCE_CONTAS_PAGAR_SUBVIEWS.inicio;
+        const titleEl = document.getElementById("financeContasPagarPageTitle");
+        const descEl = document.getElementById("financeContasPagarPageDesc");
+        if (titleEl) titleEl.textContent = cfg.title;
+        if (descEl) descEl.textContent = cfg.desc;
+        document.querySelectorAll("[data-contas-pagar-page]").forEach((el) => {
+          el.classList.toggle("hidden", el.getAttribute("data-contas-pagar-page") !== currentContasPagarSubView);
+        });
+        document.querySelectorAll("#financeContasPagarSubnav [data-contas-pagar-sub]").forEach((btn) => {
+          btn.classList.toggle("active", btn.getAttribute("data-contas-pagar-sub") === currentContasPagarSubView);
+        });
+        const showTable = currentFinanceView === "contas_pagar" && financeContasPagarSubShowsTable(currentContasPagarSubView);
+        const showFilters = showTable;
+        document.getElementById("financePagarFilters")?.classList.toggle("hidden", !showFilters);
+        document.getElementById("financeContasTableShell")?.classList.toggle("hidden", !showTable);
+        if (financeBreadcrumb && currentFinanceView === "contas_pagar") {
+          const suffix = currentContasPagarSubView === "inicio" ? "" : ` › ${cfg.label}`;
+          financeBreadcrumb.textContent = `Início › Financeiro › Contas a Pagar${suffix}`;
+        }
+        const financePageTitle = document.getElementById("financePageTitle");
+        if (financePageTitle && currentFinanceView === "contas_pagar") {
+          financePageTitle.textContent =
+            currentContasPagarSubView === "inicio" ? "Contas a Pagar" : cfg.title;
+        }
+      }
+
+      function setContasReceberSubView(sub) {
+        const key = FINANCE_CONTAS_RECEBER_SUBVIEWS[sub] ? sub : "inicio";
+        currentContasReceberSubView = key;
+        if (CONTAS_RECEBER_SUB_STATUS[key]) {
+          financeReceberStatusFilter = CONTAS_RECEBER_SUB_STATUS[key];
+          const st = document.getElementById("financeReceberFilterStatus");
+          if (st) st.value = financeReceberStatusFilter;
+        }
+        syncContasReceberSubViewUi();
+        if (currentFinanceView === "contas_receber") {
+          renderFinance();
+          document.getElementById("financeContasReceberPages")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+
+      function syncContasReceberSubViewUi() {
+        const cfg = FINANCE_CONTAS_RECEBER_SUBVIEWS[currentContasReceberSubView] || FINANCE_CONTAS_RECEBER_SUBVIEWS.inicio;
+        const titleEl = document.getElementById("financeContasReceberPageTitle");
+        const descEl = document.getElementById("financeContasReceberPageDesc");
+        if (titleEl) titleEl.textContent = cfg.title;
+        if (descEl) descEl.textContent = cfg.desc;
+        document.querySelectorAll("[data-contas-receber-page]").forEach((el) => {
+          el.classList.toggle("hidden", el.getAttribute("data-contas-receber-page") !== currentContasReceberSubView);
+        });
+        document.querySelectorAll("#financeContasReceberSubnav [data-contas-receber-sub]").forEach((btn) => {
+          btn.classList.toggle("active", btn.getAttribute("data-contas-receber-sub") === currentContasReceberSubView);
+        });
+        const showTable = currentFinanceView === "contas_receber" && financeContasReceberSubShowsTable(currentContasReceberSubView);
+        const showFilters = showTable;
+        document.getElementById("financeReceberFilters")?.classList.toggle("hidden", !showFilters);
+        document.getElementById("financeContasTableShell")?.classList.toggle("hidden", !showTable);
+        if (financeBreadcrumb && currentFinanceView === "contas_receber") {
+          const suffix = currentContasReceberSubView === "inicio" ? "" : ` › ${cfg.label}`;
+          financeBreadcrumb.textContent = `Início › Financeiro › Contas a Receber${suffix}`;
+        }
+        const financePageTitle = document.getElementById("financePageTitle");
+        if (financePageTitle && currentFinanceView === "contas_receber") {
+          financePageTitle.textContent =
+            currentContasReceberSubView === "inicio" ? "Contas a Receber" : cfg.title;
+        }
+      }
+
       function renderFinanceSubviewIntro(view) {
         const panel = document.getElementById("financeSubviewIntro");
         const receitasPanel = document.getElementById("financeReceitasPanel");
+        const despesasPanel = document.getElementById("financeDespesasPanel");
+        const contasPagarPanel = document.getElementById("financeContasPagarPanel");
+        const contasReceberPanel = document.getElementById("financeContasReceberPanel");
         const histPanel = document.getElementById("financeHistoricoPanel");
         const cfg = FINANCE_SUBVIEW_INTRO[view];
+        receitasPanel?.classList.toggle("hidden", view !== "receitas");
+        despesasPanel?.classList.toggle("hidden", view !== "despesas");
+        contasPagarPanel?.classList.toggle("hidden", view !== "contas_pagar");
+        contasReceberPanel?.classList.toggle("hidden", view !== "contas_receber");
         if (view === "receitas") {
           panel?.classList.add("hidden");
-          receitasPanel?.classList.remove("hidden");
           histPanel?.classList.add("hidden");
           syncReceitasSubViewUi();
           return;
         }
+        if (view === "despesas") {
+          panel?.classList.add("hidden");
+          histPanel?.classList.add("hidden");
+          syncDespesasSubViewUi();
+          return;
+        }
+        if (view === "contas_pagar") {
+          panel?.classList.add("hidden");
+          histPanel?.classList.add("hidden");
+          syncContasPagarSubViewUi();
+          return;
+        }
+        if (view === "contas_receber") {
+          panel?.classList.add("hidden");
+          histPanel?.classList.add("hidden");
+          syncContasReceberSubViewUi();
+          return;
+        }
         receitasPanel?.classList.add("hidden");
+        despesasPanel?.classList.add("hidden");
+        contasPagarPanel?.classList.add("hidden");
+        contasReceberPanel?.classList.add("hidden");
         if (!panel || !cfg) {
           panel?.classList.add("hidden");
           histPanel?.classList.add("hidden");
@@ -8552,11 +9093,8 @@
         }
         if (histPanel) {
           const histView = cfg.histView || (financeIsLancamentosView(view) ? view : null);
-          const statusHideHist =
-            (view === "contas_receber" && ["pago", "todas"].includes(financeReceberStatusFilter)) ||
-            (view === "contas_pagar" && ["pago", "todas"].includes(financePagarStatusFilter));
-          histPanel.classList.toggle("hidden", !histView || statusHideHist || view === "receitas");
-          if (histView && !statusHideHist && view !== "receitas") renderFinanceHistoricoPanel(histView);
+          histPanel.classList.toggle("hidden", !histView || view === "receitas" || view === "despesas");
+          if (histView && view !== "receitas" && view !== "despesas") renderFinanceHistoricoPanel(histView);
         }
       }
 
@@ -8564,7 +9102,9 @@
         const wrap =
           currentFinanceView === "receitas"
             ? document.getElementById("financeReceitasCategoryTags")
-            : document.getElementById("financeCategoryTags");
+            : currentFinanceView === "despesas"
+              ? document.getElementById("financeDespesasCategoryTags")
+              : document.getElementById("financeCategoryTags");
         if (!wrap) return;
         const cats = tipo === "DESPESA" ? getLancDespesaCategorias() : getLancReceitaCategorias();
         const baseValues = new Set(
@@ -8691,6 +9231,254 @@
           return;
         }
         listEl.innerHTML = entries.slice(0, 40).map((e) => renderFinanceLancItem(e)).join("");
+      }
+
+      function renderFinanceDespesasDefaultCategories() {
+        const wrap = document.getElementById("financeDespesasCatsDefault");
+        if (!wrap) return;
+        wrap.innerHTML = LANC_DESPESA_CATEGORIAS.map(
+          (c) => `<span class="finance-category-tag">${escapeHtml(c.label)}</span>`
+        ).join("");
+      }
+
+      function renderFinanceDespesasSections(allEntries, pageEntries, pagination) {
+        const panel = document.getElementById("financeDespesasPanel");
+        if (!panel || currentFinanceView !== "despesas") return;
+        renderFinanceDespesasDefaultCategories();
+        renderFinanceCategoryTags("DESPESA");
+        const despesaEntries = allEntries.filter((e) => e.tipo === "DESPESA");
+        const recorrentes = despesaEntries.filter((e) => e.modo === "RECORRENTE");
+        const parceladas = despesaEntries.filter((e) => e.modo === "PARCELADA");
+        const comAnexo = despesaEntries.filter(
+          (e) => e.recordKind && e.recordId && financeAttachmentGet(e.recordKind, e.recordId)
+        );
+        const fill = (id, items, emptyMsg) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          if (!items.length) {
+            el.innerHTML = `<div class="finance-lanc-empty">${emptyMsg}</div>`;
+            return;
+          }
+          el.innerHTML = items.map((e) => renderFinanceLancItem(e)).join("");
+        };
+        const cadastroList = document.getElementById("financeDespesasCadastroList");
+        if (cadastroList) {
+          if (!pageEntries.length) {
+            cadastroList.innerHTML = `<div class="finance-lanc-empty">Nenhuma despesa cadastrada. Toque em «+ Nova despesa».</div>`;
+          } else {
+            cadastroList.innerHTML = pageEntries.map((e) => renderFinanceLancItem(e)).join("");
+          }
+        }
+        const pagWrap = document.getElementById("financeDespesasCadastroPagination");
+        const pageInfo = document.getElementById("financeDespesasCadastroPageInfo");
+        const prevBtn = document.getElementById("financeDespesasCadastroPrev");
+        const nextBtn = document.getElementById("financeDespesasCadastroNext");
+        if (pagWrap && pagination) {
+          pagWrap.classList.toggle("hidden", pagination.pages <= 1);
+          if (pageInfo) pageInfo.textContent = `Página ${pagination.page} de ${pagination.pages}`;
+          if (prevBtn) prevBtn.disabled = pagination.page <= 1;
+          if (nextBtn) nextBtn.disabled = pagination.page >= pagination.pages;
+        }
+        fill(
+          "financeDespesasRecorrentesList",
+          recorrentes,
+          "Nenhuma despesa recorrente. Use «+ Recorrente» para cadastrar contas fixas."
+        );
+        fill(
+          "financeDespesasParceladasList",
+          parceladas,
+          "Nenhuma despesa parcelada. Use «+ Parcelada» para dividir um valor."
+        );
+        fill(
+          "financeDespesasAnexosList",
+          comAnexo,
+          "Nenhum comprovante anexado ainda. Anexe ao cadastrar ou na baixa em Contas a pagar."
+        );
+        renderFinanceDespesasHistorico();
+        syncDespesasSubViewUi();
+      }
+
+      function renderFinanceDespesasHistorico() {
+        const listEl = document.getElementById("financeDespesasHistoricoList");
+        if (!listEl || currentFinanceView !== "despesas") return;
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 90);
+        const cutoffMs = cutoff.getTime();
+        const cashByPayable = new Map(
+          state.cash.filter((c) => c.tipo_conta === "PAGAR").map((c) => [String(c.conta_id), c])
+        );
+        const entries = [];
+        state.payables
+          .filter((p) => p.status === "PAGO")
+          .forEach((p) => {
+            const mov = cashByPayable.get(String(p.id));
+            const paidAt = mov?.data_movimento || p.updated_at || p.created_at;
+            const paidMs = paidAt ? new Date(paidAt).getTime() : 0;
+            if (paidMs && paidMs < cutoffMs) return;
+            const { meta, text } = financeMetaUnpack(p.observacoes);
+            entries.push({
+              data: (p.data_vencimento || paidAt || "").toString().slice(0, 10),
+              tipo: "DESPESA",
+              descricao: p.descricao || text || "Despesa",
+              parte: p.fornecedor || "-",
+              valor: Number(p.valor || 0),
+              status: "PAGO",
+              categoria: p.payable_category || "OUTROS",
+              modo: financeEntryModoFromRecord(p, "payable"),
+              meta,
+              natureza: meta.natureza,
+              recordKind: "payable",
+              recordId: p.id,
+            });
+          });
+        entries.sort((a, b) => String(b.data).localeCompare(String(a.data)));
+        if (!entries.length) {
+          listEl.innerHTML = `<div class="finance-lanc-empty">Nenhum pagamento nos últimos 90 dias.</div>`;
+          return;
+        }
+        listEl.innerHTML = entries.slice(0, 40).map((e) => renderFinanceLancItem(e)).join("");
+      }
+
+      function renderFinanceContasPagarHistorico() {
+        const listEl = document.getElementById("financeContasPagarHistoricoList");
+        if (!listEl || currentFinanceView !== "contas_pagar") return;
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 90);
+        const cutoffMs = cutoff.getTime();
+        const cashByPayable = new Map(
+          state.cash.filter((c) => c.tipo_conta === "PAGAR").map((c) => [String(c.conta_id), c])
+        );
+        const entries = [];
+        state.payables
+          .filter((p) => p.status === "PAGO")
+          .forEach((p) => {
+            const mov = cashByPayable.get(String(p.id));
+            const paidAt = mov?.data_movimento || p.updated_at || p.created_at;
+            const paidMs = paidAt ? new Date(paidAt).getTime() : 0;
+            if (paidMs && paidMs < cutoffMs) return;
+            const { meta, text } = financeMetaUnpack(p.observacoes);
+            entries.push({
+              data: (p.data_vencimento || paidAt || "").toString().slice(0, 10),
+              tipo: "DESPESA",
+              descricao: p.descricao || text || "Despesa",
+              parte: p.fornecedor || "-",
+              valor: Number(p.valor || 0),
+              status: "PAGO",
+              categoria: p.payable_category || "OUTROS",
+              modo: financeEntryModoFromRecord(p, "payable"),
+              meta,
+              natureza: meta.natureza,
+              recordKind: "payable",
+              recordId: p.id,
+            });
+          });
+        entries.sort((a, b) => String(b.data).localeCompare(String(a.data)));
+        if (!entries.length) {
+          listEl.innerHTML = `<div class="finance-lanc-empty">Nenhum pagamento nos últimos 90 dias.</div>`;
+          return;
+        }
+        listEl.innerHTML = entries.slice(0, 40).map((e) => renderFinanceLancItem(e)).join("");
+        syncContasPagarSubViewUi();
+      }
+
+      function renderFinanceContasReceberHistorico() {
+        const listEl = document.getElementById("financeContasReceberHistoricoList");
+        if (!listEl || currentFinanceView !== "contas_receber") return;
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 90);
+        const cutoffMs = cutoff.getTime();
+        const cashByReceivable = new Map(
+          state.cash.filter((c) => c.tipo_conta === "RECEBER").map((c) => [String(c.conta_id), c])
+        );
+        const entries = [];
+        state.receivables
+          .filter((r) => !FINANCE_MANUAL_ONLY || isManualFinanceLancamento(r))
+          .filter((r) => r.status === "PAGO")
+          .forEach((r) => {
+            const mov = cashByReceivable.get(String(r.id));
+            const paidAt = mov?.data_movimento || r.updated_at || r.created_at;
+            const paidMs = paidAt ? new Date(paidAt).getTime() : 0;
+            if (paidMs && paidMs < cutoffMs) return;
+            const { meta, text } = financeMetaUnpack(r.observacoes);
+            entries.push({
+              data: (r.period_start || paidAt || "").toString().slice(0, 10),
+              tipo: "RECEITA",
+              descricao: text || r.observacoes || "Receita",
+              parte: r.responsavel_pagamento || "-",
+              valor: Number(r.valor || 0),
+              status: "PAGO",
+              categoria: r.receivable_category || "GUARDA_PATIO",
+              modo: financeEntryModoFromRecord(r, "receivable"),
+              meta,
+              recordKind: "receivable",
+              recordId: r.id,
+            });
+          });
+        entries.sort((a, b) => String(b.data).localeCompare(String(a.data)));
+        if (!entries.length) {
+          listEl.innerHTML = `<div class="finance-lanc-empty">Nenhum recebimento nos últimos 90 dias.</div>`;
+          return;
+        }
+        listEl.innerHTML = entries.slice(0, 40).map((e) => renderFinanceLancItem(e)).join("");
+        syncContasReceberSubViewUi();
+      }
+
+      function renderFinanceContasPagarAnexos() {
+        const listEl = document.getElementById("financeContasPagarAnexosList");
+        if (!listEl || currentFinanceView !== "contas_pagar") return;
+        const comAnexo = state.payables.filter((p) => financeAttachmentGet("payable", p.id));
+        if (!comAnexo.length) {
+          listEl.innerHTML = `<div class="finance-lanc-empty">Nenhum comprovante anexado a contas a pagar.</div>`;
+        } else {
+          const entries = comAnexo.map((p) => {
+            const { meta, text } = financeMetaUnpack(p.observacoes);
+            return {
+              data: (p.data_vencimento || p.created_at || "").toString().slice(0, 10),
+              tipo: "DESPESA",
+              descricao: p.descricao || text || "Despesa",
+              parte: p.fornecedor || "-",
+              valor: Number(p.valor || 0),
+              status: p.status === "PAGO" ? "PAGO" : "ABERTO",
+              categoria: p.payable_category || "OUTROS",
+              modo: financeEntryModoFromRecord(p, "payable"),
+              meta,
+              recordKind: "payable",
+              recordId: p.id,
+            };
+          });
+          listEl.innerHTML = entries.map((e) => renderFinanceLancItem(e)).join("");
+        }
+        syncContasPagarSubViewUi();
+      }
+
+      function renderFinanceContasReceberAnexos() {
+        const listEl = document.getElementById("financeContasReceberAnexosList");
+        if (!listEl || currentFinanceView !== "contas_receber") return;
+        const comAnexo = state.receivables
+          .filter((r) => !FINANCE_MANUAL_ONLY || isManualFinanceLancamento(r))
+          .filter((r) => financeAttachmentGet("receivable", r.id));
+        if (!comAnexo.length) {
+          listEl.innerHTML = `<div class="finance-lanc-empty">Nenhum comprovante anexado a contas a receber.</div>`;
+        } else {
+          const entries = comAnexo.map((r) => {
+            const { meta, text } = financeMetaUnpack(r.observacoes);
+            return {
+              data: (r.period_start || r.created_at || "").toString().slice(0, 10),
+              tipo: "RECEITA",
+              descricao: text || r.observacoes || "Receita",
+              parte: r.responsavel_pagamento || "-",
+              valor: Number(r.valor || 0),
+              status: r.status === "PAGO" ? "PAGO" : "ABERTO",
+              categoria: r.receivable_category || "GUARDA_PATIO",
+              modo: financeEntryModoFromRecord(r, "receivable"),
+              meta,
+              recordKind: "receivable",
+              recordId: r.id,
+            };
+          });
+          listEl.innerHTML = entries.map((e) => renderFinanceLancItem(e)).join("");
+        }
+        syncContasReceberSubViewUi();
       }
 
       function renderFinanceHistoricoPanel(view) {
@@ -14892,6 +15680,14 @@
               page: lancamentosPagination.page,
               pages,
             });
+          } else if (currentFinanceView === "despesas") {
+            financeLancList?.classList.add("hidden");
+            financeLancPagination?.classList.add("hidden");
+            financeLancList?.closest(".section-card")?.classList.add("hidden");
+            renderFinanceDespesasSections(sortedEntries, pageEntries, {
+              page: lancamentosPagination.page,
+              pages,
+            });
           } else {
             financeLancList?.closest(".section-card")?.classList.remove("hidden");
             financeLancList?.classList.remove("hidden");
@@ -15114,6 +15910,20 @@
 
         if (financeIsPagarView(currentFinanceView)) {
           renderFinanceSubviewIntro("contas_pagar");
+          if (currentContasPagarSubView === "inicio") {
+            syncContasPagarSubViewUi();
+            setEmptyRow(tableFinance, "Escolha uma sub-aba acima para ver os títulos.", 8);
+            return;
+          }
+          if (currentContasPagarSubView === "historico") {
+            renderFinanceContasPagarHistorico();
+            return;
+          }
+          if (currentContasPagarSubView === "anexos") {
+            renderFinanceContasPagarAnexos();
+            return;
+          }
+          syncContasPagarSubViewUi();
           financeHead.innerHTML = `
             <tr>
               <th>Vencimento</th>
@@ -15127,6 +15937,20 @@
             </tr>`;
         } else if (financeIsReceberView(currentFinanceView)) {
           renderFinanceSubviewIntro("contas_receber");
+          if (currentContasReceberSubView === "inicio") {
+            syncContasReceberSubViewUi();
+            setEmptyRow(tableFinance, "Escolha uma sub-aba acima para ver os títulos.", 9);
+            return;
+          }
+          if (currentContasReceberSubView === "historico") {
+            renderFinanceContasReceberHistorico();
+            return;
+          }
+          if (currentContasReceberSubView === "anexos") {
+            renderFinanceContasReceberAnexos();
+            return;
+          }
+          syncContasReceberSubViewUi();
           financeHead.innerHTML = `
             <tr>
               <th>Vencimento</th>
@@ -15387,6 +16211,11 @@
         } else if (view === "despesas") {
           lancamentosFilter.tipo = "DESPESA";
           if (financeLancTipo) financeLancTipo.value = "DESPESA";
+          if (previousFinanceView !== "despesas") currentDespesasSubView = "inicio";
+        } else if (view === "contas_pagar") {
+          if (previousFinanceView !== "contas_pagar") currentContasPagarSubView = "inicio";
+        } else if (view === "contas_receber") {
+          if (previousFinanceView !== "contas_receber") currentContasReceberSubView = "inicio";
         }
         const isNone = !view || view === "none";
         const isDashboard = view === "dashboard";
@@ -15452,8 +16281,10 @@
         const showLancamentosFilters = financeIsLancamentosView(view);
         const showLancamentosToolbar = financeIsLancamentosView(view);
         const showCaixaFilters = false;
-        const showReceberFilters = financeIsReceberView(view);
-        const showPagarFilters = financeIsPagarView(view);
+        const showReceberFilters =
+          financeIsReceberView(view) && financeContasReceberSubShowsTable(currentContasReceberSubView);
+        const showPagarFilters =
+          financeIsPagarView(view) && financeContasPagarSubShowsTable(currentContasPagarSubView);
         financeFiltersHub?.classList.toggle("hidden", !showFiltersHub);
         if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", !showPlateSearchFilter);
         financeRoot?.classList.toggle("finance-flyout-open", isFlyoutView);
@@ -15506,7 +16337,9 @@
         if (financeNovoLancamentoBtn) {
           financeNovoLancamentoBtn.classList.toggle(
             "hidden",
-            view === "receitas" || (!financeIsLancamentosView(view) && !financeIsPagarView(view))
+            view === "receitas" ||
+              view === "despesas" ||
+              (!financeIsLancamentosView(view) && !financeIsPagarView(view))
           );
           financeNovoLancamentoBtn.textContent =
             view === "despesas" || view === "contas_pagar" ? "+ Nova despesa" : "+ Nova receita";
@@ -15515,7 +16348,13 @@
           financeLancTipo.disabled = view === "receitas" || view === "despesas";
         }
         document.getElementById("financeReceitasPanel")?.classList.toggle("hidden", view !== "receitas");
-        if (view !== "receitas") financeLancList?.classList.remove("hidden");
+        document.getElementById("financeDespesasPanel")?.classList.toggle("hidden", view !== "despesas");
+        document.getElementById("financeContasPagarPanel")?.classList.toggle("hidden", view !== "contas_pagar");
+        document.getElementById("financeContasReceberPanel")?.classList.toggle("hidden", view !== "contas_receber");
+        if (view !== "receitas" && view !== "despesas") financeLancList?.classList.remove("hidden");
+        if (!financeIsPagarView(view) && !financeIsReceberView(view)) {
+          document.getElementById("financeContasTableShell")?.classList.remove("hidden");
+        }
         applyFinanceSubTabShell(view);
         renderFinance();
         if (financeIsSubTabView(view)) scrollFinanceSubtabIntoView();
@@ -16944,6 +17783,96 @@
         const btn = e.target.closest("[data-action='ver-comprovante']");
         if (!btn) return;
         openFinanceAttachment(btn.getAttribute("data-kind"), btn.getAttribute("data-id"));
+      });
+      document.getElementById("financeDespesasSubnav")?.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-despesas-sub]");
+        if (!btn) return;
+        setDespesasSubView(btn.getAttribute("data-despesas-sub"));
+      });
+      document.getElementById("financeDespesasPanel")?.addEventListener("click", (e) => {
+        const gotoBtn = e.target.closest("[data-despesas-goto]");
+        if (gotoBtn) {
+          setDespesasSubView(gotoBtn.getAttribute("data-despesas-goto"));
+          return;
+        }
+        const btn = e.target.closest("[data-action='ver-comprovante']");
+        if (!btn) return;
+        openFinanceAttachment(btn.getAttribute("data-kind"), btn.getAttribute("data-id"));
+      });
+      document.getElementById("financeDespesasNovaBtn")?.addEventListener("click", () => {
+        openLancamentoModal("DESPESA", { lockTipo: true, presetModo: "UNICA" });
+      });
+      document.getElementById("financeDespesasNovaRecorrenteBtn")?.addEventListener("click", () => {
+        openLancamentoModal("DESPESA", { lockTipo: true, presetModo: "RECORRENTE" });
+      });
+      document.getElementById("financeDespesasNovaParceladaBtn")?.addEventListener("click", () => {
+        openLancamentoModal("DESPESA", { lockTipo: true, presetModo: "PARCELADA" });
+      });
+      document.getElementById("financeDespesasAddCategoryBtn")?.addEventListener("click", () => {
+        const input = document.getElementById("financeDespesasCategoryInput");
+        const label = input?.value?.trim();
+        if (!label) return;
+        if (!addFinanceCustomCategory("DESPESA", label)) {
+          alert("Categoria já existe ou nome inválido.");
+          return;
+        }
+        if (input) input.value = "";
+        syncLancamentoCategoriaOptions();
+        renderFinanceCategoryTags("DESPESA");
+        renderFinance();
+      });
+      document.getElementById("financeDespesasCategoryTags")?.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-action='remover-categoria']");
+        if (!btn) return;
+        const value = btn.getAttribute("data-value");
+        if (!removeFinanceCustomCategory("DESPESA", value)) return;
+        syncLancamentoCategoriaOptions();
+        renderFinanceCategoryTags("DESPESA");
+        renderFinance();
+      });
+      document.getElementById("financeDespesasCadastroPrev")?.addEventListener("click", () => {
+        lancamentosPagination.page = Math.max(1, Number(lancamentosPagination.page || 1) - 1);
+        renderFinance();
+      });
+      document.getElementById("financeDespesasCadastroNext")?.addEventListener("click", () => {
+        lancamentosPagination.page = Number(lancamentosPagination.page || 1) + 1;
+        renderFinance();
+      });
+      document.getElementById("financeContasPagarSubnav")?.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-contas-pagar-sub]");
+        if (!btn) return;
+        setContasPagarSubView(btn.getAttribute("data-contas-pagar-sub"));
+      });
+      document.getElementById("financeContasPagarPanel")?.addEventListener("click", (e) => {
+        const gotoBtn = e.target.closest("[data-contas-pagar-goto]");
+        if (gotoBtn) {
+          setContasPagarSubView(gotoBtn.getAttribute("data-contas-pagar-goto"));
+          return;
+        }
+        const btn = e.target.closest("[data-action='ver-comprovante']");
+        if (!btn) return;
+        openFinanceAttachment(btn.getAttribute("data-kind"), btn.getAttribute("data-id"));
+      });
+      document.getElementById("financeContasPagarNovaBtn")?.addEventListener("click", () => {
+        openLancamentoModal("DESPESA", { lockTipo: true, presetModo: "UNICA" });
+      });
+      document.getElementById("financeContasReceberSubnav")?.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-contas-receber-sub]");
+        if (!btn) return;
+        setContasReceberSubView(btn.getAttribute("data-contas-receber-sub"));
+      });
+      document.getElementById("financeContasReceberPanel")?.addEventListener("click", (e) => {
+        const gotoBtn = e.target.closest("[data-contas-receber-goto]");
+        if (gotoBtn) {
+          setContasReceberSubView(gotoBtn.getAttribute("data-contas-receber-goto"));
+          return;
+        }
+        const btn = e.target.closest("[data-action='ver-comprovante']");
+        if (!btn) return;
+        openFinanceAttachment(btn.getAttribute("data-kind"), btn.getAttribute("data-id"));
+      });
+      document.getElementById("financeContasReceberNovaBtn")?.addEventListener("click", () => {
+        openLancamentoModal("RECEITA", { lockTipo: true, presetModo: "UNICA" });
       });
       document.getElementById("financeAddCategoryBtn")?.addEventListener("click", () => {
         const input = document.getElementById("financeNewCategoryInput");
