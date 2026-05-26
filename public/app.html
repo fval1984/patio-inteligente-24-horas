@@ -3430,6 +3430,53 @@
       #financeContent.modal-backdrop {
         margin-top: 0 !important;
       }
+      #viewFinanceiro.finance-module-shell.finance-subtab-modal-open,
+      #viewPatio.patio-module-shell.patio-subtab-modal-open {
+        overflow: visible !important;
+      }
+      #financeContent.finance-fintracker.modal-backdrop.tab-view-modal {
+        position: fixed !important;
+        inset: 0 !important;
+        width: auto !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 20px !important;
+        border: none !important;
+        border-radius: 0 !important;
+        background: rgba(15, 23, 42, 0.55) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        overflow: visible !important;
+        z-index: 190 !important;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+      }
+      [data-theme="light"] #financeContent.finance-fintracker.modal-backdrop.tab-view-modal {
+        background: rgba(15, 23, 42, 0.45) !important;
+      }
+      #financeContent.finance-fintracker.modal-backdrop.tab-view-modal > .modal.modal--wide {
+        width: min(1180px, 96vw);
+        max-height: calc(100vh - 40px);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      #financeContent.finance-fintracker.modal-backdrop.tab-view-modal .tab-modal-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        max-height: calc(100vh - 140px);
+      }
+      #financeContent.finance-fintracker.modal-backdrop.tab-view-modal #financeSubviewIntro {
+        display: none !important;
+      }
+      #financeContent.finance-fintracker.modal-backdrop.tab-view-modal #financeFiltersHub {
+        margin-bottom: 12px;
+      }
       .tab-modal-backdrop {
         position: fixed;
         inset: 0;
@@ -8307,6 +8354,19 @@
         fechando_ciclo: { title: "Fechando ciclo", subtitle: "Triagem antes do financeiro" },
       };
 
+      const FINANCE_TAB_LABELS = {
+        receitas: { title: "Controle de Receitas", subtitle: "Cadastro, categorias e histórico" },
+        despesas: { title: "Controle de Despesas", subtitle: "Despesas fixas e variáveis" },
+        contas_pagar: { title: "Contas a Pagar", subtitle: "Títulos, vencimentos e pagamentos" },
+        contas_receber: { title: "Contas a Receber", subtitle: "Cobrança e baixa de títulos" },
+        aguardando_faturamento: {
+          title: "Aguardando Faturamento",
+          subtitle: "Veículos removidos aguardando fatura",
+        },
+        clientes: { title: "Clientes", subtitle: "Base de localizadores (RPV)" },
+        relatorios: { title: "Relatórios", subtitle: "DRE e exportações" },
+      };
+
       const MODULE_VIEWS = ["patio", "financeiro", "lista", "parceiros", "configuracoes"];
 
       const MODULE_VIEW_IDS = {
@@ -8341,12 +8401,34 @@
         else appPanel.appendChild(el);
       }
 
-      function cleanupFloatingTabModals() {
-        document.getElementById("patioContent")?.classList.add("hidden");
-        document.getElementById("financeContent")?.classList.add("hidden");
+      function cleanupFloatingTabModals(activeView) {
+        if (activeView !== "patio") document.getElementById("patioContent")?.classList.add("hidden");
+        if (activeView !== "financeiro") document.getElementById("financeContent")?.classList.add("hidden");
       }
 
-      function ensureTabModalShell(backdropEl, onClose) {
+      function getFinanceTabModalBody() {
+        const financeContent = document.getElementById("financeContent");
+        return financeContent?.querySelector(":scope > .modal.modal--wide > .tab-modal-body") || null;
+      }
+
+      function syncFinanceModalChrome(active) {
+        const hub = document.getElementById("financeFiltersHub");
+        const viewFinanceiro = document.getElementById("viewFinanceiro");
+        const financeInicioPanel = document.getElementById("financeInicioPanel");
+        const modalBody = getFinanceTabModalBody();
+        if (!hub || !viewFinanceiro) return;
+        if (active && modalBody) {
+          hub.classList.remove("hidden");
+          if (!modalBody.contains(hub)) modalBody.insertBefore(hub, modalBody.firstChild);
+          return;
+        }
+        hub.classList.add("hidden");
+        if (financeInicioPanel && !viewFinanceiro.contains(hub)) {
+          financeInicioPanel.insertAdjacentElement("beforebegin", hub);
+        }
+      }
+
+      function ensureTabModalShell(backdropEl, onClose, options = {}) {
         if (!backdropEl) return backdropEl;
         if (backdropEl.dataset.tabModalReady !== "1") {
           backdropEl.dataset.tabModalReady = "1";
@@ -8387,7 +8469,7 @@
           });
           panel.addEventListener("click", (e) => e.stopPropagation());
         }
-        relocateTabModalEl(backdropEl);
+        if (!options.keepInPlace) relocateTabModalEl(backdropEl);
         return backdropEl;
       }
 
@@ -8501,7 +8583,7 @@
 
         const financeContent = document.getElementById("financeContent");
         if (financeContent) {
-          ensureTabModalShell(financeContent, returnToPainelFromFinanceFlyout);
+          ensureTabModalShell(financeContent, returnToPainelFromFinanceFlyout, { keepInPlace: true });
         }
       }
 
@@ -8563,7 +8645,16 @@
       }
 
       function financeIsSubTabView(view) {
-        return ["receitas", "despesas", "contas_pagar", "contas_receber"].includes(financeNormalizeSubview(view));
+        const v = financeNormalizeSubview(view);
+        return [
+          "receitas",
+          "despesas",
+          "contas_pagar",
+          "contas_receber",
+          "aguardando_faturamento",
+          "clientes",
+          "relatorios",
+        ].includes(v);
       }
 
       function scrollFinanceSubtabIntoView() {
@@ -8580,16 +8671,17 @@
       function applyFinanceSubTabShell(view) {
         const stdArea = document.getElementById("financeStandardArea");
         const flySummary = document.getElementById("financeFlyoutSummaryCards");
-        const isSubTab = financeIsSubTabView(view);
-        if (financeIsDashboardView(view)) {
+        if (financeIsDashboardView(view) || !view || view === "none") {
           stdArea?.classList.add("hidden");
           flySummary?.classList.add("hidden");
           return;
         }
-        if (isSubTab) {
+        if (view === "clientes") {
+          stdArea?.classList.add("hidden");
+        } else {
           stdArea?.classList.remove("hidden");
-          flySummary?.classList.add("hidden");
         }
+        flySummary?.classList.add("hidden");
       }
 
       function financeNormalizeSubview(view) {
@@ -14555,6 +14647,7 @@
         document.getElementById("patioPlateSearchBar")?.classList.toggle("hidden", isDashboard || isInicio);
         const patioRoot = document.getElementById("viewPatio");
         patioRoot?.classList.remove("patio-flyout-open", "patio-subview-fullscreen");
+        patioRoot?.classList.toggle("patio-subtab-modal-open", isContentView);
         patioFlyoutBackdrop?.classList.add("hidden");
         const patioContent = document.getElementById("patioContent");
         const patioInicioPanel = document.getElementById("patioInicioPanel");
@@ -16977,7 +17070,7 @@
           receivableAlert.classList.add("hidden");
           if (financeContent) financeContent.classList.add("hidden");
           document.getElementById("financeInicioPanel")?.classList.add("hidden");
-          financeRoot?.classList.remove("finance-flyout-open", "finance-subview-fullscreen");
+          financeRoot?.classList.remove("finance-flyout-open", "finance-subview-fullscreen", "finance-subtab-modal-open");
           financeSidebarOpen = false;
           financeRoot?.classList.remove("finance-sidebar-open");
           if (financeSidebarToggle) financeSidebarToggle.setAttribute("aria-expanded", "false");
@@ -16986,6 +17079,7 @@
           document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
           document.getElementById("financeReceberFilters")?.classList.add("hidden");
           document.getElementById("financePagarFilters")?.classList.add("hidden");
+          syncFinanceModalChrome(false);
           renderFinance();
           return;
         }
@@ -16999,7 +17093,7 @@
           financeIsReceberView(view) && financeContasReceberSubShowsTable(currentContasReceberSubView);
         const showPagarFilters =
           financeIsPagarView(view) && financeContasPagarSubShowsTable(currentContasPagarSubView);
-        financeFiltersHub?.classList.toggle("hidden", !showFiltersHub);
+        financeFiltersHub?.classList.toggle("hidden", !showFinanceContent && !showFiltersHub);
         if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", !showPlateSearchFilter);
         financeRoot?.classList.toggle("finance-flyout-open", false);
         financeFlyoutBackdrop?.classList.toggle("hidden", true);
@@ -17014,14 +17108,19 @@
         }
         const isTabModalView = !isNone && !isInicio;
         const showFinanceContent = isTabModalView && !isFiltersView;
+        financeRoot?.classList.toggle("finance-subtab-modal-open", isTabModalView);
         if (financeContent) {
           financeContent.classList.toggle("hidden", !showFinanceContent);
           if (showFinanceContent) {
-            ensureTabModalShell(financeContent, returnToPainelFromFinanceFlyout);
-            setTabModalMeta(financeContent, pageTitle, "");
+            ensureTabModalShell(financeContent, returnToPainelFromFinanceFlyout, { keepInPlace: true });
+            const tabMeta = FINANCE_TAB_LABELS[view] || { title: pageTitle, subtitle: "" };
+            setTabModalMeta(financeContent, tabMeta.title, tabMeta.subtitle);
+            syncFinanceModalChrome(true);
             financeContent.classList.remove("air-open");
             void financeContent.offsetWidth;
             financeContent.classList.add("air-open");
+          } else {
+            syncFinanceModalChrome(false);
           }
         }
         financeRoot?.classList.remove("finance-flyout-open", "finance-subview-fullscreen");
@@ -17190,9 +17289,7 @@
         setFinanceView("none");
       }
       function returnToPainelFromFinanceFlyout() {
-        setFinanceView("none");
         navStack.splice(0, navStack.length, "financeiro", "financeiro:inicio");
-        showMainView("financeiro");
         setFinanceView("inicio");
       }
       patioFlyoutBackdrop?.addEventListener("click", returnToPainelFromPatioFlyout);
@@ -18732,7 +18829,7 @@
           document.getElementById("viewFinanceiro")?.classList.remove("finance-flyout-open", "finance-subview-fullscreen");
           setFinanceView("none");
         }
-        cleanupFloatingTabModals();
+        cleanupFloatingTabModals(view);
         document.querySelectorAll("#appHeaderMenu button[data-view]").forEach((btn) => {
           btn.classList.toggle("active", btn.getAttribute("data-view") === view);
         });
