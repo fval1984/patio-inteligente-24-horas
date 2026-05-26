@@ -4306,6 +4306,15 @@
         flex-direction: column;
         gap: 20px;
       }
+      /* Painéis com display:flex no tema FinTracker precisam respeitar .hidden */
+      #viewFinanceiro.finance-fintracker .finance-ft-dashboard.hidden,
+      #viewFinanceiro .finance-receitas-panel.hidden,
+      #viewFinanceiro #financeStandardArea.hidden,
+      #viewFinanceiro #financeClientesArea.hidden,
+      #viewFinanceiro #financeFlyoutSummaryCards.hidden,
+      #viewFinanceiro #financeClosureArea.hidden {
+        display: none !important;
+      }
       #viewFinanceiro.finance-fintracker .finance-ft-page-intro h3 {
         margin: 0 0 4px;
         font-size: 1.35rem;
@@ -7755,15 +7764,19 @@
       function applyFinanceSubTabShell(view) {
         const dashArea = document.getElementById("financeDetailDashboard");
         const stdArea = document.getElementById("financeStandardArea");
+        const flySummary = document.getElementById("financeFlyoutSummaryCards");
+        const isDashboard = view === "dashboard";
         const isSubTab = financeIsSubTabView(view);
-        if (view === "dashboard") {
+        if (isDashboard) {
           dashArea?.classList.remove("hidden");
           stdArea?.classList.add("hidden");
+          flySummary?.classList.add("hidden");
           return;
         }
+        dashArea?.classList.add("hidden");
         if (isSubTab) {
-          dashArea?.classList.add("hidden");
           stdArea?.classList.remove("hidden");
+          flySummary?.classList.add("hidden");
         }
       }
 
@@ -14292,11 +14305,13 @@
           if (cloArea) cloArea.classList.add("hidden");
           if (dashArea) dashArea.classList.add("hidden");
           document.getElementById("financeClientesArea")?.classList.add("hidden");
+          document.getElementById("financeFlyoutSummaryCards")?.classList.add("hidden");
         };
         const showFinanceDashboardOnly = () => {
           if (stdArea) stdArea.classList.add("hidden");
           if (cloArea) cloArea.classList.add("hidden");
           if (dashArea) dashArea.classList.remove("hidden");
+          document.getElementById("financeFlyoutSummaryCards")?.classList.add("hidden");
         };
         const monthKeyFin = financeCompetencia || currentYearMonthLocal();
         const entradasMesDiarias = sumReceivableRevenueByMonth(monthKeyFin, state.receivables || [], state.cash || []);
@@ -14487,7 +14502,9 @@
           }
           return;
         }
-        if (flySummary) flySummary.classList.remove("hidden");
+        if (flySummary) {
+          flySummary.classList.toggle("hidden", financeIsSubTabView(currentFinanceView) || currentFinanceView === "dashboard");
+        }
         if (caixaResumoPanel) caixaResumoPanel.classList.add("hidden");
         if (financeStdTableWrap) financeStdTableWrap.classList.remove("hidden");
 
@@ -14533,7 +14550,7 @@
 
         if (financeIsLancamentosView(currentFinanceView)) {
           renderFinanceSubviewIntro(currentFinanceView);
-          if (flySummary) flySummary.classList.remove("hidden");
+          if (flySummary) flySummary.classList.add("hidden");
           setFinanceLancListMode(true);
           const qBusca = String(lancamentosFilter.busca || "").trim().toLowerCase();
           const cashByReceivable = new Map(
