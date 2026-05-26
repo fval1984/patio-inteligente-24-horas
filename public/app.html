@@ -2875,6 +2875,23 @@
         background: rgba(148, 163, 184, 0.12);
         border-color: rgba(148, 163, 184, 0.22);
       }
+      #financeStandardArea.finance-subtab-open {
+        animation: financeSubtabIn 0.22s ease;
+      }
+      @keyframes financeSubtabIn {
+        from { opacity: 0.55; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      #viewFinanceiro .finance-ft-kpi-card[data-finance-subtab],
+      #viewFinanceiro .finance-ft-resumo-card[data-finance-subtab] {
+        cursor: pointer;
+        transition: box-shadow 0.15s ease, transform 0.15s ease;
+      }
+      #viewFinanceiro .finance-ft-kpi-card[data-finance-subtab]:hover,
+      #viewFinanceiro .finance-ft-resumo-card[data-finance-subtab]:hover {
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+        transform: translateY(-1px);
+      }
       .finance-fase4-panel {
         margin-top: 18px;
         padding-top: 16px;
@@ -5690,7 +5707,7 @@
                     <div class="finance-ft-kpi-sub" id="fdSaldoTotalMeta">Posição consolidada</div>
                   </div>
                 </div>
-                <div class="finance-ft-kpi-card finance-ft-kpi-card--teal">
+                <div class="finance-ft-kpi-card finance-ft-kpi-card--teal" data-finance-subtab="receitas" role="button" tabindex="0" title="Abrir Controle de Receitas">
                   <div class="finance-ft-kpi-icon" aria-hidden="true">📈</div>
                   <div>
                     <div class="finance-ft-kpi-label">Receitas do mês</div>
@@ -5698,7 +5715,7 @@
                     <div class="finance-ft-kpi-sub" id="fdReceitasMesMeta">Entradas no período</div>
                   </div>
                 </div>
-                <div class="finance-ft-kpi-card finance-ft-kpi-card--red">
+                <div class="finance-ft-kpi-card finance-ft-kpi-card--red" data-finance-subtab="despesas" role="button" tabindex="0" title="Abrir Controle de Despesas">
                   <div class="finance-ft-kpi-icon" aria-hidden="true">📉</div>
                   <div>
                     <div class="finance-ft-kpi-label">Despesas do mês</div>
@@ -5711,7 +5728,7 @@
                   <strong id="fdLucroLiquido">R$ 0,00</strong>
                   <div class="finance-ft-kpi-sub" id="fdLucroLiquidoMeta">Receitas − despesas operacionais</div>
                 </div>
-                <div class="finance-ft-kpi-card finance-ft-kpi-card--amber">
+                <div class="finance-ft-kpi-card finance-ft-kpi-card--amber" data-finance-subtab="contas_pagar" role="button" tabindex="0" title="Abrir Contas a Pagar">
                   <div class="finance-ft-kpi-icon" aria-hidden="true">📤</div>
                   <div>
                     <div class="finance-ft-kpi-label">Contas a pagar</div>
@@ -5719,7 +5736,7 @@
                     <div class="finance-ft-kpi-sub" id="fdContasPagarMeta">0 título(s) pendente(s)</div>
                   </div>
                 </div>
-                <div class="finance-ft-kpi-card finance-ft-kpi-card--amber">
+                <div class="finance-ft-kpi-card finance-ft-kpi-card--amber" data-finance-subtab="contas_receber" role="button" tabindex="0" title="Abrir Contas a Receber">
                   <div class="finance-ft-kpi-icon" aria-hidden="true">📥</div>
                   <div>
                     <div class="finance-ft-kpi-label">Contas a receber</div>
@@ -5893,7 +5910,7 @@
                 </table>
               </div>
             </div>
-            <div id="financeStandardArea">
+            <div id="financeStandardArea" class="finance-subtab-shell">
               <button type="button" class="secondary finance-flyout-close" id="financeFlyoutClose" aria-label="Fechar subaba">X</button>
               <div id="financeSubviewIntro" class="section-card finance-subview-intro hidden" style="margin-top: 0">
                 <h3 id="financeSubviewTitle">—</h3>
@@ -7718,6 +7735,37 @@
         relatorios: "Relatórios",
         faturamento: "Faturamento",
       };
+
+      function financeIsSubTabView(view) {
+        return ["receitas", "despesas", "contas_pagar", "contas_receber"].includes(financeNormalizeSubview(view));
+      }
+
+      function scrollFinanceSubtabIntoView() {
+        const main = document.querySelector("#viewFinanceiro .finance-modern-main");
+        const shell = document.getElementById("financeStandardArea");
+        if (main) main.scrollTop = 0;
+        if (shell) {
+          shell.classList.remove("finance-subtab-open");
+          void shell.offsetWidth;
+          shell.classList.add("finance-subtab-open");
+          shell.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+
+      function applyFinanceSubTabShell(view) {
+        const dashArea = document.getElementById("financeDetailDashboard");
+        const stdArea = document.getElementById("financeStandardArea");
+        const isSubTab = financeIsSubTabView(view);
+        if (view === "dashboard") {
+          dashArea?.classList.remove("hidden");
+          stdArea?.classList.add("hidden");
+          return;
+        }
+        if (isSubTab) {
+          dashArea?.classList.add("hidden");
+          stdArea?.classList.remove("hidden");
+        }
+      }
 
       function financeNormalizeSubview(view) {
         if (!view || view === "none") return view;
@@ -15251,7 +15299,9 @@
         }
         document.getElementById("financeReceitasPanel")?.classList.toggle("hidden", view !== "receitas");
         if (view !== "receitas") financeLancList?.classList.remove("hidden");
+        applyFinanceSubTabShell(view);
         renderFinance();
+        if (financeIsSubTabView(view)) scrollFinanceSubtabIntoView();
       }
 
       function renderFinanceClientes() {
@@ -16585,11 +16635,7 @@
         });
       }
       bindModuleCardActivate(document.getElementById("cardFinanceReceberLink"), () => openFinanceSubview("contas_receber"));
-      bindModuleCardActivate(document.getElementById("cardFinancePagarLink"), () => {
-        lancamentosFilter.tipo = "DESPESA";
-        if (financeLancTipo) financeLancTipo.value = "DESPESA";
-        openFinanceSubview("despesas");
-      });
+      bindModuleCardActivate(document.getElementById("cardFinancePagarLink"), () => openFinanceSubview("contas_pagar"));
       bindModuleCardActivate(document.getElementById("cardFinanceCaixaLink"), () => openFinanceSubview("dashboard"));
 
       document.getElementById("financeExportDreBtn")?.addEventListener("click", exportFinanceDreCsv);
@@ -16599,9 +16645,22 @@
         renderFinanceConciliacaoPanel();
       });
       document.getElementById("financeDetailDashboard")?.addEventListener("click", (e) => {
-        const btn = e.target.closest("[data-finance-quick]");
-        if (!btn) return;
-        openFinanceSubview(btn.getAttribute("data-finance-quick"));
+        const quickBtn = e.target.closest("[data-finance-quick]");
+        if (quickBtn) {
+          openFinanceSubview(quickBtn.getAttribute("data-finance-quick"));
+          return;
+        }
+        const subBtn = e.target.closest("[data-finance-subtab]");
+        if (subBtn) {
+          openFinanceSubview(subBtn.getAttribute("data-finance-subtab"));
+        }
+      });
+      document.getElementById("financeDetailDashboard")?.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        const subBtn = e.target.closest("[data-finance-subtab]");
+        if (!subBtn) return;
+        e.preventDefault();
+        openFinanceSubview(subBtn.getAttribute("data-finance-subtab"));
       });
       document.getElementById("financeNovoClienteBtn")?.addEventListener("click", () => {
         currentPartnerView = "localizadores";
@@ -16935,10 +16994,8 @@
           financeFocusMetaGoalCard = true;
           sub = "dashboard";
         }
-        if (top === `financeiro:${sub}`) {
-          return;
-        }
-        if (top && typeof top === "string" && top.startsWith("financeiro:")) navStack.pop();
+        const sameSub = top === `financeiro:${sub}`;
+        if (top && typeof top === "string" && top.startsWith("financeiro:") && !sameSub) navStack.pop();
 
         if (sub === "dashboard") {
           closeFinanceMenu?.();
@@ -16948,7 +17005,7 @@
           } else {
             showMainView("financeiro");
           }
-          navStack.push("financeiro:dashboard");
+          if (!sameSub) navStack.push("financeiro:dashboard");
           setFinanceView("dashboard");
           return;
         }
@@ -16960,7 +17017,7 @@
           showMainView("financeiro");
         }
 
-        navStack.push(`financeiro:${sub}`);
+        if (!sameSub) navStack.push(`financeiro:${sub}`);
         setFinanceView(sub);
       }
 
