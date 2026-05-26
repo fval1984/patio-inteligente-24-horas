@@ -3527,6 +3527,18 @@
         border-color: var(--ft-border);
         background: var(--ft-surface-elevated);
       }
+      #financeContent.finance-fintracker.tab-view-modal .finance-receitas-panel.hidden,
+      #financeContent.finance-fintracker.tab-view-modal .finance-submodule-panel.hidden,
+      #financeContent.finance-fintracker.tab-view-modal #financeStandardArea.hidden,
+      #financeContent.finance-fintracker.tab-view-modal #financeClientesArea.hidden,
+      #financeContent.finance-fintracker.tab-view-modal #financeClosureArea.hidden,
+      #financeContent.finance-fintracker.tab-view-modal #financeFlyoutSummaryCards.hidden,
+      #financeContent.finance-fintracker.tab-view-modal #financeContasTableShell.hidden {
+        display: none !important;
+      }
+      #financeContent.finance-fintracker.tab-view-modal .finance-receitas-page.hidden {
+        display: none !important;
+      }
       #financeContent.finance-fintracker.modal-backdrop.tab-view-modal:not(.hidden) {
         z-index: 200 !important;
       }
@@ -5870,154 +5882,6 @@
           <div id="financeSidebarBackdrop" class="hidden" aria-hidden="true"></div>
           <div id="financeFlyoutBackdrop" class="finance-flyout-backdrop hidden"></div>
           <div id="receivableAlert" class="alert hidden"></div>
-          <div id="financeFiltersHub" class="hidden">
-          <form id="financePlateSearchForm" class="filter-bar finance-filter-panel" style="margin: 8px 0 10px" action="#" novalidate>
-            <label for="financePlateFilter">Placa</label>
-            <input
-              id="financePlateFilter"
-              name="financePlate"
-              type="text"
-              inputmode="text"
-              placeholder="Placa completa ou parte (ex.: ABC1 ou ABC1D23)"
-              maxlength="20"
-              autocomplete="off"
-              autocorrect="off"
-              autocapitalize="characters"
-              spellcheck="false"
-            />
-            <button type="submit">Buscar</button>
-            <button type="button" class="secondary" id="clearFinancePlateFilter">Limpar</button>
-          </form>
-          <div id="financeReceberFilters" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; flex-wrap: wrap; align-items: center">
-            <span class="notice" style="font-weight: 600">Receber — filtros:</span>
-            <label for="financeReceberFilterLoc">RPV (remoção)</label>
-            <select id="financeReceberFilterLoc" style="min-width: 10rem">
-              <option value="">Todos</option>
-            </select>
-            <label for="financeReceberFilterAss">Assessoria</label>
-            <select id="financeReceberFilterAss" style="min-width: 10rem">
-              <option value="">Todas</option>
-            </select>
-            <label for="financeReceberFilterResp">RPF (responsável financeiro)</label>
-            <select id="financeReceberFilterResp" style="min-width: 11rem">
-              <option value="">Todos</option>
-            </select>
-            <button type="button" class="secondary" id="clearFinanceReceberFilters">Limpar filtros</button>
-            <label for="financeReceberFilterStatus">Situação</label>
-            <select id="financeReceberFilterStatus" style="min-width: 10rem">
-              <option value="aberto">Em aberto</option>
-              <option value="vencido">Vencidas</option>
-              <option value="vencendo">Vencendo (7 dias)</option>
-              <option value="pago">Pagas (histórico)</option>
-              <option value="todas">Todas</option>
-            </select>
-            <input id="financeReceberFilterBusca" type="search" placeholder="Buscar cliente…" style="min-width: 11rem" />
-            <span class="notice" style="flex-basis: 100%; margin-top: 6px; line-height: 1.45">
-              Esses filtros aplicam-se apenas à subaba <strong>Contas a Receber</strong>.
-            </span>
-          </div>
-          <div id="financePagarFilters" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; flex-wrap: wrap; align-items: center">
-            <span class="notice" style="font-weight: 600">Contas a Pagar — filtros:</span>
-            <label for="financePagarFilterStatus">Situação</label>
-            <select id="financePagarFilterStatus" style="min-width: 10rem">
-              <option value="aberto">Em aberto</option>
-              <option value="vencido">Vencidas</option>
-              <option value="vencendo">Vencendo (7 dias)</option>
-              <option value="pago">Pagas (histórico)</option>
-              <option value="todas">Todas</option>
-            </select>
-            <input id="financePagarFilterBusca" type="search" placeholder="Buscar fornecedor ou descrição…" style="min-width: 12rem" />
-            <button type="button" class="secondary" id="clearFinancePagarFilters">Limpar filtros</button>
-            <span class="notice" style="flex-basis: 100%; margin-top: 6px; line-height: 1.45">
-              Filtros da subaba <strong>Contas a Pagar</strong> — vencidas, a vencer e histórico de pagamentos.
-            </span>
-          </div>
-          <p id="financeAguardandoIntro" class="notice hidden" style="margin: 4px 0 14px; max-width: 56rem; line-height: 1.45"></p>
-          <div id="financeFilters" class="filter-bar finance-filter-panel hidden">
-            <label for="filterFrom">De</label>
-            <input id="filterFrom" type="date" />
-            <label for="filterTo">Até</label>
-            <input id="filterTo" type="date" />
-            <span id="financeReportExtraFilters" class="hidden" style="display: contents">
-              <label for="reportTipoFiltro">Tipo</label>
-              <select id="reportTipoFiltro">
-                <option value="">Todos</option>
-                <option value="RECEITA">Receita</option>
-                <option value="DESPESA">Despesa</option>
-              </select>
-              <label for="reportCategoriaFiltro">Categoria</label>
-              <select id="reportCategoriaFiltro">
-                <option value="">Todas</option>
-              </select>
-              <label for="reportClienteFiltro">Cliente</label>
-              <select id="reportClienteFiltro">
-                <option value="">Todos</option>
-              </select>
-              <label for="reportFornecedorFiltro">Fornecedor</label>
-              <select id="reportFornecedorFiltro">
-                <option value="">Todos</option>
-              </select>
-            </span>
-            <button class="secondary" id="applyFilter">Aplicar</button>
-            <button class="secondary" id="clearFilter">Limpar</button>
-            <button class="secondary" id="quick7">Últimos 7 dias</button>
-            <button class="secondary" id="quick30">Últimos 30 dias</button>
-            <button class="secondary" id="quick90">Últimos 90 dias</button>
-            <button class="secondary" id="exportHistory">Exportar Excel (CSV)</button>
-          </div>
-          <div id="financeLancamentosFilters" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; flex-wrap: wrap; align-items: center">
-            <div class="finance-lanc-simple-filters" style="width: 100%; margin: 0">
-              <input id="financeLancBusca" type="search" placeholder="Buscar lançamentos…" style="flex: 1; min-width: 180px" />
-              <select id="financeLancTipo">
-                <option value="">Todos os tipos</option>
-                <option value="RECEITA">Receitas</option>
-                <option value="DESPESA">Despesas</option>
-              </select>
-              <select id="financeLancStatus">
-                <option value="">Todos os status</option>
-                <option value="ABERTO">Pendente</option>
-                <option value="PAGO">Pago</option>
-              </select>
-              <button type="button" class="secondary" id="financeLancLimpar">Limpar</button>
-            </div>
-            <select id="financeLancCategoria" class="hidden" aria-hidden="true"><option value="">Todas</option></select>
-            <select id="financeLancSubcategoria" class="hidden" aria-hidden="true"><option value="">Todas</option></select>
-            <select id="financeLancFormaPagamento" class="hidden" aria-hidden="true"><option value="">Todas</option></select>
-            <select id="financeLancCompetencia" class="hidden" aria-hidden="true"><option value="">Todas</option></select>
-          </div>
-          <div id="financeLancamentosToolbar" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; gap: 8px; flex-wrap: wrap; align-items: center">
-            <span class="notice" style="font-weight: 600">Tabela:</span>
-            <label for="financeLancSortBy">Ordenar por</label>
-            <select id="financeLancSortBy">
-              <option value="data">Data</option>
-              <option value="valor">Valor</option>
-              <option value="tipo">Tipo</option>
-              <option value="status">Status</option>
-              <option value="categoria">Categoria</option>
-              <option value="competencia">Competência</option>
-            </select>
-            <label for="financeLancSortDir">Direção</label>
-            <select id="financeLancSortDir">
-              <option value="desc">Decrescente</option>
-              <option value="asc">Crescente</option>
-            </select>
-            <label for="financeLancPageSize">Itens por página</label>
-            <select id="financeLancPageSize">
-              <option value="10">10</option>
-              <option value="20" selected>20</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-            <button type="button" class="secondary" id="financeLancOpenPanel">Filtros avançados</button>
-            <span id="financeLancResultCount" class="notice">0 registros</span>
-          </div>
-          <div id="financeCaixaFilters" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; flex-wrap: wrap; align-items: center">
-            <span class="notice" style="font-weight: 600">Fluxo de caixa — mês:</span>
-            <label for="financeCaixaMonth">Competência</label>
-            <input id="financeCaixaMonth" type="month" />
-            <button type="button" class="secondary" id="financeCaixaMonthAtual">Mês atual</button>
-          </div>
-          </div>
           <div id="financeInicioPanel" class="section-card fin-dash-panel finance-ft-dashboard finance-inicio-panel hidden">
             <div class="finance-ft-page-intro">
               <h3>Dashboard</h3>
@@ -6213,6 +6077,154 @@
             </div>
           </div>
           <div id="financeContent" class="hidden finance-fintracker">
+            <div id="financeFiltersHub" class="hidden">
+              <form id="financePlateSearchForm" class="filter-bar finance-filter-panel" style="margin: 8px 0 10px" action="#" novalidate>
+                <label for="financePlateFilter">Placa</label>
+                <input
+                  id="financePlateFilter"
+                  name="financePlate"
+                  type="text"
+                  inputmode="text"
+                  placeholder="Placa completa ou parte (ex.: ABC1 ou ABC1D23)"
+                  maxlength="20"
+                  autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="characters"
+                  spellcheck="false"
+                />
+                <button type="submit">Buscar</button>
+                <button type="button" class="secondary" id="clearFinancePlateFilter">Limpar</button>
+              </form>
+              <div id="financeReceberFilters" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; flex-wrap: wrap; align-items: center">
+                <span class="notice" style="font-weight: 600">Receber — filtros:</span>
+                <label for="financeReceberFilterLoc">RPV (remoção)</label>
+                <select id="financeReceberFilterLoc" style="min-width: 10rem">
+                  <option value="">Todos</option>
+                </select>
+                <label for="financeReceberFilterAss">Assessoria</label>
+                <select id="financeReceberFilterAss" style="min-width: 10rem">
+                  <option value="">Todas</option>
+                </select>
+                <label for="financeReceberFilterResp">RPF (responsável financeiro)</label>
+                <select id="financeReceberFilterResp" style="min-width: 11rem">
+                  <option value="">Todos</option>
+                </select>
+                <button type="button" class="secondary" id="clearFinanceReceberFilters">Limpar filtros</button>
+                <label for="financeReceberFilterStatus">Situação</label>
+                <select id="financeReceberFilterStatus" style="min-width: 10rem">
+                  <option value="aberto">Em aberto</option>
+                  <option value="vencido">Vencidas</option>
+                  <option value="vencendo">Vencendo (7 dias)</option>
+                  <option value="pago">Pagas (histórico)</option>
+                  <option value="todas">Todas</option>
+                </select>
+                <input id="financeReceberFilterBusca" type="search" placeholder="Buscar cliente…" style="min-width: 11rem" />
+                <span class="notice" style="flex-basis: 100%; margin-top: 6px; line-height: 1.45">
+                  Esses filtros aplicam-se apenas à subaba <strong>Contas a Receber</strong>.
+                </span>
+              </div>
+              <div id="financePagarFilters" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; flex-wrap: wrap; align-items: center">
+                <span class="notice" style="font-weight: 600">Contas a Pagar — filtros:</span>
+                <label for="financePagarFilterStatus">Situação</label>
+                <select id="financePagarFilterStatus" style="min-width: 10rem">
+                  <option value="aberto">Em aberto</option>
+                  <option value="vencido">Vencidas</option>
+                  <option value="vencendo">Vencendo (7 dias)</option>
+                  <option value="pago">Pagas (histórico)</option>
+                  <option value="todas">Todas</option>
+                </select>
+                <input id="financePagarFilterBusca" type="search" placeholder="Buscar fornecedor ou descrição…" style="min-width: 12rem" />
+                <button type="button" class="secondary" id="clearFinancePagarFilters">Limpar filtros</button>
+                <span class="notice" style="flex-basis: 100%; margin-top: 6px; line-height: 1.45">
+                  Filtros da subaba <strong>Contas a Pagar</strong> — vencidas, a vencer e histórico de pagamentos.
+                </span>
+              </div>
+              <p id="financeAguardandoIntro" class="notice hidden" style="margin: 4px 0 14px; max-width: 56rem; line-height: 1.45"></p>
+              <div id="financeFilters" class="filter-bar finance-filter-panel hidden">
+                <label for="filterFrom">De</label>
+                <input id="filterFrom" type="date" />
+                <label for="filterTo">Até</label>
+                <input id="filterTo" type="date" />
+                <span id="financeReportExtraFilters" class="hidden" style="display: contents">
+                  <label for="reportTipoFiltro">Tipo</label>
+                  <select id="reportTipoFiltro">
+                    <option value="">Todos</option>
+                    <option value="RECEITA">Receita</option>
+                    <option value="DESPESA">Despesa</option>
+                  </select>
+                  <label for="reportCategoriaFiltro">Categoria</label>
+                  <select id="reportCategoriaFiltro">
+                    <option value="">Todas</option>
+                  </select>
+                  <label for="reportClienteFiltro">Cliente</label>
+                  <select id="reportClienteFiltro">
+                    <option value="">Todos</option>
+                  </select>
+                  <label for="reportFornecedorFiltro">Fornecedor</label>
+                  <select id="reportFornecedorFiltro">
+                    <option value="">Todos</option>
+                  </select>
+                </span>
+                <button class="secondary" id="applyFilter">Aplicar</button>
+                <button class="secondary" id="clearFilter">Limpar</button>
+                <button class="secondary" id="quick7">Últimos 7 dias</button>
+                <button class="secondary" id="quick30">Últimos 30 dias</button>
+                <button class="secondary" id="quick90">Últimos 90 dias</button>
+                <button class="secondary" id="exportHistory">Exportar Excel (CSV)</button>
+              </div>
+              <div id="financeLancamentosFilters" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; flex-wrap: wrap; align-items: center">
+                <div class="finance-lanc-simple-filters" style="width: 100%; margin: 0">
+                  <input id="financeLancBusca" type="search" placeholder="Buscar lançamentos…" style="flex: 1; min-width: 180px" />
+                  <select id="financeLancTipo">
+                    <option value="">Todos os tipos</option>
+                    <option value="RECEITA">Receitas</option>
+                    <option value="DESPESA">Despesas</option>
+                  </select>
+                  <select id="financeLancStatus">
+                    <option value="">Todos os status</option>
+                    <option value="ABERTO">Pendente</option>
+                    <option value="PAGO">Pago</option>
+                  </select>
+                  <button type="button" class="secondary" id="financeLancLimpar">Limpar</button>
+                </div>
+                <select id="financeLancCategoria" class="hidden" aria-hidden="true"><option value="">Todas</option></select>
+                <select id="financeLancSubcategoria" class="hidden" aria-hidden="true"><option value="">Todas</option></select>
+                <select id="financeLancFormaPagamento" class="hidden" aria-hidden="true"><option value="">Todas</option></select>
+                <select id="financeLancCompetencia" class="hidden" aria-hidden="true"><option value="">Todas</option></select>
+              </div>
+              <div id="financeLancamentosToolbar" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; gap: 8px; flex-wrap: wrap; align-items: center">
+                <span class="notice" style="font-weight: 600">Tabela:</span>
+                <label for="financeLancSortBy">Ordenar por</label>
+                <select id="financeLancSortBy">
+                  <option value="data">Data</option>
+                  <option value="valor">Valor</option>
+                  <option value="tipo">Tipo</option>
+                  <option value="status">Status</option>
+                  <option value="categoria">Categoria</option>
+                  <option value="competencia">Competência</option>
+                </select>
+                <label for="financeLancSortDir">Direção</label>
+                <select id="financeLancSortDir">
+                  <option value="desc">Decrescente</option>
+                  <option value="asc">Crescente</option>
+                </select>
+                <label for="financeLancPageSize">Itens por página</label>
+                <select id="financeLancPageSize">
+                  <option value="10">10</option>
+                  <option value="20" selected>20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <button type="button" class="secondary" id="financeLancOpenPanel">Filtros avançados</button>
+                <span id="financeLancResultCount" class="notice">0 registros</span>
+              </div>
+              <div id="financeCaixaFilters" class="filter-bar finance-filter-panel hidden" style="margin: 0 0 10px; flex-wrap: wrap; align-items: center">
+                <span class="notice" style="font-weight: 600">Fluxo de caixa — mês:</span>
+                <label for="financeCaixaMonth">Competência</label>
+                <input id="financeCaixaMonth" type="month" />
+                <button type="button" class="secondary" id="financeCaixaMonthAtual">Mês atual</button>
+              </div>
+            </div>
             <div id="financeClientesArea" class="section-card hidden" style="margin-top: 0">
               <div class="finance-ft-page-toolbar">
                 <div>
@@ -8459,28 +8471,6 @@
         if (activeView !== "financeiro") document.getElementById("financeContent")?.classList.add("hidden");
       }
 
-      function getFinanceTabModalBody() {
-        const financeContent = document.getElementById("financeContent");
-        return financeContent?.querySelector(":scope > .modal.modal--wide > .tab-modal-body") || null;
-      }
-
-      function syncFinanceModalChrome(active) {
-        const hub = document.getElementById("financeFiltersHub");
-        const viewFinanceiro = document.getElementById("viewFinanceiro");
-        const financeInicioPanel = document.getElementById("financeInicioPanel");
-        const modalBody = getFinanceTabModalBody();
-        if (!hub || !viewFinanceiro) return;
-        if (active && modalBody) {
-          hub.classList.remove("hidden");
-          if (!modalBody.contains(hub)) modalBody.insertBefore(hub, modalBody.firstChild);
-          return;
-        }
-        hub.classList.add("hidden");
-        if (financeInicioPanel && !viewFinanceiro.contains(hub)) {
-          financeInicioPanel.insertAdjacentElement("beforebegin", hub);
-        }
-      }
-
       function ensureTabModalShell(backdropEl, onClose, options = {}) {
         if (!backdropEl) return backdropEl;
         if (backdropEl.dataset.tabModalReady !== "1") {
@@ -8522,11 +8512,7 @@
           });
           panel.addEventListener("click", (e) => e.stopPropagation());
         }
-        if (!options.keepInPlace && options.rehomeToAppPanel) {
-          rehomeViewToAppPanel(backdropEl);
-        } else if (!options.keepInPlace) {
-          relocateTabModalEl(backdropEl);
-        }
+        if (!options.keepInPlace) relocateTabModalEl(backdropEl);
         return backdropEl;
       }
 
@@ -8641,11 +8627,6 @@
         const patioContent = document.getElementById("patioContent");
         if (patioContent) {
           ensureTabModalShell(patioContent, returnToPainelFromPatioFlyout);
-        }
-
-        const financeContent = document.getElementById("financeContent");
-        if (financeContent) {
-          ensureTabModalShell(financeContent, returnToPainelFromFinanceFlyout, { rehomeToAppPanel: true });
         }
       }
 
@@ -17141,7 +17122,6 @@
           document.getElementById("financeAguardandoIntro")?.classList.add("hidden");
           document.getElementById("financeReceberFilters")?.classList.add("hidden");
           document.getElementById("financePagarFilters")?.classList.add("hidden");
-          syncFinanceModalChrome(false);
           renderFinance();
           return;
         }
@@ -17157,7 +17137,7 @@
           financeIsReceberView(view) && financeContasReceberSubShowsTable(currentContasReceberSubView);
         const showPagarFilters =
           financeIsPagarView(view) && financeContasPagarSubShowsTable(currentContasPagarSubView);
-        financeFiltersHub?.classList.toggle("hidden", !showFinanceContent && !showFiltersHub);
+        financeFiltersHub?.classList.toggle("hidden", !showFinanceContent);
         if (financePlateSearchForm) financePlateSearchForm.classList.toggle("hidden", !showPlateSearchFilter);
         financeRoot?.classList.toggle("finance-flyout-open", false);
         financeFlyoutBackdrop?.classList.toggle("hidden", true);
@@ -17174,15 +17154,12 @@
         if (financeContent) {
           financeContent.classList.toggle("hidden", !showFinanceContent);
           if (showFinanceContent) {
-            ensureTabModalShell(financeContent, returnToPainelFromFinanceFlyout, { rehomeToAppPanel: true });
+            ensureTabModalShell(financeContent, returnToPainelFromFinanceFlyout);
             const tabMeta = FINANCE_TAB_LABELS[view] || { title: pageTitle, subtitle: "" };
             setTabModalMeta(financeContent, tabMeta.title, tabMeta.subtitle);
-            syncFinanceModalChrome(true);
             financeContent.classList.remove("air-open");
             void financeContent.offsetWidth;
             financeContent.classList.add("air-open");
-          } else {
-            syncFinanceModalChrome(false);
           }
         }
         financeRoot?.classList.remove("finance-flyout-open", "finance-subview-fullscreen");
