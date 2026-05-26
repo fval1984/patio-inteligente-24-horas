@@ -2829,6 +2829,52 @@
         max-height: 320px;
         overflow-y: auto;
       }
+      .finance-receitas-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+      .finance-receitas-section {
+        background: var(--card, #fff);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px 16px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      }
+      .finance-receitas-section-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+      .finance-receitas-section h4 {
+        margin: 0 0 4px;
+        font-size: 0.98rem;
+      }
+      .finance-receitas-section .notice {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.45;
+        max-width: 44rem;
+      }
+      .finance-receitas-section .finance-lanc-list {
+        max-height: 280px;
+        overflow-y: auto;
+        margin-top: 8px;
+      }
+      .finance-receitas-cats-default {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 8px 0 10px;
+      }
+      .finance-receitas-cats-default .finance-category-tag {
+        background: rgba(148, 163, 184, 0.12);
+        border-color: rgba(148, 163, 184, 0.22);
+      }
       .finance-fase4-panel {
         margin-top: 18px;
         padding-top: 16px;
@@ -5861,6 +5907,67 @@
                   <div id="financeCategoryTags" class="finance-category-tags"></div>
                 </div>
               </div>
+              <div id="financeReceitasPanel" class="finance-receitas-panel hidden">
+                <section class="finance-receitas-section" id="financeReceitasCadastroSection">
+                  <div class="finance-receitas-section-head">
+                    <div>
+                      <h4>Cadastro de receitas</h4>
+                      <p class="notice">Registre receitas únicas com cliente, serviço, valor, vencimento e comprovante opcional.</p>
+                    </div>
+                    <button type="button" id="financeReceitasNovaBtn">+ Nova receita</button>
+                  </div>
+                  <div id="financeReceitasCadastroList" class="finance-lanc-list" aria-live="polite"></div>
+                  <div id="financeReceitasCadastroPagination" class="hidden" style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap">
+                    <span id="financeReceitasCadastroPageInfo" class="notice">Página 1 de 1</span>
+                    <div style="display:flex; gap:6px; align-items:center">
+                      <button type="button" class="secondary" id="financeReceitasCadastroPrev">Anterior</button>
+                      <button type="button" class="secondary" id="financeReceitasCadastroNext">Próxima</button>
+                    </div>
+                  </div>
+                </section>
+                <section class="finance-receitas-section" id="financeReceitasCatsSection">
+                  <h4>Categorias de receita</h4>
+                  <p class="notice">Serviços padrão e categorias personalizadas para classificar cada receita.</p>
+                  <div id="financeReceitasCatsDefault" class="finance-receitas-cats-default"></div>
+                  <div class="finance-category-bar">
+                    <label for="financeReceitasCategoryInput">Categorias personalizadas</label>
+                    <div class="finance-category-inline">
+                      <input id="financeReceitasCategoryInput" type="text" placeholder="Nova categoria…" />
+                      <button type="button" class="secondary" id="financeReceitasAddCategoryBtn">Adicionar</button>
+                    </div>
+                    <div id="financeReceitasCategoryTags" class="finance-category-tags"></div>
+                  </div>
+                </section>
+                <section class="finance-receitas-section">
+                  <div class="finance-receitas-section-head">
+                    <div>
+                      <h4>Receitas recorrentes</h4>
+                      <p class="notice">Mensalidades e cobranças fixas — ao confirmar o pagamento, o próximo título é gerado automaticamente.</p>
+                    </div>
+                    <button type="button" class="secondary" id="financeReceitasNovaRecorrenteBtn">+ Recorrente</button>
+                  </div>
+                  <div id="financeReceitasRecorrentesList" class="finance-lanc-list" aria-live="polite"></div>
+                </section>
+                <section class="finance-receitas-section">
+                  <div class="finance-receitas-section-head">
+                    <div>
+                      <h4>Receitas parceladas</h4>
+                      <p class="notice">Divida um valor total em parcelas mensais com vencimentos automáticos.</p>
+                    </div>
+                    <button type="button" class="secondary" id="financeReceitasNovaParceladaBtn">+ Parcelada</button>
+                  </div>
+                  <div id="financeReceitasParceladasList" class="finance-lanc-list" aria-live="polite"></div>
+                </section>
+                <section class="finance-receitas-section">
+                  <h4>Anexar comprovantes</h4>
+                  <p class="notice">Anexe PDF ou imagem ao cadastrar a receita ou ao dar baixa em Contas a receber. Clique em «Comprovante» para visualizar.</p>
+                  <div id="financeReceitasAnexosList" class="finance-lanc-list" aria-live="polite"></div>
+                </section>
+                <section class="finance-receitas-section finance-historico-panel" id="financeReceitasHistoricoSection">
+                  <h4 id="financeReceitasHistoricoTitle">Histórico de recebimentos</h4>
+                  <div id="financeReceitasHistoricoList" class="finance-lanc-list" aria-live="polite"></div>
+                </section>
+              </div>
               <div id="financeHistoricoPanel" class="section-card finance-historico-panel hidden" style="margin-top: 0">
                 <h4 id="financeHistoricoTitle">Histórico</h4>
                 <div id="financeHistoricoList" class="finance-lanc-list" aria-live="polite"></div>
@@ -7103,7 +7210,12 @@
         if (lancData) lancData.value = today;
         if (lancVencimento) lancVencimento.value = today;
         const lancModo = document.getElementById("lancModo");
-        if (lancModo) lancModo.value = "UNICA";
+        const presetModo = String(opts.presetModo || "UNICA").toUpperCase();
+        if (lancModo) lancModo.value = ["RECORRENTE", "PARCELADA"].includes(presetModo) ? presetModo : "UNICA";
+        if (presetModo === "PARCELADA") {
+          const lancParcelas = document.getElementById("lancParcelas");
+          if (lancParcelas && !lancParcelas.value) lancParcelas.value = "2";
+        }
         populateLancamentoClienteOptions();
         populateLancCentroCustoOptions();
         syncLancamentoModalTipo(presetTipo);
@@ -8154,8 +8266,16 @@
 
       function renderFinanceSubviewIntro(view) {
         const panel = document.getElementById("financeSubviewIntro");
+        const receitasPanel = document.getElementById("financeReceitasPanel");
         const histPanel = document.getElementById("financeHistoricoPanel");
         const cfg = FINANCE_SUBVIEW_INTRO[view];
+        if (view === "receitas") {
+          panel?.classList.add("hidden");
+          receitasPanel?.classList.remove("hidden");
+          histPanel?.classList.add("hidden");
+          return;
+        }
+        receitasPanel?.classList.add("hidden");
         if (!panel || !cfg) {
           panel?.classList.add("hidden");
           histPanel?.classList.add("hidden");
@@ -8176,13 +8296,16 @@
           const statusHideHist =
             (view === "contas_receber" && ["pago", "todas"].includes(financeReceberStatusFilter)) ||
             (view === "contas_pagar" && ["pago", "todas"].includes(financePagarStatusFilter));
-          histPanel.classList.toggle("hidden", !histView || statusHideHist);
-          if (histView && !statusHideHist) renderFinanceHistoricoPanel(histView);
+          histPanel.classList.toggle("hidden", !histView || statusHideHist || view === "receitas");
+          if (histView && !statusHideHist && view !== "receitas") renderFinanceHistoricoPanel(histView);
         }
       }
 
       function renderFinanceCategoryTags(tipo) {
-        const wrap = document.getElementById("financeCategoryTags");
+        const wrap =
+          currentFinanceView === "receitas"
+            ? document.getElementById("financeReceitasCategoryTags")
+            : document.getElementById("financeCategoryTags");
         if (!wrap) return;
         const cats = tipo === "DESPESA" ? getLancDespesaCategorias() : getLancReceitaCategorias();
         const baseValues = new Set(
@@ -8203,6 +8326,111 @@
             `
           )
           .join("");
+      }
+
+      function renderFinanceReceitasDefaultCategories() {
+        const wrap = document.getElementById("financeReceitasCatsDefault");
+        if (!wrap) return;
+        wrap.innerHTML = LANC_RECEITA_CATEGORIAS.map(
+          (c) => `<span class="finance-category-tag">${escapeHtml(c.label)}</span>`
+        ).join("");
+      }
+
+      function renderFinanceReceitasSections(allEntries, pageEntries, pagination) {
+        const panel = document.getElementById("financeReceitasPanel");
+        if (!panel || currentFinanceView !== "receitas") return;
+        renderFinanceReceitasDefaultCategories();
+        renderFinanceCategoryTags("RECEITA");
+        const receitaEntries = allEntries.filter((e) => e.tipo === "RECEITA");
+        const recorrentes = receitaEntries.filter((e) => e.modo === "RECORRENTE");
+        const parceladas = receitaEntries.filter((e) => e.modo === "PARCELADA");
+        const comAnexo = receitaEntries.filter(
+          (e) => e.recordKind && e.recordId && financeAttachmentGet(e.recordKind, e.recordId)
+        );
+        const fill = (id, items, emptyMsg) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          if (!items.length) {
+            el.innerHTML = `<div class="finance-lanc-empty">${emptyMsg}</div>`;
+            return;
+          }
+          el.innerHTML = items.map((e) => renderFinanceLancItem(e)).join("");
+        };
+        const cadastroList = document.getElementById("financeReceitasCadastroList");
+        if (cadastroList) {
+          if (!pageEntries.length) {
+            cadastroList.innerHTML = `<div class="finance-lanc-empty">Nenhuma receita cadastrada. Toque em «+ Nova receita».</div>`;
+          } else {
+            cadastroList.innerHTML = pageEntries.map((e) => renderFinanceLancItem(e)).join("");
+          }
+        }
+        const pagWrap = document.getElementById("financeReceitasCadastroPagination");
+        const pageInfo = document.getElementById("financeReceitasCadastroPageInfo");
+        const prevBtn = document.getElementById("financeReceitasCadastroPrev");
+        const nextBtn = document.getElementById("financeReceitasCadastroNext");
+        if (pagWrap && pagination) {
+          pagWrap.classList.toggle("hidden", pagination.pages <= 1);
+          if (pageInfo) pageInfo.textContent = `Página ${pagination.page} de ${pagination.pages}`;
+          if (prevBtn) prevBtn.disabled = pagination.page <= 1;
+          if (nextBtn) nextBtn.disabled = pagination.page >= pagination.pages;
+        }
+        fill(
+          "financeReceitasRecorrentesList",
+          recorrentes,
+          "Nenhuma receita recorrente. Use «+ Recorrente» para cadastrar mensalidades."
+        );
+        fill(
+          "financeReceitasParceladasList",
+          parceladas,
+          "Nenhuma receita parcelada. Use «+ Parcelada» para dividir um valor."
+        );
+        fill(
+          "financeReceitasAnexosList",
+          comAnexo,
+          "Nenhum comprovante anexado ainda. Anexe ao cadastrar ou na baixa em Contas a receber."
+        );
+        renderFinanceReceitasHistorico();
+      }
+
+      function renderFinanceReceitasHistorico() {
+        const listEl = document.getElementById("financeReceitasHistoricoList");
+        if (!listEl || currentFinanceView !== "receitas") return;
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 90);
+        const cutoffMs = cutoff.getTime();
+        const cashByReceivable = new Map(
+          state.cash.filter((c) => c.tipo_conta === "RECEBER").map((c) => [String(c.conta_id), c])
+        );
+        const entries = [];
+        state.receivables
+          .filter((r) => !FINANCE_MANUAL_ONLY || isManualFinanceLancamento(r))
+          .filter((r) => r.status === "PAGO")
+          .forEach((r) => {
+            const mov = cashByReceivable.get(String(r.id));
+            const paidAt = mov?.data_movimento || r.updated_at || r.created_at;
+            const paidMs = paidAt ? new Date(paidAt).getTime() : 0;
+            if (paidMs && paidMs < cutoffMs) return;
+            const { meta, text } = financeMetaUnpack(r.observacoes);
+            entries.push({
+              data: (r.period_start || paidAt || "").toString().slice(0, 10),
+              tipo: "RECEITA",
+              descricao: text || r.observacoes || "Receita",
+              parte: r.responsavel_pagamento || "-",
+              valor: Number(r.valor || 0),
+              status: "PAGO",
+              categoria: r.receivable_category || "GUARDA_PATIO",
+              modo: financeEntryModoFromRecord(r, "receivable"),
+              meta,
+              recordKind: "receivable",
+              recordId: r.id,
+            });
+          });
+        entries.sort((a, b) => String(b.data).localeCompare(String(a.data)));
+        if (!entries.length) {
+          listEl.innerHTML = `<div class="finance-lanc-empty">Nenhum recebimento nos últimos 90 dias.</div>`;
+          return;
+        }
+        listEl.innerHTML = entries.slice(0, 40).map((e) => renderFinanceLancItem(e)).join("");
       }
 
       function renderFinanceHistoricoPanel(view) {
@@ -14392,11 +14620,23 @@
           if (financeLancPageInfo) financeLancPageInfo.textContent = `Página ${lancamentosPagination.page} de ${pages}`;
           if (financeLancPrevPage) financeLancPrevPage.disabled = lancamentosPagination.page <= 1;
           if (financeLancNextPage) financeLancNextPage.disabled = lancamentosPagination.page >= pages;
-          if (financeLancList) {
-            if (!pageEntries.length) {
-              financeLancList.innerHTML = `<div class="finance-lanc-empty">Nenhum lançamento encontrado.</div>`;
-            } else {
-              financeLancList.innerHTML = pageEntries.map((entry) => renderFinanceLancItem(entry)).join("");
+          if (currentFinanceView === "receitas") {
+            financeLancList?.classList.add("hidden");
+            financeLancPagination?.classList.add("hidden");
+            financeLancList?.closest(".section-card")?.classList.add("hidden");
+            renderFinanceReceitasSections(sortedEntries, pageEntries, {
+              page: lancamentosPagination.page,
+              pages,
+            });
+          } else {
+            financeLancList?.closest(".section-card")?.classList.remove("hidden");
+            financeLancList?.classList.remove("hidden");
+            if (financeLancList) {
+              if (!pageEntries.length) {
+                financeLancList.innerHTML = `<div class="finance-lanc-empty">Nenhum lançamento encontrado.</div>`;
+              } else {
+                financeLancList.innerHTML = pageEntries.map((entry) => renderFinanceLancItem(entry)).join("");
+              }
             }
           }
           return;
@@ -15001,7 +15241,7 @@
         if (financeNovoLancamentoBtn) {
           financeNovoLancamentoBtn.classList.toggle(
             "hidden",
-            !financeIsLancamentosView(view) && !financeIsPagarView(view)
+            view === "receitas" || (!financeIsLancamentosView(view) && !financeIsPagarView(view))
           );
           financeNovoLancamentoBtn.textContent =
             view === "despesas" || view === "contas_pagar" ? "+ Nova despesa" : "+ Nova receita";
@@ -15009,6 +15249,8 @@
         if (financeLancTipo) {
           financeLancTipo.disabled = view === "receitas" || view === "despesas";
         }
+        document.getElementById("financeReceitasPanel")?.classList.toggle("hidden", view !== "receitas");
+        if (view !== "receitas") financeLancList?.classList.remove("hidden");
         renderFinance();
       }
 
@@ -16372,6 +16614,50 @@
         const tipo =
           currentFinanceView === "despesas" || financeIsPagarView(currentFinanceView) ? "DESPESA" : "RECEITA";
         openLancamentoModal(tipo, { lockTipo: financeIsLancamentosView(currentFinanceView) });
+      });
+      document.getElementById("financeReceitasNovaBtn")?.addEventListener("click", () => {
+        openLancamentoModal("RECEITA", { lockTipo: true, presetModo: "UNICA" });
+      });
+      document.getElementById("financeReceitasNovaRecorrenteBtn")?.addEventListener("click", () => {
+        openLancamentoModal("RECEITA", { lockTipo: true, presetModo: "RECORRENTE" });
+      });
+      document.getElementById("financeReceitasNovaParceladaBtn")?.addEventListener("click", () => {
+        openLancamentoModal("RECEITA", { lockTipo: true, presetModo: "PARCELADA" });
+      });
+      document.getElementById("financeReceitasAddCategoryBtn")?.addEventListener("click", () => {
+        const input = document.getElementById("financeReceitasCategoryInput");
+        const label = input?.value?.trim();
+        if (!label) return;
+        if (!addFinanceCustomCategory("RECEITA", label)) {
+          alert("Categoria já existe ou nome inválido.");
+          return;
+        }
+        if (input) input.value = "";
+        syncLancamentoCategoriaOptions();
+        renderFinanceCategoryTags("RECEITA");
+        renderFinance();
+      });
+      document.getElementById("financeReceitasCategoryTags")?.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-action='remover-categoria']");
+        if (!btn) return;
+        const value = btn.getAttribute("data-value");
+        if (!removeFinanceCustomCategory("RECEITA", value)) return;
+        syncLancamentoCategoriaOptions();
+        renderFinanceCategoryTags("RECEITA");
+        renderFinance();
+      });
+      document.getElementById("financeReceitasCadastroPrev")?.addEventListener("click", () => {
+        lancamentosPagination.page = Math.max(1, Number(lancamentosPagination.page || 1) - 1);
+        renderFinance();
+      });
+      document.getElementById("financeReceitasCadastroNext")?.addEventListener("click", () => {
+        lancamentosPagination.page = Number(lancamentosPagination.page || 1) + 1;
+        renderFinance();
+      });
+      document.getElementById("financeReceitasPanel")?.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-action='ver-comprovante']");
+        if (!btn) return;
+        openFinanceAttachment(btn.getAttribute("data-kind"), btn.getAttribute("data-id"));
       });
       document.getElementById("financeAddCategoryBtn")?.addEventListener("click", () => {
         const input = document.getElementById("financeNewCategoryInput");
