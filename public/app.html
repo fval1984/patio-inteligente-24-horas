@@ -1691,6 +1691,7 @@
       #viewFinanceiro[data-finance-view="receber"] .finance-context-badge,
       #viewFinanceiro[data-finance-view="receber_alerta"] .finance-context-badge,
       #viewFinanceiro[data-finance-view="triagem"] .finance-context-badge,
+      #viewFinanceiro[data-finance-view="aguardando_faturamento"] .finance-context-badge,
       #viewFinanceiro[data-finance-view="aguardando_lancamento"] .finance-context-badge {
         border-color: rgba(59, 130, 246, 0.42);
         color: #93c5fd;
@@ -5636,6 +5637,7 @@
                 <button type="button" class="secondary finance-ft-nav-btn" data-subview="receitas"><span class="finance-ft-nav-icon" aria-hidden="true">📈</span>Controle de Receitas</button>
                 <button type="button" class="secondary finance-ft-nav-btn" data-subview="despesas"><span class="finance-ft-nav-icon" aria-hidden="true">📉</span>Controle de Despesas</button>
                 <button type="button" class="secondary finance-ft-nav-btn" data-subview="contas_pagar"><span class="finance-ft-nav-icon" aria-hidden="true">📤</span>Contas a Pagar</button>
+                <button type="button" class="secondary finance-ft-nav-btn" data-subview="aguardando_faturamento"><span class="finance-ft-nav-icon" aria-hidden="true">⏳</span>Aguardando Faturamento</button>
                 <button type="button" class="secondary finance-ft-nav-btn" data-subview="contas_receber"><span class="finance-ft-nav-icon" aria-hidden="true">📥</span>Contas a Receber</button>
                 <div class="finance-ft-nav-divider" aria-hidden="true"></div>
                 <button type="button" class="secondary finance-ft-nav-btn finance-ft-nav-btn--muted" id="financeMenuReload"><span class="finance-ft-nav-icon" aria-hidden="true">↻</span>Atualizar dados</button>
@@ -5811,97 +5813,80 @@
             <div id="financeDetailDashboard" class="section-card fin-dash-panel finance-ft-dashboard hidden" style="margin-top: 0">
               <div class="finance-ft-page-intro">
                 <h3>Dashboard Financeiro</h3>
-                <p>Compromissos financeiros — fluxo de caixa, saldo e contas a pagar/receber.</p>
+                <p>Operação do pátio — faturamento, recebimentos e inadimplência.</p>
               </div>
               <div class="finance-module-rules">
-                <strong>Controle de compromissos</strong> — este painel acompanha títulos em aberto, vencimentos e movimentação de caixa. Para análise de receitas, despesas e lucro, use o <em>Dashboard Resultado</em>.
+                <strong>Controle operacional</strong> — acompanhe cobranças geradas pela saída dos veículos, recebimentos confirmados e títulos em aberto. Para análise de receitas/despesas e DRE, use o <em>Dashboard Resultado</em>.
               </div>
-              <div class="finance-ft-kpi-row finance-ft-kpi-row--3">
-                <div class="finance-ft-kpi-card finance-ft-kpi-card--green">
-                  <div class="finance-ft-kpi-icon" aria-hidden="true">💰</div>
+              <div class="finance-ft-kpi-row finance-ft-kpi-row--4">
+                <div class="finance-ft-kpi-card finance-ft-kpi-card--teal">
+                  <div class="finance-ft-kpi-icon" aria-hidden="true">🧾</div>
                   <div>
-                    <div class="finance-ft-kpi-label">Saldo atual</div>
-                    <div class="finance-ft-kpi-value" id="fdSaldoTotal">R$ 0,00</div>
-                    <div class="finance-ft-kpi-sub" id="fdSaldoTotalMeta">Posição consolidada</div>
+                    <div class="finance-ft-kpi-label">Faturado no mês</div>
+                    <div class="finance-ft-kpi-value" id="fdFaturadoMes">R$ 0,00</div>
+                    <div class="finance-ft-kpi-sub" id="fdFaturadoMesMeta">Cobranças geradas</div>
                   </div>
                 </div>
-                <div class="finance-ft-kpi-card finance-ft-kpi-card--amber" data-finance-subtab="contas_pagar" role="button" tabindex="0" title="Abrir Contas a Pagar">
-                  <div class="finance-ft-kpi-icon" aria-hidden="true">📤</div>
+                <div class="finance-ft-kpi-card finance-ft-kpi-card--green">
+                  <div class="finance-ft-kpi-icon" aria-hidden="true">✅</div>
                   <div>
-                    <div class="finance-ft-kpi-label">Contas a pagar</div>
-                    <div class="finance-ft-kpi-value" id="fdContasPagar">R$ 0,00</div>
-                    <div class="finance-ft-kpi-sub" id="fdContasPagarMeta">0 título(s) pendente(s)</div>
+                    <div class="finance-ft-kpi-label">Recebido no mês</div>
+                    <div class="finance-ft-kpi-value" id="fdRecebidoMes">R$ 0,00</div>
+                    <div class="finance-ft-kpi-sub" id="fdRecebidoMesMeta">Pagamentos confirmados</div>
                   </div>
                 </div>
                 <div class="finance-ft-kpi-card finance-ft-kpi-card--amber" data-finance-subtab="contas_receber" role="button" tabindex="0" title="Abrir Contas a Receber">
                   <div class="finance-ft-kpi-icon" aria-hidden="true">📥</div>
                   <div>
-                    <div class="finance-ft-kpi-label">Contas a receber</div>
-                    <div class="finance-ft-kpi-value" id="fdContasReceber">R$ 0,00</div>
-                    <div class="finance-ft-kpi-sub" id="fdContasReceberMeta">0 título(s) pendente(s)</div>
+                    <div class="finance-ft-kpi-label">Em aberto</div>
+                    <div class="finance-ft-kpi-value" id="fdEmAberto">R$ 0,00</div>
+                    <div class="finance-ft-kpi-sub" id="fdEmAbertoMeta">0 título(s)</div>
                   </div>
                 </div>
-              </div>
-              <div class="finance-ft-kpi-row finance-ft-kpi-row--3">
-                <div class="finance-ft-kpi-card">
-                  <div class="finance-ft-kpi-icon" aria-hidden="true">💵</div>
+                <div class="finance-ft-kpi-card finance-ft-kpi-card--red" data-finance-subtab="contas_receber" role="button" tabindex="0" title="Ver vencidos">
+                  <div class="finance-ft-kpi-icon" aria-hidden="true">⚠️</div>
                   <div>
-                    <div class="finance-ft-kpi-label">Caixa</div>
-                    <div class="finance-ft-kpi-value" id="fdIndCaixa">R$ 0,00</div>
-                    <div class="finance-ft-kpi-sub" id="fdIndCaixaMeta">Movimentos em dinheiro</div>
-                  </div>
-                </div>
-                <div class="finance-ft-kpi-card">
-                  <div class="finance-ft-kpi-icon" aria-hidden="true">🏦</div>
-                  <div>
-                    <div class="finance-ft-kpi-label">Banco</div>
-                    <div class="finance-ft-kpi-value" id="fdIndBanco">R$ 0,00</div>
-                    <div class="finance-ft-kpi-sub" id="fdIndBancoMeta">PIX, transferência, boleto</div>
-                  </div>
-                </div>
-                <div class="finance-ft-kpi-card">
-                  <div class="finance-ft-kpi-icon" aria-hidden="true">💳</div>
-                  <div>
-                    <div class="finance-ft-kpi-label">Cartões</div>
-                    <div class="finance-ft-kpi-value" id="fdIndCartoes">R$ 0,00</div>
-                    <div class="finance-ft-kpi-sub" id="fdIndCartoesMeta">Crédito e débito</div>
+                    <div class="finance-ft-kpi-label">Vencido</div>
+                    <div class="finance-ft-kpi-value" id="fdVencido">R$ 0,00</div>
+                    <div class="finance-ft-kpi-sub" id="fdVencidoMeta">0 título(s)</div>
                   </div>
                 </div>
               </div>
               <div class="finance-ft-charts">
                 <div class="finance-ft-charts-head">
-                  <h4>Evolução financeira</h4>
+                  <h4>Indicadores operacionais</h4>
                   <label style="font-size: 12px; color: var(--ft-muted)">
                     Período
                     <select id="financeChartPeriod" style="margin-left: 6px; min-width: 7rem">
-                      <option value="dia">Dia</option>
-                      <option value="semana">Semana</option>
                       <option value="mes" selected>Mês</option>
+                      <option value="semana">Semana</option>
+                      <option value="dia">Dia</option>
                     </select>
                   </label>
                 </div>
                 <div class="finance-ft-charts-grid">
                   <div class="finance-ft-chart-card">
-                    <p class="finance-ft-chart-title">Fluxo de caixa (entrada vs saída)</p>
-                    <svg id="ffCashFlowSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                    <p class="finance-ft-chart-title">Faturamento por mês</p>
+                    <svg id="ffFaturamentoMesSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
                   </div>
                   <div class="finance-ft-chart-card">
-                    <p class="finance-ft-chart-title">Saldo (evolução)</p>
-                    <svg id="ffBalanceSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                    <p class="finance-ft-chart-title">Recebimentos por mês</p>
+                    <svg id="ffRecebimentosMesSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
                   </div>
                   <div class="finance-ft-chart-card">
-                    <p class="finance-ft-chart-title">Contas a pagar vs receber (aging)</p>
-                    <svg id="ffAgingSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                    <div class="finance-ft-kpi-sub" style="margin-top: 6px">Azul: a receber • Vermelho: a pagar</div>
+                    <p class="finance-ft-chart-title">Inadimplência</p>
+                    <svg id="ffInadimplenciaSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
+                    <div class="finance-ft-kpi-sub" style="margin-top: 6px">Valor vencido vs em aberto no prazo</div>
                   </div>
                 </div>
               </div>
               <div class="finance-ft-quick-links">
-                <button type="button" class="secondary" data-finance-quick="contas_pagar">Contas a pagar</button>
+                <button type="button" class="secondary" data-finance-quick="aguardando_faturamento">Aguardando Faturamento</button>
                 <button type="button" class="secondary" data-finance-quick="contas_receber">Contas a receber</button>
+                <button type="button" class="secondary" data-finance-quick="contas_pagar">Contas a pagar</button>
                 <button type="button" class="secondary" data-finance-quick="dashboard_resultado">Ver resultado (DRE)</button>
               </div>
-              <div id="financeConciliacaoPanel" class="finance-fase4-panel">
+              <div id="financeConciliacaoPanel" class="finance-fase4-panel hidden">
                 <h4>Conciliação bancária</h4>
                 <p class="notice" style="margin: 0 0 10px; font-size: 12px">
                   Movimentos do mês — marque como conciliados após conferir com extrato bancário.
@@ -6369,7 +6354,7 @@
                     Escolha uma área abaixo ou use o menu de sub-abas para gerenciar títulos a receber.
                   </p>
                   <div class="finance-module-rules">
-                    <strong>Compromissos a receber</strong> — vencimento, status, valor, forma de pagamento e histórico de movimentações. Cadastros analíticos ficam em <em>Controle de Receitas</em>.
+                    <strong>Compromissos a receber</strong> — cobranças vindas do pátio (Aguardando Pagamento, Pago, Vencido…) e lançamentos manuais. Use <em>Confirmar Pagamento</em> para registrar recebimentos com histórico completo.
                   </div>
                 </header>
                 <nav id="financeContasReceberSubnav" class="finance-receitas-subnav" aria-label="Sub-abas de Contas a Receber">
@@ -7313,8 +7298,8 @@
         <div class="modal" style="max-width: 440px">
           <div class="modal-header">
             <div>
-              <h3>Confirmar recebimento</h3>
-              <p class="subtitle" style="margin: 4px 0 0">Confirme a baixa ou gere o recibo em PDF.</p>
+              <h3>Confirmar Pagamento</h3>
+              <p class="subtitle" style="margin: 4px 0 0">Informe data, valor recebido, forma de pagamento e observação.</p>
             </div>
             <button type="button" class="modal-close" id="closeReceberBaixaModal">Fechar</button>
           </div>
@@ -7337,6 +7322,10 @@
               </select>
             </div>
             <div class="full">
+              <label for="receberBaixaObs">Observação</label>
+              <input id="receberBaixaObs" type="text" placeholder="Opcional" />
+            </div>
+            <div class="full">
               <label for="receberBaixaAnexo">Comprovante (opcional)</label>
               <input id="receberBaixaAnexo" type="file" accept="image/*,.pdf,.png,.jpg,.jpeg,.webp" />
             </div>
@@ -7350,10 +7339,10 @@
             </div>
           </div>
           <p class="notice" style="margin: 0 0 12px; font-size: 13px; line-height: 1.45">
-            <strong>OK</strong> — confirma a baixa <strong>sem</strong> recibo. <strong>Gerar PDF</strong> — confirma a baixa e baixa o recibo.
+            <strong>Confirmar Pagamento</strong> — registra o recebimento. <strong>Gerar PDF</strong> — confirma e baixa o recibo.
           </p>
           <div class="form-actions" style="flex-wrap: wrap">
-            <button type="button" id="receberBaixaOk">OK</button>
+            <button type="button" id="receberBaixaOk">Confirmar Pagamento</button>
             <button type="button" class="secondary" id="receberBaixaGerarPdf">Gerar PDF</button>
             <button type="button" class="secondary" id="cancelReceberBaixaModal">Cancelar</button>
           </div>
@@ -7420,6 +7409,23 @@
             <button type="button" id="financeCobrancaCopiar">Copiar e registrar envio</button>
             <button type="button" class="secondary" id="financeCobrancaWhatsapp">Abrir WhatsApp</button>
             <button type="button" class="secondary" id="cancelFinanceCobrancaModal">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="financeCalculoDetalheModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 480px">
+          <div class="modal-header">
+            <div>
+              <h3>Detalhes do cálculo</h3>
+              <p class="subtitle" style="margin: 4px 0 0">Memória de cálculo gerada na saída do veículo.</p>
+            </div>
+            <button type="button" class="modal-close" id="closeFinanceCalculoDetalheModal">Fechar</button>
+          </div>
+          <div id="financeCalculoDetalheBody" class="section-card" style="margin-bottom: 14px; padding: 12px 14px"></div>
+          <div id="financeCalculoDetalheHistorico"></div>
+          <div class="form-actions" style="margin-top: 14px">
+            <button type="button" class="secondary" id="cancelFinanceCalculoDetalheModal">Fechar</button>
           </div>
         </div>
       </div>
@@ -8193,8 +8199,8 @@
 
       let isGestorPista = false;
 
-      /** Pátio não alimenta mais o financeiro — lançamentos só via modal manual. */
-      const FINANCE_MANUAL_ONLY = true;
+      /** Com false, saída do veículo (VRP) alimenta automaticamente o financeiro. */
+      const FINANCE_MANUAL_ONLY = false;
 
       const FINANCE_VIEW_LABELS = {
         dashboard: "Dashboard Financeiro",
@@ -8209,7 +8215,8 @@
         ajustes: "Contas a Pagar",
         caixa: "Dashboard Financeiro",
         clientes: "Clientes",
-        triagem: "Triagem",
+        triagem: "Aguardando Faturamento",
+        aguardando_faturamento: "Aguardando Faturamento",
         relatorios: "Relatórios",
         faturamento: "Faturamento",
       };
@@ -8314,8 +8321,8 @@
         if (view === "ajustes" || view === "pagar") return "contas_pagar";
         if (view === "receber" || view === "receber_alerta") return "contas_receber";
         if (view === "caixa" || view === "fluxo_caixa") return "dashboard_financeiro";
-        if (view === "pre_lancamento" || view === "aguardando_lancamento") {
-          return FINANCE_MANUAL_ONLY ? "receitas" : "triagem";
+        if (view === "pre_lancamento" || view === "aguardando_lancamento" || view === "triagem") {
+          return FINANCE_MANUAL_ONLY ? "receitas" : "aguardando_faturamento";
         }
         return view;
       }
@@ -8360,6 +8367,8 @@
       }
 
       const RECEIVABLE_AGUARDANDO_LANCAMENTO = "AGUARDANDO_LANCAMENTO";
+      const RECEIVABLE_AGUARDANDO_FATURAMENTO = RECEIVABLE_AGUARDANDO_LANCAMENTO;
+      const FINANCE_AUDIT_KEY = "amplipatio_finance_audit_v1";
       /** Fallback se a coluna `financeiro_aprovado_contas_receber` ainda não existir no Supabase. */
       const RECEBER_TRIAGEM_IDS_KEY = "amplipatio_triagem_em_contas_ids";
       /** Ciclo fechado no VRP sem coluna `patio_liberado_financeiro`: IDs bloqueados até OK no pátio. */
@@ -10135,10 +10144,10 @@
         if (!c) return "-";
         if (c.status === "PAGO") return "Pago";
         if (receivableNaFilaFechamentoCicloPatio(c)) return "Fechando ciclo (pátio)";
-        if (c.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return "Aguardando triagem (financeiro)";
+        if (c.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return "Aguardando Faturamento";
         if (c.status === "EM_ABERTO" && receivableIsCicloPatioAberto(c)) return "Em curso (pátio)";
         if (c.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(c) && !receivableAprovadoParaContasReceber(c))
-          return "Aguardando triagem (financeiro)";
+          return "Aguardando Faturamento";
         if (c.status === "EM_ABERTO") return "Em aberto (conta a receber)";
         return c.status || "-";
       }
@@ -12423,12 +12432,137 @@
       }
 
       function calcPeriodTotal(vehicle, periodStart, periodEnd) {
-        if (!vehicle?.valor_diaria || !periodStart) return 0;
-        const start = new Date(periodStart);
-        const end = periodEnd ? new Date(periodEnd) : vehicle?.data_saida ? new Date(vehicle.data_saida) : new Date();
-        const diffMs = end - start;
-        const days = Math.max(1, Math.ceil(diffMs / 86400000));
-        return days * Number(vehicle.valor_diaria);
+        return calcFinanceChargeBreakdown(vehicle, periodStart, periodEnd).total;
+      }
+
+      /** Detalhamento da cobrança na saída do veículo (diárias, remoção e taxas). */
+      function calcFinanceChargeBreakdown(vehicle, periodStart, periodEnd, opts = {}) {
+        const valorDiaria = Number(vehicle?.valor_diaria || 0);
+        const start = periodStart ? new Date(periodStart) : vehicle?.data_entrada ? new Date(vehicle.data_entrada) : null;
+        const end = periodEnd
+          ? new Date(periodEnd)
+          : vehicle?.data_saida
+            ? new Date(vehicle.data_saida)
+            : new Date();
+        const dias = start ? Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000)) : calcDays(vehicle);
+        const diariasTotal = dias * valorDiaria;
+        const aplicarRemocao = opts.aplicarRemocao != null ? !!opts.aplicarRemocao : isRemocaoSolicitada(vehicle);
+        const taxaRemocao = aplicarRemocao ? Number(state.settings?.taxa_remocao || 0) : 0;
+        const taxasAdicionais = Number(opts.taxasAdicionais || 0);
+        const total = diariasTotal + taxaRemocao + taxasAdicionais;
+        return {
+          dias,
+          valorDiaria,
+          diariasTotal,
+          taxaRemocao,
+          taxasAdicionais,
+          total,
+          periodStart: start ? start.toISOString() : null,
+          periodEnd: end.toISOString(),
+        };
+      }
+
+      function receivableFinanceBreakdown(receivable, vehicle) {
+        const { meta } = financeMetaUnpack(receivable?.observacoes);
+        if (meta?.calculo_patio) return meta.calculo_patio;
+        return calcFinanceChargeBreakdown(
+          vehicle,
+          receivable?.period_start,
+          receivable?.period_end || vehicle?.data_saida,
+          { aplicarRemocao: meta?.aplicar_remocao, taxasAdicionais: meta?.taxas_adicionais }
+        );
+      }
+
+      function financeAuditReadAll() {
+        try {
+          const raw = localStorage.getItem(FINANCE_AUDIT_KEY);
+          const obj = JSON.parse(raw || "{}");
+          return obj && typeof obj === "object" ? obj : {};
+        } catch (e) {
+          return {};
+        }
+      }
+
+      function financeAuditAppend(receivableId, action, details = {}) {
+        if (!receivableId) return;
+        const all = financeAuditReadAll();
+        const key = String(receivableId);
+        const entry = {
+          at: new Date().toISOString(),
+          action,
+          user: state.session?.user?.email || state.session?.user?.id || "Sistema",
+          ...details,
+        };
+        all[key] = [...(all[key] || []), entry];
+        try {
+          localStorage.setItem(FINANCE_AUDIT_KEY, JSON.stringify(all));
+        } catch (e) {
+          console.warn("finance audit", e);
+        }
+      }
+
+      function financeAuditHtml(receivableId) {
+        const rows = (financeAuditReadAll()[String(receivableId)] || []).slice().reverse();
+        if (!rows.length) return `<p class="notice">Nenhum histórico registrado.</p>`;
+        return rows
+          .map((e) => {
+            const when = formatDate(e.at);
+            const extra = e.note || e.observacao || e.valor != null ? ` · ${escapeHtml(String(e.note || e.observacao || formatCurrency(e.valor)))}` : "";
+            return `<div class="finance-lanc-item" style="padding:6px 0;border-bottom:1px solid var(--border)">
+              <strong>${escapeHtml(e.action || "Alteração")}</strong>
+              <span class="notice" style="display:block;margin-top:2px">${escapeHtml(when)} · ${escapeHtml(e.user || "—")}${extra}</span>
+            </div>`;
+          })
+          .join("");
+      }
+
+      function financeCobrancaNumero(r) {
+        if (!r?.id) return "—";
+        const ymd = toLocalYmd(r.period_end || r.created_at || new Date().toISOString());
+        const seq = String(r.id).replace(/-/g, "").slice(0, 6).toUpperCase();
+        return ymd ? `CR-${ymd.replace(/-/g, "")}-${seq}` : `CR-${seq}`;
+      }
+
+      function financeIsAguardandoFaturamentoView(view) {
+        const v = financeNormalizeSubview(view);
+        return v === "aguardando_faturamento" || v === "triagem";
+      }
+
+      function financeReceivableOperacionalStatus(r, todayYmd, flags = {}) {
+        if (!r) return { label: "—", class: "warning" };
+        if (flags.isento) return { label: "Cancelado", class: "danger" };
+        if (r.status === "CANCELADO") return { label: "Cancelado", class: "danger" };
+        if (r.status === "PAGO") return { label: "Pago", class: "success" };
+        if (receivableNaFilaAguardandoTriagem(r)) return { label: "Aguardando Faturamento", class: "warning" };
+        const valorCobranca = Number(r.valor || 0);
+        const movRec = (state.cash || []).find((m) => m.tipo_conta === "RECEBER" && String(m.conta_id) === String(r.id));
+        const pagoParcial = !!(movRec && Number(movRec.valor || 0) > 0 && r.status !== "PAGO" && Number(movRec.valor || 0) < valorCobranca);
+        if (pagoParcial) return { label: "Pago Parcialmente", class: "warning" };
+        const dueYmd = financeContaDueYmd(r, "receivable");
+        const isOverdue = !!(dueYmd && todayYmd && dueYmd < todayYmd);
+        if (isOverdue) return { label: "Vencido", class: "danger" };
+        if (receivableIsContaReceberFinanceiro(r)) return { label: "Aguardando Pagamento", class: "warning" };
+        return { label: "Aguardando Pagamento", class: "warning" };
+      }
+
+      function renderFinanceCalculoDetalheHtml(receivable, vehicle) {
+        const b = receivableFinanceBreakdown(receivable, vehicle);
+        const vm = vehicle ? [vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") : "—";
+        return `
+          <div style="line-height:1.6;font-size:13px">
+            <p><strong>Placa:</strong> ${escapeHtml(vehicle?.placa || "—")}</p>
+            <p><strong>Veículo:</strong> ${escapeHtml(vm)}</p>
+            <p><strong>Cliente:</strong> ${escapeHtml(receivable?.responsavel_pagamento || "—")}</p>
+            <p><strong>Entrada:</strong> ${escapeHtml(formatDate(receivable?.period_start || vehicle?.data_entrada))}</p>
+            <p><strong>Saída:</strong> ${escapeHtml(formatDate(receivable?.period_end || vehicle?.data_saida))}</p>
+            <hr style="border:none;border-top:1px solid var(--border);margin:10px 0" />
+            <p><strong>Dias armazenados:</strong> ${b.dias}</p>
+            <p><strong>Valor diária:</strong> ${escapeHtml(formatCurrency(b.valorDiaria))}</p>
+            <p><strong>Total diárias:</strong> ${escapeHtml(formatCurrency(b.diariasTotal))}</p>
+            <p><strong>Taxa de remoção:</strong> ${escapeHtml(formatCurrency(b.taxaRemocao))}</p>
+            <p><strong>Taxas adicionais:</strong> ${escapeHtml(formatCurrency(b.taxasAdicionais))}</p>
+            <p><strong>Total da cobrança:</strong> ${escapeHtml(formatCurrency(b.total || receivable?.valor || 0))}</p>
+          </div>`;
       }
 
       function startOfLocalDayIso(dateStr) {
@@ -13426,18 +13560,132 @@
         }
       }
 
+      function sumReceivableFaturadoByMonth(monthYm, receivables) {
+        if (!monthYm || !Array.isArray(receivables)) return 0;
+        return receivables.reduce((sum, r) => {
+          if (FINANCE_MANUAL_ONLY && !isManualFinanceLancamento(r)) return sum;
+          if (!r.vehicle_id) return sum;
+          const ymd = toLocalYmd(r.period_end || r.created_at);
+          if (!ymd || yearMonthFromYmd(ymd) !== monthYm) return sum;
+          return sum + Number(r.valor || 0);
+        }, 0);
+      }
+
+      function renderFinanceOperacionalDashboard(monthYm) {
+        const todayYmd = toLocalYmd(new Date().toISOString());
+        const receberFlags = financeReceberFlagsRead();
+        const patioReceivables = (state.receivables || []).filter((r) => !FINANCE_MANUAL_ONLY || isManualFinanceLancamento(r));
+        const emAbertoList = patioReceivables.filter((r) => {
+          const flags = receberFlags[String(r.id)] || {};
+          if (flags.isento) return false;
+          if (r.status === "PAGO") return false;
+          return receivableIsContaReceberFinanceiro(r) || receivableNaFilaAguardandoTriagem(r);
+        });
+        const faturadoMes = sumReceivableFaturadoByMonth(monthYm, state.receivables);
+        const recebidoMes = sumReceivableRevenueByMonth(monthYm, state.receivables, state.cash || []);
+        const emAberto = emAbertoList.reduce((sum, r) => sum + Number(r.valor || 0), 0);
+        const vencidosList = emAbertoList.filter((r) => {
+          if (receivableNaFilaAguardandoTriagem(r)) return false;
+          const due = financeContaDueYmd(r, "receivable");
+          return !!(due && todayYmd && due < todayYmd);
+        });
+        const vencido = vencidosList.reduce((sum, r) => sum + Number(r.valor || 0), 0);
+        const _setOp = (id, txt) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = txt;
+        };
+        _setOp("fdFaturadoMes", formatCurrency(faturadoMes));
+        _setOp("fdFaturadoMesMeta", `Competência ${monthYm.slice(5, 7)}/${monthYm.slice(0, 4)}`);
+        _setOp("fdRecebidoMes", formatCurrency(recebidoMes));
+        _setOp("fdRecebidoMesMeta", "Pagamentos confirmados");
+        _setOp("fdEmAberto", formatCurrency(emAberto));
+        _setOp("fdEmAbertoMeta", `${emAbertoList.length} título(s)`);
+        _setOp("fdVencido", formatCurrency(vencido));
+        _setOp("fdVencidoMeta", `${vencidosList.length} título(s)`);
+      }
+
+      function renderFinanceOperacionalCharts(period) {
+        const today = new Date();
+        const buckets = [];
+        const count = period === "dia" ? 7 : period === "semana" ? 8 : 6;
+        for (let i = count - 1; i >= 0; i--) {
+          let label = "";
+          let monthYm = "";
+          if (period === "mes") {
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            monthYm = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+            label = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
+          } else {
+            const d = new Date(today);
+            d.setDate(d.getDate() - i * (period === "semana" ? 7 : 1));
+            monthYm = toLocalYmd(d.toISOString());
+            label = period === "semana" ? `S${count - i}` : d.getDate().toString();
+          }
+          const faturado =
+            period === "mes"
+              ? sumReceivableFaturadoByMonth(monthYm, state.receivables)
+              : 0;
+          const recebido =
+            period === "mes"
+              ? sumReceivableRevenueByMonth(monthYm, state.receivables, state.cash || [])
+              : sumReceivableRevenueByDay(monthYm, state.receivables, state.cash || []);
+          buckets.push({ label, faturado, recebido });
+        }
+        const maxVal = Math.max(1, ...buckets.map((b) => b.faturado), ...buckets.map((b) => b.recebido));
+        const renderBars = (svgId, key, color) => {
+          const svg = document.getElementById(svgId);
+          if (!svg) return;
+          const slot = 320 / Math.max(1, buckets.length);
+          const barW = Math.max(8, Math.min(28, slot * 0.55));
+          svg.innerHTML = buckets
+            .map((b, i) => {
+              const x = 18 + i * slot + slot * 0.15;
+              const h = Math.max(2, (b[key] / maxVal) * 84);
+              return `
+                <rect x="${x}" y="${108 - h}" width="${barW}" height="${h}" rx="3" fill="${color}"></rect>
+                <text x="${x}" y="118" font-size="9" fill="currentColor">${escapeHtml(b.label)}</text>
+              `;
+            })
+            .join("");
+        };
+        renderBars("ffFaturamentoMesSvg", "faturado", "#38bdf8");
+        renderBars("ffRecebimentosMesSvg", "recebido", "#34d399");
+        const todayYmd = toLocalYmd(today.toISOString());
+        const receberFlags = financeReceberFlagsRead();
+        let vencidoTotal = 0;
+        let abertoNoPrazo = 0;
+        (state.receivables || []).forEach((r) => {
+          if (!receivableIsContaReceberFinanceiro(r) || r.status === "PAGO") return;
+          if ((receberFlags[String(r.id)] || {}).isento) return;
+          const val = Number(r.valor || 0);
+          const due = financeContaDueYmd(r, "receivable");
+          if (due && todayYmd && due < todayYmd) vencidoTotal += val;
+          else abertoNoPrazo += val;
+        });
+        const inadSvg = document.getElementById("ffInadimplenciaSvg");
+        if (inadSvg) {
+          const total = Math.max(1, vencidoTotal + abertoNoPrazo);
+          const hv = Math.max(2, (vencidoTotal / total) * 84);
+          const ha = Math.max(2, (abertoNoPrazo / total) * 84);
+          inadSvg.innerHTML = `
+            <rect x="60" y="${108 - hv}" width="80" height="${hv}" rx="4" fill="#f87171"></rect>
+            <rect x="200" y="${108 - ha}" width="80" height="${ha}" rx="4" fill="#60a5fa"></rect>
+            <text x="60" y="118" font-size="9" fill="currentColor">Vencido</text>
+            <text x="200" y="118" font-size="9" fill="currentColor">No prazo</text>
+          `;
+        }
+      }
+
       function renderFinanceModuleCharts() {
         if (currentFinanceView === "dashboard_resultado") {
           const period = document.getElementById("financeChartPeriodResultado")?.value || "mes";
           renderDashboardFinanceCharts(period, { compare: "ffCompareSvg" });
           return;
         }
+        const monthKeyFin = financeCompetencia || currentYearMonthLocal();
+        renderFinanceOperacionalDashboard(monthKeyFin);
         const period = document.getElementById("financeChartPeriod")?.value || "mes";
-        renderDashboardFinanceCharts(period, {
-          flow: "ffCashFlowSvg",
-          balance: "ffBalanceSvg",
-          aging: "ffAgingSvg",
-        });
+        renderFinanceOperacionalCharts(period);
       }
 
       function updateDashboard() {
@@ -13803,7 +14051,7 @@
           if (patioCardMeta3) patioCardMeta3.textContent = "com data de saída";
         } else if (currentPatioView === "fechando_ciclo") {
           if (patioCardTitle1) patioCardTitle1.textContent = "Fechando ciclo";
-          if (patioCardTitle2) patioCardTitle2.textContent = "Valor em triagem";
+          if (patioCardTitle2) patioCardTitle2.textContent = "Valor aguardando faturamento";
           if (patioCardTitle3) patioCardTitle3.textContent = "Próximo passo";
           if (patioCardValue1) patioCardValue1.textContent = String(fechamentoCicloReceivables.length);
           if (patioCardValue2)
@@ -15336,19 +15584,19 @@
             financeCaixaStatus.className = c3 || "tag success";
           }
         };
-        if (currentFinanceView === "triagem") {
+        if (currentFinanceView === "triagem" || currentFinanceView === "aguardando_faturamento") {
           setFinanceSummaryCards({
-            t1: "Na fila de triagem",
+            t1: "Aguardando Faturamento",
             v1: formatCurrency(sumTriagem),
-            m1: `${triagemList.length} registro(s)`,
-            t2: "Receber em atraso",
-            v2: formatCurrency(overdueReceivables.reduce((s, r) => s + Number(r.valor || 0), 0)),
-            m2: `${overdueReceivables.length} conta(s)`,
-            t3: "Pendentes de OK",
+            m1: `${triagemList.length} veículo(s)`,
+            t2: "Valor total na fila",
+            v2: formatCurrency(sumTriagem),
+            m2: "calculado na saída",
+            t3: "Pendentes de cobrança",
             v3: String(triagemList.length),
-            m3: "NF e pagamento",
+            m3: "gerar cobrança / fatura",
             c1: "tag warning",
-            c2: "tag danger",
+            c2: "tag warning",
             c3: "tag warning",
           });
         } else if (financeIsLancamentosView(currentFinanceView)) {
@@ -15540,53 +15788,14 @@
           }
         }
 
-        if (_fd("fdSaldoTotal")) {
-          const todayYmd = toLocalYmd(new Date().toISOString());
-          const entradasHoje = sumReceivableRevenueByDay(todayYmd, state.receivables || [], state.cash || []);
-          const receberFlags = financeReceberFlagsRead();
-          const receberFinanceiro = (state.receivables || []).filter((r) => receivableIsContaReceberFinanceiro(r));
-          const receberPendentes = receberFinanceiro.filter((r) => {
-            const flags = receberFlags[String(r.id)] || {};
-            return r.status !== "PAGO" && !flags.isento;
-          });
-          const pagarPendentes = (state.payables || []).filter((p) => p.status === "EM_ABERTO");
-          const totalPagarDash = pagarPendentes.reduce((sum, p) => sum + Number(p.valor || 0), 0);
-          const totalReceberDash = receberPendentes.reduce((sum, r) => sum + Number(r.valor || 0), 0);
-          const payChannels = financePaymentChannelTotals(monthKeyFin, state.cash || []);
-
-          _set("fdSaldoTotal", formatCurrency(caixa));
-          _set("fdSaldoTotalMeta", caixa >= 0 ? "Posição consolidada" : "Saldo negativo");
-          _set("fdReceitasMes", formatCurrency(entradasMesDiarias));
-          _set("fdReceitasMesMeta", `Hoje: ${formatCurrency(entradasHoje)}`);
-          _set("fdDespesasMes", formatCurrency(saidasOperacionaisMesFinance));
-          _set("fdDespesasMesMeta", `Competência ${monthKeyFin.slice(5, 7)}/${monthKeyFin.slice(0, 4)}`);
-          _set("fdContasPagar", formatCurrency(totalPagarDash));
-          _set("fdContasPagarMeta", `${pagarPendentes.length} título(s) pendente(s)`);
-          _set("fdContasReceber", formatCurrency(totalReceberDash));
-          _set("fdContasReceberMeta", `${receberPendentes.length} título(s) pendente(s)`);
-          _set("fdLucroLiquido", formatCurrency(resultadoMesFinance));
-          _set(
-            "fdLucroLiquidoMeta",
-            resultadoMesFinance >= 0 ? "Receitas − despesas operacionais" : "Prejuízo no mês"
-          );
-          const lucroCard = _fd("fdLucroCard");
-          if (lucroCard) {
-            lucroCard.classList.toggle("finance-ft-resumo-card--profit", resultadoMesFinance >= 0);
-            lucroCard.classList.toggle("finance-ft-resumo-card--loss", resultadoMesFinance < 0);
-          }
-          _set("fdIndCaixa", formatCurrency(payChannels.caixa));
-          _set("fdIndCaixaMeta", "Entradas e saídas em dinheiro");
-          _set("fdIndBanco", formatCurrency(payChannels.banco));
-          _set("fdIndBancoMeta", "PIX, transferência, boleto");
-          _set("fdIndCartoes", formatCurrency(payChannels.cartoes));
-          _set("fdIndCartoesMeta", "Crédito e débito");
+        if (_fd("fdFaturadoMes")) {
+          renderFinanceOperacionalDashboard(monthKeyFin);
         }
         if (financeIsDashboardView(currentFinanceView)) {
           const isResultado = currentFinanceView === "dashboard_resultado";
           showFinanceDashboardOnly(isResultado);
           renderFinanceModuleCharts();
           if (isResultado) renderFinanceDrePanel();
-          else renderFinanceConciliacaoPanel();
           return;
         }
         if (currentFinanceView === "clientes") {
@@ -15909,54 +16118,53 @@
           return;
         }
 
-        if (currentFinanceView === "triagem") {
+        if (financeIsAguardandoFaturamentoView(currentFinanceView)) {
           financeHead.innerHTML = `
             <tr>
-              <th>Veículo / responsável</th>
-              <th>Período</th>
-              <th>Valor</th>
-              <th>Nota fiscal</th>
-              <th>Pagamento</th>
-              <th>Ação</th>
+              <th>Placa</th>
+              <th>Veículo</th>
+              <th>Cliente</th>
+              <th>Entrada</th>
+              <th>Saída</th>
+              <th>Dias</th>
+              <th>Valor total</th>
+              <th>Status</th>
+              <th>Ações</th>
             </tr>`;
           state.receivables
             .filter((r) => receivableNaFilaAguardandoTriagem(r))
             .filter((r) => matchesVehicleId(r.vehicle_id))
             .forEach((r) => {
               const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
-              const vehicleInfo = vehicle
-                ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`
-                : "Veículo não encontrado";
-              const ini = r.period_start ? formatDate(r.period_start) : "-";
-              const fim = r.period_end
-                ? formatDate(r.period_end)
-                : vehicle?.data_saida
-                  ? formatDate(vehicle.data_saida)
-                  : "-";
-              const valor = Number(r.valor || 0);
+              const breakdown = receivableFinanceBreakdown(r, vehicle);
+              const vehicleLabel = vehicle ? [vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "—" : "—";
+              const placa = vehicle?.placa || "—";
+              const cliente = r.responsavel_pagamento || vehicle?.financeira_nome || "—";
+              const ini = r.period_start ? formatDate(r.period_start) : vehicle?.data_entrada ? formatDate(vehicle.data_entrada) : "-";
+              const fim = r.period_end ? formatDate(r.period_end) : vehicle?.data_saida ? formatDate(vehicle.data_saida) : "-";
+              const valor = Number(r.valor || breakdown.total || 0);
               const nfChecked = triagemDefaultNfEmitida(r, vehicle) ? " checked" : "";
               rows.push(`
                 <tr>
-                  <td>
-                    ${escapeHtml(r.responsavel_pagamento || "—")}<br />
-                    <span class="notice">${escapeHtml(vehicleInfo)}</span>
-                  </td>
-                  <td>${escapeHtml(ini)} → ${escapeHtml(fim)}</td>
+                  <td>${escapeHtml(placa)}</td>
+                  <td>${escapeHtml(vehicleLabel)}</td>
+                  <td>${escapeHtml(cliente)}</td>
+                  <td>${escapeHtml(ini)}</td>
+                  <td>${escapeHtml(fim)}</td>
+                  <td>${breakdown.dias}</td>
                   <td>${formatCurrency(valor)}</td>
-                  <td>
-                    <label class="finance-check" style="margin: 0">
-                      <input type="checkbox" class="triagem-nf-emitida"${nfChecked} />
-                      NF emitida
+                  <td><span class="tag warning">Aguardando Faturamento</span></td>
+                  <td class="actions">
+                    <button type="button" class="secondary" data-action="detalhes-calculo-faturamento" data-id="${r.id}">Ver cálculo</button>
+                    <label class="finance-check" style="margin: 0 4px 0 0; display: inline-flex; align-items: center; gap: 4px; font-size: 12px">
+                      <input type="checkbox" class="triagem-nf-emitida"${nfChecked} /> NF
                     </label>
-                  </td>
-                  <td>
-                    <select class="triagem-pagamento" style="min-width: 11rem">
+                    <select class="triagem-pagamento" style="min-width: 9rem; margin-right: 4px">
                       <option value="aguardando" selected>Aguardando pagamento</option>
                       <option value="pago">Já pago</option>
                     </select>
-                  </td>
-                  <td class="actions">
-                    <button type="button" data-action="confirmar_triagem" data-id="${r.id}" title="Concluir triagem e enviar para Contas a receber">OK</button>
+                    <button type="button" class="secondary" data-action="gerar-fatura-faturamento" data-id="${r.id}">Gerar fatura</button>
+                    <button type="button" data-action="confirmar_triagem" data-id="${r.id}" title="Gerar cobrança e enviar para Contas a Receber">Gerar cobrança</button>
                   </td>
                 </tr>
               `);
@@ -15964,8 +16172,8 @@
           if (!rows.length) {
             setEmptyRow(
               tableFinance,
-              "Nenhum registro em triagem. Após liberar um veículo (VRP), o ciclo aparece aqui até informar NF e pagamento.",
-              6
+              "Nenhum veículo aguardando faturamento. Após a saída (VRP), o registro aparece aqui com o valor calculado automaticamente.",
+              9
             );
           } else {
             tableFinance.innerHTML = rows.join("");
@@ -16160,14 +16368,14 @@
           syncContasReceberSubViewUi();
           financeHead.innerHTML = `
             <tr>
-              <th>Vencimento</th>
+              <th>Nº cobrança</th>
               <th>Cliente</th>
-              <th>Serviço</th>
+              <th>Veículo</th>
+              <th>Placa</th>
               <th>Valor</th>
+              <th>Emissão</th>
+              <th>Vencimento</th>
               <th>Status</th>
-              <th>Dias em atraso</th>
-              <th>Recebido em</th>
-              <th>Alertas automáticos</th>
               <th>Ações</th>
             </tr>`;
         } else {
@@ -16195,56 +16403,15 @@
 
           recvFiltered.forEach((r) => {
             const dueYmd = financeContaDueYmd(r, "receivable");
-            const daysFromDue = financeContaDueDays(dueYmd, recvToday);
             const isPaid = r.status === "PAGO";
-            const isOverdue = !isPaid && !!(dueYmd && recvToday && dueYmd < recvToday);
             const vehicle = vehicleById.get(r.vehicle_id);
             const valorCobranca = Number(r.valor || 0);
             const movRec = (state.cash || []).find((m) => m.tipo_conta === "RECEBER" && String(m.conta_id) === String(r.id));
-            const pagoParcial = !!(movRec && Number(movRec.valor || 0) > 0 && !isPaid && Number(movRec.valor || 0) < valorCobranca);
             const flags = receberFlags[String(r.id)] || {};
-            const emNegociacao = !!flags.negociacao;
-            const isento = !!flags.isento;
-            let statusLabel = "Em aberto";
-            let statusClass = "warning";
-            if (isento) {
-              statusLabel = "Isento";
-              statusClass = "success";
-            } else if (isPaid) {
-              statusLabel = "Pago";
-              statusClass = "success";
-            } else if (emNegociacao) {
-              statusLabel = "Em negociação";
-              statusClass = "warning";
-            } else if (pagoParcial) {
-              statusLabel = "Parcialmente pago";
-              statusClass = "warning";
-            } else if (isOverdue) {
-              statusLabel = "Vencido";
-              statusClass = "danger";
-            } else if (daysFromDue != null && daysFromDue >= -7 && daysFromDue < 0) {
-              statusLabel = "A vencer";
-              statusClass = "warning";
-            }
-            const diasAtraso = isOverdue ? Math.max(0, daysFromDue) : 0;
-            const alertaTexto = isPaid
-              ? "Quitado"
-              : isOverdue
-                ? `Vencido há ${diasAtraso} dia(s)`
-                : daysFromDue != null && daysFromDue >= -3 && daysFromDue < 0
-                  ? `Vence em ${Math.abs(daysFromDue)} dia(s)`
-                  : daysFromDue != null && daysFromDue >= -7 && daysFromDue < -3
-                    ? `Vence em ${Math.abs(daysFromDue)} dia(s)`
-                    : "Sem alerta";
-            const alertaClasse = isPaid ? "success" : isOverdue ? "danger" : daysFromDue != null && daysFromDue < 0 ? "warning" : "success";
-            const vehicleInfo = vehicle
-              ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`
-              : isManualFinanceLancamento(r)
-                ? "Lançamento manual"
-                : "-";
+            const opStatus = financeReceivableOperacionalStatus(r, recvToday, flags);
+            const vehicleLabel = vehicle ? [vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "—" : isManualFinanceLancamento(r) ? "Lançamento manual" : "—";
+            const placa = vehicle?.placa || "—";
             const hasAtt = financeAttachmentGet("receivable", r.id);
-            const ultimaCob = flags.ultima_cobranca ? financeFormatUltimaCobranca(flags.ultima_cobranca) : "";
-            const cobrancaHint = ultimaCob ? `<br /><span class="notice">Última cobrança: ${escapeHtml(ultimaCob)}</span>` : "";
             const acoesAberto = `
                     <button class="secondary" data-action="detalhes-receber" data-id="${r.id}">Ver detalhes</button>
                     <button class="secondary" data-action="cobrar-receber" data-id="${r.id}" title="Preview e copiar cobrança">Cobrar</button>
@@ -16252,7 +16419,7 @@
                     ${hasAtt ? `<button class="secondary" data-action="ver-comprovante" data-kind="receivable" data-id="${r.id}">Comprovante</button>` : ""}
                     <button class="secondary" data-action="aplicar-desconto" data-id="${r.id}">Aplicar desconto</button>
                     <button class="secondary" data-action="negociar-receber" data-id="${r.id}">Negociar</button>
-                    <button class="secondary" data-action="receber" data-id="${r.id}" title="Confirma o recebimento">Dar baixa</button>
+                    <button class="secondary" data-action="receber" data-id="${r.id}" title="Confirmar pagamento recebido">Confirmar Pagamento</button>
                   `;
             const acoesPago = `
                     <button class="secondary" data-action="detalhes-receber" data-id="${r.id}">Ver detalhes</button>
@@ -16261,17 +16428,14 @@
                   `;
             rows.push(`
                 <tr>
-                  <td>${formatDate(r.period_end || r.created_at)}</td>
-                  <td>${escapeHtml(r.responsavel_pagamento || "Responsável não informado")}${cobrancaHint}</td>
-                  <td>
-                    <span class="notice">${escapeHtml(receivableCategoryLabel(r.receivable_category))}</span><br />
-                    <span class="notice">${vehicleInfo}</span>
-                  </td>
+                  <td>${escapeHtml(financeCobrancaNumero(r))}</td>
+                  <td>${escapeHtml(r.responsavel_pagamento || "Responsável não informado")}</td>
+                  <td>${escapeHtml(vehicleLabel)}</td>
+                  <td>${escapeHtml(placa)}</td>
                   <td>${formatCurrency(valorCobranca)}</td>
-                  <td><span class="tag ${statusClass}">${statusLabel}</span></td>
-                  <td>${isPaid ? "—" : `${diasAtraso} dia(s)`}</td>
-                  <td>${isPaid ? formatDate(movRec?.data_movimento || r.updated_at || r.created_at) : "-"}</td>
-                  <td><span class="tag ${alertaClasse}">${alertaTexto}</span></td>
+                  <td>${formatDate(r.period_end || r.created_at)}</td>
+                  <td>${formatDate(dueYmd || r.period_end || r.created_at)}</td>
+                  <td><span class="tag ${opStatus.class}">${escapeHtml(opStatus.label)}</span></td>
                   <td class="actions">${isPaid ? acoesPago : acoesAberto}</td>
                 </tr>
               `);
@@ -16520,9 +16684,9 @@
         }
         const triagemIntro = document.getElementById("financeAguardandoIntro");
         if (triagemIntro) {
-          if (view === "triagem") {
+          if (financeIsAguardandoFaturamentoView(view)) {
             triagemIntro.textContent =
-              "Veículos liberados (VRP) entram aqui. Informe se a nota fiscal já foi emitida e se o pagamento já foi feito ou ainda aguarda. Toque em OK para enviar o registro a Contas a receber.";
+              "Veículos removidos do pátio (VRP) entram aqui com valor calculado automaticamente. Revise o cálculo, gere cobrança e fatura, e envie para Contas a Receber quando estiver pronto.";
             triagemIntro.classList.remove("hidden");
           } else {
             triagemIntro.classList.add("hidden");
@@ -17132,7 +17296,7 @@
         workflowModalConfig = null;
       });
 
-      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, lancamentoModal, fichaModal, nfseModal, textModal, reciboModal, receberBaixaModal, pagarBaixaModal, financeCobrancaModal, financeContaEditModal].forEach((modal) => {
+      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, lancamentoModal, fichaModal, nfseModal, textModal, reciboModal, receberBaixaModal, pagarBaixaModal, financeCobrancaModal, financeContaEditModal, document.getElementById("financeCalculoDetalheModal")].filter(Boolean).forEach((modal) => {
         modal.addEventListener("click", (event) => {
           if (event.target === modal) {
             modal.classList.add("hidden");
@@ -17226,6 +17390,8 @@
         if (dataEl) dataEl.value = toLocalYmd(new Date().toISOString());
         if (formaEl) formaEl.value = receivable.forma_pagamento || "PIX";
         if (anexoEl) anexoEl.value = "";
+        const obsEl = document.getElementById("receberBaixaObs");
+        if (obsEl) obsEl.value = "";
         const nomeEl = document.getElementById("receberBaixaReciboNome");
         const docEl = document.getElementById("receberBaixaReciboDoc");
         if (nomeEl) nomeEl.value = receivable.responsavel_pagamento || "";
@@ -17341,6 +17507,13 @@
         financeContaEditForm?.reset();
       }
 
+      document.getElementById("closeFinanceCalculoDetalheModal")?.addEventListener("click", () => {
+        document.getElementById("financeCalculoDetalheModal")?.classList.add("hidden");
+      });
+      document.getElementById("cancelFinanceCalculoDetalheModal")?.addEventListener("click", () => {
+        document.getElementById("financeCalculoDetalheModal")?.classList.add("hidden");
+      });
+
       function closeReceberBaixaModal() {
         receberBaixaModal?.classList.add("hidden");
         pendingBaixaReceber = null;
@@ -17361,12 +17534,14 @@
         }
         const dataMov = document.getElementById("receberBaixaData")?.value || toLocalYmd(new Date().toISOString());
         const formaPagamento = document.getElementById("receberBaixaForma")?.value || "PIX";
+        const observacao = (document.getElementById("receberBaixaObs")?.value || "").trim();
         const anexo = await readFinanceFileInput(document.getElementById("receberBaixaAnexo"));
         closeReceberBaixaModal();
         const result = await finalizeReceivablePayment(pending.receivableId, pending.valor, {
           dataMovimento: dataMov,
           formaPagamento,
           anexo,
+          observacao,
         });
         if (!result) return;
         if (mode === "pdf") {
@@ -17483,6 +17658,12 @@
             .eq("tipo_conta", "RECEBER");
         }
         if (opts.anexo) await financeAttachmentSave("receivable", receivableId, opts.anexo);
+        financeAuditAppend(receivableId, "Pagamento confirmado", {
+          valor: totalAtual,
+          formaPagamento,
+          dataMovimento: dataMov,
+          observacao: opts.observacao || "",
+        });
         try {
           const userId = effectiveUserId();
           if (userId) {
@@ -20379,8 +20560,21 @@
             console.warn(cycleQErr);
           }
           if (cycleAberto?.id) {
+            const hadRemocao = isRemocaoSolicitada(vehicle);
             const closedVehicle = { ...vehicle, status: "REMOVIDO", data_saida: dataSaida };
-            const valorFechamento = calcPeriodTotal(closedVehicle, cycleAberto.period_start, dataSaida);
+            const breakdown = calcFinanceChargeBreakdown(closedVehicle, cycleAberto.period_start, dataSaida, {
+              aplicarRemocao: hadRemocao,
+            });
+            const valorFechamento = breakdown.total;
+            const calcMeta = financeMetaPack(
+              {
+                calculo_patio: breakdown,
+                aplicar_remocao: hadRemocao,
+                origem_modulo: "PATIO_VRP",
+                gerado_em: dataSaida,
+              },
+              `Cobrança automática — ${breakdown.dias} dia(s) × ${formatCurrency(breakdown.valorDiaria)}`
+            );
             let { error: recErr } = await supabase
               .from("receivables")
               .update({
@@ -20389,6 +20583,7 @@
                 status: RECEIVABLE_AGUARDANDO_LANCAMENTO,
                 patio_liberado_financeiro: true,
                 financeiro_aprovado_contas_receber: false,
+                observacoes: calcMeta,
               })
               .eq("id", cycleAberto.id)
               .eq("user_id", effectiveUserId());
@@ -20445,6 +20640,10 @@
             }
             removePatioFinanceiroBloqueadoReceivableId(cycleAberto.id);
             removeReceberTriagemId(cycleAberto.id);
+            financeAuditAppend(cycleAberto.id, "Enviado para Aguardando Faturamento", {
+              valor: valorFechamento,
+              note: `${breakdown.dias} dia(s), remoção: ${formatCurrency(breakdown.taxaRemocao)}`,
+            });
 
             const dIni = new Date(cycleAberto.period_start);
             const dFim = new Date(dataSaida);
@@ -20501,9 +20700,9 @@
           alert(
             FINANCE_MANUAL_ONLY
               ? "Veículo removido do pátio (VRP). Registre o financeiro manualmente em Financeiro → Lançamentos."
-              : "Veículo removido do pátio (VRP). O registro foi para Financeiro → Triagem. Informe NF e pagamento e toque em OK."
+              : "Veículo removido do pátio (VRP). O valor foi calculado e enviado para Financeiro → Aguardando Faturamento."
           );
-          if (!FINANCE_MANUAL_ONLY) openFinanceSubview("triagem");
+          if (!FINANCE_MANUAL_ONLY) openFinanceSubview("aguardando_faturamento");
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
           return;
@@ -20675,20 +20874,27 @@
           const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
           const flags = financeReceberFlagsRead()[String(receivable.id)] || {};
           const mov = (state.cash || []).find((m) => m.tipo_conta === "RECEBER" && String(m.conta_id) === String(receivable.id));
+          const opStatus = financeReceivableOperacionalStatus(receivable, toLocalYmd(new Date().toISOString()), flags);
           const texto = [
+            `Nº cobrança: ${financeCobrancaNumero(receivable)}`,
             `Cliente: ${receivable.responsavel_pagamento || "-"}`,
             `Veículo: ${vehicle ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}` : "-"}`,
-            `Categoria: ${receivableCategoryLabel(receivable.receivable_category)}`,
             `Valor: ${formatCurrency(Number(receivable.valor || 0))}`,
-            `Status: ${receivable.status === "PAGO" ? "Pago" : "Em aberto"}`,
-            `Vencimento: ${formatDate(receivable.period_end || receivable.created_at)}`,
+            `Status: ${opStatus.label}`,
+            `Emissão: ${formatDate(receivable.period_end || receivable.created_at)}`,
+            `Vencimento: ${formatDate(financeContaDueYmd(receivable, "receivable") || receivable.period_end || receivable.created_at)}`,
             receivable.status === "PAGO" && mov ? `Recebido em: ${formatDate(mov.data_movimento)} (${mov.forma_pagamento || "—"})` : null,
             flags.ultima_cobranca ? `Última cobrança: ${financeFormatUltimaCobranca(flags.ultima_cobranca)}` : null,
             `Período: ${formatDate(receivable.period_start)} até ${formatDate(receivable.period_end || receivable.created_at)}`,
+            "",
+            "--- Histórico ---",
           ]
-            .filter(Boolean)
+            .filter((x) => x !== null)
             .join("\n");
-          openTextModal("Detalhes do recebimento", texto);
+          const auditRows = (financeAuditReadAll()[String(receivable.id)] || [])
+            .map((e) => `${formatDate(e.at)} · ${e.action}${e.observacao ? ` · ${e.observacao}` : ""}`)
+            .join("\n");
+          openTextModal("Detalhes da cobrança", `${texto}\n${auditRows || "Sem histórico."}`);
           return;
         }
 
@@ -20819,7 +21025,7 @@
             await Promise.all([loadReceivables(), loadCycleClosures(), loadCash(), loadVehicles()]);
             renderFinance();
             updateDashboard();
-            alert("Triagem concluída. Pagamento registrado no caixa.");
+            alert("Cobrança concluída. Pagamento registrado.");
             return;
           }
           const patch = { financeiro_aprovado_contas_receber: true };
@@ -20847,10 +21053,47 @@
             }
           }
           addReceberTriagemId(id);
+          financeAuditAppend(id, "Cobrança gerada", { note: pagamento === "pago" ? "Com pagamento imediato" : "Aguardando Pagamento" });
           await Promise.all([loadReceivables(), loadCycleClosures(), loadVehicles()]);
           renderFinance();
           updateDashboard();
-          alert("Triagem concluída. Registro enviado para Contas a receber (Receber).");
+          alert("Cobrança gerada. Registro enviado para Contas a Receber com status Aguardando Pagamento.");
+          return;
+        }
+
+        if (action === "detalhes-calculo-faturamento") {
+          const receivable = state.receivables.find((r) => r.id === id);
+          if (!receivable) return;
+          const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
+          const bodyEl = document.getElementById("financeCalculoDetalheBody");
+          const histEl = document.getElementById("financeCalculoDetalheHistorico");
+          if (bodyEl) bodyEl.innerHTML = renderFinanceCalculoDetalheHtml(receivable, vehicle);
+          if (histEl) {
+            histEl.innerHTML = `<h5 style="margin:8px 0;font-size:0.92rem">Histórico</h5>${financeAuditHtml(receivable.id)}`;
+          }
+          document.getElementById("financeCalculoDetalheModal")?.classList.remove("hidden");
+          return;
+        }
+
+        if (action === "gerar-fatura-faturamento") {
+          const receivable = state.receivables.find((r) => r.id === id);
+          if (!receivable) return;
+          const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
+          if (!vehicle) {
+            alert("Veículo não encontrado para gerar fatura.");
+            return;
+          }
+          const tr = button.closest("tr");
+          const nfEmitida = !!tr?.querySelector(".triagem-nf-emitida")?.checked;
+          if (nfEmitida && vehicle.nfse_status !== "EMITIDA") {
+            await supabase
+              .from("vehicles")
+              .update({ nfse_status: "EMITIDA", nfse_issued_at: new Date().toISOString() })
+              .eq("id", vehicle.id)
+              .eq("user_id", effectiveUserId());
+          }
+          financeAuditAppend(id, "Fatura gerada/visualizada", { note: nfEmitida ? "NF marcada como emitida" : "Preview de NF" });
+          openTextModal("Nota Fiscal / Fatura", buildNfseText(vehicle));
           return;
         }
 
