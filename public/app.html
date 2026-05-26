@@ -3408,9 +3408,44 @@
       }
       .modal-backdrop.tab-view-modal {
         z-index: 190;
+        position: fixed !important;
+        inset: 0 !important;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        margin: 0 !important;
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(12px);
+        box-sizing: border-box;
       }
       .modal-backdrop.module-view-modal {
         z-index: 170;
+        position: fixed !important;
+        inset: 0 !important;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        margin: 0 !important;
+        max-width: none !important;
+        width: auto !important;
+        overflow: visible !important;
+        background: rgba(15, 23, 42, 0.55) !important;
+        backdrop-filter: blur(12px);
+        border: none !important;
+        box-shadow: none !important;
+        box-sizing: border-box;
+      }
+      #viewPatio.modal-backdrop.module-view-modal.patio-module-shell::before,
+      #viewFinanceiro.modal-backdrop.module-view-modal.finance-module-shell::before,
+      #viewParceiros.modal-backdrop.module-view-modal.partners-module-shell::before {
+        display: none;
+      }
+      #viewDashboard.dashboard-behind-modal {
+        position: relative;
+        z-index: 0;
+        pointer-events: none;
       }
       .modal-backdrop.module-view-modal.panel {
         max-width: none !important;
@@ -8330,9 +8365,9 @@
       let tabModalSystemReady = false;
 
       function relocateTabModalEl(el) {
-        const appPanel = document.getElementById("appPanel");
-        if (!el || !appPanel || el.parentElement === appPanel) return;
-        appPanel.appendChild(el);
+        if (!el) return;
+        if (el.parentElement === document.body) return;
+        document.body.appendChild(el);
       }
 
       function ensureTabModalShell(backdropEl, onClose) {
@@ -18817,6 +18852,7 @@
           setFinanceView("none");
           setPartnerView("none");
           Object.values(views).forEach((panel) => panel?.classList.add("hidden"));
+          dashboardEl?.classList.remove("dashboard-behind-modal");
           dashboardEl?.classList.remove("hidden");
           dashboardEl?.classList.remove("air-open");
           if (dashboardEl) {
@@ -18825,6 +18861,7 @@
           }
         } else if (MODULE_MODAL_VIEWS.includes(view)) {
           dashboardEl?.classList.remove("hidden");
+          dashboardEl?.classList.add("dashboard-behind-modal");
           views.configuracoes?.classList.add("hidden");
           MODULE_MODAL_VIEWS.forEach((key) => {
             const modEl = document.getElementById(MODULE_VIEW_IDS[key]);
@@ -18850,6 +18887,7 @@
             }
           });
         } else {
+          dashboardEl?.classList.remove("dashboard-behind-modal");
           MODULE_MODAL_VIEWS.forEach((key) => {
             document.getElementById(MODULE_VIEW_IDS[key])?.classList.add("hidden");
           });
