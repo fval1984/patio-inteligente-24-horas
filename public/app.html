@@ -193,7 +193,7 @@
           0 0 0 1px rgba(225, 29, 46, 0.16),
           0 20px 40px rgba(15, 23, 42, 0.07);
       }
-      #viewFinanceiro.finance-module-shell.finance-flyout-open {
+      #viewFinanceiro.finance-module-shell[data-finance-view="inicio"] {
         overflow: visible;
       }
       .finance-module-ribbon {
@@ -2621,7 +2621,7 @@
         box-shadow: var(--shadow-soft);
         transition: border-color 0.15s ease, background 0.15s ease;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-lanc-item {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-lanc-item {
         background: var(--ft-surface-elevated, var(--card));
         border-color: var(--ft-border, var(--border));
       }
@@ -3017,7 +3017,7 @@
       .lanc-field-row--modo {
         grid-column: 1 / -1;
       }
-      #viewFinanceiro #financeContent.finance-fintracker #financeStandardArea .finance-lanc-list {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) #financeStandardArea .finance-lanc-list {
         max-height: calc(100vh - 280px);
         overflow-y: auto;
         padding-right: 2px;
@@ -4022,7 +4022,7 @@
         display: block;
       }
       /* Financeiro — layout FinTracker + paleta Amplipatio (vermelho / temas) */
-      #viewFinanceiro #financeContent.finance-fintracker {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) {
         --ft-bg: var(--bg);
         --ft-surface: var(--card);
         --ft-surface-elevated: color-mix(in srgb, var(--card) 98%, #fff 2%);
@@ -4037,6 +4037,8 @@
         --ft-radius: 12px;
         --ft-table-head: color-mix(in srgb, var(--card) 82%, rgba(225, 29, 46, 0.1));
         --ft-row-hover: color-mix(in srgb, var(--card) 90%, rgba(225, 29, 46, 0.12));
+      }
+      #viewFinanceiro #financeContent.finance-fintracker {
         margin-top: 18px;
         padding: 0;
         border: none;
@@ -4048,7 +4050,7 @@
       #viewFinanceiro .finance-flyout-close {
         display: none !important;
       }
-      [data-theme="light"] #viewFinanceiro #financeContent.finance-fintracker {
+      [data-theme="light"] #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) {
         --ft-bg: var(--bg);
         --ft-surface: rgba(255, 255, 255, 0.96);
         --ft-surface-elevated: #ffffff;
@@ -4070,10 +4072,10 @@
         background: var(--ft-bg);
         box-shadow: var(--shadow);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-modern-sidebar {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-modern-sidebar {
         display: none !important;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-brand {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-brand {
         display: flex;
         align-items: center;
         gap: 12px;
@@ -4081,7 +4083,7 @@
         margin-bottom: 8px;
         border-bottom: 1px solid var(--ft-border);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-brand-icon {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-brand-icon {
         width: 42px;
         height: 42px;
         border-radius: 12px;
@@ -4092,28 +4094,28 @@
         box-shadow: 0 8px 18px rgba(225, 29, 46, 0.22);
         overflow: hidden;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-brand-icon img {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-brand-icon img {
         width: 28px;
         height: 28px;
         object-fit: contain;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-brand-text {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-brand-text {
         display: flex;
         flex-direction: column;
         gap: 2px;
         min-width: 0;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-brand-text strong {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-brand-text strong {
         font-size: 15px;
         font-weight: 800;
         color: var(--ft-text);
         letter-spacing: -0.02em;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-brand-text span {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-brand-text span {
         font-size: 12px;
         color: var(--ft-muted);
       }
-      #viewFinanceiro #financeContent.finance-fintracker #financeSubnav.finance-ft-nav {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) #financeSubnav.finance-ft-nav {
         display: flex;
         flex-direction: row;
         flex-wrap: wrap;
@@ -4125,12 +4127,12 @@
         padding: 10px 12px;
         margin: 0 0 14px;
       }
-      #viewFinanceiro #financeContent.finance-fintracker #financeSubnav.finance-ft-nav--top {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) #financeSubnav.finance-ft-nav--top {
         position: sticky;
         top: 0;
         z-index: 20;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-nav-btn {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-nav-btn {
         display: inline-flex;
         align-items: center;
         width: auto;
@@ -4148,37 +4150,37 @@
         box-shadow: none;
         white-space: nowrap;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-nav-btn:hover {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-nav-btn:hover {
         background: var(--ft-row-hover);
         border-color: var(--ft-border);
         color: var(--ft-text);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-nav-btn.active {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-nav-btn.active {
         background: linear-gradient(135deg, var(--ft-accent-soft), rgba(184, 20, 34, 0.12));
         border-color: var(--ft-accent-border);
         color: #fecaca;
         box-shadow: inset 0 -3px 0 var(--ft-accent);
       }
-      [data-theme="light"] #viewFinanceiro #financeContent.finance-fintracker .finance-ft-nav-btn.active {
+      [data-theme="light"] #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-nav-btn.active {
         color: var(--primary-strong);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-nav-btn--muted {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-nav-btn--muted {
         margin-top: 0;
         margin-left: auto;
         color: var(--ft-muted);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-nav-icon {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-nav-icon {
         width: 1.25rem;
         text-align: center;
         flex-shrink: 0;
         opacity: 0.92;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-modern-main {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-modern-main {
         background: var(--ft-bg);
         padding: 18px 20px 24px;
         min-width: 0;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-topbar {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-topbar {
         border: 1px solid var(--ft-border);
         border-radius: var(--ft-radius);
         background: var(--ft-surface-elevated);
@@ -4186,7 +4188,7 @@
         box-shadow: var(--ft-shadow);
         margin-bottom: 12px;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-page-kicker {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-page-kicker {
         margin: 0 0 4px;
         font-size: 11px;
         font-weight: 700;
@@ -4194,25 +4196,25 @@
         text-transform: uppercase;
         color: var(--ft-accent);
       }
-      [data-theme="light"] #viewFinanceiro #financeContent.finance-fintracker .finance-ft-page-kicker {
+      [data-theme="light"] #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-page-kicker {
         color: var(--ft-accent-strong);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-topbar h2,
-      #viewFinanceiro #financeContent.finance-fintracker #financePageTitle {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-topbar h2,
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) #financePageTitle {
         color: var(--ft-text);
         font-size: 1.35rem;
         font-weight: 800;
         letter-spacing: -0.02em;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-breadcrumb {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-breadcrumb {
         color: var(--ft-muted) !important;
         font-size: 12px;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-context-bar {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-context-bar {
         gap: 8px;
         margin-bottom: 14px;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-context-badge {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-context-badge {
         border: 1px solid var(--ft-border);
         border-radius: 999px;
         background: var(--ft-surface-elevated);
@@ -4222,67 +4224,67 @@
         padding: 6px 12px;
         box-shadow: var(--ft-shadow);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-context-badge input,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-context-badge select {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-context-badge input,
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-context-badge select {
         border: 1px solid var(--ft-border);
         border-radius: 8px;
         background: var(--ft-surface);
         color: var(--ft-text);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .section-card,
-      #viewFinanceiro #financeContent.finance-fintracker .fin-dash-panel {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .section-card,
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .fin-dash-panel {
         border: 1px solid var(--ft-border) !important;
         border-radius: var(--ft-radius) !important;
         background: var(--ft-surface-elevated) !important;
         box-shadow: var(--ft-shadow) !important;
         color: var(--ft-text);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-kpi-card {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-kpi-card {
         border: 1px solid var(--ft-border);
         border-radius: var(--ft-radius);
         background: var(--ft-surface-elevated);
         box-shadow: var(--ft-shadow);
         padding: 16px;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-kpi-card::before {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-kpi-card::before {
         background: linear-gradient(90deg, var(--ft-accent), var(--ft-accent-strong));
         opacity: 1;
         height: 3px;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-kpi-title {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-kpi-title {
         color: var(--ft-muted);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-kpi-value {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-kpi-value {
         color: var(--ft-text);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-kpi-meta {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-kpi-meta {
         color: var(--ft-muted);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .filter-bar,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-filter-panel {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .filter-bar,
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-filter-panel {
         border: 1px solid var(--ft-border);
         border-radius: var(--ft-radius);
         background: var(--ft-surface-elevated);
         box-shadow: var(--ft-shadow);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .filter-bar label {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .filter-bar label {
         color: var(--ft-text);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .filter-bar input,
-      #viewFinanceiro #financeContent.finance-fintracker .filter-bar select {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .filter-bar input,
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .filter-bar select {
         border: 1px solid var(--ft-border);
         border-radius: 8px;
         background: var(--ft-surface);
         color: var(--ft-text);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-table-shell,
-      #viewFinanceiro #financeContent.finance-fintracker .table-wrap {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-table-shell,
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .table-wrap {
         border: 1px solid var(--ft-border);
         border-radius: var(--ft-radius);
         background: var(--ft-surface-elevated);
         box-shadow: var(--ft-shadow);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .table thead th {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .table thead th {
         background: var(--ft-table-head) !important;
         color: var(--ft-text) !important;
         border-bottom: 1px solid var(--ft-border) !important;
@@ -4291,15 +4293,15 @@
         letter-spacing: 0.04em;
         text-transform: uppercase;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .table tbody td {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .table tbody td {
         color: var(--ft-text);
         border-bottom: 1px solid var(--ft-border);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .table tbody tr:hover {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .table tbody tr:hover {
         background: var(--ft-row-hover);
       }
       /* Botões primários: vermelho Amplipatio; secundários: padrão do app */
-      #viewFinanceiro #financeContent.finance-fintracker button:not(.secondary):not(.close-view):not(.finance-ft-nav-btn) {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) button:not(.secondary):not(.close-view):not(.finance-ft-nav-btn) {
         background: linear-gradient(180deg, var(--primary), var(--primary-strong));
         border-color: var(--primary-strong);
         color: #fff;
@@ -4307,41 +4309,41 @@
         font-weight: 700;
         box-shadow: 0 1px 2px rgba(225, 29, 46, 0.25);
       }
-      #viewFinanceiro #financeContent.finance-fintracker button.secondary:not(.finance-ft-nav-btn) {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) button.secondary:not(.finance-ft-nav-btn) {
         background: var(--ft-surface);
         border: 1px solid var(--ft-border);
         color: var(--ft-text);
         border-radius: 10px;
         font-weight: 600;
       }
-      #viewFinanceiro #financeContent.finance-fintracker button.secondary:not(.finance-ft-nav-btn):hover {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) button.secondary:not(.finance-ft-nav-btn):hover {
         background: var(--ft-row-hover);
         border-color: var(--ft-accent-border);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .notice,
-      #viewFinanceiro #financeContent.finance-fintracker .subtitle {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .notice,
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .subtitle {
         color: var(--ft-muted);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .alert {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .alert {
         border-radius: var(--ft-radius);
         border: 1px solid rgba(245, 158, 11, 0.45);
         background: color-mix(in srgb, rgba(245, 158, 11, 0.16) 40%, var(--card));
         color: color-mix(in srgb, var(--text) 70%, #fcd34d);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .card,
-      #viewFinanceiro #financeContent.finance-fintracker .fin-dash-kpi,
-      #viewFinanceiro #financeContent.finance-fintracker .fin-dash-hero-balance {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .card,
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .fin-dash-kpi,
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .fin-dash-hero-balance {
         border-color: var(--ft-border);
         background: var(--ft-surface-elevated);
         color: var(--ft-text);
       }
-      #viewFinanceiro #financeContent.finance-fintracker #financeFlyoutBackdrop,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-flyout-close,
-      #viewFinanceiro #financeContent.finance-fintracker #financeSidebarToggle,
-      #viewFinanceiro #financeContent.finance-fintracker #financeSidebarBackdrop {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) #financeFlyoutBackdrop,
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-flyout-close,
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) #financeSidebarToggle,
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) #financeSidebarBackdrop {
         display: none !important;
       }
-      #viewFinanceiro #financeContent.finance-fintracker #financeContent {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) #financeContent {
         position: relative;
         inset: auto;
         width: 100%;
@@ -4351,34 +4353,34 @@
         z-index: auto;
         background: transparent;
       }
-      #viewFinanceiro #financeContent.finance-fintracker #financeStandardArea .table-wrap {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) #financeStandardArea .table-wrap {
         max-height: calc(100vh - 280px);
         overflow: auto;
       }
       @media (max-width: 960px) {
-        #viewFinanceiro #financeContent.finance-fintracker.finance-layout-v2 .finance-modern-layout {
+        #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard).finance-layout-v2 .finance-modern-layout {
           grid-template-columns: 1fr !important;
           border-radius: 12px;
         }
-        #viewFinanceiro #financeContent.finance-fintracker #financeSubnav.finance-ft-nav {
+        #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) #financeSubnav.finance-ft-nav {
           flex-wrap: nowrap;
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: thin;
           padding-bottom: 8px;
         }
-        #viewFinanceiro #financeContent.finance-fintracker .finance-ft-nav-btn--muted {
+        #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-nav-btn--muted {
           margin-left: 0;
         }
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-nav-divider {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-nav-divider {
         width: 1px;
         height: 28px;
         margin: 0 4px;
         flex-shrink: 0;
         background: var(--ft-border);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-nav-section {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-nav-section {
         padding: 6px 12px 4px;
         font-size: 10px;
         font-weight: 700;
@@ -4387,7 +4389,7 @@
         color: var(--ft-muted);
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-dashboard {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-dashboard {
         display: flex;
         flex-direction: column;
         gap: 20px;
@@ -4395,9 +4397,26 @@
       #viewFinanceiro #financeInicioPanel.finance-inicio-panel {
         margin-top: 0;
       }
+      #viewFinanceiro .finance-inicio-section-title {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--ft-muted);
+      }
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-charts-grid--3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-charts-grid--1 {
+        grid-template-columns: 1fr;
+      }
+      @media (max-width: 1100px) {
+        #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-charts-grid--3 {
+          grid-template-columns: 1fr;
+        }
+      }
       /* Painéis com display:flex no tema FinTracker precisam respeitar .hidden */
       #viewFinanceiro #financeInicioPanel.hidden,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-dashboard.hidden,
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-dashboard.hidden,
       #viewFinanceiro .finance-receitas-panel.hidden,
       #viewFinanceiro .finance-submodule-panel.hidden,
       #viewFinanceiro #financeContasTableShell.hidden,
@@ -4409,59 +4428,59 @@
         display: none !important;
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-page-intro h3,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-page-intro h3 {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-page-intro h3 {
         margin: 0 0 4px;
         font-size: 1.35rem;
         font-weight: 800;
         color: var(--ft-text);
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-page-intro p,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-page-intro p {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-page-intro p {
         margin: 0;
         font-size: 13px;
         color: var(--ft-muted);
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-kpi-row,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-row {
         display: grid;
         gap: 14px;
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-kpi-row--4,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row--4 {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-row--4 {
         grid-template-columns: repeat(4, minmax(0, 1fr));
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-kpi-row--3,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row--3 {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-row--3 {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row--6 {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-row--6 {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-resumo-card--profit strong,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-resumo-card--profit strong {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-resumo-card--profit strong {
         color: #86efac;
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-resumo-card--loss strong,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-resumo-card--loss strong {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-resumo-card--loss strong {
         color: #fca5a5;
       }
       [data-theme="light"] #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-resumo-card--profit strong,
-      [data-theme="light"] #viewFinanceiro #financeContent.finance-fintracker .finance-ft-resumo-card--profit strong {
+      [data-theme="light"] #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-resumo-card--profit strong {
         color: #166534;
       }
       [data-theme="light"] #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-resumo-card--loss strong,
-      [data-theme="light"] #viewFinanceiro #financeContent.finance-fintracker .finance-ft-resumo-card--loss strong {
+      [data-theme="light"] #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-resumo-card--loss strong {
         color: #b91c1c;
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-charts,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-charts {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-charts {
         border-radius: var(--ft-radius);
         border: 1px solid var(--ft-border);
         background: var(--ft-surface-elevated);
         padding: 18px 16px;
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-charts-head,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-charts-head {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-charts-head {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
@@ -4470,66 +4489,66 @@
         margin-bottom: 14px;
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-charts-head h4,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-charts-head h4 {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-charts-head h4 {
         margin: 0;
         font-size: 1rem;
         font-weight: 800;
         color: var(--ft-text);
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-charts-grid,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-charts-grid {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-charts-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 14px;
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-chart-card,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-chart-card {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-chart-card {
         border: 1px solid var(--ft-border);
         border-radius: 12px;
         padding: 12px;
         background: rgba(15, 19, 26, 0.35);
       }
       [data-theme="light"] #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-chart-card,
-      [data-theme="light"] #viewFinanceiro #financeContent.finance-fintracker .finance-ft-chart-card {
+      [data-theme="light"] #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-chart-card {
         background: rgba(248, 250, 252, 0.9);
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-chart-title,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-chart-title {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-chart-title {
         margin: 0 0 8px;
         font-size: 12px;
         font-weight: 700;
         color: var(--ft-muted);
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-chart-svg,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-chart-svg {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-chart-svg {
         width: 100%;
         height: 130px;
         display: block;
       }
       @media (max-width: 1100px) {
         #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-kpi-row--4,
-        #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row--4 {
+        #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-row--4 {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
-        #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row--6 {
+        #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-row--6 {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
         #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-charts-grid,
-        #viewFinanceiro #financeContent.finance-fintracker .finance-ft-charts-grid {
+        #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-charts-grid {
           grid-template-columns: 1fr;
         }
       }
       @media (max-width: 640px) {
         #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-kpi-row--4,
         #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-kpi-row--3,
-        #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row--4,
-        #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row--3,
-        #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-row--6 {
+        #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-row--4,
+        #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-row--3,
+        #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-row--6 {
           grid-template-columns: 1fr;
         }
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-kpi-card,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-card {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-card {
         display: flex;
         align-items: flex-start;
         gap: 14px;
@@ -4539,7 +4558,7 @@
         background: var(--ft-surface-elevated);
         box-shadow: var(--ft-shadow);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-icon {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-icon {
         width: 44px;
         height: 44px;
         border-radius: 12px;
@@ -4548,58 +4567,58 @@
         font-size: 20px;
         flex-shrink: 0;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-card--green .finance-ft-kpi-icon {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-card--green .finance-ft-kpi-icon {
         background: rgba(16, 185, 129, 0.15);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-card--teal .finance-ft-kpi-icon {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-card--teal .finance-ft-kpi-icon {
         background: var(--ft-accent-soft);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-card--red .finance-ft-kpi-icon {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-card--red .finance-ft-kpi-icon {
         background: rgba(239, 68, 68, 0.12);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-card--amber .finance-ft-kpi-icon {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-card--amber .finance-ft-kpi-icon {
         background: rgba(245, 158, 11, 0.14);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-label {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-label {
         font-size: 12px;
         font-weight: 600;
         color: var(--ft-muted);
         margin-bottom: 4px;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-value {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-value {
         font-size: 1.45rem;
         font-weight: 800;
         color: var(--ft-text);
         line-height: 1.15;
         letter-spacing: -0.02em;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-kpi-sub {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-kpi-sub {
         margin-top: 4px;
         font-size: 11px;
         color: var(--ft-muted);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-resumo-card {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-resumo-card {
         padding: 16px 18px;
         border-radius: var(--ft-radius);
         border: 1px solid var(--ft-border);
         background: var(--ft-surface-elevated);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-resumo-card strong {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-resumo-card strong {
         display: block;
         font-size: 1.2rem;
         margin-top: 4px;
         color: var(--ft-text);
       }
       #viewFinanceiro #financeInicioPanel.finance-ft-dashboard .finance-ft-quick-links,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-quick-links {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-quick-links {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-quick-links button {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-quick-links button {
         font-size: 13px;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-status {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-status {
         display: inline-flex;
         align-items: center;
         padding: 3px 10px;
@@ -4607,19 +4626,19 @@
         font-size: 11px;
         font-weight: 700;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-status--pago {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-status--pago {
         background: rgba(16, 185, 129, 0.15);
         color: #059669;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-status--pendente {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-status--pendente {
         background: rgba(245, 158, 11, 0.15);
         color: #d97706;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-status--atrasado {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-status--atrasado {
         background: rgba(239, 68, 68, 0.12);
         color: #dc2626;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-page-toolbar {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-page-toolbar {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
@@ -4627,16 +4646,16 @@
         gap: 10px;
         margin-bottom: 14px;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-page-toolbar h3 {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-page-toolbar h3 {
         margin: 0;
         font-size: 1.15rem;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-page-toolbar p {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-page-toolbar p {
         margin: 4px 0 0;
         font-size: 12px;
         color: var(--ft-muted);
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-ft-client-avatar {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-ft-client-avatar {
         width: 34px;
         height: 34px;
         border-radius: 50%;
@@ -4648,15 +4667,15 @@
         color: var(--ft-accent-strong);
         margin-right: 8px;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-lanc-simple-filters {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-lanc-simple-filters {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
         align-items: center;
         margin-bottom: 12px;
       }
-      #viewFinanceiro #financeContent.finance-fintracker .finance-lanc-simple-filters input,
-      #viewFinanceiro #financeContent.finance-fintracker .finance-lanc-simple-filters select {
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-lanc-simple-filters input,
+      #viewFinanceiro :is(#financeContent.finance-fintracker,#financeInicioPanel.finance-ft-dashboard) .finance-lanc-simple-filters select {
         min-width: 8rem;
       }
       .lancamento-modal .modal {
@@ -5812,12 +5831,50 @@
           <div id="financeInicioPanel" class="section-card fin-dash-panel finance-ft-dashboard finance-inicio-panel hidden">
             <div class="finance-ft-page-intro">
               <h3>Dashboard</h3>
-              <p>Visão integrada — operação do pátio, receitas, despesas e resultado do período.</p>
+              <p>Visão integrada — caixa, operação do pátio, receitas, despesas e resultado do período.</p>
+            </div>
+            <div class="finance-inicio-toolbar filter-bar finance-filter-panel" style="margin: 0 0 6px; flex-wrap: wrap; align-items: center; gap: 10px">
+              <span id="financeCompetenciaBadge" class="notice" style="font-weight: 600">Competência: —</span>
+              <label for="financeDashboardMonth" style="font-size: 12px; color: var(--ft-muted)">Mês</label>
+              <input id="financeDashboardMonth" type="month" />
+              <button type="button" class="secondary" id="financeDashboardMonthAtual">Mês atual</button>
             </div>
             <div class="finance-module-rules">
-              <strong>Capa do módulo</strong> — acompanhe faturamento e recebimentos da operação, títulos em aberto, receitas/despesas e lucro ou prejuízo. Use as abas acima para filas e lançamentos detalhados.
+              <strong>Capa do módulo</strong> — acompanhe saldo e movimentação de caixa, faturamento, recebimentos, títulos em aberto e lucro ou prejuízo. Use as abas acima para filas e lançamentos detalhados.
             </div>
-            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--ft-muted)">Operação</h4>
+            <h4 class="finance-inicio-section-title">Caixa</h4>
+            <div class="finance-ft-kpi-row finance-ft-kpi-row--4">
+              <div class="finance-ft-kpi-card finance-ft-kpi-card--teal">
+                <div class="finance-ft-kpi-icon" aria-hidden="true">💰</div>
+                <div>
+                  <div class="finance-ft-kpi-label">Saldo atual</div>
+                  <div class="finance-ft-kpi-value" id="fdiCaixaAtual">R$ 0,00</div>
+                  <div class="finance-ft-kpi-sub" id="fdiCaixaStatus">Saldo consolidado no caixa</div>
+                </div>
+              </div>
+              <div class="finance-ft-kpi-card finance-ft-kpi-card--green">
+                <div class="finance-ft-kpi-icon" aria-hidden="true">📈</div>
+                <div>
+                  <div class="finance-ft-kpi-label">Entradas do mês</div>
+                  <div class="finance-ft-kpi-value" id="fdiEntradasMes">R$ 0,00</div>
+                  <div class="finance-ft-kpi-sub" id="fdiEntradasMesHint">Recebimentos no caixa</div>
+                </div>
+              </div>
+              <div class="finance-ft-kpi-card finance-ft-kpi-card--red">
+                <div class="finance-ft-kpi-icon" aria-hidden="true">📉</div>
+                <div>
+                  <div class="finance-ft-kpi-label">Saídas do mês</div>
+                  <div class="finance-ft-kpi-value" id="fdiSaidasMes">R$ 0,00</div>
+                  <div class="finance-ft-kpi-sub" id="fdiSaidasMesHint">Pagamentos no caixa</div>
+                </div>
+              </div>
+              <div class="finance-ft-resumo-card" id="fdiResultadoCard">
+                <span class="finance-ft-kpi-label"><span id="fdiResultadoTituloEmoji" aria-hidden="true">🟢</span> Resultado do mês</span>
+                <strong id="fdiResultadoMes">R$ 0,00</strong>
+                <div class="finance-ft-kpi-sub" id="fdiResultadoMesLabel">Entradas − saídas (competência)</div>
+              </div>
+            </div>
+            <h4 class="finance-inicio-section-title">Operação</h4>
             <div class="finance-ft-kpi-row finance-ft-kpi-row--4">
               <div class="finance-ft-kpi-card finance-ft-kpi-card--teal">
                 <div class="finance-ft-kpi-icon" aria-hidden="true">🧾</div>
@@ -5852,7 +5909,7 @@
                 </div>
               </div>
             </div>
-            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--ft-muted)">Resultado</h4>
+            <h4 class="finance-inicio-section-title">Resultado</h4>
             <div class="finance-ft-kpi-row finance-ft-kpi-row--3">
               <div class="finance-ft-kpi-card finance-ft-kpi-card--teal" data-finance-subtab="receitas" role="button" tabindex="0" title="Abrir Controle de Receitas">
                 <div class="finance-ft-kpi-icon" aria-hidden="true">📈</div>
@@ -5878,7 +5935,7 @@
             </div>
             <div class="finance-ft-charts">
               <div class="finance-ft-charts-head">
-                <h4>Indicadores</h4>
+                <h4>Indicadores operacionais</h4>
                 <label style="font-size: 12px; color: var(--ft-muted)">
                   Período
                   <select id="financeChartPeriod" style="margin-left: 6px; min-width: 7rem">
@@ -5888,13 +5945,13 @@
                   </select>
                 </label>
               </div>
-              <div class="finance-ft-charts-grid">
+              <div class="finance-ft-charts-grid finance-ft-charts-grid--3">
                 <div class="finance-ft-chart-card">
-                  <p class="finance-ft-chart-title">Faturamento</p>
+                  <p class="finance-ft-chart-title">Faturamento por mês</p>
                   <svg id="ffFaturamentoMesSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
                 </div>
                 <div class="finance-ft-chart-card">
-                  <p class="finance-ft-chart-title">Recebimentos</p>
+                  <p class="finance-ft-chart-title">Recebimentos por mês</p>
                   <svg id="ffRecebimentosMesSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
                 </div>
                 <div class="finance-ft-chart-card">
@@ -5902,8 +5959,15 @@
                   <svg id="ffInadimplenciaSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
                   <div class="finance-ft-kpi-sub" style="margin-top: 6px">Valor vencido vs em aberto no prazo</div>
                 </div>
+              </div>
+            </div>
+            <div class="finance-ft-charts">
+              <div class="finance-ft-charts-head">
+                <h4>Receitas vs despesas</h4>
+              </div>
+              <div class="finance-ft-charts-grid finance-ft-charts-grid--1">
                 <div class="finance-ft-chart-card">
-                  <p class="finance-ft-chart-title">Receitas vs despesas</p>
+                  <p class="finance-ft-chart-title">Comparativo do período</p>
                   <svg id="ffCompareSvg" class="finance-ft-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
                 </div>
               </div>
@@ -5914,6 +5978,37 @@
               <button type="button" class="secondary" data-finance-quick="contas_pagar">Contas a pagar</button>
               <button type="button" class="secondary" data-finance-quick="receitas">Controle de receitas</button>
               <button type="button" class="secondary" data-finance-quick="despesas">Controle de despesas</button>
+            </div>
+            <div id="financeConciliacaoPanel" class="finance-fase4-panel">
+              <h4>Conciliação bancária</h4>
+              <p class="notice" style="margin: 0 0 10px; font-size: 12px">
+                Movimentos do mês — marque como conciliados após conferir com extrato bancário.
+              </p>
+              <div class="finance-fase4-actions">
+                <label style="font-size: 12px">
+                  Filtro
+                  <select id="financeConciliacaoFilter" style="margin-left: 6px">
+                    <option value="pendentes">Pendentes</option>
+                    <option value="conciliados">Conciliados</option>
+                    <option value="todos">Todos</option>
+                  </select>
+                </label>
+              </div>
+              <div class="finance-conciliacao-table-wrap table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Tipo</th>
+                      <th>Descrição</th>
+                      <th>Valor</th>
+                      <th>Status</th>
+                      <th>Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody id="financeConciliacaoBody"></tbody>
+                </table>
+              </div>
             </div>
             <div id="financeReportsPanel" class="finance-fase4-panel">
               <h4>Demonstrativo de Resultado (DRE)</h4>
@@ -15714,32 +15809,51 @@
         };
 
         const dashTopArea = document.getElementById("financeTopDashboard");
-        if (dashTopArea) {
-          _set("fdtCaixaAtual", formatCurrency(caixa));
-          _set("fdtCaixaStatus", caixa >= 0 ? "Entradas no caixa (consolidado)" : "Caixa com saldo negativo");
-          _set("fdtEntradasMes", formatCurrency(entradasMesDiarias));
-          _set(
-            "fdtEntradasMesHint",
-            "Total a receber (competência)"
-          );
-          _set("fdtSaidasMes", formatCurrency(saidasMesFinance));
-          _set(
-            "fdtSaidasMesHint",
-            "Descontos concedidos"
-          );
-          _set("fdtResultadoMes", formatCurrency(resultadoMesFinance));
-          _set(
-            "fdtResultadoMesLabel",
-            resultadoMesFinance >= 0 ? "Faturamento líquido" : "Faturamento líquido"
-          );
-          const fdtResEmoji = _fd("fdtResultadoTituloEmoji");
-          if (fdtResEmoji) fdtResEmoji.textContent = resultadoMesFinance >= 0 ? "🟢" : "🔴";
-          const fdtResCard = _fd("fdtResultadoCard");
-          if (fdtResCard) {
-            fdtResCard.classList.remove("finance-kpi-card--profit", "finance-kpi-card--loss", "kpi-alert-success", "kpi-alert-danger");
-            fdtResCard.classList.add(resultadoMesFinance >= 0 ? "finance-kpi-card--profit" : "finance-kpi-card--loss");
-            fdtResCard.classList.add(resultadoMesFinance >= 0 ? "kpi-alert-success" : "kpi-alert-danger");
+        const applyFinanceCaixaKpiStrip = (prefix, opts) => {
+          const { saldo, entradas, saidas, resultado, entradasHint, saidasHint, resultadoLabel, saldoHint } = opts;
+          _set(`${prefix}CaixaAtual`, formatCurrency(saldo));
+          _set(`${prefix}CaixaStatus`, saldoHint || (saldo >= 0 ? "Saldo consolidado no caixa" : "Caixa com saldo negativo"));
+          _set(`${prefix}EntradasMes`, formatCurrency(entradas));
+          _set(`${prefix}EntradasMesHint`, entradasHint || "Recebimentos no caixa");
+          _set(`${prefix}SaidasMes`, formatCurrency(saidas));
+          _set(`${prefix}SaidasMesHint`, saidasHint || "Pagamentos no caixa");
+          _set(`${prefix}ResultadoMes`, formatCurrency(resultado));
+          _set(`${prefix}ResultadoMesLabel`, resultadoLabel || (resultado >= 0 ? "Entradas − saídas (superavit)" : "Entradas − saídas (deficit)"));
+          const resEmoji = _fd(`${prefix}ResultadoTituloEmoji`);
+          if (resEmoji) resEmoji.textContent = resultado >= 0 ? "🟢" : "🔴";
+          const resCard = _fd(`${prefix}ResultadoCard`);
+          if (resCard) {
+            resCard.classList.remove(
+              "finance-kpi-card--profit",
+              "finance-kpi-card--loss",
+              "kpi-alert-success",
+              "kpi-alert-danger",
+              "finance-ft-resumo-card--profit",
+              "finance-ft-resumo-card--loss"
+            );
+            resCard.classList.add(resultado >= 0 ? "finance-kpi-card--profit" : "finance-kpi-card--loss");
+            resCard.classList.add(resultado >= 0 ? "kpi-alert-success" : "kpi-alert-danger");
+            resCard.classList.add(resultado >= 0 ? "finance-ft-resumo-card--profit" : "finance-ft-resumo-card--loss");
           }
+        };
+        if (dashTopArea) {
+          applyFinanceCaixaKpiStrip("fdt", {
+            saldo: caixa,
+            entradas: entradasMesDiarias,
+            saidas: saidasMesFinance,
+            resultado: resultadoMesFinance,
+            entradasHint: "Total a receber (competência)",
+            saidasHint: "Descontos concedidos",
+            resultadoLabel: "Faturamento líquido",
+          });
+        }
+        if (_fd("fdiCaixaAtual")) {
+          applyFinanceCaixaKpiStrip("fdi", {
+            saldo: caixa,
+            entradas: entradasMesDiarias,
+            saidas: saidasMesFinance,
+            resultado: resultadoMesFinance,
+          });
         }
 
         if (_fd("fdFaturadoMes")) {
@@ -15748,6 +15862,7 @@
         if (financeIsDashboardView(currentFinanceView)) {
           renderFinanceModuleCharts();
           renderFinanceDrePanel();
+          renderFinanceConciliacaoPanel();
           return;
         }
         if (currentFinanceView === "clientes") {
