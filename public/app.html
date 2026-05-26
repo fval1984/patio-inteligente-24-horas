@@ -10097,13 +10097,24 @@
         return !!(v && v.status === "REMOVIDO");
       }
 
+      function receivableSemCobrancaFinanceira(r) {
+        if (!r || Number(r.valor || 0) > 0) return false;
+        if (FINANCE_MANUAL_ONLY) return isManualFinanceLancamento(r);
+        if (!r.vehicle_id) return false;
+        const { meta } = financeMetaUnpack(r.observacoes);
+        if (meta?.sem_cobranca === true) return true;
+        return true;
+      }
+
       /**
        * Fila «Aguardando lançamento»: status AGUARDANDO no Supabase OU EM_ABERTO com ciclo encerrado
        * ainda não aprovado para «Contas a receber» (Supabase ou fallback local).
+       * Veículos com valor R$ 0,00 na saída não entram (sem cobrança).
        */
       function receivableNaFilaAguardandoTriagem(r) {
         if (FINANCE_MANUAL_ONLY) return false;
         if (!r) return false;
+        if (receivableSemCobrancaFinanceira(r)) return false;
         if (receivableAprovadoParaContasReceber(r)) return false;
         if (!receivablePatioLiberadoParaFinanceiro(r)) return false;
         if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return true;
@@ -10118,6 +10129,7 @@
        */
       function receivableIsContaReceberFinanceiro(r) {
         if (!r || r.status === "PAGO") return false;
+        if (receivableSemCobrancaFinanceira(r)) return false;
         if (FINANCE_MANUAL_ONLY) {
           return isManualFinanceLancamento(r) && r.status === "EM_ABERTO";
         }
@@ -10180,7 +10192,7 @@
 
       function formatReceivableStatusLabel(c) {
         if (!c) return "-";
-        if (c.status === "PAGO") return "Pago";
+        if (c.status === "PAGO") return Number(c.valor || 0) <= 0 && c.vehicle_id ? "Sem cobrança" : "Pago";
         if (receivableNaFilaFechamentoCicloPatio(c)) return "Fechando ciclo (pátio)";
         if (c.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return "Aguardando Faturamento";
         if (c.status === "EM_ABERTO" && receivableIsCicloPatioAberto(c)) return "Em curso (pátio)";
@@ -12568,6 +12580,9 @@
 
       function financeReceivableOperacionalStatus(r, todayYmd, flags = {}) {
         if (!r) return { label: "—", class: "warning" };
+        if (receivableSemCobrancaFinanceira(r) && r.status === "PAGO") {
+          return { label: "Sem cobrança", class: "success" };
+        }
         if (flags.isento) return { label: "Cancelado", class: "danger" };
         if (r.status === "CANCELADO") return { label: "Cancelado", class: "danger" };
         if (r.status === "PAGO") return { label: "Pago", class: "success" };
@@ -20602,6 +20617,7 @@
             return;
           }
 
+          let vrpSemCobranca = false;
           if (!FINANCE_MANUAL_ONLY) {
           const { data: cycleAberto, error: cycleQErr } = await supabase
             .from("receivables")
@@ -20623,54 +20639,66 @@
               aplicarRemocao: hadRemocao,
             });
             const valorFechamento = breakdown.total;
+            vrpSemCobranca = !(valorFechamento > 0);
             const calcMeta = financeMetaPack(
               {
                 calculo_patio: breakdown,
                 aplicar_remocao: hadRemocao,
                 origem_modulo: "PATIO_VRP",
                 gerado_em: dataSaida,
+                sem_cobranca: vrpSemCobranca,
               },
-              `Cobrança automática — ${breakdown.dias} dia(s) × ${formatCurrency(breakdown.valorDiaria)}`
+              vrpSemCobranca
+                ? "Sem cobrança — valor zerado na saída (VRP)"
+                : `Cobrança automática — ${breakdown.dias} dia(s) × ${formatCurrency(breakdown.valorDiaria)}`
             );
+            const recPatchBase = {
+              period_end: dataSaida,
+              valor: valorFechamento,
+              patio_liberado_financeiro: true,
+              observacoes: calcMeta,
+            };
+            const recPatchFull = vrpSemCobranca
+              ? {
+                  ...recPatchBase,
+                  status: "PAGO",
+                  financeiro_aprovado_contas_receber: true,
+                }
+              : {
+                  ...recPatchBase,
+                  status: RECEIVABLE_AGUARDANDO_LANCAMENTO,
+                  financeiro_aprovado_contas_receber: false,
+                };
             let { error: recErr } = await supabase
               .from("receivables")
-              .update({
-                period_end: dataSaida,
-                valor: valorFechamento,
-                status: RECEIVABLE_AGUARDANDO_LANCAMENTO,
-                patio_liberado_financeiro: true,
-                financeiro_aprovado_contas_receber: false,
-                observacoes: calcMeta,
-              })
+              .update(recPatchFull)
               .eq("id", cycleAberto.id)
               .eq("user_id", effectiveUserId());
             if (
               recErr &&
               /patio_liberado|financeiro_aprovado|column|schema cache|PGRST204/i.test(recErr.message || "")
             ) {
+              const recPatchFallback = { ...recPatchBase };
+              recPatchFallback.status = vrpSemCobranca ? "PAGO" : RECEIVABLE_AGUARDANDO_LANCAMENTO;
               recErr = (
                 await supabase
                   .from("receivables")
-                  .update({
-                    period_end: dataSaida,
-                    valor: valorFechamento,
-                    status: RECEIVABLE_AGUARDANDO_LANCAMENTO,
-                  })
+                  .update(recPatchFallback)
                   .eq("id", cycleAberto.id)
                   .eq("user_id", effectiveUserId())
               ).error;
             }
             if (recErr && /invalid input value for enum payment_status/i.test(recErr.message || "")) {
+              const recPatchEnum = {
+                ...recPatchBase,
+                status: vrpSemCobranca ? "PAGO" : "EM_ABERTO",
+                patio_liberado_financeiro: true,
+                financeiro_aprovado_contas_receber: vrpSemCobranca,
+              };
               recErr = (
                 await supabase
                   .from("receivables")
-                  .update({
-                    period_end: dataSaida,
-                    valor: valorFechamento,
-                    status: "EM_ABERTO",
-                    patio_liberado_financeiro: true,
-                    financeiro_aprovado_contas_receber: false,
-                  })
+                  .update(recPatchEnum)
                   .eq("id", cycleAberto.id)
                   .eq("user_id", effectiveUserId())
               ).error;
@@ -20684,7 +20712,7 @@
                     .update({
                       period_end: dataSaida,
                       valor: valorFechamento,
-                      status: "EM_ABERTO",
+                      status: vrpSemCobranca ? "PAGO" : "EM_ABERTO",
                     })
                     .eq("id", cycleAberto.id)
                     .eq("user_id", effectiveUserId())
@@ -20696,11 +20724,26 @@
               return;
             }
             removePatioFinanceiroBloqueadoReceivableId(cycleAberto.id);
-            removeReceberTriagemId(cycleAberto.id);
-            financeAuditAppend(cycleAberto.id, "Enviado para Aguardando Faturamento", {
-              valor: valorFechamento,
-              note: `${breakdown.dias} dia(s), remoção: ${formatCurrency(breakdown.taxaRemocao)}`,
-            });
+            if (vrpSemCobranca) {
+              removeReceberTriagemId(cycleAberto.id);
+              const flags = financeReceberFlagsRead();
+              flags[String(cycleAberto.id)] = {
+                ...(flags[String(cycleAberto.id)] || {}),
+                isento: true,
+                sem_cobranca: true,
+              };
+              financeReceberFlagsWrite(flags);
+              financeAuditAppend(cycleAberto.id, "Encerrado sem cobrança (valor R$ 0,00)", {
+                valor: 0,
+                note: `${breakdown.dias} dia(s), diária ${formatCurrency(breakdown.valorDiaria)}`,
+              });
+            } else {
+              removeReceberTriagemId(cycleAberto.id);
+              financeAuditAppend(cycleAberto.id, "Enviado para Aguardando Faturamento", {
+                valor: valorFechamento,
+                note: `${breakdown.dias} dia(s), remoção: ${formatCurrency(breakdown.taxaRemocao)}`,
+              });
+            }
 
             const dIni = new Date(cycleAberto.period_start);
             const dFim = new Date(dataSaida);
@@ -20716,8 +20759,8 @@
               valor: valorFechamento,
               nf_emitida: vehicle.nfse_status === "EMITIDA",
               nf_enviada: vehicleNfseEnviadaFlag(vehicle),
-              triagem_ok: false,
-              sent_to_finance: false,
+              triagem_ok: vrpSemCobranca,
+              sent_to_finance: vrpSemCobranca,
             };
             const { error: fechamentoErr } = await supabase.from("patio_cycle_closures").insert(fechamentoPayload);
             if (fechamentoErr) {
@@ -20744,7 +20787,7 @@
                 userId,
                 vehicleId: id,
                 discountAmount: 0,
-                isFullWaiver: false,
+                isFullWaiver: vrpSemCobranca,
                 closeDate: dataSaida,
               });
             }
@@ -20757,9 +20800,11 @@
           alert(
             FINANCE_MANUAL_ONLY
               ? "Veículo removido do pátio (VRP). Registre o financeiro manualmente em Financeiro → Lançamentos."
-              : "Veículo removido do pátio (VRP). O valor foi calculado e enviado para Financeiro → Aguardando Faturamento."
+              : vrpSemCobranca
+                ? "Veículo removido do pátio (VRP). Valor R$ 0,00 — encerrado sem cobrança no financeiro."
+                : "Veículo removido do pátio (VRP). O valor foi calculado e enviado para Financeiro → Aguardando Faturamento."
           );
-          if (!FINANCE_MANUAL_ONLY) openFinanceSubview("aguardando_faturamento");
+          if (!FINANCE_MANUAL_ONLY && !vrpSemCobranca) openFinanceSubview("aguardando_faturamento");
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
           return;
