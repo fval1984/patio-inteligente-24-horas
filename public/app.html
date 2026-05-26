@@ -5262,11 +5262,6 @@
             <div>
               <p class="module-kicker module-kicker--finance" style="margin: 0 0 4px">Consulta</p>
               <h2 style="margin: 0">Lista</h2>
-              <p class="subtitle" style="margin: 6px 0 0; max-width: 42rem">
-                Filtros comuns (RPV, RPF, assessoria e texto tipo banco) aplicam-se à área escolhida. <strong>RPV</strong> é quem trouxe o veículo;
-                <strong>RPF</strong> é o responsável financeiro / pagamento (lista de parceiros igual à do RPV). Para editar ou lançar valores, use as abas
-                <strong>Gestão de pátio</strong> e <strong>Financeiro</strong>.
-              </p>
             </div>
             <div class="actions lista-toolbar-actions">
               <img
@@ -5561,9 +5556,6 @@
             <div>
               <p class="module-kicker module-kicker--partners">Cadastro</p>
               <h2>Rede de parceiros</h2>
-              <p class="module-lede">
-                RPVs, assessorias, instituições financeiras e remoções no mesmo padrão visual dos módulos de pátio e financeiro.
-              </p>
             </div>
             <div class="actions">
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
@@ -6107,15 +6099,6 @@
                 </div>
               </div>
               <div id="financeReceitasPanel" class="finance-receitas-panel finance-submodule-panel hidden">
-                <header class="finance-receitas-header">
-                  <h3 id="financeReceitasPageTitle">Controle de Receitas</h3>
-                  <p id="financeReceitasPageDesc" class="notice">
-                    Escolha uma área abaixo ou use o menu de sub-abas para abrir cada função em página dedicada.
-                  </p>
-                  <div class="finance-module-rules">
-                    <strong>Análise de receitas</strong> — categoria, competência, valor e origem do lançamento. Recebimentos futuros geram título automaticamente em <em>Contas a Receber</em>.
-                  </div>
-                </header>
                 <nav id="financeReceitasSubnav" class="finance-receitas-subnav" aria-label="Sub-abas de Controle de Receitas">
                   <button type="button" class="secondary finance-receitas-sub-btn active" data-receitas-sub="inicio">Início</button>
                   <button type="button" class="secondary finance-receitas-sub-btn" data-receitas-sub="cadastro">Cadastro</button>
@@ -6216,15 +6199,6 @@
                 </div>
               </div>
               <div id="financeDespesasPanel" class="finance-receitas-panel finance-submodule-panel hidden">
-                <header class="finance-receitas-header">
-                  <h3 id="financeDespesasPageTitle">Controle de Despesas</h3>
-                  <p id="financeDespesasPageDesc" class="notice">
-                    Escolha uma área abaixo ou use o menu de sub-abas para abrir cada função em página dedicada.
-                  </p>
-                  <div class="finance-module-rules">
-                    <strong>Análise de despesas</strong> — categoria, centro de custo, competência, valor e origem. Pagamentos futuros geram título automaticamente em <em>Contas a Pagar</em>.
-                  </div>
-                </header>
                 <nav id="financeDespesasSubnav" class="finance-receitas-subnav" aria-label="Sub-abas de Controle de Despesas">
                   <button type="button" class="secondary finance-receitas-sub-btn active" data-despesas-sub="inicio">Início</button>
                   <button type="button" class="secondary finance-receitas-sub-btn" data-despesas-sub="cadastro">Cadastro</button>
@@ -6816,9 +6790,6 @@
                 <select id="vehicleAssessor"></select>
               </div>
               <div>
-                <p class="notice" style="margin: 0 0 8px; font-size: 12px; line-height: 1.45">
-                  <strong>RPV</strong> e <strong>RPF</strong> podem ser <strong>a mesma pessoa</strong> ou <strong>duas distintas</strong>; a lista inclui RPV e instituições financeiras.
-                </p>
                 <label>RPF — responsável financeiro / pagamento</label>
                 <select id="vehicleFinancialResponsible" title="Pode coincidir com o RPV ou ser outro parceiro da lista"></select>
               </div>
@@ -8905,7 +8876,7 @@
         inicio: {
           label: "Início",
           title: "Controle de Receitas",
-          desc: "Escolha uma área abaixo ou use o menu de sub-abas para abrir cada função em página dedicada.",
+          desc: "",
         },
         cadastro: {
           label: "Cadastro",
@@ -8943,7 +8914,7 @@
         inicio: {
           label: "Início",
           title: "Controle de Despesas",
-          desc: "Escolha uma área abaixo ou use o menu de sub-abas para abrir cada função em página dedicada.",
+          desc: "",
         },
         cadastro: {
           label: "Cadastro",
