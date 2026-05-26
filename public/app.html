@@ -8140,7 +8140,6 @@
           shell.classList.remove("finance-subtab-open");
           void shell.offsetWidth;
           shell.classList.add("finance-subtab-open");
-          shell.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       }
 
@@ -8890,10 +8889,6 @@
         const key = FINANCE_RECEITAS_SUBVIEWS[sub] ? sub : "inicio";
         currentReceitasSubView = key;
         syncReceitasSubViewUi();
-        if (currentFinanceView === "receitas") {
-          const pages = document.getElementById("financeReceitasPages");
-          pages?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
       }
 
       function syncReceitasSubViewUi() {
@@ -8924,9 +8919,6 @@
         const key = FINANCE_DESPESAS_SUBVIEWS[sub] ? sub : "inicio";
         currentDespesasSubView = key;
         syncDespesasSubViewUi();
-        if (currentFinanceView === "despesas") {
-          document.getElementById("financeDespesasPages")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
       }
 
       function syncDespesasSubViewUi() {
@@ -8963,7 +8955,6 @@
         syncContasPagarSubViewUi();
         if (currentFinanceView === "contas_pagar") {
           renderFinance();
-          document.getElementById("financeContasPagarPages")?.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       }
 
@@ -9005,7 +8996,6 @@
         syncContasReceberSubViewUi();
         if (currentFinanceView === "contas_receber") {
           renderFinance();
-          document.getElementById("financeContasReceberPages")?.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       }
 
