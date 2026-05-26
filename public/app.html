@@ -3477,6 +3477,59 @@
       #financeContent.finance-fintracker.modal-backdrop.tab-view-modal #financeFiltersHub {
         margin-bottom: 12px;
       }
+      #financeContent.finance-fintracker.tab-view-modal {
+        --ft-bg: var(--bg);
+        --ft-surface: var(--card);
+        --ft-surface-elevated: color-mix(in srgb, var(--card) 98%, #fff 2%);
+        --ft-border: var(--border);
+        --ft-text: var(--text);
+        --ft-muted: var(--muted);
+        --ft-accent: var(--primary);
+        --ft-accent-strong: var(--primary-strong);
+        --ft-accent-soft: var(--primary-weak);
+        --ft-accent-border: rgba(225, 29, 46, 0.35);
+        --ft-shadow: var(--shadow-soft);
+        --ft-radius: 12px;
+        --ft-table-head: color-mix(in srgb, var(--card) 82%, rgba(225, 29, 46, 0.1));
+        --ft-row-hover: color-mix(in srgb, var(--card) 90%, rgba(225, 29, 46, 0.12));
+        color: var(--ft-text);
+      }
+      [data-theme="light"] #financeContent.finance-fintracker.tab-view-modal {
+        --ft-surface: rgba(255, 255, 255, 0.96);
+        --ft-surface-elevated: #ffffff;
+        --ft-accent-soft: var(--primary-weak);
+        --ft-table-head: #fef2f2;
+        --ft-row-hover: rgba(225, 29, 46, 0.06);
+      }
+      #financeContent.finance-fintracker.tab-view-modal .finance-table-shell,
+      #financeContent.finance-fintracker.tab-view-modal .table-wrap {
+        border: 1px solid var(--ft-border);
+        border-radius: var(--ft-radius);
+        background: var(--ft-surface-elevated);
+        box-shadow: var(--ft-shadow);
+      }
+      #financeContent.finance-fintracker.tab-view-modal .table thead th {
+        background: var(--ft-table-head) !important;
+        color: var(--ft-text) !important;
+        border-bottom: 1px solid var(--ft-border) !important;
+      }
+      #financeContent.finance-fintracker.tab-view-modal .table tbody td {
+        color: var(--ft-text);
+        border-bottom: 1px solid var(--ft-border);
+      }
+      #financeContent.finance-fintracker.tab-view-modal .filter-bar,
+      #financeContent.finance-fintracker.tab-view-modal .finance-filter-panel {
+        border: 1px solid var(--ft-border);
+        border-radius: var(--ft-radius);
+        background: var(--ft-surface);
+      }
+      #financeContent.finance-fintracker.tab-view-modal .section-card {
+        border-color: var(--ft-border);
+        background: var(--ft-surface-elevated);
+      }
+      #financeContent.finance-fintracker.modal-backdrop.tab-view-modal:not(.hidden) {
+        z-index: 200 !important;
+      }
       .tab-modal-backdrop {
         position: fixed;
         inset: 0;
@@ -8469,7 +8522,11 @@
           });
           panel.addEventListener("click", (e) => e.stopPropagation());
         }
-        if (!options.keepInPlace) relocateTabModalEl(backdropEl);
+        if (!options.keepInPlace && options.rehomeToAppPanel) {
+          rehomeViewToAppPanel(backdropEl);
+        } else if (!options.keepInPlace) {
+          relocateTabModalEl(backdropEl);
+        }
         return backdropEl;
       }
 
@@ -8540,7 +8597,12 @@
         const viewFinanceiro = document.getElementById("viewFinanceiro");
         const financeContent = document.getElementById("financeContent");
         if (financeContent && viewFinanceiro && !viewFinanceiro.contains(financeContent)) {
-          viewFinanceiro.appendChild(financeContent);
+          const financeInicioPanel = document.getElementById("financeInicioPanel");
+          if (financeInicioPanel?.parentElement === viewFinanceiro) {
+            financeInicioPanel.insertAdjacentElement("afterend", financeContent);
+          } else {
+            viewFinanceiro.appendChild(financeContent);
+          }
         }
 
         const partnerModal = document.getElementById("partnerTabModal");
@@ -8583,7 +8645,7 @@
 
         const financeContent = document.getElementById("financeContent");
         if (financeContent) {
-          ensureTabModalShell(financeContent, returnToPainelFromFinanceFlyout, { keepInPlace: true });
+          ensureTabModalShell(financeContent, returnToPainelFromFinanceFlyout, { rehomeToAppPanel: true });
         }
       }
 
@@ -17083,6 +17145,8 @@
           renderFinance();
           return;
         }
+        const isTabModalView = !isNone && !isInicio;
+        const showFinanceContent = isTabModalView && !isFiltersView;
         const showFiltersHub = false;
         const showPlateSearchFilter = false;
         const showReportFilters = view === "relatorios";
@@ -17106,13 +17170,11 @@
             financeInicioPanel.classList.add("air-open");
           }
         }
-        const isTabModalView = !isNone && !isInicio;
-        const showFinanceContent = isTabModalView && !isFiltersView;
         financeRoot?.classList.toggle("finance-subtab-modal-open", isTabModalView);
         if (financeContent) {
           financeContent.classList.toggle("hidden", !showFinanceContent);
           if (showFinanceContent) {
-            ensureTabModalShell(financeContent, returnToPainelFromFinanceFlyout, { keepInPlace: true });
+            ensureTabModalShell(financeContent, returnToPainelFromFinanceFlyout, { rehomeToAppPanel: true });
             const tabMeta = FINANCE_TAB_LABELS[view] || { title: pageTitle, subtitle: "" };
             setTabModalMeta(financeContent, tabMeta.title, tabMeta.subtitle);
             syncFinanceModalChrome(true);
