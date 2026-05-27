@@ -4010,6 +4010,17 @@
       .fin-tag--late { background: rgba(248, 113, 113, 0.15); color: #f87171; }
       .fin-tag--ok { background: rgba(52, 211, 153, 0.15); color: #34d399; }
       .fin-tag--partial { background: rgba(167, 139, 250, 0.15); color: #a78bfa; }
+      .fin-row-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        max-width: 280px;
+      }
+      .fin-row-actions .secondary {
+        font-size: 11px;
+        padding: 4px 8px;
+        min-height: 28px;
+      }
       .fin-alert-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
       .fin-alert {
         flex: 1 1 140px;
@@ -5505,7 +5516,7 @@
             <p><strong>Total aguardando:</strong> <span id="finAguardandoTotal">R$ 0,00</span></p>
             <div class="table-wrap section-card">
               <table class="table">
-                <thead><tr><th>Veículo</th><th>Financeira / RPF</th><th>Saída</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+                <thead><tr><th>Veículo</th><th>Financeira / RPF</th><th>Saída</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
                 <tbody id="finAguardandoBody"></tbody>
               </table>
             </div>
@@ -6346,7 +6357,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260519"></script>
+    <script src="/finance-module.js?v=20260519b"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -15560,6 +15571,138 @@
           return;
         }
       }
+
+      window.financeEditAguardandoReceivable = async function financeEditAguardandoReceivable(receivableId) {
+        const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
+        if (!r) {
+          alert("Registro não encontrado.");
+          return;
+        }
+        const vehicle = (state.vehicles || []).find((v) => v.id === r.vehicle_id);
+        const closure = (state.cycleClosures || []).find((c) => String(c.receivable_id) === String(receivableId));
+        const novoRpf = prompt(
+          "RPF — responsável financeiro / pagamento:",
+          r.responsavel_pagamento || closure?.responsavel_financeiro || vehicle?.responsavel_financeiro_nome || ""
+        );
+        if (novoRpf == null) return;
+        const periodStartYmd = toYmdLocal(r.period_start || vehicle?.data_entrada || new Date().toISOString());
+        const periodEndYmd = toYmdLocal(r.period_end || vehicle?.data_saida || new Date().toISOString());
+        const novoInicio = await openDateModal({
+          title: "Data inicial do ciclo",
+          label: "Início",
+          type: "date",
+          value: periodStartYmd || "",
+        });
+        if (!novoInicio) return;
+        const novoFim = await openDateModal({
+          title: "Data final do ciclo",
+          label: "Saída / fim",
+          type: "date",
+          value: periodEndYmd || novoInicio,
+        });
+        if (!novoFim) return;
+        const isoInicio = startOfLocalDayIso(novoInicio);
+        const isoFim = endOfLocalDayIso(novoFim);
+        if (!isoInicio || !isoFim || new Date(isoFim).getTime() < new Date(isoInicio).getTime()) {
+          alert("Período inválido.");
+          return;
+        }
+        const diariasCalc = Math.max(1, Math.ceil((new Date(isoFim).getTime() - new Date(isoInicio).getTime()) / 86400000));
+        const valorSugerido = vehicle ? calcPeriodTotal(vehicle, isoInicio, isoFim) : Number(r.valor || 0);
+        const valorInput = prompt(
+          "Valor (R$)",
+          String(Number(r.valor || closure?.valor || valorSugerido || 0).toFixed(2)).replace(".", ",")
+        );
+        if (valorInput == null) return;
+        const valorNovo = Number(String(valorInput).replace(/\./g, "").replace(",", "."));
+        if (!Number.isFinite(valorNovo) || valorNovo < 0) {
+          alert("Valor inválido.");
+          return;
+        }
+        const recPatch = {
+          responsavel_pagamento: String(novoRpf || "").trim() || null,
+          period_start: isoInicio,
+          period_end: isoFim,
+          valor: valorNovo,
+        };
+        const { error: recErr } = await supabase
+          .from("receivables")
+          .update(recPatch)
+          .eq("id", receivableId)
+          .eq("user_id", effectiveUserId());
+        if (recErr) {
+          alert(recErr.message);
+          return;
+        }
+        if (closure) {
+          await supabase
+            .from("patio_cycle_closures")
+            .update({
+              responsavel_financeiro: String(novoRpf || "").trim() || null,
+              period_start: isoInicio,
+              period_end: isoFim,
+              diarias: diariasCalc,
+              valor: valorNovo,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", closure.id)
+            .eq("user_id", effectiveUserId());
+        }
+        if (typeof refreshFinanceData === "function") await refreshFinanceData();
+        else {
+          await Promise.all([loadReceivables(), loadCycleClosures(), loadVehicles()]);
+          if (typeof renderFinance === "function") renderFinance();
+        }
+        updateDashboard?.();
+      };
+
+      window.financeDeleteAguardandoReceivable = async function financeDeleteAguardandoReceivable(receivableId) {
+        const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
+        if (!r) {
+          alert("Registro não encontrado.");
+          return;
+        }
+        if (!confirm("Apagar este registro de aguardando faturamento? Esta ação não pode ser desfeita.")) return;
+        const userId = effectiveUserId();
+        await supabase
+          .from("cash_movements")
+          .delete()
+          .eq("conta_id", receivableId)
+          .eq("tipo_conta", "RECEBER")
+          .eq("user_id", userId);
+        const closure = (state.cycleClosures || []).find((c) => String(c.receivable_id) === String(receivableId));
+        if (closure) {
+          await supabase.from("patio_cycle_closures").delete().eq("id", closure.id).eq("user_id", userId);
+        }
+        const { error } = await supabase.from("receivables").delete().eq("id", receivableId).eq("user_id", userId);
+        if (error) {
+          alert(error.message);
+          return;
+        }
+        removeReceberTriagemId(receivableId);
+        removePatioFinanceiroBloqueadoReceivableId(receivableId);
+        if (typeof refreshFinanceData === "function") await refreshFinanceData();
+        else {
+          await Promise.all([loadReceivables(), loadCycleClosures(), loadCash()]);
+          if (typeof renderFinance === "function") renderFinance();
+        }
+        updateDashboard?.();
+      };
+
+      window.financeVoltarAguardandoReceivable = async function financeVoltarAguardandoReceivable(receivableId) {
+        const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
+        const vehicle = (state.vehicles || []).find((v) => v.id === r?.vehicle_id);
+        if (!r || !vehicle) {
+          alert("Veículo ou registro não encontrado.");
+          return;
+        }
+        const btn = document.createElement("button");
+        btn.setAttribute("data-action", "voltar");
+        btn.setAttribute("data-id", String(vehicle.id));
+        await handleVnpVehicleAction(btn);
+        if (typeof refreshFinanceData === "function") await refreshFinanceData();
+        else if (typeof renderFinance === "function") renderFinance();
+      };
 
       document.getElementById("viewPatio").addEventListener("click", async (event) => {
         const button = event.target.closest("button[data-action]");

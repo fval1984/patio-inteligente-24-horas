@@ -517,7 +517,14 @@
           <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
           <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
           <td data-label="Status"><span class="fin-tag fin-tag--open">Aguardando</span></td>
-          <td data-label=""><button type="button" class="secondary fin-btn-aguardando-ok" data-fin-aguardando-id="${escapeHtml(String(r.id))}">Liberar p/ receber</button></td>
+          <td data-label="Ações">
+            <div class="fin-row-actions">
+              <button type="button" class="secondary fin-btn-aguardando-receber" data-fin-aguardando-receber="${escapeHtml(String(r.id))}">Contas a receber</button>
+              <button type="button" class="secondary fin-btn-aguardando-editar" data-fin-aguardando-editar="${escapeHtml(String(r.id))}">Editar</button>
+              <button type="button" class="secondary fin-btn-aguardando-apagar" data-fin-aguardando-apagar="${escapeHtml(String(r.id))}">Apagar</button>
+              <button type="button" class="secondary fin-btn-aguardando-voltar" data-fin-aguardando-voltar="${escapeHtml(String(r.id))}">Voltar</button>
+            </div>
+          </td>
         </tr>`;
       })
       .join("");
@@ -1085,10 +1092,28 @@
     document.getElementById("finBtnRefresh")?.addEventListener("click", () => refreshFinanceData());
 
     document.getElementById("viewFinanceiro")?.addEventListener("click", async (e) => {
-      const btnAg = e.target.closest("[data-fin-aguardando-id]");
-      if (btnAg) {
-        const id = btnAg.getAttribute("data-fin-aguardando-id");
-        if (confirm("Liberar este título para Contas a receber?")) await financeApproveReceivable(id);
+      const btnReceber = e.target.closest("[data-fin-aguardando-receber]");
+      if (btnReceber) {
+        const id = btnReceber.getAttribute("data-fin-aguardando-receber");
+        if (confirm("Enviar este título para Contas a receber?")) await financeApproveReceivable(id);
+        return;
+      }
+      const btnEditar = e.target.closest("[data-fin-aguardando-editar]");
+      if (btnEditar) {
+        const id = btnEditar.getAttribute("data-fin-aguardando-editar");
+        if (typeof financeEditAguardandoReceivable === "function") await financeEditAguardandoReceivable(id);
+        return;
+      }
+      const btnApagar = e.target.closest("[data-fin-aguardando-apagar]");
+      if (btnApagar) {
+        const id = btnApagar.getAttribute("data-fin-aguardando-apagar");
+        if (typeof financeDeleteAguardandoReceivable === "function") await financeDeleteAguardandoReceivable(id);
+        return;
+      }
+      const btnVoltar = e.target.closest("[data-fin-aguardando-voltar]");
+      if (btnVoltar) {
+        const id = btnVoltar.getAttribute("data-fin-aguardando-voltar");
+        if (typeof financeVoltarAguardandoReceivable === "function") await financeVoltarAguardandoReceivable(id);
         return;
       }
       const btnRec = e.target.closest("[data-fin-receber-id]");
