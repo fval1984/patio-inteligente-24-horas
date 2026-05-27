@@ -4735,11 +4735,7 @@
               <details class="header-menu-details" id="headerDetailsParceiros">
                 <summary>Rede de parceiros</summary>
                 <div class="header-menu-nested">
-                  <button type="button" data-header-partner-sub="localizadores">RPV</button>
-                  <button type="button" data-header-partner-sub="assessorias">Assessoria</button>
-                  <button type="button" data-header-partner-sub="instituicoes_financeiras">Instituição Financeira</button>
-                  <button type="button" data-header-partner-sub="leiloeiros">Leiloeiro</button>
-                  <button type="button" data-header-partner-sub="remocoes">Serviço de remoção</button>
+                  <button type="button" data-view="parceiros">Ver cadastro</button>
                 </div>
               </details>
 
@@ -4802,7 +4798,7 @@
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
               <span class="dashboard-system-btn__kicker">Relacionamento</span>
               <span class="dashboard-system-btn__title">Parceiros</span>
-              <span class="dashboard-system-btn__desc">Gerencie localizadores, assessorias, leiloeiros e bancos.</span>
+              <span class="dashboard-system-btn__desc">Cadastro único de parceiros (RPV, RPP, assessoria, etc.).</span>
               <span class="dashboard-system-btn__go">Abrir parceiros →</span>
             </button>
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenLista">
@@ -5380,16 +5376,10 @@
               <button id="openPartnerForm">Novo cadastro</button>
             </div>
           </div>
-          <div class="subnav" id="partnerSubnav">
-            <button data-subview="localizadores">RPV</button>
-            <button data-subview="assessorias">Assessoria</button>
-            <button data-subview="instituicoes_financeiras">Instituição Financeira</button>
-            <button data-subview="leiloeiros">Leiloeiro</button>
-            <button data-subview="remocoes">Serviço de remoção</button>
-          </div>
+          <div id="partnerSubnav" class="subnav hidden" aria-hidden="true"></div>
           <div class="grid" style="margin-bottom: 18px;">
             <div class="card">
-                <div class="card-title">Top empresas por veículos</div>
+                <div class="card-title">Top parceiros por veículos</div>
               <div id="rankByVehicles" class="notice">Sem dados</div>
             </div>
             <div class="card">
@@ -5397,83 +5387,22 @@
               <div id="rankByRevenue" class="notice">Sem dados</div>
             </div>
           </div>
-          <div class="section-card partner-subview hidden" data-subview="localizadores">
+          <div class="section-card partner-subview" data-subview="parceiros">
+            <p class="notice" style="margin: 0 0 12px">
+              Lista única de parceiros. RPV, RPP, quem solicitou/confirmou/removeu e demais papéis no pátio são escolhidos apenas entre estes cadastros.
+            </p>
             <div class="table-wrap">
               <table class="table">
               <thead>
                 <tr>
                   <th>Nome</th>
-                  <th>CNPJ</th>
+                  <th>CNPJ / CPF</th>
                   <th>Contato</th>
                   <th>Status</th>
                   <th>Ações</th>
                 </tr>
               </thead>
-              <tbody id="tableLocalizadores"></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="section-card partner-subview hidden" data-subview="assessorias">
-            <div class="table-wrap">
-              <table class="table">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>CNPJ</th>
-                  <th>Contato</th>
-                  <th>Status</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="tableAssessorias"></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="section-card partner-subview hidden" data-subview="instituicoes_financeiras">
-            <div class="table-wrap">
-              <table class="table">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>CNPJ</th>
-                  <th>Contato</th>
-                  <th>Status</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="tableInstituicoesFinanceiras"></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="section-card partner-subview hidden" data-subview="leiloeiros">
-            <div class="table-wrap">
-              <table class="table">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>CNPJ</th>
-                  <th>Contato</th>
-                  <th>Status</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="tableLeiloeiros"></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="section-card partner-subview hidden" data-subview="remocoes">
-            <div class="table-wrap">
-              <table class="table">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>CNPJ</th>
-                  <th>Contato</th>
-                  <th>Status</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="tableRemocoes"></tbody>
+              <tbody id="tablePartners"></tbody>
               </table>
             </div>
           </div>
@@ -5823,8 +5752,8 @@
                 <select id="vehicleAssessor"></select>
               </div>
               <div>
-                <label>RPF — responsável financeiro / pagamento</label>
-                <select id="vehicleFinancialResponsible" title="Pode coincidir com o RPV ou ser outro parceiro da lista"></select>
+                <label>RPP — responsável financeiro / pagamento</label>
+                <select id="vehicleFinancialResponsible" title="Parceiro cadastrado; pode coincidir com o RPV ou ser outro"></select>
               </div>
               <div class="field-operador-hide">
                 <label>Leiloeiro</label>
@@ -5987,23 +5916,23 @@
           <div class="form-grid">
             <div id="libRowSolicitante">
               <label id="libSolicitanteLabel">Quem solicitou a liberação?</label>
-              <input id="libSolicitante" type="text" placeholder="Nome do solicitante" />
+              <select id="libSolicitante"></select>
             </div>
             <div id="libRowConfirmador" class="hidden" aria-hidden="true">
               <label id="libConfirmadorLabel">Quem confirmou a liberação?</label>
-              <input id="libConfirmador" type="text" placeholder="Nome do confirmador" />
+              <select id="libConfirmador"></select>
             </div>
             <div id="libRowResponsavel" class="hidden" aria-hidden="true">
-              <label id="libResponsavelLabel">Quem será o RPF (responsável financeiro / pagamento)?</label>
-              <input id="libResponsavelPagamento" type="text" placeholder="Nome do responsável" />
+              <label id="libResponsavelLabel">Quem será o RPP (responsável financeiro / pagamento)?</label>
+              <select id="libResponsavelPagamento"></select>
             </div>
             <div id="libRowSolicRemocao" class="hidden" aria-hidden="true">
               <label id="libSolicRemocaoLabel">Quem solicitou a remoção?</label>
-              <input id="libSolicitanteRemocao" type="text" placeholder="Nome do solicitante da remoção" />
+              <select id="libSolicitanteRemocao"></select>
             </div>
             <div id="libRowRemoveu" class="hidden" aria-hidden="true">
               <label id="libRemoveuLabel">Quem removeu o veículo?</label>
-              <input id="libRemoveu" type="text" placeholder="Nome de quem removeu" />
+              <select id="libRemoveu"></select>
             </div>
           </div>
           <div class="form-actions">
@@ -6570,13 +6499,10 @@
       function populateLancamentoClienteOptions() {
         if (!lancCliente) return;
         const current = lancCliente.value;
-        const parceiros = (state.partners || []).filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
+        const parceiros = allPartnersSorted();
         lancCliente.innerHTML =
           `<option value="">Sem cliente</option>` +
-          parceiros
-            .sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || "")))
-            .map((p) => `<option value="${escapeHtml(p.nome || "")}">${escapeHtml(p.nome || "-")}</option>`)
-            .join("");
+          parceiros.map((p) => `<option value="${escapeHtml(p.nome || "")}">${escapeHtml(p.nome || "-")}</option>`).join("");
         if (current && [...lancCliente.options].some((o) => o.value === current)) lancCliente.value = current;
       }
 
@@ -6884,11 +6810,7 @@
       const tableRemocaoConfirmada = document.getElementById("tableRemocaoConfirmada");
       const tableRemovidos = document.getElementById("tableRemovidos");
       const tableFechamentoCiclo = document.getElementById("tableFechamentoCiclo");
-      const tableLocalizadores = document.getElementById("tableLocalizadores");
-      const tableAssessorias = document.getElementById("tableAssessorias");
-      const tableInstituicoesFinanceiras = document.getElementById("tableInstituicoesFinanceiras");
-      const tableLeiloeiros = document.getElementById("tableLeiloeiros");
-      const tableRemocoes = document.getElementById("tableRemocoes");
+      const tablePartners = document.getElementById("tablePartners");
       const rankByVehicles = document.getElementById("rankByVehicles");
       const rankByRevenue = document.getElementById("rankByRevenue");
       const receivableAlert = document.getElementById("receivableAlert");
@@ -8616,8 +8538,7 @@
         const locSel = document.getElementById("vlsFilterLocator");
         const assSel = document.getElementById("vlsFilterAssessoria");
         if (!locSel || !assSel) return;
-        const parceiros = state.partners.filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
-        const assessorias = state.partners.filter((p) => p.tipo === "ASSESSORIA");
+        const parceiros = allPartnersSorted();
         const opt = (id, label) => {
           const vid = String(id).replace(/"/g, "&quot;");
           return `<option value="${vid}">${escapeHtml(label)}</option>`;
@@ -8627,13 +8548,13 @@
           parceiros.map((p) => opt(p.id, p.nome || "-")).join("");
         assSel.innerHTML =
           `<option value="">Todas as assessorias</option>` +
-          assessorias.map((p) => opt(p.id, p.nome || "-")).join("");
+          parceiros.map((p) => opt(p.id, p.nome || "-")).join("");
         if (parceiros.some((p) => p.id === vlsListFilterLocatorId)) locSel.value = vlsListFilterLocatorId;
         else {
           locSel.value = "";
           vlsListFilterLocatorId = "";
         }
-        if (assessorias.some((p) => p.id === vlsListFilterAssessoriaId)) assSel.value = vlsListFilterAssessoriaId;
+        if (parceiros.some((p) => p.id === vlsListFilterAssessoriaId)) assSel.value = vlsListFilterAssessoriaId;
         else {
           assSel.value = "";
           vlsListFilterAssessoriaId = "";
@@ -8681,9 +8602,7 @@
         const assSel = document.getElementById("listaFilterAssessoria");
         const rpfSel = document.getElementById("listaFilterRpf");
         if (!locSel || !assSel || !rpfSel) return;
-        const parceiros = state.partners.filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
-        const parceirosRpf = state.partners.filter((p) => isRpfPartnerType(p.tipo || "PARCEIRO"));
-        const assessorias = state.partners.filter((p) => p.tipo === "ASSESSORIA");
+        const parceiros = allPartnersSorted();
         const opt = (id, label) => {
           const vid = String(id).replace(/"/g, "&quot;");
           return `<option value="${vid}">${escapeHtml(label)}</option>`;
@@ -8693,21 +8612,21 @@
           parceiros.map((p) => opt(p.id, p.nome || "-")).join("");
         assSel.innerHTML =
           `<option value="">Todas as assessorias</option>` +
-          assessorias.map((p) => opt(p.id, p.nome || "-")).join("");
+          parceiros.map((p) => opt(p.id, p.nome || "-")).join("");
         rpfSel.innerHTML =
-          `<option value="">Todos os RPF</option>` +
-          parceirosRpf.map((p) => opt(p.id, p.nome || "-")).join("");
+          `<option value="">Todos os RPP</option>` +
+          parceiros.map((p) => opt(p.id, p.nome || "-")).join("");
         if (parceiros.some((p) => p.id === listaFilterLocatorId)) locSel.value = listaFilterLocatorId;
         else {
           locSel.value = "";
           listaFilterLocatorId = "";
         }
-        if (assessorias.some((p) => p.id === listaFilterAssessoriaId)) assSel.value = listaFilterAssessoriaId;
+        if (parceiros.some((p) => p.id === listaFilterAssessoriaId)) assSel.value = listaFilterAssessoriaId;
         else {
           assSel.value = "";
           listaFilterAssessoriaId = "";
         }
-        if (parceirosRpf.some((p) => p.id === listaFilterRpfId)) rpfSel.value = listaFilterRpfId;
+        if (parceiros.some((p) => p.id === listaFilterRpfId)) rpfSel.value = listaFilterRpfId;
         else {
           rpfSel.value = "";
           listaFilterRpfId = "";
@@ -8994,22 +8913,20 @@
         const preserveLoc = locSel.value;
         const preserveAss = assSel.value;
         const preserveRpf = rpfSel.value;
-        const parceiros = (state.partners || []).filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
-        const parceirosRpf = (state.partners || []).filter((p) => isRpfPartnerType(p.tipo || "PARCEIRO"));
-        const assessorias = (state.partners || []).filter((p) => p.tipo === "ASSESSORIA");
+        const parceiros = allPartnersSorted();
         const optId = (id, label) => {
           const v = String(id).replace(/"/g, "&quot;");
           return `<option value="${v}">${escapeHtml(label)}</option>`;
         };
         locSel.innerHTML = `<option value="">Todos os RPVs</option>` + parceiros.map((p) => optId(p.id, p.nome || "-")).join("");
         assSel.innerHTML =
-          `<option value="">Todas as assessorias</option>` + assessorias.map((p) => optId(p.id, p.nome || "-")).join("");
-        rpfSel.innerHTML = `<option value="">Todos os RPF</option>` + parceirosRpf.map((p) => optId(p.id, p.nome || "-")).join("");
+          `<option value="">Todas as assessorias</option>` + parceiros.map((p) => optId(p.id, p.nome || "-")).join("");
+        rpfSel.innerHTML = `<option value="">Todos os RPP</option>` + parceiros.map((p) => optId(p.id, p.nome || "-")).join("");
         if (parceiros.some((p) => p.id === preserveLoc)) locSel.value = preserveLoc;
         else locSel.value = "";
-        if (assessorias.some((p) => p.id === preserveAss)) assSel.value = preserveAss;
+        if (parceiros.some((p) => p.id === preserveAss)) assSel.value = preserveAss;
         else assSel.value = "";
-        if (parceirosRpf.some((p) => p.id === preserveRpf)) rpfSel.value = preserveRpf;
+        if (parceiros.some((p) => p.id === preserveRpf)) rpfSel.value = preserveRpf;
         else rpfSel.value = "";
       }
 
@@ -10053,8 +9970,8 @@
         const preserveResp = respSel.value;
         const openList = (state.receivables || []).filter((r) => receivableIsContaReceberFinanceiro(r));
         const partnersList = state.partners || [];
-        const parceiros = partnersList.filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
-        const assessorias = partnersList.filter((p) => p.tipo === "ASSESSORIA");
+        const parceiros = allPartnersSorted();
+        const assessorias = parceiros;
         const optId = (id, label) => {
           const v = String(id).replace(/"/g, "&quot;");
           return `<option value="${v}">${escapeHtml(label)}</option>`;
@@ -10065,11 +9982,9 @@
         assSel.innerHTML =
           `<option value="">Todas as assessorias</option>` +
           assessorias.map((p) => optId(p.id, p.nome || "-")).join("");
-        const names = [
-          ...new Set(openList.map((r) => (r.responsavel_pagamento || "").trim()).filter(Boolean)),
-        ].sort((a, b) => a.localeCompare(b, "pt-BR"));
+        const names = allPartnersSorted().map((p) => (p.nome || "").trim()).filter(Boolean);
         respSel.innerHTML =
-          `<option value="">Todos os responsáveis</option>` +
+          `<option value="">Todos os RPP</option>` +
           names.map((n) => `<option value="${encodeURIComponent(n)}">${escapeHtml(n)}</option>`).join("");
         if (parceiros.some((p) => p.id === preserveLoc)) locSel.value = preserveLoc;
         else locSel.value = "";
@@ -11038,6 +10953,7 @@
         state.partners = data || [];
         renderPartners();
         renderPartnerOptions();
+        syncWorkflowPartnerSelects();
         maybeRefreshListaPanel();
       }
 
@@ -11719,12 +11635,65 @@
       }
 
       function isLocalizadorPartnerType(type) {
-        return normalizePartnerType(type) === "LOCALIZADOR";
+        return !!(type || state.partners?.length);
       }
 
       function isRpfPartnerType(type) {
-        const t = normalizePartnerType(type || "PARCEIRO");
-        return t === "LOCALIZADOR" || t === "INSTITUICAO_FINANCEIRA";
+        return !!(type || state.partners?.length);
+      }
+
+      function allPartnersSorted() {
+        return [...(state.partners || [])].sort((a, b) =>
+          String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR")
+        );
+      }
+
+      function partnerSelectOptionsHtml(selectedId, emptyLabel = "Selecione o parceiro…") {
+        const sel = String(selectedId || "").trim();
+        const opts = allPartnersSorted()
+          .map((p) => {
+            const id = String(p.id);
+            return `<option value="${escapeHtml(id)}"${id === sel ? " selected" : ""}>${escapeHtml(p.nome || "-")}</option>`;
+          })
+          .join("");
+        return `<option value="">${escapeHtml(emptyLabel)}</option>${opts}`;
+      }
+
+      function resolvePartnerIdFromStored(stored) {
+        const s = String(stored || "").trim();
+        if (!s) return "";
+        const byId = (state.partners || []).find((p) => String(p.id) === s);
+        if (byId) return String(byId.id);
+        const norm = partnerNomeNorm(s);
+        const byName = (state.partners || []).find((p) => partnerNomeNorm(p.nome) === norm);
+        return byName ? String(byName.id) : "";
+      }
+
+      function partnerLabelFromStored(stored) {
+        const id = resolvePartnerIdFromStored(stored);
+        return id ? partnerNomeById(id) : String(stored || "").trim();
+      }
+
+      function readWorkflowPartnerSelect(el) {
+        const id = String(el?.value || "").trim();
+        const nome = partnerNomeById(id);
+        return { id, nome };
+      }
+
+      function syncWorkflowPartnerSelects() {
+        const html = partnerSelectOptionsHtml("");
+        [libSolicitante, libConfirmador, libResponsavelPagamento, libSolicitanteRemocao, libRemoveu].forEach((el) => {
+          if (!el) return;
+          const cur = el.value;
+          el.innerHTML = html;
+          if (cur && [...el.options].some((o) => o.value === cur)) el.value = cur;
+        });
+      }
+
+      function appendPartnerOptionsToSelect(selectEl, emptyLabel) {
+        if (!selectEl) return;
+        const cur = selectEl.value;
+        selectEl.innerHTML = partnerSelectOptionsHtml(cur, emptyLabel);
       }
 
       function partnerNomeById(partnerId) {
@@ -11757,7 +11726,7 @@
         let rpfNome = rpfId ? partnerNomeById(rpfId) : "";
         if (!rpfNome && rpfId && vehicleFinancialResponsible?.selectedOptions?.[0]) {
           const label = (vehicleFinancialResponsible.selectedOptions[0].textContent || "").trim();
-          if (label && label !== "Sem RPF") rpfNome = label;
+          if (label && label !== "Sem RPP") rpfNome = label;
         }
         return {
           responsavel_financeiro_id: rpfId,
@@ -11766,23 +11735,17 @@
       }
 
       function partnerTypeFromSubview(view) {
-        if (view === "assessorias") return "ASSESSORIA";
-        if (view === "instituicoes_financeiras") return "INSTITUICAO_FINANCEIRA";
-        if (view === "leiloeiros") return "LEILOEIRO";
-        if (view === "remocoes") return "REMOCAO";
         return "LOCALIZADOR";
       }
 
-      /** Parceiro/assessoria com mesmo nome (no mesmo tipo) ou mesmo documento (11+ dígitos). */
+      /** Parceiro com mesmo nome ou mesmo documento (11+ dígitos), em qualquer cadastro. */
       function findDuplicatePartner({ nome, cpf, tipo, excludePartnerId }) {
-        const t = normalizePartnerType(tipo || "LOCALIZADOR");
         const nameKey = partnerNomeNorm(nome);
         const doc = partnerDocDigits(cpf);
         const list = state.partners || [];
         return (
           list.find((p) => {
             if (excludePartnerId && p.id === excludePartnerId) return false;
-            if (normalizePartnerType(p.tipo || "PARCEIRO") !== t) return false;
             if (nameKey && partnerNomeNorm(p.nome) === nameKey) return true;
             if (doc.length >= 11 && partnerDocDigits(p.cpf) === doc) return true;
             return false;
@@ -12078,49 +12041,31 @@
       }
 
       function setPartnerView(view) {
-        currentPartnerView = view;
-        const isNone = !view || view === "none";
-        partnerSubnav.querySelectorAll("button").forEach((btn) => {
-          btn.classList.toggle("active", !isNone && btn.getAttribute("data-subview") === view);
-        });
-        let shownPanel = null;
+        const show = view && view !== "none";
+        currentPartnerView = show ? "parceiros" : null;
+        partnerSubnav?.classList.add("hidden");
         partnerSubviews.forEach((panel) => {
-          const match = !isNone && panel.getAttribute("data-subview") === view;
+          const match = show && panel.getAttribute("data-subview") === "parceiros";
           panel.classList.toggle("hidden", !match);
-          if (match) shownPanel = panel;
+          if (match) {
+            panel.classList.remove("air-open");
+            void panel.offsetWidth;
+            panel.classList.add("air-open");
+          }
         });
-        if (shownPanel) {
-          shownPanel.classList.remove("air-open");
-          void shownPanel.offsetWidth;
-          shownPanel.classList.add("air-open");
-        }
-        if (view === "assessorias") openPartnerForm.textContent = "Nova assessoria";
-        else if (view === "instituicoes_financeiras") openPartnerForm.textContent = "Nova instituição financeira";
-        else if (view === "leiloeiros") openPartnerForm.textContent = "Novo leiloeiro";
-        else if (view === "remocoes") openPartnerForm.textContent = "Novo serviço de remoção";
-        else openPartnerForm.textContent = "Novo RPV";
+        if (openPartnerForm) openPartnerForm.textContent = "Novo parceiro";
         syncPartnerFormForCurrentView();
       }
 
       function syncPartnerFormForCurrentView() {
-        const isAssessoria = currentPartnerView === "assessorias";
-        if (partnerNameLabel) {
-          if (currentPartnerView === "localizadores") partnerNameLabel.textContent = "Nome do RPV";
-          else if (currentPartnerView === "assessorias") partnerNameLabel.textContent = "Nome da assessoria";
-          else if (currentPartnerView === "instituicoes_financeiras")
-            partnerNameLabel.textContent = "Nome da instituição financeira";
-          else if (currentPartnerView === "leiloeiros") partnerNameLabel.textContent = "Nome do leiloeiro";
-          else if (currentPartnerView === "remocoes") partnerNameLabel.textContent = "Nome do serviço de remoção";
-          else partnerNameLabel.textContent = "Nome";
-        }
-        if (partnerDocLabel) partnerDocLabel.textContent = "CNPJ";
-        if (partnerContactLabel) partnerContactLabel.textContent = "Pessoa de contato";
+        if (partnerNameLabel) partnerNameLabel.textContent = "Nome";
+        if (partnerDocLabel) partnerDocLabel.textContent = "CNPJ / CPF";
+        if (partnerContactLabel) partnerContactLabel.textContent = "Contato";
         if (partnerDocInput) {
-          partnerDocInput.placeholder = "00.000.000/0000-00";
-          partnerDocInput.required = isAssessoria;
+          partnerDocInput.placeholder = "Documento (opcional)";
+          partnerDocInput.required = false;
         }
-        if (partnerEmailWrap) partnerEmailWrap.classList.toggle("hidden", isAssessoria);
-        if (isAssessoria && partnerEmailInput) partnerEmailInput.value = "";
+        if (partnerEmailWrap) partnerEmailWrap.classList.remove("hidden");
       }
 
       function renderFechamentoCicloTable(tbody, items) {
@@ -12824,22 +12769,18 @@
       }
 
       function renderPartners() {
-        const parceiros = state.partners.filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
-        const assessorias = state.partners.filter((p) => p.tipo === "ASSESSORIA");
-        const instituicoesFinanceiras = state.partners.filter((p) => p.tipo === "INSTITUICAO_FINANCEIRA");
-        const leiloeiros = state.partners.filter((p) => p.tipo === "LEILOEIRO");
-        const remocoes = state.partners.filter((p) => p.tipo === "REMOCAO");
-
-        if (!parceiros.length) {
-          setEmptyRow(tableLocalizadores, "Nenhum RPV cadastrado.", 5);
+        const list = allPartnersSorted();
+        if (!tablePartners) return;
+        if (!list.length) {
+          setEmptyRow(tablePartners, "Nenhum parceiro cadastrado.", 5);
         } else {
-          tableLocalizadores.innerHTML = parceiros
+          tablePartners.innerHTML = list
             .map((p) => {
               return `
                 <tr>
-                  <td>${p.nome || "-"}</td>
-                  <td>${formatCnpjForDisplay(p.cpf) || "-"}</td>
-                  <td>${p.contato || "-"}</td>
+                  <td>${escapeHtml(p.nome || "-")}</td>
+                  <td>${escapeHtml(formatCnpjForDisplay(p.cpf) || "-")}</td>
+                  <td>${escapeHtml(p.contato || "-")}</td>
                   <td><span class="tag">Ativo</span></td>
                   <td class="actions">
                     <button class="secondary" data-action="editar-parceiro" data-id="${p.id}">Editar</button>
@@ -12850,97 +12791,11 @@
             })
             .join("");
         }
-
-        if (!assessorias.length) {
-          setEmptyRow(tableAssessorias, "Nenhuma assessoria cadastrada.", 5);
-        } else {
-          tableAssessorias.innerHTML = assessorias
-            .map((p) => {
-              return `
-                <tr>
-                  <td>${p.nome || "-"}</td>
-                  <td>${formatCnpjForDisplay(p.cpf) || "-"}</td>
-                  <td>${p.contato || "-"}</td>
-                  <td><span class="tag">Ativo</span></td>
-                  <td class="actions">
-                    <button class="secondary" data-action="editar-parceiro" data-id="${p.id}">Editar</button>
-                    <button class="secondary" data-action="apagar-parceiro" data-id="${p.id}">Apagar</button>
-                  </td>
-                </tr>
-              `;
-            })
-            .join("");
-        }
-
-        if (!instituicoesFinanceiras.length) {
-          setEmptyRow(tableInstituicoesFinanceiras, "Nenhuma instituição financeira cadastrada.", 5);
-        } else {
-          tableInstituicoesFinanceiras.innerHTML = instituicoesFinanceiras
-            .map((p) => {
-              return `
-                <tr>
-                  <td>${p.nome || "-"}</td>
-                  <td>${formatCnpjForDisplay(p.cpf) || "-"}</td>
-                  <td>${p.contato || "-"}</td>
-                  <td><span class="tag">Ativo</span></td>
-                  <td class="actions">
-                    <button class="secondary" data-action="editar-parceiro" data-id="${p.id}">Editar</button>
-                    <button class="secondary" data-action="apagar-parceiro" data-id="${p.id}">Apagar</button>
-                  </td>
-                </tr>
-              `;
-            })
-            .join("");
-        }
-
-        if (!leiloeiros.length) {
-          setEmptyRow(tableLeiloeiros, "Nenhum leiloeiro cadastrado.", 5);
-        } else {
-          tableLeiloeiros.innerHTML = leiloeiros
-            .map((p) => {
-              return `
-                <tr>
-                  <td>${p.nome || "-"}</td>
-                  <td>${formatCnpjForDisplay(p.cpf) || "-"}</td>
-                  <td>${p.contato || "-"}</td>
-                  <td><span class="tag">Ativo</span></td>
-                  <td class="actions">
-                    <button class="secondary" data-action="editar-parceiro" data-id="${p.id}">Editar</button>
-                    <button class="secondary" data-action="apagar-parceiro" data-id="${p.id}">Apagar</button>
-                  </td>
-                </tr>
-              `;
-            })
-            .join("");
-        }
-
-        if (!remocoes.length) {
-          setEmptyRow(tableRemocoes, "Nenhum serviço de remoção cadastrado.", 5);
-        } else {
-          tableRemocoes.innerHTML = remocoes
-            .map((p) => {
-              return `
-                <tr>
-                  <td>${p.nome || "-"}</td>
-                  <td>${formatCnpjForDisplay(p.cpf) || "-"}</td>
-                  <td>${p.contato || "-"}</td>
-                  <td><span class="tag">Ativo</span></td>
-                  <td class="actions">
-                    <button class="secondary" data-action="editar-parceiro" data-id="${p.id}">Editar</button>
-                    <button class="secondary" data-action="apagar-parceiro" data-id="${p.id}">Apagar</button>
-                  </td>
-                </tr>
-              `;
-            })
-            .join("");
-        }
-
         renderPartnerRankings();
       }
 
       function renderPartnerRankings() {
-        const parceiros = state.partners.filter((p) => isLocalizadorPartnerType(p.tipo || "PARCEIRO"));
-        const partnerMap = new Map(parceiros.map((p) => [p.id, p.nome || "-"]));
+        const partnerMap = new Map(allPartnersSorted().map((p) => [p.id, p.nome || "-"]));
 
         const vehiclesByPartner = new Map();
         state.vehicles.forEach((v) => {
@@ -12977,46 +12832,16 @@
       }
 
       function renderPartnerOptions() {
-        vehicleLocator.innerHTML = `<option value="">Sem RPV</option>`;
-        if (vehicleFinancialResponsible) vehicleFinancialResponsible.innerHTML = `<option value="">Sem RPF</option>`;
-        vehicleAssessor.innerHTML = `<option value="">Sem assessoria</option>`;
-        if (vehicleAuctioneer) vehicleAuctioneer.innerHTML = `<option value="">Sem leiloeiro</option>`;
-        state.partners.forEach((p) => {
-          const type = normalizePartnerType(p.tipo || "PARCEIRO");
-          const option = document.createElement("option");
-          option.value = p.id;
-          option.textContent = p.nome;
-          if (type === "ASSESSORIA") {
-            vehicleAssessor.appendChild(option);
-          } else if (type === "LEILOEIRO" && vehicleAuctioneer) {
-            vehicleAuctioneer.appendChild(option);
-          } else if (type === "LOCALIZADOR") {
-            vehicleLocator.appendChild(option);
-          }
-          if (vehicleFinancialResponsible && isRpfPartnerType(type)) {
-            const optionRpf = document.createElement("option");
-            optionRpf.value = p.id;
-            optionRpf.textContent = p.nome;
-            vehicleFinancialResponsible.appendChild(optionRpf);
-          }
-        });
+        appendPartnerOptionsToSelect(vehicleLocator, "Sem RPV");
+        appendPartnerOptionsToSelect(vehicleFinancialResponsible, "Sem RPP");
+        appendPartnerOptionsToSelect(vehicleAssessor, "Sem assessoria");
+        appendPartnerOptionsToSelect(vehicleAuctioneer, "Sem leiloeiro");
       }
 
-      function openPartnerRegistrationFlow(targetType) {
-        const normalizedTarget = normalizePartnerType(targetType || "LOCALIZADOR");
-        const isAssessoria = normalizedTarget === "ASSESSORIA";
+      function openPartnerRegistrationFlow() {
         openMainView("parceiros");
-        let targetSubview = "localizadores";
-        if (normalizedTarget === "ASSESSORIA") targetSubview = "assessorias";
-        else if (normalizedTarget === "INSTITUICAO_FINANCEIRA") targetSubview = "instituicoes_financeiras";
-        else if (normalizedTarget === "LEILOEIRO") targetSubview = "leiloeiros";
-        else if (normalizedTarget === "REMOCAO") targetSubview = "remocoes";
-        openPartnerSubview(targetSubview);
-        if (isAssessoria) partnerModalTitle.textContent = "Nova assessoria";
-        else if (normalizedTarget === "INSTITUICAO_FINANCEIRA") partnerModalTitle.textContent = "Nova instituição financeira";
-        else if (normalizedTarget === "LEILOEIRO") partnerModalTitle.textContent = "Novo leiloeiro";
-        else if (normalizedTarget === "REMOCAO") partnerModalTitle.textContent = "Novo serviço de remoção";
-        else partnerModalTitle.textContent = "Novo RPV";
+        openPartnerSubview("parceiros");
+        if (partnerModalTitle) partnerModalTitle.textContent = "Novo parceiro";
         syncPartnerFormForCurrentView();
         partnerForm.reset();
         partnerModal.classList.remove("hidden");
@@ -13120,12 +12945,7 @@
       });
 
       openPartnerForm.addEventListener("click", () => {
-        if (currentPartnerView === "assessorias") partnerModalTitle.textContent = "Nova assessoria";
-        else if (currentPartnerView === "instituicoes_financeiras")
-          partnerModalTitle.textContent = "Nova instituição financeira";
-        else if (currentPartnerView === "leiloeiros") partnerModalTitle.textContent = "Novo leiloeiro";
-        else if (currentPartnerView === "remocoes") partnerModalTitle.textContent = "Novo serviço de remoção";
-        else partnerModalTitle.textContent = "Novo RPV";
+        if (partnerModalTitle) partnerModalTitle.textContent = "Novo parceiro";
         syncPartnerFormForCurrentView();
         partnerForm.reset();
         partnerModal.classList.remove("hidden");
@@ -13432,27 +13252,33 @@
       });
       confirmLiberacaoModal.addEventListener("click", () => {
         if (!workflowModalConfig) return;
-        const solicitante = (libSolicitante.value || "").trim();
-        const confirmador = (libConfirmador.value || "").trim();
-        const responsavelFinanceiro = (libResponsavelPagamento.value || "").trim();
-        const solicitanteRemocao = (libSolicitanteRemocao.value || "").trim();
-        const removeu = (libRemoveu.value || "").trim();
+        const sol = readWorkflowPartnerSelect(libSolicitante);
+        const conf = readWorkflowPartnerSelect(libConfirmador);
+        const rpp = readWorkflowPartnerSelect(libResponsavelPagamento);
+        const solRem = readWorkflowPartnerSelect(libSolicitanteRemocao);
+        const rem = readWorkflowPartnerSelect(libRemoveu);
         const required = workflowModalConfig.requiredFields || [];
-        if (required.includes("solicitante") && !solicitante) return alert("Informe quem solicitou a liberação.");
-        if (required.includes("confirmador") && !confirmador) return alert("Informe quem confirmou a liberação.");
-        if (required.includes("responsavelFinanceiro") && !responsavelFinanceiro)
-          return alert("Informe o RPF (responsável financeiro / pagamento).");
-        if (required.includes("solicitanteRemocao") && !solicitanteRemocao)
-          return alert("Informe quem solicitou a remoção.");
-        if (required.includes("removeu") && !removeu) return alert("Informe quem removeu o veículo.");
+        if (required.includes("solicitante") && !sol.id) return alert("Selecione quem solicitou a liberação.");
+        if (required.includes("confirmador") && !conf.id) return alert("Selecione quem confirmou a liberação.");
+        if (required.includes("responsavelFinanceiro") && !rpp.id)
+          return alert("Selecione o RPP (responsável financeiro / pagamento).");
+        if (required.includes("solicitanteRemocao") && !solRem.id)
+          return alert("Selecione quem solicitou a remoção.");
+        if (required.includes("removeu") && !rem.id) return alert("Selecione quem removeu o veículo.");
+        if (!(state.partners || []).length) return alert("Cadastre parceiros antes de concluir esta ação.");
         liberacaoModal.classList.add("hidden");
         if (liberacaoModalResolver) {
           liberacaoModalResolver({
-            solicitante,
-            confirmador,
-            responsavelFinanceiro,
-            solicitanteRemocao,
-            removeu,
+            solicitante: sol.nome,
+            solicitantePartnerId: sol.id,
+            confirmador: conf.nome,
+            confirmadorPartnerId: conf.id,
+            responsavelFinanceiro: rpp.nome,
+            responsavelFinanceiroPartnerId: rpp.id,
+            solicitanteRemocao: solRem.nome,
+            solicitanteRemocaoPartnerId: solRem.id,
+            removeu: rem.nome,
+            removeuPartnerId: rem.id,
           });
           liberacaoModalResolver = null;
         }
@@ -13954,6 +13780,14 @@
         return new Promise((resolve) => {
           liberacaoModalResolver = resolve;
           workflowModalConfig = { requiredFields };
+          const needsPartner = (requiredFields || []).some((f) =>
+            ["solicitante", "confirmador", "responsavelFinanceiro", "solicitanteRemocao", "removeu"].includes(f)
+          );
+          if (needsPartner && !(state.partners || []).length) {
+            alert("Cadastre parceiros em Rede de parceiros antes de concluir esta ação.");
+            resolve(null);
+            return;
+          }
 
           if (liberacaoModalTitle) liberacaoModalTitle.textContent = title;
           if (confirmLiberacaoModal) confirmLiberacaoModal.textContent = submitLabel;
@@ -13971,17 +13805,17 @@
           );
           setWorkflowFieldVisibility(libRowRemoveu, requiredFields.includes("removeu") || !!values.removeu);
 
-          libSolicitante.value = values.solicitante || "";
-          libConfirmador.value = values.confirmador || "";
-          libResponsavelPagamento.value = values.responsavelFinanceiro || "";
-          libSolicitanteRemocao.value = values.solicitanteRemocao || "";
-          libRemoveu.value = values.removeu || "";
-
-          libSolicitante.readOnly = !!readonly.solicitante;
-          libConfirmador.readOnly = !!readonly.confirmador;
-          libResponsavelPagamento.readOnly = !!readonly.responsavelFinanceiro;
-          libSolicitanteRemocao.readOnly = !!readonly.solicitanteRemocao;
-          libRemoveu.readOnly = !!readonly.removeu;
+          syncWorkflowPartnerSelects();
+          const setPartnerSel = (el, stored, ro) => {
+            if (!el) return;
+            el.value = resolvePartnerIdFromStored(stored);
+            el.disabled = !!ro;
+          };
+          setPartnerSel(libSolicitante, values.solicitante, readonly.solicitante);
+          setPartnerSel(libConfirmador, values.confirmador, readonly.confirmador);
+          setPartnerSel(libResponsavelPagamento, values.responsavelFinanceiro, readonly.responsavelFinanceiro);
+          setPartnerSel(libSolicitanteRemocao, values.solicitanteRemocao, readonly.solicitanteRemocao);
+          setPartnerSel(libRemoveu, values.removeu, readonly.removeu);
 
           liberacaoModal.classList.remove("hidden");
         });
@@ -14077,7 +13911,7 @@
         openPatioSubview(button.getAttribute("data-subview"));
       });
 
-      partnerSubnav.addEventListener("click", (event) => {
+      partnerSubnav?.addEventListener("click", (event) => {
         const button = event.target.closest("button[data-subview]");
         if (!button) return;
         openPartnerSubview(button.getAttribute("data-subview"));
@@ -14288,12 +14122,8 @@
           cpf: document.getElementById("partnerCpf").value.trim(),
           email: document.getElementById("partnerEmail").value.trim(),
           contato: document.getElementById("partnerContact").value.trim(),
-          tipo: partnerTypeFromSubview(currentPartnerView),
+          tipo: "LOCALIZADOR",
         };
-        if (payload.tipo === "ASSESSORIA" && partnerDocDigits(payload.cpf).length !== 14) {
-          alert("Informe um CNPJ válido com 14 dígitos para a assessoria.");
-          return;
-        }
         const dupP = findDuplicatePartner({
           nome: payload.nome,
           cpf: payload.cpf,
@@ -15141,9 +14971,15 @@
           if (!libData) return;
           const responsavel = String(libData.responsavelFinanceiro || "").trim();
           const confirmador = String(libData.confirmador || "").trim();
+          const rppPartnerId = libData.responsavelFinanceiroPartnerId || "";
+          const vehiclePatch = { status: "LIBERACAO_CONFIRMADA" };
+          if (rppPartnerId) {
+            vehiclePatch.responsavel_financeiro_id = rppPartnerId;
+            vehiclePatch.responsavel_financeiro_nome = responsavel || partnerNomeById(rppPartnerId) || null;
+          }
           const { error: upErr } = await supabase
             .from("vehicles")
-            .update({ status: "LIBERACAO_CONFIRMADA" })
+            .update(vehiclePatch)
             .eq("id", id)
             .eq("user_id", effectiveUserId());
           if (upErr) {
@@ -15198,7 +15034,7 @@
             vehicle_id: id,
             tipo: "LIBERACAO_CONFIRMADA",
             responsavel: confirmador || responsavel,
-            descricao: `Liberação confirmada por ${confirmador || "-"}. RPF: ${responsavel}.`,
+            descricao: `Liberação confirmada por ${confirmador || "-"}. RPP: ${responsavel}.`,
           });
           await loadVehicles();
           if (!FINANCE_MANUAL_ONLY) await Promise.all([loadReceivables(), loadCycleClosures()]);
@@ -15403,15 +15239,19 @@
         }
 
         if (action === "solicitar") {
+          if (!(state.partners || []).length) {
+            alert("Cadastre parceiros em Rede de parceiros antes de solicitar liberação.");
+            return;
+          }
           const libData = await openWorkflowStepModal({
             title: "Liberação solicitada",
             submitLabel: "OK",
             requiredFields: ["solicitante"],
           });
           if (!libData) return;
-          const { solicitante } = libData;
-          if (!solicitante || !String(solicitante).trim()) {
-            alert("Informe quem solicitou a liberação.");
+          const solicitante = String(libData.solicitante || "").trim();
+          if (!libData.solicitantePartnerId || !solicitante) {
+            alert("Selecione quem solicitou a liberação (parceiro cadastrado).");
             return;
           }
           await supabase.from("vehicle_events").insert({
@@ -16077,7 +15917,7 @@
           setPatioView("inicio");
           navStack.push("patio:inicio");
         }
-        if (view === "parceiros") setPartnerView("none");
+        if (view === "parceiros") setPartnerView("parceiros");
         if (view === "lista") {
           syncListaFilterSelects();
           renderListaPanel();
@@ -16116,9 +15956,12 @@
       }
 
       function openPartnerSubview(sub) {
+        sub = "parceiros";
         const top = navStack[navStack.length - 1];
-        if (!sub) return;
-        if (top === `parceiros:${sub}`) return;
+        if (top === `parceiros:${sub}`) {
+          setPartnerView("parceiros");
+          return;
+        }
         if (top && typeof top === "string" && top.startsWith("parceiros:")) navStack.pop();
 
         if (!isNavOnModule("parceiros")) {
@@ -16126,12 +15969,8 @@
         }
 
         showMainView("parceiros");
-        if (navStack[navStack.length - 1] !== "parceiros") {
-          setPartnerView("none");
-        }
-
         navStack.push(`parceiros:${sub}`);
-        setPartnerView(sub);
+        setPartnerView("parceiros");
       }
 
       function openListaSubview(sub) {
@@ -16217,7 +16056,7 @@
       document.getElementById("dashboardOpenLista")?.addEventListener("click", () => openMainView("lista"));
       document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openMainView("parceiros"));
       document.getElementById("dashboardOpenConfiguracoes")?.addEventListener("click", () => openMainView("configuracoes"));
-      document.getElementById("openParceirosFromPatio")?.addEventListener("click", () => openPartnerSubview("localizadores"));
+      document.getElementById("openParceirosFromPatio")?.addEventListener("click", () => openPartnerSubview("parceiros"));
       document.getElementById("openConfigFromPatio")?.addEventListener("click", () => openMainView("configuracoes"));
       document.getElementById("exitParceirosToPatio")?.addEventListener("click", () => closeStackTop());
       document.getElementById("exitConfigToPatio")?.addEventListener("click", () => closeStackTop());
