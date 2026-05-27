@@ -6183,6 +6183,14 @@
 
       const reloadPatio = document.getElementById("reloadPatio");
       const patioFlyoutBackdrop = document.getElementById("patioFlyoutBackdrop");
+      let lastAppHeaderModuleView = null;
+      const views = {
+        dashboard: document.getElementById("viewDashboard"),
+        patio: document.getElementById("viewPatio"),
+        parceiros: document.getElementById("viewParceiros"),
+        lista: document.getElementById("viewLista"),
+        configuracoes: document.getElementById("viewConfiguracoes"),
+      };
       const patioFlyoutClose = document.getElementById("patioFlyoutClose");
       const patioMenuNewVehicle = document.getElementById("patioMenuNewVehicle");
       const patioMenuReload = document.getElementById("patioMenuReload");
@@ -9904,8 +9912,17 @@
         userInfo.textContent = user ? `Logado como ${displayManagerIdentity(user.email || "")}` : "Logado";
         state.user = user;
         await loadPatioDelegatedRole();
-        applyRoleRestrictions();
-        loadAll();
+        try {
+          applyRoleRestrictions();
+        } catch (e) {
+          console.error("applyRoleRestrictions", e);
+          try {
+            showMainView("dashboard");
+          } catch (e2) {
+            console.error("showMainView fallback", e2);
+          }
+        }
+        loadAll().catch((e) => console.error("loadAll", e));
       }
 
       function showAuth() {
@@ -10067,21 +10084,6 @@
           showAuth();
           setStatus("Erro ao iniciar. Recarregue ou tente outro navegador.", "error");
         }
-      }
-
-      if (supabase) {
-        supabase.auth.onAuthStateChange((event, session) => {
-          if (event === "SIGNED_OUT" || event === "TOKEN_REFRESH_FAILED") {
-            showAuth();
-            setStatus("Sessão expirada. Faça login novamente.", "error");
-            return;
-          }
-          if (session && session.user) {
-            showApp(session.user);
-          } else {
-            showAuth();
-          }
-        });
       }
 
       async function loadPartners() {
@@ -14748,16 +14750,6 @@
       const cardVrpLink = document.getElementById("cardVrpLink");
       const cardNfsePendenteLink = document.getElementById("cardNfsePendenteLink");
 
-      let lastAppHeaderModuleView = null;
-
-      const views = {
-        dashboard: document.getElementById("viewDashboard"),
-        patio: document.getElementById("viewPatio"),
-        parceiros: document.getElementById("viewParceiros"),
-        lista: document.getElementById("viewLista"),
-        configuracoes: document.getElementById("viewConfiguracoes"),
-      };
-
       function syncHeaderMenuModuleHighlight(view) {
         const menu = document.getElementById("appHeaderMenu");
         if (!menu) return;
@@ -15032,8 +15024,8 @@
       document.getElementById("exitParceirosToPatio")?.addEventListener("click", () => closeStackTop());
       document.getElementById("exitConfigToPatio")?.addEventListener("click", () => closeStackTop());
 
-      cardVeiculosLink.addEventListener("click", () => openPatioSubview("no_patio"));
-      cardSolicitadasLink.addEventListener("click", () => openPatioSubview("no_patio"));
+      cardVeiculosLink?.addEventListener("click", () => openPatioSubview("no_patio"));
+      cardSolicitadasLink?.addEventListener("click", () => openPatioSubview("no_patio"));
       cardEntradasHojeLink?.addEventListener("click", () => openPatioSubview("removidos"));
       cardSaidasHojeLink?.addEventListener("click", () => openPatioSubview("no_patio"));
       cardSaidasSemanaLink?.addEventListener("click", () => openPatioSubview("removidos"));
@@ -15223,6 +15215,21 @@
         if (wrap.contains(e.target)) return;
         closeAppHeaderMenu();
       });
+
+      if (supabase) {
+        supabase.auth.onAuthStateChange((event, session) => {
+          if (event === "SIGNED_OUT" || event === "TOKEN_REFRESH_FAILED") {
+            showAuth();
+            setStatus("Sessão expirada. Faça login novamente.", "error");
+            return;
+          }
+          if (session && session.user) {
+            showApp(session.user);
+          } else {
+            showAuth();
+          }
+        });
+      }
 
       bootstrap();
       setPatioView("inicio");
