@@ -10362,9 +10362,223 @@
         }, 0);
       }
 
-
-
-
+      function renderDashboardFinanceCharts(period, svgIds) {
+        const ids = svgIds || {
+          flow: "dashboardCashFlowSvg",
+          balance: "dashboardBalanceSvg",
+          compare: "dashboardCompareSvg",
+          expense: "dashboardExpenseCategorySvg",
+          clients: "dashboardTopClientsSvg",
+          aging: "dashboardAgingSvg",
+        };
+        const mode = ["dia", "semana", "mes"].includes(period) ? period : "mes";
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const buckets = [];
+        const bucketMap = new Map();
+        const mkYmd = (date) =>
+          `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+        const addBucket = (key, label) => {
+          const bucket = { key, label, entrada: 0, saida: 0 };
+          buckets.push(bucket);
+          bucketMap.set(key, bucket);
+        };
+        if (mode === "dia") {
+          for (let i = 13; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(d.getDate() - i);
+            const key = mkYmd(d);
+            addBucket(key, `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`);
+          }
+        } else if (mode === "semana") {
+          const base = new Date(today);
+          const day = base.getDay();
+          const diffToMonday = day === 0 ? 6 : day - 1;
+          base.setDate(base.getDate() - diffToMonday);
+          for (let i = 7; i >= 0; i--) {
+            const d = new Date(base);
+            d.setDate(d.getDate() - i * 7);
+            const key = mkYmd(d);
+            addBucket(key, `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`);
+          }
+        } else {
+          for (let i = 5; i >= 0; i--) {
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+            addBucket(key, String(d.getMonth() + 1).padStart(2, "0"));
+          }
+        }
+        if (!buckets.length) return;
+        const firstKey = buckets[0].key;
+        let saldoInicial = 0;
+        (state.cash || []).forEach((mov) => {
+          const ymd = toLocalYmd(mov.data_movimento || mov.created_at);
+          if (!ymd) return;
+          let key = null;
+          if (mode === "dia") key = ymd;
+          else if (mode === "semana") {
+            const d = new Date(`${ymd}T00:00:00`);
+            const day = d.getDay();
+            const diffToMonday = day === 0 ? 6 : day - 1;
+            d.setDate(d.getDate() - diffToMonday);
+            key = mkYmd(d);
+          } else key = yearMonthFromYmd(ymd);
+          const val = Number(mov.valor || 0);
+          const signed = mov.tipo_conta === "PAGAR" ? -val : val;
+          if (key && bucketMap.has(key)) {
+            if (mov.tipo_conta === "PAGAR") bucketMap.get(key).saida += val;
+            else bucketMap.get(key).entrada += val;
+          } else if ((mode === "mes" && yearMonthFromYmd(ymd) < firstKey) || (mode !== "mes" && ymd < firstKey)) {
+            saldoInicial += signed;
+          }
+        });
+        const maxFlow = Math.max(1, ...buckets.map((b) => b.entrada), ...buckets.map((b) => b.saida));
+        const flowPointsIn = buckets
+          .map((b, i) => `${18 + (i * 320) / Math.max(1, buckets.length - 1)},${108 - (b.entrada / maxFlow) * 84}`)
+          .join(" ");
+        const flowPointsOut = buckets
+          .map((b, i) => `${18 + (i * 320) / Math.max(1, buckets.length - 1)},${108 - (b.saida / maxFlow) * 84}`)
+          .join(" ");
+        const flowSvg = document.getElementById(ids.flow);
+        if (flowSvg) {
+          flowSvg.innerHTML = `
+            <polyline points="${flowPointsIn}" fill="none" stroke="#38bdf8" stroke-width="3"></polyline>
+            <polyline points="${flowPointsOut}" fill="none" stroke="#f87171" stroke-width="3"></polyline>
+          `;
+        }
+        const saldos = [];
+        let saldo = saldoInicial;
+        buckets.forEach((b) => {
+          saldo += b.entrada - b.saida;
+          saldos.push(saldo);
+        });
+        const minSaldo = Math.min(0, ...saldos);
+        const maxSaldo = Math.max(1, ...saldos);
+        const spanSaldo = Math.max(1, maxSaldo - minSaldo);
+        const saldoPoints = saldos
+          .map((v, i) => `${18 + (i * 320) / Math.max(1, saldos.length - 1)},${108 - ((v - minSaldo) / spanSaldo) * 84}`)
+          .join(" ");
+        const balanceSvg = document.getElementById(ids.balance);
+        if (balanceSvg) {
+          balanceSvg.innerHTML = `<polyline points="${saldoPoints}" fill="none" stroke="#e11d2e" stroke-width="3"></polyline>`;
+        }
+        const compareSvg = document.getElementById(ids.compare);
+        if (compareSvg) {
+          const slot = 320 / Math.max(1, buckets.length);
+          const barW = Math.max(6, Math.min(16, slot / 3));
+          compareSvg.innerHTML = buckets
+            .map((b, i) => {
+              const x = 18 + i * slot + slot * 0.2;
+              const hIn = Math.max(2, (b.entrada / maxFlow) * 84);
+              const hOut = Math.max(2, (b.saida / maxFlow) * 84);
+              return `
+                <rect x="${x}" y="${108 - hIn}" width="${barW}" height="${hIn}" rx="3" fill="#60a5fa"></rect>
+                <rect x="${x + barW + 3}" y="${108 - hOut}" width="${barW}" height="${hOut}" rx="3" fill="#fb7185"></rect>
+              `;
+            })
+            .join("");
+        }
+        const topExpenseCategories = [...(state.payables || [])]
+          .reduce((acc, p) => {
+            const cat =
+              (p.payable_category || p.categoria || p.centro_custo || p.subcategoria || "Outros").toString().trim() || "Outros";
+            acc.set(cat, (acc.get(cat) || 0) + Number(p.valor || 0));
+            return acc;
+          }, new Map());
+        const expenseRows = [...topExpenseCategories.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5);
+        const expenseMax = Math.max(1, ...expenseRows.map(([, v]) => v));
+        const expenseSvg = document.getElementById(ids.expense);
+        if (expenseSvg) {
+          expenseSvg.innerHTML = expenseRows.length
+            ? expenseRows
+                .map(([name, value], idx) => {
+                  const y = 10 + idx * 23;
+                  const w = 180 * (value / expenseMax);
+                  return `
+                    <text x="8" y="${y + 11}" font-size="9" fill="currentColor">${escapeHtml(name).slice(0, 18)}</text>
+                    <rect x="150" y="${y}" width="${w}" height="10" rx="3" fill="#fb7185"></rect>
+                    <text x="${155 + w}" y="${y + 9}" font-size="9" fill="currentColor">${escapeHtml(formatCurrency(value))}</text>
+                  `;
+                })
+                .join("")
+            : `<text x="8" y="20" font-size="10" fill="currentColor">Sem despesas lançadas.</text>`;
+        }
+        const topClientsMap = [...(state.receivables || [])]
+          .reduce((acc, r) => {
+            const client = (r.responsavel_pagamento || r.cliente || "Sem cliente").toString().trim() || "Sem cliente";
+            acc.set(client, (acc.get(client) || 0) + Number(r.valor || 0));
+            return acc;
+          }, new Map());
+        const topClients = [...topClientsMap.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5);
+        const topClientsMax = Math.max(1, ...topClients.map(([, v]) => v));
+        const topClientsSvg = document.getElementById(ids.clients);
+        if (topClientsSvg) {
+          topClientsSvg.innerHTML = topClients.length
+            ? topClients
+                .map(([name, value], idx) => {
+                  const y = 10 + idx * 23;
+                  const w = 180 * (value / topClientsMax);
+                  return `
+                    <text x="8" y="${y + 11}" font-size="9" fill="currentColor">${escapeHtml(name).slice(0, 18)}</text>
+                    <rect x="150" y="${y}" width="${w}" height="10" rx="3" fill="#60a5fa"></rect>
+                    <text x="${155 + w}" y="${y + 9}" font-size="9" fill="currentColor">${escapeHtml(formatCurrency(value))}</text>
+                  `;
+                })
+                .join("")
+            : `<text x="8" y="20" font-size="10" fill="currentColor">Sem clientes lançados.</text>`;
+        }
+        const agingBuckets = [
+          { key: "vencido", label: "Vencido", receber: 0, pagar: 0 },
+          { key: "d0_30", label: "0-30", receber: 0, pagar: 0 },
+          { key: "d31_60", label: "31-60", receber: 0, pagar: 0 },
+          { key: "d61p", label: "61+", receber: 0, pagar: 0 },
+        ];
+        const daysUntil = (ymd) => {
+          if (!ymd) return null;
+          const due = new Date(`${ymd}T00:00:00`);
+          const diff = Math.floor((due.getTime() - today.getTime()) / 86400000);
+          return Number.isFinite(diff) ? diff : null;
+        };
+        const placeAging = (days, amount, side) => {
+          if (days == null) return;
+          let bucket = null;
+          if (days < 0) bucket = agingBuckets[0];
+          else if (days <= 30) bucket = agingBuckets[1];
+          else if (days <= 60) bucket = agingBuckets[2];
+          else bucket = agingBuckets[3];
+          bucket[side] += amount;
+        };
+        (state.receivables || []).forEach((r) => {
+          if (r.status === "PAGO") return;
+          const ymd = toLocalYmd(r.data_vencimento || r.period_end || r.created_at);
+          placeAging(daysUntil(ymd), Number(r.valor || 0), "receber");
+        });
+        (state.payables || []).forEach((p) => {
+          if (p.status === "PAGO") return;
+          const ymd = toLocalYmd(p.data_vencimento || p.created_at);
+          placeAging(daysUntil(ymd), Number(p.valor || 0), "pagar");
+        });
+        const agingMax = Math.max(1, ...agingBuckets.map((b) => b.receber), ...agingBuckets.map((b) => b.pagar));
+        const agingSvg = document.getElementById(ids.aging);
+        if (agingSvg) {
+          agingSvg.innerHTML = agingBuckets
+            .map((b, idx) => {
+              const x = 18 + idx * 78;
+              const hr = Math.max(2, (b.receber / agingMax) * 72);
+              const hp = Math.max(2, (b.pagar / agingMax) * 72);
+              return `
+                <rect x="${x}" y="${104 - hr}" width="20" height="${hr}" rx="3" fill="#60a5fa"></rect>
+                <rect x="${x + 24}" y="${104 - hp}" width="20" height="${hp}" rx="3" fill="#fb7185"></rect>
+                <text x="${x}" y="118" font-size="9" fill="currentColor">${b.label}</text>
+              `;
+            })
+            .join("");
+        }
+      }
 
       function updateDashboard() {
         const noPatio = state.vehicles.filter((v) => v.status === "NO_PATIO");
@@ -10437,12 +10651,9 @@
         if (pdEM) pdEM.textContent = String(entradasMes);
         if (pdSM) pdSM.textContent = String(saidasMes);
 
-        // Cards financeiros do painel principal.
-        if (dashboardDiariasPatioValue) dashboardDiariasPatioValue.textContent = formatCurrency(diariasDemonstrativasHoje);
-        if (dashboardDiariasPatioMeta) dashboardDiariasPatioMeta.textContent = `${veiculosNoPatioHoje.length} no pátio (demonstrativo)`;
-
         const chartPeriodEl = document.getElementById("dashboardChartPeriod");
         const selectedPeriod = chartPeriodEl?.value || "mes";
+        renderDashboardFinanceCharts(selectedPeriod);
         if (chartPeriodEl && !chartPeriodEl.dataset.bound) {
           chartPeriodEl.addEventListener("change", () => renderDashboardFinanceCharts(chartPeriodEl.value || "mes"));
           chartPeriodEl.dataset.bound = "1";
@@ -14811,6 +15022,15 @@
           return setPartnerView(sub);
         }
       }
+
+      document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
+      document.getElementById("dashboardOpenLista")?.addEventListener("click", () => openMainView("lista"));
+      document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openMainView("parceiros"));
+      document.getElementById("dashboardOpenConfiguracoes")?.addEventListener("click", () => openMainView("configuracoes"));
+      document.getElementById("openParceirosFromPatio")?.addEventListener("click", () => openPartnerSubview("localizadores"));
+      document.getElementById("openConfigFromPatio")?.addEventListener("click", () => openMainView("configuracoes"));
+      document.getElementById("exitParceirosToPatio")?.addEventListener("click", () => closeStackTop());
+      document.getElementById("exitConfigToPatio")?.addEventListener("click", () => closeStackTop());
 
       cardVeiculosLink.addEventListener("click", () => openPatioSubview("no_patio"));
       cardSolicitadasLink.addEventListener("click", () => openPatioSubview("no_patio"));
