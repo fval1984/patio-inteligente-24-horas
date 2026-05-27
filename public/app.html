@@ -4709,19 +4709,6 @@
             <div id="appHeaderMenu" class="header-menu-dropdown hidden" aria-label="Menu principal">
               <button type="button" class="header-menu-top" data-view="dashboard">AMPLIPATIO</button>
 
-              <details class="header-menu-details" id="headerDetailsLista">
-                <summary>Lista</summary>
-                <div class="header-menu-nested">
-                  <button type="button" data-lista-subview="vnp">VNP</button>
-                  <button type="button" data-lista-subview="vrp">VRP</button>
-                  <button type="button" data-lista-subview="receber" data-lista-gestor-hide="1">Receber</button>
-                  <button type="button" data-lista-subview="historico_receber" data-lista-gestor-hide="1">Histórico de recebimentos</button>
-                  <button type="button" data-lista-subview="receber_alerta" data-lista-gestor-hide="1">Recebimentos em alerta</button>
-                  <button type="button" data-lista-subview="pagar" data-lista-gestor-hide="1">Despesas</button>
-                  <button type="button" data-lista-subview="caixa" data-lista-gestor-hide="1">Fluxo de caixa</button>
-                </div>
-              </details>
-
               <details class="header-menu-details" id="headerDetailsPatio">
                 <summary>Gestão de pátio</summary>
                 <div class="header-menu-nested">
@@ -4729,6 +4716,18 @@
                   <button type="button" data-header-patio="new-vehicle">Registrar veículo</button>
                   <button type="button" data-header-patio-sub="no_patio">VNP</button>
                   <button type="button" data-header-patio-sub="removidos">VRP</button>
+                </div>
+              </details>
+
+              <details class="header-menu-details" id="headerDetailsFinance">
+                <summary>Financeiro</summary>
+                <div class="header-menu-nested">
+                  <button type="button" data-finance-subview="dashboard">Dashboard</button>
+                  <button type="button" data-finance-subview="em_patio">Veículos no pátio</button>
+                  <button type="button" data-finance-subview="aguardando">Aguardando faturamento</button>
+                  <button type="button" data-finance-subview="receber">Contas a receber</button>
+                  <button type="button" data-finance-subview="pagar">Contas a pagar</button>
+                  <button type="button" data-finance-subview="caixa">Caixa</button>
                 </div>
               </details>
 
@@ -4743,15 +4742,16 @@
                 </div>
               </details>
 
-              <details class="header-menu-details" id="headerDetailsFinance">
-                <summary>Financeiro</summary>
+              <details class="header-menu-details" id="headerDetailsLista">
+                <summary>Lista</summary>
                 <div class="header-menu-nested">
-                  <button type="button" data-finance-subview="dashboard">Dashboard</button>
-                  <button type="button" data-finance-subview="em_patio">Veículos no pátio</button>
-                  <button type="button" data-finance-subview="aguardando">Aguardando faturamento</button>
-                  <button type="button" data-finance-subview="receber">Contas a receber</button>
-                  <button type="button" data-finance-subview="pagar">Contas a pagar</button>
-                  <button type="button" data-finance-subview="caixa">Caixa</button>
+                  <button type="button" data-lista-subview="vnp">VNP</button>
+                  <button type="button" data-lista-subview="vrp">VRP</button>
+                  <button type="button" data-lista-subview="receber" data-lista-gestor-hide="1">Receber</button>
+                  <button type="button" data-lista-subview="historico_receber" data-lista-gestor-hide="1">Histórico de recebimentos</button>
+                  <button type="button" data-lista-subview="receber_alerta" data-lista-gestor-hide="1">Recebimentos em alerta</button>
+                  <button type="button" data-lista-subview="pagar" data-lista-gestor-hide="1">Despesas</button>
+                  <button type="button" data-lista-subview="caixa" data-lista-gestor-hide="1">Fluxo de caixa</button>
                 </div>
               </details>
 
@@ -4792,11 +4792,11 @@
               <span class="dashboard-system-btn__desc">Acompanhe veículos, entradas, saídas e fluxo operacional.</span>
               <span class="dashboard-system-btn__go">Abrir pátio →</span>
             </button>
-                        <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenLista">
-              <span class="dashboard-system-btn__kicker">Relatórios</span>
-              <span class="dashboard-system-btn__title">Lista</span>
-              <span class="dashboard-system-btn__desc">Acesse listagens operacionais, histórico e consultas rápidas.</span>
-              <span class="dashboard-system-btn__go">Abrir lista →</span>
+            <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
+              <span class="dashboard-system-btn__kicker">Financeiro</span>
+              <span class="dashboard-system-btn__title">Financeiro</span>
+              <span class="dashboard-system-btn__desc">Receita em geração, contas a receber, pagamentos e caixa.</span>
+              <span class="dashboard-system-btn__go">Abrir financeiro →</span>
             </button>
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
               <span class="dashboard-system-btn__kicker">Relacionamento</span>
@@ -4804,11 +4804,11 @@
               <span class="dashboard-system-btn__desc">Gerencie localizadores, assessorias, leiloeiros e bancos.</span>
               <span class="dashboard-system-btn__go">Abrir parceiros →</span>
             </button>
-            <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
-              <span class="dashboard-system-btn__kicker">Financeiro</span>
-              <span class="dashboard-system-btn__title">Financeiro</span>
-              <span class="dashboard-system-btn__desc">Receita em geração, contas a receber, pagamentos e caixa.</span>
-              <span class="dashboard-system-btn__go">Abrir financeiro →</span>
+            <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenLista">
+              <span class="dashboard-system-btn__kicker">Relatórios</span>
+              <span class="dashboard-system-btn__title">Lista</span>
+              <span class="dashboard-system-btn__desc">Acesse listagens operacionais, histórico e consultas rápidas.</span>
+              <span class="dashboard-system-btn__go">Abrir lista →</span>
             </button>
             <button
               type="button"
