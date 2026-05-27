@@ -6,11 +6,13 @@
   let currentFinanceView = "dashboard";
   let financeFilterBanco = "";
   let financeFilterStatus = "";
+  let financeFilterTipo = "";
   let financeFilterPeriodo = "";
   let financeSortReceber = "vencimento";
 
   let finPagarBusca = "";
   let finPagarStatus = "";
+  let finPagarTipo = "";
   let finPagarCategoria = "";
   let finPagarFornecedor = "";
   let finPagarConta = "";
@@ -93,6 +95,42 @@
     return financeEntryModoFromRecord(p, "payable") === "RECORRENTE";
   }
 
+  function financeIsRecorrenteReceivable(r) {
+    return financeEntryModoFromRecord(r, "receivable") === "RECORRENTE";
+  }
+
+  function financeEntryTipoLabel(record, kind) {
+    const modo = financeEntryModoFromRecord(record, kind);
+    if (modo === "RECORRENTE") {
+      const { meta } = financeMetaUnpack(record?.observacoes || "");
+      const iv = String(meta.recorrencia || "mensal").toLowerCase();
+      const map = { semanal: "Semanal", quinzenal: "Quinzenal", mensal: "Mensal", anual: "Anual" };
+      return `Recorrente · ${map[iv] || "Mensal"}`;
+    }
+    if (modo === "PARCELADA") return "Parcelada";
+    if (kind === "receivable" && record?.vehicle_id) return "Pátio";
+    return "Única";
+  }
+
+  function financeEntryTipoBadgeHtml(record, kind) {
+    const modo = financeEntryModoFromRecord(record, kind);
+    const label = financeEntryTipoLabel(record, kind);
+    if (modo === "RECORRENTE") return `<span class="finance-lanc-badge finance-lanc-badge--recorrente">${escapeHtml(label)}</span>`;
+    if (modo === "PARCELADA") return `<span class="finance-lanc-badge finance-lanc-badge--parcelada">${escapeHtml(label)}</span>`;
+    if (kind === "receivable" && record?.vehicle_id) return `<span class="finance-lanc-badge">Pátio</span>`;
+    return `<span class="finance-lanc-badge">${escapeHtml(label)}</span>`;
+  }
+
+  function financeMatchesTipoFilter(record, kind, filter) {
+    if (!filter) return true;
+    const modo = financeEntryModoFromRecord(record, kind);
+    if (filter === "recorrente") return modo === "RECORRENTE";
+    if (filter === "parcelada") return modo === "PARCELADA";
+    if (filter === "patio") return kind === "receivable" && !!record?.vehicle_id;
+    if (filter === "unica") return modo === "UNICA" && !(kind === "receivable" && record?.vehicle_id);
+    return true;
+  }
+
   /** Veículos no pátio gerando receita (não é conta a receber ainda). */
   function financeVehiclesEmGeracao() {
     const statuses = ["NO_PATIO", "LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA"];
@@ -159,6 +197,9 @@
     } else if (financeFilterStatus === "atrasado") {
       list = list.filter((r) => financeReceivableDisplayStatus(r) === "Atrasado");
     }
+    if (financeFilterTipo) {
+      list = list.filter((r) => financeMatchesTipoFilter(r, "receivable", financeFilterTipo));
+    }
     list.sort((a, b) => {
       if (financeSortReceber === "valor") return Number(b.valor || 0) - Number(a.valor || 0);
       if (financeSortReceber === "placa") {
@@ -220,6 +261,9 @@
         if (finPagarStatus === "parcial") return st === "Parcial";
         return true;
       });
+    }
+    if (finPagarTipo) {
+      list = list.filter((p) => financeMatchesTipoFilter(p, "payable", finPagarTipo));
     }
     list.sort((a, b) => {
       const da = financeContaDueYmd(a, "payable") || "9999-99-99";
@@ -421,7 +465,7 @@
     const list = financeContasReceberList();
     if (totalEl) totalEl.textContent = formatCurrency(list.reduce((s, r) => s + Number(r.valor || 0), 0));
     if (!list.length) {
-      body.innerHTML = `<tr><td colspan="8" class="notice">Nenhuma conta a receber pendente. Veja «Aguardando faturamento» ou confirme triagem no Pátio → Fechando ciclo.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="6" class="notice">Nenhuma conta a receber pendente. Cadastre mensalistas em «+ Nova receita» (tipo Recorrente) ou veja «Aguardando faturamento».</td></tr>`;
       return;
     }
     body.innerHTML = list
@@ -429,17 +473,21 @@
         const v = vmap.get(r.vehicle_id);
         const st = financeReceivableDisplayStatus(r);
         const due = financeContaDueYmd(r, "receivable");
-        const dias = financeDiariasFromReceivable(r, v);
+        const isPatio = !!r.vehicle_id;
+        const clienteHtml = isPatio
+          ? `<strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span>`
+          : `<strong>${escapeHtml(r.responsavel_pagamento || "—")}</strong>`;
+        const servicoHtml = isPatio
+          ? `${escapeHtml(financeInstituicaoNome(v))}<br /><span class="notice">${escapeHtml(String(financeDiariasFromReceivable(r, v)))} diária(s)</span>`
+          : `${escapeHtml(typeof receivableCategoryLabel === "function" ? receivableCategoryLabel(r.receivable_category) : "—")}<br /><span class="notice">${escapeHtml(financeMetaUnpack(r.observacoes || "").text || r.observacoes || "—")}</span>`;
         const btnPay =
           st !== "Recebido"
             ? `<div style="margin-top:6px"><button type="button" class="secondary fin-btn-confirm" data-fin-receber-id="${escapeHtml(String(r.id))}">Confirmar pagamento</button></div>`
             : "";
         return `<tr>
-          <td data-label="Veículo"><strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span></td>
-          <td data-label="Financeira / banco">${escapeHtml(financeInstituicaoNome(v))}</td>
-          <td data-label="Entrada">${escapeHtml(v?.data_entrada ? formatDate(v.data_entrada) : formatDate(r.period_start))}</td>
-          <td data-label="Saída">${escapeHtml(v?.data_saida ? formatDate(v.data_saida) : formatDate(r.period_end))}</td>
-          <td data-label="Diárias">${escapeHtml(String(dias))}</td>
+          <td data-label="Cliente / Veículo">${clienteHtml}</td>
+          <td data-label="Serviço / Descrição">${servicoHtml}</td>
+          <td data-label="Tipo">${financeEntryTipoBadgeHtml(r, "receivable")}</td>
           <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
           <td data-label="Vencimento">${escapeHtml(due ? formatDate(due) : "—")}</td>
           <td data-label="Status"><span class="${financeReceivableStatusClass(st)}">${escapeHtml(st)}</span>${btnPay}</td>
@@ -497,7 +545,7 @@
     if (totalEl) totalEl.textContent = formatCurrency(abertas.reduce((s, p) => s + Number(p.valor || 0), 0));
     if (!list.length) {
       const total = (state.payables || []).length;
-      body.innerHTML = `<tr><td colspan="9" class="notice">Nenhuma despesa com os filtros atuais.${total ? ` (${total} no total — limpe filtros ou clique Atualizar)` : " Cadastre em + Nova despesa."}</td></tr>`;
+      body.innerHTML = `<tr><td colspan="10" class="notice">Nenhuma despesa com os filtros atuais.${total ? ` (${total} no total — limpe filtros ou clique Atualizar)` : " Cadastre em + Nova despesa."}</td></tr>`;
       return;
     }
     body.innerHTML = list
@@ -512,46 +560,11 @@
           <td data-label="Fornecedor">${escapeHtml(p.fornecedor || "—")}</td>
           <td data-label="Descrição">${escapeHtml(p.descricao || "—")}</td>
           <td data-label="Categoria">${escapeHtml(payableCategoryLabel(p.payable_category))}</td>
+          <td data-label="Tipo">${financeEntryTipoBadgeHtml(p, "payable")}</td>
           <td data-label="Valor">${escapeHtml(formatCurrency(Number(p.valor || 0)))}</td>
           <td data-label="Vencimento">${escapeHtml(due ? formatDate(due) : "—")}</td>
           <td data-label="Forma">${escapeHtml(p.forma_pagamento || "—")}</td>
           <td data-label="Conta">${escapeHtml(financePayableContaBancaria(p))}</td>
-          <td data-label="Status"><span class="${financePayableStatusClass(st)}">${escapeHtml(st)}</span></td>
-          <td data-label="">${btnPay}</td>
-        </tr>`;
-      })
-      .join("");
-  }
-
-  function financeRenderRecorrentes() {
-    const body = document.getElementById("finRecorrentesBody");
-    if (!body) return;
-    const list = (state.payables || [])
-      .filter((p) => financeIsRecorrente(p))
-      .sort((a, b) => {
-        const da = financeContaDueYmd(a, "payable") || "9999-99-99";
-        const db = financeContaDueYmd(b, "payable") || "9999-99-99";
-        return da.localeCompare(db);
-      });
-    if (!list.length) {
-      body.innerHTML = `<tr><td colspan="8" class="notice">Nenhuma despesa recorrente. Use «Nova recorrente» para cadastrar aluguel, internet, salários etc.</td></tr>`;
-      return;
-    }
-    body.innerHTML = list
-      .map((p) => {
-        const st = financePayableDisplayStatus(p);
-        const due = financeContaDueYmd(p, "payable");
-        const btnPay =
-          st !== "Pago"
-            ? `<button type="button" class="secondary fin-btn-pagar" data-fin-pagar-id="${escapeHtml(String(p.id))}">Pagar</button>`
-            : "";
-        return `<tr>
-          <td data-label="Descrição">${escapeHtml(p.descricao || "—")}</td>
-          <td data-label="Fornecedor">${escapeHtml(p.fornecedor || "—")}</td>
-          <td data-label="Categoria">${escapeHtml(payableCategoryLabel(p.payable_category))}</td>
-          <td data-label="Valor">${escapeHtml(formatCurrency(Number(p.valor || 0)))}</td>
-          <td data-label="Recorrência">${escapeHtml(financeRecorrenciaLabel(p))}</td>
-          <td data-label="Próximo vencimento">${escapeHtml(due ? formatDate(due) : "—")}</td>
           <td data-label="Status"><span class="${financePayableStatusClass(st)}">${escapeHtml(st)}</span></td>
           <td data-label="">${btnPay}</td>
         </tr>`;
@@ -628,6 +641,39 @@
       .join("");
   }
 
+  function financeOpenReceitaModal(presetRecorrente) {
+    const modal = document.getElementById("finReceitaModal");
+    const form = document.getElementById("finReceitaForm");
+    if (!modal || !form) return;
+    form.reset();
+    const today = financeTodayYmd();
+    const venc = document.getElementById("finRecVencimento");
+    const modo = document.getElementById("finRecModo");
+    const cat = document.getElementById("finRecCategoria");
+    if (venc) venc.value = today;
+    if (modo) modo.value = presetRecorrente ? "RECORRENTE" : "UNICA";
+    if (cat && typeof getLancReceitaCategorias === "function") {
+      const cats = getLancReceitaCategorias();
+      cat.innerHTML = cats.map((c) => `<option value="${escapeHtml(c.value)}">${escapeHtml(c.label)}</option>`).join("");
+      if (presetRecorrente) cat.value = "ESTACIONAMENTO_MENSALISTA";
+    }
+    financeSyncReceitaModoFields();
+    const title = document.getElementById("finReceitaModalTitle");
+    if (title) title.textContent = presetRecorrente ? "Nova receita recorrente" : "Nova receita";
+    if (modal.parentElement !== document.body) document.body.appendChild(modal);
+    modal.classList.remove("hidden");
+  }
+
+  function financeCloseReceitaModal() {
+    document.getElementById("finReceitaModal")?.classList.add("hidden");
+  }
+
+  function financeSyncReceitaModoFields() {
+    const modo = document.getElementById("finRecModo")?.value || "UNICA";
+    document.getElementById("finRecRecorrenciaWrap")?.classList.toggle("hidden", modo !== "RECORRENTE");
+    document.getElementById("finRecParcelasWrap")?.classList.toggle("hidden", modo !== "PARCELADA");
+  }
+
   function financeOpenDespesaModal(presetRecorrente) {
     const modal = document.getElementById("finDespesaModal");
     const form = document.getElementById("finDespesaForm");
@@ -678,15 +724,16 @@
 
   function financeExportCurrentView() {
     const view = currentFinanceView;
-    if (view === "pagar" || view === "recorrentes") {
-      const list = view === "recorrentes" ? (state.payables || []).filter(financeIsRecorrente) : financeContasPagarList();
-      const header = ["Fornecedor", "Descrição", "Categoria", "Valor", "Vencimento", "Forma", "Conta", "Status"];
+    if (view === "pagar") {
+      const list = financeContasPagarList();
+      const header = ["Fornecedor", "Descrição", "Categoria", "Tipo", "Valor", "Vencimento", "Forma", "Conta", "Status"];
       const rows = [
         header,
         ...list.map((p) => [
           p.fornecedor || "",
           p.descricao || "",
           payableCategoryLabel(p.payable_category),
+          financeEntryTipoLabel(p, "payable"),
           Number(p.valor || 0).toFixed(2),
           financeContaDueYmd(p, "payable"),
           p.forma_pagamento || "",
@@ -701,12 +748,13 @@
       const list = financeContasReceberList();
       const vmap = financeVehicleById();
       const rows = [
-        ["Placa", "Financeira", "Valor", "Vencimento", "Status"],
+        ["Cliente / Veículo", "Serviço", "Tipo", "Valor", "Vencimento", "Status"],
         ...list.map((r) => {
           const v = vmap.get(r.vehicle_id);
           return [
-            v?.placa || "",
-            financeInstituicaoNome(v),
+            v?.placa || r.responsavel_pagamento || "",
+            v ? financeInstituicaoNome(v) : receivableCategoryLabel?.(r.receivable_category) || "",
+            financeEntryTipoLabel(r, "receivable"),
             Number(r.valor || 0).toFixed(2),
             financeContaDueYmd(r, "receivable"),
             financeReceivableDisplayStatus(r),
@@ -757,7 +805,6 @@
       else if (currentFinanceView === "receber") financeRenderReceber();
       else if (currentFinanceView === "aguardando") financeRenderAguardando();
       else if (currentFinanceView === "pagar") financeRenderPagar();
-      else if (currentFinanceView === "recorrentes") financeRenderRecorrentes();
       else if (currentFinanceView === "caixa") financeRenderCaixa();
     } catch (e) {
       console.error("renderFinance", e);
@@ -827,7 +874,14 @@
 
   window.setFinanceView = function setFinanceView(view) {
     if (!view || view === "none") return;
-    currentFinanceView = view;
+    if (view === "recorrentes") {
+      currentFinanceView = "pagar";
+      finPagarTipo = "recorrente";
+      const tipoSel = document.getElementById("finPagarTipo");
+      if (tipoSel) tipoSel.value = "recorrente";
+    } else {
+      currentFinanceView = view;
+    }
     renderFinance();
   };
 
@@ -868,6 +922,10 @@
       financeSortReceber = e.target.value || "vencimento";
       financeRenderReceber();
     });
+    document.getElementById("finReceberTipo")?.addEventListener("change", (e) => {
+      financeFilterTipo = e.target.value || "";
+      financeRenderReceber();
+    });
     document.getElementById("finFilterPeriodo")?.addEventListener("change", (e) => {
       financeFilterPeriodo = e.target.value || "";
       financeRenderCaixa();
@@ -877,6 +935,7 @@
     const pagarFilterIds = [
       ["finPagarBusca", (v) => { finPagarBusca = v; }],
       ["finPagarStatus", (v) => { finPagarStatus = v; }],
+      ["finPagarTipo", (v) => { finPagarTipo = v; }],
       ["finPagarCategoria", (v) => { finPagarCategoria = v; }],
       ["finPagarFornecedor", (v) => { finPagarFornecedor = v; }],
       ["finPagarConta", (v) => { finPagarConta = v; }],
@@ -895,10 +954,13 @@
     });
 
     document.getElementById("finBtnNovaDespesa")?.addEventListener("click", () => financeOpenDespesaModal(false));
-    document.getElementById("finBtnNovaRecorrente")?.addEventListener("click", () => financeOpenDespesaModal(true));
+    document.getElementById("finBtnNovaReceita")?.addEventListener("click", () => financeOpenReceitaModal(false));
     document.getElementById("finDespModo")?.addEventListener("change", financeSyncDespesaModoFields);
+    document.getElementById("finRecModo")?.addEventListener("change", financeSyncReceitaModoFields);
     document.getElementById("closeFinDespesaModal")?.addEventListener("click", financeCloseDespesaModal);
     document.getElementById("cancelFinDespesaModal")?.addEventListener("click", financeCloseDespesaModal);
+    document.getElementById("closeFinReceitaModal")?.addEventListener("click", financeCloseReceitaModal);
+    document.getElementById("cancelFinReceitaModal")?.addEventListener("click", financeCloseReceitaModal);
 
     document.getElementById("finDespesaForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -948,8 +1010,70 @@
         await Promise.all([loadPayables(), loadCash()]);
         renderFinance();
         updateDashboard?.();
-        if (modo === "RECORRENTE") setFinanceView("recorrentes");
-        else setFinanceView("pagar");
+        if (modo === "RECORRENTE") {
+          finPagarTipo = "recorrente";
+          const tipoSel = document.getElementById("finPagarTipo");
+          if (tipoSel) tipoSel.value = "recorrente";
+        }
+        setFinanceView("pagar");
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+
+    document.getElementById("finReceitaForm")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const cliente = document.getElementById("finRecCliente")?.value?.trim();
+      const descricao = document.getElementById("finRecDescricao")?.value?.trim();
+      const valor = Number(document.getElementById("finRecValor")?.value);
+      const vencimento = document.getElementById("finRecVencimento")?.value;
+      const categoria = document.getElementById("finRecCategoria")?.value;
+      const formaPagamento = document.getElementById("finRecForma")?.value || "PIX";
+      const observacoes = document.getElementById("finRecObs")?.value?.trim() || "";
+      const modo = document.getElementById("finRecModo")?.value || "UNICA";
+      const recorrenciaIntervalo = document.getElementById("finRecRecorrencia")?.value || "mensal";
+      const parcelas = Number(document.getElementById("finRecParcelas")?.value) || 2;
+      if (!cliente || !descricao || !vencimento || !Number.isFinite(valor) || valor <= 0) {
+        alert("Preencha cliente, descrição, valor e vencimento.");
+        return;
+      }
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+      try {
+        const result = await insertManualReceivableLancamento({
+          descricao,
+          valor,
+          data: vencimento,
+          vencimento,
+          categoria,
+          cliente,
+          formaPagamento,
+          observacoes,
+          pago: false,
+          modo,
+          parcelas,
+          recorrenciaIntervalo,
+        });
+        if (result.error) {
+          alert(result.error.message || "Não foi possível salvar a receita.");
+          return;
+        }
+        const anexo = await readFinanceFileInput(document.getElementById("finRecAnexo"));
+        if (anexo && result.ids?.length) {
+          for (const rid of result.ids) await financeAttachmentSave("receivable", rid, anexo);
+        } else if (anexo && result.id) {
+          await financeAttachmentSave("receivable", result.id, anexo);
+        }
+        financeCloseReceitaModal();
+        await Promise.all([loadReceivables(), loadCash()]);
+        renderFinance();
+        updateDashboard?.();
+        if (modo === "RECORRENTE") {
+          financeFilterTipo = "recorrente";
+          const tipoSel = document.getElementById("finReceberTipo");
+          if (tipoSel) tipoSel.value = "recorrente";
+        }
+        setFinanceView("receber");
       } finally {
         if (submitBtn) submitBtn.disabled = false;
       }
@@ -986,6 +1110,9 @@
 
     document.getElementById("finDespesaModal")?.addEventListener("click", (e) => {
       if (e.target.id === "finDespesaModal") financeCloseDespesaModal();
+    });
+    document.getElementById("finReceitaModal")?.addEventListener("click", (e) => {
+      if (e.target.id === "finReceitaModal") financeCloseReceitaModal();
     });
   };
 

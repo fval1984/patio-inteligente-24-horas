@@ -4740,7 +4740,6 @@
                   <button type="button" data-finance-subview="receber">Contas a receber</button>
                   <button type="button" data-finance-subview="aguardando">Aguardando faturamento</button>
                   <button type="button" data-finance-subview="pagar">Contas a pagar</button>
-                  <button type="button" data-finance-subview="recorrentes">Recorrentes</button>
                   <button type="button" data-finance-subview="caixa">Caixa / Banco</button>
                 </div>
               </details>
@@ -5466,7 +5465,6 @@
             <button type="button" data-finance-subview-btn="receber">Contas a receber</button>
             <button type="button" data-finance-subview-btn="aguardando">Aguardando faturamento</button>
             <button type="button" data-finance-subview-btn="pagar">Contas a pagar</button>
-            <button type="button" data-finance-subview-btn="recorrentes">Recorrentes</button>
             <button type="button" data-finance-subview-btn="caixa">Caixa / Banco</button>
           </div>
 
@@ -5504,7 +5502,17 @@
 
           <div class="finance-subview hidden" data-finance-subview="receber">
             <div class="fin-toolbar">
-              <div><label for="finFilterBusca">Buscar</label><input id="finFilterBusca" type="search" placeholder="Placa, financeira…" /></div>
+              <div><button type="button" id="finBtnNovaReceita">+ Nova receita</button></div>
+              <div><label for="finFilterBusca">Buscar</label><input id="finFilterBusca" type="search" placeholder="Placa, cliente, financeira…" /></div>
+              <div><label for="finReceberTipo">Tipo</label>
+                <select id="finReceberTipo">
+                  <option value="">Todos</option>
+                  <option value="unica">Única</option>
+                  <option value="recorrente">Recorrente</option>
+                  <option value="parcelada">Parcelada</option>
+                  <option value="patio">Pátio (VRP)</option>
+                </select>
+              </div>
               <div><label for="finFilterStatus">Status</label>
                 <select id="finFilterStatus"><option value="">Todos</option><option value="pendente">Pendente</option><option value="atrasado">Atrasado</option></select>
               </div>
@@ -5512,10 +5520,11 @@
                 <select id="finSortReceber"><option value="vencimento">Vencimento</option><option value="valor">Valor</option><option value="placa">Placa</option></select>
               </div>
             </div>
+            <p class="notice" style="margin: 0 0 10px">Recorrentes (ex.: mensalista) são cadastrados aqui com tipo <strong>Recorrente</strong> — ao confirmar o pagamento, o próximo título é gerado automaticamente.</p>
             <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
             <div class="table-wrap section-card">
               <table class="table">
-                <thead><tr><th>Veículo</th><th>Financeira</th><th>Entrada</th><th>Saída</th><th>Diárias</th><th>Valor</th><th>Vencimento</th><th>Status</th></tr></thead>
+                <thead><tr><th>Cliente / Veículo</th><th>Serviço / Descrição</th><th>Tipo</th><th>Valor</th><th>Vencimento</th><th>Status</th></tr></thead>
                 <tbody id="finReceberBody"></tbody>
               </table>
             </div>
@@ -5536,6 +5545,14 @@
             <div class="fin-toolbar">
               <div><button type="button" id="finBtnNovaDespesa">+ Nova despesa</button></div>
               <div><label for="finPagarBusca">Buscar</label><input id="finPagarBusca" type="search" placeholder="Fornecedor, descrição…" /></div>
+              <div><label for="finPagarTipo">Tipo</label>
+                <select id="finPagarTipo">
+                  <option value="">Todos</option>
+                  <option value="unica">Única</option>
+                  <option value="recorrente">Recorrente</option>
+                  <option value="parcelada">Parcelada</option>
+                </select>
+              </div>
               <div><label for="finPagarStatus">Status</label>
                 <select id="finPagarStatus">
                   <option value="">Todos</option>
@@ -5552,25 +5569,13 @@
               <div><label for="finPagarPeriodoDe">De</label><input id="finPagarPeriodoDe" type="date" /></div>
               <div><label for="finPagarPeriodoAte">Até</label><input id="finPagarPeriodoAte" type="date" /></div>
             </div>
+            <p class="notice" style="margin: 0 0 10px">Despesas recorrentes (aluguel, internet, salários…) use tipo <strong>Recorrente</strong> ao cadastrar — o próximo vencimento é gerado ao confirmar o pagamento.</p>
             <div class="fin-alert-row" id="finPagarAlerts"></div>
             <p><strong>Total a pagar (abertas):</strong> <span id="finPagarTotal">R$ 0,00</span></p>
             <div class="table-wrap section-card">
               <table class="table">
-                <thead><tr><th>Fornecedor</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Vencimento</th><th>Forma</th><th>Conta</th><th>Status</th><th></th></tr></thead>
+                <thead><tr><th>Fornecedor</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor</th><th>Vencimento</th><th>Forma</th><th>Conta</th><th>Status</th><th></th></tr></thead>
                 <tbody id="finPagarBody"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="finance-subview hidden" data-finance-subview="recorrentes">
-            <div class="fin-toolbar">
-              <div><button type="button" id="finBtnNovaRecorrente">+ Nova recorrente</button></div>
-            </div>
-            <p class="notice">Despesas com repetição automática — aluguel, internet, salários etc. Ao confirmar pagamento, o próximo vencimento é gerado.</p>
-            <div class="table-wrap section-card">
-              <table class="table">
-                <thead><tr><th>Descrição</th><th>Fornecedor</th><th>Categoria</th><th>Valor</th><th>Recorrência</th><th>Próximo vencimento</th><th>Status</th><th></th></tr></thead>
-                <tbody id="finRecorrentesBody"></tbody>
               </table>
             </div>
           </div>
@@ -6214,6 +6219,87 @@
         </div>
       </div>
 
+      <div id="finReceitaModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 520px">
+          <div class="modal-header">
+            <div>
+              <h3 id="finReceitaModalTitle">Nova receita</h3>
+              <p class="subtitle" style="margin: 4px 0 0">Cadastre contas a receber — únicas, recorrentes (mensalista) ou parceladas.</p>
+            </div>
+            <button type="button" class="modal-close" id="closeFinReceitaModal">Fechar</button>
+          </div>
+          <form id="finReceitaForm">
+            <div class="form-grid">
+              <div class="full">
+                <label for="finRecCliente">Cliente</label>
+                <input id="finRecCliente" type="text" required placeholder="Nome do cliente ou mensalista" />
+              </div>
+              <div class="full">
+                <label for="finRecDescricao">Descrição</label>
+                <input id="finRecDescricao" type="text" required placeholder="Ex.: Mensalidade março — placa ABC1D23" />
+              </div>
+              <div>
+                <label for="finRecCategoria">Serviço</label>
+                <select id="finRecCategoria" required></select>
+              </div>
+              <div>
+                <label for="finRecValor">Valor (R$)</label>
+                <input id="finRecValor" type="number" step="0.01" min="0.01" required />
+              </div>
+              <div>
+                <label for="finRecVencimento">Vencimento</label>
+                <input id="finRecVencimento" type="date" required />
+              </div>
+              <div>
+                <label for="finRecForma">Forma de pagamento</label>
+                <select id="finRecForma">
+                  <option value="PIX">PIX</option>
+                  <option value="Dinheiro">Dinheiro</option>
+                  <option value="Transferência">Transferência</option>
+                  <option value="Boleto">Boleto</option>
+                  <option value="Cartão Débito">Cartão Débito</option>
+                  <option value="Cartão Crédito">Cartão Crédito</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+              </div>
+              <div>
+                <label for="finRecModo">Tipo</label>
+                <select id="finRecModo">
+                  <option value="UNICA">Única</option>
+                  <option value="RECORRENTE">Recorrente</option>
+                  <option value="PARCELADA">Parcelada</option>
+                </select>
+              </div>
+              <div id="finRecRecorrenciaWrap" class="hidden">
+                <label for="finRecRecorrencia">Recorrência</label>
+                <select id="finRecRecorrencia">
+                  <option value="semanal">Semanal</option>
+                  <option value="quinzenal">Quinzenal</option>
+                  <option value="mensal" selected>Mensal</option>
+                  <option value="anual">Anual</option>
+                </select>
+              </div>
+              <div id="finRecParcelasWrap" class="hidden">
+                <label for="finRecParcelas">Parcelas</label>
+                <input id="finRecParcelas" type="number" min="2" max="60" value="2" />
+              </div>
+              <div class="full">
+                <label for="finRecObs">Observações</label>
+                <textarea id="finRecObs" rows="2" placeholder="Opcional"></textarea>
+              </div>
+              <div class="full">
+                <label for="finRecAnexo">Anexo / comprovante (opcional)</label>
+                <input id="finRecAnexo" type="file" accept="image/*,.pdf,.png,.jpg,.jpeg,.webp" />
+              </div>
+            </div>
+            <div class="form-actions" style="margin-top: 14px">
+              <button type="submit">Salvar receita</button>
+              <button type="button" class="secondary" id="cancelFinReceitaModal">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div id="pagarBaixaModal" class="modal-backdrop hidden">
         <div class="modal" style="max-width: 440px">
           <div class="modal-header">
@@ -6525,6 +6611,7 @@
         modo = "UNICA",
         parcelas = 2,
         competencia = "",
+        recorrenciaIntervalo = "mensal",
       }) {
         const clienteNome = String(cliente || "").trim();
         const modoUp = String(modo || "UNICA").toUpperCase();
@@ -6543,6 +6630,9 @@
             origem_modulo: "CONTROLE_RECEITAS",
             gerou_compromisso: !markPago,
             ...(modoUp === "PARCELADA" ? { parcela: i + 1, parcelas_total: count, grupo_id: grupoId } : {}),
+            ...(modoUp === "RECORRENTE"
+              ? { recorrencia: String(recorrenciaIntervalo || "mensal").toLowerCase() }
+              : {}),
           };
           const obsPacked = financeMetaPack(meta, observacoes || descricao);
           const sub =
@@ -6674,8 +6764,9 @@
         if (!receivable) return;
         const modo = financeEntryModoFromRecord(receivable, "receivable");
         if (modo !== "RECORRENTE") return;
-        const due = String(receivable.period_end || receivable.period_start || "").trim();
-        const nextDue = addMonthsToYmd(due, 1);
+        const due = String(receivable.period_end || receivable.period_start || receivable.data_vencimento || "").trim();
+        const interval = meta.recorrencia || "mensal";
+        const nextDue = addPeriodToYmd(due, interval);
         const { meta, text } = financeMetaUnpack(receivable.observacoes);
         const payload = {
           user_id: effectiveUserId(),
@@ -6685,7 +6776,7 @@
           status: "EM_ABERTO",
           period_start: nextDue,
           period_end: nextDue,
-          observacoes: financeMetaPack({ ...meta, modo: "RECORRENTE" }, text),
+          observacoes: financeMetaPack({ ...meta, modo: "RECORRENTE", recorrencia: interval }, text),
           forma_pagamento: receivable.forma_pagamento,
           subcategoria: "RECORRENTE",
           financeiro_aprovado_contas_receber: true,
