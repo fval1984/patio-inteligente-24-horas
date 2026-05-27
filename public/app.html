@@ -6346,7 +6346,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js"></script>
+    <script src="/finance-module.js?v=20260519"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -7694,17 +7694,12 @@
         cadastro: {
           label: "Cadastro",
           title: "Cadastro de receitas",
-          desc: "Registre receitas únicas com cliente, serviço, valor, vencimento e comprovante opcional.",
+          desc: "Registre receitas únicas, recorrentes (mensalista) ou parceladas — use o tipo no cadastro em Contas a receber.",
         },
         categorias: {
           label: "Categorias",
           title: "Categorias de receita",
           desc: "Serviços padrão e categorias personalizadas para classificar cada receita.",
-        },
-        recorrentes: {
-          label: "Recorrentes",
-          title: "Receitas recorrentes",
-          desc: "Mensalidades e cobranças fixas — o próximo título é gerado ao confirmar o pagamento.",
         },
         parceladas: {
           label: "Parceladas",
@@ -7732,17 +7727,12 @@
         cadastro: {
           label: "Cadastro",
           title: "Cadastro de despesas",
-          desc: "Registre despesas únicas com fornecedor, categoria, valor, vencimento e comprovante opcional.",
+          desc: "Registre despesas únicas, recorrentes (aluguel, internet…) ou parceladas — use o tipo no cadastro em Contas a pagar.",
         },
         categorias: {
           label: "Categorias",
           title: "Categorias de despesa",
           desc: "Categorias padrão e personalizadas para classificar cada despesa.",
-        },
-        recorrentes: {
-          label: "Recorrentes",
-          title: "Despesas recorrentes",
-          desc: "Contas fixas — o próximo título é gerado ao confirmar o pagamento.",
         },
         parceladas: {
           label: "Parceladas",
