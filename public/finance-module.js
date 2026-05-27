@@ -513,7 +513,7 @@
         const saida = v?.data_saida || r.period_end;
         return `<tr>
           <td data-label="Veículo"><strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span></td>
-          <td data-label="Financeira / RPF">${escapeHtml(r.responsavel_pagamento || financeInstituicaoNome(v))}</td>
+          <td data-label="RPP">${escapeHtml(r.responsavel_pagamento || financeInstituicaoNome(v))}</td>
           <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
           <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
           <td data-label="Status"><span class="fin-tag fin-tag--open">Aguardando</span></td>
