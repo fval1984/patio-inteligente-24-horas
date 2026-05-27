@@ -4736,11 +4736,11 @@
                 <summary>Financeiro</summary>
                 <div class="header-menu-nested">
                   <button type="button" data-finance-subview="dashboard">Dashboard</button>
-                  <button type="button" data-finance-subview="em_patio">Receita em geração</button>
-                  <button type="button" data-finance-subview="receber">Contas a receber</button>
+                  <button type="button" data-finance-subview="em_patio">Veículos no pátio</button>
                   <button type="button" data-finance-subview="aguardando">Aguardando faturamento</button>
+                  <button type="button" data-finance-subview="receber">Contas a receber</button>
                   <button type="button" data-finance-subview="pagar">Contas a pagar</button>
-                  <button type="button" data-finance-subview="caixa">Caixa / Banco</button>
+                  <button type="button" data-finance-subview="caixa">Caixa</button>
                 </div>
               </details>
 
@@ -5461,11 +5461,11 @@
           </div>
           <div class="finance-subnav" id="finSubnav">
             <button type="button" data-finance-subview-btn="dashboard" class="active">Dashboard</button>
-            <button type="button" data-finance-subview-btn="em_patio">Veículos em pátio</button>
-            <button type="button" data-finance-subview-btn="receber">Contas a receber</button>
+            <button type="button" data-finance-subview-btn="em_patio">Veículos no pátio</button>
             <button type="button" data-finance-subview-btn="aguardando">Aguardando faturamento</button>
+            <button type="button" data-finance-subview-btn="receber">Contas a receber</button>
             <button type="button" data-finance-subview-btn="pagar">Contas a pagar</button>
-            <button type="button" data-finance-subview-btn="caixa">Caixa / Banco</button>
+            <button type="button" data-finance-subview-btn="caixa">Caixa</button>
           </div>
 
           <div class="finance-subview" data-finance-subview="dashboard">
@@ -5500,6 +5500,17 @@
             </div>
           </div>
 
+          <div class="finance-subview hidden" data-finance-subview="aguardando">
+            <p class="notice">Veículos que saíram do pátio e aguardam confirmação antes de ir para Contas a receber. Aprove em Pátio → Fechando ciclo ou confirme aqui.</p>
+            <p><strong>Total aguardando:</strong> <span id="finAguardandoTotal">R$ 0,00</span></p>
+            <div class="table-wrap section-card">
+              <table class="table">
+                <thead><tr><th>Veículo</th><th>Financeira / RPF</th><th>Saída</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+                <tbody id="finAguardandoBody"></tbody>
+              </table>
+            </div>
+          </div>
+
           <div class="finance-subview hidden" data-finance-subview="receber">
             <div class="fin-toolbar">
               <div><button type="button" id="finBtnNovaReceita">+ Nova receita</button></div>
@@ -5526,17 +5537,6 @@
               <table class="table">
                 <thead><tr><th>Cliente / Veículo</th><th>Serviço / Descrição</th><th>Tipo</th><th>Valor</th><th>Vencimento</th><th>Status</th></tr></thead>
                 <tbody id="finReceberBody"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="finance-subview hidden" data-finance-subview="aguardando">
-            <p class="notice">Veículos que saíram do pátio e aguardam confirmação antes de ir para Contas a receber. Aprove em Pátio → Fechando ciclo ou confirme aqui.</p>
-            <p><strong>Total aguardando:</strong> <span id="finAguardandoTotal">R$ 0,00</span></p>
-            <div class="table-wrap section-card">
-              <table class="table">
-                <thead><tr><th>Veículo</th><th>Financeira / RPF</th><th>Saída</th><th>Valor</th><th>Status</th><th></th></tr></thead>
-                <tbody id="finAguardandoBody"></tbody>
               </table>
             </div>
           </div>
