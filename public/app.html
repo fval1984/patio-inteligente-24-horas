@@ -3934,7 +3934,70 @@
         height: 128px;
         display: block;
       }
-      /* Financeiro — layout FinTracker + paleta Amplipatio (vermelho / temas) */
+      /* Módulo Financeiro */
+      .finance-module-shell { max-width: 1200px; margin: 0 auto; }
+      .finance-subnav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+      .finance-subnav button {
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--text);
+        border-radius: 999px;
+        padding: 8px 14px;
+        font: inherit;
+        cursor: pointer;
+      }
+      .finance-subnav button.active {
+        background: var(--primary-weak);
+        border-color: rgba(225, 29, 46, 0.45);
+        color: var(--primary-strong);
+        font-weight: 600;
+      }
+      .fin-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .fin-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .fin-card-label { font-size: 0.78rem; color: var(--muted); }
+      .fin-card strong { font-size: 1.25rem; }
+      .fin-card small { font-size: 0.74rem; color: var(--muted); }
+      .fin-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
+      .fin-tag {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+      .fin-tag--gen { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+      .fin-tag--open { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+      .fin-tag--late { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+      .fin-tag--ok { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+      .fin-charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 14px;
+      }
+      .fin-chart-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 14px;
+      }
+      @media print {
+        #viewFinanceiro .finance-subnav,
+        #viewFinanceiro .fin-toolbar,
+        #viewFinanceiro .close-view { display: none !important; }
+      }
         --ft-bg: var(--bg);
         --ft-surface: var(--card);
         --ft-surface-elevated: color-mix(in srgb, var(--card) 98%, #fff 2%);
@@ -4611,7 +4674,17 @@
                 </div>
               </details>
 
-                            <details class="header-menu-details" id="headerDetailsConfig">
+              <details class="header-menu-details" id="headerDetailsFinance">
+                <summary>Financeiro</summary>
+                <div class="header-menu-nested">
+                  <button type="button" data-finance-subview="dashboard">Dashboard</button>
+                  <button type="button" data-finance-subview="em_patio">Receita em geração</button>
+                  <button type="button" data-finance-subview="receber">Contas a receber</button>
+                  <button type="button" data-finance-subview="caixa">Caixa / Banco</button>
+                </div>
+              </details>
+
+              <details class="header-menu-details" id="headerDetailsConfig">
                 <summary>Configurações</summary>
                 <div class="header-menu-nested">
                   <button type="button" data-header-config-sub="dados">Pátio e textos</button>
@@ -4659,6 +4732,12 @@
               <span class="dashboard-system-btn__title">Parceiros</span>
               <span class="dashboard-system-btn__desc">Gerencie localizadores, assessorias, leiloeiros e bancos.</span>
               <span class="dashboard-system-btn__go">Abrir parceiros →</span>
+            </button>
+            <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
+              <span class="dashboard-system-btn__kicker">Financeiro</span>
+              <span class="dashboard-system-btn__title">Financeiro</span>
+              <span class="dashboard-system-btn__desc">Receita em geração, contas a receber, pagamentos e caixa.</span>
+              <span class="dashboard-system-btn__go">Abrir financeiro →</span>
             </button>
             <button
               type="button"
@@ -5299,6 +5378,91 @@
           </div>
         </div>
 
+        <div id="viewFinanceiro" class="panel hidden finance-module-shell">
+          <div class="toolbar">
+            <div>
+              <p class="module-kicker module-kicker--finance" style="margin: 0 0 4px">Integrado ao pátio</p>
+              <h2 style="margin: 0">Financeiro</h2>
+              <p class="module-lede" style="margin: 6px 0 0">Automático após saída do veículo — sem alterar a operação do pátio.</p>
+            </div>
+            <div class="actions">
+              <button type="button" class="secondary" id="finBtnRefresh">Atualizar</button>
+              <button type="button" class="secondary" id="finBtnPrint">Imprimir</button>
+              <button type="button" class="secondary" id="finBtnPdf">PDF</button>
+              <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar">X</button>
+            </div>
+          </div>
+          <div class="finance-subnav" id="finSubnav">
+            <button type="button" data-finance-subview-btn="dashboard" class="active">Dashboard</button>
+            <button type="button" data-finance-subview-btn="em_patio">Veículos em pátio</button>
+            <button type="button" data-finance-subview-btn="receber">Contas a receber</button>
+            <button type="button" data-finance-subview-btn="caixa">Caixa / Banco</button>
+          </div>
+
+          <div class="finance-subview" data-finance-subview="dashboard">
+            <div class="fin-cards" id="finDashCards"></div>
+            <div class="fin-toolbar">
+              <div>
+                <label for="finChartPeriod">Período dos gráficos</label>
+                <select id="finChartPeriod">
+                  <option value="dia">Diário</option>
+                  <option value="semana">Semanal</option>
+                  <option value="mes" selected>Mensal</option>
+                </select>
+              </div>
+            </div>
+            <div class="fin-charts-grid">
+              <div class="fin-chart-card"><h4>Fluxo de caixa</h4><svg id="finChartFlowSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg></div>
+              <div class="fin-chart-card"><h4>Saldo</h4><svg id="finChartBalanceSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg></div>
+              <div class="fin-chart-card"><h4>Receitas x Despesas</h4><svg id="finChartCompareSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg></div>
+              <div class="fin-chart-card"><h4>Aging</h4><svg id="finChartAgingSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg></div>
+            </div>
+          </div>
+
+          <div class="finance-subview hidden" data-finance-subview="em_patio">
+            <p class="notice">Receita em geração — serviço em andamento (ainda não é conta a receber).</p>
+            <p><strong>Total acumulado:</strong> <span id="finEmPatioTotal">R$ 0,00</span></p>
+            <div class="table-wrap section-card">
+              <table class="table">
+                <thead><tr><th>Veículo</th><th>Financeira / banco</th><th>Entrada</th><th>Dias</th><th>Valor acumulado</th><th>Situação</th></tr></thead>
+                <tbody id="finEmPatioBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="finance-subview hidden" data-finance-subview="receber">
+            <div class="fin-toolbar">
+              <div><label for="finFilterBusca">Buscar</label><input id="finFilterBusca" type="search" placeholder="Placa, financeira…" /></div>
+              <div><label for="finFilterStatus">Status</label>
+                <select id="finFilterStatus"><option value="">Todos</option><option value="pendente">Pendente</option><option value="atrasado">Atrasado</option></select>
+              </div>
+              <div><label for="finSortReceber">Ordenar</label>
+                <select id="finSortReceber"><option value="vencimento">Vencimento</option><option value="valor">Valor</option><option value="placa">Placa</option></select>
+              </div>
+            </div>
+            <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
+            <div class="table-wrap section-card">
+              <table class="table">
+                <thead><tr><th>Veículo</th><th>Financeira</th><th>Entrada</th><th>Saída</th><th>Diárias</th><th>Valor</th><th>Vencimento</th><th>Status</th></tr></thead>
+                <tbody id="finReceberBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="finance-subview hidden" data-finance-subview="caixa">
+            <div class="fin-toolbar">
+              <div><label for="finFilterPeriodo">Competência</label><input id="finFilterPeriodo" type="month" /></div>
+            </div>
+            <p><strong>Saldo (entradas):</strong> <span id="finCaixaSaldo">R$ 0,00</span></p>
+            <div class="table-wrap section-card">
+              <table class="table">
+                <thead><tr><th>Data</th><th>Descrição</th><th>Forma</th><th>Valor</th><th>Conta</th></tr></thead>
+                <tbody id="finCaixaBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <div id="viewConfiguracoes" class="panel hidden config-module-shell">
           <div class="config-module-ribbon">
             <div class="config-module-ribbon-left">
@@ -5881,6 +6045,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
+    <script src="/finance-module.js"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -6423,6 +6588,7 @@
         parceiros: document.getElementById("viewParceiros"),
         lista: document.getElementById("viewLista"),
         configuracoes: document.getElementById("viewConfiguracoes"),
+        financeiro: document.getElementById("viewFinanceiro"),
       };
       const patioFlyoutClose = document.getElementById("patioFlyoutClose");
       const patioMenuNewVehicle = document.getElementById("patioMenuNewVehicle");
@@ -6541,32 +6707,28 @@
       /** Com false, saída do veículo (VRP) alimenta automaticamente o financeiro. */
       const FINANCE_MANUAL_ONLY = false;
 
-      function renderFinance() {}
-      function setFinanceView() {}
-      function openFinanceSubview() {}
-      function returnToPainelFromFinanceFlyout() {}
-      function bindFinanceDashboardUiOnce() {}
-      function rehomeFinanceContentToModule() {}
-      function getFinanceRoot() { return null; }
-
       const PATIO_TAB_LABELS = {
         no_patio: { title: "VNP", subtitle: "Veículos no pátio" },
         removidos: { title: "VRP", subtitle: "Veículos removidos do pátio" },
         fechando_ciclo: { title: "Fechando ciclo", subtitle: "Triagem antes do financeiro" },
       };
 
-      const MODULE_VIEWS = ["patio", "lista", "parceiros", "configuracoes"];
+      const MODULE_VIEWS = ["patio", "lista", "parceiros", "configuracoes", "financeiro"];
 
       const MODULE_VIEW_IDS = {
-        patio: "viewPatio",        lista: "viewLista",
+        patio: "viewPatio",
+        lista: "viewLista",
         parceiros: "viewParceiros",
         configuracoes: "viewConfiguracoes",
+        financeiro: "viewFinanceiro",
       };
 
       const MODULE_VIEW_LABELS = {
-        patio: { title: "Gestão de Pátio", subtitle: "Operação do pátio" },        lista: { title: "Lista", subtitle: "Consultas e relatórios" },
+        patio: { title: "Gestão de Pátio", subtitle: "Operação do pátio" },
+        lista: { title: "Lista", subtitle: "Consultas e relatórios" },
         parceiros: { title: "Rede de parceiros", subtitle: "Cadastro de parceiros" },
         configuracoes: { title: "Configurações", subtitle: "Parâmetros do sistema" },
+        financeiro: { title: "Financeiro", subtitle: "Receitas, cobranças e caixa" },
       };
 
       let tabModalSystemReady = false;
@@ -10227,6 +10389,8 @@
         document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
         if (!isGestorPista) {
           document.getElementById("dashboardSystemEntry")?.classList.remove("dashboard-system-entry--single");
+          document.getElementById("dashboardOpenFinance")?.classList.remove("hidden");
+          document.getElementById("headerDetailsFinance")?.classList.remove("hidden");
           showMainView("dashboard");
           return;
         }
@@ -10244,6 +10408,7 @@
         };
         document.querySelectorAll("#appHeaderMenu button[data-view]").forEach(hideGestorMainNavItem);
         document.getElementById("headerDetailsConfig")?.classList.add("hidden");
+        document.getElementById("headerDetailsFinance")?.classList.add("hidden");
         document.getElementById("headerDetailsParceiros")?.classList.add("hidden");
         document.querySelectorAll("#headerDetailsLista [data-lista-gestor-hide], #listaSubnav [data-lista-gestor-hide]").forEach((el) => {
           el.classList.add("hidden");
@@ -10254,6 +10419,7 @@
           )
           .forEach((el) => el.classList.add("hidden"));
         document.getElementById("dashboardSystemEntry")?.classList.add("dashboard-system-entry--single");
+        document.getElementById("dashboardOpenFinance")?.classList.add("hidden");
         document.getElementById("openConfigFromPatio")?.classList.add("hidden");
 
         showMainView("patio");
@@ -10583,6 +10749,9 @@
           );
         }
         updateDashboard();
+        if (typeof renderFinance === "function" && !document.getElementById("viewFinanceiro")?.classList.contains("hidden")) {
+          renderFinance();
+        }
       }
 
 
@@ -13039,6 +13208,7 @@
         await createNextRecorrenteReceivable(receivable);
         await Promise.all([loadReceivables(), loadCash(), loadVehicles()]);
         updateDashboard();
+        if (typeof renderFinance === "function") renderFinance();
         const paidReceivable = state.receivables.find((r) => r.id === receivableId) || {
           ...receivable,
           status: "PAGO",
@@ -14759,10 +14929,12 @@
                   status: "PAGO",
                   financeiro_aprovado_contas_receber: true,
                 }
-              : {
+              : typeof financeAutoContaReceberPatch === "function"
+                ? financeAutoContaReceberPatch(recPatchBase, dataSaida)
+                : {
                   ...recPatchBase,
-                  status: RECEIVABLE_AGUARDANDO_LANCAMENTO,
-                  financeiro_aprovado_contas_receber: false,
+                  status: "EM_ABERTO",
+                  financeiro_aprovado_contas_receber: true,
                 };
             let { error: recErr } = await supabase
               .from("receivables")
@@ -14834,7 +15006,7 @@
               });
             } else {
               removeReceberTriagemId(cycleAberto.id);
-              financeAuditAppend(cycleAberto.id, "Enviado para Aguardando Faturamento", {
+              financeAuditAppend(cycleAberto.id, "Enviado para Contas a Receber", {
                 valor: valorFechamento,
                 note: `${breakdown.dias} dia(s), remoção: ${formatCurrency(breakdown.taxaRemocao)}`,
               });
@@ -14854,8 +15026,8 @@
               valor: valorFechamento,
               nf_emitida: vehicle.nfse_status === "EMITIDA",
               nf_enviada: vehicleNfseEnviadaFlag(vehicle),
-              triagem_ok: vrpSemCobranca,
-              sent_to_finance: vrpSemCobranca,
+              triagem_ok: true,
+              sent_to_finance: true,
             };
             const { error: fechamentoErr } = await supabase.from("patio_cycle_closures").insert(fechamentoPayload);
             if (fechamentoErr) {
@@ -14891,7 +15063,7 @@
           }
           }
           updateDashboard();
-          alert(vrpSemCobranca ? "Veículo removido do pátio (VRP). Valor R$ 0,00 — encerrado sem cobrança." : "Veículo removido do pátio (VRP). Valor calculado e registrado.");
+          alert(vrpSemCobranca ? "Veículo removido do pátio (VRP). Valor R$ 0,00 — encerrado sem cobrança." : "Veículo removido. Cobrança gerada em Financeiro → Contas a receber.");
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
           return;
@@ -14992,6 +15164,7 @@
         if (view === "patio") menu.querySelector("#headerDetailsPatio")?.classList.add("header-menu-details--current");
         else if (view === "parceiros") menu.querySelector("#headerDetailsParceiros")?.classList.add("header-menu-details--current");
         else if (view === "lista") menu.querySelector("#headerDetailsLista")?.classList.add("header-menu-details--current");
+        else if (view === "financeiro") menu.querySelector("#headerDetailsFinance")?.classList.add("header-menu-details--current");
         else if (view === "configuracoes") menu.querySelector("#headerDetailsConfig")?.classList.add("header-menu-details--current");
       }
 
@@ -15012,6 +15185,9 @@
           document.title = "Amplipatio · Gestão de pátio";
         } else if (view === "lista") {
           document.title = "Amplipatio · Lista";
+        } else if (view === "financeiro") {
+          document.body.classList.add("app-module-finance");
+          document.title = "Amplipatio · Financeiro";
         } else if (view === "dashboard") {
           document.title = "Amplipatio · AMPLIPATIO";
         } else {
@@ -15027,7 +15203,10 @@
         if (view === "configuracoes") {
           setConfigSubview("dados");
         }
-        const headerModViews = ["dashboard", "patio", "parceiros", "lista", "configuracoes"];
+        if (view === "financeiro") {
+          setFinanceView("dashboard");
+        }
+        const headerModViews = ["dashboard", "patio", "parceiros", "lista", "configuracoes", "financeiro"];
         if (headerModViews.includes(view) && lastAppHeaderModuleView !== view) {
           document.querySelectorAll("#appHeaderMenu > .header-menu-details").forEach((d) => d.removeAttribute("open"));
           lastAppHeaderModuleView = view;
@@ -15121,9 +15300,13 @@
           setPatioView("inicio");
           navStack.push("patio:inicio");
         }
-        if (view === "parceiros") setPartnerView("none");        if (view === "lista") {
+        if (view === "parceiros") setPartnerView("none");
+        if (view === "lista") {
           syncListaFilterSelects();
           renderListaPanel();
+        }
+        if (view === "financeiro") {
+          setFinanceView("dashboard");
         }
       }
 
@@ -15221,6 +15404,10 @@
           return setPartnerView("none");
         }
         if (top === "configuracoes") return showMainView("configuracoes");
+        if (top === "financeiro") {
+          showMainView("financeiro");
+          return setFinanceView("dashboard");
+        }
 
         if (top === "lista") {
           showMainView("lista");
@@ -15248,6 +15435,7 @@
         }
       }
 
+      document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
       document.getElementById("dashboardOpenLista")?.addEventListener("click", () => openMainView("lista"));
       document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openMainView("parceiros"));
@@ -15343,7 +15531,7 @@
       }
 
       function syncHeaderMenuHighlightFromDom() {
-        const order = ["dashboard", "patio", "parceiros", "lista", "configuracoes"];
+        const order = ["dashboard", "patio", "financeiro", "parceiros", "lista", "configuracoes"];
         for (const name of order) {
           const el = views[name];
           if (el && !el.classList.contains("hidden")) {
@@ -15427,6 +15615,14 @@
           e.preventDefault();
           openMainView("configuracoes");
           setConfigSubview(cfgSub.getAttribute("data-header-config-sub"));
+          closeAppHeaderMenu();
+          return;
+        }
+        const finSub = e.target.closest("[data-finance-subview]");
+        if (finSub) {
+          e.preventDefault();
+          openMainView("financeiro");
+          openFinanceSubview(finSub.getAttribute("data-finance-subview"));
           closeAppHeaderMenu();
           return;
         }
