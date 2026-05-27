@@ -1,7 +1,7 @@
 {
   "name": "Amplipatio",
   "short_name": "Amplipatio",
-  "description": "Gestão de pátio e financeiro",
+  "description": "Gestão de pátio inteligente 24hrs",
   "start_url": "/app.html",
   "display": "standalone",
   "background_color": "#0b0d11",
