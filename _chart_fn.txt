@@ -1,0 +1,367 @@
+function renderDashboardFinanceCharts(period, svgIds) {
+        const ids = svgIds || {
+          flow: "dashboardCashFlowSvg",
+          balance: "dashboardBalanceSvg",
+          compare: "dashboardCompareSvg",
+          expense: "dashboardExpenseCategorySvg",
+          clients: "dashboardTopClientsSvg",
+          aging: "dashboardAgingSvg",
+        };
+        const mode = ["dia", "semana", "mes"].includes(period) ? period : "mes";
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const buckets = [];
+        const bucketMap = new Map();
+        const mkYmd = (date) =>
+          `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+        const addBucket = (key, label) => {
+          const bucket = { key, label, entrada: 0, saida: 0 };
+          buckets.push(bucket);
+          bucketMap.set(key, bucket);
+        };
+        if (mode === "dia") {
+          for (let i = 13; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(d.getDate() - i);
+            const key = mkYmd(d);
+            addBucket(key, `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`);
+          }
+        } else if (mode === "semana") {
+          const base = new Date(today);
+          const day = base.getDay();
+          const diffToMonday = day === 0 ? 6 : day - 1;
+          base.setDate(base.getDate() - diffToMonday);
+          for (let i = 7; i >= 0; i--) {
+            const d = new Date(base);
+            d.setDate(d.getDate() - i * 7);
+            const key = mkYmd(d);
+            addBucket(key, `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`);
+          }
+        } else {
+          for (let i = 5; i >= 0; i--) {
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+            addBucket(key, String(d.getMonth() + 1).padStart(2, "0"));
+          }
+        }
+        if (!buckets.length) return;
+        const firstKey = buckets[0].key;
+        let saldoInicial = 0;
+        (state.cash || []).forEach((mov) => {
+          const ymd = toLocalYmd(mov.data_movimento || mov.created_at);
+          if (!ymd) return;
+          let key = null;
+          if (mode === "dia") key = ymd;
+          else if (mode === "semana") {
+            const d = new Date(`${ymd}T00:00:00`);
+            const day = d.getDay();
+            const diffToMonday = day === 0 ? 6 : day - 1;
+            d.setDate(d.getDate() - diffToMonday);
+            key = mkYmd(d);
+          } else key = yearMonthFromYmd(ymd);
+          const val = Number(mov.valor || 0);
+          const signed = mov.tipo_conta === "PAGAR" ? -val : val;
+          if (key && bucketMap.has(key)) {
+            if (mov.tipo_conta === "PAGAR") bucketMap.get(key).saida += val;
+            else bucketMap.get(key).entrada += val;
+          } else if ((mode === "mes" && yearMonthFromYmd(ymd) < firstKey) || (mode !== "mes" && ymd < firstKey)) {
+            saldoInicial += signed;
+          }
+        });
+        const maxFlow = Math.max(1, ...buckets.map((b) => b.entrada), ...buckets.map((b) => b.saida));
+        const flowPointsIn = buckets
+          .map((b, i) => `${18 + (i * 320) / Math.max(1, buckets.length - 1)},${108 - (b.entrada / maxFlow) * 84}`)
+          .join(" ");
+        const flowPointsOut = buckets
+          .map((b, i) => `${18 + (i * 320) / Math.max(1, buckets.length - 1)},${108 - (b.saida / maxFlow) * 84}`)
+          .join(" ");
+        const flowSvg = document.getElementById(ids.flow);
+        if (flowSvg) {
+          flowSvg.innerHTML = `
+            <polyline points="${flowPointsIn}" fill="none" stroke="#38bdf8" stroke-width="3"></polyline>
+            <polyline points="${flowPointsOut}" fill="none" stroke="#f87171" stroke-width="3"></polyline>
+          `;
+        }
+        const saldos = [];
+        let saldo = saldoInicial;
+        buckets.forEach((b) => {
+          saldo += b.entrada - b.saida;
+          saldos.push(saldo);
+        });
+        const minSaldo = Math.min(0, ...saldos);
+        const maxSaldo = Math.max(1, ...saldos);
+        const spanSaldo = Math.max(1, maxSaldo - minSaldo);
+        const saldoPoints = saldos
+          .map((v, i) => `${18 + (i * 320) / Math.max(1, saldos.length - 1)},${108 - ((v - minSaldo) / spanSaldo) * 84}`)
+          .join(" ");
+        const balanceSvg = document.getElementById(ids.balance);
+        if (balanceSvg) {
+          balanceSvg.innerHTML = `<polyline points="${saldoPoints}" fill="none" stroke="#e11d2e" stroke-width="3"></polyline>`;
+        }
+        const compareSvg = document.getElementById(ids.compare);
+        if (compareSvg) {
+          const slot = 320 / Math.max(1, buckets.length);
+          const barW = Math.max(6, Math.min(16, slot / 3));
+          compareSvg.innerHTML = buckets
+            .map((b, i) => {
+              const x = 18 + i * slot + slot * 0.2;
+              const hIn = Math.max(2, (b.entrada / maxFlow) * 84);
+              const hOut = Math.max(2, (b.saida / maxFlow) * 84);
+              return `
+                <rect x="${x}" y="${108 - hIn}" width="${barW}" height="${hIn}" rx="3" fill="#60a5fa"></rect>
+                <rect x="${x + barW + 3}" y="${108 - hOut}" width="${barW}" height="${hOut}" rx="3" fill="#fb7185"></rect>
+              `;
+            })
+            .join("");
+        }
+        const topExpenseCategories = [...(state.payables || [])]
+          .reduce((acc, p) => {
+            const cat =
+              (p.payable_category || p.categoria || p.centro_custo || p.subcategoria || "Outros").toString().trim() || "Outros";
+            acc.set(cat, (acc.get(cat) || 0) + Number(p.valor || 0));
+            return acc;
+          }, new Map());
+        const expenseRows = [...topExpenseCategories.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5);
+        const expenseMax = Math.max(1, ...expenseRows.map(([, v]) => v));
+        const expenseSvg = document.getElementById(ids.expense);
+        if (expenseSvg) {
+          expenseSvg.innerHTML = expenseRows.length
+            ? expenseRows
+                .map(([name, value], idx) => {
+                  const y = 10 + idx * 23;
+                  const w = 180 * (value / expenseMax);
+                  return `
+                    <text x="8" y="${y + 11}" font-size="9" fill="currentColor">${escapeHtml(name).slice(0, 18)}</text>
+                    <rect x="150" y="${y}" width="${w}" height="10" rx="3" fill="#fb7185"></rect>
+                    <text x="${155 + w}" y="${y + 9}" font-size="9" fill="currentColor">${escapeHtml(formatCurrency(value))}</text>
+                  `;
+                })
+                .join("")
+            : `<text x="8" y="20" font-size="10" fill="currentColor">Sem despesas lançadas.</text>`;
+        }
+        const topClientsMap = [...(state.receivables || [])]
+          .reduce((acc, r) => {
+            const client = (r.responsavel_pagamento || r.cliente || "Sem cliente").toString().trim() || "Sem cliente";
+            acc.set(client, (acc.get(client) || 0) + Number(r.valor || 0));
+            return acc;
+          }, new Map());
+        const topClients = [...topClientsMap.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5);
+        const topClientsMax = Math.max(1, ...topClients.map(([, v]) => v));
+        const topClientsSvg = document.getElementById(ids.clients);
+        if (topClientsSvg) {
+          topClientsSvg.innerHTML = topClients.length
+            ? topClients
+                .map(([name, value], idx) => {
+                  const y = 10 + idx * 23;
+                  const w = 180 * (value / topClientsMax);
+                  return `
+                    <text x="8" y="${y + 11}" font-size="9" fill="currentColor">${escapeHtml(name).slice(0, 18)}</text>
+                    <rect x="150" y="${y}" width="${w}" height="10" rx="3" fill="#60a5fa"></rect>
+                    <text x="${155 + w}" y="${y + 9}" font-size="9" fill="currentColor">${escapeHtml(formatCurrency(value))}</text>
+                  `;
+                })
+                .join("")
+            : `<text x="8" y="20" font-size="10" fill="currentColor">Sem clientes lançados.</text>`;
+        }
+        const agingBuckets = [
+          { key: "vencido", label: "Vencido", receber: 0, pagar: 0 },
+          { key: "d0_30", label: "0-30", receber: 0, pagar: 0 },
+          { key: "d31_60", label: "31-60", receber: 0, pagar: 0 },
+          { key: "d61p", label: "61+", receber: 0, pagar: 0 },
+        ];
+        const daysUntil = (ymd) => {
+          if (!ymd) return null;
+          const due = new Date(`${ymd}T00:00:00`);
+          const diff = Math.floor((due.getTime() - today.getTime()) / 86400000);
+          return Number.isFinite(diff) ? diff : null;
+        };
+        const placeAging = (days, amount, side) => {
+          if (days == null) return;
+          let bucket = null;
+          if (days < 0) bucket = agingBuckets[0];
+          else if (days <= 30) bucket = agingBuckets[1];
+          else if (days <= 60) bucket = agingBuckets[2];
+          else bucket = agingBuckets[3];
+          bucket[side] += amount;
+        };
+        (state.receivables || []).forEach((r) => {
+          if (r.status === "PAGO") return;
+          const ymd = toLocalYmd(r.data_vencimento || r.period_end || r.created_at);
+          placeAging(daysUntil(ymd), Number(r.valor || 0), "receber");
+        });
+        (state.payables || []).forEach((p) => {
+          if (p.status === "PAGO") return;
+          const ymd = toLocalYmd(p.data_vencimento || p.created_at);
+          placeAging(daysUntil(ymd), Number(p.valor || 0), "pagar");
+        });
+        const agingMax = Math.max(1, ...agingBuckets.map((b) => b.receber), ...agingBuckets.map((b) => b.pagar));
+        const agingSvg = document.getElementById(ids.aging);
+        if (agingSvg) {
+          agingSvg.innerHTML = agingBuckets
+            .map((b, idx) => {
+              const x = 18 + idx * 78;
+              const hr = Math.max(2, (b.receber / agingMax) * 72);
+              const hp = Math.max(2, (b.pagar / agingMax) * 72);
+              return `
+                <rect x="${x}" y="${104 - hr}" width="20" height="${hr}" rx="3" fill="#60a5fa"></rect>
+                <rect x="${x + 24}" y="${104 - hp}" width="20" height="${hp}" rx="3" fill="#fb7185"></rect>
+                <text x="${x}" y="118" font-size="9" fill="currentColor">${b.label}</text>
+              `;
+            })
+            .join("");
+        }
+      }
+
+      function sumReceivableFaturadoByMonth(monthYm, receivables) {
+        if (!monthYm || !Array.isArray(receivables)) return 0;
+        return receivables.reduce((sum, r) => {
+          if (FINANCE_MANUAL_ONLY && !isManualFinanceLancamento(r)) return sum;
+          if (!r.vehicle_id) return sum;
+          const ymd = toLocalYmd(r.period_end || r.created_at);
+          if (!ymd || yearMonthFromYmd(ymd) !== monthYm) return sum;
+          return sum + Number(r.valor || 0);
+        }, 0);
+      }
+
+      function renderFinanceOperacionalDashboard(monthYm) {
+        const todayYmd = toLocalYmd(new Date().toISOString());
+        const receberFlags = financeReceberFlagsRead();
+        const patioReceivables = (state.receivables || []).filter((r) => !FINANCE_MANUAL_ONLY || isManualFinanceLancamento(r));
+        const emAbertoList = patioReceivables.filter((r) => {
+          const flags = receberFlags[String(r.id)] || {};
+          if (flags.isento) return false;
+          if (r.status === "PAGO") return false;
+          return receivableIsContaReceberFinanceiro(r) || receivableNaFilaAguardandoTriagem(r);
+        });
+        const faturadoMes = sumReceivableFaturadoByMonth(monthYm, state.receivables);
+        const recebidoMes = sumReceivableRevenueByMonth(monthYm, state.receivables, state.cash || []);
+        const emAberto = emAbertoList.reduce((sum, r) => sum + Number(r.valor || 0), 0);
+        const vencidosList = emAbertoList.filter((r) => {
+          if (receivableNaFilaAguardandoTriagem(r)) return false;
+          const due = financeContaDueYmd(r, "receivable");
+          return !!(due && todayYmd && due < todayYmd);
+        });
+        const vencido = vencidosList.reduce((sum, r) => sum + Number(r.valor || 0), 0);
+        const _setOp = (id, txt) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = txt;
+        };
+        _setOp("fdFaturadoMes", formatCurrency(faturadoMes));
+        _setOp("fdFaturadoMesMeta", `Competência ${monthYm.slice(5, 7)}/${monthYm.slice(0, 4)}`);
+        _setOp("fdRecebidoMes", formatCurrency(recebidoMes));
+        _setOp("fdRecebidoMesMeta", "Pagamentos confirmados");
+        _setOp("fdEmAberto", formatCurrency(emAberto));
+        _setOp("fdEmAbertoMeta", `${emAbertoList.length} título(s)`);
+        _setOp("fdVencido", formatCurrency(vencido));
+        _setOp("fdVencidoMeta", `${vencidosList.length} título(s)`);
+      }
+
+      function renderFinanceResultadoDashboard(monthYm) {
+        const entradas = sumReceivableRevenueByMonth(monthYm, state.receivables || [], state.cash || []);
+        const saidasCash = sumCashPagamentosNoMes(monthYm, state.cash || []);
+        const sangria = sumCashSangriaNoMes(monthYm, state.cash || [], state.payables || []);
+        const saidas = Math.max(0, saidasCash - sangria);
+        const lucro = entradas - saidas;
+        const _setRes = (id, txt) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = txt;
+        };
+        _setRes("fdReceitasMes", formatCurrency(entradas));
+        _setRes("fdDespesasMes", formatCurrency(saidas));
+        _setRes("fdLucroLiquido", formatCurrency(lucro));
+        _setRes("fdReceitasMesMeta", `Competência ${monthYm.slice(5, 7)}/${monthYm.slice(0, 4)}`);
+        _setRes("fdDespesasMesMeta", "Saídas operacionais no período");
+        _setRes("fdLucroLiquidoMeta", lucro >= 0 ? "Superavit no período" : "Deficit no período");
+        const card = document.getElementById("fdLucroCard");
+        if (card) {
+          card.classList.remove("finance-ft-resumo-card--profit", "finance-ft-resumo-card--loss");
+          card.classList.add(lucro >= 0 ? "finance-ft-resumo-card--profit" : "finance-ft-resumo-card--loss");
+        }
+      }
+
+      function renderFinanceOperacionalCharts(period) {
+        const today = new Date();
+        const buckets = [];
+        const count = period === "dia" ? 7 : period === "semana" ? 8 : 6;
+        for (let i = count - 1; i >= 0; i--) {
+          let label = "";
+          let monthYm = "";
+          if (period === "mes") {
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            monthYm = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+            label = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
+          } else {
+            const d = new Date(today);
+            d.setDate(d.getDate() - i * (period === "semana" ? 7 : 1));
+            monthYm = toLocalYmd(d.toISOString());
+            label = period === "semana" ? `S${count - i}` : d.getDate().toString();
+          }
+          const faturado =
+            period === "mes"
+              ? sumReceivableFaturadoByMonth(monthYm, state.receivables)
+              : 0;
+          const recebido =
+            period === "mes"
+              ? sumReceivableRevenueByMonth(monthYm, state.receivables, state.cash || [])
+              : sumReceivableRevenueByDay(monthYm, state.receivables, state.cash || []);
+          buckets.push({ label, faturado, recebido });
+        }
+        const maxVal = Math.max(1, ...buckets.map((b) => b.faturado), ...buckets.map((b) => b.recebido));
+        const renderBars = (svgId, key, color) => {
+          const svg = document.getElementById(svgId);
+          if (!svg) return;
+          const slot = 320 / Math.max(1, buckets.length);
+          const barW = Math.max(8, Math.min(28, slot * 0.55));
+          svg.innerHTML = buckets
+            .map((b, i) => {
+              const x = 18 + i * slot + slot * 0.15;
+              const h = Math.max(2, (b[key] / maxVal) * 84);
+              return `
+                <rect x="${x}" y="${108 - h}" width="${barW}" height="${h}" rx="3" fill="${color}"></rect>
+                <text x="${x}" y="118" font-size="9" fill="currentColor">${escapeHtml(b.label)}</text>
+              `;
+            })
+            .join("");
+        };
+        renderBars("ffFaturamentoMesSvg", "faturado", "#38bdf8");
+        renderBars("ffRecebimentosMesSvg", "recebido", "#34d399");
+        const todayYmd = toLocalYmd(today.toISOString());
+        const receberFlags = financeReceberFlagsRead();
+        let vencidoTotal = 0;
+        let abertoNoPrazo = 0;
+        (state.receivables || []).forEach((r) => {
+          if (!receivableIsContaReceberFinanceiro(r) || r.status === "PAGO") return;
+          if ((receberFlags[String(r.id)] || {}).isento) return;
+          const val = Number(r.valor || 0);
+          const due = financeContaDueYmd(r, "receivable");
+          if (due && todayYmd && due < todayYmd) vencidoTotal += val;
+          else abertoNoPrazo += val;
+        });
+        const inadSvg = document.getElementById("ffInadimplenciaSvg");
+        if (inadSvg) {
+          const total = Math.max(1, vencidoTotal + abertoNoPrazo);
+          const hv = Math.max(2, (vencidoTotal / total) * 84);
+          const ha = Math.max(2, (abertoNoPrazo / total) * 84);
+          inadSvg.innerHTML = `
+            <rect x="60" y="${108 - hv}" width="80" height="${hv}" rx="4" fill="#f87171"></rect>
+            <rect x="200" y="${108 - ha}" width="80" height="${ha}" rx="4" fill="#60a5fa"></rect>
+            <text x="60" y="118" font-size="9" fill="currentColor">Vencido</text>
+            <text x="200" y="118" font-size="9" fill="currentColor">No prazo</text>
+          `;
+        }
+      }
+
+      function renderFinanceModuleCharts() {
+        if (!financeIsDashboardView(currentFinanceView)) return;
+        const monthKeyFin = financeCompetencia || currentYearMonthLocal();
+        renderFinanceOperacionalDashboard(monthKeyFin);
+        renderFinanceResultadoDashboard(monthKeyFin);
+        const period = document.getElementById("financeChartPeriod")?.value || "mes";
+        renderFinanceOperacionalCharts(period);
+        renderDashboardFinanceCharts(period, { compare: "ffCompareSvg" });
+      }
+
