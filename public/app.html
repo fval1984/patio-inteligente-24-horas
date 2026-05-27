@@ -6094,15 +6094,27 @@
         <div class="modal" style="max-width: 440px">
           <div class="modal-header">
             <div>
-              <h3>Confirmar Pagamento</h3>
-              <p class="subtitle" style="margin: 4px 0 0">Informe data, valor recebido, forma de pagamento e observação.</p>
+              <h3>Confirmar pagamento</h3>
+              <p class="subtitle" style="margin: 4px 0 0">Informe desconto, valor recebido e data do recebimento.</p>
             </div>
             <button type="button" class="modal-close" id="closeReceberBaixaModal">Fechar</button>
           </div>
           <div id="receberBaixaResumo" class="section-card" style="margin-bottom: 14px; padding: 12px 14px; font-size: 13px; line-height: 1.55"></div>
           <div class="form-grid" style="margin-bottom: 12px">
             <div>
-              <label for="receberBaixaData">Data do recebimento</label>
+              <label for="receberBaixaValorOriginal">Valor do título (R$)</label>
+              <input id="receberBaixaValorOriginal" type="number" step="0.01" min="0" readonly tabindex="-1" />
+            </div>
+            <div>
+              <label for="receberBaixaDesconto">Desconto (R$)</label>
+              <input id="receberBaixaDesconto" type="number" step="0.01" min="0" value="0" />
+            </div>
+            <div>
+              <label for="receberBaixaValorRecebido">Valor recebido (R$)</label>
+              <input id="receberBaixaValorRecebido" type="number" step="0.01" min="0.01" required />
+            </div>
+            <div>
+              <label for="receberBaixaData">Data de recebimento</label>
               <input id="receberBaixaData" type="date" required />
             </div>
             <div>
@@ -6357,7 +6369,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260519b"></script>
+    <script src="/finance-module.js?v=20260519c"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -13457,11 +13469,44 @@
       let pendingCobrancaReceivableId = null;
       let pendingContaEdit = null;
 
+      function bindReceberBaixaValorFieldsOnce() {
+        if (bindReceberBaixaValorFieldsOnce._done) return;
+        bindReceberBaixaValorFieldsOnce._done = true;
+        const origEl = document.getElementById("receberBaixaValorOriginal");
+        const descEl = document.getElementById("receberBaixaDesconto");
+        const recvEl = document.getElementById("receberBaixaValorRecebido");
+        if (!origEl || !descEl || !recvEl) return;
+        let syncing = false;
+        const origNum = () => Math.max(0, Number(origEl.value) || 0);
+        descEl.addEventListener("input", () => {
+          if (syncing) return;
+          syncing = true;
+          const o = origNum();
+          let d = Math.max(0, Number(descEl.value) || 0);
+          if (d > o) d = o;
+          descEl.value = d.toFixed(2);
+          recvEl.value = Math.max(0, o - d).toFixed(2);
+          syncing = false;
+        });
+        recvEl.addEventListener("input", () => {
+          if (syncing) return;
+          syncing = true;
+          const o = origNum();
+          let r = Math.max(0, Number(recvEl.value) || 0);
+          if (r > o) r = o;
+          recvEl.value = r.toFixed(2);
+          descEl.value = Math.max(0, o - r).toFixed(2);
+          syncing = false;
+        });
+      }
+
       function openReceberBaixaModal({ receivable, vehicle, valor }) {
         if (!receivable || !receberBaixaModal) return;
+        bindReceberBaixaValorFieldsOnce();
+        const valorOriginal = Number(valor || receivable.valor || 0);
         pendingBaixaReceber = {
           receivableId: receivable.id,
-          valor: Number(valor || receivable.valor || 0),
+          valorOriginal,
           receivable,
           vehicle: vehicle || null,
         };
@@ -13469,13 +13514,17 @@
         if (resumo) {
           const placa = vehicle?.placa || "—";
           const vm = [vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ") || "—";
-          const val = formatCurrency(Number(valor || receivable.valor || 0));
           const servico = receivableCategoryLabel(receivable.receivable_category);
           resumo.innerHTML = `<strong>${escapeHtml(receivable.responsavel_pagamento || "Responsável")}</strong><br />
             ${vehicle ? `Veículo: <strong>${escapeHtml(vm)}</strong> — placa <strong>${escapeHtml(placa)}</strong><br />` : ""}
-            Serviço: <strong>${escapeHtml(servico)}</strong><br />
-            Valor a receber: <strong>${escapeHtml(val)}</strong>`;
+            Serviço: <strong>${escapeHtml(servico)}</strong>`;
         }
+        const origEl = document.getElementById("receberBaixaValorOriginal");
+        const descEl = document.getElementById("receberBaixaDesconto");
+        const recvEl = document.getElementById("receberBaixaValorRecebido");
+        if (origEl) origEl.value = valorOriginal.toFixed(2);
+        if (descEl) descEl.value = "0.00";
+        if (recvEl) recvEl.value = valorOriginal.toFixed(2);
         const dataEl = document.getElementById("receberBaixaData");
         const formaEl = document.getElementById("receberBaixaForma");
         const anexoEl = document.getElementById("receberBaixaAnexo");
@@ -13492,8 +13541,10 @@
           document.body.appendChild(receberBaixaModal);
         }
         receberBaixaModal.classList.remove("hidden");
-        document.getElementById("receberBaixaOk")?.focus();
+        document.getElementById("receberBaixaDesconto")?.focus();
       }
+
+      window.openReceberBaixaModal = openReceberBaixaModal;
 
       function openPagarBaixaModal(payable) {
         if (!payable || !pagarBaixaModal) return;
@@ -13553,14 +13604,27 @@
         }
         const dataMov = document.getElementById("receberBaixaData")?.value || toLocalYmd(new Date().toISOString());
         const formaPagamento = document.getElementById("receberBaixaForma")?.value || "PIX";
-        const observacao = (document.getElementById("receberBaixaObs")?.value || "").trim();
+        let observacao = (document.getElementById("receberBaixaObs")?.value || "").trim();
+        const valorOriginal = Number(document.getElementById("receberBaixaValorOriginal")?.value) || pending.valorOriginal || 0;
+        const desconto = Math.max(0, Number(document.getElementById("receberBaixaDesconto")?.value) || 0);
+        const valorRecebido = Number(document.getElementById("receberBaixaValorRecebido")?.value);
+        if (!Number.isFinite(valorRecebido) || valorRecebido <= 0) {
+          alert("Informe o valor recebido.");
+          return;
+        }
+        if (desconto > 0) {
+          const descNote = `Desconto: ${formatCurrency(desconto)} (título ${formatCurrency(valorOriginal)})`;
+          observacao = observacao ? `${observacao} — ${descNote}` : descNote;
+        }
         const anexo = await readFinanceFileInput(document.getElementById("receberBaixaAnexo"));
         closeReceberBaixaModal();
-        const result = await finalizeReceivablePayment(pending.receivableId, pending.valor, {
+        const result = await finalizeReceivablePayment(pending.receivableId, valorRecebido, {
           dataMovimento: dataMov,
           formaPagamento,
           anexo,
           observacao,
+          desconto,
+          valorOriginal,
         });
         if (!result) return;
         if (mode === "pdf") {
@@ -13680,6 +13744,8 @@
         if (opts.anexo) await financeAttachmentSave("receivable", receivableId, opts.anexo);
         financeAuditAppend(receivableId, "Pagamento confirmado", {
           valor: totalAtual,
+          valorOriginal: opts.valorOriginal,
+          desconto: opts.desconto,
           formaPagamento,
           dataMovimento: dataMov,
           observacao: opts.observacao || "",
