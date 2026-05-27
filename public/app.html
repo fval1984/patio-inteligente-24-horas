@@ -6458,12 +6458,11 @@
           if (plateBar) plateBar.insertAdjacentElement("afterend", patioContent);
           else viewPatio.appendChild(patioContent);
         }
-        }
 
-        const partnerModal = document.getElementById("partnerTabModal");
+        const partnerTabModalEl = document.getElementById("partnerTabModal");
         const partnerHost = document.getElementById("viewParceiros");
-        if (partnerModal && partnerHost) {
-          const body = partnerModal.querySelector(".tab-modal-body");
+        if (partnerTabModalEl && partnerHost) {
+          const body = partnerTabModalEl.querySelector(".tab-modal-body");
           const anchor = partnerHost.querySelector(".grid");
           if (body && anchor) {
             let insertAfter = anchor;
@@ -6472,7 +6471,7 @@
               insertAfter = p;
             });
           }
-          partnerModal.remove();
+          partnerTabModalEl.remove();
         }
 
         const configModal = document.getElementById("configTabModal");
@@ -14784,7 +14783,8 @@
         if (top === "parceiros") {
           showMainView("parceiros");
           return setPartnerView("none");
-        }        if (top === "configuracoes") return showMainView("configuracoes");
+        }
+        if (top === "configuracoes") return showMainView("configuracoes");
 
         if (top === "lista") {
           showMainView("lista");
@@ -14809,7 +14809,8 @@
           const sub = top.split(":")[1];
           showMainView("parceiros");
           return setPartnerView(sub);
-        }      }
+        }
+      }
 
       cardVeiculosLink.addEventListener("click", () => openPatioSubview("no_patio"));
       cardSolicitadasLink.addEventListener("click", () => openPatioSubview("no_patio"));
@@ -14824,6 +14825,38 @@
           event.preventDefault();
           applyPlateSearchFromDashboard();
         });
+      }
+      goDashboardFromPlate?.addEventListener("click", () => {
+        showMainView("dashboard");
+        closeAppHeaderMenu();
+      });
+
+      if (plateSearchFormPatio) {
+        plateSearchFormPatio.addEventListener("submit", (event) => {
+          event.preventDefault();
+          if (!plateFilter || !plateFilterPatio) return;
+          plateFilter.value = plateFilterPatio.value;
+          applyPlateSearchFromDashboard();
+        });
+      }
+
+      clearPlateFilter?.addEventListener("click", () => {
+        plateFilter.value = "";
+        plateQuery = "";
+        syncPatioPlateInputFromHeader();
+        setPlateSearchHints("", false);
+        renderVehicles();
+      });
+
+      if (clearPlateFilterPatio) {
+        clearPlateFilterPatio.addEventListener("click", () => {
+          if (plateFilter) plateFilter.value = "";
+          if (plateFilterPatio) plateFilterPatio.value = "";
+          plateQuery = "";
+          setPlateSearchHints("", false);
+          renderVehicles();
+        });
+      }
 
       /** Fecha só o painel suspenso; mantém `<details>` abertos até mudar de módulo em `showMainView`. */
       function closeAppHeaderMenu() {
