@@ -9,8 +9,20 @@
   let financeFilterPeriodo = "";
   let financeSortReceber = "vencimento";
 
+  let finPagarBusca = "";
+  let finPagarStatus = "";
+  let finPagarCategoria = "";
+  let finPagarFornecedor = "";
+  let finPagarConta = "";
+  let finPagarPeriodoDe = "";
+  let finPagarPeriodoAte = "";
+
   function financeRoot() {
     return document.getElementById("viewFinanceiro");
+  }
+
+  function financeTodayYmd() {
+    return toLocalYmd(new Date().toISOString());
   }
 
   function financeVehicleById() {
@@ -28,6 +40,54 @@
     return vehicleRpfNome(vehicle) !== "—" ? vehicleRpfNome(vehicle) : ass !== "—" ? ass : loc;
   }
 
+  function financePayableMeta(p) {
+    return financeMetaUnpack(p?.observacoes || "");
+  }
+
+  function financePayableContaBancaria(p) {
+    const { meta } = financePayableMeta(p);
+    return meta.conta_bancaria || state.settings?.conta_bancaria || "Caixa";
+  }
+
+  function financePayablePaidSum(payableId) {
+    return (state.cash || [])
+      .filter((m) => m.tipo_conta === "PAGAR" && String(m.conta_id) === String(payableId))
+      .reduce((s, m) => s + Number(m.valor || 0), 0);
+  }
+
+  function financePayableDisplayStatus(p) {
+    if (!p) return "—";
+    const st = String(p.status || "").toUpperCase();
+    if (st === "PAGO") return "Pago";
+    const valor = Number(p.valor || 0);
+    const paid = financePayablePaidSum(p.id);
+    if (paid > 0 && paid < valor) return "Parcial";
+    const due = financeContaDueYmd(p, "payable");
+    const today = financeTodayYmd();
+    if (due && today && due < today) return "Vencido";
+    return "Pendente";
+  }
+
+  function financePayableStatusClass(st) {
+    if (st === "Pago") return "fin-tag fin-tag--ok";
+    if (st === "Vencido") return "fin-tag fin-tag--late";
+    if (st === "Parcial") return "fin-tag fin-tag--partial";
+    return "fin-tag fin-tag--open";
+  }
+
+  function financeRecorrenciaLabel(p) {
+    const { meta } = financePayableMeta(p);
+    const iv = String(meta.recorrencia || "mensal").toLowerCase();
+    const map = { semanal: "Semanal", quinzenal: "Quinzenal", mensal: "Mensal", anual: "Anual" };
+    return map[iv] || "Mensal";
+  }
+
+  function financeIsRecorrente(p) {
+    const tipo = String(p?.tipo || "").toUpperCase();
+    if (tipo === "RECORRENTE") return true;
+    return financeEntryModoFromRecord(p, "payable") === "RECORRENTE";
+  }
+
   /** Veículos no pátio gerando receita (não é conta a receber ainda). */
   function financeVehiclesEmGeracao() {
     const statuses = ["NO_PATIO", "LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA"];
@@ -36,16 +96,9 @@
       .map((v) => {
         const dias = Math.max(
           1,
-          Math.ceil(
-            (Date.now() - new Date(v.data_entrada || Date.now()).getTime()) / 86400000
-          )
+          Math.ceil((Date.now() - new Date(v.data_entrada || Date.now()).getTime()) / 86400000)
         );
-        return {
-          vehicle: v,
-          dias,
-          valor: calcTotal(v),
-          instituicao: financeInstituicaoNome(v),
-        };
+        return { vehicle: v, dias, valor: calcTotal(v), instituicao: financeInstituicaoNome(v) };
       })
       .sort((a, b) => String(b.vehicle.data_entrada || "").localeCompare(String(a.vehicle.data_entrada || "")));
   }
@@ -60,7 +113,7 @@
     if (!r) return "—";
     if (r.status === "PAGO") return "Recebido";
     const due = financeContaDueYmd(r, "receivable");
-    const today = toLocalYmd(new Date().toISOString());
+    const today = financeTodayYmd();
     if (due && today && due < today) return "Atrasado";
     return "Pendente";
   }
@@ -78,14 +131,7 @@
     if (q) {
       list = list.filter((r) => {
         const v = vmap.get(r.vehicle_id);
-        const blob = [
-          r.responsavel_pagamento,
-          r.observacoes,
-          v?.placa,
-          v?.marca,
-          v?.modelo,
-          financeInstituicaoNome(v),
-        ]
+        const blob = [r.responsavel_pagamento, r.observacoes, v?.placa, v?.marca, v?.modelo, financeInstituicaoNome(v)]
           .join(" ")
           .toLowerCase();
         return blob.includes(q);
@@ -110,6 +156,66 @@
     return list;
   }
 
+  function financeContasPagarList() {
+    let list = [...(state.payables || [])];
+    const q = finPagarBusca.trim().toLowerCase();
+    if (q) {
+      list = list.filter((p) => {
+        const blob = [p.fornecedor, p.descricao, payableCategoryLabel(p.payable_category), p.observacoes]
+          .join(" ")
+          .toLowerCase();
+        return blob.includes(q);
+      });
+    }
+    if (finPagarCategoria) {
+      list = list.filter((p) => String(p.payable_category || "OUTROS") === finPagarCategoria);
+    }
+    if (finPagarFornecedor.trim()) {
+      const f = finPagarFornecedor.trim().toLowerCase();
+      list = list.filter((p) => String(p.fornecedor || "").toLowerCase().includes(f));
+    }
+    if (finPagarConta.trim()) {
+      const c = finPagarConta.trim().toLowerCase();
+      list = list.filter((p) => financePayableContaBancaria(p).toLowerCase().includes(c));
+    }
+    if (finPagarPeriodoDe) {
+      list = list.filter((p) => {
+        const due = financeContaDueYmd(p, "payable");
+        return due && due >= finPagarPeriodoDe;
+      });
+    }
+    if (finPagarPeriodoAte) {
+      list = list.filter((p) => {
+        const due = financeContaDueYmd(p, "payable");
+        return due && due <= finPagarPeriodoAte;
+      });
+    }
+    if (finPagarStatus) {
+      list = list.filter((p) => {
+        const st = financePayableDisplayStatus(p);
+        if (finPagarStatus === "pendente") return st === "Pendente";
+        if (finPagarStatus === "vencido") return st === "Vencido";
+        if (finPagarStatus === "vencendo_hoje") {
+          const due = financeContaDueYmd(p, "payable");
+          return st !== "Pago" && due === financeTodayYmd();
+        }
+        if (finPagarStatus === "pago") return st === "Pago";
+        if (finPagarStatus === "parcial") return st === "Parcial";
+        return true;
+      });
+    }
+    list.sort((a, b) => {
+      const da = financeContaDueYmd(a, "payable") || "9999-99-99";
+      const db = financeContaDueYmd(b, "payable") || "9999-99-99";
+      return da.localeCompare(db);
+    });
+    return list;
+  }
+
+  function financePayablesAbertas() {
+    return (state.payables || []).filter((p) => financePayableDisplayStatus(p) !== "Pago");
+  }
+
   function financeHistoricoRecebidos() {
     return (state.receivables || []).filter((r) => r.status === "PAGO" && r.vehicle_id);
   }
@@ -118,52 +224,123 @@
     return (state.cash || []).filter((m) => m.tipo_conta === "RECEBER");
   }
 
+  function financeCaixaSaidas() {
+    return (state.cash || []).filter((m) => m.tipo_conta === "PAGAR");
+  }
+
   function financeSaldoCaixa() {
+    const ent = financeCaixaEntradas().reduce((s, m) => s + Number(m.valor || 0), 0);
+    const sai = financeCaixaSaidas().reduce((s, m) => s + Number(m.valor || 0), 0);
+    return ent - sai;
+  }
+
+  function financeTotalEntradas() {
     return financeCaixaEntradas().reduce((s, m) => s + Number(m.valor || 0), 0);
   }
 
+  function financeTotalSaidas() {
+    return financeCaixaSaidas().reduce((s, m) => s + Number(m.valor || 0), 0);
+  }
+
   function financeRecebidoMesAtual() {
-    const ym = yearMonthFromYmd(toLocalYmd(new Date().toISOString()));
+    const ym = yearMonthFromYmd(financeTodayYmd());
     return sumReceivableRevenueByMonth(ym, state.receivables || [], state.cash || []);
   }
 
+  function financeDespesasMesAtual() {
+    const ym = yearMonthFromYmd(financeTodayYmd());
+    return financeCaixaSaidas()
+      .filter((m) => yearMonthFromYmd(toLocalYmd(m.data_movimento || m.created_at)) === ym)
+      .reduce((s, m) => s + Number(m.valor || 0), 0);
+  }
+
   function financeRecebidoHoje() {
-    const today = toLocalYmd(new Date().toISOString());
+    const today = financeTodayYmd();
     return sumReceivableRevenueByDay(today, state.receivables || [], state.cash || []);
+  }
+
+  function financePayableAlerts() {
+    const today = financeTodayYmd();
+    const abertas = financePayablesAbertas();
+    let vencidas = 0;
+    let venceHoje = 0;
+    let proximas = 0;
+    let totalVencidas = 0;
+    abertas.forEach((p) => {
+      const due = financeContaDueYmd(p, "payable");
+      const val = Number(p.valor || 0);
+      if (!due) return;
+      if (due < today) {
+        vencidas++;
+        totalVencidas += val;
+      } else if (due === today) {
+        venceHoje++;
+      } else {
+        const days = Math.floor((new Date(`${due}T00:00:00`) - new Date(`${today}T00:00:00`)) / 86400000);
+        if (days <= 7) proximas++;
+      }
+    });
+    return { vencidas, venceHoje, proximas, totalVencidas };
   }
 
   function financeMetrics() {
     const emGeracao = financeVehiclesEmGeracao();
-    const contas = financeContasReceberList();
+    const contasRec = financeContasReceberList();
+    const abertas = financePayablesAbertas();
+    const alerts = financePayableAlerts();
     const totalGeracao = emGeracao.reduce((s, x) => s + x.valor, 0);
-    const totalReceber = contas.reduce((s, r) => s + Number(r.valor || 0), 0);
-    const pendentes = contas.filter((r) => financeReceivableDisplayStatus(r) !== "Recebido").length;
+    const totalReceber = contasRec.reduce((s, r) => s + Number(r.valor || 0), 0);
+    const totalPagar = abertas.reduce((s, p) => s + Number(p.valor || 0), 0);
+    const pendentes = contasRec.filter((r) => financeReceivableDisplayStatus(r) !== "Recebido").length;
     const recebidosMes = financeHistoricoRecebidos().filter((r) => {
       const ym = yearMonthFromYmd(toLocalYmd(r.updated_at || r.created_at));
-      return ym === yearMonthFromYmd(toLocalYmd(new Date().toISOString()));
+      return ym === yearMonthFromYmd(financeTodayYmd());
     }).length;
     return {
       totalGeracao,
       totalReceber,
+      totalPagar,
       recebidoMes: financeRecebidoMesAtual(),
+      despesasMes: financeDespesasMesAtual(),
       veiculosPatio: emGeracao.length,
       pendentes,
       recebidosMes,
       saldo: financeSaldoCaixa(),
+      entradas: financeTotalEntradas(),
+      saidas: financeTotalSaidas(),
       recebidoHoje: financeRecebidoHoje(),
+      vencidas: alerts.vencidas,
+      venceHoje: alerts.venceHoje,
+      proximas: alerts.proximas,
+      totalVencidas: alerts.totalVencidas,
     };
   }
 
   function financeDiariasFromReceivable(r, vehicle) {
-        const br = receivableFinanceBreakdown(r);
+    const br = receivableFinanceBreakdown(r);
     if (br?.dias) return br.dias;
     if (r.period_start && r.period_end) {
       const d1 = new Date(r.period_start);
       const d2 = new Date(r.period_end);
       return Math.max(1, Math.ceil((d2 - d1) / 86400000));
     }
-    if (vehicle) return Math.max(1, Math.ceil((new Date(vehicle.data_saida || Date.now()) - new Date(vehicle.data_entrada)) / 86400000));
+    if (vehicle) {
+      return Math.max(
+        1,
+        Math.ceil((new Date(vehicle.data_saida || Date.now()) - new Date(vehicle.data_entrada)) / 86400000)
+      );
+    }
     return "—";
+  }
+
+  function financePopulateCategoriaFilter() {
+    const sel = document.getElementById("finPagarCategoria");
+    if (!sel || sel.dataset.filled) return;
+    const cats = typeof getLancDespesaCategorias === "function" ? getLancDespesaCategorias() : [];
+    sel.innerHTML =
+      `<option value="">Todas</option>` +
+      cats.map((c) => `<option value="${escapeHtml(c.value)}">${escapeHtml(c.label)}</option>`).join("");
+    sel.dataset.filled = "1";
   }
 
   function financeRenderDashboard() {
@@ -171,12 +348,14 @@
     const el = document.getElementById("finDashCards");
     if (!el) return;
     el.innerHTML = `
-      <div class="fin-card fin-card--gen"><span class="fin-card-label">Receita em geração</span><strong>${escapeHtml(formatCurrency(m.totalGeracao))}</strong><small>${m.veiculosPatio} veículo(s) no pátio</small></div>
-      <div class="fin-card fin-card--recv"><span class="fin-card-label">Contas a receber</span><strong>${escapeHtml(formatCurrency(m.totalReceber))}</strong><small>${m.pendentes} cobrança(s) pendente(s)</small></div>
-      <div class="fin-card fin-card--month"><span class="fin-card-label">Recebido no mês</span><strong>${escapeHtml(formatCurrency(m.recebidoMes))}</strong><small>pagamentos confirmados</small></div>
-      <div class="fin-card fin-card--today"><span class="fin-card-label">Recebido hoje</span><strong>${escapeHtml(formatCurrency(m.recebidoHoje))}</strong><small>entradas do dia</small></div>
-      <div class="fin-card fin-card--saldo"><span class="fin-card-label">Saldo caixa</span><strong>${escapeHtml(formatCurrency(m.saldo))}</strong><small>histórico de recebimentos</small></div>
-      <div class="fin-card fin-card--count"><span class="fin-card-label">Recebidas no mês</span><strong>${m.recebidosMes}</strong><small>cobranças quitadas</small></div>
+      <div class="fin-card fin-card--recv"><span class="fin-card-label">Total a receber</span><strong>${escapeHtml(formatCurrency(m.totalReceber))}</strong><small>${m.pendentes} pendente(s)</small></div>
+      <div class="fin-card fin-card--pay"><span class="fin-card-label">Total a pagar</span><strong>${escapeHtml(formatCurrency(m.totalPagar))}</strong><small>${m.vencidas} vencida(s)</small></div>
+      <div class="fin-card fin-card--month"><span class="fin-card-label">Receitas do mês</span><strong>${escapeHtml(formatCurrency(m.recebidoMes))}</strong><small>entradas confirmadas</small></div>
+      <div class="fin-card fin-card--expense"><span class="fin-card-label">Despesas do mês</span><strong>${escapeHtml(formatCurrency(m.despesasMes))}</strong><small>saídas registradas</small></div>
+      <div class="fin-card fin-card--saldo"><span class="fin-card-label">Saldo atual</span><strong>${escapeHtml(formatCurrency(m.saldo))}</strong><small>entradas − saídas</small></div>
+      <div class="fin-card fin-card--gen"><span class="fin-card-label">Receita em geração</span><strong>${escapeHtml(formatCurrency(m.totalGeracao))}</strong><small>${m.veiculosPatio} no pátio</small></div>
+      <div class="fin-card fin-card--late"><span class="fin-card-label">Contas vencidas</span><strong>${m.vencidas}</strong><small>${escapeHtml(formatCurrency(m.totalVencidas))}</small></div>
+      <div class="fin-card fin-card--today"><span class="fin-card-label">Vencendo hoje</span><strong>${m.venceHoje}</strong><small>${m.proximas} nos próximos 7 dias</small></div>
     `;
     const period = document.getElementById("finChartPeriod")?.value || "mes";
     if (typeof renderDashboardFinanceCharts === "function") {
@@ -232,6 +411,10 @@
         const st = financeReceivableDisplayStatus(r);
         const due = financeContaDueYmd(r, "receivable");
         const dias = financeDiariasFromReceivable(r, v);
+        const btnPay =
+          st !== "Recebido"
+            ? `<div style="margin-top:6px"><button type="button" class="secondary fin-btn-confirm" data-fin-receber-id="${escapeHtml(String(r.id))}">Confirmar pagamento</button></div>`
+            : "";
         return `<tr>
           <td data-label="Veículo"><strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span></td>
           <td data-label="Financeira / banco">${escapeHtml(financeInstituicaoNome(v))}</td>
@@ -240,44 +423,268 @@
           <td data-label="Diárias">${escapeHtml(String(dias))}</td>
           <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
           <td data-label="Vencimento">${escapeHtml(due ? formatDate(due) : "—")}</td>
-          <td data-label="Status"><span class="${financeReceivableStatusClass(st)}">${escapeHtml(st)}</span>
-            <div style="margin-top:6px"><button type="button" class="secondary fin-btn-confirm" data-fin-receber-id="${escapeHtml(String(r.id))}">Confirmar pagamento</button></div>
-          </td>
+          <td data-label="Status"><span class="${financeReceivableStatusClass(st)}">${escapeHtml(st)}</span>${btnPay}</td>
         </tr>`;
       })
       .join("");
   }
 
-  function financeRenderCaixa() {
-    const body = document.getElementById("finCaixaBody");
-    const saldoEl = document.getElementById("finCaixaSaldo");
-    const m = financeMetrics();
-    if (saldoEl) saldoEl.textContent = formatCurrency(m.saldo);
+  function financeRenderPagarAlerts() {
+    const el = document.getElementById("finPagarAlerts");
+    if (!el) return;
+    const a = financePayableAlerts();
+    el.innerHTML = `
+      <div class="fin-alert fin-alert--late"><span>Vencidas</span><strong>${a.vencidas}</strong></div>
+      <div class="fin-alert fin-alert--today"><span>Vencem hoje</span><strong>${a.venceHoje}</strong></div>
+      <div class="fin-alert fin-alert--soon"><span>Próximos 7 dias</span><strong>${a.proximas}</strong></div>
+    `;
+  }
+
+  function financeRenderPagar() {
+    financePopulateCategoriaFilter();
+    financeRenderPagarAlerts();
+    const body = document.getElementById("finPagarBody");
+    const totalEl = document.getElementById("finPagarTotal");
     if (!body) return;
-    let movs = [...financeCaixaEntradas()].sort(
-      (a, b) => String(b.data_movimento || b.created_at).localeCompare(String(a.data_movimento || a.created_at))
-    );
-    if (financeFilterPeriodo) {
-      movs = movs.filter((m) => yearMonthFromYmd(toLocalYmd(m.data_movimento || m.created_at)) === financeFilterPeriodo);
-    }
-    if (!movs.length) {
-      body.innerHTML = `<tr><td colspan="5" class="notice">Nenhuma entrada registrada. Confirme pagamentos em Contas a receber.</td></tr>`;
+    const list = financeContasPagarList();
+    const abertas = list.filter((p) => financePayableDisplayStatus(p) !== "Pago");
+    if (totalEl) totalEl.textContent = formatCurrency(abertas.reduce((s, p) => s + Number(p.valor || 0), 0));
+    if (!list.length) {
+      body.innerHTML = `<tr><td colspan="9" class="notice">Nenhuma despesa cadastrada. Clique em «Nova despesa» para começar.</td></tr>`;
       return;
     }
-    body.innerHTML = movs
-      .slice(0, 200)
-      .map((m) => {
-        const rec = (state.receivables || []).find((r) => String(r.id) === String(m.conta_id));
-        const v = rec ? financeVehicleById().get(rec.vehicle_id) : null;
+    body.innerHTML = list
+      .map((p) => {
+        const st = financePayableDisplayStatus(p);
+        const due = financeContaDueYmd(p, "payable");
+        const btnPay =
+          st !== "Pago"
+            ? `<button type="button" class="secondary fin-btn-pagar" data-fin-pagar-id="${escapeHtml(String(p.id))}">Pagar</button>`
+            : "";
         return `<tr>
-          <td data-label="Data">${escapeHtml(formatDate(m.data_movimento || m.created_at))}</td>
-          <td data-label="Descrição">${escapeHtml(m.descricao || rec?.responsavel_pagamento || "Recebimento")}${v ? `<br /><span class="notice">${escapeHtml(v.placa || "")}</span>` : ""}</td>
-          <td data-label="Forma">${escapeHtml(m.forma_pagamento || "—")}</td>
-          <td data-label="Valor">${escapeHtml(formatCurrency(Number(m.valor || 0)))}</td>
-          <td data-label="Conta">${escapeHtml(state.settings?.conta_bancaria || "Caixa")}</td>
+          <td data-label="Fornecedor">${escapeHtml(p.fornecedor || "—")}</td>
+          <td data-label="Descrição">${escapeHtml(p.descricao || "—")}</td>
+          <td data-label="Categoria">${escapeHtml(payableCategoryLabel(p.payable_category))}</td>
+          <td data-label="Valor">${escapeHtml(formatCurrency(Number(p.valor || 0)))}</td>
+          <td data-label="Vencimento">${escapeHtml(due ? formatDate(due) : "—")}</td>
+          <td data-label="Forma">${escapeHtml(p.forma_pagamento || "—")}</td>
+          <td data-label="Conta">${escapeHtml(financePayableContaBancaria(p))}</td>
+          <td data-label="Status"><span class="${financePayableStatusClass(st)}">${escapeHtml(st)}</span></td>
+          <td data-label="">${btnPay}</td>
         </tr>`;
       })
       .join("");
+  }
+
+  function financeRenderRecorrentes() {
+    const body = document.getElementById("finRecorrentesBody");
+    if (!body) return;
+    const list = (state.payables || [])
+      .filter((p) => financeIsRecorrente(p))
+      .sort((a, b) => {
+        const da = financeContaDueYmd(a, "payable") || "9999-99-99";
+        const db = financeContaDueYmd(b, "payable") || "9999-99-99";
+        return da.localeCompare(db);
+      });
+    if (!list.length) {
+      body.innerHTML = `<tr><td colspan="8" class="notice">Nenhuma despesa recorrente. Use «Nova recorrente» para cadastrar aluguel, internet, salários etc.</td></tr>`;
+      return;
+    }
+    body.innerHTML = list
+      .map((p) => {
+        const st = financePayableDisplayStatus(p);
+        const due = financeContaDueYmd(p, "payable");
+        const btnPay =
+          st !== "Pago"
+            ? `<button type="button" class="secondary fin-btn-pagar" data-fin-pagar-id="${escapeHtml(String(p.id))}">Pagar</button>`
+            : "";
+        return `<tr>
+          <td data-label="Descrição">${escapeHtml(p.descricao || "—")}</td>
+          <td data-label="Fornecedor">${escapeHtml(p.fornecedor || "—")}</td>
+          <td data-label="Categoria">${escapeHtml(payableCategoryLabel(p.payable_category))}</td>
+          <td data-label="Valor">${escapeHtml(formatCurrency(Number(p.valor || 0)))}</td>
+          <td data-label="Recorrência">${escapeHtml(financeRecorrenciaLabel(p))}</td>
+          <td data-label="Próximo vencimento">${escapeHtml(due ? formatDate(due) : "—")}</td>
+          <td data-label="Status"><span class="${financePayableStatusClass(st)}">${escapeHtml(st)}</span></td>
+          <td data-label="">${btnPay}</td>
+        </tr>`;
+      })
+      .join("");
+  }
+
+  function financeMovContaLabel(m) {
+    if (m.tipo_conta === "RECEBER") {
+      const rec = (state.receivables || []).find((r) => String(r.id) === String(m.conta_id));
+      return state.settings?.conta_bancaria || "Caixa";
+    }
+    const pay = (state.payables || []).find((p) => String(p.id) === String(m.conta_id));
+    return pay ? financePayableContaBancaria(pay) : state.settings?.conta_bancaria || "Caixa";
+  }
+
+  function financeRenderCaixa() {
+    const body = document.getElementById("finCaixaBody");
+    const summaryEl = document.getElementById("finCaixaSummary");
+    const m = financeMetrics();
+    if (summaryEl) {
+      const saldoPorConta = new Map();
+      const defaultConta = state.settings?.conta_bancaria || "Caixa";
+      saldoPorConta.set(defaultConta, 0);
+      (state.cash || []).forEach((mov) => {
+        const conta = financeMovContaLabel(mov);
+        const signed = mov.tipo_conta === "PAGAR" ? -Number(mov.valor || 0) : Number(mov.valor || 0);
+        saldoPorConta.set(conta, (saldoPorConta.get(conta) || 0) + signed);
+      });
+      const contasHtml = [...saldoPorConta.entries()]
+        .map(([nome, val]) => `<p><strong>${escapeHtml(nome)}:</strong> ${escapeHtml(formatCurrency(val))}</p>`)
+        .join("");
+      summaryEl.innerHTML = `
+        <p><strong>Saldo atual:</strong> ${escapeHtml(formatCurrency(m.saldo))}</p>
+        <p><strong>Entradas totais:</strong> <span class="fin-val-entrada">${escapeHtml(formatCurrency(m.entradas))}</span></p>
+        <p><strong>Saídas totais:</strong> <span class="fin-val-saida">${escapeHtml(formatCurrency(m.saidas))}</span></p>
+        ${contasHtml}
+      `;
+    }
+    if (!body) return;
+    let movs = [...(state.cash || [])].sort((a, b) =>
+      String(b.data_movimento || b.created_at).localeCompare(String(a.data_movimento || a.created_at))
+    );
+    if (financeFilterPeriodo) {
+      movs = movs.filter(
+        (mov) => yearMonthFromYmd(toLocalYmd(mov.data_movimento || mov.created_at)) === financeFilterPeriodo
+      );
+    }
+    if (!movs.length) {
+      body.innerHTML = `<tr><td colspan="6" class="notice">Nenhuma movimentação registrada.</td></tr>`;
+      return;
+    }
+    body.innerHTML = movs
+      .slice(0, 300)
+      .map((mov) => {
+        const isEntrada = mov.tipo_conta === "RECEBER";
+        const rec = isEntrada ? (state.receivables || []).find((r) => String(r.id) === String(mov.conta_id)) : null;
+        const pay = !isEntrada ? (state.payables || []).find((p) => String(p.id) === String(mov.conta_id)) : null;
+        const v = rec ? financeVehicleById().get(rec.vehicle_id) : null;
+        const tipoLabel = isEntrada ? "Entrada" : "Saída";
+        const tipoClass = isEntrada ? "fin-val-entrada" : "fin-val-saida";
+        const valSigned = isEntrada ? Number(mov.valor || 0) : -Number(mov.valor || 0);
+        let desc = mov.descricao || (isEntrada ? rec?.responsavel_pagamento : pay?.descricao) || "—";
+        if (v) desc += `<br /><span class="notice">${escapeHtml(v.placa || "")}</span>`;
+        return `<tr>
+          <td data-label="Data">${escapeHtml(formatDate(mov.data_movimento || mov.created_at))}</td>
+          <td data-label="Tipo"><span class="${tipoClass}">${tipoLabel}</span></td>
+          <td data-label="Descrição">${desc}</td>
+          <td data-label="Forma">${escapeHtml(mov.forma_pagamento || "—")}</td>
+          <td data-label="Valor"><span class="${tipoClass}">${escapeHtml(formatCurrency(valSigned))}</span></td>
+          <td data-label="Conta">${escapeHtml(financeMovContaLabel(mov))}</td>
+        </tr>`;
+      })
+      .join("");
+  }
+
+  function financeOpenDespesaModal(presetRecorrente) {
+    const modal = document.getElementById("finDespesaModal");
+    const form = document.getElementById("finDespesaForm");
+    if (!modal || !form) return;
+    form.reset();
+    const today = financeTodayYmd();
+    const venc = document.getElementById("finDespVencimento");
+    const conta = document.getElementById("finDespConta");
+    const modo = document.getElementById("finDespModo");
+    const cat = document.getElementById("finDespCategoria");
+    if (venc) venc.value = today;
+    if (conta) conta.value = state.settings?.conta_bancaria || "";
+    if (modo) modo.value = presetRecorrente ? "RECORRENTE" : "UNICA";
+    if (cat && typeof getLancDespesaCategorias === "function") {
+      const cats = getLancDespesaCategorias();
+      cat.innerHTML = cats.map((c) => `<option value="${escapeHtml(c.value)}">${escapeHtml(c.label)}</option>`).join("");
+    }
+    financeSyncDespesaModoFields();
+    const title = document.getElementById("finDespesaModalTitle");
+    if (title) title.textContent = presetRecorrente ? "Nova despesa recorrente" : "Nova despesa";
+    if (modal.parentElement !== document.body) document.body.appendChild(modal);
+    modal.classList.remove("hidden");
+  }
+
+  function financeCloseDespesaModal() {
+    document.getElementById("finDespesaModal")?.classList.add("hidden");
+  }
+
+  function financeSyncDespesaModoFields() {
+    const modo = document.getElementById("finDespModo")?.value || "UNICA";
+    document.getElementById("finDespRecorrenciaWrap")?.classList.toggle("hidden", modo !== "RECORRENTE");
+    document.getElementById("finDespParcelasWrap")?.classList.toggle("hidden", modo !== "PARCELADA");
+  }
+
+  function financeExportCsv(rows, filename) {
+    if (!rows.length) {
+      alert("Nada para exportar com os filtros atuais.");
+      return;
+    }
+    const csv = rows.map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";")).join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  function financeExportCurrentView() {
+    const view = currentFinanceView;
+    if (view === "pagar" || view === "recorrentes") {
+      const list = view === "recorrentes" ? (state.payables || []).filter(financeIsRecorrente) : financeContasPagarList();
+      const header = ["Fornecedor", "Descrição", "Categoria", "Valor", "Vencimento", "Forma", "Conta", "Status"];
+      const rows = [
+        header,
+        ...list.map((p) => [
+          p.fornecedor || "",
+          p.descricao || "",
+          payableCategoryLabel(p.payable_category),
+          Number(p.valor || 0).toFixed(2),
+          financeContaDueYmd(p, "payable"),
+          p.forma_pagamento || "",
+          financePayableContaBancaria(p),
+          financePayableDisplayStatus(p),
+        ]),
+      ];
+      financeExportCsv(rows, `contas-a-pagar-${financeTodayYmd()}.csv`);
+      return;
+    }
+    if (view === "receber") {
+      const list = financeContasReceberList();
+      const vmap = financeVehicleById();
+      const rows = [
+        ["Placa", "Financeira", "Valor", "Vencimento", "Status"],
+        ...list.map((r) => {
+          const v = vmap.get(r.vehicle_id);
+          return [
+            v?.placa || "",
+            financeInstituicaoNome(v),
+            Number(r.valor || 0).toFixed(2),
+            financeContaDueYmd(r, "receivable"),
+            financeReceivableDisplayStatus(r),
+          ];
+        }),
+      ];
+      financeExportCsv(rows, `contas-a-receber-${financeTodayYmd()}.csv`);
+      return;
+    }
+    if (view === "caixa") {
+      const rows = [
+        ["Data", "Tipo", "Descrição", "Forma", "Valor", "Conta"],
+        ...(state.cash || []).map((m) => [
+          toLocalYmd(m.data_movimento || m.created_at),
+          m.tipo_conta === "RECEBER" ? "Entrada" : "Saída",
+          m.descricao || "",
+          m.forma_pagamento || "",
+          Number(m.valor || 0).toFixed(2),
+          financeMovContaLabel(m),
+        ]),
+      ];
+      financeExportCsv(rows, `fluxo-caixa-${financeTodayYmd()}.csv`);
+      return;
+    }
+    alert("Abra Contas a pagar, Contas a receber ou Caixa para exportar.");
   }
 
   function financePrintSubview() {
@@ -300,6 +707,8 @@
     if (currentFinanceView === "dashboard") financeRenderDashboard();
     else if (currentFinanceView === "em_patio") financeRenderEmPatio();
     else if (currentFinanceView === "receber") financeRenderReceber();
+    else if (currentFinanceView === "pagar") financeRenderPagar();
+    else if (currentFinanceView === "recorrentes") financeRenderRecorrentes();
     else if (currentFinanceView === "caixa") financeRenderCaixa();
   };
 
@@ -346,22 +755,117 @@
       financeRenderCaixa();
     });
     document.getElementById("finChartPeriod")?.addEventListener("change", () => financeRenderDashboard());
+
+    const pagarFilterIds = [
+      ["finPagarBusca", (v) => { finPagarBusca = v; }],
+      ["finPagarStatus", (v) => { finPagarStatus = v; }],
+      ["finPagarCategoria", (v) => { finPagarCategoria = v; }],
+      ["finPagarFornecedor", (v) => { finPagarFornecedor = v; }],
+      ["finPagarConta", (v) => { finPagarConta = v; }],
+      ["finPagarPeriodoDe", (v) => { finPagarPeriodoDe = v; }],
+      ["finPagarPeriodoAte", (v) => { finPagarPeriodoAte = v; }],
+    ];
+    pagarFilterIds.forEach(([id, setter]) => {
+      document.getElementById(id)?.addEventListener("input", (e) => {
+        setter(e.target.value || "");
+        if (currentFinanceView === "pagar") financeRenderPagar();
+      });
+      document.getElementById(id)?.addEventListener("change", (e) => {
+        setter(e.target.value || "");
+        if (currentFinanceView === "pagar") financeRenderPagar();
+      });
+    });
+
+    document.getElementById("finBtnNovaDespesa")?.addEventListener("click", () => financeOpenDespesaModal(false));
+    document.getElementById("finBtnNovaRecorrente")?.addEventListener("click", () => financeOpenDespesaModal(true));
+    document.getElementById("finDespModo")?.addEventListener("change", financeSyncDespesaModoFields);
+    document.getElementById("closeFinDespesaModal")?.addEventListener("click", financeCloseDespesaModal);
+    document.getElementById("cancelFinDespesaModal")?.addEventListener("click", financeCloseDespesaModal);
+
+    document.getElementById("finDespesaForm")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const descricao = document.getElementById("finDespDescricao")?.value?.trim();
+      const valor = Number(document.getElementById("finDespValor")?.value);
+      const vencimento = document.getElementById("finDespVencimento")?.value;
+      const categoria = document.getElementById("finDespCategoria")?.value;
+      const fornecedor = document.getElementById("finDespFornecedor")?.value?.trim();
+      const formaPagamento = document.getElementById("finDespForma")?.value || "PIX";
+      const observacoes = document.getElementById("finDespObs")?.value?.trim() || "";
+      const contaBancaria = document.getElementById("finDespConta")?.value?.trim() || "";
+      const modo = document.getElementById("finDespModo")?.value || "UNICA";
+      const recorrenciaIntervalo = document.getElementById("finDespRecorrencia")?.value || "mensal";
+      const parcelas = Number(document.getElementById("finDespParcelas")?.value) || 2;
+      if (!descricao || !vencimento || !Number.isFinite(valor) || valor <= 0) {
+        alert("Preencha descrição, valor e vencimento.");
+        return;
+      }
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+      try {
+        const result = await insertManualPayableLancamento({
+          descricao,
+          valor,
+          vencimento,
+          categoria,
+          fornecedor,
+          formaPagamento,
+          observacoes,
+          pago: false,
+          modo,
+          parcelas,
+          recorrenciaIntervalo,
+          contaBancaria,
+        });
+        if (result.error) {
+          alert(result.error.message || "Não foi possível salvar a despesa.");
+          return;
+        }
+        const anexo = await readFinanceFileInput(document.getElementById("finDespAnexo"));
+        if (anexo && result.ids?.length) {
+          for (const pid of result.ids) await financeAttachmentSave("payable", pid, anexo);
+        } else if (anexo && result.id) {
+          await financeAttachmentSave("payable", result.id, anexo);
+        }
+        financeCloseDespesaModal();
+        await Promise.all([loadPayables(), loadCash()]);
+        renderFinance();
+        updateDashboard?.();
+        if (modo === "RECORRENTE") setFinanceView("recorrentes");
+        else setFinanceView("pagar");
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+
     document.getElementById("finBtnPrint")?.addEventListener("click", financePrintSubview);
     document.getElementById("finBtnPdf")?.addEventListener("click", financeExportPdfHint);
+    document.getElementById("finBtnExcel")?.addEventListener("click", financeExportCurrentView);
     document.getElementById("finBtnRefresh")?.addEventListener("click", async () => {
-      await Promise.all([loadReceivables(), loadCash(), loadVehicles()]);
+      await Promise.all([loadReceivables(), loadPayables(), loadCash(), loadVehicles()]);
       renderFinance();
       updateDashboard?.();
     });
 
     document.getElementById("viewFinanceiro")?.addEventListener("click", async (e) => {
-      const btn = e.target.closest("[data-fin-receber-id]");
-      if (!btn) return;
-      const id = btn.getAttribute("data-fin-receber-id");
-      const r = (state.receivables || []).find((x) => String(x.id) === String(id));
-      if (!r) return;
-      const v = financeVehicleById().get(r.vehicle_id);
-      openReceberBaixaModal({ receivable: r, vehicle: v, valor: r.valor });
+      const btnRec = e.target.closest("[data-fin-receber-id]");
+      if (btnRec) {
+        const id = btnRec.getAttribute("data-fin-receber-id");
+        const r = (state.receivables || []).find((x) => String(x.id) === String(id));
+        if (!r) return;
+        const v = financeVehicleById().get(r.vehicle_id);
+        openReceberBaixaModal({ receivable: r, vehicle: v, valor: r.valor });
+        return;
+      }
+      const btnPag = e.target.closest("[data-fin-pagar-id]");
+      if (btnPag) {
+        const id = btnPag.getAttribute("data-fin-pagar-id");
+        const p = (state.payables || []).find((x) => String(x.id) === String(id));
+        if (p) openPagarBaixaModal(p);
+      }
+    });
+
+    document.getElementById("finDespesaModal")?.addEventListener("click", (e) => {
+      if (e.target.id === "finDespesaModal") financeCloseDespesaModal();
     });
   };
 

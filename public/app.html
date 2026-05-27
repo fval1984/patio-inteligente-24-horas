@@ -3982,6 +3982,24 @@
       .fin-tag--open { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
       .fin-tag--late { background: rgba(248, 113, 113, 0.15); color: #f87171; }
       .fin-tag--ok { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+      .fin-tag--partial { background: rgba(167, 139, 250, 0.15); color: #a78bfa; }
+      .fin-alert-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+      .fin-alert {
+        flex: 1 1 140px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        font-size: 0.85rem;
+      }
+      .fin-alert strong { display: block; font-size: 1.05rem; margin-top: 2px; }
+      .fin-alert--late { border-color: rgba(248, 113, 113, 0.45); }
+      .fin-alert--today { border-color: rgba(251, 191, 36, 0.45); }
+      .fin-alert--soon { border-color: rgba(56, 189, 248, 0.45); }
+      .fin-val-entrada { color: #34d399; font-weight: 600; }
+      .fin-val-saida { color: #f87171; font-weight: 600; }
+      .fin-caixa-summary { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 12px; }
+      .fin-caixa-summary p { margin: 0; font-size: 0.9rem; }
       .fin-charts-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -4680,6 +4698,8 @@
                   <button type="button" data-finance-subview="dashboard">Dashboard</button>
                   <button type="button" data-finance-subview="em_patio">Receita em geração</button>
                   <button type="button" data-finance-subview="receber">Contas a receber</button>
+                  <button type="button" data-finance-subview="pagar">Contas a pagar</button>
+                  <button type="button" data-finance-subview="recorrentes">Recorrentes</button>
                   <button type="button" data-finance-subview="caixa">Caixa / Banco</button>
                 </div>
               </details>
@@ -5387,6 +5407,7 @@
             </div>
             <div class="actions">
               <button type="button" class="secondary" id="finBtnRefresh">Atualizar</button>
+              <button type="button" class="secondary" id="finBtnExcel">Excel</button>
               <button type="button" class="secondary" id="finBtnPrint">Imprimir</button>
               <button type="button" class="secondary" id="finBtnPdf">PDF</button>
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar">X</button>
@@ -5396,6 +5417,8 @@
             <button type="button" data-finance-subview-btn="dashboard" class="active">Dashboard</button>
             <button type="button" data-finance-subview-btn="em_patio">Veículos em pátio</button>
             <button type="button" data-finance-subview-btn="receber">Contas a receber</button>
+            <button type="button" data-finance-subview-btn="pagar">Contas a pagar</button>
+            <button type="button" data-finance-subview-btn="recorrentes">Recorrentes</button>
             <button type="button" data-finance-subview-btn="caixa">Caixa / Banco</button>
           </div>
 
@@ -5415,6 +5438,7 @@
               <div class="fin-chart-card"><h4>Fluxo de caixa</h4><svg id="finChartFlowSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg></div>
               <div class="fin-chart-card"><h4>Saldo</h4><svg id="finChartBalanceSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg></div>
               <div class="fin-chart-card"><h4>Receitas x Despesas</h4><svg id="finChartCompareSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg></div>
+              <div class="fin-chart-card"><h4>Despesas por categoria</h4><svg id="finChartExpenseSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg></div>
               <div class="fin-chart-card"><h4>Aging</h4><svg id="finChartAgingSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg></div>
             </div>
           </div>
@@ -5449,14 +5473,57 @@
             </div>
           </div>
 
+          <div class="finance-subview hidden" data-finance-subview="pagar">
+            <div class="fin-toolbar">
+              <div><button type="button" id="finBtnNovaDespesa">+ Nova despesa</button></div>
+              <div><label for="finPagarBusca">Buscar</label><input id="finPagarBusca" type="search" placeholder="Fornecedor, descrição…" /></div>
+              <div><label for="finPagarStatus">Status</label>
+                <select id="finPagarStatus">
+                  <option value="">Todos</option>
+                  <option value="pendente">Pendente</option>
+                  <option value="vencido">Vencido</option>
+                  <option value="vencendo_hoje">Vence hoje</option>
+                  <option value="pago">Pago</option>
+                  <option value="parcial">Parcial</option>
+                </select>
+              </div>
+              <div><label for="finPagarCategoria">Categoria</label><select id="finPagarCategoria"><option value="">Todas</option></select></div>
+              <div><label for="finPagarFornecedor">Fornecedor</label><input id="finPagarFornecedor" type="text" placeholder="Filtrar…" /></div>
+              <div><label for="finPagarConta">Conta bancária</label><input id="finPagarConta" type="text" placeholder="Filtrar…" /></div>
+              <div><label for="finPagarPeriodoDe">De</label><input id="finPagarPeriodoDe" type="date" /></div>
+              <div><label for="finPagarPeriodoAte">Até</label><input id="finPagarPeriodoAte" type="date" /></div>
+            </div>
+            <div class="fin-alert-row" id="finPagarAlerts"></div>
+            <p><strong>Total a pagar (abertas):</strong> <span id="finPagarTotal">R$ 0,00</span></p>
+            <div class="table-wrap section-card">
+              <table class="table">
+                <thead><tr><th>Fornecedor</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Vencimento</th><th>Forma</th><th>Conta</th><th>Status</th><th></th></tr></thead>
+                <tbody id="finPagarBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="finance-subview hidden" data-finance-subview="recorrentes">
+            <div class="fin-toolbar">
+              <div><button type="button" id="finBtnNovaRecorrente">+ Nova recorrente</button></div>
+            </div>
+            <p class="notice">Despesas com repetição automática — aluguel, internet, salários etc. Ao confirmar pagamento, o próximo vencimento é gerado.</p>
+            <div class="table-wrap section-card">
+              <table class="table">
+                <thead><tr><th>Descrição</th><th>Fornecedor</th><th>Categoria</th><th>Valor</th><th>Recorrência</th><th>Próximo vencimento</th><th>Status</th><th></th></tr></thead>
+                <tbody id="finRecorrentesBody"></tbody>
+              </table>
+            </div>
+          </div>
+
           <div class="finance-subview hidden" data-finance-subview="caixa">
             <div class="fin-toolbar">
               <div><label for="finFilterPeriodo">Competência</label><input id="finFilterPeriodo" type="month" /></div>
             </div>
-            <p><strong>Saldo (entradas):</strong> <span id="finCaixaSaldo">R$ 0,00</span></p>
+            <div class="fin-caixa-summary" id="finCaixaSummary"></div>
             <div class="table-wrap section-card">
               <table class="table">
-                <thead><tr><th>Data</th><th>Descrição</th><th>Forma</th><th>Valor</th><th>Conta</th></tr></thead>
+                <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Forma</th><th>Valor</th><th>Conta</th></tr></thead>
                 <tbody id="finCaixaBody"></tbody>
               </table>
             </div>
@@ -6003,6 +6070,91 @@
         </div>
       </div>
 
+      <div id="finDespesaModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 520px">
+          <div class="modal-header">
+            <div>
+              <h3 id="finDespesaModalTitle">Nova despesa</h3>
+              <p class="subtitle" style="margin: 4px 0 0">Cadastre contas a pagar com vencimento, categoria e comprovante.</p>
+            </div>
+            <button type="button" class="modal-close" id="closeFinDespesaModal">Fechar</button>
+          </div>
+          <form id="finDespesaForm">
+            <div class="form-grid">
+              <div class="full">
+                <label for="finDespFornecedor">Fornecedor</label>
+                <input id="finDespFornecedor" type="text" required placeholder="Nome do fornecedor" />
+              </div>
+              <div class="full">
+                <label for="finDespDescricao">Descrição</label>
+                <input id="finDespDescricao" type="text" required placeholder="Ex.: Aluguel março" />
+              </div>
+              <div>
+                <label for="finDespCategoria">Categoria</label>
+                <select id="finDespCategoria" required></select>
+              </div>
+              <div>
+                <label for="finDespValor">Valor (R$)</label>
+                <input id="finDespValor" type="number" step="0.01" min="0.01" required />
+              </div>
+              <div>
+                <label for="finDespVencimento">Vencimento</label>
+                <input id="finDespVencimento" type="date" required />
+              </div>
+              <div>
+                <label for="finDespForma">Forma de pagamento</label>
+                <select id="finDespForma">
+                  <option value="PIX">PIX</option>
+                  <option value="Dinheiro">Dinheiro</option>
+                  <option value="Transferência">Transferência</option>
+                  <option value="Boleto">Boleto</option>
+                  <option value="Cartão Débito">Cartão Débito</option>
+                  <option value="Cartão Crédito">Cartão Crédito</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+              </div>
+              <div>
+                <label for="finDespConta">Conta bancária</label>
+                <input id="finDespConta" type="text" placeholder="Banco / conta" />
+              </div>
+              <div>
+                <label for="finDespModo">Tipo</label>
+                <select id="finDespModo">
+                  <option value="UNICA">Única</option>
+                  <option value="RECORRENTE">Recorrente</option>
+                  <option value="PARCELADA">Parcelada</option>
+                </select>
+              </div>
+              <div id="finDespRecorrenciaWrap" class="hidden">
+                <label for="finDespRecorrencia">Recorrência</label>
+                <select id="finDespRecorrencia">
+                  <option value="semanal">Semanal</option>
+                  <option value="quinzenal">Quinzenal</option>
+                  <option value="mensal" selected>Mensal</option>
+                  <option value="anual">Anual</option>
+                </select>
+              </div>
+              <div id="finDespParcelasWrap" class="hidden">
+                <label for="finDespParcelas">Parcelas</label>
+                <input id="finDespParcelas" type="number" min="2" max="60" value="2" />
+              </div>
+              <div class="full">
+                <label for="finDespObs">Observações</label>
+                <textarea id="finDespObs" rows="2" placeholder="Opcional"></textarea>
+              </div>
+              <div class="full">
+                <label for="finDespAnexo">Anexo / comprovante (opcional)</label>
+                <input id="finDespAnexo" type="file" accept="image/*,.pdf,.png,.jpg,.jpeg,.webp" />
+              </div>
+            </div>
+            <div class="form-actions" style="margin-top: 14px">
+              <button type="submit">Salvar despesa</button>
+              <button type="button" class="secondary" id="cancelFinDespesaModal">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div id="pagarBaixaModal" class="modal-backdrop hidden">
         <div class="modal" style="max-width: 440px">
           <div class="modal-header">
@@ -6033,6 +6185,10 @@
             <div class="full">
               <label for="pagarBaixaAnexo">Comprovante / NF (opcional)</label>
               <input id="pagarBaixaAnexo" type="file" accept="image/*,.pdf,.png,.jpg,.jpeg,.webp" />
+            </div>
+            <div class="full">
+              <label for="pagarBaixaObs">Observação (opcional)</label>
+              <input id="pagarBaixaObs" type="text" placeholder="Nota sobre o pagamento" />
             </div>
           </div>
           <div class="form-actions" style="flex-wrap: wrap">
@@ -6388,6 +6544,8 @@
         natureza = "VARIAVEL",
         centroCusto = "",
         competencia = "",
+        recorrenciaIntervalo = "mensal",
+        contaBancaria = "",
       }) {
         const modoUp = String(modo || "UNICA").toUpperCase();
         const count = modoUp === "PARCELADA" ? Math.max(2, Math.min(60, Number(parcelas) || 2)) : 1;
@@ -6406,6 +6564,10 @@
             competencia: competencia || yearMonthFromYmd(vencimento) || "",
             origem_modulo: "CONTROLE_DESPESAS",
             gerou_compromisso: !markPago,
+            conta_bancaria: String(contaBancaria || "").trim() || null,
+            ...(modoUp === "RECORRENTE"
+              ? { recorrencia: String(recorrenciaIntervalo || "mensal").toLowerCase() }
+              : {}),
             ...(modoUp === "PARCELADA" ? { parcela: i + 1, parcelas_total: count, grupo_id: grupoId } : {}),
           };
           const obsPacked = financeMetaPack(meta, observacoes);
@@ -6728,7 +6890,7 @@
         lista: { title: "Lista", subtitle: "Consultas e relatórios" },
         parceiros: { title: "Rede de parceiros", subtitle: "Cadastro de parceiros" },
         configuracoes: { title: "Configurações", subtitle: "Parâmetros do sistema" },
-        financeiro: { title: "Financeiro", subtitle: "Receitas, cobranças e caixa" },
+        financeiro: { title: "Financeiro", subtitle: "Receitas, despesas, cobranças e caixa" },
       };
 
       let tabModalSystemReady = false;
@@ -6953,9 +7115,15 @@
         { value: "ENERGIA", label: "Energia" },
         { value: "AGUA", label: "Água" },
         { value: "TELEFONE_INTERNET", label: "Telefone / Internet" },
-        { value: "FUNCIONARIO", label: "Funcionário" },
-        { value: "GUINCHO", label: "Guincho" },
+        { value: "COMBUSTIVEL", label: "Combustível" },
+        { value: "FUNCIONARIO", label: "Funcionários" },
         { value: "MANUTENCAO", label: "Manutenção" },
+        { value: "SEGURANCA", label: "Segurança" },
+        { value: "LIMPEZA", label: "Limpeza" },
+        { value: "IMPOSTOS", label: "Impostos" },
+        { value: "FORNECEDORES", label: "Fornecedores" },
+        { value: "ALIMENTACAO", label: "Alimentação" },
+        { value: "GUINCHO", label: "Guincho" },
         { value: "SANGRIA_CAIXA", label: "Sangria de caixa" },
         { value: "OUTROS", label: "Outros" },
       ];
@@ -7157,6 +7325,21 @@
         const mm = String(base.getMonth() + 1).padStart(2, "0");
         const dd = String(base.getDate()).padStart(2, "0");
         return `${yy}-${mm}-${dd}`;
+      }
+
+      function addPeriodToYmd(ymd, interval) {
+        const due = String(ymd || "").trim();
+        if (!due) return null;
+        const iv = String(interval || "mensal").toLowerCase();
+        if (iv === "semanal" || iv === "quinzenal") {
+          const days = iv === "semanal" ? 7 : 14;
+          const d = new Date(`${due}T12:00:00`);
+          if (Number.isNaN(d.getTime())) return due;
+          d.setDate(d.getDate() + days);
+          return toLocalYmd(d.toISOString());
+        }
+        if (iv === "anual") return addMonthsToYmd(due, 12);
+        return addMonthsToYmd(due, 1);
       }
 
       function financeEntryModoFromRecord(record, kind) {
@@ -10884,8 +11067,7 @@
         }
         const topExpenseCategories = [...(state.payables || [])]
           .reduce((acc, p) => {
-            const cat =
-              (p.payable_category || p.categoria || p.centro_custo || p.subcategoria || "Outros").toString().trim() || "Outros";
+            const cat = payableCategoryLabel(p.payable_category || p.categoria || "OUTROS");
             acc.set(cat, (acc.get(cat) || 0) + Number(p.valor || 0));
             return acc;
           }, new Map());
@@ -13021,6 +13203,8 @@
         if (dataEl) dataEl.value = toLocalYmd(new Date().toISOString());
         if (formaEl) formaEl.value = payable.forma_pagamento || "PIX";
         if (anexoEl) anexoEl.value = "";
+        const obsEl = document.getElementById("pagarBaixaObs");
+        if (obsEl) obsEl.value = "";
         if (pagarBaixaModal.parentElement !== document.body) document.body.appendChild(pagarBaixaModal);
         pagarBaixaModal.classList.remove("hidden");
       }
@@ -13092,9 +13276,10 @@
         if (!pending) return;
         const dataMov = document.getElementById("pagarBaixaData")?.value || toLocalYmd(new Date().toISOString());
         const formaPagamento = document.getElementById("pagarBaixaForma")?.value || "PIX";
+        const observacao = (document.getElementById("pagarBaixaObs")?.value || "").trim();
         const anexo = await readFinanceFileInput(document.getElementById("pagarBaixaAnexo"));
         closePagarBaixaModal();
-        await finalizePayablePayment(pending.payableId, { dataMovimento: dataMov, formaPagamento, anexo });
+        await finalizePayablePayment(pending.payableId, { dataMovimento: dataMov, formaPagamento, anexo, observacao });
       }
 
       function openReciboModalWithContext(ctx) {
@@ -13233,9 +13418,16 @@
         }
         const dataMov = opts.dataMovimento || toLocalYmd(new Date().toISOString());
         const formaPagamento = opts.formaPagamento || payable.forma_pagamento || "PIX";
+        const { meta, text } = financeMetaUnpack(payable.observacoes);
+        const obsUpdate =
+          opts.observacao && String(opts.observacao).trim()
+            ? financeMetaPack(meta, `${text ? text + " — " : ""}${String(opts.observacao).trim()}`)
+            : payable.observacoes;
+        const patch = { status: "PAGO", forma_pagamento: formaPagamento };
+        if (obsUpdate !== payable.observacoes) patch.observacoes = obsUpdate;
         const { error } = await supabase
           .from("payables")
-          .update({ status: "PAGO", forma_pagamento: formaPagamento })
+          .update(patch)
           .eq("id", payableId)
           .eq("user_id", effectiveUserId());
         if (error) {
@@ -13261,8 +13453,8 @@
         if (opts.anexo) await financeAttachmentSave("payable", payableId, opts.anexo);
 
         if ((payable.tipo || "").toUpperCase() === "RECORRENTE" || financeEntryModoFromRecord(payable, "payable") === "RECORRENTE") {
-          const nextDue = addMonthsToYmd(payable.data_vencimento, 1);
-          const { meta, text } = financeMetaUnpack(payable.observacoes);
+          const interval = meta.recorrencia || "mensal";
+          const nextDue = addPeriodToYmd(payable.data_vencimento, interval);
           const nextPayload = {
             user_id: effectiveUserId(),
             tipo: "RECORRENTE",
@@ -13272,7 +13464,8 @@
             data_vencimento: nextDue,
             status: "EM_ABERTO",
             fornecedor: payable.fornecedor || null,
-            observacoes: financeMetaPack({ ...meta, modo: "RECORRENTE" }, text),
+            forma_pagamento: payable.forma_pagamento || formaPagamento,
+            observacoes: financeMetaPack({ ...meta, modo: "RECORRENTE", recorrencia: interval }, text),
           };
           let { error: nextErr } = await supabase.from("payables").insert(nextPayload);
           if (nextErr && /column|schema cache|PGRST204/i.test(nextErr.message || "")) {
@@ -13287,6 +13480,7 @@
         }
         await Promise.all([loadPayables(), loadCash()]);
         updateDashboard();
+        if (typeof renderFinance === "function") renderFinance();
         return true;
       }
 
