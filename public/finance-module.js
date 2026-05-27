@@ -40,6 +40,24 @@
     return (state.partners || []).find((p) => p.id === id)?.nome || "—";
   }
 
+  function financeVehicleRpvNome(v) {
+    if (!v) return "—";
+    return financePartnerLabel(v.localizador_id);
+  }
+
+  function financeReceberRppNome(r, v) {
+    if (typeof vehicleRpfNome === "function" && v) {
+      const rpf = vehicleRpfNome(v);
+      if (rpf && rpf !== "—") return rpf;
+    }
+    return r.responsavel_pagamento || "—";
+  }
+
+  function financeReceberDiariasCell(r, v) {
+    if (r?.vehicle_id) return String(financeDiariasFromReceivable(r, v));
+    return "—";
+  }
+
   function financeInstituicaoNome(vehicle) {
     if (!vehicle) return "—";
     const ass = financePartnerLabel(vehicle.assessoria_id);
@@ -474,20 +492,19 @@
         const st = financeReceivableDisplayStatus(r);
         const due = financeContaDueYmd(r, "receivable");
         const isPatio = !!r.vehicle_id;
-        const clienteHtml = isPatio
-          ? `<strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span>`
-          : `<strong>${escapeHtml(r.responsavel_pagamento || "—")}</strong>`;
-        const servicoHtml = isPatio
-          ? `${escapeHtml(financeInstituicaoNome(v))}<br /><span class="notice">${escapeHtml(String(financeDiariasFromReceivable(r, v)))} diária(s)</span>`
-          : `${escapeHtml(typeof receivableCategoryLabel === "function" ? receivableCategoryLabel(r.receivable_category) : "—")}<br /><span class="notice">${escapeHtml(financeMetaUnpack(r.observacoes || "").text || r.observacoes || "—")}</span>`;
+        const veiculoRpvHtml = isPatio
+          ? `<strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span>`
+          : `<span class="notice">—</span>`;
+        const rppHtml = escapeHtml(financeReceberRppNome(r, v));
+        const diariasHtml = escapeHtml(financeReceberDiariasCell(r, v));
         const btnPay =
           st !== "Recebido"
             ? `<div style="margin-top:6px"><button type="button" class="secondary fin-btn-confirm" data-fin-receber-id="${escapeHtml(String(r.id))}">Confirmar pagamento</button></div>`
             : "";
         return `<tr>
-          <td data-label="Cliente / Veículo">${clienteHtml}</td>
-          <td data-label="Serviço / Descrição">${servicoHtml}</td>
-          <td data-label="Tipo">${financeEntryTipoBadgeHtml(r, "receivable")}</td>
+          <td data-label="Veículo / RPV">${veiculoRpvHtml}</td>
+          <td data-label="RPP">${rppHtml}</td>
+          <td data-label="Diárias">${diariasHtml}</td>
           <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
           <td data-label="Vencimento">${escapeHtml(due ? formatDate(due) : "—")}</td>
           <td data-label="Status"><span class="${financeReceivableStatusClass(st)}">${escapeHtml(st)}</span>${btnPay}</td>
@@ -512,8 +529,8 @@
         const v = vmap.get(r.vehicle_id);
         const saida = v?.data_saida || r.period_end;
         return `<tr>
-          <td data-label="Veículo"><strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span></td>
-          <td data-label="RPP">${escapeHtml(r.responsavel_pagamento || financeInstituicaoNome(v))}</td>
+          <td data-label="Veículo / RPV"><strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span></td>
+          <td data-label="RPP">${escapeHtml(r.responsavel_pagamento || financeReceberRppNome(r, v))}</td>
           <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
           <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
           <td data-label="Status"><span class="fin-tag fin-tag--open">Aguardando</span></td>
@@ -755,13 +772,13 @@
       const list = financeContasReceberList();
       const vmap = financeVehicleById();
       const rows = [
-        ["Cliente / Veículo", "Serviço", "Tipo", "Valor", "Vencimento", "Status"],
+        ["Veículo / RPV", "RPP", "Diárias", "Valor", "Vencimento", "Status"],
         ...list.map((r) => {
           const v = vmap.get(r.vehicle_id);
           return [
-            v?.placa || r.responsavel_pagamento || "",
-            v ? financeInstituicaoNome(v) : receivableCategoryLabel?.(r.receivable_category) || "",
-            financeEntryTipoLabel(r, "receivable"),
+            v?.placa ? `${v.placa} / ${financeVehicleRpvNome(v)}` : r.responsavel_pagamento || "",
+            financeReceberRppNome(r, v),
+            financeReceberDiariasCell(r, v),
             Number(r.valor || 0).toFixed(2),
             financeContaDueYmd(r, "receivable"),
             financeReceivableDisplayStatus(r),
