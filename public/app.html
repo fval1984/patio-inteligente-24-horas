@@ -5644,7 +5644,240 @@
             <button type="button" class="secondary" id="cancelListaReceberPrintModal">Cancelar</button>
           </div>
         </div>
-      </div>    </main>
+      </div>
+
+      <div id="liberacaoModal" class="modal-backdrop hidden">
+        <div class="modal">
+          <div class="modal-header">
+            <div>
+              <h3 id="liberacaoModalTitle">Fluxo VNP</h3>
+            </div>
+            <button class="modal-close" id="closeLiberacaoModal">Fechar</button>
+          </div>
+          <div class="form-grid">
+            <div id="libRowSolicitante">
+              <label id="libSolicitanteLabel">Quem solicitou a liberação?</label>
+              <input id="libSolicitante" type="text" placeholder="Nome do solicitante" />
+            </div>
+            <div id="libRowConfirmador" class="hidden" aria-hidden="true">
+              <label id="libConfirmadorLabel">Quem confirmou a liberação?</label>
+              <input id="libConfirmador" type="text" placeholder="Nome do confirmador" />
+            </div>
+            <div id="libRowResponsavel" class="hidden" aria-hidden="true">
+              <label id="libResponsavelLabel">Quem será o RPF (responsável financeiro / pagamento)?</label>
+              <input id="libResponsavelPagamento" type="text" placeholder="Nome do responsável" />
+            </div>
+            <div id="libRowSolicRemocao" class="hidden" aria-hidden="true">
+              <label id="libSolicRemocaoLabel">Quem solicitou a remoção?</label>
+              <input id="libSolicitanteRemocao" type="text" placeholder="Nome do solicitante da remoção" />
+            </div>
+            <div id="libRowRemoveu" class="hidden" aria-hidden="true">
+              <label id="libRemoveuLabel">Quem removeu o veículo?</label>
+              <input id="libRemoveu" type="text" placeholder="Nome de quem removeu" />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" id="confirmLiberacaoModal">Confirmar</button>
+            <button type="button" class="secondary" id="cancelLiberacaoModal">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="fichaModal" class="modal-backdrop hidden">
+        <div class="modal">
+          <div class="modal-header">
+            <h3 id="fichaModalTitle">Ficha do veículo</h3>
+            <div class="actions">
+              <button class="secondary" id="downloadFicha">Baixar imagem</button>
+              <button class="secondary" id="printFicha">Imprimir</button>
+              <button class="modal-close" id="closeFichaModal">Fechar</button>
+            </div>
+          </div>
+          <div id="fichaCapture">
+            <div id="fichaResumo" class="section-card" style="margin-bottom: 12px;"></div>
+            <div class="section-card" style="margin-bottom: 12px">
+              <h4 class="ficha-section-title">HV · Histórico do veículo</h4>
+              <div id="fichaTimeline" class="timeline"></div>
+            </div>
+            <div class="section-card" style="margin-bottom: 12px">
+              <h4 class="ficha-section-title">NFSe · Solicitação de nota fiscal de serviço</h4>
+              <div id="fichaSectionSnf"></div>
+            </div>
+            <div class="section-card" style="margin-bottom: 12px">
+              <h4 class="ficha-section-title">SLV · Solicitação de liberação do veículo</h4>
+              <div id="fichaSectionSlv"></div>
+            </div>
+            <div class="section-card" style="margin-bottom: 12px">
+              <h4 class="ficha-section-title">LV · Laudo de vistoria</h4>
+              <div id="fichaSectionVistoria"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="nfseModal" class="modal-backdrop hidden">
+        <div class="modal">
+          <div class="modal-header">
+            <div>
+              <h3>NFSe</h3>
+              <p class="notice" style="margin: 4px 0 0; font-size: 12px">Copie o texto abaixo e confirme após emitir a nota.</p>
+            </div>
+            <button class="modal-close" id="closeNfseModal">Fechar</button>
+          </div>
+          <div class="section-card" style="margin-bottom: 12px;">
+            <div id="nfseResumo" class="notice"></div>
+          </div>
+          <textarea id="nfseTexto" class="textarea" readonly></textarea>
+          <p id="nfseCopyHint" class="nfse-copy-hint">Toque em «Copiar texto» e depois confirme se a nota já foi emitida.</p>
+          <div class="form-actions" id="nfseCopyActions">
+            <button type="button" id="nfseCopyBtn">Copiar texto</button>
+          </div>
+          <div class="form-actions hidden" id="nfseConfirmActions">
+            <button type="button" id="confirmNfse">Confirmar</button>
+            <button type="button" class="secondary" id="cancelNfseConfirm">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="textModal" class="modal-backdrop hidden">
+        <div class="modal">
+          <div class="modal-header">
+            <div>
+              <h3 id="textModalTitle">Texto</h3>
+            </div>
+            <button class="modal-close" id="closeTextModal">Fechar</button>
+          </div>
+          <textarea id="textModalBody" class="textarea" readonly></textarea>
+          <div class="form-actions">
+            <button id="copyTextModal">Copiar</button>
+            <button class="secondary" id="closeTextModal2">Fechar</button>
+          </div>
+        </div>
+      </div>
+      <div id="reciboModal" class="modal-backdrop hidden">
+        <div class="modal">
+          <div class="modal-header">
+            <div>
+              <h3>Recibo de recebimento</h3>
+            </div>
+            <button class="modal-close" id="closeReciboModal">Fechar</button>
+          </div>
+          <p class="notice" style="margin: 0 0 12px; font-size: 13px; line-height: 1.45">
+            Preencha o nome e o CPF/CNPJ de quem consta no recibo. Use <strong>Gerar PDF</strong> ou <strong>Imprimir</strong> — ambos são opcionais.
+          </p>
+          <div id="reciboModalResumoAuto" class="section-card hidden" style="margin-bottom: 14px; padding: 12px 14px; font-size: 13px; line-height: 1.55"></div>
+          <div class="form-grid">
+            <div>
+              <label for="reciboDestinatarioNome">Nome do direcionado</label>
+              <input id="reciboDestinatarioNome" type="text" placeholder="Nome completo" />
+            </div>
+            <div>
+              <label for="reciboDestinatarioDoc">CPF ou CNPJ</label>
+              <input id="reciboDestinatarioDoc" type="text" placeholder="Somente números ou formatado" />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" id="confirmReciboModal">Gerar PDF</button>
+            <button type="button" class="secondary" id="printReciboModal">Imprimir</button>
+            <button type="button" class="secondary" id="cancelReciboModal">Fechar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="receberBaixaModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 440px">
+          <div class="modal-header">
+            <div>
+              <h3>Confirmar Pagamento</h3>
+              <p class="subtitle" style="margin: 4px 0 0">Informe data, valor recebido, forma de pagamento e observação.</p>
+            </div>
+            <button type="button" class="modal-close" id="closeReceberBaixaModal">Fechar</button>
+          </div>
+          <div id="receberBaixaResumo" class="section-card" style="margin-bottom: 14px; padding: 12px 14px; font-size: 13px; line-height: 1.55"></div>
+          <div class="form-grid" style="margin-bottom: 12px">
+            <div>
+              <label for="receberBaixaData">Data do recebimento</label>
+              <input id="receberBaixaData" type="date" required />
+            </div>
+            <div>
+              <label for="receberBaixaForma">Forma de pagamento</label>
+              <select id="receberBaixaForma">
+                <option value="Dinheiro">Dinheiro</option>
+                <option value="PIX">PIX</option>
+                <option value="Cartão Débito">Cartão Débito</option>
+                <option value="Cartão Crédito">Cartão Crédito</option>
+                <option value="Transferência">Transferência</option>
+                <option value="Boleto">Boleto</option>
+                <option value="Cheque">Cheque</option>
+              </select>
+            </div>
+            <div class="full">
+              <label for="receberBaixaObs">Observação</label>
+              <input id="receberBaixaObs" type="text" placeholder="Opcional" />
+            </div>
+            <div class="full">
+              <label for="receberBaixaAnexo">Comprovante (opcional)</label>
+              <input id="receberBaixaAnexo" type="file" accept="image/*,.pdf,.png,.jpg,.jpeg,.webp" />
+            </div>
+            <div>
+              <label for="receberBaixaReciboNome">Nome no recibo (só para PDF)</label>
+              <input id="receberBaixaReciboNome" type="text" placeholder="Responsável pelo pagamento" />
+            </div>
+            <div>
+              <label for="receberBaixaReciboDoc">CPF ou CNPJ (só para PDF)</label>
+              <input id="receberBaixaReciboDoc" type="text" placeholder="Opcional para gerar PDF" />
+            </div>
+          </div>
+          <p class="notice" style="margin: 0 0 12px; font-size: 13px; line-height: 1.45">
+            <strong>Confirmar Pagamento</strong> — registra o recebimento. <strong>Gerar PDF</strong> — confirma e baixa o recibo.
+          </p>
+          <div class="form-actions" style="flex-wrap: wrap">
+            <button type="button" id="receberBaixaOk">Confirmar Pagamento</button>
+            <button type="button" class="secondary" id="receberBaixaGerarPdf">Gerar PDF</button>
+            <button type="button" class="secondary" id="cancelReceberBaixaModal">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="pagarBaixaModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 440px">
+          <div class="modal-header">
+            <div>
+              <h3>Registrar pagamento</h3>
+              <p class="subtitle" style="margin: 4px 0 0">Confirme a saída com data, forma de pagamento e comprovante.</p>
+            </div>
+            <button type="button" class="modal-close" id="closePagarBaixaModal">Fechar</button>
+          </div>
+          <div id="pagarBaixaResumo" class="section-card" style="margin-bottom: 14px; padding: 12px 14px; font-size: 13px; line-height: 1.55"></div>
+          <div class="form-grid" style="margin-bottom: 12px">
+            <div>
+              <label for="pagarBaixaData">Data do pagamento</label>
+              <input id="pagarBaixaData" type="date" required />
+            </div>
+            <div>
+              <label for="pagarBaixaForma">Forma de pagamento</label>
+              <select id="pagarBaixaForma">
+                <option value="Dinheiro">Dinheiro</option>
+                <option value="PIX">PIX</option>
+                <option value="Cartão Débito">Cartão Débito</option>
+                <option value="Cartão Crédito">Cartão Crédito</option>
+                <option value="Transferência">Transferência</option>
+                <option value="Boleto">Boleto</option>
+                <option value="Cheque">Cheque</option>
+              </select>
+            </div>
+            <div class="full">
+              <label for="pagarBaixaAnexo">Comprovante / NF (opcional)</label>
+              <input id="pagarBaixaAnexo" type="file" accept="image/*,.pdf,.png,.jpg,.jpeg,.webp" />
+            </div>
+          </div>
+          <div class="form-actions" style="flex-wrap: wrap">
+            <button type="button" id="pagarBaixaConfirm">Confirmar pagamento</button>
+            <button type="button" class="secondary" id="cancelPagarBaixaModal">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </main>
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
@@ -12178,9 +12411,9 @@
       };
       openPayableForm?.addEventListener("click", openNewPayableModal);
 
-      cancelPayableForm.addEventListener("click", () => {
-        payableForm.reset();
-        payableModal.classList.add("hidden");
+      cancelPayableForm?.addEventListener("click", () => {
+        payableForm?.reset();
+        payableModal?.classList.add("hidden");
       });
 
       closeVehicleModal.addEventListener("click", () => vehicleModal.classList.add("hidden"));
@@ -12199,7 +12432,7 @@
           liberacaoModalResolver = null;
         }
       });
-      closePayableModal.addEventListener("click", () => payableModal.classList.add("hidden"));
+      closePayableModal?.addEventListener("click", () => payableModal?.classList.add("hidden"));
       closeLancamentoModal?.addEventListener("click", closeLancamentoModalFn);
       cancelLancamentoForm?.addEventListener("click", closeLancamentoModalFn);
       document.querySelectorAll(".lanc-tipo-btn").forEach((btn) => {
@@ -13287,7 +13520,7 @@
         loadPartners();
       });
 
-      payableForm.addEventListener("submit", async (event) => {
+      payableForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
         const payload = {
           user_id: effectiveUserId(),
@@ -13303,8 +13536,8 @@
           alert(error.message);
           return;
         }
-        payableForm.reset();
-        payableModal.classList.add("hidden");
+        payableForm?.reset();
+        payableModal?.classList.add("hidden");
         loadPayables().then(() => renderFinance());
       });
 
@@ -14671,7 +14904,7 @@
         await handleVnpVehicleAction(button);
       });
 
-      fichaModal.addEventListener("click", async (event) => {
+      fichaModal?.addEventListener("click", async (event) => {
         const button = event.target.closest("button[data-action]");
         if (!button || !fichaModal.contains(button)) return;
         await handleVnpVehicleAction(button);
