@@ -6853,6 +6853,28 @@
         return state.patioOwnerUserId || state.user?.id || null;
       }
 
+      function isSupabaseAuthError(error) {
+        if (!error) return false;
+        const blob = `${error.message || ""} ${error.code || ""} ${error.details || ""}`.toLowerCase();
+        return /jwt|session|401|403|pgrst301|not authenticated|invalid claim|expired/.test(blob);
+      }
+
+      function logSupabaseLoadError(label, error) {
+        if (!error) return;
+        const msg = error.message || error.details || error.hint || error.code || "Erro desconhecido";
+        console.error(`[${label}]`, msg);
+        if (isSupabaseAuthError(error)) {
+          setStatus("Sessão expirada ou inválida. Saia e entre novamente.", "error");
+        }
+      }
+
+      /** user_id do dono dos dados; null se ainda não autenticado — evita .eq('user_id', null). */
+      function supabaseOwnerUserId() {
+        const uid = effectiveUserId();
+        if (!uid || !supabase) return null;
+        return uid;
+      }
+
       async function callFinanceCompetencyApi(path, payload) {
         const resp = await fetch(path, {
           method: "POST",
@@ -10513,7 +10535,11 @@
             console.error("showMainView fallback", e2);
           }
         }
-        loadAll().catch((e) => console.error("loadAll", e));
+        try {
+          await loadAll();
+        } catch (e) {
+          console.error("loadAll", e);
+        }
       }
 
       function showAuth() {
@@ -10682,13 +10708,15 @@
       }
 
       async function loadPartners() {
+        const uid = supabaseOwnerUserId();
+        if (!uid) return;
         const { data, error } = await supabase
           .from("partners")
           .select("*")
-          .eq("user_id", effectiveUserId())
+          .eq("user_id", uid)
           .order("created_at", { ascending: false });
         if (error) {
-          console.error(error);
+          logSupabaseLoadError("loadPartners", error);
           return;
         }
         state.partners = data || [];
@@ -10698,13 +10726,15 @@
       }
 
       async function loadVehicles() {
+        const uid = supabaseOwnerUserId();
+        if (!uid) return;
         const { data, error } = await supabase
           .from("vehicles")
           .select("*")
-          .eq("user_id", effectiveUserId())
+          .eq("user_id", uid)
           .order("data_entrada", { ascending: false });
         if (error) {
-          console.error(error);
+          logSupabaseLoadError("loadVehicles", error);
           return;
         }
         state.vehicles = data || [];
@@ -10713,13 +10743,15 @@
       }
 
       async function loadReceivables() {
+        const uid = supabaseOwnerUserId();
+        if (!uid) return;
         const { data, error } = await supabase
           .from("receivables")
           .select("*")
-          .eq("user_id", effectiveUserId())
+          .eq("user_id", uid)
           .order("created_at", { ascending: false });
         if (error) {
-          console.error(error);
+          logSupabaseLoadError("loadReceivables", error);
           return;
         }
         state.receivables = data || [];
@@ -10727,13 +10759,18 @@
       }
 
       async function loadCycleClosures() {
+        const uid = supabaseOwnerUserId();
+        if (!uid) {
+          state.cycleClosures = [];
+          return;
+        }
         const { data, error } = await supabase
           .from("patio_cycle_closures")
           .select("*")
-          .eq("user_id", effectiveUserId())
+          .eq("user_id", uid)
           .order("created_at", { ascending: false });
         if (error) {
-          if (!isMissingRelationError(error)) console.error(error);
+          if (!isMissingRelationError(error)) logSupabaseLoadError("loadCycleClosures", error);
           state.cycleClosures = [];
           return;
         }
@@ -10741,13 +10778,15 @@
       }
 
       async function loadPayables() {
+        const uid = supabaseOwnerUserId();
+        if (!uid) return;
         const { data, error } = await supabase
           .from("payables")
           .select("*")
-          .eq("user_id", effectiveUserId())
+          .eq("user_id", uid)
           .order("created_at", { ascending: false });
         if (error) {
-          console.error(error);
+          logSupabaseLoadError("loadPayables", error);
           return;
         }
         state.payables = data || [];
@@ -10755,13 +10794,15 @@
       }
 
       async function loadCash() {
+        const uid = supabaseOwnerUserId();
+        if (!uid) return;
         const { data, error } = await supabase
           .from("cash_movements")
           .select("*")
-          .eq("user_id", effectiveUserId())
+          .eq("user_id", uid)
           .order("created_at", { ascending: false });
         if (error) {
-          console.error(error);
+          logSupabaseLoadError("loadCash", error);
           return;
         }
         state.cash = data || [];
@@ -10769,15 +10810,17 @@
       }
 
       async function loadSettings() {
+        const uid = supabaseOwnerUserId();
+        if (!uid) return;
         const { data, error } = await supabase
           .from("settings")
           .select("*")
-          .eq("user_id", effectiveUserId())
+          .eq("user_id", uid)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
         if (error && error.code !== "PGRST116") {
-          console.error(error);
+          logSupabaseLoadError("loadSettings", error);
           return;
         }
         state.settings = data || null;
@@ -10906,14 +10949,16 @@
       async function loadMonthlyClosures() {
         state.monthlyClosures = [];
         state.monthlyClosureLoadError = null;
-        if (!supabase || !state.user?.id) return;
+        const uid = supabaseOwnerUserId();
+        if (!uid) return;
         const { data, error } = await supabase
           .from("monthly_closures")
           .select("*")
-          .eq("user_id", effectiveUserId())
+          .eq("user_id", uid)
           .order("year_month", { ascending: false });
         if (error) {
           state.monthlyClosureLoadError = error.message || String(error);
+          logSupabaseLoadError("loadMonthlyClosures", error);
           return;
         }
         state.monthlyClosures = data || [];
@@ -15411,7 +15456,7 @@
           setConfigSubview("dados");
         }
         if (view === "financeiro") {
-          if (typeof refreshFinanceData === "function") refreshFinanceData();
+          if (effectiveUserId() && typeof refreshFinanceData === "function") refreshFinanceData();
         }
         const headerModViews = ["dashboard", "patio", "parceiros", "lista", "configuracoes", "financeiro"];
         if (headerModViews.includes(view) && lastAppHeaderModuleView !== view) {
@@ -15514,7 +15559,6 @@
         }
         if (view === "financeiro") {
           setFinanceView("dashboard");
-          if (typeof refreshFinanceData === "function") refreshFinanceData();
         }
       }
 

@@ -16,6 +16,11 @@
   let finPagarConta = "";
   let finPagarPeriodoDe = "";
   let finPagarPeriodoAte = "";
+  let refreshFinanceDataPromise = null;
+
+  function financeCanLoadData() {
+    return typeof effectiveUserId === "function" && !!effectiveUserId() && !!supabase;
+  }
 
   function financeRoot() {
     return document.getElementById("viewFinanceiro");
@@ -760,19 +765,26 @@
   };
 
   window.refreshFinanceData = async function refreshFinanceData() {
-    try {
-      await Promise.all([
-        loadReceivables(),
-        loadPayables(),
-        loadCash(),
-        loadVehicles(),
-        typeof loadCycleClosures === "function" ? loadCycleClosures() : Promise.resolve(),
-      ]);
-      renderFinance();
-      updateDashboard?.();
-    } catch (e) {
-      console.error("refreshFinanceData", e);
-    }
+    if (!financeCanLoadData()) return;
+    if (refreshFinanceDataPromise) return refreshFinanceDataPromise;
+    refreshFinanceDataPromise = (async () => {
+      try {
+        await Promise.all([
+          loadReceivables(),
+          loadPayables(),
+          loadCash(),
+          loadVehicles(),
+          typeof loadCycleClosures === "function" ? loadCycleClosures() : Promise.resolve(),
+        ]);
+        renderFinance();
+        updateDashboard?.();
+      } catch (e) {
+        console.error("refreshFinanceData", e?.message || e);
+      } finally {
+        refreshFinanceDataPromise = null;
+      }
+    })();
+    return refreshFinanceDataPromise;
   };
 
   async function financeApproveReceivable(receivableId) {
@@ -815,7 +827,7 @@
     const hidden = financeRoot()?.classList.contains("hidden");
     if (hidden && typeof showMainView === "function") {
       showMainView("financeiro");
-    } else if (typeof refreshFinanceData === "function") {
+    } else if (financeCanLoadData()) {
       refreshFinanceData();
     }
   };
