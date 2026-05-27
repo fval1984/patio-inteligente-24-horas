@@ -7376,6 +7376,7 @@
         const patioContent = document.getElementById("patioContent");
         if (patioContent) {
           ensureTabModalShell(patioContent, returnToPainelFromPatioFlyout);
+          bindPatioVehicleTableActions();
         }
       }
 
@@ -15834,11 +15835,23 @@
         else if (typeof renderFinance === "function") renderFinance();
       };
 
-      document.getElementById("viewPatio").addEventListener("click", async (event) => {
-        const button = event.target.closest("button[data-action]");
-        if (!button || !event.currentTarget.contains(button)) return;
-        await handleVnpVehicleAction(button);
-      });
+      function bindPatioVehicleTableActions() {
+        const patioContent = document.getElementById("patioContent");
+        if (!patioContent || patioContent.dataset.vehicleActionsBound === "1") return;
+        patioContent.dataset.vehicleActionsBound = "1";
+        // Capture: o painel modal interno faz stopPropagation e impede o bubble até #viewPatio.
+        patioContent.addEventListener(
+          "click",
+          async (event) => {
+            const button = event.target.closest("button[data-action]");
+            if (!button) return;
+            await handleVnpVehicleAction(button);
+          },
+          true
+        );
+      }
+
+      bindPatioVehicleTableActions();
 
       fichaModal?.addEventListener("click", async (event) => {
         const button = event.target.closest("button[data-action]");
