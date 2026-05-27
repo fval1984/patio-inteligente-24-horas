@@ -4698,6 +4698,7 @@
                   <button type="button" data-finance-subview="dashboard">Dashboard</button>
                   <button type="button" data-finance-subview="em_patio">Receita em geração</button>
                   <button type="button" data-finance-subview="receber">Contas a receber</button>
+                  <button type="button" data-finance-subview="aguardando">Aguardando faturamento</button>
                   <button type="button" data-finance-subview="pagar">Contas a pagar</button>
                   <button type="button" data-finance-subview="recorrentes">Recorrentes</button>
                   <button type="button" data-finance-subview="caixa">Caixa / Banco</button>
@@ -5417,6 +5418,7 @@
             <button type="button" data-finance-subview-btn="dashboard" class="active">Dashboard</button>
             <button type="button" data-finance-subview-btn="em_patio">Veículos em pátio</button>
             <button type="button" data-finance-subview-btn="receber">Contas a receber</button>
+            <button type="button" data-finance-subview-btn="aguardando">Aguardando faturamento</button>
             <button type="button" data-finance-subview-btn="pagar">Contas a pagar</button>
             <button type="button" data-finance-subview-btn="recorrentes">Recorrentes</button>
             <button type="button" data-finance-subview-btn="caixa">Caixa / Banco</button>
@@ -5469,6 +5471,17 @@
               <table class="table">
                 <thead><tr><th>Veículo</th><th>Financeira</th><th>Entrada</th><th>Saída</th><th>Diárias</th><th>Valor</th><th>Vencimento</th><th>Status</th></tr></thead>
                 <tbody id="finReceberBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="finance-subview hidden" data-finance-subview="aguardando">
+            <p class="notice">Veículos que saíram do pátio e aguardam confirmação antes de ir para Contas a receber. Aprove em Pátio → Fechando ciclo ou confirme aqui.</p>
+            <p><strong>Total aguardando:</strong> <span id="finAguardandoTotal">R$ 0,00</span></p>
+            <div class="table-wrap section-card">
+              <table class="table">
+                <thead><tr><th>Veículo</th><th>Financeira / RPF</th><th>Saída</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+                <tbody id="finAguardandoBody"></tbody>
               </table>
             </div>
           </div>
@@ -7937,7 +7950,7 @@
         if (!r.vehicle_id) return false;
         const { meta } = financeMetaUnpack(r.observacoes);
         if (meta?.sem_cobranca === true) return true;
-        return true;
+        return false;
       }
 
       /**
@@ -15398,7 +15411,7 @@
           setConfigSubview("dados");
         }
         if (view === "financeiro") {
-          setFinanceView("dashboard");
+          if (typeof refreshFinanceData === "function") refreshFinanceData();
         }
         const headerModViews = ["dashboard", "patio", "parceiros", "lista", "configuracoes", "financeiro"];
         if (headerModViews.includes(view) && lastAppHeaderModuleView !== view) {
@@ -15501,6 +15514,7 @@
         }
         if (view === "financeiro") {
           setFinanceView("dashboard");
+          if (typeof refreshFinanceData === "function") refreshFinanceData();
         }
       }
 

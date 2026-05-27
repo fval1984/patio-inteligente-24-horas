@@ -30,7 +30,7 @@
   }
 
   function financePartnerLabel(id) {
-    return state.partners.find((p) => p.id === id)?.nome || "—";
+    return (state.partners || []).find((p) => p.id === id)?.nome || "—";
   }
 
   function financeInstituicaoNome(vehicle) {
@@ -122,6 +122,18 @@
     if (st === "Recebido") return "fin-tag fin-tag--ok";
     if (st === "Atrasado") return "fin-tag fin-tag--late";
     return "fin-tag fin-tag--open";
+  }
+
+  function financeContasAguardandoList() {
+    return (state.receivables || []).filter((r) => {
+      if (!r || r.status === "PAGO") return false;
+      if (receivableSemCobrancaFinanceira(r)) return false;
+      if (receivableIsContaReceberFinanceiro(r)) return false;
+      if (!r.vehicle_id) return false;
+      if (receivableNaFilaAguardandoTriagem(r)) return true;
+      if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return true;
+      return r.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(r);
+    });
   }
 
   function financeContasReceberList() {
@@ -313,6 +325,7 @@
       venceHoje: alerts.venceHoje,
       proximas: alerts.proximas,
       totalVencidas: alerts.totalVencidas,
+      aguardandoFaturamento: financeContasAguardandoList().length,
     };
   }
 
@@ -355,6 +368,7 @@
       <div class="fin-card fin-card--saldo"><span class="fin-card-label">Saldo atual</span><strong>${escapeHtml(formatCurrency(m.saldo))}</strong><small>entradas − saídas</small></div>
       <div class="fin-card fin-card--gen"><span class="fin-card-label">Receita em geração</span><strong>${escapeHtml(formatCurrency(m.totalGeracao))}</strong><small>${m.veiculosPatio} no pátio</small></div>
       <div class="fin-card fin-card--late"><span class="fin-card-label">Contas vencidas</span><strong>${m.vencidas}</strong><small>${escapeHtml(formatCurrency(m.totalVencidas))}</small></div>
+      <div class="fin-card fin-card--open"><span class="fin-card-label">Aguardando faturamento</span><strong>${m.aguardandoFaturamento}</strong><small>veículo(s) pós-saída</small></div>
       <div class="fin-card fin-card--today"><span class="fin-card-label">Vencendo hoje</span><strong>${m.venceHoje}</strong><small>${m.proximas} nos próximos 7 dias</small></div>
     `;
     const period = document.getElementById("finChartPeriod")?.value || "mes";
@@ -402,7 +416,7 @@
     const list = financeContasReceberList();
     if (totalEl) totalEl.textContent = formatCurrency(list.reduce((s, r) => s + Number(r.valor || 0), 0));
     if (!list.length) {
-      body.innerHTML = `<tr><td colspan="8" class="notice">Nenhuma conta a receber. Veículos que saírem do pátio aparecem aqui automaticamente.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="8" class="notice">Nenhuma conta a receber pendente. Veja «Aguardando faturamento» ou confirme triagem no Pátio → Fechando ciclo.</td></tr>`;
       return;
     }
     body.innerHTML = list
@@ -429,6 +443,33 @@
       .join("");
   }
 
+  function financeRenderAguardando() {
+    const body = document.getElementById("finAguardandoBody");
+    const totalEl = document.getElementById("finAguardandoTotal");
+    if (!body) return;
+    const vmap = financeVehicleById();
+    const list = financeContasAguardandoList();
+    if (totalEl) totalEl.textContent = formatCurrency(list.reduce((s, r) => s + Number(r.valor || 0), 0));
+    if (!list.length) {
+      body.innerHTML = `<tr><td colspan="6" class="notice">Nenhum veículo aguardando faturamento. Após saída (VRP), o registro aparece aqui até ir para Contas a receber.</td></tr>`;
+      return;
+    }
+    body.innerHTML = list
+      .map((r) => {
+        const v = vmap.get(r.vehicle_id);
+        const saida = v?.data_saida || r.period_end;
+        return `<tr>
+          <td data-label="Veículo"><strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span></td>
+          <td data-label="Financeira / RPF">${escapeHtml(r.responsavel_pagamento || financeInstituicaoNome(v))}</td>
+          <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
+          <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
+          <td data-label="Status"><span class="fin-tag fin-tag--open">Aguardando</span></td>
+          <td data-label=""><button type="button" class="secondary fin-btn-aguardando-ok" data-fin-aguardando-id="${escapeHtml(String(r.id))}">Liberar p/ receber</button></td>
+        </tr>`;
+      })
+      .join("");
+  }
+
   function financeRenderPagarAlerts() {
     const el = document.getElementById("finPagarAlerts");
     if (!el) return;
@@ -450,7 +491,8 @@
     const abertas = list.filter((p) => financePayableDisplayStatus(p) !== "Pago");
     if (totalEl) totalEl.textContent = formatCurrency(abertas.reduce((s, p) => s + Number(p.valor || 0), 0));
     if (!list.length) {
-      body.innerHTML = `<tr><td colspan="9" class="notice">Nenhuma despesa cadastrada. Clique em «Nova despesa» para começar.</td></tr>`;
+      const total = (state.payables || []).length;
+      body.innerHTML = `<tr><td colspan="9" class="notice">Nenhuma despesa com os filtros atuais.${total ? ` (${total} no total — limpe filtros ou clique Atualizar)` : " Cadastre em + Nova despesa."}</td></tr>`;
       return;
     }
     body.innerHTML = list
@@ -697,20 +739,69 @@
   }
 
   window.renderFinance = function renderFinance() {
-    financeRoot()?.querySelectorAll(".finance-subview").forEach((p) => {
-      const match = p.getAttribute("data-finance-subview") === currentFinanceView;
-      p.classList.toggle("hidden", !match);
-    });
-    financeRoot()?.querySelectorAll("[data-finance-subview-btn]").forEach((btn) => {
-      btn.classList.toggle("active", btn.getAttribute("data-finance-subview-btn") === currentFinanceView);
-    });
-    if (currentFinanceView === "dashboard") financeRenderDashboard();
-    else if (currentFinanceView === "em_patio") financeRenderEmPatio();
-    else if (currentFinanceView === "receber") financeRenderReceber();
-    else if (currentFinanceView === "pagar") financeRenderPagar();
-    else if (currentFinanceView === "recorrentes") financeRenderRecorrentes();
-    else if (currentFinanceView === "caixa") financeRenderCaixa();
+    try {
+      financeRoot()?.querySelectorAll(".finance-subview").forEach((p) => {
+        const match = p.getAttribute("data-finance-subview") === currentFinanceView;
+        p.classList.toggle("hidden", !match);
+      });
+      financeRoot()?.querySelectorAll("[data-finance-subview-btn]").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-finance-subview-btn") === currentFinanceView);
+      });
+      if (currentFinanceView === "dashboard") financeRenderDashboard();
+      else if (currentFinanceView === "em_patio") financeRenderEmPatio();
+      else if (currentFinanceView === "receber") financeRenderReceber();
+      else if (currentFinanceView === "aguardando") financeRenderAguardando();
+      else if (currentFinanceView === "pagar") financeRenderPagar();
+      else if (currentFinanceView === "recorrentes") financeRenderRecorrentes();
+      else if (currentFinanceView === "caixa") financeRenderCaixa();
+    } catch (e) {
+      console.error("renderFinance", e);
+    }
   };
+
+  window.refreshFinanceData = async function refreshFinanceData() {
+    try {
+      await Promise.all([
+        loadReceivables(),
+        loadPayables(),
+        loadCash(),
+        loadVehicles(),
+        typeof loadCycleClosures === "function" ? loadCycleClosures() : Promise.resolve(),
+      ]);
+      renderFinance();
+      updateDashboard?.();
+    } catch (e) {
+      console.error("refreshFinanceData", e);
+    }
+  };
+
+  async function financeApproveReceivable(receivableId) {
+    const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
+    if (!r) return;
+    const patch = {
+      financeiro_aprovado_contas_receber: true,
+      patio_liberado_financeiro: true,
+      status: r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO ? "EM_ABERTO" : r.status,
+    };
+    let { error } = await supabase.from("receivables").update(patch).eq("id", receivableId).eq("user_id", effectiveUserId());
+    if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
+      addReceberTriagemId(receivableId);
+      if (typeof removePatioFinanceiroBloqueadoReceivableId === "function") {
+        removePatioFinanceiroBloqueadoReceivableId(receivableId);
+      }
+      error = null;
+    }
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    if (typeof removePatioFinanceiroBloqueadoReceivableId === "function") {
+      removePatioFinanceiroBloqueadoReceivableId(receivableId);
+    }
+    addReceberTriagemId(receivableId);
+    await refreshFinanceData();
+    setFinanceView("receber");
+  }
 
   window.setFinanceView = function setFinanceView(view) {
     if (!view || view === "none") return;
@@ -721,7 +812,12 @@
   window.openFinanceSubview = function openFinanceSubview(sub) {
     if (!sub) return;
     setFinanceView(sub);
-    if (typeof showMainView === "function") showMainView("financeiro");
+    const hidden = financeRoot()?.classList.contains("hidden");
+    if (hidden && typeof showMainView === "function") {
+      showMainView("financeiro");
+    } else if (typeof refreshFinanceData === "function") {
+      refreshFinanceData();
+    }
   };
 
   window.returnToPainelFromFinanceFlyout = function returnToPainelFromFinanceFlyout() {
@@ -840,13 +936,15 @@
     document.getElementById("finBtnPrint")?.addEventListener("click", financePrintSubview);
     document.getElementById("finBtnPdf")?.addEventListener("click", financeExportPdfHint);
     document.getElementById("finBtnExcel")?.addEventListener("click", financeExportCurrentView);
-    document.getElementById("finBtnRefresh")?.addEventListener("click", async () => {
-      await Promise.all([loadReceivables(), loadPayables(), loadCash(), loadVehicles()]);
-      renderFinance();
-      updateDashboard?.();
-    });
+    document.getElementById("finBtnRefresh")?.addEventListener("click", () => refreshFinanceData());
 
     document.getElementById("viewFinanceiro")?.addEventListener("click", async (e) => {
+      const btnAg = e.target.closest("[data-fin-aguardando-id]");
+      if (btnAg) {
+        const id = btnAg.getAttribute("data-fin-aguardando-id");
+        if (confirm("Liberar este título para Contas a receber?")) await financeApproveReceivable(id);
+        return;
+      }
       const btnRec = e.target.closest("[data-fin-receber-id]");
       if (btnRec) {
         const id = btnRec.getAttribute("data-fin-receber-id");
