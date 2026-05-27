@@ -1874,6 +1874,33 @@
         border-radius: 1px;
         background: currentColor;
       }
+      .header-logout-btn {
+        min-height: 28px;
+        padding: 4px 10px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 8px;
+        flex-shrink: 0;
+      }
+      .app-session-banner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 14px;
+        margin: 0 0 12px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(245, 158, 11, 0.45);
+        background: color-mix(in srgb, rgba(245, 158, 11, 0.12) 50%, var(--card));
+      }
+      .app-session-banner.hidden {
+        display: none !important;
+      }
+      .app-session-banner p {
+        margin: 0;
+        flex: 1 1 200px;
+        font-size: 0.9rem;
+      }
       [data-theme="light"] .header-menu-trigger {
         background: rgba(255, 255, 255, 0.72);
         border-color: rgba(203, 213, 225, 0.95);
@@ -4652,7 +4679,20 @@
           <span id="themeLabel">Tema escuro</span>
         </button>
         <div class="user" id="userInfo">Não autenticado</div>
+        <button type="button" id="headerLogoutBtn" class="secondary header-logout-btn hidden" title="Sair da conta">Sair</button>
         <div id="appHeaderMenuWrap" class="header-app-menu-wrap hidden">
+          <button
+            type="button"
+            id="appHeaderMenuBtn"
+            class="header-menu-trigger"
+            aria-expanded="false"
+            aria-controls="appHeaderMenu"
+            aria-label="Abrir menu principal"
+          >
+            <span class="header-menu-bar" aria-hidden="true"></span>
+            <span class="header-menu-bar" aria-hidden="true"></span>
+            <span class="header-menu-bar" aria-hidden="true"></span>
+          </button>
           <div id="appHeaderMenuBackdrop" class="header-menu-backdrop hidden" aria-hidden="true"></div>
           <div class="header-menu-tray">
             <div id="appHeaderMenu" class="header-menu-dropdown hidden" aria-label="Menu principal">
@@ -4814,9 +4854,15 @@
         </form>
 
         <div id="authStatus" class="status"></div>
+        <button type="button" class="secondary" id="authClearSession" style="margin-top: 14px">Limpar sessão e entrar de novo</button>
       </section>
 
       <section id="appPanel" class="hidden">
+        <div id="appSessionBanner" class="app-session-banner hidden" role="alert">
+          <p id="appSessionBannerText">Não foi possível carregar os dados. Sua sessão pode ter expirado.</p>
+          <button type="button" class="secondary" id="appSessionRetry">Tentar novamente</button>
+          <button type="button" id="appSessionLogout">Sair</button>
+        </div>
         <div id="gestorPistaWelcomeBanner" class="gestor-pista-welcome hidden" role="status">
           <p class="notice gestor-pista-welcome-text">
             <strong>Gestor de pista.</strong> Entrou com o acesso que o gestor geral criou. Fica na <strong>Gestão de pátio</strong> (cadastro e consultas permitidas; sem valores completos, financeiro nem definições do dono). No <strong>menu</strong> (canto superior direito), use <strong>AMPLIPATIO</strong> para o resumo.
@@ -6864,7 +6910,8 @@
         const msg = error.message || error.details || error.hint || error.code || "Erro desconhecido";
         console.error(`[${label}]`, msg);
         if (isSupabaseAuthError(error)) {
-          setStatus("Sessão expirada ou inválida. Saia e entre novamente.", "error");
+          showAppSessionBanner("Sessão expirada. Clique em Sair (canto superior) ou use «Tentar novamente» após entrar de novo.");
+          setStatus("Sessão expirada. Use o botão Sair no topo e entre novamente.", "error");
         }
       }
 
@@ -6899,12 +6946,48 @@
         let session = sessionData?.session || null;
         if (!session) return null;
         if (!isJwtExpired(session.access_token)) return session;
-        const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
-        if (refreshErr) {
-          console.warn("refreshSession", refreshErr.message || refreshErr);
+        const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession(session);
+        if (refreshErr || !refreshed?.session) {
+          console.warn("refreshSession", refreshErr?.message || "sem sessão");
           return null;
         }
-        return refreshed?.session || null;
+        return refreshed.session;
+      }
+
+      async function forceSignOutAndLogin(message) {
+        hideAppSessionBanner();
+        try {
+          if (supabase) await supabase.auth.signOut({ scope: "local" });
+        } catch (e) {
+          console.warn("signOut", e);
+        }
+        try {
+          Object.keys(localStorage).forEach((k) => {
+            if (/^sb-.*-auth-token$/i.test(k) || k.includes("supabase.auth")) localStorage.removeItem(k);
+          });
+        } catch (e) {
+          console.warn("clear auth storage", e);
+        }
+        appInitUserId = null;
+        appInitPromise = null;
+        showAuth();
+        if (message) setStatus(message, "error");
+      }
+
+      function showAppSessionBanner(text) {
+        const el = document.getElementById("appSessionBanner");
+        const txt = document.getElementById("appSessionBannerText");
+        if (txt && text) txt.textContent = text;
+        el?.classList.remove("hidden");
+      }
+
+      function hideAppSessionBanner() {
+        document.getElementById("appSessionBanner")?.classList.add("hidden");
+      }
+
+      function setHeaderLoggedInUI(loggedIn) {
+        document.getElementById("headerLogoutBtn")?.classList.toggle("hidden", !loggedIn);
+        document.getElementById("appHeaderMenuWrap")?.classList.toggle("hidden", !loggedIn);
       }
 
       let appInitPromise = null;
@@ -6920,8 +7003,7 @@
           try {
             const session = await ensureValidSupabaseSession();
             if (!session?.user) {
-              showAuth();
-              setStatus("Sessão expirada. Faça login novamente.", "error");
+              await forceSignOutAndLogin("Sessão expirada. Entre novamente.");
               return;
             }
             if (session.user.id !== state.user.id) state.user = session.user;
@@ -10573,21 +10655,31 @@
         setStatus("Conta criada. Entre na aba «Entrar» com o mesmo utilizador e senha.", "success");
       });
 
-      logoutBtn.addEventListener("click", async () => {
-        if (supabase) await supabase.auth.signOut();
+      logoutBtn.addEventListener("click", () => forceSignOutAndLogin("Sessão encerrada."));
+      document.getElementById("headerLogoutBtn")?.addEventListener("click", () => forceSignOutAndLogin("Sessão encerrada."));
+      document.getElementById("appSessionLogout")?.addEventListener("click", () => forceSignOutAndLogin("Sessão encerrada."));
+      document.getElementById("authClearSession")?.addEventListener("click", () => forceSignOutAndLogin("Sessão limpa. Entre com seu usuário e senha."));
+      document.getElementById("appSessionRetry")?.addEventListener("click", async () => {
+        hideAppSessionBanner();
+        const session = await ensureValidSupabaseSession();
+        if (!session?.user) {
+          await forceSignOutAndLogin("Sessão inválida. Entre novamente.");
+          return;
+        }
+        await initAppData(true);
       });
 
       async function showApp(user) {
         const session = await ensureValidSupabaseSession();
         if (!session?.user) {
-          showAuth();
-          setStatus("Sessão expirada. Faça login novamente.", "error");
+          await forceSignOutAndLogin("Sessão expirada. Entre novamente.");
           return;
         }
         user = session.user;
+        hideAppSessionBanner();
         authPanel.classList.add("hidden");
         appPanel.classList.remove("hidden");
-        document.getElementById("appHeaderMenuWrap")?.classList.remove("hidden");
+        setHeaderLoggedInUI(true);
         userInfo.textContent = user ? `Logado como ${displayManagerIdentity(user.email || "")}` : "Logado";
         state.user = user;
         await loadPatioDelegatedRole();
@@ -10605,21 +10697,24 @@
           await initAppData(true);
         } catch (e) {
           console.error("initAppData", e);
+          showAppSessionBanner("Erro ao carregar dados. Tente novamente ou saia e entre de novo.");
         }
       }
 
       function showAuth() {
         authPanel.classList.remove("hidden");
         appPanel.classList.add("hidden");
-        document.getElementById("appHeaderMenuWrap")?.classList.add("hidden");
+        setHeaderLoggedInUI(false);
         document.body.classList.remove("menus-no-modulo");
         lastAppHeaderModuleView = null;
         closeAppHeaderMenu();
+        hideAppSessionBanner();
         userInfo.textContent = "Não autenticado";
         state.user = null;
         state.patioOwnerUserId = null;
         isGestorPista = false;
         appInitUserId = null;
+        appInitPromise = null;
         document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
       }
 
@@ -10759,7 +10854,9 @@
           if (session?.user) {
             await showApp(session.user);
           } else {
-            showAuth();
+            const stale = (await supabase.auth.getSession())?.data?.session;
+            if (stale) await forceSignOutAndLogin("Sessão expirada. Entre novamente.");
+            else showAuth();
           }
         } catch (e) {
           console.error(e);
@@ -15942,7 +16039,7 @@
       });
       document.getElementById("appHeaderMenuLogout")?.addEventListener("click", () => {
         closeAppHeaderMenu();
-        logoutBtn?.click();
+        forceSignOutAndLogin("Sessão encerrada.");
       });
       document.addEventListener("keydown", (e) => {
         if (e.key !== "Escape") return;
@@ -15962,19 +16059,16 @@
         supabase.auth.onAuthStateChange((event, session) => {
           if (event === "SIGNED_OUT" || event === "TOKEN_REFRESH_FAILED") {
             showAuth();
-            setStatus("Sessão expirada. Faça login novamente.", "error");
+            setStatus("Sessão encerrada. Entre novamente.", "error");
             return;
           }
-          if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+          if (event === "SIGNED_IN") {
             if (session?.user) showApp(session.user).catch(console.error);
             return;
           }
-          if (event === "INITIAL_SESSION") {
-            if (session?.user && !appInitUserId) {
-              showApp(session.user).catch(console.error);
-            } else if (!session) {
-              showAuth();
-            }
+          if (event === "TOKEN_REFRESHED" && session?.user && appInitUserId) {
+            state.user = session.user;
+            return;
           }
         });
       }

@@ -767,7 +767,12 @@
   window.refreshFinanceData = async function refreshFinanceData() {
     if (typeof ensureValidSupabaseSession === "function") {
       const session = await ensureValidSupabaseSession();
-      if (!session?.user) return;
+      if (!session?.user) {
+        if (typeof forceSignOutAndLogin === "function") {
+          await forceSignOutAndLogin("Sessão expirada. Entre novamente.");
+        }
+        return;
+      }
     } else if (!financeCanLoadData()) {
       return;
     }
