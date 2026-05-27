@@ -765,7 +765,12 @@
   };
 
   window.refreshFinanceData = async function refreshFinanceData() {
-    if (!financeCanLoadData()) return;
+    if (typeof ensureValidSupabaseSession === "function") {
+      const session = await ensureValidSupabaseSession();
+      if (!session?.user) return;
+    } else if (!financeCanLoadData()) {
+      return;
+    }
     if (refreshFinanceDataPromise) return refreshFinanceDataPromise;
     refreshFinanceDataPromise = (async () => {
       try {

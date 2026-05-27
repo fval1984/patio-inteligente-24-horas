@@ -6875,6 +6875,65 @@
         return uid;
       }
 
+      function isJwtExpired(accessToken, skewSec = 60) {
+        if (!accessToken) return true;
+        try {
+          const part = accessToken.split(".")[1];
+          if (!part) return true;
+          const payload = JSON.parse(atob(part.replace(/-/g, "+").replace(/_/g, "/")));
+          if (!payload?.exp) return false;
+          return Date.now() / 1000 >= payload.exp - skewSec;
+        } catch (e) {
+          return true;
+        }
+      }
+
+      /** Garante access_token válido antes de consultar o PostgREST. */
+      async function ensureValidSupabaseSession() {
+        if (!supabase) return null;
+        const { data: sessionData, error } = await supabase.auth.getSession();
+        if (error) {
+          console.warn("getSession", error.message || error);
+          return null;
+        }
+        let session = sessionData?.session || null;
+        if (!session) return null;
+        if (!isJwtExpired(session.access_token)) return session;
+        const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
+        if (refreshErr) {
+          console.warn("refreshSession", refreshErr.message || refreshErr);
+          return null;
+        }
+        return refreshed?.session || null;
+      }
+
+      let appInitPromise = null;
+      let appInitUserId = null;
+
+      async function initAppData(forceReload) {
+        if (!state.user?.id) return;
+        if (!forceReload && appInitUserId === state.user.id && (state.vehicles?.length || state.partners?.length)) {
+          return;
+        }
+        if (appInitPromise) return appInitPromise;
+        appInitPromise = (async () => {
+          try {
+            const session = await ensureValidSupabaseSession();
+            if (!session?.user) {
+              showAuth();
+              setStatus("Sessão expirada. Faça login novamente.", "error");
+              return;
+            }
+            if (session.user.id !== state.user.id) state.user = session.user;
+            await loadAll();
+            appInitUserId = session.user.id;
+          } finally {
+            appInitPromise = null;
+          }
+        })();
+        return appInitPromise;
+      }
+
       async function callFinanceCompetencyApi(path, payload) {
         const resp = await fetch(path, {
           method: "POST",
@@ -10519,6 +10578,13 @@
       });
 
       async function showApp(user) {
+        const session = await ensureValidSupabaseSession();
+        if (!session?.user) {
+          showAuth();
+          setStatus("Sessão expirada. Faça login novamente.", "error");
+          return;
+        }
+        user = session.user;
         authPanel.classList.add("hidden");
         appPanel.classList.remove("hidden");
         document.getElementById("appHeaderMenuWrap")?.classList.remove("hidden");
@@ -10536,9 +10602,9 @@
           }
         }
         try {
-          await loadAll();
+          await initAppData(true);
         } catch (e) {
-          console.error("loadAll", e);
+          console.error("initAppData", e);
         }
       }
 
@@ -10553,6 +10619,7 @@
         state.user = null;
         state.patioOwnerUserId = null;
         isGestorPista = false;
+        appInitUserId = null;
         document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
       }
 
@@ -10688,15 +10755,9 @@
           return;
         }
         try {
-          const { data, error } = await supabase.auth.getSession();
-          if (error) {
-            console.error(error);
-            showAuth();
-            setStatus("Não foi possível verificar a sessão. Recarregue a página.", "error");
-            return;
-          }
-          if (data.session && data.session.user) {
-            showApp(data.session.user);
+          const session = await ensureValidSupabaseSession();
+          if (session?.user) {
+            await showApp(session.user);
           } else {
             showAuth();
           }
@@ -15904,10 +15965,16 @@
             setStatus("Sessão expirada. Faça login novamente.", "error");
             return;
           }
-          if (session && session.user) {
-            showApp(session.user);
-          } else {
-            showAuth();
+          if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+            if (session?.user) showApp(session.user).catch(console.error);
+            return;
+          }
+          if (event === "INITIAL_SESSION") {
+            if (session?.user && !appInitUserId) {
+              showApp(session.user).catch(console.error);
+            } else if (!session) {
+              showAuth();
+            }
           }
         });
       }
