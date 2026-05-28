@@ -6314,7 +6314,13 @@
       const createClientFn = resolveSupabaseCreateClient();
       if (createClientFn) {
         try {
-          supabase = window.supabaseClient || createClientFn(supabaseUrl, supabaseKey);
+          supabase = window.supabaseClient || createClientFn(supabaseUrl, supabaseKey, {
+            auth: {
+              autoRefreshToken: true,
+              persistSession: true,
+              detectSessionInUrl: true,
+            },
+          });
           window.supabaseClient = supabase;
         } catch (e) {
           console.error(e);
@@ -6558,6 +6564,7 @@
         competencia = "",
         recorrenciaIntervalo = "mensal",
       }) {
+        if (!(await requireSupabaseSessionForWrite())) return { error: { message: "Sessão expirada" } };
         const clienteNome = String(cliente || "").trim();
         const modoUp = String(modo || "UNICA").toUpperCase();
         const count = modoUp === "PARCELADA" ? Math.max(2, Math.min(60, Number(parcelas) || 2)) : 1;
@@ -6596,14 +6603,18 @@
             financeiro_aprovado_contas_receber: true,
             patio_liberado_financeiro: true,
           };
-          let { data: inserted, error } = await supabase.from("receivables").insert(payload).select("id").single();
+          let { data: inserted, error } = await runSupabaseWrite(() =>
+            supabase.from("receivables").insert(payload).select("id").single()
+          );
           if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
             const fallback = { ...payload };
             delete fallback.patio_liberado_financeiro;
             delete fallback.financeiro_aprovado_contas_receber;
             delete fallback.forma_pagamento;
             delete fallback.subcategoria;
-            ({ data: inserted, error } = await supabase.from("receivables").insert(fallback).select("id").single());
+            ({ data: inserted, error } = await runSupabaseWrite(() =>
+              supabase.from("receivables").insert(fallback).select("id").single()
+            ));
           }
           if (error) return { error };
           const receivableId = inserted?.id;
@@ -6641,6 +6652,7 @@
         recorrenciaIntervalo = "mensal",
         contaBancaria = "",
       }) {
+        if (!(await requireSupabaseSessionForWrite())) return { error: { message: "Sessão expirada" } };
         const modoUp = String(modo || "UNICA").toUpperCase();
         const count = modoUp === "PARCELADA" ? Math.max(2, Math.min(60, Number(parcelas) || 2)) : 1;
         const valorParcela = modoUp === "PARCELADA" ? Number(valor) / count : Number(valor);
@@ -6678,14 +6690,18 @@
             observacoes: obsPacked || null,
             centro_custo: centroCusto || null,
           };
-          let { data: inserted, error } = await supabase.from("payables").insert(payload).select("id").single();
+          let { data: inserted, error } = await runSupabaseWrite(() =>
+            supabase.from("payables").insert(payload).select("id").single()
+          );
           if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
             const fallback = { ...payload };
             delete fallback.fornecedor;
             delete fallback.forma_pagamento;
             delete fallback.observacoes;
             delete fallback.centro_custo;
-            ({ data: inserted, error } = await supabase.from("payables").insert(fallback).select("id").single());
+            ({ data: inserted, error } = await runSupabaseWrite(() =>
+              supabase.from("payables").insert(fallback).select("id").single()
+            ));
           }
           if (error) return { error };
           const payableId = inserted?.id;
@@ -6970,19 +6986,51 @@
       async function ensureValidSupabaseSession() {
         if (!supabase) return null;
         const { data: sessionData, error } = await supabase.auth.getSession();
-        if (error) {
-          console.warn("getSession", error.message || error);
-          return null;
-        }
+        if (error) console.warn("getSession", error.message || error);
         let session = sessionData?.session || null;
-        if (!session) return null;
-        if (!isJwtExpired(session.access_token)) return session;
-        const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession(session);
+        if (session && !isJwtExpired(session.access_token)) return session;
+        const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
         if (refreshErr || !refreshed?.session) {
           console.warn("refreshSession", refreshErr?.message || "sem sessão");
           return null;
         }
-        return refreshed.session;
+        session = refreshed.session;
+        if (session.user) state.user = session.user;
+        return session;
+      }
+
+      async function requireSupabaseSessionForWrite() {
+        const session = await ensureValidSupabaseSession();
+        if (session?.access_token) return session;
+        showAppSessionBanner("Sessão expirada. Saia e entre novamente para continuar a gravar.");
+        alert("Sua sessão expirou. Clique em Sair (canto superior) e entre novamente.");
+        return null;
+      }
+
+      async function runSupabaseWrite(runQuery) {
+        if (!(await requireSupabaseSessionForWrite())) {
+          return { data: null, error: { message: "Sessão expirada" } };
+        }
+        let result = await runQuery();
+        if (result?.error && isSupabaseAuthError(result.error)) {
+          const session = await ensureValidSupabaseSession();
+          if (session) result = await runQuery();
+        }
+        if (result?.error && isSupabaseAuthError(result.error)) {
+          showAppSessionBanner("Sessão expirada. Saia e entre novamente para continuar a gravar.");
+          alert("Sua sessão expirou. Clique em Sair (canto superior) e entre novamente.");
+        }
+        return result;
+      }
+
+      function alertSupabaseError(error, fallback = "Não foi possível concluir a operação.") {
+        if (!error) return;
+        if (isSupabaseAuthError(error)) {
+          showAppSessionBanner("Sessão expirada. Saia e entre novamente para continuar a gravar.");
+          alert("Sua sessão expirou. Clique em Sair (canto superior) e entre novamente.");
+          return;
+        }
+        alert(error.message || fallback);
       }
 
       async function forceSignOutAndLogin(message) {
@@ -10524,6 +10572,11 @@
         await initAppData(true);
       });
 
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState !== "visible" || !state.user?.id || !supabase) return;
+        ensureValidSupabaseSession().catch((e) => console.warn("refresh on focus", e));
+      });
+
       async function showApp(user) {
         const session = await ensureValidSupabaseSession();
         if (!session?.user) {
@@ -12796,6 +12849,7 @@
         const submitBtn = document.getElementById("lancSubmitBtn");
         if (submitBtn) submitBtn.disabled = true;
         try {
+          if (!(await requireSupabaseSessionForWrite())) return;
           const anexo = await readLancAnexoFile();
           if (lancamentoTipoAtual === "RECEITA") {
             const cliente = lancCliente?.value || "";
@@ -12814,7 +12868,7 @@
               competencia,
             });
             if (result.error) {
-              alert(result.error.message || "Não foi possível salvar a receita.");
+              alertSupabaseError(result.error, "Não foi possível salvar a receita.");
               return;
             }
             if (anexo && result.ids?.length) {
@@ -12846,7 +12900,7 @@
               competencia,
             });
             if (result.error) {
-              alert(result.error.message || "Não foi possível salvar a despesa.");
+              alertSupabaseError(result.error, "Não foi possível salvar a despesa.");
               return;
             }
             if (anexo && result.ids?.length) {
@@ -13686,6 +13740,7 @@
 
       vehicleForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (!(await requireSupabaseSessionForWrite())) return;
         if (isGestorPista && editingVehicleId) {
           alert("O gestor de pista não pode editar veículos.");
           return;
@@ -13776,7 +13831,7 @@
             : supabase.from("vehicles").insert(p);
 
         let tryPayload = { ...payload };
-        let { error } = await runVehicleSave(tryPayload);
+        let { error } = await runSupabaseWrite(() => runVehicleSave(tryPayload));
         /** @type {string[]} */
         const degradedGroups = [];
         const stripVistoriaFrom = (p) => {
@@ -13826,7 +13881,7 @@
             if (!degradedGroups.includes(k)) degradedGroups.push(k);
           }
           if (JSON.stringify(tryPayload) === before) break;
-          ({ error } = await runVehicleSave(tryPayload));
+          ({ error } = await runSupabaseWrite(() => runVehicleSave(tryPayload)));
         }
         if (!error && degradedGroups.length) {
           const partes = [];
@@ -13847,7 +13902,7 @@
                 "Se acabou de alterar dados noutro separador, atualize a página."
             );
           } else {
-            alert(msg);
+            alertSupabaseError(error);
           }
           return;
         }
@@ -13862,13 +13917,15 @@
 
       confirmNfse.addEventListener("click", async () => {
         if (!nfseVehicleId) return;
-        const { error } = await supabase
-          .from("vehicles")
-          .update({ nfse_status: "EMITIDA", nfse_issued_at: new Date().toISOString() })
-          .eq("id", nfseVehicleId)
-          .eq("user_id", effectiveUserId());
+        const { error } = await runSupabaseWrite(() =>
+          supabase
+            .from("vehicles")
+            .update({ nfse_status: "EMITIDA", nfse_issued_at: new Date().toISOString() })
+            .eq("id", nfseVehicleId)
+            .eq("user_id", effectiveUserId())
+        );
         if (error) {
-          alert(error.message);
+          alertSupabaseError(error);
           return;
         }
         const vid = nfseVehicleId;
@@ -13883,6 +13940,7 @@
 
       partnerForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (!(await requireSupabaseSessionForWrite())) return;
         const payload = {
           user_id: effectiveUserId(),
           nome: document.getElementById("partnerName").value.trim(),
@@ -13903,7 +13961,7 @@
           );
           return;
         }
-        const { error } = await supabase.from("partners").insert(payload);
+        const { error } = await runSupabaseWrite(() => supabase.from("partners").insert(payload));
         if (error) {
           const msg = error.message || "";
           if (/duplicate key|unique constraint|23505/i.test(msg)) {
@@ -13911,7 +13969,7 @@
               "Não foi possível gravar: duplicidade de nome ou documento (índice na base de dados). Corrija ou atualize a página."
             );
           } else {
-            alert(msg);
+            alertSupabaseError(error);
           }
           return;
         }
@@ -13931,9 +13989,9 @@
           data_vencimento: document.getElementById("payableDue").value,
           status: "EM_ABERTO",
         };
-        const { error } = await supabase.from("payables").insert(payload);
+        const { error } = await runSupabaseWrite(() => supabase.from("payables").insert(payload));
         if (error) {
-          alert(error.message);
+          alertSupabaseError(error);
           return;
         }
         payableForm?.reset();
