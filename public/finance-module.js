@@ -920,13 +920,12 @@
   };
 
   async function financeApproveReceivable(receivableId) {
-    const prevView = currentFinanceView;
+    const stayView = currentFinanceView;
     if (typeof requireSupabaseSessionForWrite === "function") {
       if (!(await requireSupabaseSessionForWrite())) return;
     }
     const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
     if (!r) return;
-    financeActivateSubview("receber");
     const patch = {
       financeiro_aprovado_contas_receber: true,
       patio_liberado_financeiro: true,
@@ -944,7 +943,6 @@
       error = null;
     }
     if (error) {
-      financeActivateSubview(prevView === "receber" ? "aguardando" : prevView);
       if (typeof alertSupabaseError === "function") alertSupabaseError(error, "Não foi possível enviar para Contas a receber.");
       else alert(error.message);
       return;
@@ -957,15 +955,7 @@
     if (idx >= 0) {
       state.receivables[idx] = { ...state.receivables[idx], ...patch };
     }
-    financeActivateSubview("receber");
-    await refreshFinanceData({ preserveView: "receber" });
-    financeActivateSubview("receber");
-    requestAnimationFrame(() => {
-      financeActivateSubview("receber");
-      financeRoot()
-        ?.querySelector('[data-finance-subview="receber"]')
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    await refreshFinanceData({ preserveView: stayView && stayView !== "none" ? stayView : true });
   }
 
   window.setFinanceView = function setFinanceView(view) {
@@ -1103,7 +1093,6 @@
           const tipoSel = document.getElementById("finPagarTipo");
           if (tipoSel) tipoSel.value = "recorrente";
         }
-        setFinanceView("pagar");
       } finally {
         if (submitBtn) submitBtn.disabled = false;
       }
@@ -1161,7 +1150,6 @@
           const tipoSel = document.getElementById("finReceberTipo");
           if (tipoSel) tipoSel.value = "recorrente";
         }
-        setFinanceView("receber");
       } finally {
         if (submitBtn) submitBtn.disabled = false;
       }
@@ -1177,7 +1165,6 @@
       if (btnReceber) {
         const id = btnReceber.getAttribute("data-fin-aguardando-receber");
         if (confirm("Enviar este título para Contas a receber?")) {
-          financeActivateSubview("receber");
           await financeApproveReceivable(id);
         }
         return;
