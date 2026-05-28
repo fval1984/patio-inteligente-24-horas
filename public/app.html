@@ -13647,6 +13647,10 @@
           setPartnerSel(libResponsavelPagamento, values.responsavelFinanceiro, readonly.responsavelFinanceiro);
           setPartnerSel(libSolicitanteRemocao, values.solicitanteRemocao, readonly.solicitanteRemocao);
           setPartnerSel(libRemoveu, values.removeu, readonly.removeu);
+          if (requiredFields.includes("removeu") && libRemoveu && !libRemoveu.value) {
+            const firstRemoveu = [...libRemoveu.options].find((o) => o.value);
+            if (firstRemoveu) libRemoveu.value = firstRemoveu.value;
+          }
 
           liberacaoModal.classList.remove("hidden");
         });
@@ -14326,6 +14330,20 @@
       async function handleVnpVehicleAction(button) {
         const id = button.getAttribute("data-id");
         const action = button.getAttribute("data-action");
+        const patioWriteActions = new Set([
+          "apagar",
+          "voltar",
+          "confirmar_liberacao",
+          "remocao_solicitada",
+          "confirmar",
+          "solicitar",
+          "trocar-responsavel",
+          "editar_fechamento_ciclo",
+          "patio_liberar_financeiro",
+        ]);
+        if (patioWriteActions.has(action)) {
+          if (!(await requireSupabaseSessionForWrite())) return;
+        }
 
         if (action === "editar_fechamento_ciclo") {
           if (isGestorPista) return;
@@ -14488,6 +14506,7 @@
         if (!vehicle) return;
 
         if (isGestorPista && action !== "confirmar_liberacao") {
+          alert("O gestor de pista não pode executar esta ação.");
           return;
         }
 
@@ -15104,8 +15123,20 @@
         }
 
         if (action === "confirmar") {
+          let liveVehicle = vehicle;
+          try {
+            const { data: freshRow } = await supabase
+              .from("vehicles")
+              .select("*")
+              .eq("id", id)
+              .eq("user_id", effectiveUserId())
+              .maybeSingle();
+            if (freshRow) liveVehicle = freshRow;
+          } catch (e) {
+            console.warn("vrp_refresh_vehicle", e);
+          }
           const podeEfetivarRemocao =
-            vehicle.status === "REMocao_CONFIRMADA" || vehicle.status === "LIBERACAO_CONFIRMADA";
+            liveVehicle.status === "REMocao_CONFIRMADA" || liveVehicle.status === "LIBERACAO_CONFIRMADA";
           if (!podeEfetivarRemocao) {
             alert(
               "A remoção só pode ser efetivada depois da liberação confirmada."
@@ -15134,45 +15165,41 @@
           if (!vrpData) return;
           const responsavel = String(vrpData.removeu || "").trim();
           const dataSaida = new Date().toISOString();
-          const previousStatus = vehicle.status;
-          const { error: eventError } = await supabase.from("vehicle_events").insert({
-            vehicle_id: id,
-            tipo: "REMOVIDO",
-            responsavel,
-            descricao: `Remoção efetivada — veículo removido do pátio. PREV_STATUS=${previousStatus}`,
-          });
+          const previousStatus = liveVehicle.status;
+          const { error: eventError } = await runSupabaseWrite(() =>
+            supabase.from("vehicle_events").insert({
+              vehicle_id: id,
+              tipo: "REMOVIDO",
+              responsavel,
+              descricao: `Remoção efetivada — veículo removido do pátio. PREV_STATUS=${previousStatus}`,
+            })
+          );
           if (eventError) {
-            alert(eventError.message);
+            alertSupabaseError(eventError, "Não foi possível registrar a saída (VRP).");
             return;
           }
           let updatedVehicle = null;
           let vehicleError = null;
-          const updFull = await supabase
-            .from("vehicles")
-            .update({
-              status: "REMOVIDO",
-              data_saida: dataSaida,
-              remocao_solicitada: false,
-              remocao_solicitada_por: null,
-              remocao_solicitada_em: null,
-            })
-            .eq("id", id)
-            .eq("user_id", effectiveUserId())
-            .select("id");
+          const runVrpVehicleUpdate = (payload) =>
+            runSupabaseWrite(() =>
+              supabase.from("vehicles").update(payload).eq("id", id).eq("user_id", effectiveUserId()).select("id")
+            );
+          const updFull = await runVrpVehicleUpdate({
+            status: "REMOVIDO",
+            data_saida: dataSaida,
+            remocao_solicitada: false,
+            remocao_solicitada_por: null,
+            remocao_solicitada_em: null,
+          });
           updatedVehicle = updFull.data;
           vehicleError = updFull.error;
           if (vehicleError && /column|schema cache|PGRST204/i.test(vehicleError.message || "")) {
-            const updMin = await supabase
-              .from("vehicles")
-              .update({ status: "REMOVIDO", data_saida: dataSaida })
-              .eq("id", id)
-              .eq("user_id", effectiveUserId())
-              .select("id");
+            const updMin = await runVrpVehicleUpdate({ status: "REMOVIDO", data_saida: dataSaida });
             updatedVehicle = updMin.data;
             vehicleError = updMin.error;
           }
           if (vehicleError) {
-            alert(vehicleError.message);
+            alertSupabaseError(vehicleError, "Não foi possível marcar o veículo como removido (VRP).");
             return;
           }
           if (!updatedVehicle || updatedVehicle.length === 0) {
@@ -15181,6 +15208,7 @@
           }
 
           let vrpSemCobranca = false;
+          let financeWarning = "";
           if (!FINANCE_MANUAL_ONLY) {
           const { data: cycleAberto, error: cycleQErr } = await supabase
             .from("receivables")
@@ -15196,8 +15224,8 @@
             console.warn(cycleQErr);
           }
           if (cycleAberto?.id) {
-            const hadRemocao = isRemocaoSolicitada(vehicle);
-            const closedVehicle = { ...vehicle, status: "REMOVIDO", data_saida: dataSaida };
+            const hadRemocao = isRemocaoSolicitada(liveVehicle);
+            const closedVehicle = { ...liveVehicle, status: "REMOVIDO", data_saida: dataSaida };
             const breakdown = calcFinanceChargeBreakdown(closedVehicle, cycleAberto.period_start, dataSaida, {
               aplicarRemocao: hadRemocao,
             });
@@ -15285,9 +15313,8 @@
               }
             }
             if (recErr) {
-              alert(recErr.message);
-              return;
-            }
+              financeWarning = recErr.message || String(recErr);
+            } else {
             removePatioFinanceiroBloqueadoReceivableId(cycleAberto.id);
             if (vrpSemCobranca) {
               removeReceberTriagemId(cycleAberto.id);
@@ -15322,26 +15349,28 @@
               period_end: dataSaida,
               diarias,
               valor: valorFechamento,
-              nf_emitida: vehicle.nfse_status === "EMITIDA",
-              nf_enviada: vehicleNfseEnviadaFlag(vehicle),
+              nf_emitida: liveVehicle.nfse_status === "EMITIDA",
+              nf_enviada: vehicleNfseEnviadaFlag(liveVehicle),
               triagem_ok: true,
               sent_to_finance: true,
             };
-            const { error: fechamentoErr } = await supabase.from("patio_cycle_closures").insert(fechamentoPayload);
+            const { error: fechamentoErr } = await runSupabaseWrite(() =>
+              supabase.from("patio_cycle_closures").insert(fechamentoPayload)
+            );
             if (fechamentoErr) {
               if (isMissingRelationError(fechamentoErr)) {
-                alert(
-                  "A tabela patio_cycle_closures ainda não existe neste projeto Supabase. Abra o SQL Editor, execute o script «supabase/patio_cycle_closures.sql» do repositório e recarregue o painel."
-                );
-                return;
+                financeWarning =
+                  "A tabela patio_cycle_closures ainda não existe neste projeto Supabase. Abra o SQL Editor, execute o script «supabase/patio_cycle_closures.sql» do repositório e recarregue o painel.";
+              } else {
+                financeWarning = fechamentoErr.message || String(fechamentoErr);
               }
-              alert(fechamentoErr.message);
-              return;
+            }
             }
           }
           }
 
           await loadVehicles();
+          renderVehicles();
           if (!FINANCE_MANUAL_ONLY) await Promise.all([loadReceivables(), loadCycleClosures()]);
           else await loadCycleClosures();
           if (!FINANCE_MANUAL_ONLY) {
@@ -15361,7 +15390,17 @@
           }
           }
           updateDashboard();
-          alert(vrpSemCobranca ? "Veículo removido do pátio (VRP). Valor R$ 0,00 — encerrado sem cobrança." : "Veículo removido. Cobrança gerada em Financeiro → Contas a receber.");
+          if (financeWarning) {
+            alert(
+              `Veículo removido do pátio (VRP), mas houve pendência no financeiro:\n\n${financeWarning}`
+            );
+          } else {
+            alert(
+              vrpSemCobranca
+                ? "Veículo removido do pátio (VRP). Valor R$ 0,00 — encerrado sem cobrança."
+                : "Veículo removido. Cobrança gerada em Financeiro → Contas a receber."
+            );
+          }
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
           return;
