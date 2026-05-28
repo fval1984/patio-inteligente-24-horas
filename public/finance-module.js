@@ -834,8 +834,20 @@
     }
   };
 
+  function financeResolvePreserveView(opts = {}) {
+    if (typeof opts.preserveView === "string" && opts.preserveView !== "none") {
+      return opts.preserveView;
+    }
+    if (opts.preserveView === true) return currentFinanceView;
+    return null;
+  }
+
   window.refreshFinanceData = async function refreshFinanceData(opts = {}) {
-    const preserveView = opts.preserveView === true ? currentFinanceView : null;
+    const preserveView = financeResolvePreserveView(opts);
+    if (preserveView) {
+      currentFinanceView = preserveView;
+      renderFinance();
+    }
     if (typeof ensureValidSupabaseSession === "function") {
       const session = await ensureValidSupabaseSession();
       if (!session?.user) {
@@ -847,7 +859,10 @@
     } else if (!financeCanLoadData()) {
       return;
     }
-    if (refreshFinanceDataPromise) return refreshFinanceDataPromise;
+    if (refreshFinanceDataPromise) {
+      await refreshFinanceDataPromise;
+      if (!preserveView) return;
+    }
     refreshFinanceDataPromise = (async () => {
       try {
         await Promise.all([
@@ -860,7 +875,7 @@
         if (typeof window.syncPaidPayablesCashMovements === "function") {
           await window.syncPaidPayablesCashMovements();
         }
-        if (preserveView && preserveView !== "none") {
+        if (preserveView) {
           currentFinanceView = preserveView;
         }
         renderFinance();
@@ -911,6 +926,7 @@
     }
     setFinanceView("receber");
     await refreshFinanceData({ preserveView: "receber" });
+    setFinanceView("receber");
     financeRoot()
       ?.querySelector('[data-finance-subview="receber"]')
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
