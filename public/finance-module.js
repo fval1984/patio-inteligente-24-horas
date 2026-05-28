@@ -834,7 +834,8 @@
     }
   };
 
-  window.refreshFinanceData = async function refreshFinanceData() {
+  window.refreshFinanceData = async function refreshFinanceData(opts = {}) {
+    const preserveView = opts.preserveView === true ? currentFinanceView : null;
     if (typeof ensureValidSupabaseSession === "function") {
       const session = await ensureValidSupabaseSession();
       if (!session?.user) {
@@ -859,6 +860,9 @@
         if (typeof window.syncPaidPayablesCashMovements === "function") {
           await window.syncPaidPayablesCashMovements();
         }
+        if (preserveView && preserveView !== "none") {
+          currentFinanceView = preserveView;
+        }
         renderFinance();
         updateDashboard?.();
       } catch (e) {
@@ -871,6 +875,9 @@
   };
 
   async function financeApproveReceivable(receivableId) {
+    if (typeof requireSupabaseSessionForWrite === "function") {
+      if (!(await requireSupabaseSessionForWrite())) return;
+    }
     const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
     if (!r) return;
     const patch = {
@@ -878,7 +885,10 @@
       patio_liberado_financeiro: true,
       status: r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO ? "EM_ABERTO" : r.status,
     };
-    let { error } = await supabase.from("receivables").update(patch).eq("id", receivableId).eq("user_id", effectiveUserId());
+    const runUpdate = () =>
+      supabase.from("receivables").update(patch).eq("id", receivableId).eq("user_id", effectiveUserId());
+    let { error } =
+      typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runUpdate) : await runUpdate();
     if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
       addReceberTriagemId(receivableId);
       if (typeof removePatioFinanceiroBloqueadoReceivableId === "function") {
@@ -887,15 +897,23 @@
       error = null;
     }
     if (error) {
-      alert(error.message);
+      if (typeof alertSupabaseError === "function") alertSupabaseError(error, "Não foi possível enviar para Contas a receber.");
+      else alert(error.message);
       return;
     }
     if (typeof removePatioFinanceiroBloqueadoReceivableId === "function") {
       removePatioFinanceiroBloqueadoReceivableId(receivableId);
     }
     addReceberTriagemId(receivableId);
-    await refreshFinanceData();
+    const idx = (state.receivables || []).findIndex((x) => String(x.id) === String(receivableId));
+    if (idx >= 0) {
+      state.receivables[idx] = { ...state.receivables[idx], ...patch };
+    }
     setFinanceView("receber");
+    await refreshFinanceData({ preserveView: "receber" });
+    financeRoot()
+      ?.querySelector('[data-finance-subview="receber"]')
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   window.setFinanceView = function setFinanceView(view) {
