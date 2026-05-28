@@ -6295,7 +6295,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260519d"></script>
+    <script src="/finance-module.js?v=20260528a"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -15845,7 +15845,13 @@
           setConfigSubview("dados");
         }
         if (view === "financeiro") {
-          if (effectiveUserId() && typeof refreshFinanceData === "function") refreshFinanceData();
+          if (effectiveUserId() && typeof refreshFinanceData === "function") {
+            const sub =
+              typeof getFinanceSubview === "function" && getFinanceSubview() && getFinanceSubview() !== "none"
+                ? getFinanceSubview()
+                : true;
+            refreshFinanceData({ preserveView: sub });
+          }
         }
         const headerModViews = ["dashboard", "patio", "parceiros", "lista", "configuracoes", "financeiro"];
         if (headerModViews.includes(view) && lastAppHeaderModuleView !== view) {

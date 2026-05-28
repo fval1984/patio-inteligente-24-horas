@@ -814,24 +814,54 @@
     financePrintSubview();
   }
 
+  const FINANCE_SUBVIEWS = ["dashboard", "em_patio", "aguardando", "receber", "pagar", "caixa"];
+
+  function financeRenderSubviewContent(view) {
+    if (view === "dashboard") financeRenderDashboard();
+    else if (view === "em_patio") financeRenderEmPatio();
+    else if (view === "receber") financeRenderReceber();
+    else if (view === "aguardando") financeRenderAguardando();
+    else if (view === "pagar") financeRenderPagar();
+    else if (view === "caixa") financeRenderCaixa();
+  }
+
+  function financeActivateSubview(view, opts = {}) {
+    if (!view || view === "none") return;
+    const resolved = view === "recorrentes" ? "pagar" : view;
+    if (!FINANCE_SUBVIEWS.includes(resolved)) return;
+    currentFinanceView = resolved;
+    if (view === "recorrentes") {
+      finPagarTipo = "recorrente";
+      const tipoSel = document.getElementById("finPagarTipo");
+      if (tipoSel) tipoSel.value = "recorrente";
+    }
+    const root = financeRoot();
+    if (root) {
+      FINANCE_SUBVIEWS.forEach((sub) => {
+        const panel = root.querySelector(`.finance-subview[data-finance-subview="${sub}"]`);
+        if (!panel) return;
+        const show = sub === resolved;
+        panel.classList.toggle("hidden", !show);
+        panel.hidden = !show;
+      });
+      root.querySelectorAll("[data-finance-subview-btn]").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-finance-subview-btn") === resolved);
+      });
+    }
+    if (!opts.skipRender) financeRenderSubviewContent(resolved);
+  }
+
   window.renderFinance = function renderFinance() {
     try {
-      financeRoot()?.querySelectorAll(".finance-subview").forEach((p) => {
-        const match = p.getAttribute("data-finance-subview") === currentFinanceView;
-        p.classList.toggle("hidden", !match);
-      });
-      financeRoot()?.querySelectorAll("[data-finance-subview-btn]").forEach((btn) => {
-        btn.classList.toggle("active", btn.getAttribute("data-finance-subview-btn") === currentFinanceView);
-      });
-      if (currentFinanceView === "dashboard") financeRenderDashboard();
-      else if (currentFinanceView === "em_patio") financeRenderEmPatio();
-      else if (currentFinanceView === "receber") financeRenderReceber();
-      else if (currentFinanceView === "aguardando") financeRenderAguardando();
-      else if (currentFinanceView === "pagar") financeRenderPagar();
-      else if (currentFinanceView === "caixa") financeRenderCaixa();
+      financeActivateSubview(currentFinanceView, { skipRender: true });
+      financeRenderSubviewContent(currentFinanceView);
     } catch (e) {
       console.error("renderFinance", e);
     }
+  };
+
+  window.getFinanceSubview = function getFinanceSubview() {
+    return currentFinanceView;
   };
 
   function financeResolvePreserveView(opts = {}) {
@@ -845,8 +875,7 @@
   window.refreshFinanceData = async function refreshFinanceData(opts = {}) {
     const preserveView = financeResolvePreserveView(opts);
     if (preserveView) {
-      currentFinanceView = preserveView;
-      renderFinance();
+      financeActivateSubview(preserveView);
     }
     if (typeof ensureValidSupabaseSession === "function") {
       const session = await ensureValidSupabaseSession();
@@ -876,9 +905,10 @@
           await window.syncPaidPayablesCashMovements();
         }
         if (preserveView) {
-          currentFinanceView = preserveView;
+          financeActivateSubview(preserveView);
+        } else {
+          renderFinance();
         }
-        renderFinance();
         updateDashboard?.();
       } catch (e) {
         console.error("refreshFinanceData", e?.message || e);
@@ -890,11 +920,13 @@
   };
 
   async function financeApproveReceivable(receivableId) {
+    const prevView = currentFinanceView;
     if (typeof requireSupabaseSessionForWrite === "function") {
       if (!(await requireSupabaseSessionForWrite())) return;
     }
     const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
     if (!r) return;
+    financeActivateSubview("receber");
     const patch = {
       financeiro_aprovado_contas_receber: true,
       patio_liberado_financeiro: true,
@@ -912,6 +944,7 @@
       error = null;
     }
     if (error) {
+      financeActivateSubview(prevView === "receber" ? "aguardando" : prevView);
       if (typeof alertSupabaseError === "function") alertSupabaseError(error, "Não foi possível enviar para Contas a receber.");
       else alert(error.message);
       return;
@@ -924,35 +957,30 @@
     if (idx >= 0) {
       state.receivables[idx] = { ...state.receivables[idx], ...patch };
     }
-    setFinanceView("receber");
+    financeActivateSubview("receber");
     await refreshFinanceData({ preserveView: "receber" });
-    setFinanceView("receber");
-    financeRoot()
-      ?.querySelector('[data-finance-subview="receber"]')
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    financeActivateSubview("receber");
+    requestAnimationFrame(() => {
+      financeActivateSubview("receber");
+      financeRoot()
+        ?.querySelector('[data-finance-subview="receber"]')
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   window.setFinanceView = function setFinanceView(view) {
     if (!view || view === "none") return;
-    if (view === "recorrentes") {
-      currentFinanceView = "pagar";
-      finPagarTipo = "recorrente";
-      const tipoSel = document.getElementById("finPagarTipo");
-      if (tipoSel) tipoSel.value = "recorrente";
-    } else {
-      currentFinanceView = view;
-    }
-    renderFinance();
+    financeActivateSubview(view);
   };
 
-  window.openFinanceSubview = function openFinanceSubview(sub) {
+  window.openFinanceSubview = function openFinanceSubview(sub, opts = {}) {
     if (!sub) return;
-    setFinanceView(sub);
+    financeActivateSubview(sub);
     const hidden = financeRoot()?.classList.contains("hidden");
     if (hidden && typeof showMainView === "function") {
       showMainView("financeiro");
-    } else if (financeCanLoadData()) {
-      refreshFinanceData();
+    } else if (!opts.skipRefresh && financeCanLoadData()) {
+      refreshFinanceData({ preserveView: sub });
     }
   };
 
@@ -1148,7 +1176,10 @@
       const btnReceber = e.target.closest("[data-fin-aguardando-receber]");
       if (btnReceber) {
         const id = btnReceber.getAttribute("data-fin-aguardando-receber");
-        if (confirm("Enviar este título para Contas a receber?")) await financeApproveReceivable(id);
+        if (confirm("Enviar este título para Contas a receber?")) {
+          financeActivateSubview("receber");
+          await financeApproveReceivable(id);
+        }
         return;
       }
       const btnEditar = e.target.closest("[data-fin-aguardando-editar]");

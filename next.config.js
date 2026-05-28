@@ -21,6 +21,7 @@ const nextConfig = {
     const htmlUtf8 = [{ key: "Content-Type", value: "text/html; charset=utf-8" }];
     return [
       { source: "/app.html", headers: [...htmlUtf8, ...noStore] },
+      { source: "/finance-module.js", headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }] },
       { source: "/", headers: [...htmlUtf8, ...noStore] },
       { source: "/app", headers: [...htmlUtf8, ...noStore] },
       { source: "/amplipatio", headers: [...htmlUtf8, ...noStore] },
