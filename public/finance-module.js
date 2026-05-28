@@ -60,9 +60,8 @@
 
   function financeInstituicaoNome(vehicle) {
     if (!vehicle) return "—";
-    const ass = financePartnerLabel(vehicle.assessoria_id);
     const loc = financePartnerLabel(vehicle.localizador_id);
-    return vehicleRpfNome(vehicle) !== "—" ? vehicleRpfNome(vehicle) : ass !== "—" ? ass : loc;
+    return vehicleRpfNome(vehicle) !== "—" ? vehicleRpfNome(vehicle) : loc;
   }
 
   function financePayableMeta(p) {

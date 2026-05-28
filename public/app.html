@@ -4798,7 +4798,7 @@
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
               <span class="dashboard-system-btn__kicker">Relacionamento</span>
               <span class="dashboard-system-btn__title">Parceiros</span>
-              <span class="dashboard-system-btn__desc">Cadastro único de parceiros (RPV, RPP, assessoria, etc.).</span>
+              <span class="dashboard-system-btn__desc">Cadastro único de parceiros (RPV, RPP, etc.).</span>
               <span class="dashboard-system-btn__go">Abrir parceiros →</span>
             </button>
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenLista">
@@ -5075,13 +5075,7 @@
               </select>
             </div>
             <div>
-              <label for="listaFilterAssessoria">Assessoria</label>
-              <select id="listaFilterAssessoria" style="min-width: 11rem">
-                <option value="">Todas</option>
-              </select>
-            </div>
-            <div>
-              <label for="listaFilterRpf">RPF</label>
+              <label for="listaFilterRpf">RPP</label>
               <select id="listaFilterRpf" style="min-width: 11rem" title="Responsável financeiro / pagamento (mesma lista de parceiros RPV; papel diferente no registo)">
                 <option value="">Todos</option>
               </select>
@@ -5099,7 +5093,7 @@
             <button type="button" class="secondary" id="listaFiltersClear">Limpar filtros</button>
             <button type="button" id="listaFiltersApply">Atualizar lista</button>
             <button type="button" class="secondary" id="listaFiltersPrint">Imprimir / PDF</button>
-            <button type="button" class="secondary hidden" id="listaFiltersPrintReceber" title="Relatório agrupado por RPV, RPF ou assessoria">Imprimir relatório</button>
+            <button type="button" class="secondary hidden" id="listaFiltersPrintReceber" title="Relatório agrupado por RPV ou RPP">Imprimir relatório</button>
             <button type="button" class="secondary" id="listaFiltersDownloadPdf">Baixar PDF (A4)</button>
           </div>
           <div class="subnav" id="listaSubnav" style="margin-bottom: 12px; flex-wrap: wrap">
@@ -5261,8 +5255,7 @@
                     <th>Registo</th>
                     <th>Veículo</th>
                     <th>RPV</th>
-                    <th>Assessoria</th>
-                    <th>RPF</th>
+                    <th>RPP</th>
                     <th>Entrada</th>
                     <th>Valor gerado</th>
                     <th>Ações</th>
@@ -5280,10 +5273,6 @@
                 <select id="vlsFilterLocator">
                   <option value="">Todos</option>
                 </select>
-                <label for="vlsFilterAssessoria">Assessoria</label>
-                <select id="vlsFilterAssessoria">
-                  <option value="">Todas</option>
-                </select>
                 <button type="button" class="secondary" id="vlsFiltersClear">Limpar filtros</button>
               </div>
               <div class="table-wrap">
@@ -5294,8 +5283,7 @@
                     <th>Registo</th>
                     <th>Veículo</th>
                     <th>RPV</th>
-                    <th>Assessoria</th>
-                    <th>RPF</th>
+                    <th>RPP</th>
                     <th>Entrada</th>
                     <th>Valor gerado</th>
                     <th>Ações</th>
@@ -5315,8 +5303,7 @@
                     <th>Registo</th>
                     <th>Veículo</th>
                     <th>RPV</th>
-                    <th>Assessoria</th>
-                    <th>RPF</th>
+                    <th>RPP</th>
                     <th>Entrada</th>
                     <th>Saída</th>
                     <th>Valor total</th>
@@ -5748,10 +5735,6 @@
                 <select id="vehicleLocator" title="Parceiro que trouxe o veículo ao pátio"></select>
               </div>
               <div class="field-operador-hide">
-                <label>Assessoria</label>
-                <select id="vehicleAssessor"></select>
-              </div>
-              <div>
                 <label>RPP — responsável financeiro / pagamento</label>
                 <select id="vehicleFinancialResponsible" title="Parceiro cadastrado; pode coincidir com o RPV ou ser outro"></select>
               </div>
@@ -5867,16 +5850,10 @@
                 <option value="">Todos os RPVs</option>
               </select>
             </div>
-            <div>
-              <label for="listaPrintFilterAssessoria">Somente assessoria</label>
-              <select id="listaPrintFilterAssessoria">
-                <option value="">Todas as assessorias</option>
-              </select>
-            </div>
             <div class="full">
-              <label for="listaPrintFilterRpf">Somente RPF (responsável financeiro)</label>
+              <label for="listaPrintFilterRpf">Somente RPP (responsável financeiro)</label>
               <select id="listaPrintFilterRpf">
-                <option value="">Todos os RPF</option>
+                <option value="">Todos os RPP</option>
               </select>
             </div>
             <div class="full">
@@ -5890,11 +5867,7 @@
               </label>
               <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
                 <input type="checkbox" id="listaPrintOpenByResp" checked />
-                Por RPF (responsável financeiro)
-              </label>
-              <label style="display: flex; gap: 8px; align-items: center; font-weight: normal">
-                <input type="checkbox" id="listaPrintOpenByAssessoria" checked />
-                Por assessoria
+                Por RPP (responsável financeiro)
               </label>
             </div>
           </div>
@@ -6413,7 +6386,6 @@
       const vehicleForm = document.getElementById("vehicleForm");
       const cancelVehicleForm = document.getElementById("cancelVehicleForm");
       const vehicleLocator = document.getElementById("vehicleLocator");
-      const vehicleAssessor = document.getElementById("vehicleAssessor");
       const vehicleFinancialResponsible = document.getElementById("vehicleFinancialResponsible");
       const vehicleAuctioneer = document.getElementById("vehicleAuctioneer");
       const vehicleExit = document.getElementById("vehicleExit");
@@ -6930,9 +6902,7 @@
       let financeConciliacaoFilter = "pendentes";
       let financePlateInputTimer = null;
       let vlsListFilterLocatorId = "";
-      let vlsListFilterAssessoriaId = "";
       let listaFilterLocatorId = "";
-      let listaFilterAssessoriaId = "";
       let listaFilterRpfId = "";
       let listaFilterBanco = "";
       let currentListaView = "vnp";
@@ -8490,8 +8460,7 @@
 
       function patioPrintPartnerNames(v) {
         const loc = state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
-        const ass = state.partners.find((p) => p.id === v.assessoria_id)?.nome || "-";
-        return { loc, ass };
+        return { loc };
       }
 
       function patioPrintObsCell(v) {
@@ -8529,15 +8498,13 @@
         if (isGestorPista) return items;
         return items.filter((v) => {
           if (vlsListFilterLocatorId && v.localizador_id !== vlsListFilterLocatorId) return false;
-          if (vlsListFilterAssessoriaId && v.assessoria_id !== vlsListFilterAssessoriaId) return false;
           return true;
         });
       }
 
       function syncVlsFilterSelects() {
         const locSel = document.getElementById("vlsFilterLocator");
-        const assSel = document.getElementById("vlsFilterAssessoria");
-        if (!locSel || !assSel) return;
+        if (!locSel) return;
         const parceiros = allPartnersSorted();
         const opt = (id, label) => {
           const vid = String(id).replace(/"/g, "&quot;");
@@ -8546,24 +8513,15 @@
         locSel.innerHTML =
           `<option value="">Todos os RPVs</option>` +
           parceiros.map((p) => opt(p.id, p.nome || "-")).join("");
-        assSel.innerHTML =
-          `<option value="">Todas as assessorias</option>` +
-          parceiros.map((p) => opt(p.id, p.nome || "-")).join("");
         if (parceiros.some((p) => p.id === vlsListFilterLocatorId)) locSel.value = vlsListFilterLocatorId;
         else {
           locSel.value = "";
           vlsListFilterLocatorId = "";
         }
-        if (parceiros.some((p) => p.id === vlsListFilterAssessoriaId)) assSel.value = vlsListFilterAssessoriaId;
-        else {
-          assSel.value = "";
-          vlsListFilterAssessoriaId = "";
-        }
       }
 
       function readListaFiltersFromDom() {
         listaFilterLocatorId = document.getElementById("listaFilterLocator")?.value || "";
-        listaFilterAssessoriaId = document.getElementById("listaFilterAssessoria")?.value || "";
         listaFilterRpfId = document.getElementById("listaFilterRpf")?.value || "";
         listaFilterBanco = (document.getElementById("listaFilterBanco")?.value || "").trim();
       }
@@ -8599,9 +8557,8 @@
 
       function syncListaFilterSelects() {
         const locSel = document.getElementById("listaFilterLocator");
-        const assSel = document.getElementById("listaFilterAssessoria");
         const rpfSel = document.getElementById("listaFilterRpf");
-        if (!locSel || !assSel || !rpfSel) return;
+        if (!locSel || !rpfSel) return;
         const parceiros = allPartnersSorted();
         const opt = (id, label) => {
           const vid = String(id).replace(/"/g, "&quot;");
@@ -8610,9 +8567,6 @@
         locSel.innerHTML =
           `<option value="">Todos os RPVs</option>` +
           parceiros.map((p) => opt(p.id, p.nome || "-")).join("");
-        assSel.innerHTML =
-          `<option value="">Todas as assessorias</option>` +
-          parceiros.map((p) => opt(p.id, p.nome || "-")).join("");
         rpfSel.innerHTML =
           `<option value="">Todos os RPP</option>` +
           parceiros.map((p) => opt(p.id, p.nome || "-")).join("");
@@ -8620,11 +8574,6 @@
         else {
           locSel.value = "";
           listaFilterLocatorId = "";
-        }
-        if (parceiros.some((p) => p.id === listaFilterAssessoriaId)) assSel.value = listaFilterAssessoriaId;
-        else {
-          assSel.value = "";
-          listaFilterAssessoriaId = "";
         }
         if (parceiros.some((p) => p.id === listaFilterRpfId)) rpfSel.value = listaFilterRpfId;
         else {
@@ -8651,14 +8600,12 @@
       function listaVehicleMatches(v) {
         if (!v) return false;
         if (listaFilterLocatorId && v.localizador_id !== listaFilterLocatorId) return false;
-        if (listaFilterAssessoriaId && v.assessoria_id !== listaFilterAssessoriaId) return false;
         if (listaFilterRpfId && listaVehicleEffectiveRpfPartnerId(v) !== String(listaFilterRpfId)) return false;
         return listaTextoBancoMatch(v.observacoes, v.placa, state.settings?.conta_bancaria);
       }
 
       function listaReceivableMatches(r, vehicle) {
         if (listaFilterLocatorId && (vehicle?.localizador_id || "") !== listaFilterLocatorId) return false;
-        if (listaFilterAssessoriaId && (vehicle?.assessoria_id || "") !== listaFilterAssessoriaId) return false;
         if (listaFilterRpfId && listaVehicleEffectiveRpfPartnerId(vehicle) !== String(listaFilterRpfId)) return false;
         return listaTextoBancoMatch(
           r.responsavel_pagamento,
@@ -8673,13 +8620,9 @@
         const locName = listaFilterLocatorId
           ? state.partners.find((x) => x.id === listaFilterLocatorId)?.nome || ""
           : "";
-        const assName = listaFilterAssessoriaId
-          ? state.partners.find((x) => x.id === listaFilterAssessoriaId)?.nome || ""
-          : "";
         const rpfName = listaFilterRpfId ? state.partners.find((x) => x.id === listaFilterRpfId)?.nome || "" : "";
         const desc = (p.descricao || "").toLowerCase();
         if (listaFilterLocatorId && locName && !desc.includes(String(locName).toLowerCase())) return false;
-        if (listaFilterAssessoriaId && assName && !desc.includes(String(assName).toLowerCase())) return false;
         if (listaFilterRpfId && rpfName && !desc.includes(String(rpfName).toLowerCase())) return false;
         if (listaFilterRpfId && !rpfName) return false;
         return listaTextoBancoMatch(p.descricao, p.payable_category, state.settings?.conta_bancaria);
@@ -8698,7 +8641,7 @@
         if (rec && !listaReceivableMatches(rec, v)) return false;
         if (pay && !listaPayableMatches(pay)) return false;
         if (!rec && !pay) {
-          if (listaFilterLocatorId || listaFilterAssessoriaId || listaFilterRpfId) return false;
+          if (listaFilterLocatorId || listaFilterRpfId) return false;
           return listaTextoBancoMatch(mov.descricao, state.settings?.conta_bancaria);
         }
         return listaTextoBancoMatch(mov.descricao);
@@ -8720,7 +8663,6 @@
       function collectListaReceberFilteredList({
         alertaOnly = false,
         filterLocId = "",
-        filterAssId = "",
         filterRpfId = "",
       } = {}) {
         const vehicleById = new Map((state.vehicles || []).map((v) => [v.id, v]));
@@ -8731,12 +8673,6 @@
           list = list.filter((r) => {
             const v = vehicleById.get(r.vehicle_id);
             return (v?.localizador_id || "") === filterLocId;
-          });
-        }
-        if (filterAssId) {
-          list = list.filter((r) => {
-            const v = vehicleById.get(r.vehicle_id);
-            return (v?.assessoria_id || "") === filterAssId;
           });
         }
         if (filterRpfId) {
@@ -8773,7 +8709,6 @@
         vehicleById,
         byLoc,
         byResp,
-        byAss,
         docTitle,
         headingTitle,
         metaLine,
@@ -8792,23 +8727,19 @@
             ? `${escapeHtml(v.placa || "-")} — ${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}`
             : escapeHtml("Veículo não encontrado");
         const locNome = (v) => (v?.localizador_id ? partnerByIdMap.get(v.localizador_id) || "-" : "-");
-        const assNome = (v) => (v?.assessoria_id ? partnerByIdMap.get(v.assessoria_id) || "-" : "-");
         const diariasPatioCell = (v) => {
           if (!v?.data_entrada) return "—";
           return String(calcDays(v));
         };
         const theadLoc =
-          "<th>Veículo</th><th>RPF</th><th>Assessoria</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
+          "<th>Veículo</th><th>RPF</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
         const theadResp =
-          "<th>Veículo</th><th>RPV</th><th>Assessoria</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
-        const theadAss =
-          "<th>Veículo</th><th>RPF</th><th>RPV</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
+          "<th>Veículo</th><th>RPV</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
         const rowLoc = (r) => {
           const v = vehicleById.get(r.vehicle_id);
           return `<tr>
             <td>${veiculoCell(v)}</td>
             <td>${escapeHtml(r.responsavel_pagamento || "—")}</td>
-            <td>${escapeHtml(assNome(v))}</td>
             <td>${escapeHtml(formatReceberEntradaVeiculo(v, r))}</td>
             <td>${escapeHtml(formatReceberSaidaVeiculo(v, r))}</td>
             <td>${escapeHtml(formatCurrency(receivableValor(r)))}</td>
@@ -8820,20 +8751,6 @@
           const v = vehicleById.get(r.vehicle_id);
           return `<tr>
             <td>${veiculoCell(v)}</td>
-            <td>${escapeHtml(locNome(v))}</td>
-            <td>${escapeHtml(assNome(v))}</td>
-            <td>${escapeHtml(formatReceberEntradaVeiculo(v, r))}</td>
-            <td>${escapeHtml(formatReceberSaidaVeiculo(v, r))}</td>
-            <td>${escapeHtml(formatCurrency(receivableValor(r)))}</td>
-            <td>${escapeHtml(diariasPatioCell(v))}</td>
-            <td>${escapeHtml(diasAberto(r))}</td>
-          </tr>`;
-        };
-        const rowAss = (r) => {
-          const v = vehicleById.get(r.vehicle_id);
-          return `<tr>
-            <td>${veiculoCell(v)}</td>
-            <td>${escapeHtml(r.responsavel_pagamento || "—")}</td>
             <td>${escapeHtml(locNome(v))}</td>
             <td>${escapeHtml(formatReceberEntradaVeiculo(v, r))}</td>
             <td>${escapeHtml(formatReceberSaidaVeiculo(v, r))}</td>
@@ -8878,24 +8795,6 @@
             );
           });
         }
-        if (byAss) {
-          blocks.push(`<h2>Por assessoria</h2>`);
-          const map = bucketOpenReceivablesByKey(openRec, (r) => {
-            const v = vehicleById.get(r.vehicle_id);
-            return v?.assessoria_id || "__sem__";
-          });
-          const keys = sortPartnerBucketKeys([...map.keys()], partnerByIdMap);
-          keys.forEach((key) => {
-            const items = sortOpenReceivablesByPlaca(map.get(key) || [], vehicleById);
-            const st = subtotal(items);
-            blocks.push(
-              `<h3>${escapeHtml(partnerTitle(key))} <span class="count">(${items.length} · ${escapeHtml(st)})</span></h3>`
-            );
-            blocks.push(
-              `<table><thead><tr>${theadAss}</tr></thead><tbody>${items.map(rowAss).join("")}</tbody></table>`
-            );
-          });
-        }
         return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(
           docTitle
         )}</title><style>${OPEN_RECEIVABLES_GROUPED_PRINT_CSS}</style></head><body>
@@ -8907,11 +8806,9 @@
 
       function syncListaReceberPrintFilterOptions() {
         const locSel = document.getElementById("listaPrintFilterLocator");
-        const assSel = document.getElementById("listaPrintFilterAssessoria");
         const rpfSel = document.getElementById("listaPrintFilterRpf");
-        if (!locSel || !assSel || !rpfSel) return;
+        if (!locSel || !rpfSel) return;
         const preserveLoc = locSel.value;
-        const preserveAss = assSel.value;
         const preserveRpf = rpfSel.value;
         const parceiros = allPartnersSorted();
         const optId = (id, label) => {
@@ -8919,13 +8816,9 @@
           return `<option value="${v}">${escapeHtml(label)}</option>`;
         };
         locSel.innerHTML = `<option value="">Todos os RPVs</option>` + parceiros.map((p) => optId(p.id, p.nome || "-")).join("");
-        assSel.innerHTML =
-          `<option value="">Todas as assessorias</option>` + parceiros.map((p) => optId(p.id, p.nome || "-")).join("");
         rpfSel.innerHTML = `<option value="">Todos os RPP</option>` + parceiros.map((p) => optId(p.id, p.nome || "-")).join("");
         if (parceiros.some((p) => p.id === preserveLoc)) locSel.value = preserveLoc;
         else locSel.value = "";
-        if (parceiros.some((p) => p.id === preserveAss)) assSel.value = preserveAss;
-        else assSel.value = "";
         if (parceiros.some((p) => p.id === preserveRpf)) rpfSel.value = preserveRpf;
         else rpfSel.value = "";
       }
@@ -8934,10 +8827,8 @@
         readListaFiltersFromDom();
         syncListaReceberPrintFilterOptions();
         const locSel = document.getElementById("listaPrintFilterLocator");
-        const assSel = document.getElementById("listaPrintFilterAssessoria");
         const rpfSel = document.getElementById("listaPrintFilterRpf");
         if (locSel && listaFilterLocatorId) locSel.value = listaFilterLocatorId;
-        if (assSel && listaFilterAssessoriaId) assSel.value = listaFilterAssessoriaId;
         if (rpfSel && listaFilterRpfId) rpfSel.value = listaFilterRpfId;
         document.getElementById("listaReceberPrintModal")?.classList.remove("hidden");
       }
@@ -8946,24 +8837,21 @@
         readListaFiltersFromDom();
         const byLoc = document.getElementById("listaPrintOpenByLocator")?.checked;
         const byResp = document.getElementById("listaPrintOpenByResp")?.checked;
-        const byAss = document.getElementById("listaPrintOpenByAssessoria")?.checked;
-        if (!byLoc && !byResp && !byAss) {
+        if (!byLoc && !byResp) {
           alert("Marque pelo menos um agrupamento.");
           return;
         }
         const filterLocId = document.getElementById("listaPrintFilterLocator")?.value || "";
-        const filterAssId = document.getElementById("listaPrintFilterAssessoria")?.value || "";
         const filterRpfId = document.getElementById("listaPrintFilterRpf")?.value || "";
         const alertaOnly = currentListaView === "receber_alerta";
         const { list: openRec, vehicleById } = collectListaReceberFilteredList({
           alertaOnly,
           filterLocId,
-          filterAssId,
           filterRpfId,
         });
         if (!openRec.length) {
           alert(
-            filterLocId || filterAssId || filterRpfId || listaFilterBanco
+            filterLocId || filterRpfId || listaFilterBanco
               ? "Nenhuma conta em aberto com os filtros escolhidos."
               : alertaOnly
                 ? "Não há títulos em alerta (+10 dias) para imprimir."
@@ -8987,7 +8875,6 @@
         ];
         const filtroIndiv = [];
         if (filterLocId) filtroIndiv.push(`Somente RPV: ${partnerByIdMap.get(filterLocId) || "-"}`);
-        if (filterAssId) filtroIndiv.push(`Somente assessoria: ${partnerByIdMap.get(filterAssId) || "-"}`);
         if (filterRpfId) filtroIndiv.push(`Somente RPF: ${partnerByIdMap.get(filterRpfId) || "-"}`);
         if (listaFilterBanco) filtroIndiv.push(`Texto: ${listaFilterBanco}`);
         if (filtroIndiv.length) metaParts.unshift(filtroIndiv.join(" · "));
@@ -8996,7 +8883,6 @@
           vehicleById,
           byLoc,
           byResp,
-          byAss,
           docTitle: `Lista ${viewLabel}`,
           headingTitle: `${nomePatio} — Lista · ${viewLabel}`,
           metaLine: metaParts.join(" · "),
@@ -9109,9 +8995,6 @@
           currentListaView;
         const filtros = [
           listaFilterLocatorId ? `Loc.: ${state.partners.find((p) => p.id === listaFilterLocatorId)?.nome || ""}` : "",
-          listaFilterAssessoriaId
-            ? `Assessoria: ${state.partners.find((p) => p.id === listaFilterAssessoriaId)?.nome || ""}`
-            : "",
           listaFilterRpfId ? `RPF: ${state.partners.find((p) => p.id === listaFilterRpfId)?.nome || ""}` : "",
           listaFilterBanco ? `Texto: ${listaFilterBanco}` : "",
         ]
@@ -9149,12 +9032,12 @@
         try {
         if (currentListaView === "vnp") {
           const ocultarValorColuna = semVal || listaPrintVnpSemValores;
-          head.innerHTML = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>Assessoria</th><th>RPF</th><th>Entrada</th><th>Situação</th>${
+          head.innerHTML = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>RPF</th><th>Entrada</th><th>Situação</th>${
             ocultarValorColuna ? "" : "<th>Valor estimado</th>"
           }</tr>`;
           const items = buildListaVnpVehicleRows();
           if (!items.length) {
-            body.innerHTML = `<tr><td colspan="${ocultarValorColuna ? "8" : "9"}" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="${ocultarValorColuna ? "7" : "8"}" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
             return;
           }
           body.innerHTML = items
@@ -9171,7 +9054,6 @@
                 <td data-label="Registo">${patioRegistoBadgeHtml("vnp")}</td>
                 <td data-label="Veículo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</td>
                 <td data-label="RPV">${escapeHtml(locLabel(v.localizador_id))}</td>
-                <td data-label="Assessoria">${escapeHtml(locLabel(v.assessoria_id))}</td>
                 <td data-label="RPF">${escapeHtml(vehicleRpfNome(v))}</td>
                 <td data-label="Entrada">${escapeHtml(formatDateTime(v.data_entrada))}</td>
                 <td data-label="Situação">${escapeHtml(sit)}</td>
@@ -9183,14 +9065,14 @@
         }
 
         if (currentListaView === "vrp") {
-          head.innerHTML = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>Assessoria</th><th>RPF</th><th>Entrada</th><th>Saída</th>${
+          head.innerHTML = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>RPF</th><th>Entrada</th><th>Saída</th>${
             semVal ? "" : "<th>Valor</th>"
           }</tr>`;
           const items = sortVehiclesByRegistroDesc(
             (state.vehicles || []).filter((v) => v.status === "REMOVIDO" && listaVehicleMatches(v))
           );
           if (!items.length) {
-            body.innerHTML = `<tr><td colspan="9" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="${semVal ? "7" : "8"}" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
             return;
           }
           body.innerHTML = items
@@ -9201,7 +9083,6 @@
                 <td data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td data-label="Veículo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</td>
                 <td data-label="RPV">${escapeHtml(locLabel(v.localizador_id))}</td>
-                <td data-label="Assessoria">${escapeHtml(locLabel(v.assessoria_id))}</td>
                 <td data-label="RPF">${escapeHtml(vehicleRpfNome(v))}</td>
                 <td data-label="Entrada">${escapeHtml(formatDateTime(v.data_entrada))}</td>
                 <td data-label="Saída">${escapeHtml(formatDateTime(v.data_saida))}</td>
@@ -9492,7 +9373,6 @@
         const bodyHtml = document.getElementById("listaTableBody")?.innerHTML || "";
         const filtros = [
           listaFilterLocatorId ? `RPV: ${state.partners.find((p) => p.id === listaFilterLocatorId)?.nome || listaFilterLocatorId}` : "",
-          listaFilterAssessoriaId ? `Assessoria: ${state.partners.find((p) => p.id === listaFilterAssessoriaId)?.nome || listaFilterAssessoriaId}` : "",
           listaFilterRpfId ? `RPF: ${state.partners.find((p) => p.id === listaFilterRpfId)?.nome || listaFilterRpfId}` : "",
           listaFilterBanco ? `Texto: ${listaFilterBanco}` : "",
         ]
@@ -9625,11 +9505,10 @@
 
       function runPatioPartnerPrintDocument() {
         const byLoc = document.getElementById("printPartnerByLocator")?.checked;
-        const byAss = document.getElementById("printPartnerByAssessoria")?.checked;
         const byRem = document.getElementById("printPartnerByRemoval")?.checked;
         const excludeRemoved = document.getElementById("printPartnerExcludeRemoved")?.checked;
-        if (!byLoc && !byAss && !byRem) {
-          alert("Marque pelo menos um agrupamento: RPV, assessoria ou etapa de remoção.");
+        if (!byLoc && !byRem) {
+          alert("Marque pelo menos um agrupamento: RPV ou etapa de remoção.");
           return;
         }
         let vehicles = state.vehicles || [];
@@ -9650,31 +9529,25 @@
         ].join(" · ");
 
         const theadLoc =
-          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Assessoria</th>" +
-          patioPrintMoneyHeaderHtml() +
-          "<th>Observações</th>";
-        const theadAss =
-          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Empresa de remoção</th>" +
+          "<th>Veículo</th><th>Entrada</th><th>Saída</th>" +
           patioPrintMoneyHeaderHtml() +
           "<th>Observações</th>";
         const theadRem =
-          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>RPV</th><th>Assessoria</th>" +
+          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>RPV</th>" +
           patioPrintMoneyHeaderHtml() +
           "<th>Observações</th>";
 
         const rowLoc = (v) => {
-          const { ass } = patioPrintPartnerNames(v);
           const sai = v.data_saida ? formatDateTime(v.data_saida) : "—";
           return `<tr>
             <td>${patioPrintVehicleLine(v)}</td>
             <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
             <td>${escapeHtml(sai)}</td>
-            <td>${escapeHtml(ass)}</td>
             ${patioPrintMoneyCellsHtml(v)}
             <td>${patioPrintObsCell(v)}</td>
           </tr>`;
         };
-        const rowAss = (v) => {
+        const rowRem = (v) => {
           const { loc } = patioPrintPartnerNames(v);
           const sai = v.data_saida ? formatDateTime(v.data_saida) : "—";
           return `<tr>
@@ -9682,19 +9555,6 @@
             <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
             <td>${escapeHtml(sai)}</td>
             <td>${escapeHtml(loc)}</td>
-            ${patioPrintMoneyCellsHtml(v)}
-            <td>${patioPrintObsCell(v)}</td>
-          </tr>`;
-        };
-        const rowRem = (v) => {
-          const { loc, ass } = patioPrintPartnerNames(v);
-          const sai = v.data_saida ? formatDateTime(v.data_saida) : "—";
-          return `<tr>
-            <td>${patioPrintVehicleLine(v)}</td>
-            <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
-            <td>${escapeHtml(sai)}</td>
-            <td>${escapeHtml(loc)}</td>
-            <td>${escapeHtml(ass)}</td>
             ${patioPrintMoneyCellsHtml(v)}
             <td>${patioPrintObsCell(v)}</td>
           </tr>`;
@@ -9720,25 +9580,6 @@
               } else {
                 blocks.push(
                   `<table><thead><tr>${theadLoc}</tr></thead><tbody>${items.map(rowLoc).join("")}</tbody></table>`
-                );
-              }
-            });
-          }
-
-          if (byAss) {
-            blocks.push(`<h2>Por assessoria</h2>`);
-            const map = bucketVehiclesByPartnerField(vehicles, "assessoria_id");
-            const keys = sortPartnerBucketKeys([...map.keys()], partnerByIdMap);
-            keys.forEach((key) => {
-              const items = sortVehiclesByPlaca(map.get(key) || []);
-              blocks.push(
-                `<h3>${escapeHtml(partnerTitle(key))} <span class="count">(${items.length})</span></h3>`
-              );
-              if (!items.length) {
-                blocks.push(`<p class="empty-note">Nenhum veículo.</p>`);
-              } else {
-                blocks.push(
-                  `<table><thead><tr>${theadAss}</tr></thead><tbody>${items.map(rowAss).join("")}</tbody></table>`
                 );
               }
             });
@@ -9800,9 +9641,8 @@
 
       function runPatioLiberadosPrintDocument() {
         const byLoc = document.getElementById("printLibByLocator")?.checked;
-        const byAss = document.getElementById("printLibByAssessoria")?.checked;
-        if (!byLoc && !byAss) {
-          alert("Marque pelo menos um agrupamento: RPV ou assessoria.");
+        if (!byLoc) {
+          alert("Marque o agrupamento por RPV.");
           return;
         }
 
@@ -9824,36 +9664,17 @@
 
         const situacaoCell = (v) => escapeHtml(REMOVAL_FLOW_LABELS[v.status] || v.status || "—");
         const theadLoc =
-          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Situação</th><th>Assessoria</th>" +
-          patioPrintMoneyHeaderHtml() +
-          "<th>Observações</th>";
-        const theadAss =
-          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Situação</th><th>Empresa de remoção</th>" +
+          "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>Situação</th>" +
           patioPrintMoneyHeaderHtml() +
           "<th>Observações</th>";
 
         const rowLoc = (v) => {
-          const { ass } = patioPrintPartnerNames(v);
           const sai = v.data_saida ? formatDateTime(v.data_saida) : "—";
           return `<tr>
             <td>${patioPrintVehicleLine(v)}</td>
             <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
             <td>${escapeHtml(sai)}</td>
             <td>${situacaoCell(v)}</td>
-            <td>${escapeHtml(ass)}</td>
-            ${patioPrintMoneyCellsHtml(v)}
-            <td>${patioPrintObsCell(v)}</td>
-          </tr>`;
-        };
-        const rowAss = (v) => {
-          const { loc } = patioPrintPartnerNames(v);
-          const sai = v.data_saida ? formatDateTime(v.data_saida) : "—";
-          return `<tr>
-            <td>${patioPrintVehicleLine(v)}</td>
-            <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
-            <td>${escapeHtml(sai)}</td>
-            <td>${situacaoCell(v)}</td>
-            <td>${escapeHtml(loc)}</td>
             ${patioPrintMoneyCellsHtml(v)}
             <td>${patioPrintObsCell(v)}</td>
           </tr>`;
@@ -9863,42 +9684,22 @@
         if (!vehicles.length) {
           blocks.push(`<p class="empty-note">Nenhum veículo em liberação ou removidos com estes critérios.</p>`);
         } else {
-          if (byLoc) {
-            blocks.push(`<h2>Por RPV (empresa de remoção)</h2>`);
-            const map = bucketVehiclesByPartnerField(vehicles, "localizador_id");
-            const keys = sortPartnerBucketKeys([...map.keys()], partnerByIdMap);
-            keys.forEach((key) => {
-              const items = sortVehiclesByPlaca(map.get(key) || []);
+          blocks.push(`<h2>Por RPV (empresa de remoção)</h2>`);
+          const map = bucketVehiclesByPartnerField(vehicles, "localizador_id");
+          const keys = sortPartnerBucketKeys([...map.keys()], partnerByIdMap);
+          keys.forEach((key) => {
+            const items = sortVehiclesByPlaca(map.get(key) || []);
+            blocks.push(
+              `<h3>${escapeHtml(partnerTitle(key))} <span class="count">(${items.length})</span></h3>`
+            );
+            if (!items.length) {
+              blocks.push(`<p class="empty-note">Nenhum veículo.</p>`);
+            } else {
               blocks.push(
-                `<h3>${escapeHtml(partnerTitle(key))} <span class="count">(${items.length})</span></h3>`
+                `<table><thead><tr>${theadLoc}</tr></thead><tbody>${items.map(rowLoc).join("")}</tbody></table>`
               );
-              if (!items.length) {
-                blocks.push(`<p class="empty-note">Nenhum veículo.</p>`);
-              } else {
-                blocks.push(
-                  `<table><thead><tr>${theadLoc}</tr></thead><tbody>${items.map(rowLoc).join("")}</tbody></table>`
-                );
-              }
-            });
-          }
-          if (byAss) {
-            blocks.push(`<h2>Por assessoria</h2>`);
-            const map = bucketVehiclesByPartnerField(vehicles, "assessoria_id");
-            const keys = sortPartnerBucketKeys([...map.keys()], partnerByIdMap);
-            keys.forEach((key) => {
-              const items = sortVehiclesByPlaca(map.get(key) || []);
-              blocks.push(
-                `<h3>${escapeHtml(partnerTitle(key))} <span class="count">(${items.length})</span></h3>`
-              );
-              if (!items.length) {
-                blocks.push(`<p class="empty-note">Nenhum veículo.</p>`);
-              } else {
-                blocks.push(
-                  `<table><thead><tr>${theadAss}</tr></thead><tbody>${items.map(rowAss).join("")}</tbody></table>`
-                );
-              }
-            });
-          }
+            }
+          });
         }
 
         const printCss = `
@@ -9948,30 +9749,22 @@
 
       function receberBarFilterMatches(r, vehicle) {
         const locSel = document.getElementById("financeReceberFilterLoc");
-        const assSel = document.getElementById("financeReceberFilterAss");
         const respSel = document.getElementById("financeReceberFilterResp");
         const filterLocId = locSel?.value || "";
-        const filterAssId = assSel?.value || "";
         const filterRespEnc = respSel?.value || "";
         const filterResp = filterRespEnc ? decodeURIComponent(filterRespEnc) : "";
         if (filterLocId && (vehicle?.localizador_id || "") !== filterLocId) return false;
-        if (filterAssId && (vehicle?.assessoria_id || "") !== filterAssId) return false;
         if (filterResp && (r.responsavel_pagamento || "").trim() !== filterResp) return false;
         return true;
       }
 
       function syncFinanceReceberBarOptions() {
         const locSel = document.getElementById("financeReceberFilterLoc");
-        const assSel = document.getElementById("financeReceberFilterAss");
         const respSel = document.getElementById("financeReceberFilterResp");
-        if (!locSel || !assSel || !respSel) return;
+        if (!locSel || !respSel) return;
         const preserveLoc = locSel.value;
-        const preserveAss = assSel.value;
         const preserveResp = respSel.value;
-        const openList = (state.receivables || []).filter((r) => receivableIsContaReceberFinanceiro(r));
-        const partnersList = state.partners || [];
         const parceiros = allPartnersSorted();
-        const assessorias = parceiros;
         const optId = (id, label) => {
           const v = String(id).replace(/"/g, "&quot;");
           return `<option value="${v}">${escapeHtml(label)}</option>`;
@@ -9979,17 +9772,12 @@
         locSel.innerHTML =
           `<option value="">Todos os RPVs</option>` +
           parceiros.map((p) => optId(p.id, p.nome || "-")).join("");
-        assSel.innerHTML =
-          `<option value="">Todas as assessorias</option>` +
-          assessorias.map((p) => optId(p.id, p.nome || "-")).join("");
         const names = allPartnersSorted().map((p) => (p.nome || "").trim()).filter(Boolean);
         respSel.innerHTML =
           `<option value="">Todos os RPP</option>` +
           names.map((n) => `<option value="${encodeURIComponent(n)}">${escapeHtml(n)}</option>`).join("");
         if (parceiros.some((p) => p.id === preserveLoc)) locSel.value = preserveLoc;
         else locSel.value = "";
-        if (assessorias.some((p) => p.id === preserveAss)) assSel.value = preserveAss;
-        else assSel.value = "";
         if (preserveResp) {
           try {
             const dec = decodeURIComponent(preserveResp);
@@ -10132,13 +9920,12 @@
           const listVnp = sortVehiclesByPlaca(vehicles.filter((v) => v.status === "NO_PATIO"));
           const rowsVnp = listVnp
             .map((v) => {
-              const { loc, ass } = patioPrintPartnerNames(v);
+              const { loc } = patioPrintPartnerNames(v);
               return `<tr>
                 <td>${patioPrintVehicleLine(v)}</td>
                 <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
                 <td>No pátio</td>
                 <td>${escapeHtml(loc)}</td>
-                <td>${escapeHtml(ass)}</td>
                 ${patioPrintMoneyCellsHtml(v)}
                 <td>${patioPrintObsCell(v)}</td>
               </tr>`;
@@ -10147,7 +9934,7 @@
           pushTable(
             "VNP — Veículos no pátio",
             "Somente status NO_PATIO (não inclui VLP)",
-            "<th>Veículo</th><th>Data de entrada</th><th>Situação</th><th>RPV</th><th>Assessoria</th>" +
+            "<th>Veículo</th><th>Data de entrada</th><th>Situação</th><th>RPV</th>" +
               patioPrintMoneyHeaderHtml() +
               "<th>Observações</th>",
             rowsVnp,
@@ -10158,14 +9945,13 @@
           const listVlp = sortVehiclesByPlaca(vehicles.filter((v) => isVlpStatus(v.status)));
           const rowsVlp = listVlp
             .map((v) => {
-              const { loc, ass } = patioPrintPartnerNames(v);
+              const { loc } = patioPrintPartnerNames(v);
               const sit = VLS_STATUS_LABELS[v.status] || v.status || "-";
               return `<tr>
                 <td>${patioPrintVehicleLine(v)}</td>
                 <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
                 <td>${escapeHtml(sit)}</td>
                 <td>${escapeHtml(loc)}</td>
-                <td>${escapeHtml(ass)}</td>
                 ${patioPrintMoneyCellsHtml(v)}
                 <td>${patioPrintObsCell(v)}</td>
               </tr>`;
@@ -10174,7 +9960,7 @@
           pushTable(
             "VLP — Veículos em liberação",
             "Liberação solicitada, confirmada ou remoção solicitada (legado)",
-            "<th>Veículo</th><th>Data de entrada</th><th>Situação</th><th>RPV</th><th>Assessoria</th>" +
+            "<th>Veículo</th><th>Data de entrada</th><th>Situação</th><th>RPV</th>" +
               patioPrintMoneyHeaderHtml() +
               "<th>Observações</th>",
             rowsVlp,
@@ -10193,13 +9979,12 @@
           );
           const rows = list
             .map((v) => {
-              const { loc, ass } = patioPrintPartnerNames(v);
+              const { loc } = patioPrintPartnerNames(v);
               return `<tr>
                 <td>${patioPrintVehicleLine(v)}</td>
                 <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
                 <td>${escapeHtml(formatDateTime(v.data_saida))}</td>
                 <td>${escapeHtml(loc)}</td>
-                <td>${escapeHtml(ass)}</td>
                 ${patioPrintMoneyCellsHtml(v)}
                 <td>${patioPrintObsCell(v)}</td>
               </tr>`;
@@ -10208,7 +9993,7 @@
           pushTable(
             "VRP — Veículos removidos",
             "Filtrado por data de saída no período (se não houver saída, usa a data de entrada)",
-            "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>RPV</th><th>Assessoria</th>" +
+            "<th>Veículo</th><th>Entrada</th><th>Saída</th><th>RPV</th>" +
               patioPrintMoneyHeaderHtml() +
               "<th>Observações</th>",
             rows,
@@ -10227,14 +10012,13 @@
           );
           const rows = list
             .map((v) => {
-              const { loc, ass } = patioPrintPartnerNames(v);
+              const { loc } = patioPrintPartnerNames(v);
               const req = v.nfse_requested_at ? formatDateTime(v.nfse_requested_at) : "—";
               return `<tr>
                 <td>${patioPrintVehicleLine(v)}</td>
                 <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
                 <td>${escapeHtml(req)}</td>
                 <td>${escapeHtml(loc)}</td>
-                <td>${escapeHtml(ass)}</td>
                 ${patioPrintMoneyCellsHtml(v)}
                 <td>${patioPrintObsCell(v)}</td>
               </tr>`;
@@ -10243,7 +10027,7 @@
           pushTable(
             "NFSe pendente",
             "Veículos com NFSe pendente; período pela data da solicitação ou, se vazia, pela entrada",
-            "<th>Veículo</th><th>Data de entrada</th><th>Solicitação NFSe</th><th>RPV</th><th>Assessoria</th>" +
+            "<th>Veículo</th><th>Data de entrada</th><th>Solicitação NFSe</th><th>RPV</th>" +
               patioPrintMoneyHeaderHtml() +
               "<th>Observações</th>",
             rows,
@@ -11919,7 +11703,7 @@
         const registoKind = opts.registoKind || "vnp";
         const emptyText = opts.emptyText || "Nenhum veículo no pátio.";
         if (!items.length) {
-          setEmptyRow(tbody, emptyText, 9);
+          setEmptyRow(tbody, emptyText, 8);
           return;
         }
         const semValores = isGestorPista;
@@ -11927,7 +11711,6 @@
           .map((v) => {
             const total = calcTotal(v);
             const localizador = state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
-            const assessoria = state.partners.find((p) => p.id === v.assessoria_id)?.nome || "-";
             const rpfNome = vehicleRpfNome(v);
             const valorCell = semValores
               ? "-"
@@ -11988,7 +11771,6 @@
                 <td data-label="Registo">${patioRegistoBadgeHtml(registoKind)}</td>
                 <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
                 <td data-label="RPV">${localizador}</td>
-                <td data-label="Assessoria">${assessoria}</td>
                 <td data-label="RPF">${escapeHtml(rpfNome)}</td>
                 <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
                 <td data-label="Valor">${valorCell}</td>
@@ -12123,7 +11905,7 @@
       }
       function renderRemovedVehicles(tbody, items) {
         if (!items.length) {
-          setEmptyRow(tbody, "Nenhum veículo removido.", 10);
+          setEmptyRow(tbody, "Nenhum veículo removido.", 9);
           return;
         }
         const semValores = isGestorPista;
@@ -12133,8 +11915,6 @@
             const status = v.status === "REMOVIDO" ? "Removido" : "Outro";
             const localizador =
               state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
-            const assessoria =
-              state.partners.find((p) => p.id === v.assessoria_id)?.nome || "-";
             const rpfNome = vehicleRpfNome(v);
 
             const valorCell = semValores
@@ -12161,7 +11941,6 @@
                 <td data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
                 <td data-label="RPV">${localizador}</td>
-                <td data-label="Assessoria">${assessoria}</td>
                 <td data-label="RPF">${escapeHtml(rpfNome)}</td>
                 <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
                 <td data-label="Saída">${formatDateTime(v.data_saida)}</td>
@@ -12834,7 +12613,6 @@
       function renderPartnerOptions() {
         appendPartnerOptionsToSelect(vehicleLocator, "Sem RPV");
         appendPartnerOptionsToSelect(vehicleFinancialResponsible, "Sem RPP");
-        appendPartnerOptionsToSelect(vehicleAssessor, "Sem assessoria");
         appendPartnerOptionsToSelect(vehicleAuctioneer, "Sem leiloeiro");
       }
 
@@ -12870,7 +12648,6 @@
           document.getElementById("vehicleEntry").value = toLocalInput(vehicle.data_entrada);
           vehicleExit.value = toLocalInput(vehicle.data_saida);
           vehicleLocator.value = vehicle.localizador_id || "";
-          vehicleAssessor.value = vehicle.assessoria_id || "";
           if (vehicleFinancialResponsible)
             vehicleFinancialResponsible.value = vehicle.responsavel_financeiro_id || "";
           if (vehicleAuctioneer) vehicleAuctioneer.value = vehicle.leiloeiro_id || "";
@@ -13837,17 +13614,10 @@
         vlsListFilterLocatorId = e.target.value || "";
         renderVehicles();
       });
-      document.getElementById("vlsFilterAssessoria")?.addEventListener("change", (e) => {
-        vlsListFilterAssessoriaId = e.target.value || "";
-        renderVehicles();
-      });
       document.getElementById("vlsFiltersClear")?.addEventListener("click", () => {
         vlsListFilterLocatorId = "";
-        vlsListFilterAssessoriaId = "";
         const loc = document.getElementById("vlsFilterLocator");
-        const ass = document.getElementById("vlsFilterAssessoria");
         if (loc) loc.value = "";
-        if (ass) ass.value = "";
         renderVehicles();
       });
 
@@ -13879,7 +13649,7 @@
         runListaReceberGroupedPrint();
       });
       document.getElementById("listaPrintFilterClear")?.addEventListener("click", () => {
-        ["listaPrintFilterLocator", "listaPrintFilterAssessoria", "listaPrintFilterRpf"].forEach((id) => {
+        ["listaPrintFilterLocator", "listaPrintFilterRpf"].forEach((id) => {
           const el = document.getElementById(id);
           if (el) el.value = "";
         });
@@ -13890,15 +13660,12 @@
       });
       document.getElementById("listaFiltersClear")?.addEventListener("click", () => {
         listaFilterLocatorId = "";
-        listaFilterAssessoriaId = "";
         listaFilterRpfId = "";
         listaFilterBanco = "";
         const loc = document.getElementById("listaFilterLocator");
-        const ass = document.getElementById("listaFilterAssessoria");
         const rpf = document.getElementById("listaFilterRpf");
         const banco = document.getElementById("listaFilterBanco");
         if (loc) loc.value = "";
-        if (ass) ass.value = "";
         if (rpf) rpf.value = "";
         if (banco) banco.value = "";
         syncListaFilterSelects();
@@ -13965,7 +13732,7 @@
           localizador_id: vehicleLocator.value || null,
           responsavel_financeiro_id: rpfFields.responsavel_financeiro_id,
           responsavel_financeiro_nome: rpfFields.responsavel_financeiro_nome,
-          assessoria_id: vehicleAssessor.value || null,
+          assessoria_id: null,
           leiloeiro_id: vehicleAuctioneer?.value || null,
           observacoes: document.getElementById("vehicleNotes").value.trim(),
           status: editingVehicleData?.status || "NO_PATIO",
@@ -15716,17 +15483,12 @@
         }
 
         if (action === "editar-parceiro") {
-          const isAssessoria = normalizePartnerType(partner.tipo || "PARCEIRO") === "ASSESSORIA";
-          const nome = prompt(isAssessoria ? "Nome da assessoria:" : "Nome:", partner.nome || "");
-          const cpf = prompt(isAssessoria ? "CNPJ:" : "CPF/CNPJ:", partner.cpf || "");
-          const contato = prompt(isAssessoria ? "Pessoa de contato:" : "Contato:", partner.contato || "");
-          const email = isAssessoria ? partner.email || "" : prompt("E-mail:", partner.email || "");
+          const nome = prompt("Nome:", partner.nome || "");
+          const cpf = prompt("CPF/CNPJ:", partner.cpf || "");
+          const contato = prompt("Contato:", partner.contato || "");
+          const email = prompt("E-mail:", partner.email || "");
           const nomeFinal = nome != null ? String(nome).trim() : "";
           const cpfFinal = cpf != null ? String(cpf).trim() : "";
-          if (isAssessoria && partnerDocDigits(cpfFinal).length !== 14) {
-            alert("Informe um CNPJ válido com 14 dígitos.");
-            return;
-          }
           const dupE = findDuplicatePartner({
             nome: nomeFinal,
             cpf: cpfFinal,
