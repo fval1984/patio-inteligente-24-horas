@@ -18,6 +18,7 @@
   let finPagarConta = "";
   let finPagarPeriodoDe = "";
   let finPagarPeriodoAte = "";
+  let financeFilterAguardandoPlaca = "";
   let refreshFinanceDataPromise = null;
 
   function financeCanLoadData() {
@@ -184,6 +185,24 @@
     return "fin-tag fin-tag--open";
   }
 
+  function financeNormalizePlate(str) {
+    if (typeof normalizePlateSearch === "function") return normalizePlateSearch(str);
+    return (str || "")
+      .toString()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+  }
+
+  function financePlateMatchesQuery(vehicle, queryNorm) {
+    if (!queryNorm) return true;
+    if (!vehicle?.placa) return false;
+    const storedNorm = financeNormalizePlate(vehicle.placa);
+    if (typeof plateNormMatchesQuery === "function") {
+      return plateNormMatchesQuery(storedNorm, queryNorm);
+    }
+    return storedNorm.includes(queryNorm) || queryNorm.includes(storedNorm);
+  }
+
   function financeContasAguardandoList() {
     return (state.receivables || []).filter((r) => {
       if (!r || r.status === "PAGO") return false;
@@ -194,6 +213,27 @@
       if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return true;
       return r.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(r);
     });
+  }
+
+  function financeContasAguardandoFilteredList() {
+    const vmap = financeVehicleById();
+    const plateNorm = financeNormalizePlate(financeFilterAguardandoPlaca);
+    return financeContasAguardandoList().filter((r) =>
+      financePlateMatchesQuery(vmap.get(r.vehicle_id), plateNorm)
+    );
+  }
+
+  function financeSyncAguardandoPlateHint() {
+    const hint = document.getElementById("finAguardandoPlateHint");
+    if (!hint) return;
+    const q = (financeFilterAguardandoPlaca || "").trim();
+    if (!q) {
+      hint.textContent = "";
+      hint.classList.add("hidden");
+      return;
+    }
+    hint.textContent = `Consulta de placa: ${q}`;
+    hint.classList.remove("hidden");
   }
 
   function financeContasReceberList() {
@@ -516,11 +556,17 @@
     const body = document.getElementById("finAguardandoBody");
     const totalEl = document.getElementById("finAguardandoTotal");
     if (!body) return;
+    financeSyncAguardandoPlateHint();
     const vmap = financeVehicleById();
-    const list = financeContasAguardandoList();
+    const list = financeContasAguardandoFilteredList();
+    const plateFilter = financeNormalizePlate(financeFilterAguardandoPlaca);
     if (totalEl) totalEl.textContent = formatCurrency(list.reduce((s, r) => s + Number(r.valor || 0), 0));
     if (!list.length) {
-      body.innerHTML = `<tr><td colspan="6" class="notice">Nenhum veículo aguardando faturamento. Após saída (VRP), o registro aparece aqui até ir para Contas a receber.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="6" class="notice">${
+        plateFilter
+          ? "Nenhum veículo aguardando faturamento com a placa informada."
+          : "Nenhum veículo aguardando faturamento. Após saída (VRP), o registro aparece aqui até ir para Contas a receber."
+      }</td></tr>`;
       return;
     }
     body.innerHTML = list
@@ -1009,6 +1055,18 @@
       financeRenderCaixa();
     });
     document.getElementById("finChartPeriod")?.addEventListener("change", () => financeRenderDashboard());
+
+    document.getElementById("finAguardandoPlateForm")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      financeFilterAguardandoPlaca = (document.getElementById("finAguardandoPlaca")?.value || "").trim();
+      if (currentFinanceView === "aguardando") financeRenderAguardando();
+    });
+    document.getElementById("finAguardandoPlacaClear")?.addEventListener("click", () => {
+      financeFilterAguardandoPlaca = "";
+      const input = document.getElementById("finAguardandoPlaca");
+      if (input) input.value = "";
+      if (currentFinanceView === "aguardando") financeRenderAguardando();
+    });
 
     const pagarFilterIds = [
       ["finPagarBusca", (v) => { finPagarBusca = v; }],
