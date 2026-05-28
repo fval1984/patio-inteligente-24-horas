@@ -6707,15 +6707,16 @@
           const payableId = inserted?.id;
           if (payableId) insertedIds.push(payableId);
           if (markPago && payableId) {
-            await supabase.from("cash_movements").insert({
-              user_id: effectiveUserId(),
-              tipo_conta: "PAGAR",
-              conta_id: payableId,
-              valor: valorParcela,
-              descricao: descricao || "Despesa manual",
-              data_movimento: dueDate,
-              forma_pagamento: formaPagamento,
-            });
+            const cashRes = await registerPayableCashMovement(
+              { id: payableId, valor: valorParcela, descricao: descricao || "Despesa manual", forma_pagamento: formaPagamento },
+              { dataMovimento: dueDate, formaPagamento, descricao: descricao || "Despesa manual", valor: valorParcela }
+            );
+            if (cashRes.error) {
+              await runSupabaseWrite(() =>
+                supabase.from("payables").update({ status: "EM_ABERTO" }).eq("id", payableId).eq("user_id", effectiveUserId())
+              );
+              return { error: cashRes.error };
+            }
           }
         }
         return { id: insertedIds[0], ids: insertedIds };
@@ -13557,18 +13558,110 @@
         };
       }
 
+      async function registerPayableCashMovement(payable, opts = {}) {
+        const payableId = payable?.id;
+        const uid = effectiveUserId();
+        const valor = Number(opts.valor ?? payable?.valor ?? 0);
+        const dataMov = opts.dataMovimento || toLocalYmd(new Date().toISOString());
+        const formaPagamento = opts.formaPagamento || payable?.forma_pagamento || "PIX";
+        const descricao = opts.descricao || payable?.descricao || "Despesa";
+        if (!payableId || !uid || !(valor > 0)) {
+          return { data: null, error: { message: "Dados inválidos para registrar saída no caixa." } };
+        }
+
+        const { data: existingMov } = await supabase
+          .from("cash_movements")
+          .select("id")
+          .eq("conta_id", payableId)
+          .eq("tipo_conta", "PAGAR")
+          .eq("user_id", uid)
+          .limit(1);
+
+        const payload = {
+          user_id: uid,
+          tipo_conta: "PAGAR",
+          conta_id: payableId,
+          valor,
+          descricao,
+          data_movimento: dataMov,
+          forma_pagamento: formaPagamento,
+        };
+
+        const insertOrUpdate = async (body, isUpdate) => {
+          if (isUpdate) {
+            return runSupabaseWrite(() =>
+              supabase
+                .from("cash_movements")
+                .update(body)
+                .eq("conta_id", payableId)
+                .eq("tipo_conta", "PAGAR")
+                .eq("user_id", uid)
+            );
+          }
+          return runSupabaseWrite(() => supabase.from("cash_movements").insert(body));
+        };
+
+        let result = await insertOrUpdate(payload, !!(existingMov && existingMov.length));
+        if (result.error && /column|schema cache|PGRST204|forma_pagamento/i.test(result.error.message || "")) {
+          const fallback = { ...payload };
+          delete fallback.forma_pagamento;
+          result = await insertOrUpdate(fallback, !!(existingMov && existingMov.length));
+        }
+        return result;
+      }
+
+      window.syncPaidPayablesCashMovements = async function syncPaidPayablesCashMovements() {
+        const uid = effectiveUserId();
+        if (!uid || !supabase) return;
+        const paid = (state.payables || []).filter((p) => String(p.status || "").toUpperCase() === "PAGO");
+        let changed = false;
+        for (const p of paid) {
+          const hasMov = (state.cash || []).some(
+            (m) => m.tipo_conta === "PAGAR" && String(m.conta_id) === String(p.id)
+          );
+          if (hasMov) continue;
+          const res = await registerPayableCashMovement(p, {
+            dataMovimento: toLocalYmd(p.updated_at || p.created_at || new Date().toISOString()),
+            formaPagamento: p.forma_pagamento || "PIX",
+          });
+          if (!res?.error) changed = true;
+        }
+        if (changed) await loadCash();
+      };
+
       async function finalizePayablePayment(payableId, opts = {}) {
+        if (!(await requireSupabaseSessionForWrite())) return false;
         const payable = state.payables.find((p) => p.id === payableId);
         if (!payable) {
           alert("Conta a pagar não encontrada.");
           return false;
         }
-        if (payable.status === "PAGO") {
-          alert("Esta conta já foi paga.");
-          return false;
-        }
         const dataMov = opts.dataMovimento || toLocalYmd(new Date().toISOString());
         const formaPagamento = opts.formaPagamento || payable.forma_pagamento || "PIX";
+
+        if (String(payable.status || "").toUpperCase() === "PAGO") {
+          const hasMov = (state.cash || []).some(
+            (m) => m.tipo_conta === "PAGAR" && String(m.conta_id) === String(payableId)
+          );
+          if (hasMov) {
+            alert("Esta conta já foi paga.");
+            return false;
+          }
+          const cashOnly = await registerPayableCashMovement(payable, {
+            dataMovimento: dataMov,
+            formaPagamento,
+            descricao: payable.descricao,
+          });
+          if (cashOnly.error) {
+            alertSupabaseError(cashOnly.error, "Não foi possível registrar a saída no caixa.");
+            return false;
+          }
+          await loadCash();
+          updateDashboard();
+          if (typeof renderFinance === "function") renderFinance();
+          return true;
+        }
+
         const { meta, text } = financeMetaUnpack(payable.observacoes);
         const obsUpdate =
           opts.observacao && String(opts.observacao).trim()
@@ -13576,31 +13669,40 @@
             : payable.observacoes;
         const patch = { status: "PAGO", forma_pagamento: formaPagamento };
         if (obsUpdate !== payable.observacoes) patch.observacoes = obsUpdate;
-        const { error } = await supabase
-          .from("payables")
-          .update(patch)
-          .eq("id", payableId)
-          .eq("user_id", effectiveUserId());
+        const { error } = await runSupabaseWrite(() =>
+          supabase.from("payables").update(patch).eq("id", payableId).eq("user_id", effectiveUserId())
+        );
         if (error) {
-          const { error: errFb } = await supabase
-            .from("payables")
-            .update({ status: "PAGO" })
-            .eq("id", payableId)
-            .eq("user_id", effectiveUserId());
+          const { error: errFb } = await runSupabaseWrite(() =>
+            supabase.from("payables").update({ status: "PAGO" }).eq("id", payableId).eq("user_id", effectiveUserId())
+          );
           if (errFb) {
-            alert(errFb.message);
+            alertSupabaseError(errFb, "Não foi possível marcar a conta como paga.");
             return false;
           }
         }
-        await supabase.from("cash_movements").insert({
-          user_id: effectiveUserId(),
-          tipo_conta: "PAGAR",
-          conta_id: payableId,
-          valor: payable.valor,
+
+        const cashResult = await registerPayableCashMovement(payable, {
+          dataMovimento: dataMov,
+          formaPagamento,
           descricao: payable.descricao,
-          data_movimento: dataMov,
-          forma_pagamento: formaPagamento,
         });
+        if (cashResult.error) {
+          await runSupabaseWrite(() =>
+            supabase
+              .from("payables")
+              .update({ status: "EM_ABERTO" })
+              .eq("id", payableId)
+              .eq("user_id", effectiveUserId())
+          );
+          alertSupabaseError(
+            cashResult.error,
+            "A conta foi atualizada, mas a saída no caixa não foi registrada. Tente pagar novamente."
+          );
+          await loadPayables();
+          return false;
+        }
+
         if (opts.anexo) await financeAttachmentSave("payable", payableId, opts.anexo);
 
         if ((payable.tipo || "").toUpperCase() === "RECORRENTE" || financeEntryModoFromRecord(payable, "payable") === "RECORRENTE") {

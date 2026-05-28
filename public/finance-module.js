@@ -856,6 +856,9 @@
           loadVehicles(),
           typeof loadCycleClosures === "function" ? loadCycleClosures() : Promise.resolve(),
         ]);
+        if (typeof window.syncPaidPayablesCashMovements === "function") {
+          await window.syncPaidPayablesCashMovements();
+        }
         renderFinance();
         updateDashboard?.();
       } catch (e) {
