@@ -5267,7 +5267,7 @@
             </div>
             <div class="section-card patio-subview hidden" data-subview="vlp">
               <div class="pill">VLP</div>
-              <p class="notice" style="margin: 0 0 12px">Veículos em fluxo de liberação — não entram na contagem VNP.</p>
+              <p class="notice" style="margin: 0 0 12px">Veículos em fluxo de liberação — também contam no VNP enquanto estiverem no pátio.</p>
               <div id="vlsToolbarFilters" class="filter-bar hidden" style="margin-bottom: 10px">
                 <label for="vlsFilterLocator">RPV</label>
                 <select id="vlsFilterLocator">
@@ -8470,6 +8470,29 @@
         return VLP_STATUSES.includes(status);
       }
 
+      function isVehicleOnPatio(v) {
+        return !!v && v.status !== "REMOVIDO";
+      }
+
+      const VNP_ON_PATIO_STATUS_ORDER = {
+        NO_PATIO: 0,
+        LIBERACAO_SOLICITADA: 1,
+        LIBERACAO_CONFIRMADA: 2,
+        REMocao_CONFIRMADA: 3,
+      };
+
+      function sortVnpOnPatioForDisplay(list) {
+        return [...list].sort((a, b) => {
+          const oa = VNP_ON_PATIO_STATUS_ORDER[a.status] ?? 50;
+          const ob = VNP_ON_PATIO_STATUS_ORDER[b.status] ?? 50;
+          if (oa !== ob) return oa - ob;
+          const ta = new Date(a.data_entrada || a.created_at || 0).getTime();
+          const tb = new Date(b.data_entrada || b.created_at || 0).getTime();
+          if (tb !== ta) return tb - ta;
+          return String(b.id || "").localeCompare(String(a.id || ""), "pt-BR");
+        });
+      }
+
       function sortVnpPatioForDisplay(list) {
         return [...list].sort((a, b) => {
           const ta = new Date(a.data_entrada || a.created_at || 0).getTime();
@@ -8942,8 +8965,8 @@
       }
 
       function buildListaVnpVehicleRows() {
-        return sortVnpPatioForDisplay(
-          (state.vehicles || []).filter((v) => v.status === "NO_PATIO" && listaVehicleMatches(v))
+        return sortVnpOnPatioForDisplay(
+          (state.vehicles || []).filter((v) => isVehicleOnPatio(v) && listaVehicleMatches(v))
         );
       }
 
@@ -9099,7 +9122,7 @@
               const val = ocultarValorColuna ? "" : `<td data-label="Valor">${escapeHtml(formatCurrency(calcTotal(v)))}</td>`;
               return `<tr>
                 <td data-label="Placa">${escapeHtml(v.placa || "-")}</td>
-                <td data-label="Registo">${patioRegistoBadgeHtml("vnp")}</td>
+                <td data-label="Registo">${patioRegistoBadgeHtml(isVlpStatus(v.status) ? "vlp" : "vnp")}</td>
                 <td data-label="Veículo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</td>
                 <td data-label="RPV">${escapeHtml(locLabel(v.localizador_id))}</td>
                 <td data-label="RPF">${escapeHtml(vehicleRpfNome(v))}</td>
@@ -9965,14 +9988,20 @@
         };
 
         if (incVnp) {
-          const listVnp = sortVehiclesByPlaca(vehicles.filter((v) => v.status === "NO_PATIO"));
+          const listVnp = sortVehiclesByPlaca(vehicles.filter(isVehicleOnPatio));
           const rowsVnp = listVnp
             .map((v) => {
               const { loc } = patioPrintPartnerNames(v);
+              const sit =
+                v.status === "NO_PATIO"
+                  ? isRemocaoSolicitada(v)
+                    ? "No pátio · remoção solicitada"
+                    : "No pátio"
+                  : VLS_STATUS_LABELS[v.status] || v.status || "-";
               return `<tr>
                 <td>${patioPrintVehicleLine(v)}</td>
                 <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
-                <td>No pátio</td>
+                <td>${escapeHtml(sit)}</td>
                 <td>${escapeHtml(loc)}</td>
                 ${patioPrintMoneyCellsHtml(v)}
                 <td>${patioPrintObsCell(v)}</td>
@@ -9981,7 +10010,7 @@
             .join("");
           pushTable(
             "VNP — Veículos no pátio",
-            "Somente status NO_PATIO (não inclui VLP)",
+            "Todos os veículos ainda no pátio (inclui VLP enquanto não saíram)",
             "<th>Veículo</th><th>Data de entrada</th><th>Situação</th><th>RPV</th>" +
               patioPrintMoneyHeaderHtml() +
               "<th>Observações</th>",
@@ -10225,8 +10254,7 @@
       }
 
       function countVeiculosOperacaoPatio() {
-        const st = ["NO_PATIO", "LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA"];
-        return (state.vehicles || []).filter((v) => st.includes(v.status)).length;
+        return (state.vehicles || []).filter(isVehicleOnPatio).length;
       }
 
       function calcPeriodTotal(vehicle, periodStart, periodEnd) {
@@ -11294,10 +11322,8 @@
       }
 
       function updateDashboard() {
-        const noPatio = state.vehicles.filter((v) => v.status === "NO_PATIO");
-        const vls = state.vehicles.filter((v) =>
-          ["LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA"].includes(v.status)
-        );
+        const onPatio = state.vehicles.filter(isVehicleOnPatio);
+        const vls = state.vehicles.filter((v) => isVlpStatus(v.status));
         const todayYmd = toLocalYmd(new Date().toISOString());
         const currentYm = yearMonthFromYmd(todayYmd);
         const startOfWeekYmd = (() => {
@@ -11335,7 +11361,7 @@
         const elEHMeta = document.getElementById("cardEntradasHojeMeta");
         const elSHMeta = document.getElementById("cardSaidasHojeMeta");
         const elSSMeta = document.getElementById("cardSaidasSemanaMeta");
-        if (elV) elV.textContent = noPatio.length.toString();
+        if (elV) elV.textContent = onPatio.length.toString();
         if (elS) elS.textContent = entradasMes.toString();
         if (elEH) elEH.textContent = saidasMes.toString();
         if (elSH) elSH.textContent = String(entradasSemana);
@@ -11355,7 +11381,7 @@
         const pdSS = document.getElementById("patioDashSaidasSemana");
         const pdEM = document.getElementById("patioDashEntradasMes");
         const pdSM = document.getElementById("patioDashSaidasMes");
-        if (pdVnp) pdVnp.textContent = String(noPatio.length);
+        if (pdVnp) pdVnp.textContent = String(onPatio.length);
         if (pdVlp) pdVlp.textContent = String(vls.length);
         if (pdED) pdED.textContent = String(entradasHoje);
         if (pdSD) pdSD.textContent = String(saidasHoje);
@@ -11647,7 +11673,7 @@
           }
         }
 
-        const vnpOnly = sortVnpPatioForDisplay(byStatus.NO_PATIO);
+        const vnpOnPatio = sortVnpOnPatioForDisplay(filteredVehicles.filter(isVehicleOnPatio));
         const vlpItems = sortVnpUnifiedForDisplay(vlsForTable);
         const patioCardTitle1 = document.getElementById("patioCardTitle1");
         const patioCardTitle2 = document.getElementById("patioCardTitle2");
@@ -11688,7 +11714,7 @@
           if (patioCardTitle1) patioCardTitle1.textContent = "VNP";
           if (patioCardTitle2) patioCardTitle2.textContent = "VLP";
           if (patioCardTitle3) patioCardTitle3.textContent = "Remoção solicitada";
-          if (patioCardValue1) patioCardValue1.textContent = String(vnpOnly.length);
+          if (patioCardValue1) patioCardValue1.textContent = String(vnpOnPatio.length);
           if (patioCardValue2) patioCardValue2.textContent = String(vlsForTable.length);
           if (patioCardValue3)
             patioCardValue3.textContent = String(filteredVehicles.filter((v) => v.status === "NO_PATIO" && isRemocaoSolicitada(v)).length);
@@ -11697,7 +11723,7 @@
           if (patioCardMeta3) patioCardMeta3.textContent = "antes da efetivação";
         }
 
-        renderVnpUnifiedTable(tableNoPatio, vnpOnly, { registoKind: "vnp", emptyText: "Nenhum veículo no pátio." });
+        renderVnpUnifiedTable(tableNoPatio, vnpOnPatio, { registoKind: "vnp", emptyText: "Nenhum veículo no pátio." });
         renderVnpUnifiedTable(tableVlp, vlpItems, { registoKind: "vlp", emptyText: "Nenhum veículo em liberação." });
         renderRemovedVehicles(tableRemovidos, byStatus.REMOVIDO);
         renderFechamentoCicloTable(tableFechamentoCiclo, fechamentoCicloReceivables);
@@ -11717,13 +11743,14 @@
             ? vlsFilteredCount
             : mergeVlsItems(byStatus).length;
         const nFech = typeof fechandoCicloCount === "number" ? fechandoCicloCount : 0;
+        const onPatioCount = byStatus.NO_PATIO.length + mergeVlsItems(byStatus).length;
         const counts = {
-          no_patio: byStatus.NO_PATIO.length,
+          no_patio: onPatioCount,
           vlp: vlsCount,
           removidos: byStatus.REMOVIDO.length,
           fechando_ciclo: nFech,
         };
-        const total = counts.no_patio + counts.vlp + counts.removidos + counts.fechando_ciclo;
+        const total = onPatioCount + counts.removidos + counts.fechando_ciclo;
 
         setPlateSearchHints(total === 0 ? "Nenhum veículo com esta placa." : "", total === 0);
 
@@ -11821,7 +11848,7 @@
             return `
               <tr class="${rowClass}" data-vehicle-row="${v.id}">
                 <td data-label="Placa">${v.placa || "-"}${situacaoHtml}</td>
-                <td data-label="Registo">${patioRegistoBadgeHtml(registoKind)}</td>
+                <td data-label="Registo">${patioRegistoBadgeHtml(registoKind === "vnp" ? (isVlpStatus(v.status) ? "vlp" : "vnp") : registoKind)}</td>
                 <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
                 <td data-label="RPV">${localizador}</td>
                 <td data-label="RPF">${escapeHtml(rpfNome)}</td>
