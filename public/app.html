@@ -6059,7 +6059,7 @@
             </div>
             <div>
               <label for="receberBaixaValorRecebido">Valor recebido (R$)</label>
-              <input id="receberBaixaValorRecebido" type="number" step="0.01" min="0.01" required />
+              <input id="receberBaixaValorRecebido" type="number" step="0.01" min="0" required />
             </div>
             <div>
               <label for="receberBaixaData">Data de recebimento</label>
@@ -13408,8 +13408,8 @@
         const valorOriginal = Number(document.getElementById("receberBaixaValorOriginal")?.value) || pending.valorOriginal || 0;
         const desconto = Math.max(0, Number(document.getElementById("receberBaixaDesconto")?.value) || 0);
         const valorRecebido = Number(document.getElementById("receberBaixaValorRecebido")?.value);
-        if (!Number.isFinite(valorRecebido) || valorRecebido <= 0) {
-          alert("Informe o valor recebido.");
+        if (!Number.isFinite(valorRecebido) || valorRecebido < 0) {
+          alert("Informe o valor recebido (pode ser R$ 0,00).");
           return;
         }
         if (desconto > 0) {
@@ -13524,22 +13524,24 @@
           .limit(1);
         const vehicleInfo = `${vehicle?.placa || "-"} • ${[vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")}`.trim();
         const descMov = vehicleInfo ? `Diárias - ${vehicleInfo}` : receivable.responsavel_pagamento || "Receita";
-        if (!existingMov || existingMov.length === 0) {
-          await supabase.from("cash_movements").insert({
-            user_id: effectiveUserId(),
-            tipo_conta: "RECEBER",
-            conta_id: receivableId,
-            valor: totalAtual,
-            descricao: descMov,
-            data_movimento: dataMov,
-            forma_pagamento: formaPagamento,
-          });
-        } else {
-          await supabase
-            .from("cash_movements")
-            .update({ valor: totalAtual, data_movimento: dataMov, forma_pagamento: formaPagamento })
-            .eq("conta_id", receivableId)
-            .eq("tipo_conta", "RECEBER");
+        if (totalAtual > 0) {
+          if (!existingMov || existingMov.length === 0) {
+            await supabase.from("cash_movements").insert({
+              user_id: effectiveUserId(),
+              tipo_conta: "RECEBER",
+              conta_id: receivableId,
+              valor: totalAtual,
+              descricao: descMov,
+              data_movimento: dataMov,
+              forma_pagamento: formaPagamento,
+            });
+          } else {
+            await supabase
+              .from("cash_movements")
+              .update({ valor: totalAtual, data_movimento: dataMov, forma_pagamento: formaPagamento })
+              .eq("conta_id", receivableId)
+              .eq("tipo_conta", "RECEBER");
+          }
         }
         if (opts.anexo) await financeAttachmentSave("receivable", receivableId, opts.anexo);
         financeAuditAppend(receivableId, "Pagamento confirmado", {
@@ -13587,8 +13589,11 @@
         const dataMov = opts.dataMovimento || toLocalYmd(new Date().toISOString());
         const formaPagamento = opts.formaPagamento || payable?.forma_pagamento || "PIX";
         const descricao = opts.descricao || payable?.descricao || "Despesa";
-        if (!payableId || !uid || !(valor > 0)) {
+        if (!payableId || !uid) {
           return { data: null, error: { message: "Dados inválidos para registrar saída no caixa." } };
+        }
+        if (!(valor > 0)) {
+          return { data: null, error: null };
         }
 
         const { data: existingMov } = await supabase
