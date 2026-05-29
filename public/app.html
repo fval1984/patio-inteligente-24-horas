@@ -5562,7 +5562,9 @@
           <div class="finance-subview hidden" data-finance-subview="caixa">
             <div class="fin-toolbar">
               <div><label for="finFilterPeriodo">Competência</label><input id="finFilterPeriodo" type="month" /></div>
+              <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaSyncBtn">Sincronizar caixa</button></div>
             </div>
+            <p id="finCaixaSyncHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <div class="fin-caixa-summary" id="finCaixaSummary"></div>
             <div class="table-wrap section-card">
               <table class="table">
@@ -6323,7 +6325,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260528h"></script>
+    <script src="/finance-module.js?v=20260528i"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -13522,19 +13524,20 @@
         const dataMov = opts.dataMovimento || toLocalYmd(new Date().toISOString());
         const formaPagamento = opts.formaPagamento || receivable.forma_pagamento || "PIX";
         const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
-        const { error } = await supabase
-          .from("receivables")
-          .update({ status: "PAGO", valor: totalAtual, financeiro_aprovado_contas_receber: false, forma_pagamento: formaPagamento })
-          .eq("id", receivableId)
-          .eq("user_id", effectiveUserId());
+        const runRecUpdate = (patch) =>
+          runSupabaseWrite(() =>
+            supabase.from("receivables").update(patch).eq("id", receivableId).eq("user_id", effectiveUserId())
+          );
+        let { error } = await runRecUpdate({
+          status: "PAGO",
+          valor: totalAtual,
+          financeiro_aprovado_contas_receber: false,
+          forma_pagamento: formaPagamento,
+        });
         if (error) {
-          const { error: errFallback } = await supabase
-            .from("receivables")
-            .update({ status: "PAGO", valor: totalAtual })
-            .eq("id", receivableId)
-            .eq("user_id", effectiveUserId());
+          const { error: errFallback } = await runRecUpdate({ status: "PAGO", valor: totalAtual });
           if (errFallback) {
-            alert(errFallback.message);
+            alertSupabaseError(errFallback, "Não foi possível confirmar o pagamento.");
             return null;
           }
         }
@@ -13571,7 +13574,7 @@
         });
         try {
           const userId = effectiveUserId();
-          if (userId) {
+          if (userId && totalAtual > 0) {
             await callFinanceCompetencyApi("/api/finance/register-payment", {
               userId,
               receivableId,
@@ -13585,10 +13588,23 @@
         removeReceberTriagemId(receivableId);
         await createNextRecorrenteReceivable(receivable);
         await Promise.all([loadReceivables(), loadCash(), loadVehicles()]);
+        let syncStats = null;
         if (typeof window.syncPaidReceivablesCashMovements === "function") {
-          await window.syncPaidReceivablesCashMovements();
+          syncStats = await window.syncPaidReceivablesCashMovements();
         }
         await loadCash();
+        if (totalAtual > 0) {
+          const hasMov = (state.cash || []).some(
+            (m) => m.tipo_conta === "RECEBER" && String(m.conta_id) === String(receivableId)
+          );
+          if (!hasMov) {
+            alert(
+              "Pagamento confirmado, mas a entrada no caixa ainda não apareceu. Abra Caixa e clique em «Sincronizar caixa», ou use Atualizar no Financeiro."
+            );
+          } else if (syncStats?.failed > 0) {
+            console.warn("syncPaidReceivablesCashMovements", syncStats);
+          }
+        }
         updateDashboard();
         if (typeof renderFinance === "function") renderFinance();
         const paidReceivable = state.receivables.find((r) => r.id === receivableId) || {
@@ -13623,7 +13639,7 @@
 
         const { data: existingMov, error: existingErr } = await supabase
           .from("cash_movements")
-          .select("id")
+          .select("id,valor")
           .eq("conta_id", receivableId)
           .eq("tipo_conta", "RECEBER")
           .eq("user_id", uid)
@@ -13631,8 +13647,9 @@
         if (existingErr) {
           return { data: null, error: existingErr };
         }
-
-        const payload = {
+        const isUpdate = !!(existingMov && existingMov.length);
+        const isoMov = new Date(String(dataMov).includes("T") ? dataMov : `${dataMov}T12:00:00`).toISOString();
+        const basePayload = {
           user_id: uid,
           tipo_conta: "RECEBER",
           conta_id: receivableId,
@@ -13641,8 +13658,25 @@
           data_movimento: dataMov,
           forma_pagamento: formaPagamento,
         };
+        const payloadVariants = [
+          basePayload,
+          { ...basePayload, data_movimento: isoMov },
+          (() => {
+            const p = { ...basePayload, data_movimento: isoMov };
+            delete p.forma_pagamento;
+            return p;
+          })(),
+          (() => {
+            const p = { ...basePayload, data_movimento: isoMov };
+            delete p.forma_pagamento;
+            delete p.descricao;
+            return p;
+          })(),
+          { user_id: uid, tipo_conta: "RECEBER", conta_id: receivableId, valor, data_movimento: isoMov },
+          { user_id: uid, tipo_conta: "RECEBER", conta_id: receivableId, valor },
+        ];
 
-        const insertOrUpdate = async (body, isUpdate) => {
+        const writePayload = async (body) => {
           if (isUpdate) {
             return runSupabaseWrite(() =>
               supabase
@@ -13651,26 +13685,33 @@
                 .eq("conta_id", receivableId)
                 .eq("tipo_conta", "RECEBER")
                 .eq("user_id", uid)
+                .select("id,valor,data_movimento")
+                .maybeSingle()
             );
           }
-          return runSupabaseWrite(() => supabase.from("cash_movements").insert(body));
+          return runSupabaseWrite(() =>
+            supabase.from("cash_movements").insert(body).select("id,valor,data_movimento").maybeSingle()
+          );
         };
 
-        let result = await insertOrUpdate(payload, !!(existingMov && existingMov.length));
-        if (result.error && /column|schema cache|PGRST204|forma_pagamento/i.test(result.error.message || "")) {
-          const fallback = { ...payload };
-          delete fallback.forma_pagamento;
-          result = await insertOrUpdate(fallback, !!(existingMov && existingMov.length));
+        let lastError = null;
+        for (const body of payloadVariants) {
+          const result = await writePayload(body);
+          if (!result.error) return result;
+          lastError = result.error;
+          const msg = String(result.error.message || "");
+          if (!/column|schema cache|PGRST204|invalid input|date|time|format|forma_pagamento|descricao|data_movimento/i.test(msg)) {
+            break;
+          }
         }
-        if (result.error && /column|schema cache|PGRST204|data_movimento/i.test(result.error.message || "")) {
-          const fallback = { ...payload };
-          delete fallback.forma_pagamento;
-          fallback.data_movimento = new Date(
-            String(dataMov).includes("T") ? dataMov : `${dataMov}T12:00:00`
-          ).toISOString();
-          result = await insertOrUpdate(fallback, !!(existingMov && existingMov.length));
+
+        if (lastError && /duplicate key|unique constraint|23505/i.test(String(lastError.message || ""))) {
+          const retry = await writePayload({ valor, data_movimento: isoMov, descricao, forma_pagamento: formaPagamento });
+          if (!retry.error) return retry;
+          lastError = retry.error;
         }
-        return result;
+
+        return { data: null, error: lastError || { message: "Não foi possível registrar entrada no caixa." } };
       }
 
       async function registerPayableCashMovement(payable, opts = {}) {
@@ -13730,16 +13771,27 @@
 
       window.syncPaidReceivablesCashMovements = async function syncPaidReceivablesCashMovements() {
         const uid = effectiveUserId();
-        if (!uid || !supabase) return;
+        if (!uid || !supabase) return { created: 0, fixed: 0, failed: 0 };
         const paid = (state.receivables || []).filter((r) => String(r.status || "").toUpperCase() === "PAGO");
-        let changed = false;
+        const { data: remoteCash, error: remoteErr } = await supabase
+          .from("cash_movements")
+          .select("id,conta_id,valor,data_movimento,forma_pagamento")
+          .eq("user_id", uid)
+          .eq("tipo_conta", "RECEBER");
+        if (remoteErr) {
+          console.warn("syncPaidReceivablesCashMovements load", remoteErr.message || remoteErr);
+        }
+        const cashByConta = new Map(
+          (remoteCash || []).map((m) => [String(m.conta_id), m])
+        );
+        let created = 0;
+        let fixed = 0;
+        let failed = 0;
         for (const r of paid) {
           const valor = Number(r.valor || 0);
           if (!(valor > 0)) continue;
           const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
-          const mov = (state.cash || []).find(
-            (m) => m.tipo_conta === "RECEBER" && String(m.conta_id) === String(r.id)
-          );
+          const mov = cashByConta.get(String(r.id));
           if (!mov) {
             const res = await registerReceivableCashMovement(r, {
               valor,
@@ -13747,7 +13799,11 @@
               formaPagamento: r.forma_pagamento || "PIX",
               vehicle,
             });
-            if (!res?.error) changed = true;
+            if (res?.error) failed += 1;
+            else {
+              created += 1;
+              if (res?.data?.conta_id) cashByConta.set(String(res.data.conta_id), res.data);
+            }
             continue;
           }
           if (Number(mov.valor || 0) !== valor) {
@@ -13757,10 +13813,12 @@
               formaPagamento: mov.forma_pagamento || r.forma_pagamento || "PIX",
               vehicle,
             });
-            if (!res?.error) changed = true;
+            if (res?.error) failed += 1;
+            else fixed += 1;
           }
         }
-        if (changed) await loadCash();
+        await loadCash();
+        return { created, fixed, failed };
       };
 
       window.syncPaidPayablesCashMovements = async function syncPaidPayablesCashMovements() {

@@ -715,6 +715,62 @@
     return pay ? financePayableContaBancaria(pay) : state.settings?.conta_bancaria || "Caixa";
   }
 
+  function financeCountPaidReceivablesSemCaixa() {
+    const paid = (state.receivables || []).filter(
+      (r) => String(r.status || "").toUpperCase() === "PAGO" && Number(r.valor || 0) > 0
+    );
+    const cashIds = new Set(
+      (state.cash || [])
+        .filter((m) => financeCashIsEntrada(m))
+        .map((m) => String(m.conta_id))
+    );
+    return paid.filter((r) => !cashIds.has(String(r.id))).length;
+  }
+
+  async function financeSyncCaixaFromPaidReceivables() {
+    const btn = document.getElementById("finCaixaSyncBtn");
+    const hint = document.getElementById("finCaixaSyncHint");
+    const prev = btn?.textContent;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Sincronizando…";
+    }
+    try {
+      if (typeof loadReceivables === "function") await loadReceivables();
+      let stats = { created: 0, fixed: 0, failed: 0 };
+      if (typeof window.syncPaidReceivablesCashMovements === "function") {
+        stats = (await window.syncPaidReceivablesCashMovements()) || stats;
+      } else if (typeof loadCash === "function") {
+        await loadCash();
+      }
+      if (typeof loadCash === "function") await loadCash();
+      financeRenderCaixa();
+      if (hint) {
+        const missing = financeCountPaidReceivablesSemCaixa();
+        if (missing > 0) {
+          hint.textContent = `${missing} pagamento(s) confirmado(s) ainda sem entrada visível no caixa. Verifique permissões no Supabase (tabela cash_movements) ou contacte o suporte.`;
+          hint.classList.remove("hidden");
+        } else if (stats.created + stats.fixed > 0) {
+          hint.textContent = `Caixa sincronizado: ${stats.created} entrada(s) criada(s)${stats.fixed ? `, ${stats.fixed} corrigida(s)` : ""}.`;
+          hint.classList.remove("hidden");
+        } else {
+          hint.textContent = "";
+          hint.classList.add("hidden");
+        }
+      }
+      return stats;
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = prev || "Sincronizar caixa";
+      }
+    }
+  }
+
+  async function financeRenderCaixaAsync() {
+    await financeSyncCaixaFromPaidReceivables();
+  }
+
   function financeRenderCaixa() {
     financeSyncCaixaPeriodoFromDom();
     const body = document.getElementById("finCaixaBody");
@@ -754,10 +810,18 @@
       String(b.data_movimento || b.created_at).localeCompare(String(a.data_movimento || a.created_at))
     );
     if (!movs.length) {
+      const totalMovs = (state.cash || []).length;
       const periodoHint = periodoYm
-        ? ` Nenhuma movimentação na competência ${periodoYm}. Limpe o filtro «Competência» para ver todas.`
+        ? totalMovs > 0
+          ? ` Nenhuma movimentação na competência ${periodoYm}, mas existem ${totalMovs} no total. Limpe o filtro «Competência» para ver todas.`
+          : ` Nenhuma movimentação na competência ${periodoYm}. Limpe o filtro «Competência» para ver todas.`
         : "";
-      body.innerHTML = `<tr><td colspan="6" class="notice">Nenhuma movimentação registrada.${periodoHint}</td></tr>`;
+      const missingPaid = financeCountPaidReceivablesSemCaixa();
+      const missingHint =
+        missingPaid > 0
+          ? ` Há ${missingPaid} pagamento(s) confirmado(s) sem entrada no caixa — clique em «Sincronizar caixa».`
+          : "";
+      body.innerHTML = `<tr><td colspan="6" class="notice">Nenhuma movimentação registrada.${periodoHint}${missingHint}</td></tr>`;
       return;
     }
     const rowsHtml = movs
@@ -1349,10 +1413,9 @@
       });
     }
     if (resolved === "caixa") {
-      const periodoEl = document.getElementById("finFilterPeriodo");
-      if (periodoEl && !periodoEl.value && typeof yearMonthFromYmd === "function" && typeof financeTodayYmd === "function") {
-        periodoEl.value = yearMonthFromYmd(financeTodayYmd());
-        financeFilterPeriodo = periodoEl.value;
+      if (!opts.skipRender) {
+        financeRenderCaixaAsync();
+        return;
       }
     }
     if (!opts.skipRender) financeRenderSubviewContent(resolved);
@@ -1361,7 +1424,11 @@
   window.renderFinance = function renderFinance() {
     try {
       financeActivateSubview(currentFinanceView, { skipRender: true });
-      financeRenderSubviewContent(currentFinanceView);
+      if (currentFinanceView === "caixa") {
+        financeRenderCaixaAsync();
+      } else {
+        financeRenderSubviewContent(currentFinanceView);
+      }
     } catch (e) {
       console.error("renderFinance", e);
     }
@@ -1517,6 +1584,9 @@
     document.getElementById("finFilterPeriodo")?.addEventListener("change", (e) => {
       financeFilterPeriodo = e.target.value || "";
       financeRenderCaixa();
+    });
+    document.getElementById("finCaixaSyncBtn")?.addEventListener("click", () => {
+      financeSyncCaixaFromPaidReceivables();
     });
     document.getElementById("finChartPeriod")?.addEventListener("change", () => financeRenderDashboard());
 
