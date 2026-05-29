@@ -860,13 +860,385 @@
     alert("Abra Contas a pagar, Contas a receber ou Caixa para exportar.");
   }
 
+  function financeSyncReceberFiltersFromDom() {
+    financeFilterBanco = document.getElementById("finFilterBusca")?.value?.trim() || "";
+    financeFilterStatus = document.getElementById("finFilterStatus")?.value || "";
+    financeFilterTipo = document.getElementById("finReceberTipo")?.value || "";
+    financeSortReceber = document.getElementById("finSortReceber")?.value || "vencimento";
+  }
+
+  function financeReceberClienteLogoUrl() {
+    const base = window.location?.origin || "";
+    return `${base}/assets/recibo-header-logo.png`;
+  }
+
+  function financeReceberClienteLogoFallbackUrl() {
+    const base = window.location?.origin || "";
+    return `${base}/assets/logo.png`;
+  }
+
+  function financeReceberClientePartnerFromQuery(query) {
+    const q = String(query || "").trim().toLowerCase();
+    if (!q) return null;
+    const partners = state.partners || [];
+    const exact = partners.find((p) => String(p.nome || "").trim().toLowerCase() === q);
+    if (exact) return exact;
+    const partial = partners.filter((p) => String(p.nome || "").trim().toLowerCase().includes(q));
+    return partial.length === 1 ? partial[0] : null;
+  }
+
+  function financeReceberClienteContext(list) {
+    financeSyncReceberFiltersFromDom();
+    const vmap = financeVehicleById();
+    const busca = (financeFilterBanco || "").trim();
+    const rppNames = [
+      ...new Set(
+        list
+          .map((r) => financeReceberRppNome(r, vmap.get(r.vehicle_id)))
+          .filter((n) => n && n !== "—")
+      ),
+    ];
+    const plates = [
+      ...new Set(
+        list.map((r) => vmap.get(r.vehicle_id)?.placa).filter(Boolean)
+      ),
+    ];
+    let destinatario = busca;
+    if (!destinatario && rppNames.length === 1) destinatario = rppNames[0];
+    else if (!destinatario && plates.length === 1) destinatario = `Placa ${plates[0]}`;
+    const partner = financeReceberClientePartnerFromQuery(busca || destinatario);
+    return { busca, destinatario: destinatario || "—", partner, rppNames, plates };
+  }
+
+  function financeReceberClienteVeiculoCell(r, v) {
+    if (v?.placa) {
+      const vm = [v.marca, v.modelo].filter(Boolean).join(" ") || "—";
+      const rpv = financeVehicleRpvNome(v);
+      return `<strong>${escapeHtml(v.placa)}</strong><br /><span class="muted">${escapeHtml(vm)}</span><br /><span class="muted">RPV: ${escapeHtml(rpv)}</span>`;
+    }
+    return `<span class="muted">${escapeHtml(r.responsavel_pagamento || r.observacoes || "—")}</span>`;
+  }
+
+  function financeReceberClientePrintCss() {
+    return `
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; color: #0f172a; background: #fff; }
+  .doc { max-width: 920px; margin: 0 auto; padding: 24px 28px 32px; }
+  .doc-head { text-align: center; border-bottom: 3px solid #dc2626; padding-bottom: 16px; margin-bottom: 18px; }
+  .doc-head img { max-height: 52px; max-width: 320px; object-fit: contain; }
+  .doc-title { margin: 14px 0 4px; font-size: 1.25rem; font-weight: 700; }
+  .doc-sub { margin: 0; color: #475569; font-size: 0.88rem; }
+  .doc-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin: 14px 0 18px; }
+  .doc-box h2 { margin: 0 0 8px; font-size: 0.78rem; letter-spacing: 0.04em; text-transform: uppercase; color: #64748b; }
+  .doc-box p { margin: 4px 0; font-size: 0.95rem; }
+  .doc-meta { font-size: 0.82rem; color: #475569; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th, td { border: 1px solid #cbd5e1; padding: 8px 9px; text-align: left; vertical-align: top; }
+  th { background: #f1f5f9; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .muted { color: #64748b; font-size: 0.78rem; }
+  .total { margin-top: 14px; font-size: 1.05rem; font-weight: 700; text-align: right; }
+  .footer { margin-top: 22px; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 0.78rem; color: #64748b; text-align: center; }
+  @page { margin: 14mm; }
+  @media print { .doc { padding: 0; max-width: none; } }`;
+  }
+
+  function financeBuildReceberClienteDocument() {
+    const list = financeContasReceberList();
+    if (!list.length) {
+      return { error: "Nenhum título a receber com os filtros atuais." };
+    }
+    const vmap = financeVehicleById();
+    const ctx = financeReceberClienteContext(list);
+    const cfg = state.settings || {};
+    const nomePatio = (cfg.nome_patio || "").trim() || "AMPLIAUTO";
+    const emitente =
+      typeof window.reciboEmitenteNome === "function" ? window.reciboEmitenteNome(cfg) : nomePatio;
+    const cnpjFmt =
+      typeof window.reciboCnpjExibicao === "function" ? window.reciboCnpjExibicao(cfg) : cfg.cnpj || "—";
+    const footerLine =
+      typeof window.reciboFooterLine === "function" ? window.reciboFooterLine(cfg) : cfg.endereco || "";
+    const total = list.reduce((s, r) => s + Number(r.valor || 0), 0);
+    const logoUrl = financeReceberClienteLogoUrl();
+    const logoFallback = financeReceberClienteLogoFallbackUrl();
+    const emitido = typeof formatDateTime === "function" ? formatDateTime(new Date().toISOString()) : new Date().toLocaleString("pt-BR");
+    const destLines = [];
+    if (ctx.destinatario && ctx.destinatario !== "—") destLines.push(`<p><strong>${escapeHtml(ctx.destinatario)}</strong></p>`);
+    if (ctx.partner) {
+      const docPartner = ctx.partner.cpf || ctx.partner.cnpj || "";
+      if (docPartner) destLines.push(`<p>CNPJ/CPF: ${escapeHtml(docPartner)}</p>`);
+      if (ctx.partner.contato) destLines.push(`<p>Contato: ${escapeHtml(ctx.partner.contato)}</p>`);
+    } else if (ctx.busca) {
+      destLines.push(`<p>Referência: ${escapeHtml(ctx.busca)}</p>`);
+    }
+    if (ctx.plates.length) {
+      destLines.push(`<p>Placa(s): ${escapeHtml(ctx.plates.join(", "))}</p>`);
+    }
+    const filtros = [
+      ctx.busca ? `Busca: ${ctx.busca}` : "",
+      financeFilterTipo ? `Tipo: ${financeFilterTipo}` : "",
+      financeFilterStatus ? `Status: ${financeFilterStatus}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    const rowsHtml = list
+      .map((r) => {
+        const v = vmap.get(r.vehicle_id);
+        const due = financeContaDueYmd(r, "receivable");
+        return `<tr>
+          <td>${financeReceberClienteVeiculoCell(r, v)}</td>
+          <td>${escapeHtml(financeReceberRppNome(r, v))}</td>
+          <td>${escapeHtml(String(financeReceberDiariasCell(r, v)))}</td>
+          <td>${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
+          <td>${escapeHtml(due ? formatDate(due) : "—")}</td>
+        </tr>`;
+      })
+      .join("");
+    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(
+      nomePatio
+    )} — Contas a receber</title><style>${financeReceberClientePrintCss()}</style></head><body>
+  <div class="doc">
+    <header class="doc-head">
+      <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(nomePatio)}" onerror="this.onerror=null;this.src='${escapeHtml(logoFallback)}';" />
+      <h1 class="doc-title">Contas a receber</h1>
+      <p class="doc-sub">${escapeHtml(nomePatio)} · CNPJ ${escapeHtml(cnpjFmt)}</p>
+    </header>
+    <div class="doc-box">
+      <h2>Destinatário</h2>
+      ${destLines.join("") || `<p class="muted">Consulta sem filtro de busca.</p>`}
+    </div>
+    <div class="doc-meta">${escapeHtml([`Emitido: ${emitido}`, filtros || "Todos os títulos listados"].join(" · "))}</div>
+    <table>
+      <thead><tr><th>Veículo / RPV</th><th>RPP</th><th>Diárias</th><th>Valor</th><th>Vencimento</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    <p class="total">Total a receber: ${escapeHtml(formatCurrency(total))}</p>
+    <footer class="footer">${escapeHtml(emitente)}${footerLine ? ` · ${escapeHtml(footerLine)}` : ""}</footer>
+  </div>
+</body></html>`;
+    const safeName = String(ctx.destinatario || ctx.busca || "cliente")
+      .replace(/[^\w\s-]+/g, "")
+      .trim()
+      .replace(/\s+/g, "-")
+      .slice(0, 40) || "cliente";
+    return { html, filename: `contas-a-receber-${safeName}-${financeTodayYmd()}`, ctx, list, total, nomePatio, emitente, cnpjFmt, footerLine };
+  }
+
+  function financePrintReceberCliente() {
+    const doc = financeBuildReceberClienteDocument();
+    if (doc.error) {
+      alert(doc.error);
+      return;
+    }
+    if (typeof window.printHtmlInHiddenIframe === "function") {
+      window.printHtmlInHiddenIframe(doc.html, { iframeTitle: "Contas a receber — cliente", closeModalId: null });
+      return;
+    }
+    alert("Impressão indisponível neste navegador.");
+  }
+
+  async function financeDownloadReceberClientePdf() {
+    const doc = financeBuildReceberClienteDocument();
+    if (doc.error) {
+      alert(doc.error);
+      return;
+    }
+    const btn = document.getElementById("finReceberBtnPdf") || document.getElementById("finBtnPdf");
+    const prev = btn?.textContent;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "A gerar PDF…";
+    }
+    try {
+      if (typeof window.loadJsPdf !== "function") throw new Error("loadJsPdf");
+      await window.loadJsPdf();
+      const jsPdfCtor = window.jspdf?.jsPDF;
+      if (!jsPdfCtor) throw new Error("jsPDF indisponível");
+      const pdf = new jsPdfCtor({ unit: "pt", format: "a4", orientation: "portrait" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const marginX = 42;
+      const marginR = 42;
+      const contentW = pageW - marginX - marginR;
+      const footerY = pageH - 36;
+      let y = 0;
+
+      const bandH = 72;
+      pdf.setFillColor(10, 11, 15);
+      pdf.rect(0, 0, pageW, bandH, "F");
+      const logo =
+        typeof window.loadReciboLogoDataUrl === "function" ? await window.loadReciboLogoDataUrl() : null;
+      if (logo) {
+        try {
+          const props = pdf.getImageProperties(logo.dataUrl);
+          const maxW = 240;
+          const maxH = 38;
+          let imgW = maxW;
+          let imgH = (props.height * imgW) / props.width;
+          if (imgH > maxH) {
+            imgH = maxH;
+            imgW = (props.width * imgH) / props.height;
+          }
+          pdf.addImage(logo.dataUrl, logo.type, (pageW - imgW) / 2, (bandH - imgH) / 2, imgW, imgH);
+        } catch {
+          pdf.setTextColor(255, 255, 255);
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(16);
+          pdf.text(String(doc.nomePatio).toUpperCase(), pageW / 2, bandH / 2 + 5, { align: "center" });
+        }
+      } else {
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(16);
+        pdf.text(String(doc.nomePatio).toUpperCase(), pageW / 2, bandH / 2 + 5, { align: "center" });
+      }
+      pdf.setDrawColor(220, 38, 38);
+      pdf.setLineWidth(1);
+      pdf.line(0, bandH, pageW, bandH);
+      y = bandH + 28;
+
+      const ensureSpace = (need) => {
+        if (y + need <= footerY) return;
+        pdf.addPage();
+        y = 48;
+      };
+
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(14);
+      pdf.text("Contas a receber", pageW / 2, y, { align: "center" });
+      y += 16;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9.5);
+      pdf.setTextColor(71, 85, 105);
+      pdf.text(`${doc.nomePatio} · CNPJ ${doc.cnpjFmt}`, pageW / 2, y, { align: "center" });
+      y += 22;
+
+      pdf.setFillColor(248, 250, 252);
+      pdf.setDrawColor(226, 232, 240);
+      const destTitle = "DESTINATÁRIO";
+      const destBody = [];
+      if (doc.ctx.destinatario && doc.ctx.destinatario !== "—") destBody.push(String(doc.ctx.destinatario));
+      if (doc.ctx.partner) {
+        const pdoc = doc.ctx.partner.cpf || doc.ctx.partner.cnpj || "";
+        if (pdoc) destBody.push(`CNPJ/CPF: ${pdoc}`);
+        if (doc.ctx.partner.contato) destBody.push(`Contato: ${doc.ctx.partner.contato}`);
+      } else if (doc.ctx.busca) destBody.push(`Referência: ${doc.ctx.busca}`);
+      if (doc.ctx.plates.length) destBody.push(`Placa(s): ${doc.ctx.plates.join(", ")}`);
+      if (!destBody.length) destBody.push("Consulta sem filtro de busca.");
+      const destLines = destBody.flatMap((line) => pdf.splitTextToSize(line, contentW - 24));
+      const boxH = 28 + destLines.length * 12;
+      ensureSpace(boxH + 8);
+      pdf.rect(marginX, y, contentW, boxH, "FD");
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(destTitle, marginX + 12, y + 14);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(destLines, marginX + 12, y + 28);
+      y += boxH + 14;
+
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(71, 85, 105);
+      const meta = `Emitido: ${typeof formatDateTime === "function" ? formatDateTime(new Date().toISOString()) : new Date().toLocaleString("pt-BR")}`;
+      pdf.text(meta, marginX, y);
+      y += 16;
+
+      const cols = [
+        { label: "Veículo / RPV", w: 150 },
+        { label: "RPP", w: 108 },
+        { label: "Diárias", w: 48 },
+        { label: "Valor", w: 72 },
+        { label: "Vencimento", w: 72 },
+      ];
+      const drawTableHeader = () => {
+        ensureSpace(22);
+        let x = marginX;
+        pdf.setFillColor(241, 245, 249);
+        pdf.setDrawColor(203, 213, 225);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(8);
+        pdf.setTextColor(15, 23, 42);
+        cols.forEach((c) => {
+          pdf.rect(x, y, c.w, 18, "FD");
+          pdf.text(c.label, x + 4, y + 11);
+          x += c.w;
+        });
+        y += 18;
+      };
+      drawTableHeader();
+
+      const vmap = financeVehicleById();
+      doc.list.forEach((r) => {
+        const v = vmap.get(r.vehicle_id);
+        const due = financeContaDueYmd(r, "receivable");
+        const veiculoLines = v?.placa
+          ? [String(v.placa), [v.marca, v.modelo].filter(Boolean).join(" ") || "—", `RPV: ${financeVehicleRpvNome(v)}`]
+          : [String(r.responsavel_pagamento || r.observacoes || "—")];
+        const cellLines = [
+          veiculoLines.flatMap((line) => pdf.splitTextToSize(line, cols[0].w - 8)),
+          pdf.splitTextToSize(String(financeReceberRppNome(r, v)), cols[1].w - 8),
+          [String(financeReceberDiariasCell(r, v))],
+          [formatCurrency(Number(r.valor || 0))],
+          [due ? formatDate(due) : "—"],
+        ];
+        const rowH = Math.max(22, ...cellLines.map((lines) => lines.length * 11 + 8));
+        if (y + rowH > footerY) {
+          pdf.addPage();
+          y = 48;
+          drawTableHeader();
+        }
+        let x = marginX;
+        cols.forEach((c, idx) => {
+          pdf.setDrawColor(203, 213, 225);
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(8.5);
+          pdf.setTextColor(15, 23, 42);
+          pdf.rect(x, y, c.w, rowH, "S");
+          pdf.text(cellLines[idx], x + 4, y + 11);
+          x += c.w;
+        });
+        y += rowH;
+      });
+
+      ensureSpace(24);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(11);
+      pdf.text(`Total a receber: ${formatCurrency(doc.total)}`, pageW - marginR, y + 4, { align: "right" });
+      y += 18;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(100, 116, 139);
+      const foot = [doc.emitente, doc.footerLine].filter(Boolean).join(" · ");
+      if (foot) pdf.text(pdf.splitTextToSize(foot, contentW), pageW / 2, footerY, { align: "center" });
+
+      pdf.save(`${doc.filename}.pdf`);
+    } catch (e) {
+      console.error(e);
+      alert("Não foi possível gerar o PDF. Tente Imprimir e escolha «Salvar como PDF».");
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = prev || "Baixar PDF para cliente";
+      }
+    }
+  }
+
   function financePrintSubview() {
+    if (currentFinanceView === "receber") {
+      financePrintReceberCliente();
+      return;
+    }
     window.print();
   }
 
-  function financeExportPdfHint() {
+  async function financeExportPdfHint() {
+    if (currentFinanceView === "receber") {
+      await financeDownloadReceberClientePdf();
+      return;
+    }
     alert("Use Imprimir e escolha «Salvar como PDF» no diálogo do navegador.");
-    financePrintSubview();
+    window.print();
   }
 
   const FINANCE_SUBVIEWS = ["dashboard", "em_patio", "aguardando", "receber", "pagar", "caixa"];
@@ -1223,7 +1595,13 @@
     });
 
     document.getElementById("finBtnPrint")?.addEventListener("click", financePrintSubview);
-    document.getElementById("finBtnPdf")?.addEventListener("click", financeExportPdfHint);
+    document.getElementById("finBtnPdf")?.addEventListener("click", () => {
+      financeExportPdfHint();
+    });
+    document.getElementById("finReceberBtnPrint")?.addEventListener("click", financePrintReceberCliente);
+    document.getElementById("finReceberBtnPdf")?.addEventListener("click", () => {
+      financeDownloadReceberClientePdf();
+    });
     document.getElementById("finBtnExcel")?.addEventListener("click", financeExportCurrentView);
     document.getElementById("finBtnRefresh")?.addEventListener("click", () => refreshFinanceData());
 

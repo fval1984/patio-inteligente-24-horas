@@ -5506,6 +5506,10 @@
             </div>
             <p class="notice" style="margin: 0 0 10px">Recorrentes (ex.: mensalista) são cadastrados aqui com tipo <strong>Recorrente</strong> — ao confirmar o pagamento, o próximo título é gerado automaticamente.</p>
             <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
+            <div class="actions" style="margin: 0 0 12px; flex-wrap: wrap; gap: 8px">
+              <button type="button" class="secondary" id="finReceberBtnPrint">Imprimir para cliente</button>
+              <button type="button" class="secondary" id="finReceberBtnPdf">Baixar PDF para cliente</button>
+            </div>
             <div class="table-wrap section-card">
               <table class="table">
                 <thead><tr><th>Veículo / RPV</th><th>RPP</th><th>Diárias</th><th>Valor</th><th>Vencimento</th><th>Status</th></tr></thead>
@@ -6317,7 +6321,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260528e"></script>
+    <script src="/finance-module.js?v=20260528f"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -9585,6 +9589,8 @@
         if (closeModalId) document.getElementById(closeModalId)?.classList.add("hidden");
         return true;
       }
+      window.printHtmlInHiddenIframe = printHtmlInHiddenIframe;
+      window.loadJsPdf = loadJsPdf;
 
       function bucketVehiclesByPartnerField(vehicles, field) {
         const m = new Map();
@@ -12226,6 +12232,10 @@
         }
         return null;
       }
+      window.loadReciboLogoDataUrl = loadReciboLogoDataUrl;
+      window.reciboEmitenteNome = reciboEmitenteNome;
+      window.reciboCnpjExibicao = reciboCnpjExibicao;
+      window.reciboFooterLine = reciboFooterLine;
 
       async function downloadReciboPdf({ receivable, vehicle, destinatarioNome, destinatarioDoc, valor }) {
         await loadJsPdf();
