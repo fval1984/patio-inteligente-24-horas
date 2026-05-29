@@ -6321,7 +6321,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260528f"></script>
+    <script src="/finance-module.js?v=20260528g"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -13500,6 +13500,7 @@
       }
 
       async function finalizeReceivablePayment(receivableId, totalAtual, opts = {}) {
+        if (!(await requireSupabaseSessionForWrite())) return null;
         const receivable = state.receivables.find((r) => r.id === receivableId);
         if (!receivable) {
           alert("Recebimento não encontrado. Atualize a página (Financeiro) e tente de novo.");
@@ -13535,31 +13536,19 @@
             .eq("id", receivable.vehicle_id)
             .eq("user_id", effectiveUserId());
         }
-        const { data: existingMov } = await supabase
-          .from("cash_movements")
-          .select("id")
-          .eq("conta_id", receivableId)
-          .eq("tipo_conta", "RECEBER")
-          .limit(1);
-        const vehicleInfo = `${vehicle?.placa || "-"} • ${[vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")}`.trim();
-        const descMov = vehicleInfo ? `Diárias - ${vehicleInfo}` : receivable.responsavel_pagamento || "Receita";
+        let cashResult = { error: null };
         if (totalAtual > 0) {
-          if (!existingMov || existingMov.length === 0) {
-            await supabase.from("cash_movements").insert({
-              user_id: effectiveUserId(),
-              tipo_conta: "RECEBER",
-              conta_id: receivableId,
-              valor: totalAtual,
-              descricao: descMov,
-              data_movimento: dataMov,
-              forma_pagamento: formaPagamento,
-            });
-          } else {
-            await supabase
-              .from("cash_movements")
-              .update({ valor: totalAtual, data_movimento: dataMov, forma_pagamento: formaPagamento })
-              .eq("conta_id", receivableId)
-              .eq("tipo_conta", "RECEBER");
+          cashResult = await registerReceivableCashMovement(receivable, {
+            valor: totalAtual,
+            dataMovimento: dataMov,
+            formaPagamento,
+            vehicle,
+          });
+          if (cashResult.error) {
+            alertSupabaseError(
+              cashResult.error,
+              "Pagamento confirmado, mas não foi possível registrar a entrada no caixa."
+            );
           }
         }
         if (opts.anexo) await financeAttachmentSave("receivable", receivableId, opts.anexo);
@@ -13586,6 +13575,9 @@
         }
         removeReceberTriagemId(receivableId);
         await createNextRecorrenteReceivable(receivable);
+        if (typeof window.syncPaidReceivablesCashMovements === "function") {
+          await window.syncPaidReceivablesCashMovements();
+        }
         await Promise.all([loadReceivables(), loadCash(), loadVehicles()]);
         updateDashboard();
         if (typeof renderFinance === "function") renderFinance();
@@ -13599,6 +13591,76 @@
           vehicle: vehicle || null,
           valor: totalAtual,
         };
+      }
+
+      async function registerReceivableCashMovement(receivable, opts = {}) {
+        const receivableId = receivable?.id;
+        const uid = effectiveUserId();
+        const valor = Number(opts.valor ?? receivable?.valor ?? 0);
+        const dataMov = opts.dataMovimento || toLocalYmd(new Date().toISOString());
+        const formaPagamento = opts.formaPagamento || receivable?.forma_pagamento || "PIX";
+        const vehicle = opts.vehicle ?? state.vehicles.find((v) => v.id === receivable?.vehicle_id);
+        const vehicleInfo = `${vehicle?.placa || "-"} • ${[vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")}`.trim();
+        const descricao =
+          opts.descricao ||
+          (vehicle?.placa ? `Diárias - ${vehicleInfo}` : receivable?.responsavel_pagamento || "Receita");
+        if (!receivableId || !uid) {
+          return { data: null, error: { message: "Dados inválidos para registrar entrada no caixa." } };
+        }
+        if (!(valor > 0)) {
+          return { data: null, error: null };
+        }
+
+        const { data: existingMov, error: existingErr } = await supabase
+          .from("cash_movements")
+          .select("id")
+          .eq("conta_id", receivableId)
+          .eq("tipo_conta", "RECEBER")
+          .eq("user_id", uid)
+          .limit(1);
+        if (existingErr) {
+          return { data: null, error: existingErr };
+        }
+
+        const payload = {
+          user_id: uid,
+          tipo_conta: "RECEBER",
+          conta_id: receivableId,
+          valor,
+          descricao,
+          data_movimento: dataMov,
+          forma_pagamento: formaPagamento,
+        };
+
+        const insertOrUpdate = async (body, isUpdate) => {
+          if (isUpdate) {
+            return runSupabaseWrite(() =>
+              supabase
+                .from("cash_movements")
+                .update(body)
+                .eq("conta_id", receivableId)
+                .eq("tipo_conta", "RECEBER")
+                .eq("user_id", uid)
+            );
+          }
+          return runSupabaseWrite(() => supabase.from("cash_movements").insert(body));
+        };
+
+        let result = await insertOrUpdate(payload, !!(existingMov && existingMov.length));
+        if (result.error && /column|schema cache|PGRST204|forma_pagamento/i.test(result.error.message || "")) {
+          const fallback = { ...payload };
+          delete fallback.forma_pagamento;
+          result = await insertOrUpdate(fallback, !!(existingMov && existingMov.length));
+        }
+        if (result.error && /column|schema cache|PGRST204|data_movimento/i.test(result.error.message || "")) {
+          const fallback = { ...payload };
+          delete fallback.forma_pagamento;
+          fallback.data_movimento = new Date(
+            String(dataMov).includes("T") ? dataMov : `${dataMov}T12:00:00`
+          ).toISOString();
+          result = await insertOrUpdate(fallback, !!(existingMov && existingMov.length));
+        }
+        return result;
       }
 
       async function registerPayableCashMovement(payable, opts = {}) {
@@ -13655,6 +13717,30 @@
         }
         return result;
       }
+
+      window.syncPaidReceivablesCashMovements = async function syncPaidReceivablesCashMovements() {
+        const uid = effectiveUserId();
+        if (!uid || !supabase) return;
+        const paid = (state.receivables || []).filter((r) => String(r.status || "").toUpperCase() === "PAGO");
+        let changed = false;
+        for (const r of paid) {
+          const valor = Number(r.valor || 0);
+          if (!(valor > 0)) continue;
+          const hasMov = (state.cash || []).some(
+            (m) => m.tipo_conta === "RECEBER" && String(m.conta_id) === String(r.id)
+          );
+          if (hasMov) continue;
+          const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
+          const res = await registerReceivableCashMovement(r, {
+            valor,
+            dataMovimento: toLocalYmd(r.updated_at || r.created_at || new Date().toISOString()),
+            formaPagamento: r.forma_pagamento || "PIX",
+            vehicle,
+          });
+          if (!res?.error) changed = true;
+        }
+        if (changed) await loadCash();
+      };
 
       window.syncPaidPayablesCashMovements = async function syncPaidPayablesCashMovements() {
         const uid = effectiveUserId();

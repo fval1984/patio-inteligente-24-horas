@@ -692,7 +692,10 @@
       );
     }
     if (!movs.length) {
-      body.innerHTML = `<tr><td colspan="6" class="notice">Nenhuma movimentação registrada.</td></tr>`;
+      const periodoHint = financeFilterPeriodo
+        ? ` Nenhuma movimentação na competência ${financeFilterPeriodo}. Limpe o filtro «Competência» para ver todas.`
+        : "";
+      body.innerHTML = `<tr><td colspan="6" class="notice">Nenhuma movimentação registrada.${periodoHint}</td></tr>`;
       return;
     }
     body.innerHTML = movs
@@ -1330,6 +1333,9 @@
         ]);
         if (typeof window.syncPaidPayablesCashMovements === "function") {
           await window.syncPaidPayablesCashMovements();
+        }
+        if (typeof window.syncPaidReceivablesCashMovements === "function") {
+          await window.syncPaidReceivablesCashMovements();
         }
         if (preserveView) {
           financeActivateSubview(preserveView);
