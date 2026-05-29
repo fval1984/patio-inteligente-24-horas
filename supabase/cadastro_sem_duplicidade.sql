@@ -5,14 +5,16 @@
 --   1) Execute primeiro: supabase/cadastro_sem_duplicidade_dedupe_parceiros.sql
 --   2) Volte a executar este ficheiro.
 
--- Veículos: mesma placa normalizada (só letras/números, maiúsculas) não pode repetir
--- para o mesmo utilizador enquanto o veículo não estiver REMOVIDO (pode voltar a cadastrar após VRP).
+-- Veículos: mesma placa normalizada não pode repetir para o mesmo utilizador
+-- enquanto o veículo ainda estiver no pátio (sem data de saída e não REMOVIDO).
+-- Após saída (VRP) ou com data_saida preenchida, a placa libera para novo cadastro (reentrada).
 CREATE UNIQUE INDEX IF NOT EXISTS vehicles_user_placa_norm_nao_removido_uidx
 ON vehicles (
   user_id,
   upper(regexp_replace(trim(COALESCE(placa, '')), '[^A-Za-z0-9]', '', 'g'))
 )
 WHERE status IS DISTINCT FROM 'REMOVIDO'
+  AND data_saida IS NULL
   AND length(regexp_replace(trim(COALESCE(placa, '')), '[^A-Za-z0-9]', '', 'g')) > 0;
 
 -- Parceiros/assessorias: mesmo nome (normalizado) por utilizador e tipo.

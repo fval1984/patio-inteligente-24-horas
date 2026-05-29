@@ -11521,8 +11521,16 @@
         return storedNorm.includes(queryNorm) || queryNorm.includes(storedNorm);
       }
 
+      /** Veículo ainda ocupa a placa (impede novo cadastro de entrada). Após saída ou VRP, a placa libera para reentrada. */
+      function vehiclePlacaBloqueiaNovoCadastro(v) {
+        if (!v) return false;
+        if (String(v.status || "").toUpperCase() === "REMOVIDO") return false;
+        if (v.data_saida != null && String(v.data_saida).trim() !== "") return false;
+        return true;
+      }
+
       /**
-       * Consulta na base (não só a lista em memória): outro veículo não removido com a mesma placa
+       * Consulta na base: outro veículo ainda ativo no pátio com a mesma placa
        * (ignora hífen/espaço e maiúsculas). excludeVehicleId = edição do próprio registo.
        */
       async function findActiveVehicleDuplicatePlacaRemote(placaInput, excludeVehicleId) {
@@ -11530,14 +11538,15 @@
         if (!norm) return { queryError: null, duplicate: null };
         const { data, error } = await supabase
           .from("vehicles")
-          .select("id,placa,status")
-          .eq("user_id", effectiveUserId())
-          .neq("status", "REMOVIDO");
+          .select("id,placa,status,data_saida")
+          .eq("user_id", effectiveUserId());
         if (error) return { queryError: error, duplicate: null };
         const duplicate =
           (data || []).find(
             (v) =>
-              (!excludeVehicleId || v.id !== excludeVehicleId) && normalizePlateSearch(v.placa) === norm
+              vehiclePlacaBloqueiaNovoCadastro(v) &&
+              (!excludeVehicleId || v.id !== excludeVehicleId) &&
+              normalizePlateSearch(v.placa) === norm
           ) || null;
         return { queryError: null, duplicate };
       }
@@ -14015,9 +14024,19 @@
         }
         if (dupV) {
           alert(
-            `Esta placa já está a ser usada no veículo «${dupV.placa || payload.placa}». Não é permitido ter dois cadastros do mesmo veículo: altere a placa ou conclua a remoção (VRP) do registo anterior.`
+            `Esta placa já está em uso por um veículo ainda no pátio («${dupV.placa || payload.placa}»). ` +
+              `Se o veículo anterior já saiu (VRP) ou tem data de saída registrada, atualize a página e tente de novo. ` +
+              `Caso contrário, conclua a saída do registo anterior antes de cadastrar a reentrada.`
           );
           return;
+        }
+        if (!editingVehicleId) {
+          payload.status = "NO_PATIO";
+          payload.data_saida = null;
+          payload.payment_status = "EM_ABERTO";
+          payload.nfse_status = "NAO_SOLICITADA";
+          payload.nfse_requested_at = null;
+          payload.nfse_issued_at = null;
         }
         const runVehicleSave = (p) =>
           editingVehicleId
@@ -14092,8 +14111,8 @@
           const msg = error.message || "";
           if (/duplicate key|unique constraint|23505/i.test(msg)) {
             alert(
-              "Não foi possível gravar: já existe outro veículo ativo com esta placa (regra na base de dados). " +
-                "Se acabou de alterar dados noutro separador, atualize a página."
+              "Não foi possível gravar: já existe outro veículo ativo no pátio com esta placa. " +
+                "Se o veículo anterior já saiu, execute no Supabase o script supabase/vehicles_placa_permitir_reentrada.sql e atualize a página."
             );
           } else {
             alertSupabaseError(error);
