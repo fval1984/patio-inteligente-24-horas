@@ -4036,8 +4036,10 @@
       .fin-alert--soon { border-color: rgba(56, 189, 248, 0.45); }
       .fin-val-entrada { color: #34d399; font-weight: 600; }
       .fin-val-saida { color: #f87171; font-weight: 600; }
-      .fin-caixa-summary { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 12px; }
-      .fin-caixa-summary p { margin: 0; font-size: 0.9rem; }
+      .fin-caixa-summary { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 12px; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
+      .fin-caixa-summary p { margin: 0; font-size: 0.9rem; color: var(--text); }
+      .fin-caixa-summary strong { color: var(--text); }
+      .fin-caixa-total-row td { background: color-mix(in srgb, var(--card) 88%, var(--primary) 12%); font-weight: 700; border-top: 2px solid var(--border); }
       .fin-charts-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -6321,7 +6323,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260528g"></script>
+    <script src="/finance-module.js?v=20260528h"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -11093,7 +11095,10 @@
         (state.cash || []).forEach((mov) => {
           const ds = (mov.data_movimento || mov.created_at || "").toString().slice(0, 10);
           if (!ds || ds < first || ds > last) return;
-          const val = Number(mov.valor || 0);
+          const val =
+            typeof window.financeCashMovValor === "function"
+              ? window.financeCashMovValor(mov)
+              : Number(mov.valor || 0);
           if (mov.tipo_conta === "RECEBER") revenue += val;
           if (mov.tipo_conta === "PAGAR") expense += val;
         });
@@ -11105,8 +11110,12 @@
           .filter((p) => p.status === "EM_ABERTO")
           .reduce((s, p) => s + Number(p.valor || 0), 0);
         const caixa = (state.cash || []).reduce((sum, mov) => {
-          if (mov.tipo_conta === "PAGAR") return sum - Number(mov.valor || 0);
-          return sum + Number(mov.valor || 0);
+          const val =
+            typeof window.financeCashMovValor === "function"
+              ? window.financeCashMovValor(mov)
+              : Number(mov.valor || 0);
+          if (mov.tipo_conta === "PAGAR") return sum - val;
+          return sum + val;
         }, 0);
 
         return { entered, exited, inYardEnd, revenue, expense, openRec, openPag, caixa };
@@ -13575,10 +13584,11 @@
         }
         removeReceberTriagemId(receivableId);
         await createNextRecorrenteReceivable(receivable);
+        await Promise.all([loadReceivables(), loadCash(), loadVehicles()]);
         if (typeof window.syncPaidReceivablesCashMovements === "function") {
           await window.syncPaidReceivablesCashMovements();
         }
-        await Promise.all([loadReceivables(), loadCash(), loadVehicles()]);
+        await loadCash();
         updateDashboard();
         if (typeof renderFinance === "function") renderFinance();
         const paidReceivable = state.receivables.find((r) => r.id === receivableId) || {
@@ -13726,18 +13736,29 @@
         for (const r of paid) {
           const valor = Number(r.valor || 0);
           if (!(valor > 0)) continue;
-          const hasMov = (state.cash || []).some(
+          const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
+          const mov = (state.cash || []).find(
             (m) => m.tipo_conta === "RECEBER" && String(m.conta_id) === String(r.id)
           );
-          if (hasMov) continue;
-          const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
-          const res = await registerReceivableCashMovement(r, {
-            valor,
-            dataMovimento: toLocalYmd(r.updated_at || r.created_at || new Date().toISOString()),
-            formaPagamento: r.forma_pagamento || "PIX",
-            vehicle,
-          });
-          if (!res?.error) changed = true;
+          if (!mov) {
+            const res = await registerReceivableCashMovement(r, {
+              valor,
+              dataMovimento: toLocalYmd(r.updated_at || r.created_at || new Date().toISOString()),
+              formaPagamento: r.forma_pagamento || "PIX",
+              vehicle,
+            });
+            if (!res?.error) changed = true;
+            continue;
+          }
+          if (Number(mov.valor || 0) !== valor) {
+            const res = await registerReceivableCashMovement(r, {
+              valor,
+              dataMovimento: toLocalYmd(mov.data_movimento || r.updated_at || r.created_at || new Date().toISOString()),
+              formaPagamento: mov.forma_pagamento || r.forma_pagamento || "PIX",
+              vehicle,
+            });
+            if (!res?.error) changed = true;
+          }
         }
         if (changed) await loadCash();
       };

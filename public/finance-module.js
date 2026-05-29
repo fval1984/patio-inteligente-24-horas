@@ -358,26 +358,82 @@
     return (state.receivables || []).filter((r) => r.status === "PAGO" && r.vehicle_id);
   }
 
+  function financeCashIsEntrada(mov) {
+    const t = String(mov?.tipo_conta || "").toUpperCase();
+    return t === "RECEBER" || t === "ENTRADA";
+  }
+
+  function financeCashIsSaida(mov) {
+    const t = String(mov?.tipo_conta || "").toUpperCase();
+    return t === "PAGAR" || t === "SAIDA" || t === "SAÍDA";
+  }
+
+  /** Valor da movimentação; se vier zerado na base, usa o título pago vinculado. */
+  function financeCashMovValor(mov) {
+    let v = Number(mov?.valor ?? mov?.amount ?? 0);
+    if (!Number.isFinite(v)) v = 0;
+    if (v > 0) return v;
+    const contaId = mov?.conta_id;
+    if (contaId == null || contaId === "") return 0;
+    if (financeCashIsEntrada(mov)) {
+      const rec = (state.receivables || []).find((r) => String(r.id) === String(contaId));
+      if (rec && String(rec.status || "").toUpperCase() === "PAGO") {
+        v = Number(rec.valor || 0);
+      }
+    } else if (financeCashIsSaida(mov)) {
+      const pay = (state.payables || []).find((p) => String(p.id) === String(contaId));
+      if (pay && String(pay.status || "").toUpperCase() === "PAGO") {
+        v = Number(pay.valor || 0);
+      }
+    }
+    return Number.isFinite(v) ? v : 0;
+  }
+
   function financeCaixaEntradas() {
-    return (state.cash || []).filter((m) => m.tipo_conta === "RECEBER");
+    return (state.cash || []).filter((m) => financeCashIsEntrada(m));
   }
 
   function financeCaixaSaidas() {
-    return (state.cash || []).filter((m) => m.tipo_conta === "PAGAR");
+    return (state.cash || []).filter((m) => financeCashIsSaida(m));
   }
 
   function financeSaldoCaixa() {
-    const ent = financeCaixaEntradas().reduce((s, m) => s + Number(m.valor || 0), 0);
-    const sai = financeCaixaSaidas().reduce((s, m) => s + Number(m.valor || 0), 0);
+    const ent = financeCaixaEntradas().reduce((s, m) => s + financeCashMovValor(m), 0);
+    const sai = financeCaixaSaidas().reduce((s, m) => s + financeCashMovValor(m), 0);
     return ent - sai;
   }
 
   function financeTotalEntradas() {
-    return financeCaixaEntradas().reduce((s, m) => s + Number(m.valor || 0), 0);
+    return financeCaixaEntradas().reduce((s, m) => s + financeCashMovValor(m), 0);
   }
 
   function financeTotalSaidas() {
-    return financeCaixaSaidas().reduce((s, m) => s + Number(m.valor || 0), 0);
+    return financeCaixaSaidas().reduce((s, m) => s + financeCashMovValor(m), 0);
+  }
+
+  function financeCaixaMovsForPeriod(periodoYm) {
+    let movs = [...(state.cash || [])];
+    if (periodoYm) {
+      movs = movs.filter(
+        (mov) => yearMonthFromYmd(toLocalYmd(mov.data_movimento || mov.created_at)) === periodoYm
+      );
+    }
+    return movs;
+  }
+
+  function financeCaixaTotalsForMovs(movs) {
+    let entradas = 0;
+    let saidas = 0;
+    movs.forEach((mov) => {
+      const v = financeCashMovValor(mov);
+      if (financeCashIsEntrada(mov)) entradas += v;
+      else if (financeCashIsSaida(mov)) saidas += v;
+    });
+    return { entradas, saidas, resultado: entradas - saidas };
+  }
+
+  function financeSyncCaixaPeriodoFromDom() {
+    financeFilterPeriodo = document.getElementById("finFilterPeriodo")?.value || "";
   }
 
   function financeRecebidoMesAtual() {
@@ -660,54 +716,61 @@
   }
 
   function financeRenderCaixa() {
+    financeSyncCaixaPeriodoFromDom();
     const body = document.getElementById("finCaixaBody");
     const summaryEl = document.getElementById("finCaixaSummary");
-    const m = financeMetrics();
+    const periodoYm = financeFilterPeriodo || "";
+    const movsPeriodo = financeCaixaMovsForPeriod(periodoYm);
+    const totPeriodo = financeCaixaTotalsForMovs(movsPeriodo);
+    const totGeral = financeCaixaTotalsForMovs(state.cash || []);
+    const saldoGeral = totGeral.resultado;
     if (summaryEl) {
       const saldoPorConta = new Map();
       const defaultConta = state.settings?.conta_bancaria || "Caixa";
       saldoPorConta.set(defaultConta, 0);
       (state.cash || []).forEach((mov) => {
         const conta = financeMovContaLabel(mov);
-        const signed = mov.tipo_conta === "PAGAR" ? -Number(mov.valor || 0) : Number(mov.valor || 0);
+        const v = financeCashMovValor(mov);
+        const signed = financeCashIsSaida(mov) ? -v : v;
         saldoPorConta.set(conta, (saldoPorConta.get(conta) || 0) + signed);
       });
       const contasHtml = [...saldoPorConta.entries()]
         .map(([nome, val]) => `<p><strong>${escapeHtml(nome)}:</strong> ${escapeHtml(formatCurrency(val))}</p>`)
         .join("");
+      const periodoLabel = periodoYm
+        ? `Competência ${periodoYm}`
+        : "Todos os períodos (lista abaixo)";
       summaryEl.innerHTML = `
-        <p><strong>Saldo atual:</strong> ${escapeHtml(formatCurrency(m.saldo))}</p>
-        <p><strong>Entradas totais:</strong> <span class="fin-val-entrada">${escapeHtml(formatCurrency(m.entradas))}</span></p>
-        <p><strong>Saídas totais:</strong> <span class="fin-val-saida">${escapeHtml(formatCurrency(m.saidas))}</span></p>
+        <p><strong>${escapeHtml(periodoLabel)}</strong></p>
+        <p><strong>Entradas:</strong> <span class="fin-val-entrada">${escapeHtml(formatCurrency(totPeriodo.entradas))}</span></p>
+        <p><strong>Saídas:</strong> <span class="fin-val-saida">${escapeHtml(formatCurrency(totPeriodo.saidas))}</span></p>
+        <p><strong>Resultado:</strong> <span class="${totPeriodo.resultado >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(totPeriodo.resultado))}</span></p>
+        <p><strong>Saldo acumulado:</strong> ${escapeHtml(formatCurrency(saldoGeral))}</p>
         ${contasHtml}
       `;
     }
     if (!body) return;
-    let movs = [...(state.cash || [])].sort((a, b) =>
+    let movs = [...movsPeriodo].sort((a, b) =>
       String(b.data_movimento || b.created_at).localeCompare(String(a.data_movimento || a.created_at))
     );
-    if (financeFilterPeriodo) {
-      movs = movs.filter(
-        (mov) => yearMonthFromYmd(toLocalYmd(mov.data_movimento || mov.created_at)) === financeFilterPeriodo
-      );
-    }
     if (!movs.length) {
-      const periodoHint = financeFilterPeriodo
-        ? ` Nenhuma movimentação na competência ${financeFilterPeriodo}. Limpe o filtro «Competência» para ver todas.`
+      const periodoHint = periodoYm
+        ? ` Nenhuma movimentação na competência ${periodoYm}. Limpe o filtro «Competência» para ver todas.`
         : "";
       body.innerHTML = `<tr><td colspan="6" class="notice">Nenhuma movimentação registrada.${periodoHint}</td></tr>`;
       return;
     }
-    body.innerHTML = movs
+    const rowsHtml = movs
       .slice(0, 300)
       .map((mov) => {
-        const isEntrada = mov.tipo_conta === "RECEBER";
+        const isEntrada = financeCashIsEntrada(mov);
         const rec = isEntrada ? (state.receivables || []).find((r) => String(r.id) === String(mov.conta_id)) : null;
         const pay = !isEntrada ? (state.payables || []).find((p) => String(p.id) === String(mov.conta_id)) : null;
         const v = rec ? financeVehicleById().get(rec.vehicle_id) : null;
         const tipoLabel = isEntrada ? "Entrada" : "Saída";
         const tipoClass = isEntrada ? "fin-val-entrada" : "fin-val-saida";
-        const valSigned = isEntrada ? Number(mov.valor || 0) : -Number(mov.valor || 0);
+        const amount = financeCashMovValor(mov);
+        const valSigned = isEntrada ? amount : -amount;
         let desc = mov.descricao || (isEntrada ? rec?.responsavel_pagamento : pay?.descricao) || "—";
         if (v) desc += `<br /><span class="notice">${escapeHtml(v.placa || "")}</span>`;
         return `<tr>
@@ -720,6 +783,13 @@
         </tr>`;
       })
       .join("");
+    body.innerHTML =
+      rowsHtml +
+      `<tr class="fin-caixa-total-row">
+        <td colspan="4" data-label=""><strong>Total do período</strong></td>
+        <td data-label="Valor"><strong class="${totPeriodo.resultado >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(totPeriodo.resultado))}</strong></td>
+        <td data-label=""></td>
+      </tr>`;
   }
 
   function financeOpenReceitaModal(presetRecorrente) {
@@ -1278,6 +1348,13 @@
         btn.classList.toggle("active", btn.getAttribute("data-finance-subview-btn") === resolved);
       });
     }
+    if (resolved === "caixa") {
+      const periodoEl = document.getElementById("finFilterPeriodo");
+      if (periodoEl && !periodoEl.value && typeof yearMonthFromYmd === "function" && typeof financeTodayYmd === "function") {
+        periodoEl.value = yearMonthFromYmd(financeTodayYmd());
+        financeFilterPeriodo = periodoEl.value;
+      }
+    }
     if (!opts.skipRender) financeRenderSubviewContent(resolved);
   }
 
@@ -1676,4 +1753,6 @@
       data_vencimento: due,
     };
   };
+
+  window.financeCashMovValor = financeCashMovValor;
 })();
