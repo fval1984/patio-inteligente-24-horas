@@ -56,40 +56,27 @@
 
   function financeReceberDiariasParts(r, vehicle) {
     if (!r?.vehicle_id || !vehicle) return null;
-    let patioDays = null;
+    let days = null;
     if (typeof receivableFinanceBreakdown === "function") {
       const br = receivableFinanceBreakdown(r, vehicle);
-      if (br?.dias != null) patioDays = Number(br.dias);
+      if (br?.dias != null) days = Number(br.dias);
     }
     const startStr = r.period_start || vehicle.data_entrada;
     const endStr = r.period_end || vehicle.data_saida;
-    if (patioDays == null && startStr && endStr) {
-      patioDays = Math.max(1, Math.ceil((new Date(endStr).getTime() - new Date(startStr).getTime()) / 86400000));
-    } else if (patioDays == null && typeof calcDays === "function" && vehicle.data_entrada && endStr) {
-      patioDays = calcDays({ ...vehicle, data_saida: endStr });
-    } else if (patioDays == null) {
-      patioDays = 0;
+    if (days == null && startStr && endStr) {
+      days = Math.max(1, Math.ceil((new Date(endStr).getTime() - new Date(startStr).getTime()) / 86400000));
+    } else if (days == null && typeof calcDays === "function" && vehicle.data_entrada && endStr) {
+      days = calcDays({ ...vehicle, data_saida: endStr });
+    } else if (days == null) {
+      days = 0;
     }
-    let openDays = 0;
-    const exitRaw = endStr || vehicle.data_saida;
-    if (exitRaw && String(r.status || "").toUpperCase() !== "PAGO") {
-      const exitYmd = typeof toLocalYmd === "function" ? toLocalYmd(exitRaw) : null;
-      const todayYmd = typeof toLocalYmd === "function" ? toLocalYmd(new Date().toISOString()) : null;
-      if (exitYmd && todayYmd && todayYmd > exitYmd) {
-        const exitMs = new Date(`${exitYmd}T12:00:00`).getTime();
-        const todayMs = new Date(`${todayYmd}T12:00:00`).getTime();
-        openDays = Math.max(0, Math.ceil((todayMs - exitMs) / 86400000));
-      }
-    }
-    return { patioDays, openDays, total: patioDays + openDays };
+    return { days };
   }
 
   function financeReceberDiariasCell(r, v) {
     const parts = financeReceberDiariasParts(r, v);
     if (!parts) return "—";
-    const { patioDays, openDays, total } = parts;
-    if (openDays > 0) return `${patioDays} + ${openDays} = ${total}`;
-    return String(patioDays);
+    return String(parts.days);
   }
 
   function financeInstituicaoNome(vehicle) {
@@ -471,7 +458,7 @@
   function financeDiariasFromReceivable(r, vehicle) {
     const parts = financeReceberDiariasParts(r, vehicle);
     if (!parts) return "—";
-    return parts.total;
+    return parts.days;
   }
 
   function financePopulateCategoriaFilter() {
