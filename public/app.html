@@ -5502,6 +5502,10 @@
                     spellcheck="false"
                   />
                 </div>
+                <div>
+                  <label for="finAguardandoPeriodo">Período (saída)</label>
+                  <input id="finAguardandoPeriodo" name="periodo" type="month" title="Competência pela data de saída do veículo (VRP)" />
+                </div>
                 <div style="align-self: flex-end"><button type="submit" id="finAguardandoPlacaOk">OK</button></div>
                 <div style="align-self: flex-end"><button type="button" class="secondary" id="finAguardandoPlacaClear">Limpar</button></div>
               </form>
@@ -5519,7 +5523,7 @@
           <div class="finance-subview hidden" data-finance-subview="receber">
             <div class="fin-toolbar">
               <div><button type="button" id="finBtnNovaReceita">+ Nova receita</button></div>
-              <div><label for="finFilterBusca">Buscar</label><input id="finFilterBusca" type="search" placeholder="Placa, cliente, financeira…" /></div>
+              <div><label for="finFilterBusca">Buscar</label><input id="finFilterBusca" type="search" placeholder="Placa, cliente, período (ex.: 2026-05)…" /></div>
               <div><label for="finReceberTipo">Tipo</label>
                 <select id="finReceberTipo">
                   <option value="">Todos</option>
@@ -6371,7 +6375,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260530b"></script>
+    <script src="/finance-module.js?v=20260530c"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =

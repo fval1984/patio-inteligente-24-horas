@@ -19,6 +19,7 @@
   let finPagarPeriodoDe = "";
   let finPagarPeriodoAte = "";
   let financeFilterAguardandoPlaca = "";
+  let financeFilterAguardandoPeriodo = "";
   let refreshFinanceDataPromise = null;
 
   function financeCanLoadData() {
@@ -239,24 +240,40 @@
     return financeDedupePatioReceivables(matched);
   }
 
+  /** Competência pela data de saída do ciclo (VRP). */
+  function financeReceivableSaidaYm(r, vehicle) {
+    const ymd = toLocalYmd(vehicle?.data_saida || r?.period_end || r?.updated_at || r?.created_at);
+    return yearMonthFromYmd(ymd) || "";
+  }
+
   function financeContasAguardandoFilteredList() {
     const vmap = financeVehicleById();
     const plateNorm = financeNormalizePlate(financeFilterAguardandoPlaca);
-    return financeContasAguardandoList().filter((r) =>
-      financePlateMatchesQuery(vmap.get(r.vehicle_id), plateNorm)
-    );
+    const periodo = (financeFilterAguardandoPeriodo || "").trim();
+    return financeContasAguardandoList().filter((r) => {
+      if (!financePlateMatchesQuery(vmap.get(r.vehicle_id), plateNorm)) return false;
+      if (periodo && financeReceivableSaidaYm(r, vmap.get(r.vehicle_id)) !== periodo) return false;
+      return true;
+    });
   }
 
-  function financeSyncAguardandoPlateHint() {
+  function financeSyncAguardandoFilterHint() {
     const hint = document.getElementById("finAguardandoPlateHint");
     if (!hint) return;
     const q = (financeFilterAguardandoPlaca || "").trim();
-    if (!q) {
+    const periodo = (financeFilterAguardandoPeriodo || "").trim();
+    const parts = [];
+    if (q) parts.push(`placa: ${q}`);
+    if (periodo) {
+      const [y, m] = periodo.split("-");
+      parts.push(`período: ${m}/${y}`);
+    }
+    if (!parts.length) {
       hint.textContent = "";
       hint.classList.add("hidden");
       return;
     }
-    hint.textContent = `Consulta de placa: ${q}`;
+    hint.textContent = `Filtros — ${parts.join(" · ")}`;
     hint.classList.remove("hidden");
   }
 
@@ -267,7 +284,20 @@
     if (q) {
       list = list.filter((r) => {
         const v = vmap.get(r.vehicle_id);
-        const blob = [r.responsavel_pagamento, r.observacoes, v?.placa, v?.marca, v?.modelo, financeInstituicaoNome(v)]
+        const saidaYmd = toLocalYmd(r.period_end || v?.data_saida || "");
+        const saidaYm = yearMonthFromYmd(saidaYmd) || "";
+        const blob = [
+          r.responsavel_pagamento,
+          r.observacoes,
+          v?.placa,
+          v?.marca,
+          v?.modelo,
+          financeInstituicaoNome(v),
+          saidaYmd,
+          saidaYm,
+          saidaYmd ? formatDate(saidaYmd) : "",
+          v?.data_saida ? formatDate(v.data_saida) : "",
+        ]
           .join(" ")
           .toLowerCase();
         return blob.includes(q);
@@ -763,15 +793,16 @@
     const body = document.getElementById("finAguardandoBody");
     const totalEl = document.getElementById("finAguardandoTotal");
     if (!body) return;
-    financeSyncAguardandoPlateHint();
+    financeSyncAguardandoFilterHint();
     const vmap = financeVehicleById();
     const list = financeContasAguardandoFilteredList();
     const plateFilter = financeNormalizePlate(financeFilterAguardandoPlaca);
+    const periodoFilter = (financeFilterAguardandoPeriodo || "").trim();
     if (totalEl) totalEl.textContent = formatCurrency(list.reduce((s, r) => s + Number(r.valor || 0), 0));
     if (!list.length) {
       body.innerHTML = `<tr><td colspan="6" class="notice">${
-        plateFilter
-          ? "Nenhum veículo aguardando faturamento com a placa informada."
+        plateFilter || periodoFilter
+          ? "Nenhum veículo aguardando faturamento com os filtros informados (placa e/ou período)."
           : "Nenhum veículo aguardando faturamento. Após saída (VRP), o registro aparece aqui até ir para Contas a receber."
       }</td></tr>`;
       return;
@@ -1896,12 +1927,20 @@
     document.getElementById("finAguardandoPlateForm")?.addEventListener("submit", (e) => {
       e.preventDefault();
       financeFilterAguardandoPlaca = (document.getElementById("finAguardandoPlaca")?.value || "").trim();
+      financeFilterAguardandoPeriodo = document.getElementById("finAguardandoPeriodo")?.value || "";
+      if (currentFinanceView === "aguardando") financeRenderAguardando();
+    });
+    document.getElementById("finAguardandoPeriodo")?.addEventListener("change", (e) => {
+      financeFilterAguardandoPeriodo = e.target.value || "";
       if (currentFinanceView === "aguardando") financeRenderAguardando();
     });
     document.getElementById("finAguardandoPlacaClear")?.addEventListener("click", () => {
       financeFilterAguardandoPlaca = "";
+      financeFilterAguardandoPeriodo = "";
       const input = document.getElementById("finAguardandoPlaca");
+      const periodo = document.getElementById("finAguardandoPeriodo");
       if (input) input.value = "";
+      if (periodo) periodo.value = "";
       if (currentFinanceView === "aguardando") financeRenderAguardando();
     });
 
