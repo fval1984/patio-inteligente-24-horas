@@ -5121,6 +5121,24 @@
                 style="width: 100%; max-width: 22rem"
               />
             </div>
+            <div style="flex: 1 1 100%; min-width: min(100%, 320px)">
+              <label for="listaFilterDataBusca">Buscar por datas</label>
+              <input
+                id="listaFilterDataBusca"
+                type="search"
+                placeholder="Ex.: 15/04/2026 a 01/05/2026 (saída, recebimento ou movimento)"
+                autocomplete="off"
+                style="width: 100%; max-width: 28rem"
+              />
+            </div>
+            <div>
+              <label for="listaFilterDataDe">De</label>
+              <input id="listaFilterDataDe" type="date" title="VRP: data de saída · VNP: entrada · Caixa: movimento" />
+            </div>
+            <div>
+              <label for="listaFilterDataAte">Até</label>
+              <input id="listaFilterDataAte" type="date" />
+            </div>
             <button type="button" class="secondary" id="listaFiltersClear">Limpar filtros</button>
             <button type="button" id="listaFiltersApply">Atualizar lista</button>
             <button type="button" class="secondary" id="listaFiltersPrint">Imprimir / PDF</button>
@@ -6420,7 +6438,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260531a"></script>
+    <script src="/finance-module.js?v=20260531b"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -7047,6 +7065,8 @@
       let listaFilterLocatorId = "";
       let listaFilterRpfId = "";
       let listaFilterBanco = "";
+      let listaFilterDataDe = "";
+      let listaFilterDataAte = "";
       let currentListaView = "vnp";
       let editingVehicleId = null;
       let editingVehicleData = null;
@@ -8869,6 +8889,70 @@
         listaFilterLocatorId = document.getElementById("listaFilterLocator")?.value || "";
         listaFilterRpfId = document.getElementById("listaFilterRpf")?.value || "";
         listaFilterBanco = (document.getElementById("listaFilterBanco")?.value || "").trim();
+        listaFilterDataDe = document.getElementById("listaFilterDataDe")?.value || "";
+        listaFilterDataAte = document.getElementById("listaFilterDataAte")?.value || "";
+        const buscaDatas = (document.getElementById("listaFilterDataBusca")?.value || "").trim();
+        const parseRange =
+          typeof window.financeParseDateRangeText === "function"
+            ? window.financeParseDateRangeText
+            : (text) => {
+                const raw = String(text || "").trim();
+                if (!raw) return null;
+                const parts = raw.split(/\s+(?:a|até|ate)\s+/i).map((p) => p.trim()).filter(Boolean);
+                const toYmd = (s) => {
+                  const m = String(s || "").trim().match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+                  if (!m) return /^\d{4}-\d{2}-\d{2}$/.test(String(s || "").trim()) ? String(s).trim() : null;
+                  return `${m[3]}-${String(m[2]).padStart(2, "0")}-${String(m[1]).padStart(2, "0")}`;
+                };
+                if (parts.length >= 2) {
+                  const de = toYmd(parts[0]);
+                  const ate = toYmd(parts[1]);
+                  if (de && ate) return { de: de <= ate ? de : ate, ate: de <= ate ? ate : de };
+                }
+                const one = toYmd(raw);
+                return one ? { de: one, ate: one } : null;
+              };
+        const parsed = parseRange(buscaDatas);
+        if (parsed) {
+          listaFilterDataDe = parsed.de;
+          listaFilterDataAte = parsed.ate;
+          const deEl = document.getElementById("listaFilterDataDe");
+          const ateEl = document.getElementById("listaFilterDataAte");
+          if (deEl) deEl.value = parsed.de;
+          if (ateEl) ateEl.value = parsed.ate;
+        }
+      }
+
+      function listaDateFilterActive() {
+        return !!(listaFilterDataDe || listaFilterDataAte);
+      }
+
+      function listaDateMatchesYmd(ymd) {
+        const ref = toLocalYmd(ymd) || "";
+        if (typeof window.financeYmdInRange === "function") {
+          return window.financeYmdInRange(ref, listaFilterDataDe, listaFilterDataAte);
+        }
+        const de = (listaFilterDataDe || "").trim();
+        const ate = (listaFilterDataAte || "").trim();
+        if (!de && !ate) return true;
+        if (!ref) return false;
+        if (de && ref < de) return false;
+        if (ate && ref > ate) return false;
+        return true;
+      }
+
+      function listaReceivableSaidaYmd(r, vehicle) {
+        if (typeof window.financeReceivableSaidaYmd === "function") {
+          return window.financeReceivableSaidaYmd(r, vehicle);
+        }
+        return toLocalYmd(vehicle?.data_saida || r?.period_end || r?.updated_at || r?.created_at) || "";
+      }
+
+      function listaReceivableDateMatches(r, vehicle) {
+        if (!listaDateFilterActive()) return true;
+        const saida = listaReceivableSaidaYmd(r, vehicle);
+        const pago = toLocalYmd(r.updated_at || r.created_at) || "";
+        return listaDateMatchesYmd(saida) || listaDateMatchesYmd(pago);
       }
 
       /** RPF efetivo no veículo: responsável financeiro / pagamento; se vazio, usa o RPV (mesma lista de parceiros). */
@@ -8974,6 +9058,7 @@
       }
 
       function listaCashMatches(mov) {
+        if (!listaDateMatchesYmd(mov?.data_movimento || mov?.created_at)) return false;
         const rec =
           mov.tipo_conta === "RECEBER" && mov.conta_id != null && mov.conta_id !== ""
             ? state.receivables.find((r) => String(r.id) === String(mov.conta_id))
@@ -9032,6 +9117,9 @@
             if (!r.created_at) return false;
             return Math.floor((now - new Date(r.created_at).getTime()) / 86400000) > 10;
           });
+        }
+        if (listaDateFilterActive()) {
+          list = list.filter((r) => listaReceivableDateMatches(r, vehicleById.get(r.vehicle_id)));
         }
         return { list, vehicleById };
       }
@@ -9240,7 +9328,9 @@
 
       function buildListaVnpVehicleRows() {
         return sortVnpOnPatioForDisplay(
-          (state.vehicles || []).filter((v) => isVehicleOnPatio(v) && listaVehicleMatches(v))
+          (state.vehicles || [])
+            .filter((v) => isVehicleOnPatio(v) && listaVehicleMatches(v))
+            .filter((v) => listaDateMatchesYmd(v.data_entrada))
         );
       }
 
@@ -9281,7 +9371,9 @@
         }
         if (currentListaView === "vrp") {
           const items = sortVehiclesByRegistroDesc(
-            (state.vehicles || []).filter((v) => v.status === "REMOVIDO" && listaVehicleMatches(v))
+            (state.vehicles || [])
+              .filter((v) => v.status === "REMOVIDO" && listaVehicleMatches(v))
+              .filter((v) => listaDateMatchesYmd(v.data_saida))
           );
           const label = "Total (VRP)";
           if (semVal) return { amount: 0, label, hideAmount: true };
@@ -9294,7 +9386,8 @@
         if (currentListaView === "aguardando_lancamento") {
           const rows = (state.receivables || [])
             .filter((r) => receivableNaFilaAguardandoTriagem(r))
-            .filter((r) => listaReceivableMatches(r, vehicleById.get(r.vehicle_id)));
+            .filter((r) => listaReceivableMatches(r, vehicleById.get(r.vehicle_id)))
+            .filter((r) => listaReceivableDateMatches(r, vehicleById.get(r.vehicle_id)));
           const label = "Total";
           const amount = rows.reduce((s, r) => s + Number(r.valor || 0), 0);
           return { amount, label, hideAmount: false };
@@ -9308,6 +9401,7 @@
             return days > 10;
           });
           let list = openList.filter((r) => listaReceivableMatches(r, vehicleById.get(r.vehicle_id)));
+          list = list.filter((r) => listaReceivableDateMatches(r, vehicleById.get(r.vehicle_id)));
           if (currentListaView === "receber_alerta") {
             list = list.filter((r) => overdueReceivables.some((o) => o.id === r.id));
           }
@@ -9316,7 +9410,9 @@
           return { amount, label, hideAmount: false };
         }
         if (currentListaView === "pagar") {
-          const list = (state.payables || []).filter((p) => p.status === "EM_ABERTO" && listaPayableMatches(p));
+          const list = (state.payables || [])
+            .filter((p) => p.status === "EM_ABERTO" && listaPayableMatches(p))
+            .filter((p) => listaDateMatchesYmd(p.data_vencimento));
           const label = "Total contas a pagar";
           const amount = list.reduce((s, p) => s + Number(p.valor || 0), 0);
           return { amount, label, hideAmount: false };
@@ -9335,7 +9431,10 @@
             ? window.financeDedupePatioReceivables
             : (rows) => rows)(
             (state.receivables || []).filter(
-              (r) => String(r.status || "").toUpperCase() === "PAGO" && listaReceivableMatches(r, vehicleById.get(r.vehicle_id))
+              (r) =>
+                String(r.status || "").toUpperCase() === "PAGO" &&
+                listaReceivableMatches(r, vehicleById.get(r.vehicle_id)) &&
+                listaReceivableDateMatches(r, vehicleById.get(r.vehicle_id))
             )
           );
           return {
@@ -9359,6 +9458,9 @@
           listaFilterLocatorId ? `Loc.: ${state.partners.find((p) => p.id === listaFilterLocatorId)?.nome || ""}` : "",
           listaFilterRpfId ? `RPF: ${state.partners.find((p) => p.id === listaFilterRpfId)?.nome || ""}` : "",
           listaFilterBanco ? `Texto: ${listaFilterBanco}` : "",
+          listaFilterDataDe || listaFilterDataAte
+            ? `Datas: ${listaFilterDataDe ? formatDate(listaFilterDataDe) : "…"} — ${listaFilterDataAte ? formatDate(listaFilterDataAte) : "…"}`
+            : "",
         ]
           .filter(Boolean)
           .join(" · ");
@@ -9431,7 +9533,9 @@
             semVal ? "" : "<th>Valor</th>"
           }</tr>`;
           const items = sortVehiclesByRegistroDesc(
-            (state.vehicles || []).filter((v) => v.status === "REMOVIDO" && listaVehicleMatches(v))
+            (state.vehicles || [])
+              .filter((v) => v.status === "REMOVIDO" && listaVehicleMatches(v))
+              .filter((v) => listaDateMatchesYmd(v.data_saida))
           );
           if (!items.length) {
             body.innerHTML = `<tr><td colspan="${semVal ? "7" : "8"}" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
@@ -9461,6 +9565,7 @@
           state.receivables
             .filter((r) => receivableNaFilaAguardandoTriagem(r))
             .filter((r) => listaReceivableMatches(r, vehicleById.get(r.vehicle_id)))
+            .filter((r) => listaReceivableDateMatches(r, vehicleById.get(r.vehicle_id)))
             .forEach((r) => {
               const vehicle = vehicleById.get(r.vehicle_id);
               const vehicleInfo = vehicle
@@ -9496,6 +9601,7 @@
             return days > 10;
           });
           let list = openList.filter((r) => listaReceivableMatches(r, vehicleById.get(r.vehicle_id)));
+          list = list.filter((r) => listaReceivableDateMatches(r, vehicleById.get(r.vehicle_id)));
           if (currentListaView === "receber_alerta") {
             list = list.filter((r) => overdueReceivables.some((o) => o.id === r.id));
           }
@@ -9535,7 +9641,9 @@
 
         if (currentListaView === "pagar") {
           head.innerHTML = `<tr><th>Descrição</th><th>Vencimento</th><th>Valor</th><th>Estado</th></tr>`;
-          const list = (state.payables || []).filter((p) => p.status === "EM_ABERTO" && listaPayableMatches(p));
+          const list = (state.payables || [])
+            .filter((p) => p.status === "EM_ABERTO" && listaPayableMatches(p))
+            .filter((p) => listaDateMatchesYmd(p.data_vencimento));
           if (!list.length) {
             body.innerHTML = `<tr><td colspan="4" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
             return;
@@ -9588,6 +9696,7 @@
             (state.receivables || [])
               .filter((r) => String(r.status || "").toUpperCase() === "PAGO")
               .filter((r) => listaReceivableMatches(r, vehicleById.get(r.vehicle_id)))
+              .filter((r) => listaReceivableDateMatches(r, vehicleById.get(r.vehicle_id)))
           ).sort((a, b) => String(b.updated_at || b.created_at).localeCompare(String(a.updated_at || a.created_at)));
           if (!list.length) {
             body.innerHTML = `<tr><td colspan="5" class="notice">Nenhum recebimento confirmado com os filtros atuais.</td></tr>`;
@@ -9769,6 +9878,9 @@
           listaFilterLocatorId ? `RPV: ${state.partners.find((p) => p.id === listaFilterLocatorId)?.nome || listaFilterLocatorId}` : "",
           listaFilterRpfId ? `RPF: ${state.partners.find((p) => p.id === listaFilterRpfId)?.nome || listaFilterRpfId}` : "",
           listaFilterBanco ? `Texto: ${listaFilterBanco}` : "",
+          listaFilterDataDe || listaFilterDataAte
+            ? `Datas: ${listaFilterDataDe ? formatDate(listaFilterDataDe) : "…"} — ${listaFilterDataAte ? formatDate(listaFilterDataAte) : "…"}`
+            : "",
         ]
           .filter(Boolean)
           .join(" · ");
@@ -14724,12 +14836,20 @@
         listaFilterLocatorId = "";
         listaFilterRpfId = "";
         listaFilterBanco = "";
+        listaFilterDataDe = "";
+        listaFilterDataAte = "";
         const loc = document.getElementById("listaFilterLocator");
         const rpf = document.getElementById("listaFilterRpf");
         const banco = document.getElementById("listaFilterBanco");
+        const dataBusca = document.getElementById("listaFilterDataBusca");
+        const dataDe = document.getElementById("listaFilterDataDe");
+        const dataAte = document.getElementById("listaFilterDataAte");
         if (loc) loc.value = "";
         if (rpf) rpf.value = "";
         if (banco) banco.value = "";
+        if (dataBusca) dataBusca.value = "";
+        if (dataDe) dataDe.value = "";
+        if (dataAte) dataAte.value = "";
         syncListaFilterSelects();
         renderListaPanel();
       });

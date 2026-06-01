@@ -2421,4 +2421,7 @@
   window.financeCashMovValor = financeCashMovValor;
   window.financeDedupeCaixaMovs = financeDedupeCaixaMovs;
   window.financeDedupePatioReceivables = financeDedupePatioReceivables;
+  window.financeParseDateRangeText = financeParseDateRangeText;
+  window.financeYmdInRange = financeYmdInRange;
+  window.financeReceivableSaidaYmd = financeReceivableSaidaYmd;
 })();
