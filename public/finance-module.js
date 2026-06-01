@@ -936,21 +936,54 @@
     });
   }
 
-  const FINANCE_VIP_RECOVER_PLATES = [
-    "SNO9B38",
-    "SNO8G48",
-    "SNO9D08",
-    "SNO8G38",
-    "SNO7I98",
-    "SNO8H38",
-    "SNO8H58",
-    "SNO8E98",
-    "SNO8C88",
-    "SNO8D68",
-    "SNO8G68",
-    "SNO7F38",
-    "SNO9A58",
-    "SNO8E38",
+  /** VRP maio/2026 — placa + valor + data. Mesma placa pode ter vários ciclos RPP (ex. SNO8E38). */
+  const FINANCE_MAY_2026_VRP_RECOVERY = [
+    { plate: "RUQ7G54", valor: 50, paidDate: "2026-05-28" },
+    { plate: "SHT9J35", valor: 60, paidDate: "2026-05-29" },
+    { plate: "QLC1E25", valor: 60, paidDate: "2026-05-28" },
+    { plate: "CFZ3J00", valor: 200, paidDate: "2026-05-29" },
+    { plate: "PGQ3I89", valor: 210, paidDate: "2026-05-28" },
+    { plate: "SOK3G87", valor: 105, paidDate: "2026-05-29" },
+    { plate: "PDV8F14", valor: 210, paidDate: "2026-05-28" },
+    { plate: "PCC5J55", valor: 120, paidDate: "2026-05-25" },
+    { plate: "SOT1H11", valor: 200, paidDate: "2026-05-29" },
+    { plate: "SOP9J15", valor: 105, paidDate: "2026-05-26" },
+    { plate: "RUS0B38", valor: 180, paidDate: "2026-05-25" },
+    { plate: "SHB6H60", valor: 30, paidDate: "2026-05-19" },
+    { plate: "SOY9E09", valor: 90, paidDate: "2026-05-21" },
+    { plate: "PZO7C79", valor: 330, paidDate: "2026-05-29" },
+    { plate: "QLI9J77", valor: 60, paidDate: "2026-05-20" },
+    { plate: "UHM0A38", valor: 250, paidDate: "2026-05-25" },
+    { plate: "PDW3A12", valor: 330, paidDate: "2026-05-25" },
+    { plate: "SOH9F30", valor: 140, paidDate: "2026-05-27" },
+    { plate: "PCM9G77", valor: 150, paidDate: "2026-05-12" },
+    { plate: "QQN9E59", valor: 60, paidDate: "2026-05-08" },
+    { plate: "RNG8B19", valor: 75, paidDate: "2026-05-08" },
+    { plate: "PDR7B60", valor: 90, paidDate: "2026-05-08" },
+    { plate: "SOF0G64", valor: 90, paidDate: "2026-05-08" },
+    { plate: "RZK5J04", valor: 90, paidDate: "2026-05-08" },
+    { plate: "SOX5F86", valor: 330, paidDate: "2026-05-25" },
+    { plate: "SFV6B80", valor: 800, paidDate: "2026-05-11" },
+    { plate: "RTM1I82", valor: 600, paidDate: "2026-05-20" },
+    { plate: "QPO2F05", valor: 150, paidDate: "2026-05-04" },
+    { plate: "SNO9B38", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8G48", valor: 240, paidDate: "2026-05-08" },
+    { plate: "SNO9D08", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8G38", valor: 240, paidDate: "2026-05-08" },
+    { plate: "SNO7I98", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8H38", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8H58", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8E98", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8C88", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8D68", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8G68", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO7F38", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO9A58", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8E38", valor: 20, paidDate: "2026-04-30" }, // ciclo RPP João Vitor (abr/26)
+    { plate: "SNO8E38", valor: 210, paidDate: "2026-05-06" }, // novo ciclo RPP VIP (mai/26)
+    { plate: "RZZ1J57", valor: 150, paidDate: "2026-05-04" },
+    { plate: "PGL3H13", valor: 300, paidDate: "2026-05-08" },
+    { plate: "HXR1I28", valor: 240, paidDate: "2026-05-06" },
   ];
 
   async function financeRecoverCashViaApi(payload, ui = {}) {
@@ -985,6 +1018,9 @@
         if (stats.markedPaid > 0) parts.push(`${stats.markedPaid} marcada(s) como PAGO`);
         if (stats.removed > 0) parts.push(`${stats.removed} duplicata(s) removida(s)`);
         if (stats.failed > 0) parts.push(`${stats.failed} falha(s)`);
+        if (Array.isArray(api.notFound) && api.notFound.length) {
+          parts.push(`${api.notFound.length} não encontrado(s): ${api.notFound.slice(0, 5).join("; ")}${api.notFound.length > 5 ? "…" : ""}`);
+        }
         if (parts.length) {
           hint.textContent = `Recuperação concluída: ${parts.join(", ")}.`;
           hint.classList.remove("hidden");
@@ -1842,12 +1878,12 @@
     });
     document.getElementById("finRecebidosRecoverVipPlacas")?.addEventListener("click", () => {
       financeRecoverCashViaApi(
-        { plates: FINANCE_VIP_RECOVER_PLATES },
+        { recoverEntries: FINANCE_MAY_2026_VRP_RECOVERY },
         {
           hintId: "finRecebidosRecoverHint",
           btnId: "finRecebidosRecoverVipPlacas",
-          btnBusy: "Recuperando VIP…",
-          btnDefault: "Recuperar placas VIP (maio/26)",
+          btnBusy: "Recuperando maio/26…",
+          btnDefault: "Recuperar VRP maio/26 (lista completa)",
           onDone: () => {
             financeRenderRecebidos();
             financeRenderCaixa();

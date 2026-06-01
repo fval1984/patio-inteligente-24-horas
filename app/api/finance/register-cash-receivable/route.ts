@@ -355,12 +355,111 @@ async function loadVrpReceivablesToRecover(
   return { receivables: [...byVehicle.values()], placaByVehicle };
 }
 
+type RecoverEntry = { plate: string; valor?: number; paidDate?: string };
+type BatchOverride = { dataMovimento?: string; valor?: number };
+
+/** Mesma placa pode ter vários ciclos RPP encerrados (ex.: SNO8E38 João Vitor R$20 + VIP R$210). */
+function pickBestReceivableForEntry(
+  recs: ReceivableRow[],
+  entry: RecoverEntry,
+  excludeIds?: Set<string>
+): ReceivableRow | null {
+  let candidates = (recs || []).filter((r) => r?.id && !excludeIds?.has(r.id));
+  if (!candidates.length) return null;
+  const targetValor = entry.valor != null ? Number(entry.valor) : null;
+  const targetDate = entry.paidDate ? toYmd(entry.paidDate) : null;
+  if (targetValor != null) {
+    const byValor = candidates.filter((r) => Math.abs(Number(r.valor || 0) - targetValor) < 0.01);
+    if (byValor.length) candidates = byValor;
+  }
+  if (targetDate) {
+    const byDate = candidates.filter((r) => {
+      const payYmd = toYmd(r.updated_at || r.period_end || r.created_at);
+      const endYmd = toYmd(r.period_end || "");
+      return payYmd === targetDate || endYmd === targetDate;
+    });
+    if (byDate.length) candidates = byDate;
+  }
+
+  return (
+    candidates.sort((a, b) => {
+      const aPaid = String(a.status || "").toUpperCase() === "PAGO" ? 1 : 0;
+      const bPaid = String(b.status || "").toUpperCase() === "PAGO" ? 1 : 0;
+      if (bPaid !== aPaid) return bPaid - aPaid;
+      return String(b.period_end || "").localeCompare(String(a.period_end || ""));
+    })[0] || null
+  );
+}
+
+/** Casamento placa + valor + data — cada ciclo RPP gera recebível e entrada no caixa distintos. */
+async function loadReceivablesFromRecoverEntries(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  entries: RecoverEntry[]
+) {
+  const sortedEntries = [...entries].sort((a, b) => {
+    const da = a.paidDate ? toYmd(a.paidDate) : "";
+    const db = b.paidDate ? toYmd(b.paidDate) : "";
+    if (da !== db) return da.localeCompare(db);
+    return normalizePlate(a.plate).localeCompare(normalizePlate(b.plate));
+  });
+  const { data: vehicles, error: vErr } = await supabase.from("vehicles").select("id,placa").eq("user_id", userId);
+  if (vErr) throw new Error(vErr.message);
+
+  const vehicleByPlate = new Map<string, { id: string; placa: string }>();
+  for (const v of vehicles || []) {
+    if (!v?.id) continue;
+    vehicleByPlate.set(normalizePlate(String(v.placa || "")), { id: String(v.id), placa: String(v.placa || "") });
+  }
+
+  const receivables: ReceivableRow[] = [];
+  const overrides = new Map<string, BatchOverride>();
+  const placaByVehicle = new Map<string, string>();
+  const notFound: string[] = [];
+  const seenRecIds = new Set<string>();
+
+  for (const entry of sortedEntries) {
+    const plateKey = normalizePlate(entry.plate);
+    const vehicle = vehicleByPlate.get(plateKey);
+    if (!vehicle) {
+      notFound.push(`${entry.plate} (veículo não encontrado)`);
+      continue;
+    }
+    placaByVehicle.set(vehicle.id, vehicle.placa);
+
+    const { data: recs, error: rErr } = await supabase
+      .from("receivables")
+      .select(
+        "id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at,period_end"
+      )
+      .eq("user_id", userId)
+      .eq("vehicle_id", vehicle.id)
+      .not("period_end", "is", null)
+      .gt("valor", 0);
+    if (rErr) throw new Error(rErr.message);
+
+    const rec = pickBestReceivableForEntry((recs || []) as ReceivableRow[], entry, seenRecIds);
+    if (!rec) {
+      notFound.push(`${entry.plate} R$ ${entry.valor ?? "?"} ${entry.paidDate ?? ""} (recebível não encontrado)`);
+      continue;
+    }
+    seenRecIds.add(rec.id);
+    receivables.push(rec);
+    overrides.set(rec.id, {
+      dataMovimento: entry.paidDate ? toYmd(entry.paidDate) : undefined,
+      valor: entry.valor,
+    });
+  }
+
+  return { receivables, placaByVehicle, overrides, notFound };
+}
+
 async function processReceivableBatch(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   userId: string,
   receivables: ReceivableRow[],
   placaByVehicle: Map<string, string>,
-  opts: { markUnpaidAsPaid?: boolean } = {}
+  opts: { markUnpaidAsPaid?: boolean; overrides?: Map<string, BatchOverride> } = {}
 ) {
   let created = 0;
   let updated = 0;
@@ -381,9 +480,12 @@ async function processReceivableBatch(
       skipped += 1;
       continue;
     }
+    const ov = opts.overrides?.get(current.id);
     const result = await upsertCashForReceivable(supabase, userId, current, {
       vehiclePlaca: current.vehicle_id ? placaByVehicle.get(String(current.vehicle_id)) || null : null,
-      dataMovimento: toYmd(current.period_end || current.updated_at || current.created_at),
+      dataMovimento:
+        ov?.dataMovimento || toYmd(current.updated_at || current.period_end || current.created_at),
+      valor: ov?.valor,
     });
     if (!result.ok) failed += 1;
     else if (result.action === "created" || result.action === "verified") created += 1;
@@ -405,6 +507,15 @@ export async function POST(request: NextRequest) {
     const recoverVrp = body?.recoverVrp === true;
     const plates = Array.isArray(body?.plates)
       ? body.plates.map((p: unknown) => normalizePlate(String(p || ""))).filter(Boolean)
+      : [];
+    const recoverEntries: RecoverEntry[] = Array.isArray(body?.recoverEntries)
+      ? body.recoverEntries
+          .map((e: { plate?: unknown; valor?: unknown; paidDate?: unknown }) => ({
+            plate: normalizePlate(String(e?.plate || "")),
+            valor: e?.valor != null ? Number(e.valor) : undefined,
+            paidDate: e?.paidDate ? toYmd(String(e.paidDate)) : undefined,
+          }))
+          .filter((e) => e.plate && (e.valor == null || e.valor > 0))
       : [];
 
     if (!userId) {
@@ -465,6 +576,22 @@ export async function POST(request: NextRequest) {
           removed: cleanupBefore.removed + cleanupAfter.removed,
           missing: targets.length,
         },
+      });
+    }
+
+    if (recoverEntries.length > 0) {
+      await cleanupDuplicateCashEntradas(supabase, userId);
+      const loaded = await loadReceivablesFromRecoverEntries(supabase, userId, recoverEntries);
+      const stats = await processReceivableBatch(supabase, userId, loaded.receivables, loaded.placaByVehicle, {
+        markUnpaidAsPaid: true,
+        overrides: loaded.overrides,
+      });
+      const cleanup = await cleanupDuplicateCashEntradas(supabase, userId);
+      return NextResponse.json({
+        ok: true,
+        recoverEntries: true,
+        notFound: loaded.notFound,
+        stats: { ...stats, fixed: stats.updated, removed: cleanup.removed, requested: recoverEntries.length },
       });
     }
 
@@ -537,7 +664,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!receivableId) {
-      return NextResponse.json({ error: "receivableId é obrigatório (ou use syncAll / syncMissing / recoverVrp / plates)." }, { status: 400 });
+      return NextResponse.json(
+        { error: "receivableId é obrigatório (ou use syncAll / syncMissing / recoverVrp / plates / recoverEntries)." },
+        { status: 400 }
+      );
     }
 
     const { data: rec, error: recErr } = await supabase
