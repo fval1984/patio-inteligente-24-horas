@@ -1154,58 +1154,8 @@
     });
   }
 
-  /** VRP maio/2026 — placa + valor + data. Mesma placa pode ter vários ciclos RPP (ex. SNO8E38). */
-  const FINANCE_MAY_2026_VRP_RECOVERY = [
-    { plate: "RUQ7G54", valor: 50, paidDate: "2026-05-28" },
-    { plate: "SHT9J35", valor: 60, paidDate: "2026-05-29" },
-    { plate: "QLC1E25", valor: 60, paidDate: "2026-05-28" },
-    { plate: "CFZ3J00", valor: 200, paidDate: "2026-05-29" },
-    { plate: "PGQ3I89", valor: 210, paidDate: "2026-05-28" },
-    { plate: "SOK3G87", valor: 105, paidDate: "2026-05-29" },
-    { plate: "PDV8F14", valor: 210, paidDate: "2026-05-28" },
-    { plate: "PCC5J55", valor: 120, paidDate: "2026-05-25" },
-    { plate: "SOT1H11", valor: 200, paidDate: "2026-05-29" },
-    { plate: "SOP9J15", valor: 105, paidDate: "2026-05-26" },
-    { plate: "RUS0B38", valor: 180, paidDate: "2026-05-25" },
-    { plate: "SHB6H60", valor: 30, paidDate: "2026-05-19" },
-    { plate: "SOY9E09", valor: 90, paidDate: "2026-05-21" },
-    { plate: "PZO7C79", valor: 330, paidDate: "2026-05-29" },
-    { plate: "QLI9J77", valor: 60, paidDate: "2026-05-20" },
-    { plate: "UHM0A38", valor: 250, paidDate: "2026-05-25" },
-    { plate: "PDW3A12", valor: 330, paidDate: "2026-05-25" },
-    { plate: "SOH9F30", valor: 140, paidDate: "2026-05-27" },
-    { plate: "PCM9G77", valor: 150, paidDate: "2026-05-12" },
-    { plate: "QQN9E59", valor: 60, paidDate: "2026-05-08" },
-    { plate: "RNG8B19", valor: 75, paidDate: "2026-05-08" },
-    { plate: "PDR7B60", valor: 90, paidDate: "2026-05-08" },
-    { plate: "SOF0G64", valor: 90, paidDate: "2026-05-08" },
-    { plate: "RZK5J04", valor: 90, paidDate: "2026-05-08" },
-    { plate: "SOX5F86", valor: 330, paidDate: "2026-05-25" },
-    { plate: "SFV6B80", valor: 800, paidDate: "2026-05-11" },
-    { plate: "RTM1I82", valor: 600, paidDate: "2026-05-20" },
-    { plate: "QPO2F05", valor: 150, paidDate: "2026-05-04" },
-    { plate: "SNO9B38", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8G48", valor: 240, paidDate: "2026-05-08" },
-    { plate: "SNO9D08", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8G38", valor: 240, paidDate: "2026-05-08" },
-    { plate: "SNO7I98", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8H38", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8H58", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8E98", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8C88", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8D68", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8G68", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO7F38", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO9A58", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8E38", valor: 20, paidDate: "2026-04-30" }, // ciclo RPP João Vitor (abr/26)
-    { plate: "SNO8E38", valor: 210, paidDate: "2026-05-06" }, // novo ciclo RPP VIP (mai/26)
-    { plate: "RZZ1J57", valor: 150, paidDate: "2026-05-04" },
-    { plate: "PGL3H13", valor: 300, paidDate: "2026-05-08" },
-    { plate: "HXR1I28", valor: 240, paidDate: "2026-05-06" },
-  ];
-
-  /** Pagamentos confirmados sem caixa — reverter para Aguardando Faturamento (placa + valor + saída). */
-  const FINANCE_REVERT_TO_AGUARDANDO_ENTRIES = [
+  /** VRP abr/mai 2026 — placa + valor + saída (+ pagamento para desambiguar VIP Polo). */
+  const FINANCE_VRP_CAIXA_RECOVERY_ENTRIES = [
     { plate: "SHT9J35", valor: 60, saidaDate: "2026-05-26", paidDate: "2026-05-29" },
     { plate: "QLC1E25", valor: 60, saidaDate: "2026-05-26", paidDate: "2026-05-28" },
     { plate: "CFZ3J00", valor: 200, saidaDate: "2026-05-26", paidDate: "2026-05-29" },
@@ -1265,6 +1215,8 @@
     { plate: "SOW4G62", valor: 795, saidaDate: "2026-03-13", paidDate: "2026-05-04" },
     { plate: "SNZ7F17", valor: 900, saidaDate: "2026-03-06", paidDate: "2026-05-04" },
   ];
+  const FINANCE_MAY_2026_VRP_RECOVERY = FINANCE_VRP_CAIXA_RECOVERY_ENTRIES;
+  const FINANCE_REVERT_TO_AGUARDANDO_ENTRIES = FINANCE_VRP_CAIXA_RECOVERY_ENTRIES;
 
   function financeNormalizePlate(p) {
     return String(p || "")
@@ -1281,7 +1233,7 @@
     return Math.abs(da - db) / 86400000 <= days;
   }
 
-  function financePickReceivableForRevertEntry(entry, excludeIds = new Set()) {
+  function financePickReceivableForPlateEntry(entry, excludeIds = new Set()) {
     const plateKey = financeNormalizePlate(entry.plate);
     const vehicleIds = new Set(
       (state.vehicles || [])
@@ -1311,7 +1263,14 @@
         return v?.data_saida && ymd(v.data_saida) === saidaYmd;
       });
       if (bySaida.length) candidates = bySaida;
-    } else if (paidYmd) {
+    }
+    if (paidYmd && candidates.length > 1) {
+      const byPaid = candidates.filter((r) => {
+        const payYmd = ymd(r.updated_at || r.period_end);
+        return payYmd === paidYmd || financeYmdWithinDays(payYmd, paidYmd);
+      });
+      if (byPaid.length) candidates = byPaid;
+    } else if (!saidaYmd && paidYmd) {
       const byPaid = candidates.filter((r) => {
         const payYmd = ymd(r.updated_at || r.period_end);
         const endYmd = ymd(r.period_end);
@@ -1402,7 +1361,7 @@
     const notFoundEntries = [];
     const revertedIds = [];
     for (const entry of entries) {
-      const rec = financePickReceivableForRevertEntry(entry, seen);
+      const rec = financePickReceivableForPlateEntry(entry, seen);
       if (!rec) {
         notFound.push(`${entry.plate} R$ ${entry.valor ?? "?"} saída ${entry.saidaDate ?? entry.paidDate ?? ""}`);
         notFoundEntries.push(entry);
@@ -1430,6 +1389,94 @@
     if (typeof loadReceivables === "function") await loadReceivables();
     if (typeof loadCash === "function") await loadCash();
     return { reverted, failed, skipped, cashRemoved, notFound, notFoundEntries, revertedIds };
+  }
+
+  function financeReceivableHasCaixa(receivableId) {
+    if (typeof receivableCashMovementExists === "function") {
+      return receivableCashMovementExists(receivableId);
+    }
+    return (state.cash || []).some((m) => {
+      if (String(m.conta_id) !== String(receivableId)) return false;
+      const t = String(m.tipo_conta || "").toUpperCase();
+      return t === "RECEBER" || t === "ENTRADA";
+    });
+  }
+
+  async function financeRecoverCashForReceivableClient(rec, entry = {}) {
+    if (!rec?.id || String(rec.status || "").toUpperCase() !== "PAGO") {
+      return { ok: false, error: "not_pago", action: "skipped" };
+    }
+    if (financeReceivableHasCaixa(rec.id)) {
+      return { ok: true, action: "skipped", reason: "already_in_caixa" };
+    }
+    if (typeof registerReceivableCashMovement !== "function") {
+      return { ok: false, error: "register_unavailable", action: "failed" };
+    }
+    const ymd = typeof toLocalYmd === "function" ? toLocalYmd : (v) => String(v || "").slice(0, 10);
+    const dataMov =
+      (entry.paidDate ? ymd(entry.paidDate) : null) ||
+      ymd(rec.updated_at || rec.period_end || rec.created_at) ||
+      ymd(new Date().toISOString());
+    const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(rec.vehicle_id));
+    const result = await registerReceivableCashMovement(rec, {
+      valor: entry.valor != null ? Number(entry.valor) : Number(rec.valor || 0),
+      dataMovimento: dataMov,
+      vehicle,
+    });
+    if (result.error) return { ok: false, error: result.error?.message || "cash_failed", action: "failed" };
+    return { ok: true, action: "created" };
+  }
+
+  async function financeRecoverCashClientBatch(entries) {
+    if (typeof loadReceivables === "function") await loadReceivables();
+    if (typeof loadCash === "function") await loadCash();
+    const seen = new Set();
+    let created = 0;
+    let failed = 0;
+    let skipped = 0;
+    const notFound = [];
+    const notFoundEntries = [];
+    for (const entry of entries) {
+      const rec = financePickReceivableForPlateEntry(entry, seen);
+      if (!rec) {
+        notFound.push(`${entry.plate} R$ ${entry.valor ?? "?"} saída ${entry.saidaDate ?? entry.paidDate ?? ""}`);
+        notFoundEntries.push(entry);
+        continue;
+      }
+      seen.add(String(rec.id));
+      const result = await financeRecoverCashForReceivableClient(rec, entry);
+      if (result.action === "created") created += 1;
+      else if (result.action === "skipped") skipped += 1;
+      else {
+        failed += 1;
+        notFound.push(`${entry.plate}: ${result.error || "falha no caixa"}`);
+      }
+    }
+    if (typeof loadCash === "function") await loadCash();
+    return { created, failed, skipped, notFound, notFoundEntries };
+  }
+
+  async function financeSyncMissingCashClient() {
+    if (typeof loadReceivables === "function") await loadReceivables();
+    if (typeof loadCash === "function") await loadCash();
+    let created = 0;
+    let failed = 0;
+    let skipped = 0;
+    const paid = (state.receivables || []).filter(
+      (r) => String(r.status || "").toUpperCase() === "PAGO" && Number(r.valor || 0) > 0 && r.vehicle_id
+    );
+    for (const rec of paid) {
+      if (financeReceivableHasCaixa(rec.id)) {
+        skipped += 1;
+        continue;
+      }
+      const result = await financeRecoverCashForReceivableClient(rec, {});
+      if (result.action === "created") created += 1;
+      else if (result.action === "skipped") skipped += 1;
+      else failed += 1;
+    }
+    if (typeof loadCash === "function") await loadCash();
+    return { created, failed, skipped };
   }
 
   async function financeRevertToAguardandoViaApi(payload, ui = {}) {
@@ -1522,38 +1569,70 @@
       btn.disabled = true;
       if (ui.btnBusy) btn.textContent = ui.btnBusy;
     }
-    let stats = { created: 0, fixed: 0, failed: 0, markedPaid: 0 };
+    let stats = { created: 0, fixed: 0, failed: 0, markedPaid: 0, skipped: 0, removed: 0 };
+    let notFound = [];
     try {
-      if (typeof callRegisterCashReceivableApi !== "function") {
-        throw new Error("API de caixa indisponível nesta sessão.");
+      if (payload.syncMissing) {
+        const batch = await financeSyncMissingCashClient();
+        stats.created = batch.created;
+        stats.failed = batch.failed;
+        stats.skipped = batch.skipped;
+        if (typeof callRegisterCashReceivableApi === "function") {
+          const api = await callRegisterCashReceivableApi({ syncMissing: true });
+          if (api.ok) {
+            stats.created += Number(api.stats?.created || 0);
+            stats.fixed += Number(api.stats?.updated || api.stats?.fixed || 0);
+            stats.failed += Number(api.stats?.failed || 0);
+            stats.markedPaid += Number(api.stats?.markedPaid || 0);
+            stats.removed += Number(api.stats?.removed || 0);
+            if (typeof loadReceivables === "function") await loadReceivables();
+            if (typeof loadCash === "function") await loadCash();
+          }
+        }
+      } else {
+        const entries = payload.recoverEntries || [];
+        if (!entries.length) throw new Error("Lista vazia para recuperação.");
+        let batch = await financeRecoverCashClientBatch(entries);
+        stats.created = batch.created;
+        stats.failed = batch.failed;
+        stats.skipped = batch.skipped;
+        notFound = batch.notFound || [];
+        if (batch.notFoundEntries?.length && typeof callRegisterCashReceivableApi === "function") {
+          const api = await callRegisterCashReceivableApi({ recoverEntries: batch.notFoundEntries });
+          if (api.ok) {
+            stats.created += Number(api.stats?.created || 0);
+            stats.fixed += Number(api.stats?.updated || api.stats?.fixed || 0);
+            stats.failed += Number(api.stats?.failed || 0);
+            stats.markedPaid += Number(api.stats?.markedPaid || 0);
+            stats.removed += Number(api.stats?.removed || 0);
+            if (Array.isArray(api.notFound)) notFound = api.notFound;
+            if (typeof loadReceivables === "function") await loadReceivables();
+            if (typeof loadCash === "function") await loadCash();
+          }
+        }
       }
-      const api = await callRegisterCashReceivableApi(payload);
-      if (!api.ok) throw new Error(api.error || "Falha ao recuperar caixa.");
-      stats = {
-        created: Number(api.stats?.created || 0),
-        fixed: Number(api.stats?.updated || api.stats?.fixed || 0),
-        failed: Number(api.stats?.failed || 0),
-        markedPaid: Number(api.stats?.markedPaid || 0),
-        removed: Number(api.stats?.removed || 0),
-      };
+
       if (typeof loadReceivables === "function") await loadReceivables();
       if (typeof loadCash === "function") await loadCash();
       if (hint) {
         const missing = financeCountPaidReceivablesSemCaixa();
         const parts = [];
-        if (stats.created > 0) parts.push(`${stats.created} entrada(s) criada(s)`);
+        if (stats.created > 0) parts.push(`${stats.created} entrada(s) criada(s) no caixa`);
         if (stats.fixed > 0) parts.push(`${stats.fixed} corrigida(s)`);
+        if (stats.skipped > 0) parts.push(`${stats.skipped} já tinha(m) caixa ou ignorado(s)`);
         if (stats.markedPaid > 0) parts.push(`${stats.markedPaid} marcada(s) como PAGO`);
         if (stats.removed > 0) parts.push(`${stats.removed} duplicata(s) removida(s)`);
         if (stats.failed > 0) parts.push(`${stats.failed} falha(s)`);
-        if (Array.isArray(api.notFound) && api.notFound.length) {
-          parts.push(`${api.notFound.length} não encontrado(s): ${api.notFound.slice(0, 5).join("; ")}${api.notFound.length > 5 ? "…" : ""}`);
+        if (notFound.length) {
+          parts.push(
+            `${notFound.length} não encontrado(s): ${notFound.slice(0, 5).join("; ")}${notFound.length > 5 ? "…" : ""}`
+          );
         }
         if (parts.length) {
           hint.textContent = `Recuperação concluída: ${parts.join(", ")}.`;
           hint.classList.remove("hidden");
         } else if (missing > 0) {
-          hint.textContent = `${missing} pagamento(s) ainda sem entrada visível no caixa. Confira SUPABASE_SERVICE_ROLE_KEY na Vercel ou execute o SQL de recuperação no Supabase.`;
+          hint.textContent = `${missing} pagamento(s) ainda sem entrada no caixa — tente «Recuperar VRP (lista completa)» ou execute o SQL no Supabase.`;
           hint.classList.remove("hidden");
         } else {
           hint.textContent = "Caixa já estava sincronizado.";
@@ -2408,12 +2487,12 @@
     });
     document.getElementById("finRecebidosRecoverVipPlacas")?.addEventListener("click", () => {
       financeRecoverCashViaApi(
-        { recoverEntries: FINANCE_MAY_2026_VRP_RECOVERY },
+        { recoverEntries: FINANCE_VRP_CAIXA_RECOVERY_ENTRIES },
         {
           hintId: "finRecebidosRecoverHint",
           btnId: "finRecebidosRecoverVipPlacas",
-          btnBusy: "Recuperando maio/26…",
-          btnDefault: "Recuperar VRP maio/26 (lista completa)",
+          btnBusy: "Recuperando caixa…",
+          btnDefault: "Recuperar caixa VRP (lista completa)",
           onDone: () => {
             financeRenderRecebidos();
             financeRenderCaixa();

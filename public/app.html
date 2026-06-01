@@ -5613,7 +5613,7 @@
             <p id="finRecebidosFilterHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <div class="actions" style="margin: 0 0 12px; flex-wrap: wrap; gap: 8px">
               <button type="button" class="secondary" id="finRecebidosSyncCaixa">Recuperar entradas no caixa</button>
-              <button type="button" class="secondary" id="finRecebidosRecoverVipPlacas">Recuperar VRP maio/26 (lista completa)</button>
+              <button type="button" class="secondary" id="finRecebidosRecoverVipPlacas">Recuperar caixa VRP (lista completa)</button>
               <button type="button" class="secondary" id="finRecebidosRevertAguardando">Reverter para aguardando faturamento</button>
             </div>
             <p id="finRecebidosRecoverHint" class="notice hidden" style="margin: 0 0 10px"></p>
@@ -6439,7 +6439,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260531d"></script>
+    <script src="/finance-module.js?v=20260531e"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -14347,7 +14347,7 @@
             );
             if (local) return { data: local, error: null };
           }
-          return { data: { conta_id: receivableId, valor, data_movimento: dataMov }, error: null };
+          // API respondeu ok mas movimento não apareceu — grava direto no Supabase abaixo.
         }
 
         const existingMov = await findExistingReceivableCashMovement(receivableId, uid);

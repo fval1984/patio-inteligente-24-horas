@@ -404,7 +404,20 @@ function pickBestReceivableForEntry(
   if (targetSaida) {
     const bySaida = candidates.filter((r) => toYmd(r.period_end || "") === targetSaida);
     if (bySaida.length) candidates = bySaida;
-  } else if (targetPaid) {
+  }
+  if (targetPaid && candidates.length > 1) {
+    const byPaid = candidates.filter((r) => {
+      const payYmdBr = toYmdBr(r.updated_at);
+      const payYmd = toYmd(r.updated_at || r.period_end || r.created_at);
+      return (
+        payYmdBr === targetPaid ||
+        payYmd === targetPaid ||
+        ymdWithinOneDay(payYmdBr, targetPaid) ||
+        ymdWithinOneDay(payYmd, targetPaid)
+      );
+    });
+    if (byPaid.length) candidates = byPaid;
+  } else if (!targetSaida && targetPaid) {
     const byDate = candidates.filter((r) => {
       const payYmdBr = toYmdBr(r.updated_at);
       const payYmd = toYmd(r.updated_at || r.period_end || r.created_at);
