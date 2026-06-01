@@ -814,46 +814,87 @@
   }
 
   async function financeSyncCaixaFromPaidReceivables() {
-    const btn = document.getElementById("finCaixaSyncBtn");
-    const hint = document.getElementById("finCaixaSyncHint");
+    return financeRecoverCashViaApi({ syncAll: true }, {
+      hintId: "finCaixaSyncHint",
+      btnId: "finCaixaSyncBtn",
+      btnBusy: "Sincronizando…",
+      btnDefault: "Sincronizar caixa",
+      onDone: () => financeRenderCaixa(),
+    });
+  }
+
+  const FINANCE_VIP_RECOVER_PLATES = [
+    "SNO9B38",
+    "SNO8G48",
+    "SNO9D08",
+    "SNO8G38",
+    "SNO7I98",
+    "SNO8H38",
+    "SNO8H58",
+    "SNO8E98",
+    "SNO8C88",
+    "SNO8D68",
+    "SNO8G68",
+    "SNO7F38",
+    "SNO9A58",
+    "SNO8E38",
+  ];
+
+  async function financeRecoverCashViaApi(payload, ui = {}) {
+    const btn = ui.btnId ? document.getElementById(ui.btnId) : null;
+    const hint = ui.hintId ? document.getElementById(ui.hintId) : null;
     const prev = btn?.textContent;
     if (btn) {
       btn.disabled = true;
-      btn.textContent = "Sincronizando…";
+      if (ui.btnBusy) btn.textContent = ui.btnBusy;
     }
-    let stats = { created: 0, fixed: 0, failed: 0 };
+    let stats = { created: 0, fixed: 0, failed: 0, markedPaid: 0 };
     try {
-      if (typeof loadReceivables === "function") await loadReceivables();
-      if (typeof window.syncPaidReceivablesCashMovements === "function") {
-        stats = (await window.syncPaidReceivablesCashMovements()) || stats;
+      if (typeof callRegisterCashReceivableApi !== "function") {
+        throw new Error("API de caixa indisponível nesta sessão.");
       }
+      const api = await callRegisterCashReceivableApi(payload);
+      if (!api.ok) throw new Error(api.error || "Falha ao recuperar caixa.");
+      stats = {
+        created: Number(api.stats?.created || 0),
+        fixed: Number(api.stats?.updated || api.stats?.fixed || 0),
+        failed: Number(api.stats?.failed || 0),
+        markedPaid: Number(api.stats?.markedPaid || 0),
+      };
+      if (typeof loadReceivables === "function") await loadReceivables();
       if (typeof loadCash === "function") await loadCash();
       if (hint) {
         const missing = financeCountPaidReceivablesSemCaixa();
-        if (missing > 0) {
-          hint.textContent = `${missing} pagamento(s) confirmado(s) ainda sem entrada visível no caixa. Verifique permissões no Supabase (tabela cash_movements) ou contacte o suporte.`;
+        const parts = [];
+        if (stats.created > 0) parts.push(`${stats.created} entrada(s) criada(s)`);
+        if (stats.fixed > 0) parts.push(`${stats.fixed} corrigida(s)`);
+        if (stats.markedPaid > 0) parts.push(`${stats.markedPaid} marcada(s) como PAGO`);
+        if (stats.failed > 0) parts.push(`${stats.failed} falha(s)`);
+        if (parts.length) {
+          hint.textContent = `Recuperação concluída: ${parts.join(", ")}.`;
           hint.classList.remove("hidden");
-        } else if (stats.created + stats.fixed > 0) {
-          hint.textContent = `Caixa sincronizado: ${stats.created} entrada(s) criada(s)${stats.fixed ? `, ${stats.fixed} corrigida(s)` : ""}.`;
+        } else if (missing > 0) {
+          hint.textContent = `${missing} pagamento(s) ainda sem entrada visível no caixa. Confira SUPABASE_SERVICE_ROLE_KEY na Vercel ou execute o SQL de recuperação no Supabase.`;
           hint.classList.remove("hidden");
         } else {
-          hint.textContent = "";
-          hint.classList.add("hidden");
+          hint.textContent = "Caixa já estava sincronizado.";
+          hint.classList.remove("hidden");
         }
       }
+      if (typeof renderFinance === "function") renderFinance();
       return stats;
     } catch (e) {
-      console.warn("financeSyncCaixaFromPaidReceivables", e?.message || e);
+      console.warn("financeRecoverCashViaApi", e?.message || e);
       if (hint) {
-        hint.textContent = "Não foi possível sincronizar o caixa agora. Os movimentos já registrados continuam visíveis abaixo.";
+        hint.textContent = e?.message || "Não foi possível recuperar o caixa agora.";
         hint.classList.remove("hidden");
       }
       return stats;
     } finally {
-      financeRenderCaixa();
+      if (typeof ui.onDone === "function") ui.onDone();
       if (btn) {
         btn.disabled = false;
-        btn.textContent = prev || "Sincronizar caixa";
+        btn.textContent = prev || ui.btnDefault || btn.textContent;
       }
     }
   }
@@ -1682,6 +1723,36 @@
     });
     document.getElementById("finCaixaSyncBtn")?.addEventListener("click", () => {
       financeSyncCaixaFromPaidReceivables();
+    });
+    document.getElementById("finRecebidosSyncCaixa")?.addEventListener("click", () => {
+      financeRecoverCashViaApi(
+        { syncAll: true },
+        {
+          hintId: "finRecebidosRecoverHint",
+          btnId: "finRecebidosSyncCaixa",
+          btnBusy: "Recuperando…",
+          btnDefault: "Recuperar entradas no caixa",
+          onDone: () => {
+            financeRenderRecebidos();
+            financeRenderCaixa();
+          },
+        }
+      );
+    });
+    document.getElementById("finRecebidosRecoverVipPlacas")?.addEventListener("click", () => {
+      financeRecoverCashViaApi(
+        { plates: FINANCE_VIP_RECOVER_PLATES },
+        {
+          hintId: "finRecebidosRecoverHint",
+          btnId: "finRecebidosRecoverVipPlacas",
+          btnBusy: "Recuperando VIP…",
+          btnDefault: "Recuperar placas VIP (maio/26)",
+          onDone: () => {
+            financeRenderRecebidos();
+            financeRenderCaixa();
+          },
+        }
+      );
     });
     document.getElementById("finChartPeriod")?.addEventListener("change", () => financeRenderDashboard());
 

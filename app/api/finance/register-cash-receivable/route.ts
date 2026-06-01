@@ -11,7 +11,14 @@ type ReceivableRow = {
   responsavel_pagamento: string | null;
   updated_at: string | null;
   created_at: string | null;
+  period_end?: string | null;
 };
+
+function normalizePlate(p: string) {
+  return String(p || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+}
 
 function toYmd(value: string | null | undefined) {
   if (!value) return new Date().toISOString().slice(0, 10);
@@ -73,7 +80,7 @@ async function upsertCashForReceivable(
   const valor = Number(opts.valor ?? rec.valor ?? 0);
   if (!(valor > 0)) return { ok: true, action: "skipped", reason: "valor_zero" as const };
 
-  const dataYmd = toYmd(opts.dataMovimento || rec.updated_at || rec.created_at);
+  const dataYmd = toYmd(opts.dataMovimento || rec.updated_at || rec.period_end || rec.created_at);
   const isoMov = new Date(`${dataYmd}T12:00:00`).toISOString();
   const formaPagamento = opts.formaPagamento || rec.forma_pagamento || "PIX";
   const placa = opts.vehiclePlaca || "";
@@ -100,15 +107,8 @@ async function upsertCashForReceivable(
       data_movimento: isoMov,
       descricao,
     },
-    {
-      user_id: userId,
-      tipo_conta: "ENTRADA",
-      conta_id: receivableId,
-      valor,
-      data_movimento: dataYmd,
-    },
+    { user_id: userId, tipo_conta: "ENTRADA", conta_id: receivableId, valor, data_movimento: dataYmd },
     { user_id: userId, tipo_conta: "RECEBER", conta_id: receivableId, valor },
-    { user_id: userId, tipo_conta: "ENTRADA", conta_id: receivableId, valor },
   ];
 
   let lastError: string | null = null;
@@ -117,25 +117,28 @@ async function upsertCashForReceivable(
       const { error } = await supabase.from("cash_movements").update(body).eq("id", existing.id).eq("user_id", userId);
       if (!error) return { ok: true, action: "updated" as const, movement: body };
       lastError = error.message;
-      if (!isSchemaError(lastError)) break;
-      continue;
-    }
-    const { error } = await supabase.from("cash_movements").insert(body);
-    if (!error) return { ok: true, action: "created" as const, movement: body };
-    lastError = error.message;
-    if (/duplicate key|unique constraint|23505/i.test(lastError)) {
-      const fresh = await findExistingMovement(supabase, userId, receivableId);
-      if (fresh?.id) {
-        const { error: updErr } = await supabase
-          .from("cash_movements")
-          .update({ valor, data_movimento: dataYmd, descricao, forma_pagamento: formaPagamento })
-          .eq("id", fresh.id)
-          .eq("user_id", userId);
-        if (!updErr) return { ok: true, action: "updated" as const, movement: body };
-        lastError = updErr.message;
+    } else {
+      const { error } = await supabase.from("cash_movements").insert(body);
+      if (!error) {
+        const verified = await findExistingMovement(supabase, userId, receivableId);
+        if (verified) return { ok: true, action: "created" as const, movement: verified };
+        return { ok: true, action: "created" as const, movement: body };
+      }
+      lastError = error.message;
+      if (/duplicate key|unique constraint|23505/i.test(lastError)) {
+        const fresh = await findExistingMovement(supabase, userId, receivableId);
+        if (fresh?.id) {
+          const { error: updErr } = await supabase
+            .from("cash_movements")
+            .update({ valor, data_movimento: dataYmd, descricao, forma_pagamento: formaPagamento })
+            .eq("id", fresh.id)
+            .eq("user_id", userId);
+          if (!updErr) return { ok: true, action: "updated" as const, movement: body };
+          lastError = updErr.message;
+        }
       }
     }
-    if (!isSchemaError(lastError)) break;
+    if (!isSchemaError(lastError || "")) break;
   }
 
   const verified = await findExistingMovement(supabase, userId, receivableId);
@@ -144,12 +147,134 @@ async function upsertCashForReceivable(
   return { ok: false, action: "failed" as const, error: lastError || "Não foi possível gravar movimento no caixa." };
 }
 
+async function ensureReceivableMarkedPaid(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  receivableId: string
+) {
+  const patch = {
+    status: "PAGO",
+    financeiro_aprovado_contas_receber: true,
+    updated_at: new Date().toISOString(),
+  };
+  let { error } = await supabase.from("receivables").update(patch).eq("id", receivableId).eq("user_id", userId);
+  if (error && isSchemaError(error.message || "")) {
+    ({ error } = await supabase
+      .from("receivables")
+      .update({ status: "PAGO", updated_at: patch.updated_at })
+      .eq("id", receivableId)
+      .eq("user_id", userId));
+  }
+  return !error;
+}
+
+async function loadPlacaMap(supabase: ReturnType<typeof getSupabaseAdmin>, userId: string, vehicleIds: string[]) {
+  const placaByVehicle = new Map<string, string>();
+  if (!vehicleIds.length) return placaByVehicle;
+  const { data: vehicles } = await supabase.from("vehicles").select("id,placa").eq("user_id", userId).in("id", vehicleIds);
+  for (const v of vehicles || []) {
+    if (v?.id) placaByVehicle.set(String(v.id), String(v.placa || ""));
+  }
+  return placaByVehicle;
+}
+
+/** Último ciclo encerrado por veículo VRP (para recuperar pagamentos confirmados sem caixa). */
+async function loadVrpReceivablesToRecover(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  plateFilter?: string[]
+) {
+  const { data: vehicles, error: vErr } = await supabase
+    .from("vehicles")
+    .select("id,placa,status,data_saida")
+    .eq("user_id", userId)
+    .eq("status", "REMOVIDO");
+  if (vErr) throw new Error(vErr.message);
+
+  let matched = vehicles || [];
+  if (plateFilter?.length) {
+    const wanted = new Set(plateFilter.map(normalizePlate));
+    matched = matched.filter((v) => wanted.has(normalizePlate(String(v.placa || ""))));
+  }
+  const vehicleIds = matched.map((v) => v.id).filter(Boolean);
+  if (!vehicleIds.length) return { receivables: [] as ReceivableRow[], placaByVehicle: new Map<string, string>() };
+
+  const { data: recs, error: rErr } = await supabase
+    .from("receivables")
+    .select(
+      "id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at,period_end"
+    )
+    .eq("user_id", userId)
+    .in("vehicle_id", vehicleIds)
+    .not("period_end", "is", null)
+    .gt("valor", 0)
+    .order("created_at", { ascending: false });
+  if (rErr) throw new Error(rErr.message);
+
+  const byVehicle = new Map<string, ReceivableRow>();
+  for (const r of recs || []) {
+    if (!r?.vehicle_id) continue;
+    const key = String(r.vehicle_id);
+    if (!byVehicle.has(key)) byVehicle.set(key, r as ReceivableRow);
+  }
+
+  const placaByVehicle = new Map<string, string>();
+  for (const v of matched) {
+    if (v?.id) placaByVehicle.set(String(v.id), String(v.placa || ""));
+  }
+
+  return { receivables: [...byVehicle.values()], placaByVehicle };
+}
+
+async function processReceivableBatch(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  receivables: ReceivableRow[],
+  placaByVehicle: Map<string, string>,
+  opts: { markUnpaidAsPaid?: boolean } = {}
+) {
+  let created = 0;
+  let updated = 0;
+  let failed = 0;
+  let skipped = 0;
+  let markedPaid = 0;
+
+  for (const rec of receivables) {
+    let current = { ...rec };
+    if (opts.markUnpaidAsPaid && String(current.status || "").toUpperCase() !== "PAGO") {
+      const ok = await ensureReceivableMarkedPaid(supabase, userId, current.id);
+      if (ok) {
+        current.status = "PAGO";
+        markedPaid += 1;
+      }
+    }
+    if (String(current.status || "").toUpperCase() !== "PAGO") {
+      skipped += 1;
+      continue;
+    }
+    const result = await upsertCashForReceivable(supabase, userId, current, {
+      vehiclePlaca: current.vehicle_id ? placaByVehicle.get(String(current.vehicle_id)) || null : null,
+      dataMovimento: toYmd(current.period_end || current.updated_at || current.created_at),
+    });
+    if (!result.ok) failed += 1;
+    else if (result.action === "created" || result.action === "verified") created += 1;
+    else if (result.action === "updated") updated += 1;
+    else if (result.action === "skipped") skipped += 1;
+  }
+
+  return { created, updated, failed, skipped, markedPaid, total: receivables.length };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const userId = String(body?.userId || "").trim();
     const receivableId = String(body?.receivableId || "").trim();
     const syncAll = body?.syncAll === true;
+    const recoverVrp = body?.recoverVrp === true;
+    const plates = Array.isArray(body?.plates)
+      ? body.plates.map((p: unknown) => normalizePlate(String(p || ""))).filter(Boolean)
+      : [];
 
     if (!userId) {
       return NextResponse.json({ error: "userId é obrigatório." }, { status: 400 });
@@ -157,10 +282,27 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
+    if (recoverVrp || plates.length > 0) {
+      const { receivables, placaByVehicle } = await loadVrpReceivablesToRecover(
+        supabase,
+        userId,
+        plates.length ? plates : undefined
+      );
+      const stats = await processReceivableBatch(supabase, userId, receivables, placaByVehicle, {
+        markUnpaidAsPaid: true,
+      });
+      return NextResponse.json({
+        ok: true,
+        recoverVrp: true,
+        plates: plates.length ? plates : undefined,
+        stats: { ...stats, fixed: stats.updated },
+      });
+    }
+
     if (syncAll) {
       const { data: paid, error: paidErr } = await supabase
         .from("receivables")
-        .select("id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at")
+        .select("id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at,period_end")
         .eq("user_id", userId)
         .eq("status", "PAGO");
       if (paidErr) {
@@ -168,42 +310,47 @@ export async function POST(request: NextRequest) {
       }
 
       const vehicleIds = [...new Set((paid || []).map((r) => r.vehicle_id).filter(Boolean))] as string[];
-      const placaByVehicle = new Map<string, string>();
-      if (vehicleIds.length) {
-        const { data: vehicles } = await supabase.from("vehicles").select("id,placa").eq("user_id", userId).in("id", vehicleIds);
-        for (const v of vehicles || []) {
-          if (v?.id) placaByVehicle.set(String(v.id), String(v.placa || ""));
-        }
-      }
+      const placaByVehicle = await loadPlacaMap(supabase, userId, vehicleIds);
+      const stats = await processReceivableBatch(supabase, userId, (paid || []) as ReceivableRow[], placaByVehicle);
 
-      let created = 0;
-      let updated = 0;
-      let failed = 0;
-      let skipped = 0;
-      for (const rec of paid || []) {
-        const result = await upsertCashForReceivable(supabase, userId, rec as ReceivableRow, {
-          vehiclePlaca: rec.vehicle_id ? placaByVehicle.get(String(rec.vehicle_id)) || null : null,
+      const { receivables: vrpMissing, placaByVehicle: vrpPlacaMap } = await loadVrpReceivablesToRecover(
+        supabase,
+        userId
+      );
+      const vrpWithoutCash: ReceivableRow[] = [];
+      for (const r of vrpMissing) {
+        const mov = await findExistingMovement(supabase, userId, r.id);
+        if (!mov) vrpWithoutCash.push(r);
+      }
+      let vrpStats = { created: 0, updated: 0, failed: 0, skipped: 0, markedPaid: 0, total: 0 };
+      if (vrpWithoutCash.length) {
+        vrpStats = await processReceivableBatch(supabase, userId, vrpWithoutCash, vrpPlacaMap, {
+          markUnpaidAsPaid: true,
         });
-        if (!result.ok) failed += 1;
-        else if (result.action === "created" || result.action === "verified") created += 1;
-        else if (result.action === "updated") updated += 1;
-        else if (result.action === "skipped") skipped += 1;
       }
 
       return NextResponse.json({
         ok: true,
         syncAll: true,
-        stats: { created, updated, fixed: updated, failed, skipped, total: (paid || []).length },
+        stats: {
+          created: stats.created + vrpStats.created,
+          updated: stats.updated + vrpStats.updated,
+          fixed: stats.updated + vrpStats.updated,
+          failed: stats.failed + vrpStats.failed,
+          skipped: stats.skipped + vrpStats.skipped,
+          markedPaid: vrpStats.markedPaid,
+          total: stats.total + vrpStats.total,
+        },
       });
     }
 
     if (!receivableId) {
-      return NextResponse.json({ error: "receivableId é obrigatório (ou use syncAll: true)." }, { status: 400 });
+      return NextResponse.json({ error: "receivableId é obrigatório (ou use syncAll / recoverVrp / plates)." }, { status: 400 });
     }
 
     const { data: rec, error: recErr } = await supabase
       .from("receivables")
-      .select("id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at")
+      .select("id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at,period_end")
       .eq("user_id", userId)
       .eq("id", receivableId)
       .maybeSingle();

@@ -5551,7 +5551,12 @@
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="recebidos">
-            <p class="notice" style="margin: 0 0 10px">Pagamentos confirmados (inclui veículos do VRP). Se faltar entrada no Caixa, clique em <strong>Sincronizar caixa</strong> na aba Caixa.</p>
+            <p class="notice" style="margin: 0 0 10px">Pagamentos confirmados (inclui veículos do VRP). Se faltar entrada no Caixa, use os botões abaixo.</p>
+            <div class="actions" style="margin: 0 0 12px; flex-wrap: wrap; gap: 8px">
+              <button type="button" class="secondary" id="finRecebidosSyncCaixa">Recuperar entradas no caixa</button>
+              <button type="button" class="secondary" id="finRecebidosRecoverVipPlacas">Recuperar placas VIP (maio/26)</button>
+            </div>
+            <p id="finRecebidosRecoverHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <p><strong>Total recebido:</strong> <span id="finRecebidosTotal">R$ 0,00</span></p>
             <div class="table-wrap section-card">
               <table class="table">
@@ -6366,7 +6371,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260528t"></script>
+    <script src="/finance-module.js?v=20260528u"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
