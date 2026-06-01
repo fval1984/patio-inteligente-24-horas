@@ -1,5 +1,5 @@
--- Remove entradas duplicadas no caixa (mesmo veículo + data + valor).
--- Execute no SQL Editor do Supabase se o caixa de abril ainda estiver inflado.
+-- Remove entradas duplicadas no caixa (mesmo recebível ou, sem vínculo, veículo + data + valor).
+-- Execute no SQL Editor do Supabase se houver duplicatas reais.
 
 WITH movs AS (
   SELECT
@@ -26,7 +26,7 @@ ranked AS (
     id,
     ROW_NUMBER() OVER (
       PARTITION BY
-        COALESCE(vehicle_id::text, placa_key, conta_id::text),
+        COALESCE(conta_id::text, vehicle_id::text, placa_key, id::text),
         mov_date,
         round(COALESCE(valor, 0)::numeric, 2)
       ORDER BY tipo_rank DESC, created_at DESC, id DESC

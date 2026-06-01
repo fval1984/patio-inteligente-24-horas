@@ -615,13 +615,13 @@
   }
 
   function financeCashMovEntradaBusinessKey(mov) {
+    if (mov?.conta_id != null && mov.conta_id !== "") return `c:${String(mov.conta_id)}`;
     const ymd = toLocalYmd(mov?.data_movimento || mov?.created_at) || "";
     const valorKey = Math.round(Number(mov?.valor ?? 0) * 100);
     const rec = financeCashMovLinkedReceivable(mov);
     if (rec?.vehicle_id) return `v:${String(rec.vehicle_id)}|${ymd}|${valorKey}`;
     const placa = financePlacaFromCashDesc(mov?.descricao);
     if (placa) return `p:${placa}|${ymd}|${valorKey}`;
-    if (mov?.conta_id != null && mov.conta_id !== "") return `c:${String(mov.conta_id)}`;
     return `id:${mov?.id || Math.random()}`;
   }
 
@@ -1130,13 +1130,10 @@
   async function financeEnsureMissingCashInCaixa() {
     if (!financeCaixaMissingSyncPromise) {
       financeCaixaMissingSyncPromise = (async () => {
-        if (typeof callRegisterCashReceivableApi !== "function") return;
         try {
-          const api = await callRegisterCashReceivableApi({ syncMissing: true });
-          if (api?.ok) {
-            if (typeof loadReceivables === "function") await loadReceivables();
-            if (typeof loadCash === "function") await loadCash();
-          }
+          await financeSyncMissingCashClient();
+          if (typeof loadReceivables === "function") await loadReceivables();
+          if (typeof loadCash === "function") await loadCash();
         } catch (e) {
           console.warn("financeEnsureMissingCashInCaixa", e?.message || e);
         }
@@ -1585,6 +1582,56 @@
     return { created, failed, skipped };
   }
 
+  async function financeSyncMissingCashForPeriod(periodoYm) {
+    if (typeof loadReceivables === "function") await loadReceivables();
+    if (typeof loadCash === "function") await loadCash();
+    let created = 0;
+    let failed = 0;
+    let skipped = 0;
+    const paid = (state.receivables || []).filter((r) => {
+      if (String(r.status || "").toUpperCase() !== "PAGO") return false;
+      if (!(Number(r.valor || 0) > 0)) return false;
+      if (!r.vehicle_id) return false;
+      if (!periodoYm) return true;
+      const ymd = toLocalYmd(r.updated_at || r.period_end || r.created_at);
+      return yearMonthFromYmd(ymd) === periodoYm;
+    });
+    for (const rec of paid) {
+      if (financeReceivableHasCaixa(rec.id)) {
+        skipped += 1;
+        continue;
+      }
+      const result = await financeRecoverCashForReceivableClient(rec, {});
+      if (result.action === "created") created += 1;
+      else if (result.action === "skipped") skipped += 1;
+      else failed += 1;
+    }
+    if (typeof loadCash === "function") await loadCash();
+    return { created, failed, skipped, total: paid.length };
+  }
+
+  async function financeRecoverCaixaMaio2026() {
+    const periodoYm = "2026-05";
+    const ok = window.confirm(
+      "Recuperar entradas no caixa de maio/2026?\n\n" +
+        "Serão criadas entradas apenas para pagamentos ainda com status PAGO e valor > 0, " +
+        "sem apagar movimentações existentes.\n\n" +
+        "Registros já revertidos para «Aguardando faturamento» não entram no caixa — " +
+        "dê baixa neles novamente pelo fluxo normal."
+    );
+    if (!ok) return;
+    return financeRecoverCashViaApi(
+      { syncMissingForPeriod: periodoYm },
+      {
+        hintId: "finCaixaSyncHint",
+        btnId: "finCaixaRecoverMaioBtn",
+        btnBusy: "Recuperando maio/2026…",
+        btnDefault: "Recuperar entradas maio/2026",
+        onDone: () => financeRenderCaixa(),
+      }
+    );
+  }
+
   async function financeRevertToAguardandoViaApi(payload, ui = {}) {
     const btn = ui.btnId ? document.getElementById(ui.btnId) : null;
     const hint = ui.hintId ? document.getElementById(ui.hintId) : null;
@@ -1678,13 +1725,29 @@
     let stats = { created: 0, fixed: 0, failed: 0, markedPaid: 0, skipped: 0, removed: 0 };
     let notFound = [];
     try {
-      if (payload.syncMissing) {
+      if (payload.syncMissingForPeriod) {
+        const batch = await financeSyncMissingCashForPeriod(payload.syncMissingForPeriod);
+        stats.created = batch.created;
+        stats.failed = batch.failed;
+        stats.skipped = batch.skipped;
+        if (typeof callRegisterCashReceivableApi === "function") {
+          const api = await callRegisterCashReceivableApi({ syncMissing: true, skipDedupe: true });
+          if (api.ok) {
+            stats.created += Number(api.stats?.created || 0);
+            stats.fixed += Number(api.stats?.updated || api.stats?.fixed || 0);
+            stats.failed += Number(api.stats?.failed || 0);
+            stats.markedPaid += Number(api.stats?.markedPaid || 0);
+            if (typeof loadReceivables === "function") await loadReceivables();
+            if (typeof loadCash === "function") await loadCash();
+          }
+        }
+      } else if (payload.syncMissing) {
         const batch = await financeSyncMissingCashClient();
         stats.created = batch.created;
         stats.failed = batch.failed;
         stats.skipped = batch.skipped;
         if (typeof callRegisterCashReceivableApi === "function") {
-          const api = await callRegisterCashReceivableApi({ syncMissing: true });
+          const api = await callRegisterCashReceivableApi({ syncMissing: true, skipDedupe: true });
           if (api.ok) {
             stats.created += Number(api.stats?.created || 0);
             stats.fixed += Number(api.stats?.updated || api.stats?.fixed || 0);
@@ -2576,6 +2639,9 @@
     document.getElementById("finCaixaSyncBtn")?.addEventListener("click", () => {
       financeSyncCaixaFromPaidReceivables();
     });
+    document.getElementById("finCaixaRecoverMaioBtn")?.addEventListener("click", () => {
+      financeRecoverCaixaMaio2026();
+    });
     document.getElementById("finRecebidosSyncCaixa")?.addEventListener("click", () => {
       financeRecoverCashViaApi(
         { syncMissing: true },
@@ -2595,7 +2661,7 @@
       const n = FINANCE_REVERT_TO_AGUARDANDO_ENTRIES.length;
       const ok = window.confirm(
         `Corrigir ${n} registro(s) da lista VRP?\n\n` +
-          "Pagamentos que saíram de «Contas a receber» sem entrar no caixa voltarão para «Aguardando faturamento». " +
+          "Pagamentos voltarão para «Aguardando faturamento» e as entradas correspondentes no caixa serão removidas. " +
           "Depois você aprova e dá baixa novamente pelo fluxo normal."
       );
       if (!ok) return;
@@ -2620,7 +2686,7 @@
       const n = FINANCE_ZERO_VALOR_PAGO_FIX_ENTRIES.length;
       const ok = window.confirm(
         `Corrigir ${n} pagamento(s) com R$ 0,00 e sem caixa?\n\n` +
-          "Cada registro voltará para «Aguardando faturamento» com o valor recalculado (diárias do pátio). " +
+          "Cada registro voltará para «Aguardando faturamento» (valor recalculado) e a entrada no caixa será removida, se existir. " +
           "Depois aprove e dê baixa novamente."
       );
       if (!ok) return;

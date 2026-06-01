@@ -154,11 +154,15 @@ async function cleanupDuplicateCashEntradas(supabase: ReturnType<typeof getSupab
     const valorKey = Math.round(Number(mov.valor || 0) * 100);
     const vehicleId = mov.conta_id ? vehicleByRec.get(String(mov.conta_id)) : null;
     const placa = placaFromDescricao(mov.descricao);
-    const key = vehicleId
-      ? `v:${vehicleId}|${ymd}|${valorKey}`
-      : placa
-        ? `p:${placa}|${ymd}|${valorKey}`
-        : `c:${mov.conta_id || mov.id}`;
+    // conta_id primeiro: evita apagar entradas distintas do mesmo veículo/data/valor
+    const key =
+      mov.conta_id != null && mov.conta_id !== ""
+        ? `c:${String(mov.conta_id)}`
+        : vehicleId
+          ? `v:${vehicleId}|${ymd}|${valorKey}`
+          : placa
+            ? `p:${placa}|${ymd}|${valorKey}`
+            : `id:${mov.id}`;
     const bucket = groups.get(key) || [];
     bucket.push(mov);
     groups.set(key, bucket);
@@ -676,7 +680,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (syncMissing) {
-      const cleanupBefore = await cleanupDuplicateCashEntradas(supabase, userId);
+      const cleanupBefore = { removed: 0 };
       const { data: paid, error: paidErr } = await supabase
         .from("receivables")
         .select("id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at,period_end")
@@ -702,7 +706,7 @@ export async function POST(request: NextRequest) {
         if (!mov) missingById.set(r.id, r);
       }
 
-      const targets = dedupePaidReceivablesByVehicle([...missingById.values()]);
+      const targets = [...missingById.values()];
       const vehicleIds = [...new Set(targets.map((r) => r.vehicle_id).filter(Boolean))] as string[];
       const placaByVehicle = await loadPlacaMap(supabase, userId, vehicleIds);
       for (const [vid, placa] of vrpPlacaMap.entries()) {
@@ -712,7 +716,7 @@ export async function POST(request: NextRequest) {
       const stats = await processReceivableBatch(supabase, userId, targets, placaByVehicle, {
         markUnpaidAsPaid: true,
       });
-      const cleanupAfter = await cleanupDuplicateCashEntradas(supabase, userId);
+      const cleanupAfter = { removed: 0 };
       return NextResponse.json({
         ok: true,
         syncMissing: true,
@@ -738,7 +742,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (recoverEntries.length > 0) {
-      await cleanupDuplicateCashEntradas(supabase, userId);
       const loaded = await loadReceivablesFromRecoverEntries(supabase, userId, recoverEntries);
       const stats = await processReceivableBatch(supabase, userId, loaded.receivables, loaded.placaByVehicle, {
         markUnpaidAsPaid: true,
