@@ -24,8 +24,6 @@
   let financeFilterAguardandoDataAte = "";
   let financeFilterReceberDataDe = "";
   let financeFilterReceberDataAte = "";
-  let financeFilterRecebidosDataDe = "";
-  let financeFilterRecebidosDataAte = "";
   let financeFilterCaixaDataDe = "";
   let financeFilterCaixaDataAte = "";
   let refreshFinanceDataPromise = null;
@@ -318,21 +316,6 @@
     }
   }
 
-  function financeSyncRecebidosFiltersFromDom() {
-    financeFilterRecebidosDataDe = document.getElementById("finRecebidosDataDe")?.value || "";
-    financeFilterRecebidosDataAte = document.getElementById("finRecebidosDataAte")?.value || "";
-    const busca = (document.getElementById("finRecebidosDataBusca")?.value || "").trim();
-    const parsed = financeParseDateRangeText(busca);
-    if (parsed) {
-      financeFilterRecebidosDataDe = parsed.de;
-      financeFilterRecebidosDataAte = parsed.ate;
-      const deEl = document.getElementById("finRecebidosDataDe");
-      const ateEl = document.getElementById("finRecebidosDataAte");
-      if (deEl) deEl.value = parsed.de;
-      if (ateEl) ateEl.value = parsed.ate;
-    }
-  }
-
   function financeSyncCaixaFiltersFromDom() {
     financeFilterPeriodo = document.getElementById("finFilterPeriodo")?.value || "";
     financeFilterCaixaDataDe = document.getElementById("finCaixaDataDe")?.value || "";
@@ -542,26 +525,6 @@
 
   function financeHistoricoRecebidos() {
     return (state.receivables || []).filter((r) => r.status === "PAGO" && r.vehicle_id);
-  }
-
-  function financeContasRecebidasList() {
-    const vmap = financeVehicleById();
-    const de = (financeFilterRecebidosDataDe || "").trim();
-    const ate = (financeFilterRecebidosDataAte || "").trim();
-    let list = financeDedupePatioReceivables(
-      (state.receivables || []).filter((r) => String(r.status || "").toUpperCase() === "PAGO")
-    );
-    if (de || ate) {
-      list = list.filter((r) => {
-        const payYmd = toLocalYmd(r.updated_at || r.period_end || r.created_at) || "";
-        const v = vmap.get(r.vehicle_id);
-        const saidaYmd = r.vehicle_id ? financeReceivableSaidaYmd(r, v) : payYmd;
-        return financeYmdInRange(saidaYmd, de, ate) || financeYmdInRange(payYmd, de, ate);
-      });
-    }
-    return list
-      .sort((a, b) => String(b.updated_at || b.created_at).localeCompare(String(a.updated_at || a.created_at)))
-      .map((r) => ({ r, v: vmap.get(r.vehicle_id) }));
   }
 
   function financeCashIsEntrada(mov) {
@@ -997,56 +960,6 @@
               <button type="button" class="secondary fin-btn-aguardando-voltar" data-fin-aguardando-voltar="${escapeHtml(String(r.id))}">Voltar</button>
             </div>
           </td>
-        </tr>`;
-      })
-      .join("");
-  }
-
-  function financeRenderRecebidos() {
-    financeSyncRecebidosFiltersFromDom();
-    const body = document.getElementById("finRecebidosBody");
-    const totalEl = document.getElementById("finRecebidosTotal");
-    const hint = document.getElementById("finRecebidosFilterHint");
-    if (!body) return;
-    const list = financeContasRecebidasList();
-    const de = (financeFilterRecebidosDataDe || "").trim();
-    const ate = (financeFilterRecebidosDataAte || "").trim();
-    if (hint) {
-      if (de || ate) {
-        hint.textContent = `Filtro — recebido em: ${de ? formatDate(de) : "…"} — ${ate ? formatDate(ate) : "…"}`;
-        hint.classList.remove("hidden");
-      } else {
-        hint.textContent = "";
-        hint.classList.add("hidden");
-      }
-    }
-    if (totalEl) totalEl.textContent = formatCurrency(list.reduce((s, x) => s + Number(x.r.valor || 0), 0));
-    if (!list.length) {
-      body.innerHTML = `<tr><td colspan="6" class="notice">${
-        de || ate ? "Nenhum pagamento confirmado no intervalo de datas informado." : "Nenhum pagamento confirmado ainda."
-      }</td></tr>`;
-      return;
-    }
-    body.innerHTML = list
-      .map(({ r, v }) => {
-        const saida = v?.data_saida || r.period_end;
-        const noCaixa =
-          typeof receivableCashMovementExists === "function"
-            ? !receivableCashMovementExists(r.id)
-            : !(state.cash || []).some(
-                (m) =>
-                  String(m.conta_id) === String(r.id) &&
-                  (String(m.tipo_conta || "").toUpperCase() === "RECEBER" ||
-                    String(m.tipo_conta || "").toUpperCase() === "ENTRADA")
-              );
-        const valorZero = Number(r.valor || 0) < 0.01;
-        return `<tr>
-          <td data-label="Veículo / RPV"><strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span></td>
-          <td data-label="RPP">${escapeHtml(r.responsavel_pagamento || financeReceberRppNome(r, v))}</td>
-          <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
-          <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}${valorZero ? `<br /><span class="notice">Valor zerado — use «Corrigir R$ 0 → caixa» (topo do Financeiro, Caixa ou Lista)</span>` : ""}</td>
-          <td data-label="Recebido em">${escapeHtml(formatDateTime(r.updated_at || r.created_at))}</td>
-          <td data-label="Status"><span class="fin-tag fin-tag--ok">Recebido</span>${noCaixa ? `<br /><span class="notice">Sem entrada no caixa</span>` : ""}</td>
         </tr>`;
       })
       .join("");
@@ -2609,13 +2522,18 @@
     window.print();
   }
 
-  const FINANCE_SUBVIEWS = ["dashboard", "em_patio", "aguardando", "receber", "recebidos", "pagar", "caixa"];
+  const FINANCE_SUBVIEWS = ["dashboard", "em_patio", "aguardando", "receber", "pagar", "caixa"];
+
+  function financeNormalizeFinanceView(view) {
+    if (view === "recebidos") return "caixa";
+    if (view === "recorrentes") return "pagar";
+    return view;
+  }
 
   function financeRenderSubviewContent(view) {
     if (view === "dashboard") financeRenderDashboard();
     else if (view === "em_patio") financeRenderEmPatio();
     else if (view === "receber") financeRenderReceber();
-    else if (view === "recebidos") financeRenderRecebidos();
     else if (view === "aguardando") financeRenderAguardando();
     else if (view === "pagar") financeRenderPagar();
     else if (view === "caixa") financeRenderCaixa();
@@ -2623,7 +2541,7 @@
 
   function financeActivateSubview(view, opts = {}) {
     if (!view || view === "none") return;
-    const resolved = view === "recorrentes" ? "pagar" : view;
+    const resolved = financeNormalizeFinanceView(view);
     if (!FINANCE_SUBVIEWS.includes(resolved)) return;
     currentFinanceView = resolved;
     if (view === "recorrentes") {
@@ -2794,7 +2712,6 @@
         onDone:
           ui.onDone ||
           (() => {
-            financeRenderRecebidos();
             financeRenderCaixa();
             if (typeof renderListaPanel === "function") renderListaPanel();
           }),
@@ -2845,7 +2762,6 @@
           btnBusy: "Recuperando…",
           btnDefault: "Recuperar entradas no caixa",
           onDone: () => {
-            financeRenderRecebidos();
             financeRenderCaixa();
           },
         }
@@ -2868,20 +2784,12 @@
           btnDefault: "Corrigir lista VRP → Aguardando faturamento",
           openAguardando: true,
           onDone: () => {
-            financeRenderRecebidos();
             financeRenderAguardando();
             financeRenderReceber();
             financeRenderCaixa();
           },
         }
       );
-    });
-    document.getElementById("finRecebidosFixZeroValor")?.addEventListener("click", () => {
-      financeStartFixZeroValorPago({
-        hintId: "finRecebidosRecoverHint",
-        btnId: "finRecebidosFixZeroValor",
-        btnDefault: "Corrigir valores R$ 0 e enviar ao caixa",
-      });
     });
     document.getElementById("finToolbarFixZeroValor")?.addEventListener("click", () => {
       financeStartFixZeroValorPago({
@@ -2896,7 +2804,6 @@
         btnId: "finCaixaFixZeroValor",
         btnDefault: "Corrigir R$ 0 → caixa",
         onDone: () => {
-          financeRenderRecebidos();
           financeRenderCaixa();
         },
       });
@@ -2907,7 +2814,6 @@
         btnDefault: "Corrigir R$ 0 → caixa",
         onDone: () => {
           if (typeof renderListaPanel === "function") renderListaPanel();
-          financeRenderRecebidos();
           financeRenderCaixa();
         },
       });
@@ -2955,28 +2861,6 @@
         if (currentFinanceView === "receber") financeRenderReceber();
       });
     });
-    document.getElementById("finRecebidosFilterForm")?.addEventListener("submit", (e) => {
-      e.preventDefault();
-      if (currentFinanceView === "recebidos") financeRenderRecebidos();
-    });
-    ["finRecebidosDataDe", "finRecebidosDataAte", "finRecebidosDataBusca"].forEach((id) => {
-      document.getElementById(id)?.addEventListener("change", () => {
-        if (currentFinanceView === "recebidos") financeRenderRecebidos();
-      });
-      document.getElementById(id)?.addEventListener("search", () => {
-        if (currentFinanceView === "recebidos") financeRenderRecebidos();
-      });
-    });
-    document.getElementById("finRecebidosFilterClear")?.addEventListener("click", () => {
-      ["finRecebidosDataDe", "finRecebidosDataAte", "finRecebidosDataBusca"].forEach((id) => {
-        const el = document.getElementById(id);
-        if (el) el.value = "";
-      });
-      financeFilterRecebidosDataDe = "";
-      financeFilterRecebidosDataAte = "";
-      if (currentFinanceView === "recebidos") financeRenderRecebidos();
-    });
-
     document.getElementById("finCaixaFilterApply")?.addEventListener("click", () => financeRenderCaixa());
     document.getElementById("finCaixaFilterClear")?.addEventListener("click", () => {
       ["finCaixaDataDe", "finCaixaDataAte", "finCaixaDataBusca", "finFilterPeriodo"].forEach((id) => {

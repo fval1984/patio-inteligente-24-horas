@@ -4757,7 +4757,6 @@
                   <button type="button" data-finance-subview="em_patio">Veículos no pátio</button>
                   <button type="button" data-finance-subview="aguardando">Aguardando faturamento</button>
                   <button type="button" data-finance-subview="receber">Contas a receber</button>
-                  <button type="button" data-finance-subview="recebidos">Recebidos</button>
                   <button type="button" data-finance-subview="pagar">Contas a pagar</button>
                   <button type="button" data-finance-subview="caixa">Caixa</button>
                 </div>
@@ -5466,10 +5465,10 @@
             <button type="button" data-finance-subview-btn="em_patio">Veículos no pátio</button>
             <button type="button" data-finance-subview-btn="aguardando">Aguardando faturamento</button>
             <button type="button" data-finance-subview-btn="receber">Contas a receber</button>
-            <button type="button" data-finance-subview-btn="recebidos">Recebidos</button>
             <button type="button" data-finance-subview-btn="pagar">Contas a pagar</button>
             <button type="button" data-finance-subview-btn="caixa">Caixa</button>
           </div>
+          <p id="finRecebidosRecoverHint" class="notice hidden" style="margin: 0 0 10px"></p>
 
           <div class="finance-subview" data-finance-subview="dashboard">
             <div class="fin-cards" id="finDashCards"></div>
@@ -5598,36 +5597,6 @@
             </div>
           </div>
 
-          <div class="finance-subview hidden" data-finance-subview="recebidos">
-            <p class="notice" style="margin: 0 0 10px">Pagamentos confirmados sem entrada no caixa devem voltar para <strong>Aguardando faturamento</strong> para dar baixa novamente. Use o botão de correção da lista VRP abaixo.</p>
-            <div class="fin-toolbar">
-              <form id="finRecebidosFilterForm" action="#" novalidate style="display: contents">
-                <div class="fin-filter-busca-datas" style="flex: 1 1 100%; min-width: min(100%, 320px)">
-                  <label for="finRecebidosDataBusca">Buscar por datas</label>
-                  <input id="finRecebidosDataBusca" type="search" placeholder="Ex.: 15/04/2026 a 01/05/2026 (saída ou recebimento)" autocomplete="off" />
-                </div>
-                <div><label for="finRecebidosDataDe">De</label><input id="finRecebidosDataDe" type="date" /></div>
-                <div><label for="finRecebidosDataAte">Até</label><input id="finRecebidosDataAte" type="date" /></div>
-                <div style="align-self: flex-end"><button type="submit">OK</button></div>
-                <div style="align-self: flex-end"><button type="button" class="secondary" id="finRecebidosFilterClear">Limpar</button></div>
-              </form>
-            </div>
-            <p id="finRecebidosFilterHint" class="notice hidden" style="margin: 0 0 10px"></p>
-            <div class="actions" style="margin: 0 0 12px; flex-wrap: wrap; gap: 8px">
-              <button type="button" id="finRecebidosRevertListaVrp">Corrigir lista VRP → Aguardando faturamento</button>
-              <button type="button" id="finRecebidosFixZeroValor">Corrigir valores R$ 0 e enviar ao caixa</button>
-              <button type="button" class="secondary" id="finRecebidosSyncCaixa">Recuperar outras entradas no caixa</button>
-            </div>
-            <p id="finRecebidosRecoverHint" class="notice hidden" style="margin: 0 0 10px"></p>
-            <p><strong>Total recebido:</strong> <span id="finRecebidosTotal">R$ 0,00</span></p>
-            <div class="table-wrap section-card">
-              <table class="table">
-                <thead><tr><th>Veículo / RPV</th><th>RPP</th><th>Saída</th><th>Valor</th><th>Recebido em</th><th>Status</th></tr></thead>
-                <tbody id="finRecebidosBody"></tbody>
-              </table>
-            </div>
-          </div>
-
           <div class="finance-subview hidden" data-finance-subview="pagar">
             <div class="fin-toolbar">
               <div><button type="button" id="finBtnNovaDespesa">+ Nova despesa</button></div>
@@ -5681,6 +5650,8 @@
               <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaSyncBtn">Sincronizar caixa</button></div>
               <div style="align-self: flex-end"><button type="button" id="finCaixaFixZeroValor">Corrigir R$ 0 → caixa</button></div>
               <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaRecoverMaioBtn">Recuperar entradas maio/2026</button></div>
+              <div style="align-self: flex-end"><button type="button" class="secondary" id="finRecebidosRevertListaVrp">VRP → Aguardando</button></div>
+              <div style="align-self: flex-end"><button type="button" class="secondary" id="finRecebidosSyncCaixa">Recuperar entradas no caixa</button></div>
             </div>
             <p id="finCaixaSyncHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <div class="fin-caixa-summary" id="finCaixaSummary"></div>
@@ -6443,7 +6414,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260601d"></script>
+    <script src="/finance-module.js?v=20260601e"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -14248,7 +14219,7 @@
         updateDashboard();
         if (typeof renderFinance === "function") renderFinance();
         if (typeof openFinanceSubview === "function") {
-          openFinanceSubview("recebidos", { skipRefresh: true });
+          openFinanceSubview("caixa", { skipRefresh: true });
         }
         const paidReceivable = state.receivables.find((r) => r.id === receivableId) || {
           ...receivable,
