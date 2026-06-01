@@ -6353,7 +6353,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260528o"></script>
+    <script src="/finance-module.js?v=20260528p"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -7131,6 +7131,8 @@
       let appInitPromise = null;
       let appInitUserId = null;
       let appLaunchConfigConsumed = false;
+      let showAppBootstrapping = false;
+      let capturedAppLaunchConfig = null;
 
       async function initAppData(forceReload) {
         if (!state.user?.id) return;
@@ -10708,46 +10710,57 @@
       });
 
       async function showApp(user) {
-        const session = await ensureValidSupabaseSession();
-        if (!session?.user) {
-          await forceSignOutAndLogin("Sessão expirada. Entre novamente.");
-          return;
-        }
-        user = session.user;
-        const alreadyInApp = !!appInitUserId && appInitUserId === user.id;
-        hideAppSessionBanner();
-        authPanel.classList.add("hidden");
-        appPanel.classList.remove("hidden");
-        setHeaderLoggedInUI(true);
-        userInfo.textContent = user ? `Logado como ${displayManagerIdentity(user.email || "")}` : "Logado";
-        state.user = user;
-        const pendingLaunch = stripAppLaunchParamsFromUrl();
-        await loadPatioDelegatedRole();
-        if (!alreadyInApp) {
-          try {
-            applyRoleRestrictions();
-          } catch (e) {
-            console.error("applyRoleRestrictions", e);
+        if (showAppBootstrapping) return;
+        showAppBootstrapping = true;
+        try {
+          const session = await ensureValidSupabaseSession();
+          if (!session?.user) {
+            await forceSignOutAndLogin("Sessão expirada. Entre novamente.");
+            return;
+          }
+          user = session.user;
+          const alreadyInApp = !!appInitUserId && appInitUserId === user.id;
+          hideAppSessionBanner();
+          authPanel.classList.add("hidden");
+          appPanel.classList.remove("hidden");
+          setHeaderLoggedInUI(true);
+          userInfo.textContent = user ? `Logado como ${displayManagerIdentity(user.email || "")}` : "Logado";
+          state.user = user;
+          const pendingLaunch = captureAppLaunchConfigFromUrl();
+          await loadPatioDelegatedRole();
+          if (!alreadyInApp) {
             try {
-              showMainView("dashboard");
-            } catch (e2) {
-              console.error("showMainView fallback", e2);
+              applyRoleRestrictions({ skipDefaultView: !!pendingLaunch });
+            } catch (e) {
+              console.error("applyRoleRestrictions", e);
+              if (!pendingLaunch) {
+                try {
+                  showMainView("dashboard");
+                } catch (e2) {
+                  console.error("showMainView fallback", e2);
+                }
+              }
             }
           }
-        }
-        try {
-          await initAppData(!alreadyInApp);
-        } catch (e) {
-          console.error("initAppData", e);
-          showAppSessionBanner("Erro ao carregar dados. Tente novamente ou saia e entre de novo.");
-        }
-        if (pendingLaunch && !alreadyInApp && !appLaunchConfigConsumed) {
-          appLaunchConfigConsumed = true;
-          applyAppLaunchConfig(pendingLaunch);
+          try {
+            await initAppData(!alreadyInApp);
+          } catch (e) {
+            console.error("initAppData", e);
+            showAppSessionBanner("Erro ao carregar dados. Tente novamente ou saia e entre de novo.");
+          }
+          if (pendingLaunch && !alreadyInApp && !appLaunchConfigConsumed) {
+            appLaunchConfigConsumed = true;
+            applyAppLaunchConfig(pendingLaunch);
+          } else if (!alreadyInApp && !pendingLaunch) {
+            navigateDefaultViewForRole();
+          }
+        } finally {
+          showAppBootstrapping = false;
         }
       }
 
-      function stripAppLaunchParamsFromUrl() {
+      function captureAppLaunchConfigFromUrl() {
+        if (capturedAppLaunchConfig) return capturedAppLaunchConfig;
         try {
           const url = new URL(window.location.href);
           const hasLaunch =
@@ -10767,6 +10780,7 @@
           url.searchParams.delete("embed");
           history.replaceState(null, "", url.pathname + url.search + url.hash);
           if (!cfg.view && !cfg.fin && !cfg.patio) return null;
+          capturedAppLaunchConfig = cfg;
           return cfg;
         } catch (e) {
           return null;
@@ -10776,6 +10790,12 @@
       function applyAppLaunchConfig(cfg) {
         const view = cfg.view || (cfg.fin ? "financeiro" : null) || (cfg.patio ? "patio" : null);
         if (!view) return;
+        try {
+          if (view === "patio" && cfg.patio) navStack.splice(0, navStack.length, "patio", `patio:${cfg.patio}`);
+          else navStack.splice(0, navStack.length, view);
+        } catch (e) {
+          console.warn("navStack launch", e);
+        }
         if (view === "financeiro") {
           if (cfg.fin && typeof setFinanceView === "function") {
             setFinanceView(cfg.fin);
@@ -10936,6 +10956,8 @@
         appInitUserId = null;
         appInitPromise = null;
         appLaunchConfigConsumed = false;
+        capturedAppLaunchConfig = null;
+        showAppBootstrapping = false;
         document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
       }
 
@@ -10971,7 +10993,16 @@
         }
       }
 
-      function applyRoleRestrictions() {
+      function navigateDefaultViewForRole() {
+        if (!isGestorPista) {
+          showMainView("dashboard");
+          return;
+        }
+        showMainView("patio");
+        setPatioView("inicio");
+      }
+
+      function applyRoleRestrictions(opts = {}) {
         document.getElementById("track-manager-hide-values-style")?.remove();
         document.getElementById("vehicleForm")?.classList.remove("operador-simplified");
         document.querySelectorAll("#appHeaderMenu .header-menu-details").forEach((el) => el.classList.remove("hidden"));
@@ -10996,7 +11027,7 @@
           document.getElementById("dashboardSystemEntry")?.classList.remove("dashboard-system-entry--single");
           document.getElementById("dashboardOpenFinance")?.classList.remove("hidden");
           document.getElementById("headerDetailsFinance")?.classList.remove("hidden");
-          showMainView("dashboard");
+          if (!opts.skipDefaultView) showMainView("dashboard");
           return;
         }
 
@@ -11027,8 +11058,10 @@
         document.getElementById("dashboardOpenFinance")?.classList.add("hidden");
         document.getElementById("openConfigFromPatio")?.classList.add("hidden");
 
-        showMainView("patio");
-        setPatioView("inicio");
+        if (!opts.skipDefaultView) {
+          showMainView("patio");
+          setPatioView("inicio");
+        }
 
         document.getElementById("openParceirosFromPatio")?.classList.add("hidden");
         patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.add("hidden");
