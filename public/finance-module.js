@@ -411,6 +411,27 @@
     return [...manual, ...byKey.values()];
   }
 
+  function financeCashMovLinkedReceivable(mov) {
+    if (!mov?.conta_id) return null;
+    return (state.receivables || []).find((r) => String(r.id) === String(mov.conta_id)) || null;
+  }
+
+  function financePlacaFromCashDesc(descricao) {
+    const m = String(descricao || "").match(/(?:Diárias|Recebimento|Recuperação caixa)\s*[—\-]\s*([A-Z0-9]+)/i);
+    return m ? financeNormalizePlate(m[1]) : "";
+  }
+
+  function financeCashMovEntradaBusinessKey(mov) {
+    const ymd = toLocalYmd(mov?.data_movimento || mov?.created_at) || "";
+    const valorKey = Math.round(Number(mov?.valor ?? 0) * 100);
+    const rec = financeCashMovLinkedReceivable(mov);
+    if (rec?.vehicle_id) return `v:${String(rec.vehicle_id)}|${ymd}|${valorKey}`;
+    const placa = financePlacaFromCashDesc(mov?.descricao);
+    if (placa) return `p:${placa}|${ymd}|${valorKey}`;
+    if (mov?.conta_id != null && mov.conta_id !== "") return `c:${String(mov.conta_id)}`;
+    return `id:${mov?.id || Math.random()}`;
+  }
+
   function financeCashMovRank(mov) {
     let score = 0;
     if (!mov?._syntheticPendingCaixa) score += 1e12;
@@ -423,27 +444,30 @@
     return score;
   }
 
-  /** Uma entrada/saída por conta vinculada (evita RECEBER + ENTRADA duplicados no caixa). */
+  /** Uma entrada/saída por veículo/data/valor ou por conta vinculada. */
   function financeDedupeCaixaMovs(movs) {
-    const entradaByConta = new Map();
+    const entradaByKey = new Map();
     const saidaByConta = new Map();
     const loose = [];
     for (const mov of movs || []) {
-      const contaId = mov?.conta_id;
-      const hasConta = contaId != null && contaId !== "";
-      if (hasConta && financeCashIsEntrada(mov)) {
-        const key = String(contaId);
-        const prev = entradaByConta.get(key);
-        if (!prev || financeCashMovRank(mov) >= financeCashMovRank(prev)) entradaByConta.set(key, mov);
-      } else if (hasConta && financeCashIsSaida(mov)) {
-        const key = String(contaId);
-        const prev = saidaByConta.get(key);
-        if (!prev || financeCashMovRank(mov) >= financeCashMovRank(prev)) saidaByConta.set(key, mov);
+      if (financeCashIsEntrada(mov)) {
+        const key = financeCashMovEntradaBusinessKey(mov);
+        const prev = entradaByKey.get(key);
+        if (!prev || financeCashMovRank(mov) >= financeCashMovRank(prev)) entradaByKey.set(key, mov);
+      } else if (financeCashIsSaida(mov)) {
+        const contaId = mov?.conta_id;
+        if (contaId != null && contaId !== "") {
+          const key = String(contaId);
+          const prev = saidaByConta.get(key);
+          if (!prev || financeCashMovRank(mov) >= financeCashMovRank(prev)) saidaByConta.set(key, mov);
+        } else {
+          loose.push(mov);
+        }
       } else {
         loose.push(mov);
       }
     }
-    return [...loose, ...entradaByConta.values(), ...saidaByConta.values()];
+    return [...loose, ...entradaByKey.values(), ...saidaByConta.values()];
   }
 
   function financeCashMovValor(mov) {
@@ -467,23 +491,30 @@
   }
 
   function financeSyntheticCashEntradasFromPaidReceivables() {
-    const cashIds = new Set(
-      (state.cash || [])
-        .filter((m) => financeCashIsEntrada(m))
-        .map((m) => String(m.conta_id))
+    const cashEntradas = financeDedupeCaixaMovs(state.cash || []).filter((m) => financeCashIsEntrada(m));
+    const cashIds = new Set(cashEntradas.map((m) => String(m.conta_id)).filter(Boolean));
+    const vehiclesWithCash = new Set(
+      cashEntradas
+        .map((m) => financeCashMovLinkedReceivable(m)?.vehicle_id)
+        .filter(Boolean)
+        .map(String)
     );
+    const businessKeysWithCash = new Set(cashEntradas.map((m) => financeCashMovEntradaBusinessKey(m)));
     const vmap = financeVehicleById();
-    return (state.receivables || [])
-      .filter(
-        (r) =>
-          String(r.status || "").toUpperCase() === "PAGO" &&
-          Number(r.valor || 0) > 0 &&
-          !cashIds.has(String(r.id))
+    return financeDedupePatioReceivables(
+      (state.receivables || []).filter(
+        (r) => String(r.status || "").toUpperCase() === "PAGO" && Number(r.valor || 0) > 0
       )
+    )
+      .filter((r) => {
+        if (cashIds.has(String(r.id))) return false;
+        if (r.vehicle_id && vehiclesWithCash.has(String(r.vehicle_id))) return false;
+        return true;
+      })
       .map((r) => {
         const v = vmap.get(r.vehicle_id);
         const placa = v?.placa || "—";
-        return {
+        const syn = {
           id: `syn-rec-${r.id}`,
           tipo_conta: "RECEBER",
           conta_id: r.id,
@@ -493,7 +524,9 @@
           descricao: `Recebimento ${placa} (sincronizar caixa)`,
           _syntheticPendingCaixa: true,
         };
-      });
+        return syn;
+      })
+      .filter((syn) => !businessKeysWithCash.has(financeCashMovEntradaBusinessKey(syn)));
   }
 
   function financeCaixaEntradas() {
@@ -929,6 +962,7 @@
         fixed: Number(api.stats?.updated || api.stats?.fixed || 0),
         failed: Number(api.stats?.failed || 0),
         markedPaid: Number(api.stats?.markedPaid || 0),
+        removed: Number(api.stats?.removed || 0),
       };
       if (typeof loadReceivables === "function") await loadReceivables();
       if (typeof loadCash === "function") await loadCash();
@@ -938,6 +972,7 @@
         if (stats.created > 0) parts.push(`${stats.created} entrada(s) criada(s)`);
         if (stats.fixed > 0) parts.push(`${stats.fixed} corrigida(s)`);
         if (stats.markedPaid > 0) parts.push(`${stats.markedPaid} marcada(s) como PAGO`);
+        if (stats.removed > 0) parts.push(`${stats.removed} duplicata(s) removida(s)`);
         if (stats.failed > 0) parts.push(`${stats.failed} falha(s)`);
         if (parts.length) {
           hint.textContent = `Recuperação concluída: ${parts.join(", ")}.`;
@@ -970,7 +1005,6 @@
 
   async function financeRenderCaixaAsync() {
     financeRenderCaixa();
-    await financeSyncCaixaFromPaidReceivables();
   }
 
   function financeRenderCaixa() {

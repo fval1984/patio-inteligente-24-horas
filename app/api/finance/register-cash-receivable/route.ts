@@ -35,6 +35,126 @@ function isSchemaError(message: string) {
   );
 }
 
+function cashMovIsEntradaTipo(tipo: string | null | undefined) {
+  const t = String(tipo || "").toUpperCase();
+  return t === "RECEBER" || t === "ENTRADA";
+}
+
+function cashMovRank(mov: { tipo_conta?: string | null; valor?: number | null; created_at?: string | null }) {
+  let score = 0;
+  const t = String(mov?.tipo_conta || "").toUpperCase();
+  if (t === "RECEBER") score += 100;
+  else if (t === "ENTRADA") score += 50;
+  if (Number(mov?.valor || 0) > 0) score += 10;
+  const ts = new Date(mov?.created_at || 0).getTime();
+  if (Number.isFinite(ts)) score += ts / 1e6;
+  return score;
+}
+
+function dedupePaidReceivablesByVehicle(receivables: ReceivableRow[]) {
+  const byKey = new Map<string, ReceivableRow>();
+  for (const r of receivables || []) {
+    if (!r?.id) continue;
+    if (!r.vehicle_id) {
+      byKey.set(`id:${r.id}`, r);
+      continue;
+    }
+    const endYmd = toYmd(r.period_end || r.updated_at || r.created_at);
+    const key = `${String(r.vehicle_id)}|${endYmd}`;
+    const prev = byKey.get(key);
+    if (!prev) {
+      byKey.set(key, r);
+      continue;
+    }
+    const prevTs = new Date(prev.updated_at || prev.created_at || 0).getTime();
+    const curTs = new Date(r.updated_at || r.created_at || 0).getTime();
+    if (curTs >= prevTs) byKey.set(key, r);
+  }
+  return [...byKey.values()];
+}
+
+function placaFromDescricao(descricao: string | null | undefined) {
+  const m = String(descricao || "").match(/(?:Diárias|Recebimento|Recuperação caixa)\s*[—\-]\s*([A-Z0-9]+)/i);
+  return m ? normalizePlate(m[1]) : "";
+}
+
+async function purgeExtraMovementsForConta(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  contaId: string,
+  keepId: string
+) {
+  const { data } = await supabase
+    .from("cash_movements")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("conta_id", contaId);
+  let removed = 0;
+  for (const row of data || []) {
+    if (!row?.id || row.id === keepId) continue;
+    const { error } = await supabase.from("cash_movements").delete().eq("id", row.id).eq("user_id", userId);
+    if (!error) removed += 1;
+  }
+  return removed;
+}
+
+/** Remove entradas duplicadas (mesmo veículo/placa + data + valor). */
+async function cleanupDuplicateCashEntradas(supabase: ReturnType<typeof getSupabaseAdmin>, userId: string) {
+  const { data: movs, error } = await supabase
+    .from("cash_movements")
+    .select("id,conta_id,tipo_conta,valor,data_movimento,created_at,descricao")
+    .eq("user_id", userId);
+  if (error || !movs?.length) return { removed: 0 };
+
+  const contaIds = [...new Set(movs.map((m) => m.conta_id).filter(Boolean))] as string[];
+  const vehicleByRec = new Map<string, string>();
+  if (contaIds.length) {
+    const { data: recs } = await supabase
+      .from("receivables")
+      .select("id,vehicle_id")
+      .eq("user_id", userId)
+      .in("id", contaIds);
+    for (const r of recs || []) {
+      if (r?.id && r.vehicle_id) vehicleByRec.set(String(r.id), String(r.vehicle_id));
+    }
+  }
+
+  const groups = new Map<string, typeof movs>();
+  for (const mov of movs) {
+    if (!cashMovIsEntradaTipo(mov.tipo_conta)) continue;
+    const ymd = toYmd(mov.data_movimento);
+    const valorKey = Math.round(Number(mov.valor || 0) * 100);
+    const vehicleId = mov.conta_id ? vehicleByRec.get(String(mov.conta_id)) : null;
+    const placa = placaFromDescricao(mov.descricao);
+    const key = vehicleId
+      ? `v:${vehicleId}|${ymd}|${valorKey}`
+      : placa
+        ? `p:${placa}|${ymd}|${valorKey}`
+        : `c:${mov.conta_id || mov.id}`;
+    const bucket = groups.get(key) || [];
+    bucket.push(mov);
+    groups.set(key, bucket);
+  }
+
+  let removed = 0;
+  for (const list of groups.values()) {
+    if (list.length <= 1) continue;
+    const sorted = [...list].sort((a, b) => cashMovRank(b) - cashMovRank(a));
+    const keepId = sorted[0]?.id;
+    if (!keepId) continue;
+    for (let i = 1; i < sorted.length; i++) {
+      const id = sorted[i]?.id;
+      if (!id) continue;
+      const { error: delErr } = await supabase.from("cash_movements").delete().eq("id", id).eq("user_id", userId);
+      if (!delErr) removed += 1;
+    }
+    if (sorted[0]?.conta_id) {
+      removed += await purgeExtraMovementsForConta(supabase, userId, String(sorted[0].conta_id), keepId);
+    }
+  }
+  return { removed };
+}
+
 async function findExistingMovement(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   userId: string,
@@ -115,13 +235,19 @@ async function upsertCashForReceivable(
   for (const body of payloads) {
     if (existing?.id) {
       const { error } = await supabase.from("cash_movements").update(body).eq("id", existing.id).eq("user_id", userId);
-      if (!error) return { ok: true, action: "updated" as const, movement: body };
+      if (!error) {
+        await purgeExtraMovementsForConta(supabase, userId, receivableId, existing.id);
+        return { ok: true, action: "updated" as const, movement: body };
+      }
       lastError = error.message;
     } else {
       const { error } = await supabase.from("cash_movements").insert(body);
       if (!error) {
         const verified = await findExistingMovement(supabase, userId, receivableId);
-        if (verified) return { ok: true, action: "created" as const, movement: verified };
+        if (verified?.id) {
+          await purgeExtraMovementsForConta(supabase, userId, receivableId, verified.id);
+          return { ok: true, action: "created" as const, movement: verified };
+        }
         return { ok: true, action: "created" as const, movement: body };
       }
       lastError = error.message;
@@ -142,7 +268,10 @@ async function upsertCashForReceivable(
   }
 
   const verified = await findExistingMovement(supabase, userId, receivableId);
-  if (verified) return { ok: true, action: "verified" as const, movement: verified };
+  if (verified?.id) {
+    await purgeExtraMovementsForConta(supabase, userId, receivableId, verified.id);
+    return { ok: true, action: "verified" as const, movement: verified };
+  }
 
   return { ok: false, action: "failed" as const, error: lastError || "Não foi possível gravar movimento no caixa." };
 }
@@ -271,6 +400,7 @@ export async function POST(request: NextRequest) {
     const userId = String(body?.userId || "").trim();
     const receivableId = String(body?.receivableId || "").trim();
     const syncAll = body?.syncAll === true;
+    const dedupeCash = body?.dedupeCash === true;
     const recoverVrp = body?.recoverVrp === true;
     const plates = Array.isArray(body?.plates)
       ? body.plates.map((p: unknown) => normalizePlate(String(p || ""))).filter(Boolean)
@@ -282,24 +412,32 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
+    if (dedupeCash) {
+      const cleanup = await cleanupDuplicateCashEntradas(supabase, userId);
+      return NextResponse.json({ ok: true, dedupeCash: true, stats: { removed: cleanup.removed } });
+    }
+
     if (recoverVrp || plates.length > 0) {
       const { receivables, placaByVehicle } = await loadVrpReceivablesToRecover(
         supabase,
         userId,
         plates.length ? plates : undefined
       );
+      await cleanupDuplicateCashEntradas(supabase, userId);
       const stats = await processReceivableBatch(supabase, userId, receivables, placaByVehicle, {
         markUnpaidAsPaid: true,
       });
+      const cleanup = await cleanupDuplicateCashEntradas(supabase, userId);
       return NextResponse.json({
         ok: true,
         recoverVrp: true,
         plates: plates.length ? plates : undefined,
-        stats: { ...stats, fixed: stats.updated },
+        stats: { ...stats, fixed: stats.updated, removed: cleanup.removed },
       });
     }
 
     if (syncAll) {
+      await cleanupDuplicateCashEntradas(supabase, userId);
       const { data: paid, error: paidErr } = await supabase
         .from("receivables")
         .select("id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at,period_end")
@@ -309,9 +447,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: paidErr.message }, { status: 500 });
       }
 
-      const vehicleIds = [...new Set((paid || []).map((r) => r.vehicle_id).filter(Boolean))] as string[];
+      const paidUnique = dedupePaidReceivablesByVehicle((paid || []) as ReceivableRow[]);
+      const vehicleIds = [...new Set(paidUnique.map((r) => r.vehicle_id).filter(Boolean))] as string[];
       const placaByVehicle = await loadPlacaMap(supabase, userId, vehicleIds);
-      const stats = await processReceivableBatch(supabase, userId, (paid || []) as ReceivableRow[], placaByVehicle);
+      const stats = await processReceivableBatch(supabase, userId, paidUnique, placaByVehicle);
 
       const { receivables: vrpMissing, placaByVehicle: vrpPlacaMap } = await loadVrpReceivablesToRecover(
         supabase,
@@ -329,6 +468,7 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      const cleanup = await cleanupDuplicateCashEntradas(supabase, userId);
       return NextResponse.json({
         ok: true,
         syncAll: true,
@@ -339,6 +479,7 @@ export async function POST(request: NextRequest) {
           failed: stats.failed + vrpStats.failed,
           skipped: stats.skipped + vrpStats.skipped,
           markedPaid: vrpStats.markedPaid,
+          removed: cleanup.removed,
           total: stats.total + vrpStats.total,
         },
       });

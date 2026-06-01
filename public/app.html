@@ -6371,7 +6371,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260529c"></script>
+    <script src="/finance-module.js?v=20260529d"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -11605,11 +11605,11 @@
           });
         }
         if (typeof callRegisterCashReceivableApi === "function") {
-          callRegisterCashReceivableApi({ syncAll: true })
+          callRegisterCashReceivableApi({ dedupeCash: true })
             .then((r) => {
               if (r?.ok) loadCash();
             })
-            .catch((e) => console.warn("register-cash-receivable loadAll", e?.message || e));
+            .catch((e) => console.warn("register-cash-receivable dedupe", e?.message || e));
         }
         probeVehiclesRpfColumns().catch(() => {});
         const userId = effectiveUserId();
