@@ -1216,6 +1216,7 @@
     { plate: "SNZ7F17", valor: 900, saidaDate: "2026-03-06", paidDate: "2026-05-04" },
   ];
   const FINANCE_MAY_2026_VRP_RECOVERY = FINANCE_VRP_CAIXA_RECOVERY_ENTRIES;
+  /** Lista VRP: pagamentos sem caixa → voltar para Aguardando faturamento e dar baixa de novo. */
   const FINANCE_REVERT_TO_AGUARDANDO_ENTRIES = FINANCE_VRP_CAIXA_RECOVERY_ENTRIES;
 
   function financeNormalizePlate(p) {
@@ -1368,8 +1369,16 @@
         continue;
       }
       seen.add(String(rec.id));
-      if (String(rec.status || "").toUpperCase() !== "PAGO") {
+      const st = String(rec.status || "").toUpperCase();
+      const aguardando =
+        typeof RECEIVABLE_AGUARDANDO_LANCAMENTO !== "undefined" ? RECEIVABLE_AGUARDANDO_LANCAMENTO : "AGUARDANDO_LANCAMENTO";
+      if (st === aguardando || (st === "EM_ABERTO" && !rec.financeiro_aprovado_contas_receber)) {
         skipped += 1;
+        continue;
+      }
+      if (st !== "PAGO") {
+        failed += 1;
+        notFound.push(`${entry.plate}: status ${st} (esperado PAGO)`);
         continue;
       }
       const result = await financeRevertReceivableClientSide(rec);
@@ -2485,39 +2494,26 @@
         }
       );
     });
-    document.getElementById("finRecebidosRecoverVipPlacas")?.addEventListener("click", () => {
-      financeRecoverCashViaApi(
-        { recoverEntries: FINANCE_VRP_CAIXA_RECOVERY_ENTRIES },
-        {
-          hintId: "finRecebidosRecoverHint",
-          btnId: "finRecebidosRecoverVipPlacas",
-          btnBusy: "Recuperando caixa…",
-          btnDefault: "Recuperar caixa VRP (lista completa)",
-          onDone: () => {
-            financeRenderRecebidos();
-            financeRenderCaixa();
-          },
-        }
-      );
-    });
-    document.getElementById("finRecebidosRevertAguardando")?.addEventListener("click", () => {
+    document.getElementById("finRecebidosRevertListaVrp")?.addEventListener("click", () => {
       const n = FINANCE_REVERT_TO_AGUARDANDO_ENTRIES.length;
       const ok = window.confirm(
-        `Reverter ${n} pagamento(s) confirmado(s) para «Aguardando faturamento»?\n\n` +
-          "Entradas no caixa ligadas a esses títulos serão removidas. Depois você poderá dar baixa novamente pelo fluxo normal."
+        `Corrigir ${n} registro(s) da lista VRP?\n\n` +
+          "Pagamentos que saíram de «Contas a receber» sem entrar no caixa voltarão para «Aguardando faturamento». " +
+          "Depois você aprova e dá baixa novamente pelo fluxo normal."
       );
       if (!ok) return;
       financeRevertToAguardandoViaApi(
         { revertToAguardando: true, revertEntries: FINANCE_REVERT_TO_AGUARDANDO_ENTRIES },
         {
           hintId: "finRecebidosRecoverHint",
-          btnId: "finRecebidosRevertAguardando",
-          btnBusy: "Revertendo…",
-          btnDefault: "Reverter para aguardando faturamento",
+          btnId: "finRecebidosRevertListaVrp",
+          btnBusy: "Corrigindo lista VRP…",
+          btnDefault: "Corrigir lista VRP → Aguardando faturamento",
           openAguardando: true,
           onDone: () => {
             financeRenderRecebidos();
             financeRenderAguardando();
+            financeRenderReceber();
             financeRenderCaixa();
           },
         }

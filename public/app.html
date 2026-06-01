@@ -5597,7 +5597,7 @@
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="recebidos">
-            <p class="notice" style="margin: 0 0 10px">Pagamentos confirmados (inclui veículos do VRP). Se faltar entrada no Caixa, use os botões abaixo.</p>
+            <p class="notice" style="margin: 0 0 10px">Pagamentos confirmados sem entrada no caixa devem voltar para <strong>Aguardando faturamento</strong> para dar baixa novamente. Use o botão de correção da lista VRP abaixo.</p>
             <div class="fin-toolbar">
               <form id="finRecebidosFilterForm" action="#" novalidate style="display: contents">
                 <div class="fin-filter-busca-datas" style="flex: 1 1 100%; min-width: min(100%, 320px)">
@@ -5612,9 +5612,8 @@
             </div>
             <p id="finRecebidosFilterHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <div class="actions" style="margin: 0 0 12px; flex-wrap: wrap; gap: 8px">
-              <button type="button" class="secondary" id="finRecebidosSyncCaixa">Recuperar entradas no caixa</button>
-              <button type="button" class="secondary" id="finRecebidosRecoverVipPlacas">Recuperar caixa VRP (lista completa)</button>
-              <button type="button" class="secondary" id="finRecebidosRevertAguardando">Reverter para aguardando faturamento</button>
+              <button type="button" id="finRecebidosRevertListaVrp">Corrigir lista VRP → Aguardando faturamento</button>
+              <button type="button" class="secondary" id="finRecebidosSyncCaixa">Recuperar outras entradas no caixa</button>
             </div>
             <p id="finRecebidosRecoverHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <p><strong>Total recebido:</strong> <span id="finRecebidosTotal">R$ 0,00</span></p>
@@ -6439,7 +6438,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260531e"></script>
+    <script src="/finance-module.js?v=20260531f"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
