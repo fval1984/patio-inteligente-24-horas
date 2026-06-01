@@ -1400,94 +1400,6 @@
   }
 
   const FINANCE_SUBVIEWS = ["dashboard", "em_patio", "aguardando", "receber", "pagar", "caixa"];
-  const FINANCE_SUBVIEW_LABELS = {
-    dashboard: "Dashboard",
-    em_patio: "Veículos no pátio",
-    aguardando: "Aguardando faturamento",
-    receber: "Contas a receber",
-    pagar: "Contas a pagar",
-    caixa: "Caixa",
-  };
-
-  window.openFinancePopout = function openFinancePopout(sub) {
-    if (!sub || !FINANCE_SUBVIEWS.includes(sub)) return;
-    const url = new URL(window.location.href);
-    url.searchParams.set("embed", "finance");
-    url.searchParams.set("fin", sub);
-    const features = "width=1100,height=800,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes";
-    const win = window.open(url.toString(), `amplipatio_fin_${sub}`, features);
-    if (win) win.focus();
-  };
-
-  function financeEnsureContextMenu() {
-    let menu = document.getElementById("finContextMenu");
-    if (menu) return menu;
-    menu = document.createElement("div");
-    menu.id = "finContextMenu";
-    menu.className = "fin-context-menu hidden";
-    menu.setAttribute("role", "menu");
-    menu.innerHTML =
-      '<button type="button" role="menuitem" data-fin-ctx-action="popout">Abrir em nova janela</button>';
-    document.body.appendChild(menu);
-    return menu;
-  }
-
-  function financeBindFinanceContextMenu() {
-    if (financeBindFinanceContextMenu._done) return;
-    financeBindFinanceContextMenu._done = true;
-
-    const menu = financeEnsureContextMenu();
-    let pendingSub = null;
-
-    const hideMenu = () => {
-      menu.classList.add("hidden");
-      pendingSub = null;
-    };
-
-    document.addEventListener("click", hideMenu);
-    document.addEventListener("scroll", hideMenu, true);
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") hideMenu();
-    });
-
-    menu.querySelector('[data-fin-ctx-action="popout"]')?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (pendingSub) openFinancePopout(pendingSub);
-      hideMenu();
-    });
-
-    const showMenu = (e, sub) => {
-      if (document.body.classList.contains("app-embed-finance")) return;
-      if (!sub || !FINANCE_SUBVIEWS.includes(sub)) return;
-      e.preventDefault();
-      e.stopPropagation();
-      pendingSub = sub;
-      const label = FINANCE_SUBVIEW_LABELS[sub] || sub;
-      const btn = menu.querySelector('[data-fin-ctx-action="popout"]');
-      if (btn) btn.textContent = `Abrir ${label} em nova janela`;
-      menu.classList.remove("hidden");
-      const pad = 8;
-      const rect = menu.getBoundingClientRect();
-      let x = e.clientX;
-      let y = e.clientY;
-      if (x + rect.width > window.innerWidth - pad) x = window.innerWidth - rect.width - pad;
-      if (y + rect.height > window.innerHeight - pad) y = window.innerHeight - rect.height - pad;
-      menu.style.left = `${Math.max(pad, x)}px`;
-      menu.style.top = `${Math.max(pad, y)}px`;
-    };
-
-    document.getElementById("finSubnav")?.addEventListener("contextmenu", (e) => {
-      const btn = e.target.closest("[data-finance-subview-btn]");
-      if (!btn) return;
-      showMenu(e, btn.getAttribute("data-finance-subview-btn"));
-    });
-
-    document.addEventListener("contextmenu", (e) => {
-      const btn = e.target.closest("[data-finance-subview]");
-      if (!btn || btn.closest("#finSubnav")) return;
-      showMenu(e, btn.getAttribute("data-finance-subview"));
-    });
-  }
 
   function financeRenderSubviewContent(view) {
     if (view === "dashboard") financeRenderDashboard();
@@ -1666,8 +1578,6 @@
   window.bindFinanceDashboardUiOnce = function bindFinanceDashboardUiOnce() {
     if (bindFinanceDashboardUiOnce._done) return;
     bindFinanceDashboardUiOnce._done = true;
-
-    financeBindFinanceContextMenu();
 
     document.getElementById("finSubnav")?.addEventListener("click", (e) => {
       const btn = e.target.closest("[data-finance-subview-btn]");

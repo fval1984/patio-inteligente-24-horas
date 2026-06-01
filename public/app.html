@@ -4007,23 +4007,6 @@
         background: var(--primary-weak);
         outline: none;
       }
-      body.app-embed-finance #appHeaderMenu,
-      body.app-embed-finance #appSessionBanner,
-      body.app-embed-finance #gestorPistaWelcomeBanner,
-      body.app-embed-finance .finance-subnav,
-      body.app-embed-finance #viewFinanceiro .close-view,
-      body.app-embed-finance #viewFinanceiro .module-lede {
-        display: none !important;
-      }
-      body.app-embed-finance #viewFinanceiro .toolbar h2::after {
-        content: " — janela auxiliar";
-        font-weight: 500;
-        font-size: 0.85rem;
-        color: var(--muted);
-      }
-      body.app-embed-finance .finance-module-shell {
-        max-width: none;
-      }
       .fin-cards {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -6370,7 +6353,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260528m"></script>
+    <script src="/finance-module.js?v=20260528n"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -10753,33 +10736,163 @@
           console.error("initAppData", e);
           showAppSessionBanner("Erro ao carregar dados. Tente novamente ou saia e entre de novo.");
         }
-        applyFinanceEmbedModeIfRequested();
+        applyAppLaunchConfigIfRequested();
       }
 
-      function parseAppEmbedConfig() {
+      function parseAppLaunchConfig() {
         try {
           const params = new URLSearchParams(window.location.search);
           return {
-            embed: params.get("embed"),
+            view: params.get("view"),
             fin: params.get("fin"),
+            patio: params.get("patio"),
           };
         } catch (e) {
-          return { embed: null, fin: null };
+          return { view: null, fin: null, patio: null };
         }
       }
 
-      function applyFinanceEmbedModeIfRequested() {
-        const cfg = parseAppEmbedConfig();
-        if (cfg.embed !== "finance") return;
-        document.body.classList.add("app-embed-finance");
-        const finSub = cfg.fin && typeof getFinanceSubview === "function" ? cfg.fin : "receber";
-        showMainView("financeiro");
-        if (typeof openFinanceSubview === "function") {
-          openFinanceSubview(finSub, { skipRefresh: true });
+      function applyAppLaunchConfigIfRequested() {
+        const cfg = parseAppLaunchConfig();
+        if (!cfg.view && !cfg.fin && !cfg.patio) return;
+        const view = cfg.view || (cfg.fin ? "financeiro" : null) || (cfg.patio ? "patio" : null);
+        if (!view) return;
+        if (view === "financeiro") {
+          showMainView("financeiro");
+          if (cfg.fin && typeof openFinanceSubview === "function") {
+            openFinanceSubview(cfg.fin, { skipRefresh: true });
+          }
+          if (typeof refreshFinanceData === "function") {
+            refreshFinanceData({ preserveView: cfg.fin || true });
+          }
+          return;
         }
-        if (typeof refreshFinanceData === "function") {
-          refreshFinanceData({ preserveView: finSub });
+        if (view === "patio") {
+          showMainView("patio");
+          if (cfg.patio && typeof setPatioView === "function") {
+            setPatioView(cfg.patio);
+          }
+          return;
         }
+        showMainView(view);
+      }
+
+      window.openAmplipatioFullWindow = function openAmplipatioFullWindow(cfg = {}) {
+        const url = new URL(window.location.origin + window.location.pathname);
+        url.search = "";
+        if (cfg.view) url.searchParams.set("view", cfg.view);
+        if (cfg.fin) url.searchParams.set("fin", cfg.fin);
+        if (cfg.patio) url.searchParams.set("patio", cfg.patio);
+        const win = window.open(url.toString(), "_blank", "noopener,noreferrer");
+        if (win) win.focus();
+      };
+
+      const APP_MODULE_LABELS = {
+        dashboard: "AMPLIPATIO",
+        patio: "Gestão de Pátio",
+        lista: "Lista",
+        parceiros: "Parceiros",
+        configuracoes: "Configurações",
+        financeiro: "Financeiro",
+      };
+
+      const APP_FIN_SUBVIEW_LABELS = {
+        dashboard: "Dashboard",
+        em_patio: "Veículos no pátio",
+        aguardando: "Aguardando faturamento",
+        receber: "Contas a receber",
+        pagar: "Contas a pagar",
+        caixa: "Caixa",
+      };
+
+      function bindAppContextMenuOnce() {
+        if (bindAppContextMenuOnce._done) return;
+        bindAppContextMenuOnce._done = true;
+
+        let menu = document.getElementById("appContextMenu");
+        if (!menu) {
+          menu = document.createElement("div");
+          menu.id = "appContextMenu";
+          menu.className = "fin-context-menu hidden";
+          menu.setAttribute("role", "menu");
+          menu.innerHTML =
+            '<button type="button" role="menuitem" data-app-ctx-action="new-window">Abrir outra tela</button>';
+          document.body.appendChild(menu);
+        }
+
+        let pendingLaunch = null;
+
+        const hideMenu = () => {
+          menu.classList.add("hidden");
+          pendingLaunch = null;
+        };
+
+        document.addEventListener("click", hideMenu);
+        document.addEventListener("scroll", hideMenu, true);
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") hideMenu();
+        });
+
+        menu.querySelector('[data-app-ctx-action="new-window"]')?.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (pendingLaunch) openAmplipatioFullWindow(pendingLaunch);
+          hideMenu();
+        });
+
+        const resolveLaunchFromTarget = (target) => {
+          const finSubnavBtn = target.closest("#finSubnav [data-finance-subview-btn]");
+          if (finSubnavBtn) {
+            const fin = finSubnavBtn.getAttribute("data-finance-subview-btn");
+            return {
+              cfg: { view: "financeiro", fin },
+              label: APP_FIN_SUBVIEW_LABELS[fin] || "Financeiro",
+            };
+          }
+          const finHeaderBtn = target.closest("button[data-finance-subview]");
+          if (finHeaderBtn) {
+            const fin = finHeaderBtn.getAttribute("data-finance-subview");
+            return {
+              cfg: { view: "financeiro", fin },
+              label: APP_FIN_SUBVIEW_LABELS[fin] || "Financeiro",
+            };
+          }
+          const patioBtn = target.closest("#patioSubnav button[data-subview]");
+          if (patioBtn) {
+            const patio = patioBtn.getAttribute("data-subview");
+            return {
+              cfg: { view: "patio", patio },
+              label: APP_MODULE_LABELS.patio,
+            };
+          }
+          const viewBtn = target.closest("button[data-view]");
+          if (viewBtn) {
+            const view = viewBtn.getAttribute("data-view");
+            return {
+              cfg: { view },
+              label: APP_MODULE_LABELS[view] || view,
+            };
+          }
+          return null;
+        };
+
+        document.addEventListener("contextmenu", (e) => {
+          const resolved = resolveLaunchFromTarget(e.target);
+          if (!resolved) return;
+          e.preventDefault();
+          e.stopPropagation();
+          pendingLaunch = resolved.cfg;
+          const btn = menu.querySelector('[data-app-ctx-action="new-window"]');
+          if (btn) btn.textContent = `Abrir outra tela — ${resolved.label}`;
+          menu.classList.remove("hidden");
+          const pad = 8;
+          const rect = menu.getBoundingClientRect();
+          let x = e.clientX;
+          let y = e.clientY;
+          if (x + rect.width > window.innerWidth - pad) x = window.innerWidth - rect.width - pad;
+          if (y + rect.height > window.innerHeight - pad) y = window.innerHeight - rect.height - pad;
+          menu.style.left = `${Math.max(pad, x)}px`;
+          menu.style.top = `${Math.max(pad, y)}px`;
+        });
       }
 
       function showAuth() {
@@ -10924,6 +11037,7 @@
       async function bootstrap() {
         initTabModalSystem();
         bindFinanceDashboardUiOnce();
+        bindAppContextMenuOnce();
         if (!supabase) {
           showAuth();
           setStatus(
