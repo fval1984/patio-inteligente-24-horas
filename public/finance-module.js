@@ -229,6 +229,9 @@
       if (receivableSemCobrancaFinanceira(r)) return false;
       if (receivableIsContaReceberFinanceiro(r)) return false;
       if (!r.vehicle_id) return false;
+      if (typeof receivableOrfaoEntreFilasFinanceiro === "function" && receivableOrfaoEntreFilasFinanceiro(r)) {
+        return true;
+      }
       if (receivableNaFilaAguardandoTriagem(r)) return true;
       if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return true;
       return r.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(r);
@@ -1501,6 +1504,9 @@
         if (typeof window.syncPaidReceivablesCashMovements === "function") {
           await window.syncPaidReceivablesCashMovements();
         }
+        if (typeof window.syncLostReceivablesToContasReceber === "function") {
+          await window.syncLostReceivablesToContasReceber();
+        }
         if (preserveView) {
           financeActivateSubview(preserveView);
         } else {
@@ -1523,34 +1529,14 @@
     }
     const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
     if (!r) return;
-    const patch = {
-      financeiro_aprovado_contas_receber: true,
-      patio_liberado_financeiro: true,
-      status: r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO ? "EM_ABERTO" : r.status,
-    };
-    const runUpdate = () =>
-      supabase.from("receivables").update(patch).eq("id", receivableId).eq("user_id", effectiveUserId());
-    let { error } =
-      typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runUpdate) : await runUpdate();
-    if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
-      addReceberTriagemId(receivableId);
-      if (typeof removePatioFinanceiroBloqueadoReceivableId === "function") {
-        removePatioFinanceiroBloqueadoReceivableId(receivableId);
+    if (typeof window.ensureReceivablePromotedToContasReceber === "function") {
+      const ok = await window.ensureReceivablePromotedToContasReceber(receivableId);
+      if (!ok) {
+        alert("Não foi possível enviar para Contas a receber. Atualize a página e tente novamente.");
+        return;
       }
-      error = null;
-    }
-    if (error) {
-      if (typeof alertSupabaseError === "function") alertSupabaseError(error, "Não foi possível enviar para Contas a receber.");
-      else alert(error.message);
-      return;
-    }
-    if (typeof removePatioFinanceiroBloqueadoReceivableId === "function") {
-      removePatioFinanceiroBloqueadoReceivableId(receivableId);
-    }
-    addReceberTriagemId(receivableId);
-    const idx = (state.receivables || []).findIndex((x) => String(x.id) === String(receivableId));
-    if (idx >= 0) {
-      state.receivables[idx] = { ...state.receivables[idx], ...patch };
+    } else {
+      addReceberTriagemId(receivableId);
     }
     await refreshFinanceData({ preserveView: stayView && stayView !== "none" ? stayView : true });
   }

@@ -6353,7 +6353,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260528p"></script>
+    <script src="/finance-module.js?v=20260528q"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -7958,6 +7958,84 @@
           console.warn("localStorage triagem", e);
         }
       }
+
+      /** Marca título como aprovado para «Contas a receber» (Supabase + fallback local). */
+      async function ensureReceivablePromotedToContasReceber(receivableId, opts = {}) {
+        if (!receivableId || FINANCE_MANUAL_ONLY) return false;
+        const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
+        if (!r || r.status === "PAGO" || receivableSemCobrancaFinanceira(r)) return false;
+        if (receivableIsContaReceberFinanceiro(r)) return true;
+
+        addReceberTriagemId(receivableId);
+        const patch = {
+          financeiro_aprovado_contas_receber: true,
+          patio_liberado_financeiro: true,
+        };
+        if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) patch.status = "EM_ABERTO";
+
+        const runUpdate = () =>
+          supabase.from("receivables").update(patch).eq("id", receivableId).eq("user_id", effectiveUserId());
+        let { error } =
+          typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runUpdate) : await runUpdate();
+        if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
+          removePatioFinanceiroBloqueadoReceivableId(receivableId);
+          const idx = (state.receivables || []).findIndex((x) => String(x.id) === String(receivableId));
+          if (idx >= 0) state.receivables[idx] = { ...state.receivables[idx], ...patch };
+          return true;
+        }
+        if (error) {
+          if (!opts.silent) console.warn("ensureReceivablePromotedToContasReceber", error.message || error);
+          return false;
+        }
+        removePatioFinanceiroBloqueadoReceivableId(receivableId);
+        const idx = (state.receivables || []).findIndex((x) => String(x.id) === String(receivableId));
+        if (idx >= 0) state.receivables[idx] = { ...state.receivables[idx], ...patch };
+        return true;
+      }
+
+      function receivableMarcadoEnvioContasReceber(r) {
+        if (!r) return false;
+        const auditRows = (financeAuditReadAll()[String(r.id)] || []).some(
+          (row) => row?.action === "Enviado para Contas a Receber"
+        );
+        if (auditRows) return true;
+        const { meta } = financeMetaUnpack(r.observacoes);
+        return meta?.origem_modulo === "PATIO_VRP" && Number(r.valor || 0) > 0;
+      }
+
+      /** Título que saiu de «Aguardando» mas não aparece em «Contas a receber». */
+      function receivableOrfaoEntreFilasFinanceiro(r) {
+        if (!r || r.status === "PAGO" || receivableSemCobrancaFinanceira(r)) return false;
+        if (!r.vehicle_id) return false;
+        if (receivableIsContaReceberFinanceiro(r)) return false;
+        if (receivableNaFilaAguardandoTriagem(r)) return false;
+        if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return false;
+        if (r.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(r)) return false;
+        const closure = (state.cycleClosures || []).find((c) => String(c.receivable_id) === String(r.id));
+        if (closure?.sent_to_finance && receivableMarcadoEnvioContasReceber(r)) return true;
+        return receivableMarcadoEnvioContasReceber(r);
+      }
+
+      /** Recupera títulos enviados ao financeiro (VRP) que ficaram sem aprovação persistida. */
+      async function syncLostReceivablesToContasReceber() {
+        if (FINANCE_MANUAL_ONLY) return 0;
+        const toFix = new Set();
+        for (const r of state.receivables || []) {
+          if (r.status === "PAGO" || receivableSemCobrancaFinanceira(r)) continue;
+          if (receivableIsContaReceberFinanceiro(r)) continue;
+          if (!receivableMarcadoEnvioContasReceber(r)) continue;
+          toFix.add(r.id);
+        }
+        let fixed = 0;
+        for (const id of toFix) {
+          if (await ensureReceivablePromotedToContasReceber(id, { silent: true })) fixed += 1;
+        }
+        return fixed;
+      }
+
+      window.ensureReceivablePromotedToContasReceber = ensureReceivablePromotedToContasReceber;
+      window.syncLostReceivablesToContasReceber = syncLostReceivablesToContasReceber;
+      window.receivableOrfaoEntreFilasFinanceiro = receivableOrfaoEntreFilasFinanceiro;
 
       function patioFinanceiroBloqueadoReceivableIdSet() {
         try {
@@ -11404,6 +11482,9 @@
           loadSettings(),
           loadMonthlyClosures(),
         ]);
+        if (typeof syncLostReceivablesToContasReceber === "function") {
+          await syncLostReceivablesToContasReceber();
+        }
         probeVehiclesRpfColumns().catch(() => {});
         const userId = effectiveUserId();
         if (userId && !FINANCE_MANUAL_ONLY) {
@@ -15126,9 +15207,12 @@
           await Promise.all([loadVehicles(), loadReceivables(), loadCycleClosures()]);
           renderVehicles();
           updateDashboard();
-          openMainView("lista");
-          openListaSubview("receber");
-          alert("Ciclo liberado. O título está disponível na Lista → Receber.");
+          openMainView("financeiro");
+          if (typeof openFinanceSubview === "function") openFinanceSubview("aguardando", { skipRefresh: true });
+          else if (typeof setFinanceView === "function") setFinanceView("aguardando");
+          alert(
+            "Ciclo liberado para o financeiro. O título aparece em Financeiro → Aguardando faturamento. Use «Contas a receber» para enviá-lo à cobrança."
+          );
           return;
         }
 
@@ -15962,7 +16046,7 @@
                 note: `${breakdown.dias} dia(s), diária ${formatCurrency(breakdown.valorDiaria)}`,
               });
             } else {
-              removeReceberTriagemId(cycleAberto.id);
+              await ensureReceivablePromotedToContasReceber(cycleAberto.id, { silent: true });
               financeAuditAppend(cycleAberto.id, "Enviado para Contas a Receber", {
                 valor: valorFechamento,
                 note: `${breakdown.dias} dia(s), remoção: ${formatCurrency(breakdown.taxaRemocao)}`,
