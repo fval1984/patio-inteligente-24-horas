@@ -490,27 +490,26 @@
     return Number.isFinite(v) ? v : 0;
   }
 
+  function financePaidReceivablesSemCaixa() {
+    const cashIds = new Set(
+      financeDedupeCaixaMovs(state.cash || [])
+        .filter((m) => financeCashIsEntrada(m))
+        .map((m) => String(m.conta_id))
+        .filter(Boolean)
+    );
+    return (state.receivables || []).filter(
+      (r) =>
+        String(r.status || "").toUpperCase() === "PAGO" &&
+        Number(r.valor || 0) > 0 &&
+        !cashIds.has(String(r.id))
+    );
+  }
+
   function financeSyntheticCashEntradasFromPaidReceivables() {
     const cashEntradas = financeDedupeCaixaMovs(state.cash || []).filter((m) => financeCashIsEntrada(m));
-    const cashIds = new Set(cashEntradas.map((m) => String(m.conta_id)).filter(Boolean));
-    const vehiclesWithCash = new Set(
-      cashEntradas
-        .map((m) => financeCashMovLinkedReceivable(m)?.vehicle_id)
-        .filter(Boolean)
-        .map(String)
-    );
     const businessKeysWithCash = new Set(cashEntradas.map((m) => financeCashMovEntradaBusinessKey(m)));
     const vmap = financeVehicleById();
-    return financeDedupePatioReceivables(
-      (state.receivables || []).filter(
-        (r) => String(r.status || "").toUpperCase() === "PAGO" && Number(r.valor || 0) > 0
-      )
-    )
-      .filter((r) => {
-        if (cashIds.has(String(r.id))) return false;
-        if (r.vehicle_id && vehiclesWithCash.has(String(r.vehicle_id))) return false;
-        return true;
-      })
+    return financePaidReceivablesSemCaixa()
       .map((r) => {
         const v = vmap.get(r.vehicle_id);
         const placa = v?.placa || "—";
@@ -519,7 +518,7 @@
           tipo_conta: "RECEBER",
           conta_id: r.id,
           valor: Number(r.valor || 0),
-          data_movimento: toLocalYmd(r.period_end || r.updated_at || r.created_at || new Date().toISOString()),
+          data_movimento: toLocalYmd(r.updated_at || r.period_end || r.created_at || new Date().toISOString()),
           forma_pagamento: r.forma_pagamento || "PIX",
           descricao: `Recebimento ${placa} (sincronizar caixa)`,
           _syntheticPendingCaixa: true,
@@ -904,19 +903,31 @@
   }
 
   function financeCountPaidReceivablesSemCaixa() {
-    const paid = (state.receivables || []).filter(
-      (r) => String(r.status || "").toUpperCase() === "PAGO" && Number(r.valor || 0) > 0
-    );
-    const cashIds = new Set(
-      (state.cash || [])
-        .filter((m) => financeCashIsEntrada(m))
-        .map((m) => String(m.conta_id))
-    );
-    return paid.filter((r) => !cashIds.has(String(r.id))).length;
+    return financePaidReceivablesSemCaixa().length;
+  }
+
+  let financeCaixaMissingSyncPromise = null;
+
+  async function financeEnsureMissingCashInCaixa() {
+    if (!financeCaixaMissingSyncPromise) {
+      financeCaixaMissingSyncPromise = (async () => {
+        if (typeof callRegisterCashReceivableApi !== "function") return;
+        try {
+          const api = await callRegisterCashReceivableApi({ syncMissing: true });
+          if (api?.ok) {
+            if (typeof loadReceivables === "function") await loadReceivables();
+            if (typeof loadCash === "function") await loadCash();
+          }
+        } catch (e) {
+          console.warn("financeEnsureMissingCashInCaixa", e?.message || e);
+        }
+      })();
+    }
+    return financeCaixaMissingSyncPromise;
   }
 
   async function financeSyncCaixaFromPaidReceivables() {
-    return financeRecoverCashViaApi({ syncAll: true }, {
+    return financeRecoverCashViaApi({ syncMissing: true }, {
       hintId: "finCaixaSyncHint",
       btnId: "finCaixaSyncBtn",
       btnBusy: "Sincronizando…",
@@ -1004,6 +1015,7 @@
   }
 
   async function financeRenderCaixaAsync() {
+    await financeEnsureMissingCashInCaixa();
     financeRenderCaixa();
   }
 
@@ -1014,6 +1026,7 @@
     const periodoYm = financeFilterPeriodo || "";
     const movsPeriodo = financeCaixaMovsForPeriod(periodoYm);
     const totPeriodo = financeCaixaTotalsForMovs(movsPeriodo);
+    const pendingInPeriodo = movsPeriodo.filter((m) => m._syntheticPendingCaixa).length;
     if (summaryEl) {
       const periodoLabel = periodoYm
         ? `Competência ${periodoYm}`
@@ -1023,6 +1036,7 @@
         <p><strong>Entrada:</strong> <span class="fin-val-entrada">${escapeHtml(formatCurrency(totPeriodo.entradas))}</span></p>
         <p><strong>Saída:</strong> <span class="fin-val-saida">${escapeHtml(formatCurrency(totPeriodo.saidas))}</span></p>
         <p><strong>Saldo:</strong> <span class="${totPeriodo.saldo >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(totPeriodo.saldo))}</span></p>
+        ${pendingInPeriodo > 0 ? `<p class="notice">${pendingInPeriodo} pagamento(s) confirmado(s) aguardando gravação — clique em «Sincronizar caixa».</p>` : ""}
       `;
     }
     if (!body) return;
@@ -1813,7 +1827,7 @@
     });
     document.getElementById("finRecebidosSyncCaixa")?.addEventListener("click", () => {
       financeRecoverCashViaApi(
-        { syncAll: true },
+        { syncMissing: true },
         {
           hintId: "finRecebidosRecoverHint",
           btnId: "finRecebidosSyncCaixa",

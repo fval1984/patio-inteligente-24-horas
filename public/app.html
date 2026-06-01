@@ -6371,7 +6371,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260529d"></script>
+    <script src="/finance-module.js?v=20260530a"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -11605,11 +11605,14 @@
           });
         }
         if (typeof callRegisterCashReceivableApi === "function") {
-          callRegisterCashReceivableApi({ dedupeCash: true })
+          callRegisterCashReceivableApi({ syncMissing: true })
             .then((r) => {
-              if (r?.ok) loadCash();
+              if (r?.ok) {
+                loadReceivables();
+                loadCash();
+              }
             })
-            .catch((e) => console.warn("register-cash-receivable dedupe", e?.message || e));
+            .catch((e) => console.warn("register-cash-receivable syncMissing", e?.message || e));
         }
         probeVehiclesRpfColumns().catch(() => {});
         const userId = effectiveUserId();
@@ -14333,7 +14336,7 @@
         const uid = effectiveUserId();
         if (!uid || !supabase) return { created: 0, fixed: 0, failed: 0 };
 
-        const apiSync = await callRegisterCashReceivableApi({ syncAll: true });
+        const apiSync = await callRegisterCashReceivableApi({ syncMissing: true });
         if (apiSync.ok) {
           await loadCash();
           const stats = apiSync.stats || {};

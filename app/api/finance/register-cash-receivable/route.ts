@@ -401,6 +401,7 @@ export async function POST(request: NextRequest) {
     const receivableId = String(body?.receivableId || "").trim();
     const syncAll = body?.syncAll === true;
     const dedupeCash = body?.dedupeCash === true;
+    const syncMissing = body?.syncMissing === true || body?.repairCash === true;
     const recoverVrp = body?.recoverVrp === true;
     const plates = Array.isArray(body?.plates)
       ? body.plates.map((p: unknown) => normalizePlate(String(p || ""))).filter(Boolean)
@@ -412,9 +413,59 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    if (dedupeCash) {
+    if (dedupeCash && !syncMissing && !syncAll) {
       const cleanup = await cleanupDuplicateCashEntradas(supabase, userId);
       return NextResponse.json({ ok: true, dedupeCash: true, stats: { removed: cleanup.removed } });
+    }
+
+    if (syncMissing) {
+      const cleanupBefore = await cleanupDuplicateCashEntradas(supabase, userId);
+      const { data: paid, error: paidErr } = await supabase
+        .from("receivables")
+        .select("id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at,period_end")
+        .eq("user_id", userId)
+        .eq("status", "PAGO");
+      if (paidErr) {
+        return NextResponse.json({ error: paidErr.message }, { status: 500 });
+      }
+
+      const missingById = new Map<string, ReceivableRow>();
+      for (const r of (paid || []) as ReceivableRow[]) {
+        if (!(Number(r.valor || 0) > 0)) continue;
+        const mov = await findExistingMovement(supabase, userId, r.id);
+        if (!mov) missingById.set(r.id, r);
+      }
+
+      const { receivables: vrpRecs, placaByVehicle: vrpPlacaMap } = await loadVrpReceivablesToRecover(
+        supabase,
+        userId
+      );
+      for (const r of vrpRecs) {
+        const mov = await findExistingMovement(supabase, userId, r.id);
+        if (!mov) missingById.set(r.id, r);
+      }
+
+      const targets = dedupePaidReceivablesByVehicle([...missingById.values()]);
+      const vehicleIds = [...new Set(targets.map((r) => r.vehicle_id).filter(Boolean))] as string[];
+      const placaByVehicle = await loadPlacaMap(supabase, userId, vehicleIds);
+      for (const [vid, placa] of vrpPlacaMap.entries()) {
+        if (!placaByVehicle.has(vid)) placaByVehicle.set(vid, placa);
+      }
+
+      const stats = await processReceivableBatch(supabase, userId, targets, placaByVehicle, {
+        markUnpaidAsPaid: true,
+      });
+      const cleanupAfter = await cleanupDuplicateCashEntradas(supabase, userId);
+      return NextResponse.json({
+        ok: true,
+        syncMissing: true,
+        stats: {
+          ...stats,
+          fixed: stats.updated,
+          removed: cleanupBefore.removed + cleanupAfter.removed,
+          missing: targets.length,
+        },
+      });
     }
 
     if (recoverVrp || plates.length > 0) {
@@ -486,7 +537,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!receivableId) {
-      return NextResponse.json({ error: "receivableId é obrigatório (ou use syncAll / recoverVrp / plates)." }, { status: 400 });
+      return NextResponse.json({ error: "receivableId é obrigatório (ou use syncAll / syncMissing / recoverVrp / plates)." }, { status: 400 });
     }
 
     const { data: rec, error: recErr } = await supabase
