@@ -5487,6 +5487,16 @@
             <p class="notice">Veículos que saíram do pátio e aguardam confirmação antes de ir para Contas a receber. Aprove em Pátio → Fechando ciclo ou confirme aqui.</p>
             <div class="fin-toolbar">
               <form id="finAguardandoPlateForm" action="#" novalidate style="display: contents">
+                <div class="fin-filter-busca-datas" style="flex: 1 1 100%; min-width: min(100%, 320px)">
+                  <label for="finAguardandoDataBusca">Buscar por datas</label>
+                  <input
+                    id="finAguardandoDataBusca"
+                    name="dataBusca"
+                    type="search"
+                    placeholder="Ex.: 15/04/2026 a 01/05/2026"
+                    autocomplete="off"
+                  />
+                </div>
                 <div>
                   <label for="finAguardandoPlaca">Placa</label>
                   <input
@@ -5549,6 +5559,10 @@
               </div>
               <div><label for="finReceberDataDe">Saída de</label><input id="finReceberDataDe" type="date" /></div>
               <div><label for="finReceberDataAte">Saída até</label><input id="finReceberDataAte" type="date" /></div>
+              <div class="fin-filter-busca-datas" style="flex: 1 1 100%; min-width: min(100%, 320px)">
+                <label for="finReceberDataBusca">Buscar por datas</label>
+                <input id="finReceberDataBusca" type="search" placeholder="Ex.: 15/04/2026 a 01/05/2026" autocomplete="off" />
+              </div>
             </div>
             <p class="notice" style="margin: 0 0 10px">Recorrentes (ex.: mensalista) são cadastrados aqui com tipo <strong>Recorrente</strong> — ao confirmar o pagamento, o próximo título é gerado automaticamente.</p>
             <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
@@ -5568,8 +5582,12 @@
             <p class="notice" style="margin: 0 0 10px">Pagamentos confirmados (inclui veículos do VRP). Se faltar entrada no Caixa, use os botões abaixo.</p>
             <div class="fin-toolbar">
               <form id="finRecebidosFilterForm" action="#" novalidate style="display: contents">
-                <div><label for="finRecebidosDataDe">Recebido de</label><input id="finRecebidosDataDe" type="date" /></div>
-                <div><label for="finRecebidosDataAte">Recebido até</label><input id="finRecebidosDataAte" type="date" /></div>
+                <div class="fin-filter-busca-datas" style="flex: 1 1 100%; min-width: min(100%, 320px)">
+                  <label for="finRecebidosDataBusca">Buscar por datas</label>
+                  <input id="finRecebidosDataBusca" type="search" placeholder="Ex.: 15/04/2026 a 01/05/2026 (saída ou recebimento)" autocomplete="off" />
+                </div>
+                <div><label for="finRecebidosDataDe">De</label><input id="finRecebidosDataDe" type="date" /></div>
+                <div><label for="finRecebidosDataAte">Até</label><input id="finRecebidosDataAte" type="date" /></div>
                 <div style="align-self: flex-end"><button type="submit">OK</button></div>
                 <div style="align-self: flex-end"><button type="button" class="secondary" id="finRecebidosFilterClear">Limpar</button></div>
               </form>
@@ -5630,7 +5648,15 @@
 
           <div class="finance-subview hidden" data-finance-subview="caixa">
             <div class="fin-toolbar">
-              <div><label for="finFilterPeriodo">Competência</label><input id="finFilterPeriodo" type="month" /></div>
+              <div class="fin-filter-busca-datas" style="flex: 1 1 100%; min-width: min(100%, 320px)">
+                <label for="finCaixaDataBusca">Buscar por datas</label>
+                <input id="finCaixaDataBusca" type="search" placeholder="Ex.: 15/04/2026 a 01/05/2026" autocomplete="off" />
+              </div>
+              <div><label for="finCaixaDataDe">De</label><input id="finCaixaDataDe" type="date" /></div>
+              <div><label for="finCaixaDataAte">Até</label><input id="finCaixaDataAte" type="date" /></div>
+              <div><label for="finFilterPeriodo">Mês (competência)</label><input id="finFilterPeriodo" type="month" title="Usado quando De/Até estiver vazio" /></div>
+              <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaFilterApply">Filtrar</button></div>
+              <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaFilterClear">Limpar</button></div>
               <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaSyncBtn">Sincronizar caixa</button></div>
             </div>
             <p id="finCaixaSyncHint" class="notice hidden" style="margin: 0 0 10px"></p>
@@ -6394,7 +6420,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260530d"></script>
+    <script src="/finance-module.js?v=20260531a"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
