@@ -383,7 +383,7 @@ async function loadVrpReceivablesToRecover(
   return { receivables: [...byVehicle.values()], placaByVehicle };
 }
 
-type RecoverEntry = { plate: string; valor?: number; paidDate?: string; saidaDate?: string };
+type RecoverEntry = { plate: string; valor?: number; paidDate?: string; saidaDate?: string; includeZeroValor?: boolean };
 type BatchOverride = { dataMovimento?: string; valor?: number };
 
 /** Mesma placa pode ter vários ciclos RPP encerrados (ex.: SNO8E38 João Vitor R$20 + VIP R$210). */
@@ -397,9 +397,12 @@ function pickBestReceivableForEntry(
   const targetValor = entry.valor != null ? Number(entry.valor) : null;
   const targetSaida = entry.saidaDate ? toYmd(entry.saidaDate) : null;
   const targetPaid = entry.paidDate ? toYmd(entry.paidDate) : null;
-  if (targetValor != null) {
+  if (targetValor != null && targetValor > 0) {
     const byValor = candidates.filter((r) => Math.abs(Number(r.valor || 0) - targetValor) < 0.01);
     if (byValor.length) candidates = byValor;
+  } else if (entry.includeZeroValor || targetValor === 0) {
+    const byZero = candidates.filter((r) => Math.abs(Number(r.valor || 0)) < 0.01);
+    if (byZero.length) candidates = byZero;
   }
   if (targetSaida) {
     const bySaida = candidates.filter((r) => toYmd(r.period_end || "") === targetSaida);
@@ -479,15 +482,18 @@ async function loadReceivablesFromRecoverEntries(
     }
     placaByVehicle.set(vehicle.id, vehicle.placa);
 
-    const { data: recs, error: rErr } = await supabase
+    let recQuery = supabase
       .from("receivables")
       .select(
-        "id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at,period_end"
+        "id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at,period_end,period_start,observacoes"
       )
       .eq("user_id", userId)
       .eq("vehicle_id", vehicle.id)
-      .not("period_end", "is", null)
-      .gt("valor", 0);
+      .not("period_end", "is", null);
+    if (!entry.includeZeroValor && entry.valor !== 0) {
+      recQuery = recQuery.gt("valor", 0);
+    }
+    const { data: recs, error: rErr } = await recQuery;
     if (rErr) throw new Error(rErr.message);
 
     const rec = pickBestReceivableForEntry((recs || []) as ReceivableRow[], entry, seenRecIds);
@@ -642,17 +648,18 @@ export async function POST(request: NextRequest) {
       ? body.plates.map((p: unknown) => normalizePlate(String(p || ""))).filter(Boolean)
       : [];
     const revertToAguardando = body?.revertToAguardando === true;
-    const mapRecoverEntry = (e: { plate?: unknown; valor?: unknown; paidDate?: unknown; saidaDate?: unknown }) => ({
+    const mapRecoverEntry = (e: { plate?: unknown; valor?: unknown; paidDate?: unknown; saidaDate?: unknown; includeZeroValor?: unknown }) => ({
       plate: normalizePlate(String(e?.plate || "")),
       valor: e?.valor != null ? Number(e.valor) : undefined,
       paidDate: e?.paidDate ? toYmd(String(e.paidDate)) : undefined,
       saidaDate: e?.saidaDate ? toYmd(String(e.saidaDate)) : undefined,
+      includeZeroValor: e?.includeZeroValor === true || Number(e?.valor) === 0,
     });
     const recoverEntries: RecoverEntry[] = Array.isArray(body?.recoverEntries)
-      ? body.recoverEntries.map(mapRecoverEntry).filter((e) => e.plate && (e.valor == null || e.valor > 0))
+      ? body.recoverEntries.map(mapRecoverEntry).filter((e) => e.plate && (e.valor == null || e.valor >= 0 || e.includeZeroValor))
       : [];
     const revertEntries: RecoverEntry[] = Array.isArray(body?.revertEntries)
-      ? body.revertEntries.map(mapRecoverEntry).filter((e) => e.plate && (e.valor == null || e.valor > 0))
+      ? body.revertEntries.map(mapRecoverEntry).filter((e) => e.plate && (e.valor == null || e.valor >= 0 || e.includeZeroValor))
       : revertToAguardando
         ? recoverEntries
         : [];

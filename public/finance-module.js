@@ -549,7 +549,7 @@
     const de = (financeFilterRecebidosDataDe || "").trim();
     const ate = (financeFilterRecebidosDataAte || "").trim();
     let list = financeDedupePatioReceivables(
-      (state.receivables || []).filter((r) => String(r.status || "").toUpperCase() === "PAGO" && Number(r.valor || 0) > 0)
+      (state.receivables || []).filter((r) => String(r.status || "").toUpperCase() === "PAGO")
     );
     if (de || ate) {
       list = list.filter((r) => {
@@ -1039,13 +1039,14 @@
                   (String(m.tipo_conta || "").toUpperCase() === "RECEBER" ||
                     String(m.tipo_conta || "").toUpperCase() === "ENTRADA")
               );
+        const valorZero = Number(r.valor || 0) < 0.01;
         return `<tr>
           <td data-label="Veículo / RPV"><strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span></td>
           <td data-label="RPP">${escapeHtml(r.responsavel_pagamento || financeReceberRppNome(r, v))}</td>
           <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
-          <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
+          <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}${valorZero ? `<br /><span class="notice">Valor zerado — use «Corrigir pagos R$ 0»</span>` : ""}</td>
           <td data-label="Recebido em">${escapeHtml(formatDateTime(r.updated_at || r.created_at))}</td>
-          <td data-label="Status"><span class="fin-tag fin-tag--ok">Recebido</span>${noCaixa ? `<br /><span class="notice">Pendente no caixa</span>` : ""}</td>
+          <td data-label="Status"><span class="fin-tag fin-tag--ok">Recebido</span>${noCaixa ? `<br /><span class="notice">Sem entrada no caixa</span>` : ""}</td>
         </tr>`;
       })
       .join("");
@@ -1219,6 +1220,83 @@
   /** Lista VRP: pagamentos sem caixa → voltar para Aguardando faturamento e dar baixa de novo. */
   const FINANCE_REVERT_TO_AGUARDANDO_ENTRIES = FINANCE_VRP_CAIXA_RECOVERY_ENTRIES;
 
+  /** Pagos com R$ 0,00 e sem caixa — restaurar valor e voltar para Aguardando faturamento. */
+  const FINANCE_ZERO_VALOR_PAGO_FIX_ENTRIES = [
+    { plate: "QLC1E25", valor: 0, saidaDate: "2026-05-28", paidDate: "2026-06-01", includeZeroValor: true },
+    { plate: "QYP9F00", valor: 0, saidaDate: "2026-04-02", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "QPO2F05", valor: 0, saidaDate: "2026-05-04", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "QQN9E59", valor: 0, saidaDate: "2026-05-08", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SHB6H60", valor: 0, saidaDate: "2026-05-19", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "KKY4389", valor: 0, saidaDate: "2026-04-13", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "QKQ9348", valor: 0, saidaDate: "2026-04-29", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNZ7F17", valor: 0, saidaDate: "2026-05-04", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SOW4G62", valor: 0, saidaDate: "2026-05-04", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "QYA5C45", valor: 0, saidaDate: "2026-05-04", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SOQ9C44", valor: 0, saidaDate: "2026-05-04", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNY4J16", valor: 0, saidaDate: "2026-05-04", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "PDW8260", valor: 0, saidaDate: "2026-05-04", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "UHM8D60", valor: 0, saidaDate: "2026-04-28", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNN5A22", valor: 0, saidaDate: "2026-04-30", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SIZ4F67", valor: 0, saidaDate: "2026-05-28", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "FCI1J96", valor: 0, saidaDate: "2026-03-26", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "PGR8747", valor: 0, saidaDate: "2026-03-25", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "PCG7556", valor: 0, saidaDate: "2026-02-20", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "PDY4F95", valor: 0, saidaDate: "2026-05-04", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "PDW9D44", valor: 0, saidaDate: "2026-03-04", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "RTL3G87", valor: 0, saidaDate: "2026-04-20", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "PDA8420", valor: 0, saidaDate: "2026-04-20", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "QYR1E87", valor: 0, saidaDate: "2026-04-16", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "QQK8J81", valor: 0, saidaDate: "2026-03-10", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "DSF7D74", valor: 0, saidaDate: "2026-02-05", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8E38", valor: 0, saidaDate: "2026-04-30", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO9A58", valor: 0, saidaDate: "2026-04-30", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8G68", valor: 0, saidaDate: "2026-04-30", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO7F38", valor: 0, saidaDate: "2026-04-30", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8D68", valor: 0, saidaDate: "2026-04-30", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8C88", valor: 0, saidaDate: "2026-04-30", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8E98", valor: 0, saidaDate: "2026-04-30", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8H58", valor: 0, saidaDate: "2026-04-30", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO7I98", valor: 0, saidaDate: "2026-04-30", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8H38", valor: 0, saidaDate: "2026-04-30", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8G38", valor: 0, saidaDate: "2026-04-30", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8G48", valor: 0, saidaDate: "2026-04-30", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO9B38", valor: 0, saidaDate: "2026-04-30", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8G38", valor: 0, saidaDate: "2026-05-08", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO9B38", valor: 0, saidaDate: "2026-05-06", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO9D08", valor: 0, saidaDate: "2026-05-06", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO7I98", valor: 0, saidaDate: "2026-05-06", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8H58", valor: 0, saidaDate: "2026-05-06", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8D68", valor: 0, saidaDate: "2026-05-06", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO7F38", valor: 0, saidaDate: "2026-05-06", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO9A58", valor: 0, saidaDate: "2026-05-06", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8E38", valor: 0, saidaDate: "2026-05-06", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8E98", valor: 0, saidaDate: "2026-05-06", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8C88", valor: 0, saidaDate: "2026-05-06", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8H38", valor: 0, saidaDate: "2026-05-06", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8G68", valor: 0, saidaDate: "2026-05-06", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SNO8G48", valor: 0, saidaDate: "2026-05-08", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SUH6B38", valor: 0, saidaDate: "2026-03-24", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "RZQ8E78", valor: 0, saidaDate: "2026-02-20", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "RUV2E49", valor: 0, saidaDate: "2026-03-03", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "PEC2H21", valor: 0, saidaDate: "2026-02-20", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "MZE8942", valor: 0, saidaDate: "2026-03-03", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "NME8J96", valor: 0, saidaDate: "2026-03-03", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "PFZ0A85", valor: 0, saidaDate: "2026-03-03", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "PFS0240", valor: 0, saidaDate: "2026-03-03", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "RZQ8B88", valor: 0, saidaDate: "2026-04-16", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SHU2G14", valor: 0, saidaDate: "2026-04-10", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "QYT3D79", valor: 0, saidaDate: "2026-04-06", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "END3I82", valor: 0, saidaDate: "2026-03-25", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "RZL7E72", valor: 0, saidaDate: "2026-04-02", paidDate: "2026-05-28", includeZeroValor: true },
+    { plate: "SHB8A03", valor: 0, saidaDate: "2026-04-29", paidDate: "2026-05-26", includeZeroValor: true },
+    { plate: "QYW3D26", valor: 0, saidaDate: "2026-04-23", paidDate: "2026-05-26", includeZeroValor: true },
+    { plate: "RFW4F34", valor: 0, saidaDate: "2026-04-23", paidDate: "2026-05-26", includeZeroValor: true },
+    { plate: "PGQ2H63", valor: 0, saidaDate: "2026-04-23", paidDate: "2026-05-26", includeZeroValor: true },
+    { plate: "RTM1I82", valor: 0, saidaDate: "2026-05-20", paidDate: "2026-05-20", includeZeroValor: true },
+    { plate: "SFV6B80", valor: 0, saidaDate: "2026-05-11", paidDate: "2026-05-11", includeZeroValor: true },
+    { plate: "QYE7E85", valor: 0, saidaDate: "2026-05-04", paidDate: "2026-05-08", includeZeroValor: true },
+  ];
+
   function financeNormalizePlate(p) {
     return String(p || "")
       .toUpperCase()
@@ -1248,12 +1326,15 @@
         r?.id &&
         vehicleIds.has(String(r.vehicle_id)) &&
         r.period_end &&
-        Number(r.valor || 0) > 0 &&
-        !excludeIds.has(String(r.id))
+        !excludeIds.has(String(r.id)) &&
+        (entry.includeZeroValor || entry.valor === 0 || Number(r.valor || 0) > 0)
     );
-    if (entry.valor != null) {
+    if (entry.valor != null && entry.valor > 0) {
       const byValor = candidates.filter((r) => Math.abs(Number(r.valor || 0) - Number(entry.valor)) < 0.01);
       if (byValor.length) candidates = byValor;
+    } else if (entry.includeZeroValor || entry.valor === 0) {
+      const byZero = candidates.filter((r) => Math.abs(Number(r.valor || 0)) < 0.01);
+      if (byZero.length) candidates = byZero;
     }
     const saidaYmd = entry.saidaDate ? ymd(entry.saidaDate) : null;
     const paidYmd = entry.paidDate ? ymd(entry.paidDate) : null;
@@ -1309,6 +1390,20 @@
     return removed;
   }
 
+  function financeRecalcReceivableValorForRevert(rec) {
+    const v = (state.vehicles || []).find((x) => String(x.id) === String(rec?.vehicle_id));
+    if (typeof receivableFinanceBreakdown === "function") {
+      const b = receivableFinanceBreakdown(rec, v);
+      const t = Number(b?.total ?? 0);
+      if (t > 0) return t;
+    }
+    if (v && typeof calcPeriodTotal === "function") {
+      const t = Number(calcPeriodTotal(v, rec.period_start, rec.period_end) || 0);
+      if (t > 0) return t;
+    }
+    return Number(rec?.valor || 0);
+  }
+
   async function financeRevertReceivableClientSide(rec) {
     if (!rec?.id || String(rec.status || "").toUpperCase() !== "PAGO") {
       return { ok: false, error: "not_pago" };
@@ -1321,11 +1416,13 @@
     const aguardando =
       typeof RECEIVABLE_AGUARDANDO_LANCAMENTO !== "undefined" ? RECEIVABLE_AGUARDANDO_LANCAMENTO : "AGUARDANDO_LANCAMENTO";
     const cashRemoved = await financeDeleteCashForReceivableClient(rec.id);
+    const valorRestaurado = financeRecalcReceivableValorForRevert(rec);
     const patch = {
       status: aguardando,
       financeiro_aprovado_contas_receber: false,
       patio_liberado_financeiro: true,
     };
+    if (valorRestaurado > 0) patch.valor = valorRestaurado;
     const runUpd = (body) =>
       typeof runSupabaseWrite === "function"
         ? runSupabaseWrite(() => supabase.from("receivables").update(body).eq("id", rec.id).eq("user_id", uid))
@@ -1547,7 +1644,7 @@
           );
         }
         hint.textContent = parts.length
-          ? `Reversão concluída: ${parts.join(", ")}. Confira em «Aguardando faturamento» e dê baixa novamente.`
+          ? `Reversão concluída: ${parts.join(", ")}. Valores recalculados quando possível. Confira em «Aguardando faturamento».`
           : "Nenhum registro foi revertido.";
         hint.classList.remove("hidden");
       }
@@ -2509,6 +2606,31 @@
           btnId: "finRecebidosRevertListaVrp",
           btnBusy: "Corrigindo lista VRP…",
           btnDefault: "Corrigir lista VRP → Aguardando faturamento",
+          openAguardando: true,
+          onDone: () => {
+            financeRenderRecebidos();
+            financeRenderAguardando();
+            financeRenderReceber();
+            financeRenderCaixa();
+          },
+        }
+      );
+    });
+    document.getElementById("finRecebidosFixZeroValor")?.addEventListener("click", () => {
+      const n = FINANCE_ZERO_VALOR_PAGO_FIX_ENTRIES.length;
+      const ok = window.confirm(
+        `Corrigir ${n} pagamento(s) com R$ 0,00 e sem caixa?\n\n` +
+          "Cada registro voltará para «Aguardando faturamento» com o valor recalculado (diárias do pátio). " +
+          "Depois aprove e dê baixa novamente."
+      );
+      if (!ok) return;
+      financeRevertToAguardandoViaApi(
+        { revertToAguardando: true, revertEntries: FINANCE_ZERO_VALOR_PAGO_FIX_ENTRIES },
+        {
+          hintId: "finRecebidosRecoverHint",
+          btnId: "finRecebidosFixZeroValor",
+          btnBusy: "Corrigindo R$ 0…",
+          btnDefault: "Corrigir pagos R$ 0 sem caixa",
           openAguardando: true,
           onDone: () => {
             financeRenderRecebidos();

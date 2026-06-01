@@ -5613,6 +5613,7 @@
             <p id="finRecebidosFilterHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <div class="actions" style="margin: 0 0 12px; flex-wrap: wrap; gap: 8px">
               <button type="button" id="finRecebidosRevertListaVrp">Corrigir lista VRP → Aguardando faturamento</button>
+              <button type="button" id="finRecebidosFixZeroValor">Corrigir pagos R$ 0 sem caixa</button>
               <button type="button" class="secondary" id="finRecebidosSyncCaixa">Recuperar outras entradas no caixa</button>
             </div>
             <p id="finRecebidosRecoverHint" class="notice hidden" style="margin: 0 0 10px"></p>
@@ -6438,7 +6439,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260531f"></script>
+    <script src="/finance-module.js?v=20260601a"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
