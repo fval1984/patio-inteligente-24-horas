@@ -5503,8 +5503,16 @@
                   />
                 </div>
                 <div>
-                  <label for="finAguardandoPeriodo">Período (saída)</label>
+                  <label for="finAguardandoPeriodo">Mês (saída)</label>
                   <input id="finAguardandoPeriodo" name="periodo" type="month" title="Competência pela data de saída do veículo (VRP)" />
+                </div>
+                <div>
+                  <label for="finAguardandoDataDe">Saída de</label>
+                  <input id="finAguardandoDataDe" name="dataDe" type="date" />
+                </div>
+                <div>
+                  <label for="finAguardandoDataAte">Saída até</label>
+                  <input id="finAguardandoDataAte" name="dataAte" type="date" />
                 </div>
                 <div style="align-self: flex-end"><button type="submit" id="finAguardandoPlacaOk">OK</button></div>
                 <div style="align-self: flex-end"><button type="button" class="secondary" id="finAguardandoPlacaClear">Limpar</button></div>
@@ -5539,6 +5547,8 @@
               <div><label for="finSortReceber">Ordenar</label>
                 <select id="finSortReceber"><option value="vencimento">Vencimento</option><option value="valor">Valor</option><option value="placa">Placa</option></select>
               </div>
+              <div><label for="finReceberDataDe">Saída de</label><input id="finReceberDataDe" type="date" /></div>
+              <div><label for="finReceberDataAte">Saída até</label><input id="finReceberDataAte" type="date" /></div>
             </div>
             <p class="notice" style="margin: 0 0 10px">Recorrentes (ex.: mensalista) são cadastrados aqui com tipo <strong>Recorrente</strong> — ao confirmar o pagamento, o próximo título é gerado automaticamente.</p>
             <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
@@ -5556,6 +5566,15 @@
 
           <div class="finance-subview hidden" data-finance-subview="recebidos">
             <p class="notice" style="margin: 0 0 10px">Pagamentos confirmados (inclui veículos do VRP). Se faltar entrada no Caixa, use os botões abaixo.</p>
+            <div class="fin-toolbar">
+              <form id="finRecebidosFilterForm" action="#" novalidate style="display: contents">
+                <div><label for="finRecebidosDataDe">Recebido de</label><input id="finRecebidosDataDe" type="date" /></div>
+                <div><label for="finRecebidosDataAte">Recebido até</label><input id="finRecebidosDataAte" type="date" /></div>
+                <div style="align-self: flex-end"><button type="submit">OK</button></div>
+                <div style="align-self: flex-end"><button type="button" class="secondary" id="finRecebidosFilterClear">Limpar</button></div>
+              </form>
+            </div>
+            <p id="finRecebidosFilterHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <div class="actions" style="margin: 0 0 12px; flex-wrap: wrap; gap: 8px">
               <button type="button" class="secondary" id="finRecebidosSyncCaixa">Recuperar entradas no caixa</button>
               <button type="button" class="secondary" id="finRecebidosRecoverVipPlacas">Recuperar VRP maio/26 (lista completa)</button>
@@ -6375,7 +6394,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260530c"></script>
+    <script src="/finance-module.js?v=20260530d"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
