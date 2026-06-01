@@ -6353,7 +6353,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260528n"></script>
+    <script src="/finance-module.js?v=20260528o"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -7130,6 +7130,7 @@
 
       let appInitPromise = null;
       let appInitUserId = null;
+      let appLaunchConfigConsumed = false;
 
       async function initAppData(forceReload) {
         if (!state.user?.id) return;
@@ -10713,58 +10714,73 @@
           return;
         }
         user = session.user;
+        const alreadyInApp = !!appInitUserId && appInitUserId === user.id;
         hideAppSessionBanner();
         authPanel.classList.add("hidden");
         appPanel.classList.remove("hidden");
         setHeaderLoggedInUI(true);
         userInfo.textContent = user ? `Logado como ${displayManagerIdentity(user.email || "")}` : "Logado";
         state.user = user;
+        const pendingLaunch = stripAppLaunchParamsFromUrl();
         await loadPatioDelegatedRole();
-        try {
-          applyRoleRestrictions();
-        } catch (e) {
-          console.error("applyRoleRestrictions", e);
+        if (!alreadyInApp) {
           try {
-            showMainView("dashboard");
-          } catch (e2) {
-            console.error("showMainView fallback", e2);
+            applyRoleRestrictions();
+          } catch (e) {
+            console.error("applyRoleRestrictions", e);
+            try {
+              showMainView("dashboard");
+            } catch (e2) {
+              console.error("showMainView fallback", e2);
+            }
           }
         }
         try {
-          await initAppData(true);
+          await initAppData(!alreadyInApp);
         } catch (e) {
           console.error("initAppData", e);
           showAppSessionBanner("Erro ao carregar dados. Tente novamente ou saia e entre de novo.");
         }
-        applyAppLaunchConfigIfRequested();
-      }
-
-      function parseAppLaunchConfig() {
-        try {
-          const params = new URLSearchParams(window.location.search);
-          return {
-            view: params.get("view"),
-            fin: params.get("fin"),
-            patio: params.get("patio"),
-          };
-        } catch (e) {
-          return { view: null, fin: null, patio: null };
+        if (pendingLaunch && !alreadyInApp && !appLaunchConfigConsumed) {
+          appLaunchConfigConsumed = true;
+          applyAppLaunchConfig(pendingLaunch);
         }
       }
 
-      function applyAppLaunchConfigIfRequested() {
-        const cfg = parseAppLaunchConfig();
-        if (!cfg.view && !cfg.fin && !cfg.patio) return;
+      function stripAppLaunchParamsFromUrl() {
+        try {
+          const url = new URL(window.location.href);
+          const hasLaunch =
+            url.searchParams.has("view") ||
+            url.searchParams.has("fin") ||
+            url.searchParams.has("patio") ||
+            url.searchParams.has("embed");
+          if (!hasLaunch) return null;
+          const cfg = {
+            view: url.searchParams.get("view"),
+            fin: url.searchParams.get("fin"),
+            patio: url.searchParams.get("patio"),
+          };
+          url.searchParams.delete("view");
+          url.searchParams.delete("fin");
+          url.searchParams.delete("patio");
+          url.searchParams.delete("embed");
+          history.replaceState(null, "", url.pathname + url.search + url.hash);
+          if (!cfg.view && !cfg.fin && !cfg.patio) return null;
+          return cfg;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function applyAppLaunchConfig(cfg) {
         const view = cfg.view || (cfg.fin ? "financeiro" : null) || (cfg.patio ? "patio" : null);
         if (!view) return;
         if (view === "financeiro") {
+          if (cfg.fin && typeof setFinanceView === "function") {
+            setFinanceView(cfg.fin);
+          }
           showMainView("financeiro");
-          if (cfg.fin && typeof openFinanceSubview === "function") {
-            openFinanceSubview(cfg.fin, { skipRefresh: true });
-          }
-          if (typeof refreshFinanceData === "function") {
-            refreshFinanceData({ preserveView: cfg.fin || true });
-          }
           return;
         }
         if (view === "patio") {
@@ -10827,17 +10843,27 @@
           pendingLaunch = null;
         };
 
-        document.addEventListener("click", hideMenu);
         document.addEventListener("scroll", hideMenu, true);
         document.addEventListener("keydown", (e) => {
           if (e.key === "Escape") hideMenu();
         });
 
         menu.querySelector('[data-app-ctx-action="new-window"]')?.addEventListener("click", (e) => {
+          e.preventDefault();
           e.stopPropagation();
-          if (pendingLaunch) openAmplipatioFullWindow(pendingLaunch);
+          const launch = pendingLaunch;
           hideMenu();
+          if (launch) openAmplipatioFullWindow(launch);
         });
+
+        document.addEventListener(
+          "click",
+          (e) => {
+            if (menu.contains(e.target)) return;
+            hideMenu();
+          },
+          true
+        );
 
         const resolveLaunchFromTarget = (target) => {
           const finSubnavBtn = target.closest("#finSubnav [data-finance-subview-btn]");
@@ -10909,6 +10935,7 @@
         isGestorPista = false;
         appInitUserId = null;
         appInitPromise = null;
+        appLaunchConfigConsumed = false;
         document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
       }
 
@@ -16706,7 +16733,11 @@
             return;
           }
           if (event === "SIGNED_IN") {
-            if (session?.user) showApp(session.user).catch(console.error);
+            if (session?.user && !appInitUserId) {
+              showApp(session.user).catch(console.error);
+            } else if (session?.user) {
+              state.user = session.user;
+            }
             return;
           }
           if (event === "TOKEN_REFRESHED" && session?.user && appInitUserId) {
