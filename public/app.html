@@ -6353,7 +6353,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260528r"></script>
+    <script src="/finance-module.js?v=20260528s"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -13923,10 +13923,21 @@
         }
         await loadCash();
         if (totalAtual > 0) {
-          const hasMov = (state.cash || []).some(
-            (m) => m.tipo_conta === "RECEBER" && String(m.conta_id) === String(receivableId)
-          );
+          const hasMov = receivableCashMovementExists(receivableId);
           if (!hasMov) {
+            const retryCash = await registerReceivableCashMovement(
+              { ...receivable, status: "PAGO", valor: totalAtual },
+              {
+                valor: totalAtual,
+                dataMovimento: dataMov,
+                formaPagamento,
+                vehicle,
+              }
+            );
+            if (!retryCash.error) await loadCash();
+          }
+          const hasMovAfter = receivableCashMovementExists(receivableId);
+          if (!hasMovAfter) {
             alert(
               "Pagamento confirmado, mas a entrada no caixa ainda não apareceu. Abra Caixa e clique em «Sincronizar caixa», ou use Atualizar no Financeiro."
             );
@@ -13948,6 +13959,40 @@
         };
       }
 
+      async function findExistingReceivableCashMovement(receivableId, uid) {
+        if (!receivableId || !uid) return null;
+        for (const tipo of ["RECEBER", "ENTRADA"]) {
+          const { data, error } = await supabase
+            .from("cash_movements")
+            .select("id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id")
+            .eq("user_id", uid)
+            .eq("conta_id", receivableId)
+            .eq("tipo_conta", tipo)
+            .limit(1);
+          if (!error && data?.length) return data[0];
+        }
+        const { data: linked } = await supabase
+          .from("cash_movements")
+          .select("id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id")
+          .eq("user_id", uid)
+          .eq("conta_id", receivableId)
+          .limit(5);
+        return (
+          (linked || []).find((m) => {
+            const t = String(m?.tipo_conta || "").toUpperCase();
+            return t === "RECEBER" || t === "ENTRADA";
+          }) || null
+        );
+      }
+
+      function receivableCashMovementExists(receivableId) {
+        return (state.cash || []).some((m) => {
+          if (String(m.conta_id) !== String(receivableId)) return false;
+          const t = String(m.tipo_conta || "").toUpperCase();
+          return t === "RECEBER" || t === "ENTRADA";
+        });
+      }
+
       async function registerReceivableCashMovement(receivable, opts = {}) {
         const receivableId = receivable?.id;
         const uid = effectiveUserId();
@@ -13966,21 +14011,11 @@
           return { data: null, error: null };
         }
 
-        const { data: existingMov, error: existingErr } = await supabase
-          .from("cash_movements")
-          .select("id,valor")
-          .eq("conta_id", receivableId)
-          .eq("tipo_conta", "RECEBER")
-          .eq("user_id", uid)
-          .limit(1);
-        if (existingErr) {
-          return { data: null, error: existingErr };
-        }
-        const isUpdate = !!(existingMov && existingMov.length);
+        const existingMov = await findExistingReceivableCashMovement(receivableId, uid);
         const isoMov = new Date(String(dataMov).includes("T") ? dataMov : `${dataMov}T12:00:00`).toISOString();
         const basePayload = {
           user_id: uid,
-          tipo_conta: "RECEBER",
+          tipo_conta: existingMov?.tipo_conta || "RECEBER",
           conta_id: receivableId,
           valor,
           descricao,
@@ -14003,42 +14038,64 @@
           })(),
           { user_id: uid, tipo_conta: "RECEBER", conta_id: receivableId, valor, data_movimento: isoMov },
           { user_id: uid, tipo_conta: "RECEBER", conta_id: receivableId, valor },
+          { user_id: uid, tipo_conta: "ENTRADA", conta_id: receivableId, valor, data_movimento: dataMov },
+          { user_id: uid, tipo_conta: "ENTRADA", conta_id: receivableId, valor, data_movimento: isoMov },
+          { user_id: uid, tipo_conta: "ENTRADA", conta_id: receivableId, valor },
         ];
 
-        const writePayload = async (body) => {
-          if (isUpdate) {
+        const writePayload = async (body, existing) => {
+          const tipo = String(body.tipo_conta || existing?.tipo_conta || "RECEBER");
+          if (existing?.id) {
             return runSupabaseWrite(() =>
-              supabase
-                .from("cash_movements")
-                .update(body)
-                .eq("conta_id", receivableId)
-                .eq("tipo_conta", "RECEBER")
-                .eq("user_id", uid)
-                .select("id,valor,data_movimento")
-                .maybeSingle()
+              supabase.from("cash_movements").update(body).eq("id", existing.id).eq("user_id", uid)
             );
           }
-          return runSupabaseWrite(() =>
-            supabase.from("cash_movements").insert(body).select("id,valor,data_movimento").maybeSingle()
-          );
+          return runSupabaseWrite(() => supabase.from("cash_movements").insert({ ...body, tipo_conta: tipo }));
         };
 
         let lastError = null;
         for (const body of payloadVariants) {
-          const result = await writePayload(body);
-          if (!result.error) return result;
+          const result = await writePayload(body, existingMov);
+          if (!result.error) {
+            const verified = await findExistingReceivableCashMovement(receivableId, uid);
+            if (verified) return { data: verified, error: null };
+            return { data: { conta_id: receivableId, valor, data_movimento: dataMov }, error: null };
+          }
           lastError = result.error;
           const msg = String(result.error.message || "");
-          if (!/column|schema cache|PGRST204|invalid input|date|time|format|forma_pagamento|descricao|data_movimento/i.test(msg)) {
+          if (
+            !/column|schema cache|PGRST204|invalid input|date|time|format|forma_pagamento|descricao|data_movimento|enum|22P02|23514|tipo_conta/i.test(
+              msg
+            )
+          ) {
             break;
           }
         }
 
         if (lastError && /duplicate key|unique constraint|23505/i.test(String(lastError.message || ""))) {
-          const retry = await writePayload({ valor, data_movimento: isoMov, descricao, forma_pagamento: formaPagamento });
-          if (!retry.error) return retry;
+          const fresh = await findExistingReceivableCashMovement(receivableId, uid);
+          const retry = await writePayload(
+            {
+              user_id: uid,
+              tipo_conta: fresh?.tipo_conta || "RECEBER",
+              conta_id: receivableId,
+              valor,
+              data_movimento: isoMov,
+              descricao,
+              forma_pagamento: formaPagamento,
+            },
+            fresh
+          );
+          if (!retry.error) {
+            const verified = await findExistingReceivableCashMovement(receivableId, uid);
+            if (verified) return { data: verified, error: null };
+            return { data: { conta_id: receivableId, valor, data_movimento: dataMov }, error: null };
+          }
           lastError = retry.error;
         }
+
+        const stillThere = await findExistingReceivableCashMovement(receivableId, uid);
+        if (stillThere) return { data: stillThere, error: null };
 
         return { data: null, error: lastError || { message: "Não foi possível registrar entrada no caixa." } };
       }
@@ -14104,15 +14161,18 @@
         const paid = (state.receivables || []).filter((r) => String(r.status || "").toUpperCase() === "PAGO");
         const { data: remoteCash, error: remoteErr } = await supabase
           .from("cash_movements")
-          .select("id,conta_id,valor,data_movimento,forma_pagamento")
+          .select("id,conta_id,valor,data_movimento,forma_pagamento,tipo_conta")
           .eq("user_id", uid)
-          .eq("tipo_conta", "RECEBER");
+          .in("tipo_conta", ["RECEBER", "ENTRADA"]);
         if (remoteErr) {
           console.warn("syncPaidReceivablesCashMovements load", remoteErr.message || remoteErr);
         }
-        const cashByConta = new Map(
-          (remoteCash || []).map((m) => [String(m.conta_id), m])
-        );
+        const cashByConta = new Map();
+        for (const m of remoteCash || []) {
+          const t = String(m?.tipo_conta || "").toUpperCase();
+          if (t !== "RECEBER" && t !== "ENTRADA") continue;
+          if (m?.conta_id != null) cashByConta.set(String(m.conta_id), m);
+        }
         let created = 0;
         let fixed = 0;
         let failed = 0;
