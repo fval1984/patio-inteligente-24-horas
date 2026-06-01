@@ -1044,7 +1044,7 @@
           <td data-label="Veículo / RPV"><strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span></td>
           <td data-label="RPP">${escapeHtml(r.responsavel_pagamento || financeReceberRppNome(r, v))}</td>
           <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
-          <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}${valorZero ? `<br /><span class="notice">Valor zerado — use «Corrigir valores R$ 0 e enviar ao caixa»</span>` : ""}</td>
+          <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}${valorZero ? `<br /><span class="notice">Valor zerado — use «Corrigir R$ 0 → caixa» (topo do Financeiro, Caixa ou Lista)</span>` : ""}</td>
           <td data-label="Recebido em">${escapeHtml(formatDateTime(r.updated_at || r.created_at))}</td>
           <td data-label="Status"><span class="fin-tag fin-tag--ok">Recebido</span>${noCaixa ? `<br /><span class="notice">Sem entrada no caixa</span>` : ""}</td>
         </tr>`;
@@ -2776,6 +2776,34 @@
     setFinanceView("dashboard");
   };
 
+  function financeStartFixZeroValorPago(ui = {}) {
+    const n = FINANCE_ZERO_VALOR_PAGO_FIX_ENTRIES.length;
+    const ok = window.confirm(
+      `Corrigir ${n} pagamento(s) com R$ 0,00?\n\n` +
+        "O valor será recalculado (diárias do pátio), o status permanece «Recebido» e a entrada será criada no caixa. " +
+        "Nenhum registro voltará para «Aguardando faturamento»."
+    );
+    if (!ok) return Promise.resolve(null);
+    return financeFixZeroValorPagoViaApi(
+      { fixEntries: FINANCE_ZERO_VALOR_PAGO_FIX_ENTRIES },
+      {
+        hintId: ui.hintId || "finRecebidosRecoverHint",
+        btnId: ui.btnId,
+        btnBusy: ui.btnBusy || "Corrigindo valores…",
+        btnDefault: ui.btnDefault || "Corrigir R$ 0 → caixa",
+        onDone:
+          ui.onDone ||
+          (() => {
+            financeRenderRecebidos();
+            financeRenderCaixa();
+            if (typeof renderListaPanel === "function") renderListaPanel();
+          }),
+      }
+    );
+  }
+
+  window.financeStartFixZeroValorPago = financeStartFixZeroValorPago;
+
   window.bindFinanceDashboardUiOnce = function bindFinanceDashboardUiOnce() {
     if (bindFinanceDashboardUiOnce._done) return;
     bindFinanceDashboardUiOnce._done = true;
@@ -2849,26 +2877,40 @@
       );
     });
     document.getElementById("finRecebidosFixZeroValor")?.addEventListener("click", () => {
-      const n = FINANCE_ZERO_VALOR_PAGO_FIX_ENTRIES.length;
-      const ok = window.confirm(
-        `Corrigir ${n} pagamento(s) com R$ 0,00?\n\n` +
-          "O valor será recalculado (diárias do pátio), o status permanece «Recebido» e a entrada será criada no caixa. " +
-          "Nenhum registro voltará para «Aguardando faturamento»."
-      );
-      if (!ok) return;
-      financeFixZeroValorPagoViaApi(
-        { fixEntries: FINANCE_ZERO_VALOR_PAGO_FIX_ENTRIES },
-        {
-          hintId: "finRecebidosRecoverHint",
-          btnId: "finRecebidosFixZeroValor",
-          btnBusy: "Corrigindo valores…",
-          btnDefault: "Corrigir valores R$ 0 e enviar ao caixa",
-          onDone: () => {
-            financeRenderRecebidos();
-            financeRenderCaixa();
-          },
-        }
-      );
+      financeStartFixZeroValorPago({
+        hintId: "finRecebidosRecoverHint",
+        btnId: "finRecebidosFixZeroValor",
+        btnDefault: "Corrigir valores R$ 0 e enviar ao caixa",
+      });
+    });
+    document.getElementById("finToolbarFixZeroValor")?.addEventListener("click", () => {
+      financeStartFixZeroValorPago({
+        hintId: "finRecebidosRecoverHint",
+        btnId: "finToolbarFixZeroValor",
+        btnDefault: "Corrigir R$ 0 → caixa",
+      });
+    });
+    document.getElementById("finCaixaFixZeroValor")?.addEventListener("click", () => {
+      financeStartFixZeroValorPago({
+        hintId: "finCaixaSyncHint",
+        btnId: "finCaixaFixZeroValor",
+        btnDefault: "Corrigir R$ 0 → caixa",
+        onDone: () => {
+          financeRenderRecebidos();
+          financeRenderCaixa();
+        },
+      });
+    });
+    document.getElementById("listaFixZeroValorBtn")?.addEventListener("click", () => {
+      financeStartFixZeroValorPago({
+        btnId: "listaFixZeroValorBtn",
+        btnDefault: "Corrigir R$ 0 → caixa",
+        onDone: () => {
+          if (typeof renderListaPanel === "function") renderListaPanel();
+          financeRenderRecebidos();
+          financeRenderCaixa();
+        },
+      });
     });
     document.getElementById("finChartPeriod")?.addEventListener("change", () => financeRenderDashboard());
 
