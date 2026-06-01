@@ -29,6 +29,34 @@ function toYmd(value: string | null | undefined) {
   return d.toISOString().slice(0, 10);
 }
 
+/** Data civil em São Paulo — evita pagamento às 22h virar dia seguinte em UTC. */
+function toYmdBr(value: string | null | undefined) {
+  if (!value) return null;
+  const s = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s.includes("T") ? s : `${s}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  } catch {
+    return toYmd(value);
+  }
+}
+
+function ymdWithinOneDay(a: string | null | undefined, b: string | null | undefined) {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const da = new Date(`${a}T12:00:00`).getTime();
+  const db = new Date(`${b}T12:00:00`).getTime();
+  if (!Number.isFinite(da) || !Number.isFinite(db)) return false;
+  return Math.abs(da - db) <= 86400000;
+}
+
 function isSchemaError(message: string) {
   return /column|schema cache|PGRST204|invalid input|enum|22P02|23514|tipo_conta|forma_pagamento|descricao|data_movimento|relation|does not exist|PGRST205/i.test(
     message
@@ -355,7 +383,7 @@ async function loadVrpReceivablesToRecover(
   return { receivables: [...byVehicle.values()], placaByVehicle };
 }
 
-type RecoverEntry = { plate: string; valor?: number; paidDate?: string };
+type RecoverEntry = { plate: string; valor?: number; paidDate?: string; saidaDate?: string };
 type BatchOverride = { dataMovimento?: string; valor?: number };
 
 /** Mesma placa pode ter vários ciclos RPP encerrados (ex.: SNO8E38 João Vitor R$20 + VIP R$210). */
@@ -367,16 +395,27 @@ function pickBestReceivableForEntry(
   let candidates = (recs || []).filter((r) => r?.id && !excludeIds?.has(r.id));
   if (!candidates.length) return null;
   const targetValor = entry.valor != null ? Number(entry.valor) : null;
-  const targetDate = entry.paidDate ? toYmd(entry.paidDate) : null;
+  const targetSaida = entry.saidaDate ? toYmd(entry.saidaDate) : null;
+  const targetPaid = entry.paidDate ? toYmd(entry.paidDate) : null;
   if (targetValor != null) {
     const byValor = candidates.filter((r) => Math.abs(Number(r.valor || 0) - targetValor) < 0.01);
     if (byValor.length) candidates = byValor;
   }
-  if (targetDate) {
+  if (targetSaida) {
+    const bySaida = candidates.filter((r) => toYmd(r.period_end || "") === targetSaida);
+    if (bySaida.length) candidates = bySaida;
+  } else if (targetPaid) {
     const byDate = candidates.filter((r) => {
+      const payYmdBr = toYmdBr(r.updated_at);
       const payYmd = toYmd(r.updated_at || r.period_end || r.created_at);
       const endYmd = toYmd(r.period_end || "");
-      return payYmd === targetDate || endYmd === targetDate;
+      return (
+        payYmdBr === targetPaid ||
+        payYmd === targetPaid ||
+        endYmd === targetPaid ||
+        ymdWithinOneDay(payYmdBr, targetPaid) ||
+        ymdWithinOneDay(payYmd, targetPaid)
+      );
     });
     if (byDate.length) candidates = byDate;
   }
@@ -590,23 +629,17 @@ export async function POST(request: NextRequest) {
       ? body.plates.map((p: unknown) => normalizePlate(String(p || ""))).filter(Boolean)
       : [];
     const revertToAguardando = body?.revertToAguardando === true;
+    const mapRecoverEntry = (e: { plate?: unknown; valor?: unknown; paidDate?: unknown; saidaDate?: unknown }) => ({
+      plate: normalizePlate(String(e?.plate || "")),
+      valor: e?.valor != null ? Number(e.valor) : undefined,
+      paidDate: e?.paidDate ? toYmd(String(e.paidDate)) : undefined,
+      saidaDate: e?.saidaDate ? toYmd(String(e.saidaDate)) : undefined,
+    });
     const recoverEntries: RecoverEntry[] = Array.isArray(body?.recoverEntries)
-      ? body.recoverEntries
-          .map((e: { plate?: unknown; valor?: unknown; paidDate?: unknown }) => ({
-            plate: normalizePlate(String(e?.plate || "")),
-            valor: e?.valor != null ? Number(e.valor) : undefined,
-            paidDate: e?.paidDate ? toYmd(String(e.paidDate)) : undefined,
-          }))
-          .filter((e) => e.plate && (e.valor == null || e.valor > 0))
+      ? body.recoverEntries.map(mapRecoverEntry).filter((e) => e.plate && (e.valor == null || e.valor > 0))
       : [];
     const revertEntries: RecoverEntry[] = Array.isArray(body?.revertEntries)
-      ? body.revertEntries
-          .map((e: { plate?: unknown; valor?: unknown; paidDate?: unknown }) => ({
-            plate: normalizePlate(String(e?.plate || "")),
-            valor: e?.valor != null ? Number(e.valor) : undefined,
-            paidDate: e?.paidDate ? toYmd(String(e.paidDate)) : undefined,
-          }))
-          .filter((e) => e.plate && (e.valor == null || e.valor > 0))
+      ? body.revertEntries.map(mapRecoverEntry).filter((e) => e.plate && (e.valor == null || e.valor > 0))
       : revertToAguardando
         ? recoverEntries
         : [];

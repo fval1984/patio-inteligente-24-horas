@@ -1204,67 +1204,233 @@
     { plate: "HXR1I28", valor: 240, paidDate: "2026-05-06" },
   ];
 
-  /** Pagamentos confirmados sem caixa — reverter para Aguardando Faturamento (placa + valor + data). */
+  /** Pagamentos confirmados sem caixa — reverter para Aguardando Faturamento (placa + valor + saída). */
   const FINANCE_REVERT_TO_AGUARDANDO_ENTRIES = [
-    { plate: "SHT9J35", valor: 60, paidDate: "2026-05-29" },
-    { plate: "QLC1E25", valor: 60, paidDate: "2026-05-28" },
-    { plate: "CFZ3J00", valor: 200, paidDate: "2026-05-29" },
-    { plate: "PGQ3I89", valor: 210, paidDate: "2026-05-28" },
-    { plate: "SOK3G87", valor: 105, paidDate: "2026-05-29" },
-    { plate: "PDV8F14", valor: 210, paidDate: "2026-05-28" },
-    { plate: "PCC5J55", valor: 120, paidDate: "2026-05-25" },
-    { plate: "SOT1H11", valor: 200, paidDate: "2026-05-29" },
-    { plate: "SOP9J15", valor: 105, paidDate: "2026-05-26" },
-    { plate: "RUS0B38", valor: 180, paidDate: "2026-05-25" },
-    { plate: "SHB6H60", valor: 30, paidDate: "2026-05-19" },
-    { plate: "SOY9E09", valor: 90, paidDate: "2026-05-21" },
-    { plate: "PZO7C79", valor: 330, paidDate: "2026-05-29" },
-    { plate: "QLI9J77", valor: 60, paidDate: "2026-05-20" },
-    { plate: "UHM0A38", valor: 250, paidDate: "2026-05-25" },
-    { plate: "PDW3A12", valor: 330, paidDate: "2026-05-25" },
-    { plate: "SOH9F30", valor: 140, paidDate: "2026-05-27" },
-    { plate: "PCM9G77", valor: 150, paidDate: "2026-05-12" },
-    { plate: "QQN9E59", valor: 60, paidDate: "2026-05-08" },
-    { plate: "RNG8B19", valor: 75, paidDate: "2026-05-08" },
-    { plate: "PDR7B60", valor: 90, paidDate: "2026-05-08" },
-    { plate: "SOF0G64", valor: 90, paidDate: "2026-05-08" },
-    { plate: "RZK5J04", valor: 90, paidDate: "2026-05-08" },
-    { plate: "SOX5F86", valor: 330, paidDate: "2026-05-25" },
-    { plate: "SFV6B80", valor: 800, paidDate: "2026-05-11" },
-    { plate: "RTM1I82", valor: 600, paidDate: "2026-05-20" },
-    { plate: "QPO2F05", valor: 150, paidDate: "2026-05-04" },
-    { plate: "SNO9B38", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8G48", valor: 240, paidDate: "2026-05-08" },
-    { plate: "SNO9D08", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8G38", valor: 240, paidDate: "2026-05-08" },
-    { plate: "SNO7I98", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8H38", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8H58", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8E98", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8C88", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8D68", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8G68", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO7F38", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO9A58", valor: 210, paidDate: "2026-05-06" },
-    { plate: "SNO8E38", valor: 210, paidDate: "2026-05-06" },
-    { plate: "RZZ1J57", valor: 150, paidDate: "2026-05-04" },
-    { plate: "PGL3H13", valor: 300, paidDate: "2026-05-08" },
-    { plate: "HXR1I28", valor: 240, paidDate: "2026-05-06" },
-    { plate: "PDI2C97", valor: 330, paidDate: "2026-05-08" },
-    { plate: "PDM4C51", valor: 240, paidDate: "2026-05-05" },
-    { plate: "SOL5I69", valor: 465, paidDate: "2026-05-25" },
-    { plate: "RZV1B76", valor: 360, paidDate: "2026-05-05" },
-    { plate: "QYX2D91", valor: 300, paidDate: "2026-05-08" },
-    { plate: "QXM8G83", valor: 630, paidDate: "2026-05-06" },
-    { plate: "RII2H22", valor: 690, paidDate: "2026-05-29" },
-    { plate: "PDW8260", valor: 375, paidDate: "2026-05-04" },
-    { plate: "SNY4J16", valor: 420, paidDate: "2026-05-04" },
-    { plate: "SOQ9C44", valor: 585, paidDate: "2026-05-04" },
-    { plate: "RZS1C42", valor: 960, paidDate: "2026-05-25" },
-    { plate: "QYA5C45", valor: 795, paidDate: "2026-05-04" },
-    { plate: "SOW4G62", valor: 795, paidDate: "2026-05-04" },
-    { plate: "SNZ7F17", valor: 900, paidDate: "2026-05-04" },
+    { plate: "SHT9J35", valor: 60, saidaDate: "2026-05-26", paidDate: "2026-05-29" },
+    { plate: "QLC1E25", valor: 60, saidaDate: "2026-05-26", paidDate: "2026-05-28" },
+    { plate: "CFZ3J00", valor: 200, saidaDate: "2026-05-26", paidDate: "2026-05-29" },
+    { plate: "PGQ3I89", valor: 210, saidaDate: "2026-05-22", paidDate: "2026-05-28" },
+    { plate: "SOK3G87", valor: 105, saidaDate: "2026-05-22", paidDate: "2026-05-29" },
+    { plate: "PDV8F14", valor: 210, saidaDate: "2026-05-22", paidDate: "2026-05-28" },
+    { plate: "PCC5J55", valor: 120, saidaDate: "2026-05-21", paidDate: "2026-05-25" },
+    { plate: "SOT1H11", valor: 200, saidaDate: "2026-05-21", paidDate: "2026-05-29" },
+    { plate: "SOP9J15", valor: 105, saidaDate: "2026-05-20", paidDate: "2026-05-26" },
+    { plate: "RUS0B38", valor: 180, saidaDate: "2026-05-20", paidDate: "2026-05-25" },
+    { plate: "SHB6H60", valor: 30, saidaDate: "2026-05-19", paidDate: "2026-05-19" },
+    { plate: "SOY9E09", valor: 90, saidaDate: "2026-05-19", paidDate: "2026-05-21" },
+    { plate: "PZO7C79", valor: 330, saidaDate: "2026-05-18", paidDate: "2026-05-29" },
+    { plate: "QLI9J77", valor: 60, saidaDate: "2026-05-18", paidDate: "2026-05-20" },
+    { plate: "UHM0A38", valor: 250, saidaDate: "2026-05-16", paidDate: "2026-05-25" },
+    { plate: "PDW3A12", valor: 330, saidaDate: "2026-05-14", paidDate: "2026-05-25" },
+    { plate: "SOH9F30", valor: 140, saidaDate: "2026-05-13", paidDate: "2026-05-27" },
+    { plate: "PCM9G77", valor: 150, saidaDate: "2026-05-08", paidDate: "2026-05-12" },
+    { plate: "QQN9E59", valor: 60, saidaDate: "2026-05-07", paidDate: "2026-05-08" },
+    { plate: "RNG8B19", valor: 75, saidaDate: "2026-05-05", paidDate: "2026-05-08" },
+    { plate: "PDR7B60", valor: 90, saidaDate: "2026-05-05", paidDate: "2026-05-08" },
+    { plate: "SOF0G64", valor: 90, saidaDate: "2026-05-05", paidDate: "2026-05-08" },
+    { plate: "RZK5J04", valor: 90, saidaDate: "2026-05-05", paidDate: "2026-05-08" },
+    { plate: "SOX5F86", valor: 330, saidaDate: "2026-05-04", paidDate: "2026-05-25" },
+    { plate: "SFV6B80", valor: 800, saidaDate: "2026-05-03", paidDate: "2026-05-11" },
+    { plate: "RTM1I82", valor: 600, saidaDate: "2026-04-30", paidDate: "2026-05-20" },
+    { plate: "QPO2F05", valor: 150, saidaDate: "2026-04-30", paidDate: "2026-05-04" },
+    { plate: "SNO9B38", valor: 210, saidaDate: "2026-04-30", paidDate: "2026-05-06" },
+    { plate: "SNO8G48", valor: 240, saidaDate: "2026-04-30", paidDate: "2026-05-08" },
+    { plate: "SNO9D08", valor: 210, saidaDate: "2026-04-30", paidDate: "2026-05-06" },
+    { plate: "SNO8G38", valor: 240, saidaDate: "2026-04-30", paidDate: "2026-05-08" },
+    { plate: "SNO7I98", valor: 210, saidaDate: "2026-04-30", paidDate: "2026-05-06" },
+    { plate: "SNO8H38", valor: 210, saidaDate: "2026-04-30", paidDate: "2026-05-06" },
+    { plate: "SNO8H58", valor: 210, saidaDate: "2026-04-30", paidDate: "2026-05-06" },
+    { plate: "SNO8E98", valor: 210, saidaDate: "2026-04-30", paidDate: "2026-05-06" },
+    { plate: "SNO8C88", valor: 210, saidaDate: "2026-04-30", paidDate: "2026-05-06" },
+    { plate: "SNO8D68", valor: 210, saidaDate: "2026-04-30", paidDate: "2026-05-06" },
+    { plate: "SNO8G68", valor: 210, saidaDate: "2026-04-30", paidDate: "2026-05-06" },
+    { plate: "SNO7F38", valor: 210, saidaDate: "2026-04-30", paidDate: "2026-05-06" },
+    { plate: "SNO9A58", valor: 210, saidaDate: "2026-04-30", paidDate: "2026-05-06" },
+    { plate: "SNO8E38", valor: 210, saidaDate: "2026-04-30", paidDate: "2026-05-06" },
+    { plate: "RZZ1J57", valor: 150, saidaDate: "2026-04-29", paidDate: "2026-05-04" },
+    { plate: "PGL3H13", valor: 300, saidaDate: "2026-04-29", paidDate: "2026-05-08" },
+    { plate: "HXR1I28", valor: 240, saidaDate: "2026-04-28", paidDate: "2026-05-06" },
+    { plate: "PDI2C97", valor: 330, saidaDate: "2026-04-27", paidDate: "2026-05-08" },
+    { plate: "PDM4C51", valor: 240, saidaDate: "2026-04-27", paidDate: "2026-05-05" },
+    { plate: "SOL5I69", valor: 465, saidaDate: "2026-04-24", paidDate: "2026-05-25" },
+    { plate: "RZV1B76", valor: 360, saidaDate: "2026-04-24", paidDate: "2026-05-05" },
+    { plate: "QYX2D91", valor: 300, saidaDate: "2026-04-23", paidDate: "2026-05-08" },
+    { plate: "QXM8G83", valor: 630, saidaDate: "2026-04-15", paidDate: "2026-05-06" },
+    { plate: "RII2H22", valor: 690, saidaDate: "2026-04-14", paidDate: "2026-05-29" },
+    { plate: "PDW8260", valor: 375, saidaDate: "2026-04-09", paidDate: "2026-05-04" },
+    { plate: "SNY4J16", valor: 420, saidaDate: "2026-04-07", paidDate: "2026-05-04" },
+    { plate: "SOQ9C44", valor: 585, saidaDate: "2026-03-27", paidDate: "2026-05-04" },
+    { plate: "RZS1C42", valor: 960, saidaDate: "2026-03-23", paidDate: "2026-05-25" },
+    { plate: "QYA5C45", valor: 795, saidaDate: "2026-03-13", paidDate: "2026-05-04" },
+    { plate: "SOW4G62", valor: 795, saidaDate: "2026-03-13", paidDate: "2026-05-04" },
+    { plate: "SNZ7F17", valor: 900, saidaDate: "2026-03-06", paidDate: "2026-05-04" },
   ];
+
+  function financeNormalizePlate(p) {
+    return String(p || "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
+  }
+
+  function financeYmdWithinDays(a, b, days = 1) {
+    if (!a || !b) return false;
+    if (a === b) return true;
+    const da = new Date(`${a}T12:00:00`).getTime();
+    const db = new Date(`${b}T12:00:00`).getTime();
+    if (!Number.isFinite(da) || !Number.isFinite(db)) return false;
+    return Math.abs(da - db) / 86400000 <= days;
+  }
+
+  function financePickReceivableForRevertEntry(entry, excludeIds = new Set()) {
+    const plateKey = financeNormalizePlate(entry.plate);
+    const vehicleIds = new Set(
+      (state.vehicles || [])
+        .filter((v) => financeNormalizePlate(v.placa) === plateKey)
+        .map((v) => String(v.id))
+    );
+    if (!vehicleIds.size) return null;
+    const ymd = typeof toLocalYmd === "function" ? toLocalYmd : (v) => String(v || "").slice(0, 10);
+    let candidates = (state.receivables || []).filter(
+      (r) =>
+        r?.id &&
+        vehicleIds.has(String(r.vehicle_id)) &&
+        r.period_end &&
+        Number(r.valor || 0) > 0 &&
+        !excludeIds.has(String(r.id))
+    );
+    if (entry.valor != null) {
+      const byValor = candidates.filter((r) => Math.abs(Number(r.valor || 0) - Number(entry.valor)) < 0.01);
+      if (byValor.length) candidates = byValor;
+    }
+    const saidaYmd = entry.saidaDate ? ymd(entry.saidaDate) : null;
+    const paidYmd = entry.paidDate ? ymd(entry.paidDate) : null;
+    if (saidaYmd) {
+      const bySaida = candidates.filter((r) => {
+        if (ymd(r.period_end) === saidaYmd) return true;
+        const v = (state.vehicles || []).find((x) => String(x.id) === String(r.vehicle_id));
+        return v?.data_saida && ymd(v.data_saida) === saidaYmd;
+      });
+      if (bySaida.length) candidates = bySaida;
+    } else if (paidYmd) {
+      const byPaid = candidates.filter((r) => {
+        const payYmd = ymd(r.updated_at || r.period_end);
+        const endYmd = ymd(r.period_end);
+        return payYmd === paidYmd || endYmd === paidYmd || financeYmdWithinDays(payYmd, paidYmd);
+      });
+      if (byPaid.length) candidates = byPaid;
+    }
+    candidates.sort((a, b) => {
+      const aPaid = String(a.status || "").toUpperCase() === "PAGO" ? 1 : 0;
+      const bPaid = String(b.status || "").toUpperCase() === "PAGO" ? 1 : 0;
+      if (bPaid !== aPaid) return bPaid - aPaid;
+      return String(b.period_end || "").localeCompare(String(a.period_end || ""));
+    });
+    return candidates[0] || null;
+  }
+
+  async function financeDeleteCashForReceivableClient(receivableId) {
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid || !receivableId || typeof supabase === "undefined") return 0;
+    let removed = 0;
+    const runDel = (q) => (typeof runSupabaseWrite === "function" ? runSupabaseWrite(q) : q());
+    const { data: movs } = await supabase
+      .from("cash_movements")
+      .select("id,tipo_conta")
+      .eq("user_id", uid)
+      .eq("conta_id", receivableId);
+    for (const mov of movs || []) {
+      const t = String(mov?.tipo_conta || "").toUpperCase();
+      if (t !== "RECEBER" && t !== "ENTRADA") continue;
+      const { error } = await runDel(() =>
+        supabase.from("cash_movements").delete().eq("id", mov.id).eq("user_id", uid)
+      );
+      if (!error) removed += 1;
+    }
+    return removed;
+  }
+
+  async function financeRevertReceivableClientSide(rec) {
+    if (!rec?.id || String(rec.status || "").toUpperCase() !== "PAGO") {
+      return { ok: false, error: "not_pago" };
+    }
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid) return { ok: false, error: "no_user" };
+    if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) {
+      return { ok: false, error: "no_session" };
+    }
+    const aguardando =
+      typeof RECEIVABLE_AGUARDANDO_LANCAMENTO !== "undefined" ? RECEIVABLE_AGUARDANDO_LANCAMENTO : "AGUARDANDO_LANCAMENTO";
+    const cashRemoved = await financeDeleteCashForReceivableClient(rec.id);
+    const patch = {
+      status: aguardando,
+      financeiro_aprovado_contas_receber: false,
+      patio_liberado_financeiro: true,
+    };
+    const runUpd = (body) =>
+      typeof runSupabaseWrite === "function"
+        ? runSupabaseWrite(() => supabase.from("receivables").update(body).eq("id", rec.id).eq("user_id", uid))
+        : supabase.from("receivables").update(body).eq("id", rec.id).eq("user_id", uid);
+    let { error } = await runUpd(patch);
+    if (error && /column|schema cache|PGRST204|financeiro_aprovado|patio_liberado/i.test(error.message || "")) {
+      ({ error } = await runUpd({ status: aguardando }));
+    }
+    if (error && /invalid input value for enum payment_status.*AGUARDANDO/i.test(error.message || "")) {
+      ({ error } = await runUpd({ status: "EM_ABERTO", financeiro_aprovado_contas_receber: false, patio_liberado_financeiro: true }));
+      if (error && /column|schema cache|PGRST204|financeiro_aprovado|patio_liberado/i.test(error.message || "")) {
+        ({ error } = await runUpd({ status: "EM_ABERTO" }));
+      }
+    }
+    if (!error && rec.vehicle_id) {
+      await supabase
+        .from("vehicles")
+        .update({ payment_status: "EM_ABERTO" })
+        .eq("id", rec.vehicle_id)
+        .eq("user_id", uid);
+    }
+    return { ok: !error, error: error?.message, cashRemoved };
+  }
+
+  async function financeRevertToAguardandoClientBatch(entries) {
+    if (typeof loadReceivables === "function") await loadReceivables();
+    if (typeof loadCash === "function") await loadCash();
+    const seen = new Set();
+    let reverted = 0;
+    let failed = 0;
+    let skipped = 0;
+    let cashRemoved = 0;
+    const notFound = [];
+    const notFoundEntries = [];
+    const revertedIds = [];
+    for (const entry of entries) {
+      const rec = financePickReceivableForRevertEntry(entry, seen);
+      if (!rec) {
+        notFound.push(`${entry.plate} R$ ${entry.valor ?? "?"} saída ${entry.saidaDate ?? entry.paidDate ?? ""}`);
+        notFoundEntries.push(entry);
+        continue;
+      }
+      seen.add(String(rec.id));
+      if (String(rec.status || "").toUpperCase() !== "PAGO") {
+        skipped += 1;
+        continue;
+      }
+      const result = await financeRevertReceivableClientSide(rec);
+      if (!result.ok) {
+        failed += 1;
+        notFound.push(`${entry.plate}: ${result.error || "falha"}`);
+        continue;
+      }
+      reverted += 1;
+      cashRemoved += Number(result.cashRemoved || 0);
+      revertedIds.push(rec.id);
+      if (typeof removeReceberTriagemId === "function") removeReceberTriagemId(rec.id);
+      if (typeof removePatioFinanceiroBloqueadoReceivableId === "function") {
+        removePatioFinanceiroBloqueadoReceivableId(rec.id);
+      }
+    }
+    if (typeof loadReceivables === "function") await loadReceivables();
+    if (typeof loadCash === "function") await loadCash();
+    return { reverted, failed, skipped, cashRemoved, notFound, notFoundEntries, revertedIds };
+  }
 
   async function financeRevertToAguardandoViaApi(payload, ui = {}) {
     const btn = ui.btnId ? document.getElementById(ui.btnId) : null;
@@ -1275,36 +1441,53 @@
       if (ui.btnBusy) btn.textContent = ui.btnBusy;
     }
     let stats = { reverted: 0, failed: 0, skipped: 0, cashRemoved: 0 };
+    let notFound = [];
     try {
-      if (typeof callRegisterCashReceivableApi !== "function") {
-        throw new Error("API de caixa indisponível nesta sessão.");
-      }
-      const api = await callRegisterCashReceivableApi(payload);
-      if (!api.ok) throw new Error(api.error || "Falha ao reverter para aguardando faturamento.");
+      const entries = payload.revertEntries || payload.recoverEntries || [];
+      if (!entries.length) throw new Error("Lista vazia para reversão.");
+
+      let batch = await financeRevertToAguardandoClientBatch(entries);
       stats = {
-        reverted: Number(api.stats?.reverted || 0),
-        failed: Number(api.stats?.failed || 0),
-        skipped: Number(api.stats?.skipped || 0),
-        cashRemoved: Number(api.stats?.cashRemoved || 0),
+        reverted: batch.reverted,
+        failed: batch.failed,
+        skipped: batch.skipped,
+        cashRemoved: batch.cashRemoved,
       };
-      const revertedIds = Array.isArray(api.revertedIds) ? api.revertedIds : [];
-      for (const id of revertedIds) {
-        if (typeof removeReceberTriagemId === "function") removeReceberTriagemId(id);
-        if (typeof removePatioFinanceiroBloqueadoReceivableId === "function") {
-          removePatioFinanceiroBloqueadoReceivableId(id);
+      notFound = batch.notFound || [];
+
+      if (batch.notFoundEntries?.length && typeof callRegisterCashReceivableApi === "function") {
+        const api = await callRegisterCashReceivableApi({
+          revertToAguardando: true,
+          revertEntries: batch.notFoundEntries,
+        });
+        if (api.ok) {
+          stats.reverted += Number(api.stats?.reverted || 0);
+          stats.failed += Number(api.stats?.failed || 0);
+          stats.skipped += Number(api.stats?.skipped || 0);
+          stats.cashRemoved += Number(api.stats?.cashRemoved || 0);
+          if (Array.isArray(api.revertedIds)) {
+            for (const id of api.revertedIds) {
+              if (typeof removeReceberTriagemId === "function") removeReceberTriagemId(id);
+              if (typeof removePatioFinanceiroBloqueadoReceivableId === "function") {
+                removePatioFinanceiroBloqueadoReceivableId(id);
+              }
+            }
+          }
+          notFound = Array.isArray(api.notFound) ? api.notFound : notFound;
+          if (typeof loadReceivables === "function") await loadReceivables();
+          if (typeof loadCash === "function") await loadCash();
         }
       }
-      if (typeof loadReceivables === "function") await loadReceivables();
-      if (typeof loadCash === "function") await loadCash();
+
       if (hint) {
         const parts = [];
         if (stats.reverted > 0) parts.push(`${stats.reverted} revertido(s) para Aguardando Faturamento`);
         if (stats.cashRemoved > 0) parts.push(`${stats.cashRemoved} entrada(s) removida(s) do caixa`);
         if (stats.skipped > 0) parts.push(`${stats.skipped} já não estava(m) como PAGO`);
         if (stats.failed > 0) parts.push(`${stats.failed} falha(s)`);
-        if (Array.isArray(api.notFound) && api.notFound.length) {
+        if (notFound.length) {
           parts.push(
-            `${api.notFound.length} não encontrado(s): ${api.notFound.slice(0, 5).join("; ")}${api.notFound.length > 5 ? "…" : ""}`
+            `${notFound.length} não encontrado(s): ${notFound.slice(0, 5).join("; ")}${notFound.length > 5 ? "…" : ""}`
           );
         }
         hint.textContent = parts.length
