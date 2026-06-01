@@ -422,7 +422,7 @@
           tipo_conta: "RECEBER",
           conta_id: r.id,
           valor: Number(r.valor || 0),
-          data_movimento: toLocalYmd(r.updated_at || r.created_at || new Date().toISOString()),
+          data_movimento: toLocalYmd(r.period_end || r.updated_at || r.created_at || new Date().toISOString()),
           forma_pagamento: r.forma_pagamento || "PIX",
           descricao: `Recebimento ${placa} (sincronizar caixa)`,
           _syntheticPendingCaixa: true,
