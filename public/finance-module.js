@@ -749,16 +749,13 @@
       btn.disabled = true;
       btn.textContent = "Sincronizando…";
     }
+    let stats = { created: 0, fixed: 0, failed: 0 };
     try {
       if (typeof loadReceivables === "function") await loadReceivables();
-      let stats = { created: 0, fixed: 0, failed: 0 };
       if (typeof window.syncPaidReceivablesCashMovements === "function") {
         stats = (await window.syncPaidReceivablesCashMovements()) || stats;
-      } else if (typeof loadCash === "function") {
-        await loadCash();
       }
       if (typeof loadCash === "function") await loadCash();
-      financeRenderCaixa();
       if (hint) {
         const missing = financeCountPaidReceivablesSemCaixa();
         if (missing > 0) {
@@ -773,7 +770,15 @@
         }
       }
       return stats;
+    } catch (e) {
+      console.warn("financeSyncCaixaFromPaidReceivables", e?.message || e);
+      if (hint) {
+        hint.textContent = "Não foi possível sincronizar o caixa agora. Os movimentos já registrados continuam visíveis abaixo.";
+        hint.classList.remove("hidden");
+      }
+      return stats;
     } finally {
+      financeRenderCaixa();
       if (btn) {
         btn.disabled = false;
         btn.textContent = prev || "Sincronizar caixa";
@@ -782,6 +787,7 @@
   }
 
   async function financeRenderCaixaAsync() {
+    financeRenderCaixa();
     await financeSyncCaixaFromPaidReceivables();
   }
 
@@ -1472,7 +1478,7 @@
   window.refreshFinanceData = async function refreshFinanceData(opts = {}) {
     const preserveView = financeResolvePreserveView(opts);
     if (preserveView) {
-      financeActivateSubview(preserveView);
+      financeActivateSubview(preserveView, { skipRender: true });
     }
     if (typeof ensureValidSupabaseSession === "function") {
       const session = await ensureValidSupabaseSession();
@@ -1504,17 +1510,24 @@
         if (typeof window.syncPaidReceivablesCashMovements === "function") {
           await window.syncPaidReceivablesCashMovements();
         }
-        if (typeof window.syncLostReceivablesToContasReceber === "function") {
-          await window.syncLostReceivablesToContasReceber();
-        }
         if (preserveView) {
           financeActivateSubview(preserveView);
         } else {
           renderFinance();
         }
         updateDashboard?.();
+        if (typeof window.syncLostReceivablesToContasReceber === "function") {
+          window.syncLostReceivablesToContasReceber().catch((e) => {
+            console.warn("syncLostReceivablesToContasReceber", e?.message || e);
+          });
+        }
       } catch (e) {
         console.error("refreshFinanceData", e?.message || e);
+        if (preserveView) {
+          financeActivateSubview(preserveView);
+        } else if (typeof renderFinance === "function") {
+          renderFinance();
+        }
       } finally {
         refreshFinanceDataPromise = null;
       }

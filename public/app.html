@@ -6353,7 +6353,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260528q"></script>
+    <script src="/finance-module.js?v=20260528r"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -11483,7 +11483,9 @@
           loadMonthlyClosures(),
         ]);
         if (typeof syncLostReceivablesToContasReceber === "function") {
-          await syncLostReceivablesToContasReceber();
+          syncLostReceivablesToContasReceber().catch((e) => {
+            console.warn("syncLostReceivablesToContasReceber", e?.message || e);
+          });
         }
         probeVehiclesRpfColumns().catch(() => {});
         const userId = effectiveUserId();
