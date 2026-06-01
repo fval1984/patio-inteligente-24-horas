@@ -1044,7 +1044,7 @@
           <td data-label="Veículo / RPV"><strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span></td>
           <td data-label="RPP">${escapeHtml(r.responsavel_pagamento || financeReceberRppNome(r, v))}</td>
           <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
-          <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}${valorZero ? `<br /><span class="notice">Valor zerado — use «Corrigir pagos R$ 0»</span>` : ""}</td>
+          <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}${valorZero ? `<br /><span class="notice">Valor zerado — use «Corrigir valores R$ 0 e enviar ao caixa»</span>` : ""}</td>
           <td data-label="Recebido em">${escapeHtml(formatDateTime(r.updated_at || r.created_at))}</td>
           <td data-label="Status"><span class="fin-tag fin-tag--ok">Recebido</span>${noCaixa ? `<br /><span class="notice">Sem entrada no caixa</span>` : ""}</td>
         </tr>`;
@@ -1217,7 +1217,7 @@
   /** Lista VRP: pagamentos sem caixa → voltar para Aguardando faturamento e dar baixa de novo. */
   const FINANCE_REVERT_TO_AGUARDANDO_ENTRIES = FINANCE_VRP_CAIXA_RECOVERY_ENTRIES;
 
-  /** Pagos com R$ 0,00 e sem caixa — restaurar valor e voltar para Aguardando faturamento. */
+  /** Pagos com R$ 0,00 — recalcular valor, manter PAGO e registrar entrada no caixa. */
   const FINANCE_ZERO_VALOR_PAGO_FIX_ENTRIES = [
     { plate: "QLC1E25", valor: 0, saidaDate: "2026-05-28", paidDate: "2026-06-01", includeZeroValor: true },
     { plate: "QYP9F00", valor: 0, saidaDate: "2026-04-02", paidDate: "2026-05-28", includeZeroValor: true },
@@ -1399,6 +1399,172 @@
       if (t > 0) return t;
     }
     return Number(rec?.valor || 0);
+  }
+
+  function financeLookupExpectedValorForEntry(entry) {
+    const plateKey = financeNormalizePlate(entry?.plate);
+    const ymd = typeof toLocalYmd === "function" ? toLocalYmd : (v) => String(v || "").slice(0, 10);
+    const saidaYmd = entry?.saidaDate ? ymd(entry.saidaDate) : null;
+    const matches = FINANCE_VRP_CAIXA_RECOVERY_ENTRIES.filter(
+      (e) => financeNormalizePlate(e.plate) === plateKey && Number(e.valor || 0) > 0
+    );
+    if (!matches.length) return null;
+    if (saidaYmd) {
+      const exact = matches.find((e) => ymd(e.saidaDate) === saidaYmd);
+      if (exact) return Number(exact.valor);
+    }
+    if (matches.length === 1) return Number(matches[0].valor);
+    return null;
+  }
+
+  function financeResolveValorForZeroFix(rec, entry = {}) {
+    const recalc = financeRecalcReceivableValorForRevert(rec);
+    if (recalc > 0) return recalc;
+    const expected = financeLookupExpectedValorForEntry(entry);
+    return expected != null && expected > 0 ? expected : 0;
+  }
+
+  async function financeFixZeroValorPagoClientSide(rec, entry = {}) {
+    if (!rec?.id) return { ok: false, error: "no_rec", action: "failed" };
+    if (String(rec.status || "").toUpperCase() !== "PAGO") {
+      return { ok: false, error: "not_pago", action: "failed" };
+    }
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid) return { ok: false, error: "no_user", action: "failed" };
+    if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) {
+      return { ok: false, error: "no_session", action: "failed" };
+    }
+    const valorNovo = financeResolveValorForZeroFix(rec, entry);
+    if (!(valorNovo > 0)) {
+      return { ok: false, error: "valor_still_zero", action: "failed" };
+    }
+    const valorAtual = Number(rec.valor || 0);
+    const needsValorUpdate = valorAtual < 0.01 || Math.abs(valorAtual - valorNovo) > 0.01;
+    if (needsValorUpdate) {
+      const runUpd = (body) =>
+        typeof runSupabaseWrite === "function"
+          ? runSupabaseWrite(() => supabase.from("receivables").update(body).eq("id", rec.id).eq("user_id", uid))
+          : supabase.from("receivables").update(body).eq("id", rec.id).eq("user_id", uid);
+      const { error } = await runUpd({ valor: valorNovo });
+      if (error) return { ok: false, error: error.message, action: "failed" };
+      rec.valor = valorNovo;
+    }
+    if (financeReceivableHasCaixa(rec.id)) {
+      return { ok: true, action: "valor_only", valorFixed: needsValorUpdate };
+    }
+    const ymd = typeof toLocalYmd === "function" ? toLocalYmd : (v) => String(v || "").slice(0, 10);
+    const dataMov =
+      (entry.paidDate ? ymd(entry.paidDate) : null) ||
+      ymd(rec.updated_at || rec.period_end || rec.created_at) ||
+      ymd(new Date().toISOString());
+    const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(rec.vehicle_id));
+    const cashResult = await registerReceivableCashMovement(rec, {
+      valor: valorNovo,
+      dataMovimento: dataMov,
+      vehicle,
+    });
+    if (cashResult.error && !financeReceivableHasCaixa(rec.id)) {
+      return { ok: false, error: cashResult.error?.message || "cash_failed", action: "failed", valorFixed: needsValorUpdate };
+    }
+    return { ok: true, action: "fixed", valorFixed: needsValorUpdate, cashCreated: true };
+  }
+
+  async function financeFixZeroValorPagoClientBatch(entries) {
+    if (typeof loadReceivables === "function") await loadReceivables();
+    if (typeof loadCash === "function") await loadCash();
+    const seen = new Set();
+    let fixed = 0;
+    let valorOnly = 0;
+    let failed = 0;
+    let skipped = 0;
+    const notFound = [];
+    const notFoundEntries = [];
+    for (const entry of entries) {
+      const rec = financePickReceivableForPlateEntry(entry, seen);
+      if (!rec) {
+        notFound.push(`${entry.plate} saída ${entry.saidaDate ?? "?"} pago ${entry.paidDate ?? "?"}`);
+        notFoundEntries.push(entry);
+        continue;
+      }
+      seen.add(String(rec.id));
+      const st = String(rec.status || "").toUpperCase();
+      if (st !== "PAGO") {
+        failed += 1;
+        notFound.push(`${entry.plate}: status ${st} (esperado PAGO)`);
+        continue;
+      }
+      if (Number(rec.valor || 0) > 0 && financeReceivableHasCaixa(rec.id)) {
+        skipped += 1;
+        continue;
+      }
+      const result = await financeFixZeroValorPagoClientSide(rec, entry);
+      if (result.action === "fixed") fixed += 1;
+      else if (result.action === "valor_only") valorOnly += 1;
+      else {
+        failed += 1;
+        notFound.push(`${entry.plate}: ${result.error || "falha"}`);
+      }
+    }
+    if (typeof loadReceivables === "function") await loadReceivables();
+    if (typeof loadCash === "function") await loadCash();
+    return { fixed, valorOnly, failed, skipped, notFound, notFoundEntries };
+  }
+
+  async function financeFixZeroValorPagoViaApi(payload, ui = {}) {
+    const btn = ui.btnId ? document.getElementById(ui.btnId) : null;
+    const hint = ui.hintId ? document.getElementById(ui.hintId) : null;
+    const prev = btn?.textContent;
+    if (btn) {
+      btn.disabled = true;
+      if (ui.btnBusy) btn.textContent = ui.btnBusy;
+    }
+    let stats = { fixed: 0, valorOnly: 0, failed: 0, skipped: 0 };
+    let notFound = [];
+    try {
+      const entries = payload.fixEntries || FINANCE_ZERO_VALOR_PAGO_FIX_ENTRIES;
+      if (!entries.length) throw new Error("Lista vazia para correção.");
+      const batch = await financeFixZeroValorPagoClientBatch(entries);
+      stats = {
+        fixed: batch.fixed,
+        valorOnly: batch.valorOnly,
+        failed: batch.failed,
+        skipped: batch.skipped,
+      };
+      notFound = batch.notFound || [];
+      if (typeof loadReceivables === "function") await loadReceivables();
+      if (typeof loadCash === "function") await loadCash();
+      if (hint) {
+        const parts = [];
+        if (stats.fixed > 0) parts.push(`${stats.fixed} corrigido(s) com entrada no caixa`);
+        if (stats.valorOnly > 0) parts.push(`${stats.valorOnly} valor(es) atualizado(s) (já tinha caixa)`);
+        if (stats.skipped > 0) parts.push(`${stats.skipped} já ok`);
+        if (stats.failed > 0) parts.push(`${stats.failed} falha(s)`);
+        if (notFound.length) {
+          parts.push(
+            `${notFound.length} não corrigido(s): ${notFound.slice(0, 5).join("; ")}${notFound.length > 5 ? "…" : ""}`
+          );
+        }
+        hint.textContent = parts.length
+          ? `Correção concluída: ${parts.join(", ")}.`
+          : "Nenhum registro foi corrigido.";
+        hint.classList.remove("hidden");
+      }
+      if (typeof renderFinance === "function") renderFinance();
+      return stats;
+    } catch (e) {
+      console.warn("financeFixZeroValorPagoViaApi", e?.message || e);
+      if (hint) {
+        hint.textContent = e?.message || "Não foi possível corrigir os registros agora.";
+        hint.classList.remove("hidden");
+      }
+      return stats;
+    } finally {
+      if (typeof ui.onDone === "function") ui.onDone();
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = prev || ui.btnDefault || btn.textContent;
+      }
+    }
   }
 
   async function financeRevertReceivableClientSide(rec) {
@@ -2685,23 +2851,20 @@
     document.getElementById("finRecebidosFixZeroValor")?.addEventListener("click", () => {
       const n = FINANCE_ZERO_VALOR_PAGO_FIX_ENTRIES.length;
       const ok = window.confirm(
-        `Corrigir ${n} pagamento(s) com R$ 0,00 e sem caixa?\n\n` +
-          "Cada registro voltará para «Aguardando faturamento» (valor recalculado) e a entrada no caixa será removida, se existir. " +
-          "Depois aprove e dê baixa novamente."
+        `Corrigir ${n} pagamento(s) com R$ 0,00?\n\n` +
+          "O valor será recalculado (diárias do pátio), o status permanece «Recebido» e a entrada será criada no caixa. " +
+          "Nenhum registro voltará para «Aguardando faturamento»."
       );
       if (!ok) return;
-      financeRevertToAguardandoViaApi(
-        { revertToAguardando: true, revertEntries: FINANCE_ZERO_VALOR_PAGO_FIX_ENTRIES },
+      financeFixZeroValorPagoViaApi(
+        { fixEntries: FINANCE_ZERO_VALOR_PAGO_FIX_ENTRIES },
         {
           hintId: "finRecebidosRecoverHint",
           btnId: "finRecebidosFixZeroValor",
-          btnBusy: "Corrigindo R$ 0…",
-          btnDefault: "Corrigir pagos R$ 0 sem caixa",
-          openAguardando: true,
+          btnBusy: "Corrigindo valores…",
+          btnDefault: "Corrigir valores R$ 0 e enviar ao caixa",
           onDone: () => {
             financeRenderRecebidos();
-            financeRenderAguardando();
-            financeRenderReceber();
             financeRenderCaixa();
           },
         }
