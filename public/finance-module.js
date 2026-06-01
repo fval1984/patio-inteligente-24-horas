@@ -2571,6 +2571,7 @@
   }
 
   window.renderFinance = function renderFinance() {
+    financePurgeRecebidosUi();
     try {
       financeActivateSubview(currentFinanceView, { skipRender: true });
       if (currentFinanceView === "caixa") {
@@ -2674,6 +2675,17 @@
     await refreshFinanceData({ preserveView: stayView && stayView !== "none" ? stayView : true });
   }
 
+  function financePurgeRecebidosUi() {
+    document
+      .querySelectorAll(
+        '[data-finance-subview-btn="recebidos"], button[data-finance-subview="recebidos"], .finance-subview[data-finance-subview="recebidos"]'
+      )
+      .forEach((el) => el.remove());
+    if (currentFinanceView === "recebidos") {
+      financeActivateSubview("caixa", { skipRender: true });
+    }
+  }
+
   window.setFinanceView = function setFinanceView(view) {
     if (!view || view === "none") return;
     financeActivateSubview(view);
@@ -2724,6 +2736,7 @@
   window.bindFinanceDashboardUiOnce = function bindFinanceDashboardUiOnce() {
     if (bindFinanceDashboardUiOnce._done) return;
     bindFinanceDashboardUiOnce._done = true;
+    financePurgeRecebidosUi();
 
     document.getElementById("finSubnav")?.addEventListener("click", (e) => {
       const btn = e.target.closest("[data-finance-subview-btn]");
