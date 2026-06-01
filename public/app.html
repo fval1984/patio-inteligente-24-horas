@@ -3979,99 +3979,40 @@
         color: var(--primary-strong);
         font-weight: 600;
       }
-      .finance-dual-bar {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 12px 18px;
-        margin: 0 0 14px;
-        padding: 10px 14px;
-        background: color-mix(in srgb, var(--card) 92%, var(--primary) 8%);
+      .fin-context-menu {
+        position: fixed;
+        z-index: 10050;
+        min-width: 240px;
+        padding: 6px;
+        background: var(--card);
         border: 1px solid var(--border);
-        border-radius: 12px;
+        border-radius: 10px;
+        box-shadow: var(--shadow-soft, 0 8px 24px rgba(0, 0, 0, 0.15));
       }
-      .finance-dual-bar--inline {
-        padding: 8px 14px;
-        margin-top: -6px;
-      }
-      .finance-dual-hint {
-        flex: 1 1 220px;
-        font-size: 0.82rem;
-        color: var(--muted);
-        line-height: 1.35;
-      }
-      .finance-dual-toggle {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.9rem;
-        font-weight: 600;
-        cursor: pointer;
-        user-select: none;
-      }
-      .finance-dual-pickers {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 10px 14px;
-      }
-      .finance-dual-pickers label {
-        display: inline-flex;
-        flex-direction: column;
-        gap: 4px;
-        font-size: 0.78rem;
-        color: var(--muted);
-      }
-      .finance-dual-pickers select {
-        min-width: 11rem;
+      .fin-context-menu.hidden { display: none !important; }
+      .fin-context-menu button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: transparent;
+        color: var(--text);
         font: inherit;
+        padding: 10px 12px;
+        border-radius: 8px;
+        cursor: pointer;
       }
-      .finance-subviews-wrap.finance-dual-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: 14px;
-        align-items: start;
-      }
-      .finance-module-shell.finance-dual-active {
-        max-width: min(100%, 1880px);
-      }
-      .finance-module-shell.finance-dual-active .finance-subnav {
-        margin-bottom: 10px;
-      }
-      .finance-dual-active .finance-subview:not(.hidden) {
-        min-width: 0;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 12px;
-        max-height: calc(100vh - 260px);
-        overflow: auto;
-      }
-      .finance-dual-pane-label {
-        margin: 0 0 10px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid var(--border);
-        font-size: 0.82rem;
-        font-weight: 700;
-        color: var(--primary-strong);
-      }
-      @media (max-width: 1100px) {
-        .finance-subviews-wrap.finance-dual-grid {
-          grid-template-columns: 1fr;
-        }
-        .finance-dual-active .finance-subview:not(.hidden) {
-          max-height: none;
-        }
+      .fin-context-menu button:hover,
+      .fin-context-menu button:focus {
+        background: var(--primary-weak);
+        outline: none;
       }
       body.app-embed-finance #appHeaderMenu,
       body.app-embed-finance #appSessionBanner,
       body.app-embed-finance #gestorPistaWelcomeBanner,
       body.app-embed-finance .finance-subnav,
-      body.app-embed-finance #finMultiWindowBar,
-      body.app-embed-finance .finance-dual-bar,
       body.app-embed-finance #viewFinanceiro .close-view,
-      body.app-embed-finance #viewFinanceiro .module-lede,
-      body.app-embed-finance #viewFinanceiro #finPopCaixa,
-      body.app-embed-finance #viewFinanceiro #finPopReceber {
+      body.app-embed-finance #viewFinanceiro .module-lede {
         display: none !important;
       }
       body.app-embed-finance #viewFinanceiro .toolbar h2::after {
@@ -4157,7 +4098,6 @@
       }
       @media print {
         #viewFinanceiro .finance-subnav,
-        #viewFinanceiro .finance-dual-bar,
         #viewFinanceiro .fin-toolbar,
         #viewFinanceiro .close-view { display: none !important; }
       }
@@ -5511,8 +5451,6 @@
             </div>
             <div class="actions">
               <button type="button" class="secondary" id="finBtnRefresh">Atualizar</button>
-              <button type="button" class="secondary" id="finPopCaixa" title="Abrir o Caixa em outra janela (segundo monitor)">↗ Caixa (2ª janela)</button>
-              <button type="button" class="secondary" id="finPopReceber" title="Abrir Contas a receber em outra janela (segundo monitor)">↗ Receber (2ª janela)</button>
               <button type="button" class="secondary" id="finBtnExcel">Excel</button>
               <button type="button" class="secondary" id="finBtnPrint">Imprimir</button>
               <button type="button" class="secondary" id="finBtnPdf">PDF</button>
@@ -5528,31 +5466,6 @@
             <button type="button" data-finance-subview-btn="caixa">Caixa</button>
           </div>
 
-          <div class="finance-dual-bar" id="finMultiWindowBar">
-            <strong>Dois monitores</strong>
-            <span class="finance-dual-hint">Deixe esta janela em um monitor e abra a outra tela em janela separada — sem estender a tela.</span>
-            <button type="button" class="secondary" id="finPopCaixaBar">↗ Caixa em nova janela</button>
-            <button type="button" class="secondary" id="finPopReceberBar">↗ Contas a receber em nova janela</button>
-          </div>
-
-          <div class="finance-dual-bar finance-dual-bar--inline" id="finDualBar">
-            <label class="finance-dual-toggle">
-              <input type="checkbox" id="finDualToggle" />
-              <span>Lado a lado (mesma janela)</span>
-            </label>
-            <div class="finance-dual-pickers hidden" id="finDualPickers">
-              <label>Esquerda
-                <select id="finDualLeft"></select>
-              </label>
-              <label>Direita
-                <select id="finDualRight"></select>
-              </label>
-              <button type="button" class="secondary" id="finDualPopLeft" title="Abrir painel esquerdo em nova janela">↗ Esquerda</button>
-              <button type="button" class="secondary" id="finDualPopRight" title="Abrir painel direito em nova janela">↗ Direita</button>
-            </div>
-          </div>
-
-          <div id="finSubviewsWrap" class="finance-subviews-wrap">
           <div class="finance-subview" data-finance-subview="dashboard">
             <div class="fin-cards" id="finDashCards"></div>
             <div class="fin-toolbar">
@@ -5704,7 +5617,6 @@
                 <tbody id="finCaixaBody"></tbody>
               </table>
             </div>
-          </div>
           </div>
         </div>
 
@@ -6458,7 +6370,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260528l"></script>
+    <script src="/finance-module.js?v=20260528m"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =

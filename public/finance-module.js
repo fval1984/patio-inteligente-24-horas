@@ -1408,127 +1408,6 @@
     pagar: "Contas a pagar",
     caixa: "Caixa",
   };
-  const FINANCE_DUAL_STORAGE_KEY = "amplipatio_finance_dual_v1";
-
-  let financeDualMode = false;
-  let financeDualLeft = "receber";
-  let financeDualRight = "caixa";
-
-  function financeGetVisibleSubviews() {
-    if (financeDualMode) return [financeDualLeft, financeDualRight];
-    return [currentFinanceView];
-  }
-
-  function financeSubviewIsVisible(sub) {
-    return financeGetVisibleSubviews().includes(sub);
-  }
-
-  function financeUpdateDualSelects() {
-    const leftSel = document.getElementById("finDualLeft");
-    const rightSel = document.getElementById("finDualRight");
-    if (!leftSel || !rightSel) return;
-    if (!leftSel.options.length) {
-      FINANCE_SUBVIEWS.forEach((sub) => {
-        leftSel.add(new Option(FINANCE_SUBVIEW_LABELS[sub], sub));
-        rightSel.add(new Option(FINANCE_SUBVIEW_LABELS[sub], sub));
-      });
-    }
-    leftSel.value = financeDualLeft;
-    rightSel.value = financeDualRight;
-  }
-
-  function financeSaveDualPrefs() {
-    try {
-      localStorage.setItem(
-        FINANCE_DUAL_STORAGE_KEY,
-        JSON.stringify({ dual: financeDualMode, left: financeDualLeft, right: financeDualRight })
-      );
-    } catch (e) {
-      /* ignore */
-    }
-  }
-
-  function financeLoadDualPrefs() {
-    try {
-      const raw = localStorage.getItem(FINANCE_DUAL_STORAGE_KEY);
-      if (!raw) return;
-      const prefs = JSON.parse(raw);
-      if (typeof prefs.left === "string" && FINANCE_SUBVIEWS.includes(prefs.left)) financeDualLeft = prefs.left;
-      if (typeof prefs.right === "string" && FINANCE_SUBVIEWS.includes(prefs.right)) financeDualRight = prefs.right;
-      if (prefs.dual) financeDualMode = true;
-    } catch (e) {
-      /* ignore */
-    }
-  }
-
-  function financeEnsureDistinctDualPanes() {
-    if (financeDualLeft !== financeDualRight) return;
-    financeDualRight = FINANCE_SUBVIEWS.find((sub) => sub !== financeDualLeft) || "caixa";
-  }
-
-  function financeApplySubviewVisibility() {
-    const root = financeRoot();
-    if (!root) return;
-    const visible = new Set(financeGetVisibleSubviews());
-    FINANCE_SUBVIEWS.forEach((sub) => {
-      const panel = root.querySelector(`.finance-subview[data-finance-subview="${sub}"]`);
-      if (!panel) return;
-      const show = visible.has(sub);
-      panel.classList.toggle("hidden", !show);
-      panel.hidden = !show;
-      panel.classList.toggle("finance-dual-pane-left", financeDualMode && sub === financeDualLeft);
-      panel.classList.toggle("finance-dual-pane-right", financeDualMode && sub === financeDualRight);
-      let label = panel.querySelector(".finance-dual-pane-label");
-      if (financeDualMode && show) {
-        if (!label) {
-          label = document.createElement("p");
-          label.className = "finance-dual-pane-label";
-          panel.insertBefore(label, panel.firstChild);
-        }
-        const side = sub === financeDualLeft ? "Esquerda" : "Direita";
-        label.textContent = `${side} — ${FINANCE_SUBVIEW_LABELS[sub] || sub}`;
-        label.hidden = false;
-      } else if (label) {
-        label.hidden = true;
-      }
-    });
-    root.classList.toggle("finance-dual-active", financeDualMode);
-    document.getElementById("finSubviewsWrap")?.classList.toggle("finance-dual-grid", financeDualMode);
-    root.querySelectorAll("[data-finance-subview-btn]").forEach((btn) => {
-      const sub = btn.getAttribute("data-finance-subview-btn");
-      const active = financeDualMode ? visible.has(sub) : sub === currentFinanceView;
-      btn.classList.toggle("active", active);
-    });
-    document.getElementById("finDualPickers")?.classList.toggle("hidden", !financeDualMode);
-    const toggle = document.getElementById("finDualToggle");
-    if (toggle) toggle.checked = financeDualMode;
-    financeUpdateDualSelects();
-  }
-
-  function financeRenderVisibleSubviews() {
-    const unique = [...new Set(financeGetVisibleSubviews())];
-    unique.forEach((view) => {
-      if (view === "caixa") financeRenderCaixaAsync();
-      else financeRenderSubviewContent(view);
-    });
-  }
-
-  function financeSetDualMode(enabled, opts = {}) {
-    financeDualMode = !!enabled;
-    if (financeDualMode) {
-      if (!opts.keepPanes) {
-        financeDualLeft = currentFinanceView || financeDualLeft;
-        if (financeDualLeft === "caixa") financeDualRight = "receber";
-        else if (financeDualLeft === "receber") financeDualRight = "caixa";
-      }
-      financeEnsureDistinctDualPanes();
-    } else if (opts.restoreView !== false) {
-      currentFinanceView = financeDualLeft || currentFinanceView;
-    }
-    if (!opts.skipSave) financeSaveDualPrefs();
-    financeApplySubviewVisibility();
-    if (!opts.skipRender) financeRenderVisibleSubviews();
-  }
 
   window.openFinancePopout = function openFinancePopout(sub) {
     if (!sub || !FINANCE_SUBVIEWS.includes(sub)) return;
@@ -1540,20 +1419,73 @@
     if (win) win.focus();
   };
 
-  function financeBindPopoutButtons() {
-    const map = [
-      ["finPopCaixa", "caixa"],
-      ["finPopReceber", "receber"],
-      ["finPopCaixaBar", "caixa"],
-      ["finPopReceberBar", "receber"],
-      ["finDualPopLeft", () => financeDualLeft],
-      ["finDualPopRight", () => financeDualRight],
-    ];
-    map.forEach(([id, subOrFn]) => {
-      document.getElementById(id)?.addEventListener("click", () => {
-        const sub = typeof subOrFn === "function" ? subOrFn() : subOrFn;
-        openFinancePopout(sub);
-      });
+  function financeEnsureContextMenu() {
+    let menu = document.getElementById("finContextMenu");
+    if (menu) return menu;
+    menu = document.createElement("div");
+    menu.id = "finContextMenu";
+    menu.className = "fin-context-menu hidden";
+    menu.setAttribute("role", "menu");
+    menu.innerHTML =
+      '<button type="button" role="menuitem" data-fin-ctx-action="popout">Abrir em nova janela</button>';
+    document.body.appendChild(menu);
+    return menu;
+  }
+
+  function financeBindFinanceContextMenu() {
+    if (financeBindFinanceContextMenu._done) return;
+    financeBindFinanceContextMenu._done = true;
+
+    const menu = financeEnsureContextMenu();
+    let pendingSub = null;
+
+    const hideMenu = () => {
+      menu.classList.add("hidden");
+      pendingSub = null;
+    };
+
+    document.addEventListener("click", hideMenu);
+    document.addEventListener("scroll", hideMenu, true);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") hideMenu();
+    });
+
+    menu.querySelector('[data-fin-ctx-action="popout"]')?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (pendingSub) openFinancePopout(pendingSub);
+      hideMenu();
+    });
+
+    const showMenu = (e, sub) => {
+      if (document.body.classList.contains("app-embed-finance")) return;
+      if (!sub || !FINANCE_SUBVIEWS.includes(sub)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      pendingSub = sub;
+      const label = FINANCE_SUBVIEW_LABELS[sub] || sub;
+      const btn = menu.querySelector('[data-fin-ctx-action="popout"]');
+      if (btn) btn.textContent = `Abrir ${label} em nova janela`;
+      menu.classList.remove("hidden");
+      const pad = 8;
+      const rect = menu.getBoundingClientRect();
+      let x = e.clientX;
+      let y = e.clientY;
+      if (x + rect.width > window.innerWidth - pad) x = window.innerWidth - rect.width - pad;
+      if (y + rect.height > window.innerHeight - pad) y = window.innerHeight - rect.height - pad;
+      menu.style.left = `${Math.max(pad, x)}px`;
+      menu.style.top = `${Math.max(pad, y)}px`;
+    };
+
+    document.getElementById("finSubnav")?.addEventListener("contextmenu", (e) => {
+      const btn = e.target.closest("[data-finance-subview-btn]");
+      if (!btn) return;
+      showMenu(e, btn.getAttribute("data-finance-subview-btn"));
+    });
+
+    document.addEventListener("contextmenu", (e) => {
+      const btn = e.target.closest("[data-finance-subview]");
+      if (!btn || btn.closest("#finSubnav")) return;
+      showMenu(e, btn.getAttribute("data-finance-subview"));
     });
   }
 
@@ -1576,17 +1508,20 @@
       const tipoSel = document.getElementById("finPagarTipo");
       if (tipoSel) tipoSel.value = "recorrente";
     }
-    if (financeDualMode) {
-      financeDualLeft = resolved;
-      financeEnsureDistinctDualPanes();
-      if (!opts.skipSaveDual) financeSaveDualPrefs();
+    const root = financeRoot();
+    if (root) {
+      FINANCE_SUBVIEWS.forEach((sub) => {
+        const panel = root.querySelector(`.finance-subview[data-finance-subview="${sub}"]`);
+        if (!panel) return;
+        const show = sub === resolved;
+        panel.classList.toggle("hidden", !show);
+        panel.hidden = !show;
+      });
+      root.querySelectorAll("[data-finance-subview-btn]").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-finance-subview-btn") === resolved);
+      });
     }
-    financeApplySubviewVisibility();
     if (opts.skipRender) return;
-    if (financeDualMode) {
-      financeRenderVisibleSubviews();
-      return;
-    }
     if (resolved === "caixa") {
       financeRenderCaixaAsync();
       return;
@@ -1596,8 +1531,12 @@
 
   window.renderFinance = function renderFinance() {
     try {
-      financeApplySubviewVisibility();
-      financeRenderVisibleSubviews();
+      financeActivateSubview(currentFinanceView, { skipRender: true });
+      if (currentFinanceView === "caixa") {
+        financeRenderCaixaAsync();
+      } else {
+        financeRenderSubviewContent(currentFinanceView);
+      }
     } catch (e) {
       console.error("renderFinance", e);
     }
@@ -1617,10 +1556,8 @@
 
   window.refreshFinanceData = async function refreshFinanceData(opts = {}) {
     const preserveView = financeResolvePreserveView(opts);
-    if (preserveView && !financeDualMode) {
+    if (preserveView) {
       financeActivateSubview(preserveView);
-    } else if (financeDualMode) {
-      financeApplySubviewVisibility();
     }
     if (typeof ensureValidSupabaseSession === "function") {
       const session = await ensureValidSupabaseSession();
@@ -1653,12 +1590,7 @@
           await window.syncPaidReceivablesCashMovements();
         }
         if (preserveView) {
-          if (financeDualMode) {
-            financeApplySubviewVisibility();
-            financeRenderVisibleSubviews();
-          } else {
-            financeActivateSubview(preserveView);
-          }
+          financeActivateSubview(preserveView);
         } else {
           renderFinance();
         }
@@ -1735,30 +1667,7 @@
     if (bindFinanceDashboardUiOnce._done) return;
     bindFinanceDashboardUiOnce._done = true;
 
-    financeLoadDualPrefs();
-    financeUpdateDualSelects();
-    if (financeDualMode) {
-      financeApplySubviewVisibility();
-    }
-
-    document.getElementById("finDualToggle")?.addEventListener("change", (e) => {
-      financeSetDualMode(!!e.target.checked);
-    });
-    document.getElementById("finDualLeft")?.addEventListener("change", (e) => {
-      financeDualLeft = e.target.value;
-      financeEnsureDistinctDualPanes();
-      financeSaveDualPrefs();
-      financeApplySubviewVisibility();
-      financeRenderVisibleSubviews();
-    });
-    document.getElementById("finDualRight")?.addEventListener("change", (e) => {
-      financeDualRight = e.target.value;
-      financeEnsureDistinctDualPanes();
-      financeSaveDualPrefs();
-      financeApplySubviewVisibility();
-      financeRenderVisibleSubviews();
-    });
-    financeBindPopoutButtons();
+    financeBindFinanceContextMenu();
 
     document.getElementById("finSubnav")?.addEventListener("click", (e) => {
       const btn = e.target.closest("[data-finance-subview-btn]");
@@ -1768,7 +1677,7 @@
 
     document.getElementById("finFilterBusca")?.addEventListener("input", (e) => {
       financeFilterBanco = e.target.value || "";
-      if (financeSubviewIsVisible("receber")) financeRenderReceber();
+      if (currentFinanceView === "receber") financeRenderReceber();
     });
     document.getElementById("finFilterStatus")?.addEventListener("change", (e) => {
       financeFilterStatus = e.target.value || "";
