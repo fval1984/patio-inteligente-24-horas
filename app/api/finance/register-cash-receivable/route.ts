@@ -454,6 +454,87 @@ async function loadReceivablesFromRecoverEntries(
   return { receivables, placaByVehicle, overrides, notFound };
 }
 
+async function deleteCashMovementsForReceivable(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  receivableId: string
+) {
+  const { data, error } = await supabase
+    .from("cash_movements")
+    .select("id,tipo_conta")
+    .eq("user_id", userId)
+    .eq("conta_id", receivableId);
+  if (error) return { removed: 0, error: error.message };
+  let removed = 0;
+  for (const row of data || []) {
+    if (!row?.id) continue;
+    if (!cashMovIsEntradaTipo(row.tipo_conta)) continue;
+    const { error: delErr } = await supabase.from("cash_movements").delete().eq("id", row.id).eq("user_id", userId);
+    if (!delErr) removed += 1;
+  }
+  return { removed, error: null as string | null };
+}
+
+async function revertReceivableToAguardando(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  rec: ReceivableRow
+) {
+  const cash = await deleteCashMovementsForReceivable(supabase, userId, rec.id);
+  const now = new Date().toISOString();
+  const patch = {
+    status: "AGUARDANDO_LANCAMENTO",
+    financeiro_aprovado_contas_receber: false,
+    patio_liberado_financeiro: true,
+    updated_at: now,
+  };
+  let { error } = await supabase.from("receivables").update(patch).eq("id", rec.id).eq("user_id", userId);
+  if (error && isSchemaError(error.message)) {
+    ({ error } = await supabase
+      .from("receivables")
+      .update({ status: "AGUARDANDO_LANCAMENTO", updated_at: now })
+      .eq("id", rec.id)
+      .eq("user_id", userId));
+    if (error && /invalid input value for enum payment_status.*AGUARDANDO/i.test(error.message)) {
+      ({ error } = await supabase
+        .from("receivables")
+        .update({ status: "EM_ABERTO", updated_at: now })
+        .eq("id", rec.id)
+        .eq("user_id", userId));
+    }
+  }
+  return { ok: !error, error: error?.message || cash.error, cashRemoved: cash.removed };
+}
+
+async function processRevertToAguardandoBatch(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  receivables: ReceivableRow[]
+) {
+  let reverted = 0;
+  let failed = 0;
+  let skipped = 0;
+  let cashRemoved = 0;
+  const revertedIds: string[] = [];
+
+  for (const rec of receivables) {
+    if (String(rec.status || "").toUpperCase() !== "PAGO") {
+      skipped += 1;
+      continue;
+    }
+    const result = await revertReceivableToAguardando(supabase, userId, rec);
+    if (!result.ok) {
+      failed += 1;
+      continue;
+    }
+    reverted += 1;
+    cashRemoved += result.cashRemoved;
+    revertedIds.push(rec.id);
+  }
+
+  return { reverted, failed, skipped, cashRemoved, revertedIds, total: receivables.length };
+}
+
 async function processReceivableBatch(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   userId: string,
@@ -508,6 +589,7 @@ export async function POST(request: NextRequest) {
     const plates = Array.isArray(body?.plates)
       ? body.plates.map((p: unknown) => normalizePlate(String(p || ""))).filter(Boolean)
       : [];
+    const revertToAguardando = body?.revertToAguardando === true;
     const recoverEntries: RecoverEntry[] = Array.isArray(body?.recoverEntries)
       ? body.recoverEntries
           .map((e: { plate?: unknown; valor?: unknown; paidDate?: unknown }) => ({
@@ -517,6 +599,17 @@ export async function POST(request: NextRequest) {
           }))
           .filter((e) => e.plate && (e.valor == null || e.valor > 0))
       : [];
+    const revertEntries: RecoverEntry[] = Array.isArray(body?.revertEntries)
+      ? body.revertEntries
+          .map((e: { plate?: unknown; valor?: unknown; paidDate?: unknown }) => ({
+            plate: normalizePlate(String(e?.plate || "")),
+            valor: e?.valor != null ? Number(e.valor) : undefined,
+            paidDate: e?.paidDate ? toYmd(String(e.paidDate)) : undefined,
+          }))
+          .filter((e) => e.plate && (e.valor == null || e.valor > 0))
+      : revertToAguardando
+        ? recoverEntries
+        : [];
 
     if (!userId) {
       return NextResponse.json({ error: "userId é obrigatório." }, { status: 400 });
@@ -576,6 +669,18 @@ export async function POST(request: NextRequest) {
           removed: cleanupBefore.removed + cleanupAfter.removed,
           missing: targets.length,
         },
+      });
+    }
+
+    if (revertToAguardando && revertEntries.length > 0) {
+      const loaded = await loadReceivablesFromRecoverEntries(supabase, userId, revertEntries);
+      const stats = await processRevertToAguardandoBatch(supabase, userId, loaded.receivables);
+      return NextResponse.json({
+        ok: true,
+        revertToAguardando: true,
+        notFound: loaded.notFound,
+        revertedIds: stats.revertedIds,
+        stats: { ...stats, requested: revertEntries.length },
       });
     }
 
@@ -665,7 +770,10 @@ export async function POST(request: NextRequest) {
 
     if (!receivableId) {
       return NextResponse.json(
-        { error: "receivableId é obrigatório (ou use syncAll / syncMissing / recoverVrp / plates / recoverEntries)." },
+        {
+          error:
+            "receivableId é obrigatório (ou use syncAll / syncMissing / recoverVrp / plates / recoverEntries / revertToAguardando).",
+        },
         { status: 400 }
       );
     }

@@ -1204,6 +1204,133 @@
     { plate: "HXR1I28", valor: 240, paidDate: "2026-05-06" },
   ];
 
+  /** Pagamentos confirmados sem caixa — reverter para Aguardando Faturamento (placa + valor + data). */
+  const FINANCE_REVERT_TO_AGUARDANDO_ENTRIES = [
+    { plate: "SHT9J35", valor: 60, paidDate: "2026-05-29" },
+    { plate: "QLC1E25", valor: 60, paidDate: "2026-05-28" },
+    { plate: "CFZ3J00", valor: 200, paidDate: "2026-05-29" },
+    { plate: "PGQ3I89", valor: 210, paidDate: "2026-05-28" },
+    { plate: "SOK3G87", valor: 105, paidDate: "2026-05-29" },
+    { plate: "PDV8F14", valor: 210, paidDate: "2026-05-28" },
+    { plate: "PCC5J55", valor: 120, paidDate: "2026-05-25" },
+    { plate: "SOT1H11", valor: 200, paidDate: "2026-05-29" },
+    { plate: "SOP9J15", valor: 105, paidDate: "2026-05-26" },
+    { plate: "RUS0B38", valor: 180, paidDate: "2026-05-25" },
+    { plate: "SHB6H60", valor: 30, paidDate: "2026-05-19" },
+    { plate: "SOY9E09", valor: 90, paidDate: "2026-05-21" },
+    { plate: "PZO7C79", valor: 330, paidDate: "2026-05-29" },
+    { plate: "QLI9J77", valor: 60, paidDate: "2026-05-20" },
+    { plate: "UHM0A38", valor: 250, paidDate: "2026-05-25" },
+    { plate: "PDW3A12", valor: 330, paidDate: "2026-05-25" },
+    { plate: "SOH9F30", valor: 140, paidDate: "2026-05-27" },
+    { plate: "PCM9G77", valor: 150, paidDate: "2026-05-12" },
+    { plate: "QQN9E59", valor: 60, paidDate: "2026-05-08" },
+    { plate: "RNG8B19", valor: 75, paidDate: "2026-05-08" },
+    { plate: "PDR7B60", valor: 90, paidDate: "2026-05-08" },
+    { plate: "SOF0G64", valor: 90, paidDate: "2026-05-08" },
+    { plate: "RZK5J04", valor: 90, paidDate: "2026-05-08" },
+    { plate: "SOX5F86", valor: 330, paidDate: "2026-05-25" },
+    { plate: "SFV6B80", valor: 800, paidDate: "2026-05-11" },
+    { plate: "RTM1I82", valor: 600, paidDate: "2026-05-20" },
+    { plate: "QPO2F05", valor: 150, paidDate: "2026-05-04" },
+    { plate: "SNO9B38", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8G48", valor: 240, paidDate: "2026-05-08" },
+    { plate: "SNO9D08", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8G38", valor: 240, paidDate: "2026-05-08" },
+    { plate: "SNO7I98", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8H38", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8H58", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8E98", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8C88", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8D68", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8G68", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO7F38", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO9A58", valor: 210, paidDate: "2026-05-06" },
+    { plate: "SNO8E38", valor: 210, paidDate: "2026-05-06" },
+    { plate: "RZZ1J57", valor: 150, paidDate: "2026-05-04" },
+    { plate: "PGL3H13", valor: 300, paidDate: "2026-05-08" },
+    { plate: "HXR1I28", valor: 240, paidDate: "2026-05-06" },
+    { plate: "PDI2C97", valor: 330, paidDate: "2026-05-08" },
+    { plate: "PDM4C51", valor: 240, paidDate: "2026-05-05" },
+    { plate: "SOL5I69", valor: 465, paidDate: "2026-05-25" },
+    { plate: "RZV1B76", valor: 360, paidDate: "2026-05-05" },
+    { plate: "QYX2D91", valor: 300, paidDate: "2026-05-08" },
+    { plate: "QXM8G83", valor: 630, paidDate: "2026-05-06" },
+    { plate: "RII2H22", valor: 690, paidDate: "2026-05-29" },
+    { plate: "PDW8260", valor: 375, paidDate: "2026-05-04" },
+    { plate: "SNY4J16", valor: 420, paidDate: "2026-05-04" },
+    { plate: "SOQ9C44", valor: 585, paidDate: "2026-05-04" },
+    { plate: "RZS1C42", valor: 960, paidDate: "2026-05-25" },
+    { plate: "QYA5C45", valor: 795, paidDate: "2026-05-04" },
+    { plate: "SOW4G62", valor: 795, paidDate: "2026-05-04" },
+    { plate: "SNZ7F17", valor: 900, paidDate: "2026-05-04" },
+  ];
+
+  async function financeRevertToAguardandoViaApi(payload, ui = {}) {
+    const btn = ui.btnId ? document.getElementById(ui.btnId) : null;
+    const hint = ui.hintId ? document.getElementById(ui.hintId) : null;
+    const prev = btn?.textContent;
+    if (btn) {
+      btn.disabled = true;
+      if (ui.btnBusy) btn.textContent = ui.btnBusy;
+    }
+    let stats = { reverted: 0, failed: 0, skipped: 0, cashRemoved: 0 };
+    try {
+      if (typeof callRegisterCashReceivableApi !== "function") {
+        throw new Error("API de caixa indisponível nesta sessão.");
+      }
+      const api = await callRegisterCashReceivableApi(payload);
+      if (!api.ok) throw new Error(api.error || "Falha ao reverter para aguardando faturamento.");
+      stats = {
+        reverted: Number(api.stats?.reverted || 0),
+        failed: Number(api.stats?.failed || 0),
+        skipped: Number(api.stats?.skipped || 0),
+        cashRemoved: Number(api.stats?.cashRemoved || 0),
+      };
+      const revertedIds = Array.isArray(api.revertedIds) ? api.revertedIds : [];
+      for (const id of revertedIds) {
+        if (typeof removeReceberTriagemId === "function") removeReceberTriagemId(id);
+        if (typeof removePatioFinanceiroBloqueadoReceivableId === "function") {
+          removePatioFinanceiroBloqueadoReceivableId(id);
+        }
+      }
+      if (typeof loadReceivables === "function") await loadReceivables();
+      if (typeof loadCash === "function") await loadCash();
+      if (hint) {
+        const parts = [];
+        if (stats.reverted > 0) parts.push(`${stats.reverted} revertido(s) para Aguardando Faturamento`);
+        if (stats.cashRemoved > 0) parts.push(`${stats.cashRemoved} entrada(s) removida(s) do caixa`);
+        if (stats.skipped > 0) parts.push(`${stats.skipped} já não estava(m) como PAGO`);
+        if (stats.failed > 0) parts.push(`${stats.failed} falha(s)`);
+        if (Array.isArray(api.notFound) && api.notFound.length) {
+          parts.push(
+            `${api.notFound.length} não encontrado(s): ${api.notFound.slice(0, 5).join("; ")}${api.notFound.length > 5 ? "…" : ""}`
+          );
+        }
+        hint.textContent = parts.length
+          ? `Reversão concluída: ${parts.join(", ")}. Confira em «Aguardando faturamento» e dê baixa novamente.`
+          : "Nenhum registro foi revertido.";
+        hint.classList.remove("hidden");
+      }
+      if (typeof renderFinance === "function") renderFinance();
+      if (typeof setFinanceView === "function" && ui.openAguardando) setFinanceView("aguardando");
+      return stats;
+    } catch (e) {
+      console.warn("financeRevertToAguardandoViaApi", e?.message || e);
+      if (hint) {
+        hint.textContent = e?.message || "Não foi possível reverter os registros agora.";
+        hint.classList.remove("hidden");
+      }
+      return stats;
+    } finally {
+      if (typeof ui.onDone === "function") ui.onDone();
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = prev || ui.btnDefault || btn.textContent;
+      }
+    }
+  }
+
   async function financeRecoverCashViaApi(payload, ui = {}) {
     const btn = ui.btnId ? document.getElementById(ui.btnId) : null;
     const hint = ui.hintId ? document.getElementById(ui.hintId) : null;
@@ -2106,6 +2233,29 @@
           btnDefault: "Recuperar VRP maio/26 (lista completa)",
           onDone: () => {
             financeRenderRecebidos();
+            financeRenderCaixa();
+          },
+        }
+      );
+    });
+    document.getElementById("finRecebidosRevertAguardando")?.addEventListener("click", () => {
+      const n = FINANCE_REVERT_TO_AGUARDANDO_ENTRIES.length;
+      const ok = window.confirm(
+        `Reverter ${n} pagamento(s) confirmado(s) para «Aguardando faturamento»?\n\n` +
+          "Entradas no caixa ligadas a esses títulos serão removidas. Depois você poderá dar baixa novamente pelo fluxo normal."
+      );
+      if (!ok) return;
+      financeRevertToAguardandoViaApi(
+        { revertToAguardando: true, revertEntries: FINANCE_REVERT_TO_AGUARDANDO_ENTRIES },
+        {
+          hintId: "finRecebidosRecoverHint",
+          btnId: "finRecebidosRevertAguardando",
+          btnBusy: "Revertendo…",
+          btnDefault: "Reverter para aguardando faturamento",
+          openAguardando: true,
+          onDone: () => {
+            financeRenderRecebidos();
+            financeRenderAguardando();
             financeRenderCaixa();
           },
         }
