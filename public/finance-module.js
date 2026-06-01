@@ -715,6 +715,17 @@
     return pay ? financePayableContaBancaria(pay) : state.settings?.conta_bancaria || "Caixa";
   }
 
+  function financeCashPaganteLabel(mov, rec, pay, vehicle) {
+    if (financeCashIsEntrada(mov)) {
+      if (rec) return financeReceberRppNome(rec, vehicle);
+      return "—";
+    }
+    if (financeCashIsSaida(mov)) {
+      return pay?.fornecedor || pay?.descricao || "—";
+    }
+    return "—";
+  }
+
   function financeCountPaidReceivablesSemCaixa() {
     const paid = (state.receivables || []).filter(
       (r) => String(r.status || "").toUpperCase() === "PAGO" && Number(r.valor || 0) > 0
@@ -821,7 +832,7 @@
         missingPaid > 0
           ? ` Há ${missingPaid} pagamento(s) confirmado(s) sem entrada no caixa — clique em «Sincronizar caixa».`
           : "";
-      body.innerHTML = `<tr><td colspan="6" class="notice">Nenhuma movimentação registrada.${periodoHint}${missingHint}</td></tr>`;
+      body.innerHTML = `<tr><td colspan="7" class="notice">Nenhuma movimentação registrada.${periodoHint}${missingHint}</td></tr>`;
       return;
     }
     const rowsHtml = movs
@@ -835,11 +846,13 @@
         const tipoClass = isEntrada ? "fin-val-entrada" : "fin-val-saida";
         const amount = financeCashMovValor(mov);
         const valSigned = isEntrada ? amount : -amount;
-        let desc = mov.descricao || (isEntrada ? rec?.responsavel_pagamento : pay?.descricao) || "—";
-        if (v) desc += `<br /><span class="notice">${escapeHtml(v.placa || "")}</span>`;
+        const pagante = financeCashPaganteLabel(mov, rec, pay, v);
+        let desc = mov.descricao || (isEntrada ? rec?.observacoes : pay?.descricao) || "—";
+        if (v?.placa) desc += `<br /><span class="notice">${escapeHtml(v.placa)}</span>`;
         return `<tr>
           <td data-label="Data">${escapeHtml(formatDate(mov.data_movimento || mov.created_at))}</td>
           <td data-label="Tipo"><span class="${tipoClass}">${tipoLabel}</span></td>
+          <td data-label="Pagante">${escapeHtml(pagante)}</td>
           <td data-label="Descrição">${desc}</td>
           <td data-label="Forma">${escapeHtml(mov.forma_pagamento || "—")}</td>
           <td data-label="Valor"><span class="${tipoClass}">${escapeHtml(formatCurrency(valSigned))}</span></td>
@@ -850,7 +863,7 @@
     body.innerHTML =
       rowsHtml +
       `<tr class="fin-caixa-total-row">
-        <td colspan="4" data-label=""><strong>Total do período</strong></td>
+        <td colspan="5" data-label=""><strong>Total do período</strong></td>
         <td data-label="Valor"><strong class="${totPeriodo.resultado >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(totPeriodo.resultado))}</strong></td>
         <td data-label=""></td>
       </tr>`;
@@ -980,16 +993,24 @@
       return;
     }
     if (view === "caixa") {
+      const vmap = financeVehicleById();
       const rows = [
-        ["Data", "Tipo", "Descrição", "Forma", "Valor", "Conta"],
-        ...(state.cash || []).map((m) => [
-          toLocalYmd(m.data_movimento || m.created_at),
-          m.tipo_conta === "RECEBER" ? "Entrada" : "Saída",
-          m.descricao || "",
-          m.forma_pagamento || "",
-          Number(m.valor || 0).toFixed(2),
-          financeMovContaLabel(m),
-        ]),
+        ["Data", "Tipo", "Pagante", "Descrição", "Forma", "Valor", "Conta"],
+        ...(state.cash || []).map((m) => {
+          const isEntrada = financeCashIsEntrada(m);
+          const rec = isEntrada ? (state.receivables || []).find((r) => String(r.id) === String(m.conta_id)) : null;
+          const pay = !isEntrada ? (state.payables || []).find((p) => String(p.id) === String(m.conta_id)) : null;
+          const v = rec ? vmap.get(rec.vehicle_id) : null;
+          return [
+            toLocalYmd(m.data_movimento || m.created_at),
+            isEntrada ? "Entrada" : "Saída",
+            financeCashPaganteLabel(m, rec, pay, v),
+            m.descricao || "",
+            m.forma_pagamento || "",
+            financeCashMovValor(m).toFixed(2),
+            financeMovContaLabel(m),
+          ];
+        }),
       ];
       financeExportCsv(rows, `fluxo-caixa-${financeTodayYmd()}.csv`);
       return;
