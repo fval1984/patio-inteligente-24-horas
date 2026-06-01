@@ -3979,6 +3979,97 @@
         color: var(--primary-strong);
         font-weight: 600;
       }
+      .finance-dual-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px 18px;
+        margin: 0 0 14px;
+        padding: 10px 14px;
+        background: color-mix(in srgb, var(--card) 92%, var(--primary) 8%);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+      }
+      .finance-dual-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        user-select: none;
+      }
+      .finance-dual-pickers {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 14px;
+      }
+      .finance-dual-pickers label {
+        display: inline-flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+      .finance-dual-pickers select {
+        min-width: 11rem;
+        font: inherit;
+      }
+      .finance-subviews-wrap.finance-dual-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+      }
+      .finance-module-shell.finance-dual-active {
+        max-width: min(100%, 1880px);
+      }
+      .finance-module-shell.finance-dual-active .finance-subnav {
+        margin-bottom: 10px;
+      }
+      .finance-dual-active .finance-subview:not(.hidden) {
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        max-height: calc(100vh - 260px);
+        overflow: auto;
+      }
+      .finance-dual-pane-label {
+        margin: 0 0 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--primary-strong);
+      }
+      @media (max-width: 1100px) {
+        .finance-subviews-wrap.finance-dual-grid {
+          grid-template-columns: 1fr;
+        }
+        .finance-dual-active .finance-subview:not(.hidden) {
+          max-height: none;
+        }
+      }
+      body.app-embed-finance #appHeaderMenu,
+      body.app-embed-finance #appSessionBanner,
+      body.app-embed-finance #gestorPistaWelcomeBanner,
+      body.app-embed-finance .finance-subnav,
+      body.app-embed-finance .finance-dual-bar,
+      body.app-embed-finance #viewFinanceiro .close-view,
+      body.app-embed-finance #viewFinanceiro .module-lede {
+        display: none !important;
+      }
+      body.app-embed-finance #viewFinanceiro .toolbar h2::after {
+        content: " — janela auxiliar";
+        font-weight: 500;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      body.app-embed-finance .finance-module-shell {
+        max-width: none;
+      }
       .fin-cards {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -4053,6 +4144,7 @@
       }
       @media print {
         #viewFinanceiro .finance-subnav,
+        #viewFinanceiro .finance-dual-bar,
         #viewFinanceiro .fin-toolbar,
         #viewFinanceiro .close-view { display: none !important; }
       }
@@ -5421,6 +5513,24 @@
             <button type="button" data-finance-subview-btn="caixa">Caixa</button>
           </div>
 
+          <div class="finance-dual-bar" id="finDualBar">
+            <label class="finance-dual-toggle">
+              <input type="checkbox" id="finDualToggle" />
+              <span>Conciliação (2 telas)</span>
+            </label>
+            <div class="finance-dual-pickers hidden" id="finDualPickers">
+              <label>Esquerda
+                <select id="finDualLeft"></select>
+              </label>
+              <label>Direita
+                <select id="finDualRight"></select>
+              </label>
+              <button type="button" class="secondary" id="finDualPopLeft" title="Abrir painel esquerdo em nova janela">↗ Esquerda</button>
+              <button type="button" class="secondary" id="finDualPopRight" title="Abrir painel direito em nova janela">↗ Direita</button>
+            </div>
+          </div>
+
+          <div id="finSubviewsWrap" class="finance-subviews-wrap">
           <div class="finance-subview" data-finance-subview="dashboard">
             <div class="fin-cards" id="finDashCards"></div>
             <div class="fin-toolbar">
@@ -5572,6 +5682,7 @@
                 <tbody id="finCaixaBody"></tbody>
               </table>
             </div>
+          </div>
           </div>
         </div>
 
@@ -6325,7 +6436,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260528j"></script>
+    <script src="/finance-module.js?v=20260528k"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -10707,6 +10818,33 @@
         } catch (e) {
           console.error("initAppData", e);
           showAppSessionBanner("Erro ao carregar dados. Tente novamente ou saia e entre de novo.");
+        }
+        applyFinanceEmbedModeIfRequested();
+      }
+
+      function parseAppEmbedConfig() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          return {
+            embed: params.get("embed"),
+            fin: params.get("fin"),
+          };
+        } catch (e) {
+          return { embed: null, fin: null };
+        }
+      }
+
+      function applyFinanceEmbedModeIfRequested() {
+        const cfg = parseAppEmbedConfig();
+        if (cfg.embed !== "finance") return;
+        document.body.classList.add("app-embed-finance");
+        const finSub = cfg.fin && typeof getFinanceSubview === "function" ? cfg.fin : "receber";
+        showMainView("financeiro");
+        if (typeof openFinanceSubview === "function") {
+          openFinanceSubview(finSub, { skipRefresh: true });
+        }
+        if (typeof refreshFinanceData === "function") {
+          refreshFinanceData({ preserveView: finSub });
         }
       }
 
