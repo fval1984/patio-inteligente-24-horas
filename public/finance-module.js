@@ -2763,62 +2763,11 @@
     document.getElementById("finCaixaSyncBtn")?.addEventListener("click", () => {
       financeSyncCaixaFromPaidReceivables();
     });
-    document.getElementById("finCaixaRecoverMaioBtn")?.addEventListener("click", () => {
-      financeRecoverCaixaMaio2026();
-    });
-    document.getElementById("finRecebidosSyncCaixa")?.addEventListener("click", () => {
-      financeRecoverCashViaApi(
-        { syncMissing: true },
-        {
-          hintId: "finRecebidosRecoverHint",
-          btnId: "finRecebidosSyncCaixa",
-          btnBusy: "Recuperando…",
-          btnDefault: "Recuperar entradas no caixa",
-          onDone: () => {
-            financeRenderCaixa();
-          },
-        }
-      );
-    });
-    document.getElementById("finRecebidosRevertListaVrp")?.addEventListener("click", () => {
-      const n = FINANCE_REVERT_TO_AGUARDANDO_ENTRIES.length;
-      const ok = window.confirm(
-        `Corrigir ${n} registro(s) da lista VRP?\n\n` +
-          "Pagamentos voltarão para «Aguardando faturamento» e as entradas correspondentes no caixa serão removidas. " +
-          "Depois você aprova e dá baixa novamente pelo fluxo normal."
-      );
-      if (!ok) return;
-      financeRevertToAguardandoViaApi(
-        { revertToAguardando: true, revertEntries: FINANCE_REVERT_TO_AGUARDANDO_ENTRIES },
-        {
-          hintId: "finRecebidosRecoverHint",
-          btnId: "finRecebidosRevertListaVrp",
-          btnBusy: "Corrigindo lista VRP…",
-          btnDefault: "Corrigir lista VRP → Aguardando faturamento",
-          openAguardando: true,
-          onDone: () => {
-            financeRenderAguardando();
-            financeRenderReceber();
-            financeRenderCaixa();
-          },
-        }
-      );
-    });
     document.getElementById("finToolbarFixZeroValor")?.addEventListener("click", () => {
       financeStartFixZeroValorPago({
         hintId: "finRecebidosRecoverHint",
         btnId: "finToolbarFixZeroValor",
         btnDefault: "Corrigir R$ 0 → caixa",
-      });
-    });
-    document.getElementById("finCaixaFixZeroValor")?.addEventListener("click", () => {
-      financeStartFixZeroValorPago({
-        hintId: "finCaixaSyncHint",
-        btnId: "finCaixaFixZeroValor",
-        btnDefault: "Corrigir R$ 0 → caixa",
-        onDone: () => {
-          financeRenderCaixa();
-        },
       });
     });
     document.getElementById("listaFixZeroValorBtn")?.addEventListener("click", () => {
