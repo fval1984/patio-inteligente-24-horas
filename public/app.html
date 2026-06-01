@@ -4757,6 +4757,7 @@
                   <button type="button" data-finance-subview="em_patio">Veículos no pátio</button>
                   <button type="button" data-finance-subview="aguardando">Aguardando faturamento</button>
                   <button type="button" data-finance-subview="receber">Contas a receber</button>
+                  <button type="button" data-finance-subview="recebidos">Recebidos</button>
                   <button type="button" data-finance-subview="pagar">Contas a pagar</button>
                   <button type="button" data-finance-subview="caixa">Caixa</button>
                 </div>
@@ -5445,6 +5446,7 @@
             <button type="button" data-finance-subview-btn="em_patio">Veículos no pátio</button>
             <button type="button" data-finance-subview-btn="aguardando">Aguardando faturamento</button>
             <button type="button" data-finance-subview-btn="receber">Contas a receber</button>
+            <button type="button" data-finance-subview-btn="recebidos">Recebidos</button>
             <button type="button" data-finance-subview-btn="pagar">Contas a pagar</button>
             <button type="button" data-finance-subview-btn="caixa">Caixa</button>
           </div>
@@ -5544,6 +5546,17 @@
               <table class="table">
                 <thead><tr><th>Veículo / RPV</th><th>RPP</th><th>Diárias</th><th>Valor</th><th>Vencimento</th><th>Status</th></tr></thead>
                 <tbody id="finReceberBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="finance-subview hidden" data-finance-subview="recebidos">
+            <p class="notice" style="margin: 0 0 10px">Pagamentos confirmados (inclui veículos do VRP). Se faltar entrada no Caixa, clique em <strong>Sincronizar caixa</strong> na aba Caixa.</p>
+            <p><strong>Total recebido:</strong> <span id="finRecebidosTotal">R$ 0,00</span></p>
+            <div class="table-wrap section-card">
+              <table class="table">
+                <thead><tr><th>Veículo / RPV</th><th>RPP</th><th>Saída</th><th>Valor</th><th>Recebido em</th><th>Status</th></tr></thead>
+                <tbody id="finRecebidosBody"></tbody>
               </table>
             </div>
           </div>
@@ -6353,7 +6366,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260528s"></script>
+    <script src="/finance-module.js?v=20260528t"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -9233,6 +9246,16 @@
           const amount = list.reduce((s, mov) => s + Number(mov.valor || 0), 0);
           return { amount, label, hideAmount: false };
         }
+        if (currentListaView === "historico_receber") {
+          const list = (state.receivables || []).filter(
+            (r) => String(r.status || "").toUpperCase() === "PAGO" && listaReceivableMatches(r, vehicleById.get(r.vehicle_id))
+          );
+          return {
+            amount: list.reduce((s, r) => s + Number(r.valor || 0), 0),
+            label: "Total recebido (histórico)",
+            hideAmount: false,
+          };
+        }
         return { amount: 0, label: "Total", hideAmount: false };
       }
 
@@ -9464,6 +9487,35 @@
               <td data-label="Descrição">${escapeHtml(mov.descricao || "—")}</td>
               <td data-label="Valor">${escapeHtml(formatCurrency(Number(mov.valor || 0)))}</td>
             </tr>`;
+            })
+            .join("");
+          return;
+        }
+
+        if (currentListaView === "historico_receber") {
+          head.innerHTML = `<tr><th>Veículo / responsável</th><th>Saída</th><th>Valor</th><th>Recebido em</th><th>Estado</th></tr>`;
+          const list = (state.receivables || [])
+            .filter((r) => String(r.status || "").toUpperCase() === "PAGO")
+            .filter((r) => listaReceivableMatches(r, vehicleById.get(r.vehicle_id)))
+            .sort((a, b) => String(b.updated_at || b.created_at).localeCompare(String(a.updated_at || a.created_at)));
+          if (!list.length) {
+            body.innerHTML = `<tr><td colspan="5" class="notice">Nenhum recebimento confirmado com os filtros atuais.</td></tr>`;
+            return;
+          }
+          body.innerHTML = list
+            .map((r) => {
+              const v = vehicleById.get(r.vehicle_id);
+              const placa = v?.placa || "—";
+              const vm = [v?.marca, v?.modelo].filter(Boolean).join(" ") || "—";
+              const saida = r.period_end || v?.data_saida;
+              const noCaixa = receivableCashMovementExists(r.id);
+              return `<tr>
+                <td data-label="Veículo / responsável"><span class="lista-receber-placa">${escapeHtml(placa)}</span> · ${escapeHtml(vm)}<br /><span class="notice">${escapeHtml(r.responsavel_pagamento || "—")}</span></td>
+                <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
+                <td data-label="Valor" class="lista-receber-valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
+                <td data-label="Recebido em">${escapeHtml(formatDateTime(r.updated_at || r.created_at))}</td>
+                <td data-label="Estado"><span class="tag ok">Pago</span>${noCaixa ? "" : `<br /><span class="notice">Sem entrada no caixa</span>`}</td>
+              </tr>`;
             })
             .join("");
           return;
@@ -11486,6 +11538,13 @@
           syncLostReceivablesToContasReceber().catch((e) => {
             console.warn("syncLostReceivablesToContasReceber", e?.message || e);
           });
+        }
+        if (typeof callRegisterCashReceivableApi === "function") {
+          callRegisterCashReceivableApi({ syncAll: true })
+            .then((r) => {
+              if (r?.ok) loadCash();
+            })
+            .catch((e) => console.warn("register-cash-receivable loadAll", e?.message || e));
         }
         probeVehiclesRpfColumns().catch(() => {});
         const userId = effectiveUserId();
@@ -13947,6 +14006,9 @@
         }
         updateDashboard();
         if (typeof renderFinance === "function") renderFinance();
+        if (typeof openFinanceSubview === "function") {
+          openFinanceSubview("recebidos", { skipRefresh: true });
+        }
         const paidReceivable = state.receivables.find((r) => r.id === receivableId) || {
           ...receivable,
           status: "PAGO",
@@ -13958,6 +14020,25 @@
           valor: totalAtual,
         };
       }
+
+      async function callRegisterCashReceivableApi(payload = {}) {
+        const userId = effectiveUserId();
+        if (!userId) return { ok: false, error: "Usuário não autenticado." };
+        try {
+          const resp = await fetch("/api/finance/register-cash-receivable", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, ...payload }),
+          });
+          const json = await resp.json().catch(() => ({}));
+          if (!resp.ok) return { ok: false, error: json?.error || `Falha ${resp.status}` };
+          return { ok: true, ...json };
+        } catch (e) {
+          return { ok: false, error: e?.message || String(e) };
+        }
+      }
+
+      window.callRegisterCashReceivableApi = callRegisterCashReceivableApi;
 
       async function findExistingReceivableCashMovement(receivableId, uid) {
         if (!receivableId || !uid) return null;
@@ -13993,6 +14074,8 @@
         });
       }
 
+      window.receivableCashMovementExists = receivableCashMovementExists;
+
       async function registerReceivableCashMovement(receivable, opts = {}) {
         const receivableId = receivable?.id;
         const uid = effectiveUserId();
@@ -14009,6 +14092,26 @@
         }
         if (!(valor > 0)) {
           return { data: null, error: null };
+        }
+
+        const apiFirst = await callRegisterCashReceivableApi({
+          receivableId,
+          valor,
+          dataMovimento: dataMov,
+          formaPagamento,
+          descricao,
+        });
+        if (apiFirst.ok) {
+          await loadCash();
+          const verifiedApi = await findExistingReceivableCashMovement(receivableId, uid);
+          if (verifiedApi) return { data: verifiedApi, error: null };
+          if (receivableCashMovementExists(receivableId)) {
+            const local = (state.cash || []).find(
+              (m) => String(m.conta_id) === String(receivableId) && (String(m.tipo_conta || "").toUpperCase() === "RECEBER" || String(m.tipo_conta || "").toUpperCase() === "ENTRADA")
+            );
+            if (local) return { data: local, error: null };
+          }
+          return { data: { conta_id: receivableId, valor, data_movimento: dataMov }, error: null };
         }
 
         const existingMov = await findExistingReceivableCashMovement(receivableId, uid);
@@ -14158,6 +14261,21 @@
       window.syncPaidReceivablesCashMovements = async function syncPaidReceivablesCashMovements() {
         const uid = effectiveUserId();
         if (!uid || !supabase) return { created: 0, fixed: 0, failed: 0 };
+
+        const apiSync = await callRegisterCashReceivableApi({ syncAll: true });
+        if (apiSync.ok) {
+          await loadCash();
+          const stats = apiSync.stats || {};
+          return {
+            created: Number(stats.created || 0) + Number(stats.updated || 0),
+            fixed: Number(stats.updated || 0),
+            failed: Number(stats.failed || 0),
+          };
+        }
+        if (apiSync.error) {
+          console.warn("syncPaidReceivablesCashMovements api", apiSync.error);
+        }
+
         const paid = (state.receivables || []).filter((r) => String(r.status || "").toUpperCase() === "PAGO");
         const { data: remoteCash, error: remoteErr } = await supabase
           .from("cash_movements")

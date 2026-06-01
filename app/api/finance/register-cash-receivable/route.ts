@@ -1,0 +1,250 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+
+type ReceivableRow = {
+  id: string;
+  user_id: string;
+  vehicle_id: string | null;
+  valor: number | null;
+  status: string | null;
+  forma_pagamento: string | null;
+  responsavel_pagamento: string | null;
+  updated_at: string | null;
+  created_at: string | null;
+};
+
+function toYmd(value: string | null | undefined) {
+  if (!value) return new Date().toISOString().slice(0, 10);
+  const s = String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s.includes("T") ? s : `${s}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return new Date().toISOString().slice(0, 10);
+  return d.toISOString().slice(0, 10);
+}
+
+function isSchemaError(message: string) {
+  return /column|schema cache|PGRST204|invalid input|enum|22P02|23514|tipo_conta|forma_pagamento|descricao|data_movimento|relation|does not exist|PGRST205/i.test(
+    message
+  );
+}
+
+async function findExistingMovement(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  receivableId: string
+) {
+  for (const tipo of ["RECEBER", "ENTRADA"]) {
+    const { data } = await supabase
+      .from("cash_movements")
+      .select("id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id")
+      .eq("user_id", userId)
+      .eq("conta_id", receivableId)
+      .eq("tipo_conta", tipo)
+      .limit(1);
+    if (data?.length) return data[0];
+  }
+  const { data: linked } = await supabase
+    .from("cash_movements")
+    .select("id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id")
+    .eq("user_id", userId)
+    .eq("conta_id", receivableId)
+    .limit(5);
+  return (
+    (linked || []).find((m) => {
+      const t = String(m?.tipo_conta || "").toUpperCase();
+      return t === "RECEBER" || t === "ENTRADA";
+    }) || null
+  );
+}
+
+async function upsertCashForReceivable(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  rec: ReceivableRow,
+  opts: {
+    valor?: number;
+    dataMovimento?: string;
+    formaPagamento?: string;
+    descricao?: string;
+    vehiclePlaca?: string | null;
+  } = {}
+) {
+  const receivableId = rec.id;
+  const valor = Number(opts.valor ?? rec.valor ?? 0);
+  if (!(valor > 0)) return { ok: true, action: "skipped", reason: "valor_zero" as const };
+
+  const dataYmd = toYmd(opts.dataMovimento || rec.updated_at || rec.created_at);
+  const isoMov = new Date(`${dataYmd}T12:00:00`).toISOString();
+  const formaPagamento = opts.formaPagamento || rec.forma_pagamento || "PIX";
+  const placa = opts.vehiclePlaca || "";
+  const descricao =
+    opts.descricao ||
+    (placa ? `Diárias - ${placa}` : rec.responsavel_pagamento || "Recebimento pátio");
+
+  const existing = await findExistingMovement(supabase, userId, receivableId);
+  const payloads = [
+    {
+      user_id: userId,
+      tipo_conta: existing?.tipo_conta || "RECEBER",
+      conta_id: receivableId,
+      valor,
+      descricao,
+      data_movimento: dataYmd,
+      forma_pagamento: formaPagamento,
+    },
+    {
+      user_id: userId,
+      tipo_conta: "RECEBER",
+      conta_id: receivableId,
+      valor,
+      data_movimento: isoMov,
+      descricao,
+    },
+    {
+      user_id: userId,
+      tipo_conta: "ENTRADA",
+      conta_id: receivableId,
+      valor,
+      data_movimento: dataYmd,
+    },
+    { user_id: userId, tipo_conta: "RECEBER", conta_id: receivableId, valor },
+    { user_id: userId, tipo_conta: "ENTRADA", conta_id: receivableId, valor },
+  ];
+
+  let lastError: string | null = null;
+  for (const body of payloads) {
+    if (existing?.id) {
+      const { error } = await supabase.from("cash_movements").update(body).eq("id", existing.id).eq("user_id", userId);
+      if (!error) return { ok: true, action: "updated" as const, movement: body };
+      lastError = error.message;
+      if (!isSchemaError(lastError)) break;
+      continue;
+    }
+    const { error } = await supabase.from("cash_movements").insert(body);
+    if (!error) return { ok: true, action: "created" as const, movement: body };
+    lastError = error.message;
+    if (/duplicate key|unique constraint|23505/i.test(lastError)) {
+      const fresh = await findExistingMovement(supabase, userId, receivableId);
+      if (fresh?.id) {
+        const { error: updErr } = await supabase
+          .from("cash_movements")
+          .update({ valor, data_movimento: dataYmd, descricao, forma_pagamento: formaPagamento })
+          .eq("id", fresh.id)
+          .eq("user_id", userId);
+        if (!updErr) return { ok: true, action: "updated" as const, movement: body };
+        lastError = updErr.message;
+      }
+    }
+    if (!isSchemaError(lastError)) break;
+  }
+
+  const verified = await findExistingMovement(supabase, userId, receivableId);
+  if (verified) return { ok: true, action: "verified" as const, movement: verified };
+
+  return { ok: false, action: "failed" as const, error: lastError || "Não foi possível gravar movimento no caixa." };
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const userId = String(body?.userId || "").trim();
+    const receivableId = String(body?.receivableId || "").trim();
+    const syncAll = body?.syncAll === true;
+
+    if (!userId) {
+      return NextResponse.json({ error: "userId é obrigatório." }, { status: 400 });
+    }
+
+    const supabase = getSupabaseAdmin();
+
+    if (syncAll) {
+      const { data: paid, error: paidErr } = await supabase
+        .from("receivables")
+        .select("id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at")
+        .eq("user_id", userId)
+        .eq("status", "PAGO");
+      if (paidErr) {
+        return NextResponse.json({ error: paidErr.message }, { status: 500 });
+      }
+
+      const vehicleIds = [...new Set((paid || []).map((r) => r.vehicle_id).filter(Boolean))] as string[];
+      const placaByVehicle = new Map<string, string>();
+      if (vehicleIds.length) {
+        const { data: vehicles } = await supabase.from("vehicles").select("id,placa").eq("user_id", userId).in("id", vehicleIds);
+        for (const v of vehicles || []) {
+          if (v?.id) placaByVehicle.set(String(v.id), String(v.placa || ""));
+        }
+      }
+
+      let created = 0;
+      let updated = 0;
+      let failed = 0;
+      let skipped = 0;
+      for (const rec of paid || []) {
+        const result = await upsertCashForReceivable(supabase, userId, rec as ReceivableRow, {
+          vehiclePlaca: rec.vehicle_id ? placaByVehicle.get(String(rec.vehicle_id)) || null : null,
+        });
+        if (!result.ok) failed += 1;
+        else if (result.action === "created" || result.action === "verified") created += 1;
+        else if (result.action === "updated") updated += 1;
+        else if (result.action === "skipped") skipped += 1;
+      }
+
+      return NextResponse.json({
+        ok: true,
+        syncAll: true,
+        stats: { created, updated, fixed: updated, failed, skipped, total: (paid || []).length },
+      });
+    }
+
+    if (!receivableId) {
+      return NextResponse.json({ error: "receivableId é obrigatório (ou use syncAll: true)." }, { status: 400 });
+    }
+
+    const { data: rec, error: recErr } = await supabase
+      .from("receivables")
+      .select("id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at")
+      .eq("user_id", userId)
+      .eq("id", receivableId)
+      .maybeSingle();
+    if (recErr) return NextResponse.json({ error: recErr.message }, { status: 500 });
+    if (!rec) return NextResponse.json({ error: "Recebível não encontrado." }, { status: 404 });
+
+    let vehiclePlaca: string | null = null;
+    if (rec.vehicle_id) {
+      const { data: v } = await supabase
+        .from("vehicles")
+        .select("placa")
+        .eq("user_id", userId)
+        .eq("id", rec.vehicle_id)
+        .maybeSingle();
+      vehiclePlaca = v?.placa ? String(v.placa) : null;
+    }
+
+    const result = await upsertCashForReceivable(supabase, userId, rec as ReceivableRow, {
+      valor: body?.valor != null ? Number(body.valor) : undefined,
+      dataMovimento: body?.dataMovimento ? String(body.dataMovimento) : undefined,
+      formaPagamento: body?.formaPagamento ? String(body.formaPagamento) : undefined,
+      descricao: body?.descricao ? String(body.descricao) : undefined,
+      vehiclePlaca,
+    });
+
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error || "Falha ao registrar caixa." }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true, action: result.action, movement: result.movement });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Falha ao registrar caixa.";
+    if (/SUPABASE_SERVICE_ROLE_KEY|SUPABASE_URL/i.test(msg)) {
+      return NextResponse.json(
+        {
+          error:
+            "Servidor sem chave Supabase (service role). Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY na Vercel.",
+        },
+        { status: 503 }
+      );
+    }
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}

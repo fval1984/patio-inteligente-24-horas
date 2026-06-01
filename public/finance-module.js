@@ -361,6 +361,14 @@
     return (state.receivables || []).filter((r) => r.status === "PAGO" && r.vehicle_id);
   }
 
+  function financeContasRecebidasList() {
+    const vmap = financeVehicleById();
+    return (state.receivables || [])
+      .filter((r) => String(r.status || "").toUpperCase() === "PAGO" && Number(r.valor || 0) > 0)
+      .sort((a, b) => String(b.updated_at || b.created_at).localeCompare(String(a.updated_at || a.created_at)))
+      .map((r) => ({ r, v: vmap.get(r.vehicle_id) }));
+  }
+
   function financeCashIsEntrada(mov) {
     const t = String(mov?.tipo_conta || "").toUpperCase();
     return t === "RECEBER" || t === "ENTRADA";
@@ -392,6 +400,36 @@
     return Number.isFinite(v) ? v : 0;
   }
 
+  function financeSyntheticCashEntradasFromPaidReceivables() {
+    const cashIds = new Set(
+      (state.cash || [])
+        .filter((m) => financeCashIsEntrada(m))
+        .map((m) => String(m.conta_id))
+    );
+    const vmap = financeVehicleById();
+    return (state.receivables || [])
+      .filter(
+        (r) =>
+          String(r.status || "").toUpperCase() === "PAGO" &&
+          Number(r.valor || 0) > 0 &&
+          !cashIds.has(String(r.id))
+      )
+      .map((r) => {
+        const v = vmap.get(r.vehicle_id);
+        const placa = v?.placa || "—";
+        return {
+          id: `syn-rec-${r.id}`,
+          tipo_conta: "RECEBER",
+          conta_id: r.id,
+          valor: Number(r.valor || 0),
+          data_movimento: toLocalYmd(r.updated_at || r.created_at || new Date().toISOString()),
+          forma_pagamento: r.forma_pagamento || "PIX",
+          descricao: `Recebimento ${placa} (sincronizar caixa)`,
+          _syntheticPendingCaixa: true,
+        };
+      });
+  }
+
   function financeCaixaEntradas() {
     return (state.cash || []).filter((m) => financeCashIsEntrada(m));
   }
@@ -415,7 +453,7 @@
   }
 
   function financeCaixaMovsForPeriod(periodoYm) {
-    let movs = [...(state.cash || [])];
+    let movs = [...(state.cash || []), ...financeSyntheticCashEntradasFromPaidReceivables()];
     if (periodoYm) {
       movs = movs.filter(
         (mov) => yearMonthFromYmd(toLocalYmd(mov.data_movimento || mov.created_at)) === periodoYm
@@ -660,6 +698,40 @@
       .join("");
   }
 
+  function financeRenderRecebidos() {
+    const body = document.getElementById("finRecebidosBody");
+    const totalEl = document.getElementById("finRecebidosTotal");
+    if (!body) return;
+    const list = financeContasRecebidasList();
+    if (totalEl) totalEl.textContent = formatCurrency(list.reduce((s, x) => s + Number(x.r.valor || 0), 0));
+    if (!list.length) {
+      body.innerHTML = `<tr><td colspan="6" class="notice">Nenhum pagamento confirmado ainda.</td></tr>`;
+      return;
+    }
+    body.innerHTML = list
+      .map(({ r, v }) => {
+        const saida = v?.data_saida || r.period_end;
+        const noCaixa =
+          typeof receivableCashMovementExists === "function"
+            ? !receivableCashMovementExists(r.id)
+            : !(state.cash || []).some(
+                (m) =>
+                  String(m.conta_id) === String(r.id) &&
+                  (String(m.tipo_conta || "").toUpperCase() === "RECEBER" ||
+                    String(m.tipo_conta || "").toUpperCase() === "ENTRADA")
+              );
+        return `<tr>
+          <td data-label="Veículo / RPV"><strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span></td>
+          <td data-label="RPP">${escapeHtml(r.responsavel_pagamento || financeReceberRppNome(r, v))}</td>
+          <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
+          <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
+          <td data-label="Recebido em">${escapeHtml(formatDateTime(r.updated_at || r.created_at))}</td>
+          <td data-label="Status"><span class="fin-tag fin-tag--ok">Recebido</span>${noCaixa ? `<br /><span class="notice">Pendente no caixa</span>` : ""}</td>
+        </tr>`;
+      })
+      .join("");
+  }
+
   function financeRenderPagarAlerts() {
     const el = document.getElementById("finPagarAlerts");
     if (!el) return;
@@ -857,6 +929,9 @@
         const valSigned = isEntrada ? amount : -amount;
         const pagante = financeCashPaganteLabel(mov, rec, pay, v);
         let desc = mov.descricao || (isEntrada ? rec?.observacoes : pay?.descricao) || "—";
+        if (mov._syntheticPendingCaixa) {
+          desc += `<br /><span class="notice">Aguardando gravação no caixa — clique «Sincronizar caixa»</span>`;
+        }
         if (v?.placa) desc += `<br /><span class="notice">${escapeHtml(v.placa)}</span>`;
         return `<tr>
           <td data-label="Data">${escapeHtml(formatDate(mov.data_movimento || mov.created_at))}</td>
@@ -1408,12 +1483,13 @@
     window.print();
   }
 
-  const FINANCE_SUBVIEWS = ["dashboard", "em_patio", "aguardando", "receber", "pagar", "caixa"];
+  const FINANCE_SUBVIEWS = ["dashboard", "em_patio", "aguardando", "receber", "recebidos", "pagar", "caixa"];
 
   function financeRenderSubviewContent(view) {
     if (view === "dashboard") financeRenderDashboard();
     else if (view === "em_patio") financeRenderEmPatio();
     else if (view === "receber") financeRenderReceber();
+    else if (view === "recebidos") financeRenderRecebidos();
     else if (view === "aguardando") financeRenderAguardando();
     else if (view === "pagar") financeRenderPagar();
     else if (view === "caixa") financeRenderCaixa();
