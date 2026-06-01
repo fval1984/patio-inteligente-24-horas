@@ -3990,6 +3990,16 @@
         border: 1px solid var(--border);
         border-radius: 12px;
       }
+      .finance-dual-bar--inline {
+        padding: 8px 14px;
+        margin-top: -6px;
+      }
+      .finance-dual-hint {
+        flex: 1 1 220px;
+        font-size: 0.82rem;
+        color: var(--muted);
+        line-height: 1.35;
+      }
       .finance-dual-toggle {
         display: inline-flex;
         align-items: center;
@@ -4056,9 +4066,12 @@
       body.app-embed-finance #appSessionBanner,
       body.app-embed-finance #gestorPistaWelcomeBanner,
       body.app-embed-finance .finance-subnav,
+      body.app-embed-finance #finMultiWindowBar,
       body.app-embed-finance .finance-dual-bar,
       body.app-embed-finance #viewFinanceiro .close-view,
-      body.app-embed-finance #viewFinanceiro .module-lede {
+      body.app-embed-finance #viewFinanceiro .module-lede,
+      body.app-embed-finance #viewFinanceiro #finPopCaixa,
+      body.app-embed-finance #viewFinanceiro #finPopReceber {
         display: none !important;
       }
       body.app-embed-finance #viewFinanceiro .toolbar h2::after {
@@ -5498,6 +5511,8 @@
             </div>
             <div class="actions">
               <button type="button" class="secondary" id="finBtnRefresh">Atualizar</button>
+              <button type="button" class="secondary" id="finPopCaixa" title="Abrir o Caixa em outra janela (segundo monitor)">↗ Caixa (2ª janela)</button>
+              <button type="button" class="secondary" id="finPopReceber" title="Abrir Contas a receber em outra janela (segundo monitor)">↗ Receber (2ª janela)</button>
               <button type="button" class="secondary" id="finBtnExcel">Excel</button>
               <button type="button" class="secondary" id="finBtnPrint">Imprimir</button>
               <button type="button" class="secondary" id="finBtnPdf">PDF</button>
@@ -5513,10 +5528,17 @@
             <button type="button" data-finance-subview-btn="caixa">Caixa</button>
           </div>
 
-          <div class="finance-dual-bar" id="finDualBar">
+          <div class="finance-dual-bar" id="finMultiWindowBar">
+            <strong>Dois monitores</strong>
+            <span class="finance-dual-hint">Deixe esta janela em um monitor e abra a outra tela em janela separada — sem estender a tela.</span>
+            <button type="button" class="secondary" id="finPopCaixaBar">↗ Caixa em nova janela</button>
+            <button type="button" class="secondary" id="finPopReceberBar">↗ Contas a receber em nova janela</button>
+          </div>
+
+          <div class="finance-dual-bar finance-dual-bar--inline" id="finDualBar">
             <label class="finance-dual-toggle">
               <input type="checkbox" id="finDualToggle" />
-              <span>Conciliação (2 telas)</span>
+              <span>Lado a lado (mesma janela)</span>
             </label>
             <div class="finance-dual-pickers hidden" id="finDualPickers">
               <label>Esquerda
@@ -6436,7 +6458,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260528k"></script>
+    <script src="/finance-module.js?v=20260528l"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =

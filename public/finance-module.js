@@ -1535,12 +1535,27 @@
     const url = new URL(window.location.href);
     url.searchParams.set("embed", "finance");
     url.searchParams.set("fin", sub);
-    window.open(
-      url.toString(),
-      `amplipatio_fin_${sub}`,
-      "width=960,height=720,menubar=no,toolbar=no,location=no,status=no"
-    );
+    const features = "width=1100,height=800,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes";
+    const win = window.open(url.toString(), `amplipatio_fin_${sub}`, features);
+    if (win) win.focus();
   };
+
+  function financeBindPopoutButtons() {
+    const map = [
+      ["finPopCaixa", "caixa"],
+      ["finPopReceber", "receber"],
+      ["finPopCaixaBar", "caixa"],
+      ["finPopReceberBar", "receber"],
+      ["finDualPopLeft", () => financeDualLeft],
+      ["finDualPopRight", () => financeDualRight],
+    ];
+    map.forEach(([id, subOrFn]) => {
+      document.getElementById(id)?.addEventListener("click", () => {
+        const sub = typeof subOrFn === "function" ? subOrFn() : subOrFn;
+        openFinancePopout(sub);
+      });
+    });
+  }
 
   function financeRenderSubviewContent(view) {
     if (view === "dashboard") financeRenderDashboard();
@@ -1743,12 +1758,7 @@
       financeApplySubviewVisibility();
       financeRenderVisibleSubviews();
     });
-    document.getElementById("finDualPopLeft")?.addEventListener("click", () => {
-      openFinancePopout(financeDualLeft);
-    });
-    document.getElementById("finDualPopRight")?.addEventListener("click", () => {
-      openFinancePopout(financeDualRight);
-    });
+    financeBindPopoutButtons();
 
     document.getElementById("finSubnav")?.addEventListener("click", (e) => {
       const btn = e.target.closest("[data-finance-subview-btn]");
