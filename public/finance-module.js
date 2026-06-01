@@ -26,6 +26,8 @@
   let financeFilterReceberDataAte = "";
   let financeFilterCaixaDataDe = "";
   let financeFilterCaixaDataAte = "";
+  /** "" | "entrada" | "saida" */
+  let financeFilterCaixaTipo = "";
   let refreshFinanceDataPromise = null;
 
   function financeCanLoadData() {
@@ -722,7 +724,25 @@
         (mov) => yearMonthFromYmd(toLocalYmd(mov.data_movimento || mov.created_at)) === periodoYm
       );
     }
+    if (financeFilterCaixaTipo === "entrada") {
+      movs = movs.filter((mov) => financeCashIsEntrada(mov));
+    } else if (financeFilterCaixaTipo === "saida") {
+      movs = movs.filter((mov) => financeCashIsSaida(mov));
+    }
     return movs;
+  }
+
+  function financeUpdateCaixaTipoFilterUi() {
+    const entradaBtn = document.getElementById("finCaixaFilterEntrada");
+    const saidaBtn = document.getElementById("finCaixaFilterSaida");
+    if (entradaBtn) {
+      entradaBtn.classList.toggle("active", financeFilterCaixaTipo === "entrada");
+      entradaBtn.setAttribute("aria-pressed", financeFilterCaixaTipo === "entrada" ? "true" : "false");
+    }
+    if (saidaBtn) {
+      saidaBtn.classList.toggle("active", financeFilterCaixaTipo === "saida");
+      saidaBtn.setAttribute("aria-pressed", financeFilterCaixaTipo === "saida" ? "true" : "false");
+    }
   }
 
   function financeCaixaTotalsForMovs(movs) {
@@ -1912,6 +1932,7 @@
 
   function financeRenderCaixa() {
     financeSyncCaixaPeriodoFromDom();
+    financeUpdateCaixaTipoFilterUi();
     const body = document.getElementById("finCaixaBody");
     const summaryEl = document.getElementById("finCaixaSummary");
     const periodoYm = financeFilterPeriodo || "";
@@ -1926,8 +1947,14 @@
         : periodoYm
           ? `Competência ${periodoYm}`
           : "Todos os períodos (lista abaixo)";
+      const tipoLabel =
+        financeFilterCaixaTipo === "entrada"
+          ? " · apenas entradas"
+          : financeFilterCaixaTipo === "saida"
+            ? " · apenas saídas"
+            : "";
       summaryEl.innerHTML = `
-        <p><strong>${escapeHtml(periodoLabel)}</strong></p>
+        <p><strong>${escapeHtml(periodoLabel)}${escapeHtml(tipoLabel)}</strong></p>
         <p><strong>Entrada:</strong> <span class="fin-val-entrada">${escapeHtml(formatCurrency(totPeriodo.entradas))}</span></p>
         <p><strong>Saída:</strong> <span class="fin-val-saida">${escapeHtml(formatCurrency(totPeriodo.saidas))}</span></p>
         <p><strong>Saldo:</strong> <span class="${totPeriodo.saldo >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(totPeriodo.saldo))}</span></p>
@@ -1952,7 +1979,13 @@
         missingPaid > 0
           ? ` Há ${missingPaid} pagamento(s) confirmado(s) sem entrada no caixa — clique em «Sincronizar caixa».`
           : "";
-      body.innerHTML = `<tr><td colspan="7" class="notice">Nenhuma movimentação registrada.${periodoHint}${missingHint}</td></tr>`;
+      const tipoHint =
+        financeFilterCaixaTipo === "entrada"
+          ? " Nenhuma entrada no filtro atual."
+          : financeFilterCaixaTipo === "saida"
+            ? " Nenhuma saída no filtro atual."
+            : "";
+      body.innerHTML = `<tr><td colspan="7" class="notice">Nenhuma movimentação registrada.${periodoHint}${tipoHint}${missingHint}</td></tr>`;
       return;
     }
     const rowsHtml = movs
@@ -2823,6 +2856,14 @@
         if (currentFinanceView === "receber") financeRenderReceber();
       });
     });
+    document.getElementById("finCaixaFilterEntrada")?.addEventListener("click", () => {
+      financeFilterCaixaTipo = financeFilterCaixaTipo === "entrada" ? "" : "entrada";
+      financeRenderCaixa();
+    });
+    document.getElementById("finCaixaFilterSaida")?.addEventListener("click", () => {
+      financeFilterCaixaTipo = financeFilterCaixaTipo === "saida" ? "" : "saida";
+      financeRenderCaixa();
+    });
     document.getElementById("finCaixaFilterApply")?.addEventListener("click", () => financeRenderCaixa());
     document.getElementById("finCaixaFilterClear")?.addEventListener("click", () => {
       ["finCaixaDataDe", "finCaixaDataAte", "finCaixaDataBusca", "finFilterPeriodo"].forEach((id) => {
@@ -2832,6 +2873,7 @@
       financeFilterPeriodo = "";
       financeFilterCaixaDataDe = "";
       financeFilterCaixaDataAte = "";
+      financeFilterCaixaTipo = "";
       financeRenderCaixa();
     });
     ["finCaixaDataDe", "finCaixaDataAte", "finCaixaDataBusca", "finFilterPeriodo"].forEach((id) => {

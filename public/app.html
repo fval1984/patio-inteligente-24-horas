@@ -3979,6 +3979,13 @@
         color: var(--primary-strong);
         font-weight: 600;
       }
+      .fin-caixa-tipo-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+      .fin-caixa-tipo-filter button.active {
+        background: var(--primary-weak);
+        border-color: rgba(225, 29, 46, 0.45);
+        color: var(--primary-strong);
+        font-weight: 600;
+      }
       .fin-context-menu {
         position: fixed;
         z-index: 10050;
@@ -5647,6 +5654,10 @@
               <div><label for="finFilterPeriodo">Mês (competência)</label><input id="finFilterPeriodo" type="month" title="Usado quando De/Até estiver vazio" /></div>
               <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaFilterApply">Filtrar</button></div>
               <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaFilterClear">Limpar</button></div>
+              <div class="fin-caixa-tipo-filter">
+                <button type="button" class="secondary" id="finCaixaFilterEntrada" aria-pressed="false">Entrada</button>
+                <button type="button" class="secondary" id="finCaixaFilterSaida" aria-pressed="false">Saída</button>
+              </div>
               <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaSyncBtn">Sincronizar caixa</button></div>
             </div>
             <p id="finCaixaSyncHint" class="notice hidden" style="margin: 0 0 10px"></p>
@@ -6410,7 +6421,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260602b"></script>
+    <script src="/finance-module.js?v=20260602c"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
