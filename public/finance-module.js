@@ -224,7 +224,7 @@
   }
 
   function financeContasAguardandoList() {
-    return (state.receivables || []).filter((r) => {
+    const matched = (state.receivables || []).filter((r) => {
       if (!r || r.status === "PAGO") return false;
       if (receivableSemCobrancaFinanceira(r)) return false;
       if (receivableIsContaReceberFinanceiro(r)) return false;
@@ -236,6 +236,7 @@
       if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return true;
       return r.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(r);
     });
+    return financeDedupePatioReceivables(matched);
   }
 
   function financeContasAguardandoFilteredList() {
@@ -291,7 +292,7 @@
       const db = financeContaDueYmd(b, "receivable") || "9999-99-99";
       return da.localeCompare(db);
     });
-    return list;
+    return financeDedupePatioReceivables(list);
   }
 
   function financeContasPagarList() {
@@ -363,8 +364,9 @@
 
   function financeContasRecebidasList() {
     const vmap = financeVehicleById();
-    return (state.receivables || [])
-      .filter((r) => String(r.status || "").toUpperCase() === "PAGO" && Number(r.valor || 0) > 0)
+    return financeDedupePatioReceivables(
+      (state.receivables || []).filter((r) => String(r.status || "").toUpperCase() === "PAGO" && Number(r.valor || 0) > 0)
+    )
       .sort((a, b) => String(b.updated_at || b.created_at).localeCompare(String(a.updated_at || a.created_at)))
       .map((r) => ({ r, v: vmap.get(r.vehicle_id) }));
   }
@@ -380,6 +382,70 @@
   }
 
   /** Valor da movimentação; se vier zerado na base, usa o título pago vinculado. */
+  function financeReceivableCycleRank(r) {
+    let score = 0;
+    if (r?.period_end) score += 1e15;
+    const ts = new Date(r?.period_end || r?.updated_at || r?.created_at || 0).getTime();
+    if (Number.isFinite(ts)) score += ts;
+    if (Number(r?.valor || 0) > 0) score += 1e12;
+    return score;
+  }
+
+  /** Um título por veículo + fim de ciclo (evita VRP/sync duplicado no faturamento). */
+  function financeDedupePatioReceivables(receivables) {
+    const byKey = new Map();
+    const manual = [];
+    for (const r of receivables || []) {
+      if (!r) continue;
+      if (!r.vehicle_id) {
+        manual.push(r);
+        continue;
+      }
+      const endYmd = toLocalYmd(r.period_end || r.updated_at || r.created_at) || "sem-data";
+      const key = `${String(r.vehicle_id)}|${endYmd}`;
+      const prev = byKey.get(key);
+      if (!prev || financeReceivableCycleRank(r) >= financeReceivableCycleRank(prev)) {
+        byKey.set(key, r);
+      }
+    }
+    return [...manual, ...byKey.values()];
+  }
+
+  function financeCashMovRank(mov) {
+    let score = 0;
+    if (!mov?._syntheticPendingCaixa) score += 1e12;
+    const t = String(mov?.tipo_conta || "").toUpperCase();
+    if (t === "RECEBER") score += 100;
+    else if (t === "ENTRADA") score += 50;
+    if (Number(financeCashMovValor(mov) || 0) > 0) score += 10;
+    const ts = new Date(mov?.data_movimento || mov?.created_at || 0).getTime();
+    if (Number.isFinite(ts)) score += ts / 1e6;
+    return score;
+  }
+
+  /** Uma entrada/saída por conta vinculada (evita RECEBER + ENTRADA duplicados no caixa). */
+  function financeDedupeCaixaMovs(movs) {
+    const entradaByConta = new Map();
+    const saidaByConta = new Map();
+    const loose = [];
+    for (const mov of movs || []) {
+      const contaId = mov?.conta_id;
+      const hasConta = contaId != null && contaId !== "";
+      if (hasConta && financeCashIsEntrada(mov)) {
+        const key = String(contaId);
+        const prev = entradaByConta.get(key);
+        if (!prev || financeCashMovRank(mov) >= financeCashMovRank(prev)) entradaByConta.set(key, mov);
+      } else if (hasConta && financeCashIsSaida(mov)) {
+        const key = String(contaId);
+        const prev = saidaByConta.get(key);
+        if (!prev || financeCashMovRank(mov) >= financeCashMovRank(prev)) saidaByConta.set(key, mov);
+      } else {
+        loose.push(mov);
+      }
+    }
+    return [...loose, ...entradaByConta.values(), ...saidaByConta.values()];
+  }
+
   function financeCashMovValor(mov) {
     let v = Number(mov?.valor ?? mov?.amount ?? 0);
     if (!Number.isFinite(v)) v = 0;
@@ -431,11 +497,11 @@
   }
 
   function financeCaixaEntradas() {
-    return (state.cash || []).filter((m) => financeCashIsEntrada(m));
+    return financeDedupeCaixaMovs(state.cash || []).filter((m) => financeCashIsEntrada(m));
   }
 
   function financeCaixaSaidas() {
-    return (state.cash || []).filter((m) => financeCashIsSaida(m));
+    return financeDedupeCaixaMovs(state.cash || []).filter((m) => financeCashIsSaida(m));
   }
 
   function financeSaldoCaixa() {
@@ -453,7 +519,10 @@
   }
 
   function financeCaixaMovsForPeriod(periodoYm) {
-    let movs = [...(state.cash || []), ...financeSyntheticCashEntradasFromPaidReceivables()];
+    let movs = financeDedupeCaixaMovs([
+      ...(state.cash || []),
+      ...financeSyntheticCashEntradasFromPaidReceivables(),
+    ]);
     if (periodoYm) {
       movs = movs.filter(
         (mov) => yearMonthFromYmd(toLocalYmd(mov.data_movimento || mov.created_at)) === periodoYm
@@ -1975,4 +2044,6 @@
   };
 
   window.financeCashMovValor = financeCashMovValor;
+  window.financeDedupeCaixaMovs = financeDedupeCaixaMovs;
+  window.financeDedupePatioReceivables = financeDedupePatioReceivables;
 })();

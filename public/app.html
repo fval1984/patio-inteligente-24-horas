@@ -6371,7 +6371,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260529b"></script>
+    <script src="/finance-module.js?v=20260529c"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -8404,11 +8404,19 @@
       function sumReceivableRevenueByMonth(monthYm, receivables, cashMovements) {
         if (!monthYm || !Array.isArray(receivables)) return 0;
         const cashByContaId = new Map(
-          (Array.isArray(cashMovements) ? cashMovements : [])
+          (typeof window.financeDedupeCaixaMovs === "function"
+            ? window.financeDedupeCaixaMovs(Array.isArray(cashMovements) ? cashMovements : [])
+            : Array.isArray(cashMovements)
+              ? cashMovements
+              : []
+          )
             .filter((m) => cashMovIsEntradaTipo(m?.tipo_conta) && m?.conta_id != null)
             .map((m) => [String(m.conta_id), m])
         );
-        return receivables.reduce((sum, r) => {
+        return (typeof window.financeDedupePatioReceivables === "function"
+          ? window.financeDedupePatioReceivables(receivables)
+          : receivables
+        ).reduce((sum, r) => {
           if (FINANCE_MANUAL_ONLY && !isManualFinanceLancamento(r)) return sum;
           const paidYmd = receivableRevenuePaidYmd(r, cashByContaId);
           if (!paidYmd || yearMonthFromYmd(paidYmd) !== monthYm) return sum;
@@ -8419,11 +8427,19 @@
       function sumReceivableRevenueByDay(dayYmd, receivables, cashMovements) {
         if (!dayYmd || !Array.isArray(receivables)) return 0;
         const cashByContaId = new Map(
-          (Array.isArray(cashMovements) ? cashMovements : [])
+          (typeof window.financeDedupeCaixaMovs === "function"
+            ? window.financeDedupeCaixaMovs(Array.isArray(cashMovements) ? cashMovements : [])
+            : Array.isArray(cashMovements)
+              ? cashMovements
+              : []
+          )
             .filter((m) => cashMovIsEntradaTipo(m?.tipo_conta) && m?.conta_id != null)
             .map((m) => [String(m.conta_id), m])
         );
-        return receivables.reduce((sum, r) => {
+        return (typeof window.financeDedupePatioReceivables === "function"
+          ? window.financeDedupePatioReceivables(receivables)
+          : receivables
+        ).reduce((sum, r) => {
           if (FINANCE_MANUAL_ONLY && !isManualFinanceLancamento(r)) return sum;
           return receivableRevenuePaidYmd(r, cashByContaId) === dayYmd ? sum + Number(r.valor || 0) : sum;
         }, 0);
@@ -9257,14 +9273,21 @@
           return { amount, label, hideAmount: false };
         }
         if (currentListaView === "caixa") {
-          const list = (state.cash || []).filter(listaCashMatches);
+          const list = (typeof window.financeDedupeCaixaMovs === "function"
+            ? window.financeDedupeCaixaMovs(state.cash || [])
+            : state.cash || []
+          ).filter(listaCashMatches);
           const label = "Soma dos valores (movimentos filtrados)";
           const amount = list.reduce((s, mov) => s + Number(mov.valor || 0), 0);
           return { amount, label, hideAmount: false };
         }
         if (currentListaView === "historico_receber") {
-          const list = (state.receivables || []).filter(
-            (r) => String(r.status || "").toUpperCase() === "PAGO" && listaReceivableMatches(r, vehicleById.get(r.vehicle_id))
+          const list = (typeof window.financeDedupePatioReceivables === "function"
+            ? window.financeDedupePatioReceivables
+            : (rows) => rows)(
+            (state.receivables || []).filter(
+              (r) => String(r.status || "").toUpperCase() === "PAGO" && listaReceivableMatches(r, vehicleById.get(r.vehicle_id))
+            )
           );
           return {
             amount: list.reduce((s, r) => s + Number(r.valor || 0), 0),
@@ -9510,10 +9533,13 @@
 
         if (currentListaView === "historico_receber") {
           head.innerHTML = `<tr><th>Veículo / responsável</th><th>Saída</th><th>Valor</th><th>Recebido em</th><th>Estado</th></tr>`;
-          const list = (state.receivables || [])
-            .filter((r) => String(r.status || "").toUpperCase() === "PAGO")
-            .filter((r) => listaReceivableMatches(r, vehicleById.get(r.vehicle_id)))
-            .sort((a, b) => String(b.updated_at || b.created_at).localeCompare(String(a.updated_at || a.created_at)));
+          const list = (typeof window.financeDedupePatioReceivables === "function"
+            ? window.financeDedupePatioReceivables
+            : (rows) => rows)(
+            (state.receivables || [])
+              .filter((r) => String(r.status || "").toUpperCase() === "PAGO")
+              .filter((r) => listaReceivableMatches(r, vehicleById.get(r.vehicle_id)))
+          ).sort((a, b) => String(b.updated_at || b.created_at).localeCompare(String(a.updated_at || a.created_at)));
           if (!list.length) {
             body.innerHTML = `<tr><td colspan="5" class="notice">Nenhum recebimento confirmado com os filtros atuais.</td></tr>`;
             return;
@@ -11368,6 +11394,9 @@
           return;
         }
         state.cash = data || [];
+        if (typeof window.financeDedupeCaixaMovs === "function") {
+          state.cash = window.financeDedupeCaixaMovs(state.cash);
+        }
         maybeRefreshListaPanel();
       }
 
@@ -11502,7 +11531,10 @@
 
         let revenue = 0;
         let expense = 0;
-        (state.cash || []).forEach((mov) => {
+        const cashForMonth = typeof window.financeDedupeCaixaMovs === "function"
+          ? window.financeDedupeCaixaMovs(state.cash || [])
+          : state.cash || [];
+        cashForMonth.forEach((mov) => {
           const ymd = toLocalYmd(mov.data_movimento || mov.created_at);
           if (!ymd || ymd < first || ymd > last) return;
           const val =
@@ -11519,7 +11551,7 @@
         const openPag = (state.payables || [])
           .filter((p) => p.status === "EM_ABERTO")
           .reduce((s, p) => s + Number(p.valor || 0), 0);
-        const caixa = (state.cash || []).reduce((sum, mov) => {
+        const caixa = cashForMonth.reduce((sum, mov) => {
           const val =
             typeof window.financeCashMovValor === "function"
               ? window.financeCashMovValor(mov)
@@ -11596,7 +11628,10 @@
 
       function sumReceivableFaturadoByMonth(monthYm, receivables) {
         if (!monthYm || !Array.isArray(receivables)) return 0;
-        return receivables.reduce((sum, r) => {
+        return (typeof window.financeDedupePatioReceivables === "function"
+          ? window.financeDedupePatioReceivables(receivables)
+          : receivables
+        ).reduce((sum, r) => {
           if (FINANCE_MANUAL_ONLY && !isManualFinanceLancamento(r)) return sum;
           if (!r.vehicle_id) return sum;
           const ymd = toLocalYmd(r.period_end || r.created_at);
@@ -11654,7 +11689,10 @@
         if (!buckets.length) return;
         const firstKey = buckets[0].key;
         let saldoInicial = 0;
-        (state.cash || []).forEach((mov) => {
+        const cashChartMovs = typeof window.financeDedupeCaixaMovs === "function"
+          ? window.financeDedupeCaixaMovs(state.cash || [])
+          : state.cash || [];
+        cashChartMovs.forEach((mov) => {
           const ymd = toLocalYmd(mov.data_movimento || mov.created_at);
           if (!ymd) return;
           let key = null;
