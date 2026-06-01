@@ -470,7 +470,7 @@
       if (financeCashIsEntrada(mov)) entradas += v;
       else if (financeCashIsSaida(mov)) saidas += v;
     });
-    return { entradas, saidas, resultado: entradas - saidas };
+    return { entradas, saidas, saldo: entradas - saidas };
   }
 
   function financeSyncCaixaPeriodoFromDom() {
@@ -911,31 +911,15 @@
     const periodoYm = financeFilterPeriodo || "";
     const movsPeriodo = financeCaixaMovsForPeriod(periodoYm);
     const totPeriodo = financeCaixaTotalsForMovs(movsPeriodo);
-    const totGeral = financeCaixaTotalsForMovs(state.cash || []);
-    const saldoGeral = totGeral.resultado;
     if (summaryEl) {
-      const saldoPorConta = new Map();
-      const defaultConta = state.settings?.conta_bancaria || "Caixa";
-      saldoPorConta.set(defaultConta, 0);
-      (state.cash || []).forEach((mov) => {
-        const conta = financeMovContaLabel(mov);
-        const v = financeCashMovValor(mov);
-        const signed = financeCashIsSaida(mov) ? -v : v;
-        saldoPorConta.set(conta, (saldoPorConta.get(conta) || 0) + signed);
-      });
-      const contasHtml = [...saldoPorConta.entries()]
-        .map(([nome, val]) => `<p><strong>${escapeHtml(nome)}:</strong> ${escapeHtml(formatCurrency(val))}</p>`)
-        .join("");
       const periodoLabel = periodoYm
         ? `Competência ${periodoYm}`
         : "Todos os períodos (lista abaixo)";
       summaryEl.innerHTML = `
         <p><strong>${escapeHtml(periodoLabel)}</strong></p>
-        <p><strong>Entradas:</strong> <span class="fin-val-entrada">${escapeHtml(formatCurrency(totPeriodo.entradas))}</span></p>
-        <p><strong>Saídas:</strong> <span class="fin-val-saida">${escapeHtml(formatCurrency(totPeriodo.saidas))}</span></p>
-        <p><strong>Resultado:</strong> <span class="${totPeriodo.resultado >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(totPeriodo.resultado))}</span></p>
-        <p><strong>Saldo acumulado:</strong> ${escapeHtml(formatCurrency(saldoGeral))}</p>
-        ${contasHtml}
+        <p><strong>Entrada:</strong> <span class="fin-val-entrada">${escapeHtml(formatCurrency(totPeriodo.entradas))}</span></p>
+        <p><strong>Saída:</strong> <span class="fin-val-saida">${escapeHtml(formatCurrency(totPeriodo.saidas))}</span></p>
+        <p><strong>Saldo:</strong> <span class="${totPeriodo.saldo >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(totPeriodo.saldo))}</span></p>
       `;
     }
     if (!body) return;
@@ -988,8 +972,8 @@
     body.innerHTML =
       rowsHtml +
       `<tr class="fin-caixa-total-row">
-        <td colspan="5" data-label=""><strong>Total do período</strong></td>
-        <td data-label="Valor"><strong class="${totPeriodo.resultado >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(totPeriodo.resultado))}</strong></td>
+        <td colspan="5" data-label=""><strong>Saldo</strong></td>
+        <td data-label="Valor"><strong class="${totPeriodo.saldo >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(totPeriodo.saldo))}</strong></td>
         <td data-label=""></td>
       </tr>`;
   }
