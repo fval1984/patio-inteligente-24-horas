@@ -9,6 +9,7 @@ type ReceivableRow = {
   status: string | null;
   forma_pagamento: string | null;
   responsavel_pagamento: string | null;
+  observacoes?: string | null;
   updated_at: string | null;
   created_at: string | null;
   period_end?: string | null;
@@ -104,6 +105,21 @@ function dedupePaidReceivablesByVehicle(receivables: ReceivableRow[]) {
 function placaFromDescricao(descricao: string | null | undefined) {
   const m = String(descricao || "").match(/(?:Diárias|Recebimento|Recuperação caixa)\s*[—\-]\s*([A-Z0-9]+)/i);
   return m ? normalizePlate(m[1]) : "";
+}
+
+function paidDateFromReceivableObservacoes(rec: { observacoes?: string | null; updated_at?: string | null; period_end?: string | null; created_at?: string | null }) {
+  const raw = String(rec?.observacoes || "");
+  const m = raw.match(/^\[\[finmeta:(\{.*?\})\]\]/);
+  if (m) {
+    try {
+      const meta = JSON.parse(m[1]) as { data_pagamento?: string; data_recebimento?: string };
+      const d = meta?.data_pagamento || meta?.data_recebimento;
+      if (d) return toYmd(String(d));
+    } catch {
+      /* ignore */
+    }
+  }
+  return toYmd(rec.updated_at || rec.period_end || rec.created_at);
 }
 
 async function purgeExtraMovementsForConta(
@@ -627,7 +643,7 @@ async function processReceivableBatch(
     const result = await upsertCashForReceivable(supabase, userId, current, {
       vehiclePlaca: current.vehicle_id ? placaByVehicle.get(String(current.vehicle_id)) || null : null,
       dataMovimento:
-        ov?.dataMovimento || toYmd(current.updated_at || current.period_end || current.created_at),
+        ov?.dataMovimento || paidDateFromReceivableObservacoes(current),
       valor: ov?.valor,
     });
     if (!result.ok) failed += 1;
@@ -683,7 +699,7 @@ export async function POST(request: NextRequest) {
       const cleanupBefore = { removed: 0 };
       const { data: paid, error: paidErr } = await supabase
         .from("receivables")
-        .select("id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at,period_end")
+        .select("id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,observacoes,updated_at,created_at,period_end")
         .eq("user_id", userId)
         .eq("status", "PAGO");
       if (paidErr) {
@@ -779,7 +795,7 @@ export async function POST(request: NextRequest) {
       await cleanupDuplicateCashEntradas(supabase, userId);
       const { data: paid, error: paidErr } = await supabase
         .from("receivables")
-        .select("id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at,period_end")
+        .select("id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,observacoes,updated_at,created_at,period_end")
         .eq("user_id", userId)
         .eq("status", "PAGO");
       if (paidErr) {
