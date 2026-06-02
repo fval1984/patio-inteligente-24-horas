@@ -2873,13 +2873,44 @@
       #viewPatio .vnp-situacao {
         margin-top: 6px;
       }
-      #viewPatio tr.vnp-row-liberacao {
+      #viewPatio tr.vnp-row-liberacao,
+      #viewLista tr.vnp-row-liberacao {
         background: rgba(245, 158, 11, 0.1);
         box-shadow: inset 3px 0 0 0 rgba(245, 158, 11, 0.75);
       }
-      [data-theme="light"] #viewPatio tr.vnp-row-liberacao {
+      [data-theme="light"] #viewPatio tr.vnp-row-liberacao,
+      [data-theme="light"] #viewLista tr.vnp-row-liberacao {
         background: rgba(251, 191, 36, 0.2);
         box-shadow: inset 3px 0 0 0 rgba(217, 119, 6, 0.85);
+      }
+      #viewPatio tr.vnp-row-liberacao-solicitada,
+      #viewLista tr.vnp-row-liberacao-solicitada {
+        background: rgba(245, 158, 11, 0.14);
+        box-shadow: inset 4px 0 0 0 rgba(245, 158, 11, 0.9);
+      }
+      #viewPatio tr.vnp-row-liberacao-confirmada,
+      #viewLista tr.vnp-row-liberacao-confirmada {
+        background: rgba(234, 88, 12, 0.12);
+        box-shadow: inset 4px 0 0 0 rgba(234, 88, 12, 0.9);
+      }
+      #viewPatio tr.vnp-row-vrp-pronto,
+      #viewLista tr.vnp-row-vrp-pronto {
+        background: rgba(34, 197, 94, 0.1);
+        box-shadow: inset 4px 0 0 0 rgba(34, 197, 94, 0.85);
+      }
+      [data-theme="light"] #viewPatio tr.vnp-row-liberacao-solicitada,
+      [data-theme="light"] #viewLista tr.vnp-row-liberacao-solicitada {
+        background: rgba(251, 191, 36, 0.28);
+      }
+      [data-theme="light"] #viewPatio tr.vnp-row-liberacao-confirmada,
+      [data-theme="light"] #viewLista tr.vnp-row-liberacao-confirmada {
+        background: rgba(254, 215, 170, 0.45);
+        box-shadow: inset 4px 0 0 0 rgba(194, 65, 12, 0.9);
+      }
+      [data-theme="light"] #viewPatio tr.vnp-row-vrp-pronto,
+      [data-theme="light"] #viewLista tr.vnp-row-vrp-pronto {
+        background: rgba(187, 247, 208, 0.45);
+        box-shadow: inset 4px 0 0 0 rgba(21, 128, 61, 0.9);
       }
       #viewPatio tr.vnp-row-sem-valor {
         background: rgba(220, 38, 38, 0.12);
@@ -8751,17 +8782,37 @@
         return !!v && v.status !== "REMOVIDO";
       }
 
-      const VNP_ON_PATIO_STATUS_ORDER = {
-        NO_PATIO: 0,
-        LIBERACAO_SOLICITADA: 1,
-        LIBERACAO_CONFIRMADA: 2,
-        REMocao_CONFIRMADA: 3,
-      };
+      /** Ordem na lista: liberação e VRP pronto no topo; veículos só no pátio por último. */
+      function patioVehicleDisplayRank(v) {
+        if (!v) return 50;
+        const st = v.status;
+        if (st === "LIBERACAO_SOLICITADA") return 0;
+        if (st === "LIBERACAO_CONFIRMADA") return 1;
+        if (st === "REMocao_CONFIRMADA" || canEfetivarRemocaoVrp(v)) return 2;
+        if (st === "NO_PATIO" && isRemocaoSolicitada(v)) return 3;
+        if (st === "NO_PATIO") return 10;
+        return 50;
+      }
+
+      function isVehiclePatioDestaque(v) {
+        return patioVehicleDisplayRank(v) < 10;
+      }
+
+      function patioVehicleDestaqueRowClass(v) {
+        if (!v) return "";
+        const st = v.status;
+        if (st === "LIBERACAO_SOLICITADA") return "vnp-row-destaque vnp-row-liberacao-solicitada";
+        if (st === "REMocao_CONFIRMADA") return "vnp-row-destaque vnp-row-vrp-pronto";
+        if (canEfetivarRemocaoVrp(v)) return "vnp-row-destaque vnp-row-vrp-pronto";
+        if (st === "LIBERACAO_CONFIRMADA") return "vnp-row-destaque vnp-row-liberacao-confirmada";
+        if (st === "NO_PATIO" && isRemocaoSolicitada(v)) return "vnp-row-destaque vnp-row-liberacao";
+        return "";
+      }
 
       function sortVnpOnPatioForDisplay(list) {
         return [...list].sort((a, b) => {
-          const oa = VNP_ON_PATIO_STATUS_ORDER[a.status] ?? 50;
-          const ob = VNP_ON_PATIO_STATUS_ORDER[b.status] ?? 50;
+          const oa = patioVehicleDisplayRank(a);
+          const ob = patioVehicleDisplayRank(b);
           if (oa !== ob) return oa - ob;
           const ta = new Date(a.data_entrada || a.created_at || 0).getTime();
           const tb = new Date(b.data_entrada || b.created_at || 0).getTime();
@@ -9496,7 +9547,8 @@
                     : "No pátio"
                   : VLS_STATUS_LABELS[v.status] || v.status || "-";
               const val = ocultarValorColuna ? "" : `<td data-label="Valor">${escapeHtml(formatCurrency(calcTotal(v)))}</td>`;
-              return `<tr>
+              const rowCls = patioVehicleDestaqueRowClass(v);
+              return `<tr${rowCls ? ` class="${rowCls}"` : ""}>
                 <td data-label="Placa">${escapeHtml(v.placa || "-")}</td>
                 <td data-label="Registo">${patioRegistoBadgeHtml(isVlpStatus(v.status) ? "vlp" : "vnp")}</td>
                 <td data-label="Veículo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</td>
@@ -12492,10 +12544,11 @@
               ? "-"
               : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
 
-            const emPipeline = v.status !== "NO_PATIO";
+            const emPipeline = isVehiclePatioDestaque(v);
             const semValorDiaria = !v.valor_diaria || Number(v.valor_diaria) <= 0;
             const rowClasses = [];
-            if (emPipeline || isRemocaoSolicitada(v)) rowClasses.push("vnp-row-liberacao");
+            const destaqueCls = patioVehicleDestaqueRowClass(v);
+            if (destaqueCls) rowClasses.push(destaqueCls);
             if (semValorDiaria) rowClasses.push("vnp-row-sem-valor");
             const rowClass = rowClasses.join(" ");
             const situacaoTags = [];
