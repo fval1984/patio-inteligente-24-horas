@@ -2032,9 +2032,15 @@
     form.reset();
     const today = financeTodayYmd();
     const venc = document.getElementById("finRecVencimento");
+    const dataLanc = document.getElementById("finRecDataLancamento");
+    const dataRec = document.getElementById("finRecDataRecebimento");
+    const jaRec = document.getElementById("finRecJaRecebido");
     const modo = document.getElementById("finRecModo");
     const cat = document.getElementById("finRecCategoria");
+    if (dataLanc) dataLanc.value = today;
     if (venc) venc.value = today;
+    if (dataRec) dataRec.value = today;
+    if (jaRec) jaRec.checked = false;
     if (modo) modo.value = presetRecorrente ? "RECORRENTE" : "UNICA";
     if (cat && typeof getLancReceitaCategorias === "function") {
       const cats = getLancReceitaCategorias();
@@ -2056,6 +2062,15 @@
     const modo = document.getElementById("finRecModo")?.value || "UNICA";
     document.getElementById("finRecRecorrenciaWrap")?.classList.toggle("hidden", modo !== "RECORRENTE");
     document.getElementById("finRecParcelasWrap")?.classList.toggle("hidden", modo !== "PARCELADA");
+    const jaRec = document.getElementById("finRecJaRecebido");
+    const wrapRec = document.getElementById("finRecDataRecebimentoWrap");
+    if (wrapRec) wrapRec.classList.toggle("hidden", !jaRec?.checked);
+  }
+
+  function financeSyncFinRecDataRecebimentoFromLancamento() {
+    const dataLanc = document.getElementById("finRecDataLancamento")?.value;
+    const dataRec = document.getElementById("finRecDataRecebimento");
+    if (dataRec && dataLanc) dataRec.value = dataLanc;
   }
 
   function financeOpenDespesaModal(presetRecorrente) {
@@ -2910,6 +2925,10 @@
     document.getElementById("finBtnNovaReceita")?.addEventListener("click", () => financeOpenReceitaModal(false));
     document.getElementById("finDespModo")?.addEventListener("change", financeSyncDespesaModoFields);
     document.getElementById("finRecModo")?.addEventListener("change", financeSyncReceitaModoFields);
+    document.getElementById("finRecJaRecebido")?.addEventListener("change", financeSyncReceitaModoFields);
+    document.getElementById("finRecDataLancamento")?.addEventListener("change", () => {
+      if (document.getElementById("finRecJaRecebido")?.checked) financeSyncFinRecDataRecebimentoFromLancamento();
+    });
     document.getElementById("closeFinDespesaModal")?.addEventListener("click", financeCloseDespesaModal);
     document.getElementById("cancelFinDespesaModal")?.addEventListener("click", financeCloseDespesaModal);
     document.getElementById("closeFinReceitaModal")?.addEventListener("click", financeCloseReceitaModal);
@@ -2978,15 +2997,23 @@
       const cliente = document.getElementById("finRecCliente")?.value?.trim();
       const descricao = document.getElementById("finRecDescricao")?.value?.trim();
       const valor = Number(document.getElementById("finRecValor")?.value);
+      const dataLancamento = document.getElementById("finRecDataLancamento")?.value;
       const vencimento = document.getElementById("finRecVencimento")?.value;
+      const jaRecebido = document.getElementById("finRecJaRecebido")?.checked === true;
+      const dataRecebimento =
+        document.getElementById("finRecDataRecebimento")?.value || dataLancamento;
       const categoria = document.getElementById("finRecCategoria")?.value;
       const formaPagamento = document.getElementById("finRecForma")?.value || "PIX";
       const observacoes = document.getElementById("finRecObs")?.value?.trim() || "";
       const modo = document.getElementById("finRecModo")?.value || "UNICA";
       const recorrenciaIntervalo = document.getElementById("finRecRecorrencia")?.value || "mensal";
       const parcelas = Number(document.getElementById("finRecParcelas")?.value) || 2;
-      if (!cliente || !descricao || !vencimento || !Number.isFinite(valor) || valor <= 0) {
-        alert("Preencha cliente, descrição, valor e vencimento.");
+      if (!cliente || !descricao || !dataLancamento || !vencimento || !Number.isFinite(valor) || valor <= 0) {
+        alert("Preencha cliente, descrição, data do lançamento, valor e vencimento.");
+        return;
+      }
+      if (jaRecebido && !dataRecebimento) {
+        alert("Informe a data do recebimento no caixa.");
         return;
       }
       const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -2995,13 +3022,14 @@
         const result = await insertManualReceivableLancamento({
           descricao,
           valor,
-          data: vencimento,
+          data: dataLancamento,
           vencimento,
           categoria,
           cliente,
           formaPagamento,
           observacoes,
-          pago: false,
+          pago: jaRecebido,
+          dataPagamento: jaRecebido ? dataRecebimento : "",
           modo,
           parcelas,
           recorrenciaIntervalo,
