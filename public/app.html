@@ -6242,7 +6242,7 @@
           <div class="modal-header">
             <div>
               <h3>Confirmar pagamento</h3>
-              <p class="subtitle" style="margin: 4px 0 0">Informe desconto, valor recebido e data do recebimento.</p>
+              <p class="subtitle" style="margin: 4px 0 0">Informe desconto, valor recebido e data do recebimento (pode ser retroativa).</p>
             </div>
             <button type="button" class="modal-close" id="closeReceberBaixaModal">Fechar</button>
           </div>
@@ -6262,7 +6262,7 @@
             </div>
             <div>
               <label for="receberBaixaData">Data de recebimento</label>
-              <input id="receberBaixaData" type="date" required />
+              <input id="receberBaixaData" type="date" required title="Permite data anterior (lançamento retroativo no caixa)" />
             </div>
             <div>
               <label for="receberBaixaForma">Forma de pagamento</label>
@@ -6417,8 +6417,22 @@
                 <input id="finRecValor" type="number" step="0.01" min="0.01" required />
               </div>
               <div>
+                <label for="finRecDataLancamento">Data do lançamento</label>
+                <input id="finRecDataLancamento" type="date" required title="Pode ser uma data anterior (retroativa)" />
+              </div>
+              <div>
                 <label for="finRecVencimento">Vencimento</label>
                 <input id="finRecVencimento" type="date" required />
+              </div>
+              <div class="full">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer">
+                  <input type="checkbox" id="finRecJaRecebido" />
+                  Já recebido — registrar entrada no caixa na data do lançamento
+                </label>
+              </div>
+              <div id="finRecDataRecebimentoWrap" class="hidden">
+                <label for="finRecDataRecebimento">Data do recebimento no caixa</label>
+                <input id="finRecDataRecebimento" type="date" title="Pode ser retroativa; padrão: data do lançamento" />
               </div>
               <div>
                 <label for="finRecForma">Forma de pagamento</label>
@@ -6516,7 +6530,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260602c"></script>
+    <script src="/finance-module.js?v=20260602d"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -6780,6 +6794,7 @@
         formaPagamento,
         observacoes,
         pago,
+        dataPagamento = "",
         modo = "UNICA",
         parcelas = 2,
         competencia = "",
@@ -6797,11 +6812,13 @@
           const dueDate = addMonthsToYmd(vencimento || data, i) || vencimento || data;
           const isLast = i === count - 1;
           const markPago = pago && (count === 1 || isLast);
+          const dataCaixa = markPago ? toLocalYmd(dataPagamento || data) || data : "";
           const meta = {
             modo: modoUp,
             competencia: competencia || yearMonthFromYmd(data) || "",
             origem_modulo: "CONTROLE_RECEITAS",
             gerou_compromisso: !markPago,
+            ...(markPago && dataCaixa ? { data_pagamento: dataCaixa } : {}),
             ...(modoUp === "PARCELADA" ? { parcela: i + 1, parcelas_total: count, grupo_id: grupoId } : {}),
             ...(modoUp === "RECORRENTE"
               ? { recorrencia: String(recorrenciaIntervalo || "mensal").toLowerCase() }
@@ -6848,7 +6865,7 @@
               conta_id: receivableId,
               valor: valorParcela,
               descricao: descricao || "Receita manual",
-              data_movimento: data,
+              data_movimento: dataCaixa || data,
               forma_pagamento: formaPagamento,
             });
           }
@@ -7635,6 +7652,15 @@
         } catch (e) {
           return { meta: {}, text: raw };
         }
+      }
+
+      /** Data civil do pagamento/recebimento (meta retroativa ou updated_at). */
+      function financeReceivablePaidDateYmd(receivable) {
+        if (!receivable) return "";
+        const { meta } = financeMetaUnpack(receivable.observacoes);
+        const fromMeta = toLocalYmd(meta?.data_pagamento || meta?.data_recebimento || "");
+        if (fromMeta) return fromMeta;
+        return toLocalYmd(receivable.updated_at || receivable.period_end || receivable.created_at || "");
       }
 
       function financeAttachmentsRead() {
@@ -14307,6 +14333,11 @@
         const dataMov = opts.dataMovimento || toLocalYmd(new Date().toISOString());
         const formaPagamento = opts.formaPagamento || receivable.forma_pagamento || "PIX";
         const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
+        const { meta: recMeta, text: recObsText } = financeMetaUnpack(receivable.observacoes);
+        const obsPacked = financeMetaPack(
+          { ...recMeta, data_pagamento: dataMov },
+          opts.observacao ? `${recObsText ? recObsText + " — " : ""}${opts.observacao}` : recObsText
+        );
         const runRecUpdate = (patch) =>
           runSupabaseWrite(() =>
             supabase.from("receivables").update(patch).eq("id", receivableId).eq("user_id", effectiveUserId())
@@ -14316,9 +14347,15 @@
           valor: totalAtual,
           financeiro_aprovado_contas_receber: false,
           forma_pagamento: formaPagamento,
+          observacoes: obsPacked,
         });
         if (error) {
-          const { error: errFallback } = await runRecUpdate({ status: "PAGO", valor: totalAtual });
+          const { error: errFallback } = await runRecUpdate({
+            status: "PAGO",
+            valor: totalAtual,
+            forma_pagamento: formaPagamento,
+            observacoes: obsPacked,
+          });
           if (errFallback) {
             alertSupabaseError(errFallback, "Não foi possível confirmar o pagamento.");
             return null;
@@ -14363,6 +14400,8 @@
               receivableId,
               vehicleId: receivable.vehicle_id || null,
               amount: totalAtual,
+              paymentDate: `${dataMov}T12:00:00`,
+              method: formaPagamento,
             });
           }
         } catch (e) {
@@ -14697,7 +14736,7 @@
           if (!mov) {
             const res = await registerReceivableCashMovement(r, {
               valor,
-              dataMovimento: toLocalYmd(r.updated_at || r.created_at || new Date().toISOString()),
+              dataMovimento: financeReceivablePaidDateYmd(r) || toLocalYmd(new Date().toISOString()),
               formaPagamento: r.forma_pagamento || "PIX",
               vehicle,
             });
@@ -14711,7 +14750,10 @@
           if (Number(mov.valor || 0) !== valor) {
             const res = await registerReceivableCashMovement(r, {
               valor,
-              dataMovimento: toLocalYmd(mov.data_movimento || r.updated_at || r.created_at || new Date().toISOString()),
+              dataMovimento:
+                toLocalYmd(mov.data_movimento) ||
+                financeReceivablePaidDateYmd(r) ||
+                toLocalYmd(r.updated_at || r.created_at || new Date().toISOString()),
               formaPagamento: mov.forma_pagamento || r.forma_pagamento || "PIX",
               vehicle,
             });
