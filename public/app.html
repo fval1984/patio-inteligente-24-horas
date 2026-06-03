@@ -6559,7 +6559,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260603t"></script>
+    <script src="/finance-module.js?v=20260603u"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -6846,8 +6846,8 @@
             modo: modoUp,
             competencia: competencia || yearMonthFromYmd(data) || "",
             origem_modulo: "CONTROLE_RECEITAS",
-            origem_texto: clienteNome || String(descricao || "").trim(),
-            descricao_texto: String(descricao || "").trim(),
+            origem_texto: origemLabel || descLabel,
+            descricao_texto: descLabel || origemLabel,
             gerou_compromisso: !markPago,
             forma_pagamento: formaPagamento,
             ...(markPago && dataCaixa ? { data_pagamento: dataCaixa } : {}),
@@ -6856,13 +6856,10 @@
               ? { recorrencia: String(recorrenciaIntervalo || "mensal").toLowerCase() }
               : {}),
           };
-          const origemLabel = clienteNome || String(descricao || "").trim();
+          const origemLabel = clienteNome || "";
+          const descLabel = String(descricao || "").trim();
           const extraObs = String(observacoes || "").trim();
-          const userText = extraObs
-            ? origemLabel
-              ? `${origemLabel} — ${extraObs}`
-              : extraObs
-            : origemLabel;
+          const userText = [origemLabel, descLabel, extraObs].filter(Boolean).join(" — ") || descLabel || "Receita manual";
           const obsPacked = financeMetaPack(meta, userText);
           const sub =
             modoUp === "RECORRENTE" ? "RECORRENTE" : modoUp === "PARCELADA" ? `PARCELADA_${i + 1}` : "MANUAL";
