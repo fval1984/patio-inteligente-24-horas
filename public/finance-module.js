@@ -1054,9 +1054,13 @@
         const st = financeReceivableDisplayStatus(r);
         const due = financeContaDueYmd(r, "receivable");
         const isPatio = !!r.vehicle_id;
+        const isManual =
+          typeof isManualFinanceLancamento === "function" && isManualFinanceLancamento(r);
         const veiculoRpvHtml = isPatio
           ? `<strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span>`
-          : `<span class="notice">—</span>`;
+          : isManual
+            ? `<span class="notice">Receita manual</span><br /><span class="notice">${escapeHtml(r.responsavel_pagamento || "—")}</span>`
+            : `<span class="notice">—</span>`;
         const rppHtml = escapeHtml(financeReceberRppNome(r, v));
         const diariasHtml = escapeHtml(financeReceberDiariasCell(r, v));
         const btnPay =

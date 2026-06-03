@@ -6556,7 +6556,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260603l"></script>
+    <script src="/finance-module.js?v=20260603m"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -6856,6 +6856,7 @@
             modoUp === "RECORRENTE" ? "RECORRENTE" : modoUp === "PARCELADA" ? `PARCELADA_${i + 1}` : "MANUAL";
           const payload = {
             user_id: effectiveUserId(),
+            vehicle_id: null,
             responsavel_pagamento: obsPacked || clienteNome || descricao,
             receivable_category: categoria,
             valor: valorParcela,
@@ -7014,6 +7015,7 @@
         const nextDue = addPeriodToYmd(due, interval);
         const payload = {
           user_id: effectiveUserId(),
+          vehicle_id: null,
           receivable_category: receivable.receivable_category || "GUARDA_PATIO",
           valor: Number(receivable.valor || 0),
           status: "EM_ABERTO",
@@ -8623,6 +8625,9 @@
       function receivableIsContaReceberFinanceiro(r) {
         if (!r || r.status === "PAGO") return false;
         if (receivableSemCobrancaFinanceira(r)) return false;
+        if (isManualFinanceLancamento(r)) {
+          return r.status === "EM_ABERTO" && receivableAprovadoParaContasReceber(r);
+        }
         if (FINANCE_MANUAL_ONLY) {
           return isManualFinanceLancamento(r) && r.status === "EM_ABERTO";
         }
