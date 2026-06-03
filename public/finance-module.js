@@ -1148,11 +1148,7 @@
       financeCaixaMissingSyncPromise = (async () => {
         try {
           await financeSyncMissingCashClient();
-          if (typeof window.syncPaidPayablesCashMovements === "function") {
-            await window.syncPaidPayablesCashMovements();
-          }
           if (typeof loadReceivables === "function") await loadReceivables();
-          if (typeof loadPayables === "function") await loadPayables();
           if (typeof loadCash === "function") await loadCash();
         } catch (e) {
           console.warn("financeEnsureMissingCashInCaixa", e?.message || e);
@@ -1169,29 +1165,13 @@
       btn.disabled = true;
       btn.textContent = "Sincronizando…";
     }
-    let payStats = { created: 0, failed: 0 };
     try {
-      if (typeof window.callRegisterCashPayableApi === "function") {
-        const payApi = await window.callRegisterCashPayableApi({ syncMissing: true });
-        if (payApi.ok && payApi.stats) {
-          payStats = {
-            created: Number(payApi.stats.created || 0) + Number(payApi.stats.updated || 0),
-            failed: Number(payApi.stats.failed || 0),
-          };
-        }
-      } else if (typeof window.syncPaidPayablesCashMovements === "function") {
-        payStats = (await window.syncPaidPayablesCashMovements()) || payStats;
-      }
-      if (typeof loadPayables === "function") await loadPayables();
-      if (typeof loadCash === "function") await loadCash();
       const recStats = await financeRecoverCashViaApi(
         { syncMissing: true },
         { hintId: null, btnId: null, onDone: null }
       );
       if (hintEl) {
         const parts = [];
-        if (payStats.created > 0) parts.push(`${payStats.created} saída(s) de despesas`);
-        if (payStats.failed > 0) parts.push(`${payStats.failed} despesa(s) com erro`);
         if (recStats) {
           const n = Number(recStats.created || 0) + Number(recStats.fixed || 0);
           if (n > 0) parts.push(`${n} entrada(s) de recebimentos`);
@@ -2103,10 +2083,9 @@
             : ` Nenhuma movimentação na competência ${periodoYm}. Limpe o filtro «Competência» para ver todas.`
           : "";
       const missingRec = financeCountPaidReceivablesSemCaixa();
-      const missingPay = financeCountPaidPayablesSemCaixa();
       const missingHint =
-        missingRec > 0 || missingPay > 0
-          ? ` Há ${missingRec} recebimento(s) e ${missingPay} despesa(s) pagos sem movimento no caixa — clique em «Sincronizar caixa».`
+        missingRec > 0
+          ? ` Há ${missingRec} recebimento(s) confirmado(s) sem entrada no caixa — clique em «Sincronizar caixa».`
           : "";
       const tipoHint =
         financeFilterCaixaTipo === "entrada"
@@ -2806,9 +2785,6 @@
           loadVehicles(),
           typeof loadCycleClosures === "function" ? loadCycleClosures() : Promise.resolve(),
         ]);
-        if (typeof window.syncPaidPayablesCashMovements === "function") {
-          await window.syncPaidPayablesCashMovements();
-        }
         if (typeof window.syncPaidReceivablesCashMovements === "function") {
           await window.syncPaidReceivablesCashMovements();
         }
