@@ -6559,7 +6559,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260603q"></script>
+    <script src="/finance-module.js?v=20260603r"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -7708,10 +7708,14 @@
       }
 
       function financeStripFinmetaText(obs) {
-        const raw = String(obs || "").trim();
-        if (!raw.startsWith(FINANCE_META_PREFIX)) return raw;
-        const end = raw.indexOf("]]");
-        return end >= 0 ? raw.slice(end + 2).trim() : raw;
+        let raw = String(obs || "").trim();
+        while (raw.includes(FINANCE_META_PREFIX)) {
+          const start = raw.indexOf(FINANCE_META_PREFIX);
+          const end = raw.indexOf("]]", start);
+          if (end < 0) break;
+          raw = (raw.slice(0, start) + raw.slice(end + 2)).trim();
+        }
+        return raw;
       }
       window.financeStripFinmetaText = financeStripFinmetaText;
 
@@ -7728,6 +7732,7 @@
           return { meta: {}, text: financeStripFinmetaText(raw) };
         }
       }
+      window.financeMetaUnpack = financeMetaUnpack;
 
       /** Data civil do pagamento/recebimento (meta retroativa ou updated_at). */
       function financeReceivablePaidDateYmd(receivable) {
