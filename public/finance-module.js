@@ -57,15 +57,28 @@
     return financePartnerLabel(v.localizador_id);
   }
 
+  function financeStripFinmeta(s) {
+    if (typeof financeStripFinmetaText === "function") return financeStripFinmetaText(s);
+    const raw = String(s || "").trim();
+    if (!raw.startsWith("[[finmeta:")) return raw;
+    const end = raw.indexOf("]]");
+    return end >= 0 ? raw.slice(end + 2).trim() : raw;
+  }
+
   function financeReceivableLabel(r) {
     if (typeof financeReceivableDisplayText === "function") {
       const t = financeReceivableDisplayText(r);
       if (t && t !== "—") return t;
     }
-    const raw = String(r?.responsavel_pagamento || r?.observacoes || "").trim();
-    const m = raw.match(/^\[\[finmeta:\{.*?\}\]\]\s*([\s\S]*)$/);
-    if (m) return (m[1] || "").trim() || "—";
-    return raw || "—";
+    if (typeof financeMetaUnpack === "function") {
+      const raw =
+        typeof financeReceivableMetaText === "function"
+          ? financeReceivableMetaText(r)
+          : r?.observacoes || r?.responsavel_pagamento || "";
+      const { text } = financeMetaUnpack(raw);
+      if (text && String(text).trim()) return String(text).trim();
+    }
+    return financeStripFinmeta(r?.responsavel_pagamento || r?.observacoes || "") || "—";
   }
 
   function financeReceivableServicoLabel(r) {
@@ -1203,7 +1216,12 @@
 
   function financeCashPaganteLabel(mov, rec, pay, vehicle) {
     if (financeCashIsEntrada(mov)) {
-      if (rec) return financeReceberRppNome(rec, vehicle);
+      if (rec) {
+        if (typeof isManualFinanceLancamento === "function" && isManualFinanceLancamento(rec)) {
+          return financeReceivableLabel(rec);
+        }
+        return financeReceberRppNome(rec, vehicle);
+      }
       return "—";
     }
     if (financeCashIsSaida(mov)) {
@@ -2159,7 +2177,19 @@
         const amount = financeCashMovValor(mov);
         const valSigned = isEntrada ? amount : -amount;
         const pagante = financeCashPaganteLabel(mov, rec, pay, v);
-        let desc = mov.descricao || (isEntrada ? rec?.observacoes : pay?.descricao) || "—";
+        let descText = "—";
+        if (isEntrada && rec) {
+          descText = financeReceivableLabel(rec);
+        } else {
+          descText = financeStripFinmeta(
+            mov.descricao || (isEntrada ? rec?.observacoes || rec?.responsavel_pagamento : pay?.descricao) || "—"
+          );
+          if (pay && !isEntrada && typeof financeMetaUnpack === "function" && typeof financePayableMetaText === "function") {
+            const { text } = financeMetaUnpack(financePayableMetaText(pay));
+            if (text) descText = text;
+          }
+        }
+        let desc = escapeHtml(descText || "—");
         if (v?.placa) desc += `<br /><span class="notice">${escapeHtml(v.placa)}</span>`;
         return `<tr>
           <td data-label="Data">${escapeHtml(formatDate(mov.data_movimento || mov.created_at))}</td>
