@@ -50,7 +50,7 @@ async function runRest() {
   });
   const { data: payables, error: pErr } = await supabase
     .from("payables")
-    .select("id,user_id,valor,status,descricao,fornecedor,data_vencimento,updated_at")
+    .select("id,user_id,valor,status,descricao,data_vencimento,updated_at")
     .limit(2000);
   if (pErr) throw pErr;
   const paid = (payables || []).filter(
@@ -69,7 +69,7 @@ async function runRest() {
       tipo_conta: "PAGAR",
       conta_id: p.id,
       valor: Number(p.valor),
-      descricao: p.descricao || p.fornecedor || "Despesa",
+      descricao: p.descricao || "Despesa",
       data_movimento: (p.data_vencimento || p.updated_at || "").slice(0, 10) || new Date().toISOString().slice(0, 10),
     };
     const ins = await supabase.from("cash_movements").insert(row);
