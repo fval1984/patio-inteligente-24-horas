@@ -97,7 +97,11 @@
   }
 
   function financePayableMeta(p) {
-    return financeMetaUnpack(p?.observacoes || "");
+    const raw =
+      typeof financePayableMetaText === "function"
+        ? financePayableMetaText(p)
+        : p?.observacoes || p?.descricao || "";
+    return financeMetaUnpack(raw);
   }
 
   function financePayableContaBancaria(p) {

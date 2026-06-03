@@ -52,7 +52,8 @@ function metaFromObs(obs: string | null | undefined) {
 
 function formaFromPayable(p: PayableRow) {
   if (p.forma_pagamento) return p.forma_pagamento;
-  return metaFromObs(p.observacoes).forma_pagamento || "PIX";
+  const raw = String(p.observacoes || p.descricao || "");
+  return metaFromObs(raw).forma_pagamento || p.forma_pagamento || "PIX";
 }
 
 async function findExistingPayableMovement(
@@ -167,13 +168,13 @@ export async function POST(req: NextRequest) {
       const fullSelect = await supabase
         .from("payables")
         .select(
-          "id,user_id,valor,status,descricao,fornecedor,data_vencimento,forma_pagamento,observacoes,updated_at,created_at"
+          "id,user_id,valor,status,descricao,fornecedor,data_vencimento,forma_pagamento,updated_at,created_at"
         )
         .eq("user_id", userId);
       if (fullSelect.error && isSchemaError(fullSelect.error.message)) {
         const lean = await supabase
           .from("payables")
-          .select("id,user_id,valor,status,descricao,data_vencimento,observacoes,updated_at,created_at")
+          .select("id,user_id,valor,status,descricao,data_vencimento,updated_at,created_at")
           .eq("user_id", userId);
         payables = (lean.data || []) as PayableRow[];
         pErr = lean.error;

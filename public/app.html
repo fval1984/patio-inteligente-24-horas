@@ -6556,7 +6556,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260603j"></script>
+    <script src="/finance-module.js?v=20260603k"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -6856,13 +6856,12 @@
             modoUp === "RECORRENTE" ? "RECORRENTE" : modoUp === "PARCELADA" ? `PARCELADA_${i + 1}` : "MANUAL";
           const payload = {
             user_id: effectiveUserId(),
-            responsavel_pagamento: clienteNome || descricao,
+            responsavel_pagamento: obsPacked || clienteNome || descricao,
             receivable_category: categoria,
             valor: valorParcela,
             status: markPago ? "PAGO" : "EM_ABERTO",
             period_start: data,
             period_end: dueDate,
-            observacoes: obsPacked,
             subcategoria: sub,
             financeiro_aprovado_contas_receber: true,
             patio_liberado_financeiro: true,
@@ -6874,7 +6873,6 @@
             const fallback = { ...payload };
             delete fallback.patio_liberado_financeiro;
             delete fallback.financeiro_aprovado_contas_receber;
-            delete fallback.forma_pagamento;
             delete fallback.subcategoria;
             ({ data: inserted, error } = await runSupabaseWrite(() =>
               supabase.from("receivables").insert(fallback).select("id").single()
@@ -6940,29 +6938,33 @@
               : {}),
             ...(modoUp === "PARCELADA" ? { parcela: i + 1, parcelas_total: count, grupo_id: grupoId } : {}),
           };
-          const obsPacked = financeMetaPack(meta, observacoes);
+          const baseDesc = count > 1 ? `${descricao} (${i + 1}/${count})` : descricao;
+          const descricaoFinal = financeMetaPack(
+            meta,
+            [observacoes, baseDesc].filter(Boolean).join(" — ").trim() || baseDesc
+          );
           const payload = {
             user_id: effectiveUserId(),
             tipo: modoUp === "RECORRENTE" ? "RECORRENTE" : modoUp === "PARCELADA" ? "PARCELADA" : "UNICA",
             payable_category: categoria,
-            descricao: count > 1 ? `${descricao} (${i + 1}/${count})` : descricao,
+            descricao: descricaoFinal,
             valor: valorParcela,
             data_vencimento: dueDate,
             status: markPago ? "PAGO" : "EM_ABERTO",
             fornecedor: fornecedor || null,
             forma_pagamento: formaPagamento,
-            observacoes: obsPacked || null,
             centro_custo: centroCusto || null,
           };
           let { data: inserted, error } = await runSupabaseWrite(() =>
             supabase.from("payables").insert(payload).select("id").single()
           );
-          if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
+          if (error && supabaseSchemaColumnError(error)) {
             const fallback = { ...payload };
             delete fallback.fornecedor;
             delete fallback.forma_pagamento;
-            delete fallback.observacoes;
             delete fallback.centro_custo;
+            delete fallback.tipo;
+            delete fallback.payable_category;
             ({ data: inserted, error } = await runSupabaseWrite(() =>
               supabase.from("payables").insert(fallback).select("id").single()
             ));
@@ -6991,25 +6993,24 @@
         const modo = financeEntryModoFromRecord(receivable, "receivable");
         if (modo !== "RECORRENTE") return;
         const due = String(receivable.period_end || receivable.period_start || receivable.data_vencimento || "").trim();
-        const { meta, text } = financeMetaUnpack(receivable.observacoes);
+        const { meta, text } = financeMetaUnpack(financeReceivableMetaText(receivable));
         const interval = meta.recorrencia || "mensal";
         const nextDue = addPeriodToYmd(due, interval);
         const payload = {
           user_id: effectiveUserId(),
-          responsavel_pagamento: receivable.responsavel_pagamento,
           receivable_category: receivable.receivable_category || "GUARDA_PATIO",
           valor: Number(receivable.valor || 0),
           status: "EM_ABERTO",
           period_start: nextDue,
           period_end: nextDue,
-          observacoes: financeMetaPack(
+          responsavel_pagamento: financeMetaPack(
             {
               ...meta,
               modo: "RECORRENTE",
               recorrencia: interval,
               forma_pagamento: financeReceivableFormaPagamento(receivable),
             },
-            text
+            text || receivable.responsavel_pagamento || ""
           ),
           subcategoria: "RECORRENTE",
           financeiro_aprovado_contas_receber: true,
@@ -7020,7 +7021,6 @@
           const fallback = { ...payload };
           delete fallback.patio_liberado_financeiro;
           delete fallback.financeiro_aprovado_contas_receber;
-          delete fallback.forma_pagamento;
           delete fallback.subcategoria;
           ({ error } = await supabase.from("receivables").insert(fallback));
         }
@@ -7701,11 +7701,20 @@
         return /column|schema cache|PGRST204|could not find/i.test(msg);
       }
 
+      /** Meta [[finmeta:...]] — observacoes pode não existir no Supabase. */
+      function financeReceivableMetaText(r) {
+        return String(r?.observacoes || r?.responsavel_pagamento || "");
+      }
+
+      function financePayableMetaText(p) {
+        return String(p?.observacoes || p?.descricao || "");
+      }
+
       /** Forma de pagamento: coluna (se existir) ou meta em observacoes. */
       function financeReceivableFormaPagamento(receivable) {
         if (!receivable) return "PIX";
         if (receivable.forma_pagamento) return receivable.forma_pagamento;
-        const { meta } = financeMetaUnpack(receivable.observacoes);
+        const { meta } = financeMetaUnpack(financeReceivableMetaText(receivable));
         return meta?.forma_pagamento || "PIX";
       }
       window.financeReceivableFormaPagamento = financeReceivableFormaPagamento;
@@ -7905,13 +7914,13 @@
         if (kind === "payable") {
           const tipo = String(record?.tipo || "UNICA").toUpperCase();
           if (tipo === "RECORRENTE" || tipo === "PARCELADA") return tipo;
-          const { meta } = financeMetaUnpack(record?.observacoes);
+          const { meta } = financeMetaUnpack(financePayableMetaText(record));
           return meta.modo || "UNICA";
         }
         const sub = String(record?.subcategoria || "").toUpperCase();
         if (sub === "RECORRENTE") return "RECORRENTE";
         if (sub.startsWith("PARCELADA")) return "PARCELADA";
-        const { meta } = financeMetaUnpack(record?.observacoes);
+        const { meta } = financeMetaUnpack(financeReceivableMetaText(record));
         return meta.modo || "UNICA";
       }
 
@@ -14380,7 +14389,7 @@
         const dataMov = opts.dataMovimento || toLocalYmd(new Date().toISOString());
         const formaPagamento = opts.formaPagamento || financeReceivableFormaPagamento(receivable);
         const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
-        const { meta: recMeta, text: recObsText } = financeMetaUnpack(receivable.observacoes);
+        const { meta: recMeta, text: recObsText } = financeMetaUnpack(financeReceivableMetaText(receivable));
         const obsPacked = financeMetaPack(
           { ...recMeta, data_pagamento: dataMov, forma_pagamento: formaPagamento },
           opts.observacao ? `${recObsText ? recObsText + " — " : ""}${opts.observacao}` : recObsText
@@ -14393,13 +14402,12 @@
           status: "PAGO",
           valor: totalAtual,
           financeiro_aprovado_contas_receber: false,
-          observacoes: obsPacked,
+          responsavel_pagamento: obsPacked || receivable.responsavel_pagamento,
         });
         if (error && supabaseSchemaColumnError(error)) {
           const { error: errFallback } = await runRecUpdate({
             status: "PAGO",
             valor: totalAtual,
-            observacoes: obsPacked,
           });
           if (errFallback) {
             alertSupabaseError(errFallback, "Não foi possível confirmar o pagamento.");
@@ -14931,13 +14939,13 @@
           return true;
         }
 
-        const { meta, text } = financeMetaUnpack(payable.observacoes);
+        const { meta, text } = financeMetaUnpack(financePayableMetaText(payable));
         const obsUpdate =
           opts.observacao && String(opts.observacao).trim()
             ? financeMetaPack(meta, `${text ? text + " — " : ""}${String(opts.observacao).trim()}`)
-            : payable.observacoes;
+            : financePayableMetaText(payable);
         const patch = { status: "PAGO", forma_pagamento: formaPagamento };
-        if (obsUpdate !== payable.observacoes) patch.observacoes = obsUpdate;
+        if (obsUpdate && obsUpdate !== financePayableMetaText(payable)) patch.descricao = obsUpdate;
         const { error } = await runSupabaseWrite(() =>
           supabase.from("payables").update(patch).eq("id", payableId).eq("user_id", effectiveUserId())
         );
@@ -14987,13 +14995,14 @@
             status: "EM_ABERTO",
             fornecedor: payable.fornecedor || null,
             forma_pagamento: payable.forma_pagamento || formaPagamento,
-            observacoes: financeMetaPack({ ...meta, modo: "RECORRENTE", recorrencia: interval }, text),
+            descricao: financeMetaPack({ ...meta, modo: "RECORRENTE", recorrencia: interval }, text || payable.descricao || ""),
           };
           let { error: nextErr } = await supabase.from("payables").insert(nextPayload);
-          if (nextErr && /column|schema cache|PGRST204/i.test(nextErr.message || "")) {
+          if (nextErr && supabaseSchemaColumnError(nextErr)) {
             const fb = { ...nextPayload };
             delete fb.fornecedor;
-            delete fb.observacoes;
+            delete fb.forma_pagamento;
+            delete fb.tipo;
             ({ error: nextErr } = await supabase.from("payables").insert(fb));
           }
           if (nextErr) {
