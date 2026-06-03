@@ -79,26 +79,43 @@
     }
   }
 
-  function financeStripFinmeta(s) {
-    let raw = String(s || "").trim();
+  /** Texto humano depois do bloco [[finmeta:{...}]] (ex.: Zera caixa). */
+  function financeTextAfterFinmeta(s) {
+    const str = String(s || "").trim();
+    if (!str.includes(FINANCE_META_PREFIX_LOCAL)) return str;
+    const lastEnd = str.lastIndexOf("]]");
+    if (lastEnd >= 0) {
+      const tail = str.slice(lastEnd + 2).trim();
+      if (tail && !tail.includes(FINANCE_META_PREFIX_LOCAL)) return tail;
+    }
+    let raw = str;
     while (raw.includes(FINANCE_META_PREFIX_LOCAL)) {
       const start = raw.indexOf(FINANCE_META_PREFIX_LOCAL);
       const end = raw.indexOf("]]", start);
       if (end < 0) break;
       raw = (raw.slice(0, start) + raw.slice(end + 2)).trim();
     }
-    if (typeof financeStripFinmetaText === "function") {
-      const stripped = financeStripFinmetaText(raw);
-      if (stripped && !String(stripped).includes(FINANCE_META_PREFIX_LOCAL)) return stripped;
-    }
     return raw;
+  }
+
+  function financeStripFinmeta(s) {
+    return financeTextAfterFinmeta(s);
   }
 
   /** Nunca exibir [[finmeta:...]] na UI. */
   function financeDisplaySafeText(s) {
-    const t = financeStripFinmeta(s);
+    const t = financeTextAfterFinmeta(s);
     if (!t || t.includes(FINANCE_META_PREFIX_LOCAL)) return "—";
     return t;
+  }
+
+  /** Nome único para entrada manual no caixa (pagante = descrição). */
+  function financeCaixaEntradaNomeExibicao(mov, rec) {
+    for (const src of [rec?.responsavel_pagamento, rec?.observacoes, mov?.descricao]) {
+      const t = financeTextAfterFinmeta(src);
+      if (t && t !== "—") return t;
+    }
+    return "—";
   }
 
   function financeIsManualReceivable(r) {
@@ -185,29 +202,32 @@
     const recRaw = rec ? String(rec.responsavel_pagamento || rec.observacoes || "") : "";
     const hasFinmeta =
       movRaw.includes(FINANCE_META_PREFIX_LOCAL) || recRaw.includes(FINANCE_META_PREFIX_LOCAL);
-    const manual = (rec && financeIsManualReceivable(rec)) || hasFinmeta || !rec;
 
-    if (rec && (financeIsManualReceivable(rec) || hasFinmeta)) {
-      const { origem, descricao } = financeReceivableOrigemDescricao(rec);
-      const descMov = financeDisplaySafeText(mov?.descricao);
-      return {
-        pagante: financeDisplaySafeText(origem),
-        descricao: financeDisplaySafeText(
-          descricao && descricao !== "—" ? descricao : descMov !== "—" ? descMov : origem
-        ),
-      };
+    if (hasFinmeta || (rec && financeIsManualReceivable(rec))) {
+      const nome = financeCaixaEntradaNomeExibicao(mov, rec);
+      return { pagante: nome, descricao: nome };
     }
 
     const v = rec ? financeVehicleById().get(rec.vehicle_id) : null;
     const placa = v?.placa || "";
     const pagante = rec ? financeReceberRppNome(rec, v) : financeDisplaySafeText(mov?.descricao);
     let descricao = financeDisplaySafeText(mov?.descricao);
-    if (descricao === "—" && rec) descricao = financeReceivableOrigemDescricao(rec).descricao;
+    if (descricao === "—" && rec) descricao = financeCaixaEntradaNomeExibicao(mov, rec);
     if (descricao === "—" && placa) descricao = `Diárias — ${placa}`;
     return {
       pagante: financeDisplaySafeText(pagante),
       descricao: financeDisplaySafeText(descricao),
     };
+  }
+
+  function financeSanitizeCaixaTableCells(root) {
+    if (!root) return;
+    root.querySelectorAll('td[data-label="Pagante"], td[data-label="Descrição"]').forEach((td) => {
+      const t = td.textContent || "";
+      if (!t.includes(FINANCE_META_PREFIX_LOCAL)) return;
+      const clean = financeTextAfterFinmeta(t);
+      if (clean && clean !== "—") td.textContent = clean;
+    });
   }
 
   function financeReceivableServicoLabel(r) {
@@ -2354,6 +2374,7 @@
         <td data-label="Valor"><strong class="${totPeriodo.saldo >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(totPeriodo.saldo))}</strong></td>
         <td data-label=""></td>
       </tr>`;
+    financeSanitizeCaixaTableCells(body);
   }
 
   function financeOpenReceitaModal(presetRecorrente) {
