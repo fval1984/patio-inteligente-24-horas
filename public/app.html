@@ -6878,6 +6878,14 @@
               supabase.from("receivables").insert(fallback).select("id").single()
             ));
           }
+          if (error && supabaseVehicleIdRequiredError(error)) {
+            return {
+              error: {
+                message:
+                  "Receita manual exige vehicle_id opcional no Supabase. Execute o SQL: supabase/receivables_vehicle_id_nullable.sql",
+              },
+            };
+          }
           if (error) return { error };
           const receivableId = inserted?.id;
           if (receivableId) insertedIds.push(receivableId);
@@ -6968,6 +6976,14 @@
             ({ data: inserted, error } = await runSupabaseWrite(() =>
               supabase.from("payables").insert(fallback).select("id").single()
             ));
+          }
+          if (error && /receivables/i.test(error.message || "") && supabaseVehicleIdRequiredError(error)) {
+            return {
+              error: {
+                message:
+                  "A despesa foi enviada à tabela receivables por engano no banco. Use a tabela payables e execute: supabase/receivables_vehicle_id_nullable.sql (se necessário).",
+              },
+            };
           }
           if (error) return { error };
           const payableId = inserted?.id;
@@ -7699,6 +7715,11 @@
       function supabaseSchemaColumnError(err) {
         const msg = [err?.message, err?.details, err?.hint, String(err?.code || "")].filter(Boolean).join(" ");
         return /column|schema cache|PGRST204|could not find/i.test(msg);
+      }
+
+      function supabaseVehicleIdRequiredError(err) {
+        const msg = [err?.message, err?.details, err?.hint, String(err?.code || "")].filter(Boolean).join(" ");
+        return /vehicle_id|violates not-null constraint/i.test(msg);
       }
 
       /** Meta [[finmeta:...]] — observacoes pode não existir no Supabase. */

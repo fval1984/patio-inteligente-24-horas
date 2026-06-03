@@ -1211,8 +1211,6 @@
         try {
           if (typeof loadPayables === "function") await loadPayables();
           await financeSyncMissingPayablesCashSilent();
-          await financeSyncMissingCashClient();
-          if (typeof loadReceivables === "function") await loadReceivables();
           if (typeof loadCash === "function") await loadCash();
         } catch (e) {
           console.warn("financeEnsureMissingCashInCaixa", e?.message || e);
