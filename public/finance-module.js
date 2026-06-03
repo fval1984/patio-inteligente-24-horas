@@ -1289,7 +1289,7 @@
     { plate: "QYE7E85", valor: 0, saidaDate: "2026-05-04", paidDate: "2026-05-08", includeZeroValor: true },
   ];
 
-  function financeNormalizePlate(p) {
+  function financeNormalizePlateKey(p) {
     return String(p || "")
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, "");
@@ -1305,10 +1305,10 @@
   }
 
   function financePickReceivableForPlateEntry(entry, excludeIds = new Set()) {
-    const plateKey = financeNormalizePlate(entry.plate);
+    const plateKey = financeNormalizePlateKey(entry.plate);
     const vehicleIds = new Set(
       (state.vehicles || [])
-        .filter((v) => financeNormalizePlate(v.placa) === plateKey)
+        .filter((v) => financeNormalizePlateKey(v.placa) === plateKey)
         .map((v) => String(v.id))
     );
     if (!vehicleIds.size) return null;
@@ -1397,11 +1397,11 @@
   }
 
   function financeLookupExpectedValorForEntry(entry) {
-    const plateKey = financeNormalizePlate(entry?.plate);
+    const plateKey = financeNormalizePlateKey(entry?.plate);
     const ymd = typeof toLocalYmd === "function" ? toLocalYmd : (v) => String(v || "").slice(0, 10);
     const saidaYmd = entry?.saidaDate ? ymd(entry.saidaDate) : null;
     const matches = FINANCE_VRP_CAIXA_RECOVERY_ENTRIES.filter(
-      (e) => financeNormalizePlate(e.plate) === plateKey && Number(e.valor || 0) > 0
+      (e) => financeNormalizePlateKey(e.plate) === plateKey && Number(e.valor || 0) > 0
     );
     if (!matches.length) return null;
     if (saidaYmd) {
