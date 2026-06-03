@@ -5211,7 +5211,6 @@
               <label for="listaFilterDataAte">Até</label>
               <input id="listaFilterDataAte" type="date" />
             </div>
-            <button type="button" class="secondary" id="listaFixZeroValorBtn" data-lista-gestor-hide="1">Corrigir R$ 0 → caixa</button>
             <button type="button" class="secondary" id="listaFiltersClear">Limpar filtros</button>
             <button type="button" id="listaFiltersApply">Atualizar lista</button>
             <button type="button" class="secondary" id="listaFiltersPrint">Imprimir / PDF</button>
@@ -5554,7 +5553,6 @@
               <p class="module-lede" style="margin: 6px 0 0">Automático após saída do veículo — sem alterar a operação do pátio.</p>
             </div>
             <div class="actions">
-              <button type="button" id="finToolbarFixZeroValor">Corrigir R$ 0 → caixa</button>
               <button type="button" class="secondary" id="finBtnRefresh">Atualizar</button>
               <button type="button" class="secondary" id="finBtnExcel">Excel</button>
               <button type="button" class="secondary" id="finBtnPrint">Imprimir</button>
@@ -6530,7 +6528,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260602d"></script>
+    <script src="/finance-module.js?v=20260602e"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -9814,7 +9812,7 @@
               return `<tr>
                 <td data-label="Veículo / responsável"><span class="lista-receber-placa">${escapeHtml(placa)}</span> · ${escapeHtml(vm)}<br /><span class="notice">${escapeHtml(r.responsavel_pagamento || "—")}</span></td>
                 <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
-                <td data-label="Valor" class="lista-receber-valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}${valorZero ? `<br /><span class="notice">Valor zerado — use «Corrigir R$ 0 → caixa» acima</span>` : ""}</td>
+                <td data-label="Valor" class="lista-receber-valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}${valorZero ? `<br /><span class="notice">Valor zerado no título</span>` : ""}</td>
                 <td data-label="Recebido em">${escapeHtml(formatDateTime(r.updated_at || r.created_at))}</td>
                 <td data-label="Estado"><span class="tag ok">Pago</span>${noCaixa ? "" : `<br /><span class="notice">Sem entrada no caixa</span>`}</td>
               </tr>`;
