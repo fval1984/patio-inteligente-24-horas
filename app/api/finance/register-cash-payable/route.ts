@@ -39,12 +39,18 @@ function cashIsSaida(tipo: string | null | undefined) {
   return t === "PAGAR" || t === "SAIDA" || t === "SAÍDA";
 }
 
+const FINANCE_META_PREFIX = "[[finmeta:";
+
 function metaFromObs(obs: string | null | undefined) {
   const raw = String(obs || "");
-  const m = raw.match(/^\[\[finmeta:(\{.*?\})\]\]/);
-  if (!m) return {} as { forma_pagamento?: string; data_pagamento?: string };
+  if (!raw.startsWith(FINANCE_META_PREFIX)) return {} as { forma_pagamento?: string; data_pagamento?: string };
+  const end = raw.indexOf("]]");
+  if (end < 0) return {};
   try {
-    return JSON.parse(m[1]) as { forma_pagamento?: string; data_pagamento?: string };
+    return JSON.parse(raw.slice(FINANCE_META_PREFIX.length, end)) as {
+      forma_pagamento?: string;
+      data_pagamento?: string;
+    };
   } catch {
     return {};
   }
