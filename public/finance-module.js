@@ -57,12 +57,33 @@
     return financePartnerLabel(v.localizador_id);
   }
 
+  function financeReceivableLabel(r) {
+    if (typeof financeReceivableDisplayText === "function") {
+      const t = financeReceivableDisplayText(r);
+      if (t && t !== "—") return t;
+    }
+    const raw = String(r?.responsavel_pagamento || r?.observacoes || "").trim();
+    const m = raw.match(/^\[\[finmeta:\{.*?\}\]\]\s*([\s\S]*)$/);
+    if (m) return (m[1] || "").trim() || "—";
+    return raw || "—";
+  }
+
+  function financeReceivableServicoLabel(r) {
+    if (typeof receivableCategoryLabel === "function" && r?.receivable_category) {
+      return receivableCategoryLabel(r.receivable_category);
+    }
+    return r?.receivable_category || "—";
+  }
+
   function financeReceberRppNome(r, v) {
+    if (typeof isManualFinanceLancamento === "function" && isManualFinanceLancamento(r)) {
+      return "—";
+    }
     if (typeof vehicleRpfNome === "function" && v) {
       const rpf = vehicleRpfNome(v);
       if (rpf && rpf !== "—") return rpf;
     }
-    return r.responsavel_pagamento || "—";
+    return financeReceivableLabel(r);
   }
 
   function financeReceberDiariasParts(r, vehicle) {
@@ -518,7 +539,7 @@
         const saidaYmd = toLocalYmd(r.period_end || v?.data_saida || "");
         const saidaYm = yearMonthFromYmd(saidaYmd) || "";
         const blob = [
-          r.responsavel_pagamento,
+          financeReceivableLabel(r),
           r.observacoes,
           v?.placa,
           v?.marca,
@@ -1059,7 +1080,7 @@
         const veiculoRpvHtml = isPatio
           ? `<strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span>`
           : isManual
-            ? `<span class="notice">Receita manual</span><br /><span class="notice">Origem: ${escapeHtml(r.responsavel_pagamento || "—")}</span>`
+            ? `<span class="notice">Receita manual</span><br /><span class="notice">${escapeHtml(financeReceivableServicoLabel(r))}</span><br /><span class="notice">Origem: ${escapeHtml(financeReceivableLabel(r))}</span>`
             : `<span class="notice">—</span>`;
         const rppHtml = escapeHtml(financeReceberRppNome(r, v));
         const diariasHtml = escapeHtml(financeReceberDiariasCell(r, v));
@@ -1105,7 +1126,7 @@
         const saida = v?.data_saida || r.period_end;
         return `<tr>
           <td data-label="Veículo / RPV"><strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span></td>
-          <td data-label="RPP">${escapeHtml(r.responsavel_pagamento || financeReceberRppNome(r, v))}</td>
+          <td data-label="RPP">${escapeHtml(financeReceberRppNome(r, v))}</td>
           <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
           <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
           <td data-label="Status"><span class="fin-tag fin-tag--open">Aguardando</span></td>
@@ -2286,7 +2307,7 @@
         ...list.map((r) => {
           const v = vmap.get(r.vehicle_id);
           return [
-            v?.placa ? `${v.placa} / ${financeVehicleRpvNome(v)}` : r.responsavel_pagamento || "",
+            v?.placa ? `${v.placa} / ${financeVehicleRpvNome(v)}` : financeReceivableLabel(r),
             financeReceberRppNome(r, v),
             financeReceberDiariasCell(r, v),
             Number(r.valor || 0).toFixed(2),
@@ -2381,7 +2402,7 @@
       const rpv = financeVehicleRpvNome(v);
       return `<strong>${escapeHtml(v.placa)}</strong><br /><span class="muted">${escapeHtml(vm)}</span><br /><span class="muted">RPV: ${escapeHtml(rpv)}</span>`;
     }
-    return `<span class="muted">${escapeHtml(r.responsavel_pagamento || r.observacoes || "—")}</span>`;
+    return `<span class="muted">${escapeHtml(financeReceivableLabel(r))}</span>`;
   }
 
   function financeReceberClientePrintCss() {
@@ -2639,7 +2660,7 @@
         const due = financeContaDueYmd(r, "receivable");
         const veiculoLines = v?.placa
           ? [String(v.placa), [v.marca, v.modelo].filter(Boolean).join(" ") || "—", `RPV: ${financeVehicleRpvNome(v)}`]
-          : [String(r.responsavel_pagamento || r.observacoes || "—")];
+          : [financeReceivableLabel(r)];
         const cellLines = [
           veiculoLines.flatMap((line) => pdf.splitTextToSize(line, cols[0].w - 8)),
           pdf.splitTextToSize(String(financeReceberRppNome(r, v)), cols[1].w - 8),
