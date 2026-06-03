@@ -2811,23 +2811,6 @@
     document.getElementById("finCaixaSyncBtn")?.addEventListener("click", () => {
       financeSyncCaixaFromPaidReceivables();
     });
-    document.getElementById("finToolbarFixZeroValor")?.addEventListener("click", () => {
-      financeStartFixZeroValorPago({
-        hintId: "finRecebidosRecoverHint",
-        btnId: "finToolbarFixZeroValor",
-        btnDefault: "Corrigir R$ 0 → caixa",
-      });
-    });
-    document.getElementById("listaFixZeroValorBtn")?.addEventListener("click", () => {
-      financeStartFixZeroValorPago({
-        btnId: "listaFixZeroValorBtn",
-        btnDefault: "Corrigir R$ 0 → caixa",
-        onDone: () => {
-          if (typeof renderListaPanel === "function") renderListaPanel();
-          financeRenderCaixa();
-        },
-      });
-    });
     document.getElementById("finChartPeriod")?.addEventListener("change", () => financeRenderDashboard());
 
     document.getElementById("finAguardandoPlateForm")?.addEventListener("submit", (e) => {
