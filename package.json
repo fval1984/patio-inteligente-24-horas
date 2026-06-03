@@ -5,6 +5,7 @@
   "scripts": {
     "db:apply-vehicles": "node scripts/apply-vehicles-recursos.cjs",
     "db:zerar-saldo-caixa": "node scripts/zerar-saldo-caixa.cjs",
+    "db:sync-caixa-pagar": "node scripts/sync-caixa-pagar.cjs",
     "dev": "next dev",
     "vercel-build": "next build",
     "build": "next build",

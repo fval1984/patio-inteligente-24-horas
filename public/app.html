@@ -6558,7 +6558,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260603e"></script>
+    <script src="/finance-module.js?v=20260603f"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -14524,6 +14524,25 @@
 
       window.callRegisterCashReceivableApi = callRegisterCashReceivableApi;
 
+      async function callRegisterCashPayableApi(payload = {}) {
+        const userId = effectiveUserId();
+        if (!userId) return { ok: false, error: "Usuário não autenticado." };
+        try {
+          const resp = await fetch("/api/finance/register-cash-payable", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, ...payload }),
+          });
+          const json = await resp.json().catch(() => ({}));
+          if (!resp.ok) return { ok: false, error: json?.error || `Falha ${resp.status}` };
+          return { ok: true, ...json };
+        } catch (e) {
+          return { ok: false, error: e?.message || String(e) };
+        }
+      }
+
+      window.callRegisterCashPayableApi = callRegisterCashPayableApi;
+
       async function findExistingReceivableCashMovement(receivableId, uid) {
         if (!receivableId || !uid) return null;
         for (const tipo of ["RECEBER", "ENTRADA"]) {
@@ -14712,19 +14731,33 @@
           return { data: null, error: null };
         }
 
+        const api = await callRegisterCashPayableApi({
+          payableId,
+          valor,
+          dataMovimento: dataMov,
+          formaPagamento,
+          descricao,
+        });
+        if (api.ok) {
+          await loadCash();
+          const verified = (state.cash || []).find(
+            (m) => payableCashMovIsSaida(m) && String(m.conta_id) === String(payableId)
+          );
+          return { data: verified || { id: payableId }, error: null };
+        }
+
+        const uid2 = uid;
         const { data: existingRows, error: findErr } = await supabase
           .from("cash_movements")
           .select("id,tipo_conta,valor,data_movimento")
           .eq("conta_id", payableId)
-          .eq("user_id", uid)
-          .in("tipo_conta", ["PAGAR", "SAIDA", "SAÍDA"]);
+          .eq("user_id", uid2);
         if (findErr) {
-          return { data: null, error: findErr };
+          return { data: null, error: { message: api.error || findErr.message } };
         }
-        const existingMov = (existingRows || [])[0] || null;
-        const isoMov = new Date(String(dataMov).includes("T") ? dataMov : `${dataMov}T12:00:00`).toISOString();
+        const existingMov = (existingRows || []).find((m) => payableCashMovIsSaida(m)) || null;
         const basePayload = {
-          user_id: uid,
+          user_id: uid2,
           tipo_conta: "PAGAR",
           conta_id: payableId,
           valor,
@@ -14734,50 +14767,32 @@
         };
         const payloadVariants = [
           basePayload,
-          { ...basePayload, data_movimento: isoMov },
           (() => {
-            const p = { ...basePayload, data_movimento: isoMov };
+            const p = { ...basePayload };
             delete p.forma_pagamento;
             return p;
           })(),
-          (() => {
-            const p = { ...basePayload, data_movimento: isoMov };
-            delete p.forma_pagamento;
-            delete p.descricao;
-            return p;
-          })(),
-          { user_id: uid, tipo_conta: "SAIDA", conta_id: payableId, valor, descricao, data_movimento: dataMov },
-          { user_id: uid, tipo_conta: "SAIDA", conta_id: payableId, valor, data_movimento: isoMov },
-          { user_id: uid, tipo_conta: "PAGAR", conta_id: payableId, valor, data_movimento: dataMov },
-          { user_id: uid, tipo_conta: "PAGAR", conta_id: payableId, valor },
+          { user_id: uid2, tipo_conta: "SAIDA", conta_id: payableId, valor, descricao, data_movimento: dataMov },
+          { user_id: uid2, tipo_conta: "PAGAR", conta_id: payableId, valor },
         ];
-
         const writePayload = async (body) => {
           if (existingMov?.id) {
             return runSupabaseWrite(() =>
-              supabase.from("cash_movements").update(body).eq("id", existingMov.id).eq("user_id", uid)
+              supabase.from("cash_movements").update(body).eq("id", existingMov.id).eq("user_id", uid2)
             );
           }
           return runSupabaseWrite(() => supabase.from("cash_movements").insert(body).select("id").single());
         };
-
-        let lastError = null;
+        let lastError = { message: api.error || "Falha na API do caixa." };
         for (const body of payloadVariants) {
           const result = await writePayload(body);
           if (!result.error) {
             await loadCash();
-            const verified = (state.cash || []).find(
-              (m) => payableCashMovIsSaida(m) && String(m.conta_id) === String(payableId)
-            );
-            return { data: verified || result.data, error: null };
+            return { data: result.data, error: null };
           }
           lastError = result.error;
-          const msg = [result.error.message, result.error.details, result.error.hint].filter(Boolean).join(" ");
-          if (!supabaseSchemaColumnError(result.error) && !/date|time|format|invalid input|22P02|23514/i.test(msg)) {
-            break;
-          }
         }
-        return { data: null, error: lastError || { message: "Não foi possível registrar saída no caixa." } };
+        return { data: null, error: lastError };
       }
 
       window.payableCashMovementExists = payableCashMovementExists;
@@ -14858,11 +14873,21 @@
       window.syncPaidPayablesCashMovements = async function syncPaidPayablesCashMovements() {
         const uid = effectiveUserId();
         if (!uid || !supabase) return { created: 0, failed: 0 };
+        const api = await callRegisterCashPayableApi({ syncMissing: true });
+        await loadPayables();
+        await loadCash();
+        if (api.ok && api.stats) {
+          return {
+            created: Number(api.stats.created || 0) + Number(api.stats.updated || 0),
+            failed: Number(api.stats.failed || 0),
+          };
+        }
+        console.warn("syncPaidPayablesCashMovements api", api.error);
+        let created = 0;
+        let failed = 0;
         const paid = (state.payables || []).filter(
           (p) => String(p.status || "").toUpperCase() === "PAGO" && Number(p.valor || 0) > 0
         );
-        let created = 0;
-        let failed = 0;
         for (const p of paid) {
           if (payableCashMovementExists(p.id)) continue;
           const res = await registerPayableCashMovement(p, {
@@ -14870,12 +14895,8 @@
             formaPagamento: p.forma_pagamento || "PIX",
             descricao: p.descricao || p.fornecedor || "Despesa",
           });
-          if (res?.error) {
-            failed += 1;
-            console.warn("syncPaidPayablesCashMovements", p.id, res.error.message || res.error);
-          } else {
-            created += 1;
-          }
+          if (res?.error) failed += 1;
+          else created += 1;
         }
         if (created > 0) await loadCash();
         return { created, failed };

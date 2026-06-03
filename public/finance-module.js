@@ -1171,9 +1171,19 @@
     }
     let payStats = { created: 0, failed: 0 };
     try {
-      if (typeof window.syncPaidPayablesCashMovements === "function") {
+      if (typeof window.callRegisterCashPayableApi === "function") {
+        const payApi = await window.callRegisterCashPayableApi({ syncMissing: true });
+        if (payApi.ok && payApi.stats) {
+          payStats = {
+            created: Number(payApi.stats.created || 0) + Number(payApi.stats.updated || 0),
+            failed: Number(payApi.stats.failed || 0),
+          };
+        }
+      } else if (typeof window.syncPaidPayablesCashMovements === "function") {
         payStats = (await window.syncPaidPayablesCashMovements()) || payStats;
       }
+      if (typeof loadPayables === "function") await loadPayables();
+      if (typeof loadCash === "function") await loadCash();
       const recStats = await financeRecoverCashViaApi(
         { syncMissing: true },
         { hintId: null, btnId: null, onDone: null }
