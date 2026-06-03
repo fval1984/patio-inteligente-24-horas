@@ -5617,7 +5617,7 @@
                   />
                 </div>
                 <div>
-                  <label for="finAguardandoPlaca">Placa</label>
+                  <label for="finAguardandoPlaca">Busca por placa</label>
                   <input
                     id="finAguardandoPlaca"
                     name="plate"
@@ -5660,7 +5660,22 @@
           <div class="finance-subview hidden" data-finance-subview="receber">
             <div class="fin-toolbar">
               <div><button type="button" id="finBtnNovaReceita">+ Nova receita</button></div>
-              <div><label for="finFilterBusca">Buscar</label><input id="finFilterBusca" type="search" placeholder="Placa, cliente, período (ex.: 2026-05)…" /></div>
+              <div>
+                <label for="finReceberPlaca">Busca por placa</label>
+                <input
+                  id="finReceberPlaca"
+                  type="text"
+                  inputmode="text"
+                  placeholder="Ex.: ABC1D23"
+                  maxlength="20"
+                  autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="characters"
+                  spellcheck="false"
+                />
+              </div>
+              <div style="align-self: flex-end"><button type="button" class="secondary" id="finReceberPlacaClear">Limpar placa</button></div>
+              <div><label for="finFilterBusca">Buscar</label><input id="finFilterBusca" type="search" placeholder="Cliente, descrição, período (ex.: 2026-05)…" /></div>
               <div><label for="finReceberTipo">Tipo</label>
                 <select id="finReceberTipo">
                   <option value="">Todos</option>
@@ -5683,6 +5698,7 @@
                 <input id="finReceberDataBusca" type="search" placeholder="Ex.: 15/04/2026 a 01/05/2026" autocomplete="off" />
               </div>
             </div>
+            <p id="finReceberPlateHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <p class="notice" style="margin: 0 0 10px">Recorrentes (ex.: mensalista) são cadastrados aqui com tipo <strong>Recorrente</strong> — ao confirmar o pagamento, o próximo título é gerado automaticamente.</p>
             <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
             <div class="actions" style="margin: 0 0 12px; flex-wrap: wrap; gap: 8px">
@@ -5738,6 +5754,20 @@
 
           <div class="finance-subview hidden" data-finance-subview="caixa">
             <div class="fin-toolbar">
+              <div>
+                <label for="finCaixaPlaca">Busca por placa</label>
+                <input
+                  id="finCaixaPlaca"
+                  type="text"
+                  inputmode="text"
+                  placeholder="Ex.: ABC1D23"
+                  maxlength="20"
+                  autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="characters"
+                  spellcheck="false"
+                />
+              </div>
               <div class="fin-filter-busca-datas" style="flex: 1 1 100%; min-width: min(100%, 320px)">
                 <label for="finCaixaDataBusca">Buscar por datas</label>
                 <input id="finCaixaDataBusca" type="search" placeholder="Ex.: 15/04/2026 a 01/05/2026" autocomplete="off" />
@@ -6528,7 +6558,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260602e"></script>
+    <script src="/finance-module.js?v=20260602f"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
