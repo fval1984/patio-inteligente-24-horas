@@ -304,8 +304,18 @@ async function upsertCashForReceivable(
   const isoMov = new Date(`${dataYmd}T12:00:00`).toISOString();
   const formaPagamento = opts.formaPagamento || formaPagamentoFromReceivable(rec);
   const placa = opts.vehiclePlaca || "";
-  const labelManual = stripFinmetaText(receivableMetaSource(rec)) || "Recebimento pátio";
-  const descricao = opts.descricao || (placa ? `Diárias - ${placa}` : labelManual);
+  const rawMeta = receivableMetaSource(rec);
+  const meta = metaFromReceivableObservacoes(rawMeta) as {
+    origem_texto?: string;
+    descricao_texto?: string;
+  };
+  const origemTxt = stripFinmetaText(meta?.origem_texto || "") || stripFinmetaText(rawMeta);
+  const descTxt =
+    stripFinmetaText(meta?.descricao_texto || "") ||
+    (origemTxt && stripFinmetaText(rawMeta) !== origemTxt ? stripFinmetaText(rawMeta) : origemTxt);
+  const labelManual = descTxt || origemTxt || "Recebimento pátio";
+  const descricao =
+    opts.descricao || (placa ? `Diárias - ${placa}` : labelManual);
 
   const existing = await findExistingMovement(supabase, userId, receivableId);
   const payloads = [
