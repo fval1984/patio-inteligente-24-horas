@@ -5782,6 +5782,11 @@
                 <button type="button" class="secondary" id="finCaixaFilterSaida" aria-pressed="false">Saída</button>
               </div>
               <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaSyncBtn">Sincronizar caixa</button></div>
+              <div style="align-self: flex-end">
+                <button type="button" class="secondary" id="finCaixaZerarSaldoBtn" title="Registra ajuste para saldo ficar R$ 0,00">
+                  Zerar saldo atual
+                </button>
+              </div>
             </div>
             <p id="finCaixaSyncHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <div class="fin-caixa-summary" id="finCaixaSummary"></div>
@@ -6558,7 +6563,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260603b"></script>
+    <script src="/finance-module.js?v=20260603c"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =

@@ -1,0 +1,33 @@
+-- Ajuste manual para zerar o saldo do caixa (entradas − saídas em cash_movements).
+-- Prefira o botão «Zerar saldo atual» no Financeiro → Caixa na app.
+--
+-- Substitua YOUR_USER_ID pelo UUID do utilizador (auth.users.id).
+
+-- 1) Ver saldo atual
+-- SELECT
+--   COALESCE(SUM(CASE WHEN UPPER(tipo_conta) IN ('RECEBER','ENTRADA') THEN valor ELSE 0 END), 0)
+--   - COALESCE(SUM(CASE WHEN UPPER(tipo_conta) IN ('PAGAR','SAIDA','SAÍDA') THEN valor ELSE 0 END), 0) AS saldo
+-- FROM public.cash_movements
+-- WHERE user_id = 'YOUR_USER_ID'::uuid;
+
+-- 2) Saída de ajuste quando saldo > 0 (descomente e ajuste o valor)
+-- INSERT INTO public.cash_movements (user_id, tipo_conta, conta_id, valor, descricao, data_movimento, forma_pagamento)
+-- SELECT
+--   'YOUR_USER_ID'::uuid,
+--   'SAIDA',
+--   NULL,
+--   saldo,
+--   'Ajuste — zerar saldo do caixa (SQL)',
+--   CURRENT_DATE,
+--   'AJUSTE'
+-- FROM (
+--   SELECT
+--     GREATEST(
+--       COALESCE(SUM(CASE WHEN UPPER(tipo_conta) IN ('RECEBER','ENTRADA') THEN valor ELSE 0 END), 0)
+--       - COALESCE(SUM(CASE WHEN UPPER(tipo_conta) IN ('PAGAR','SAIDA','SAÍDA') THEN valor ELSE 0 END), 0),
+--       0
+--     ) AS saldo
+--   FROM public.cash_movements
+--   WHERE user_id = 'YOUR_USER_ID'::uuid
+-- ) s
+-- WHERE saldo > 0.005;
