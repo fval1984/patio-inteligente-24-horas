@@ -80,10 +80,6 @@
   }
 
   function financeStripFinmeta(s) {
-    if (typeof financeStripFinmetaText === "function") {
-      const stripped = financeStripFinmetaText(s);
-      if (stripped && !String(stripped).startsWith(FINANCE_META_PREFIX_LOCAL)) return stripped;
-    }
     let raw = String(s || "").trim();
     while (raw.includes(FINANCE_META_PREFIX_LOCAL)) {
       const start = raw.indexOf(FINANCE_META_PREFIX_LOCAL);
@@ -91,7 +87,40 @@
       if (end < 0) break;
       raw = (raw.slice(0, start) + raw.slice(end + 2)).trim();
     }
+    if (typeof financeStripFinmetaText === "function") {
+      const stripped = financeStripFinmetaText(raw);
+      if (stripped && !String(stripped).includes(FINANCE_META_PREFIX_LOCAL)) return stripped;
+    }
     return raw;
+  }
+
+  /** Nunca exibir [[finmeta:...]] na UI. */
+  function financeDisplaySafeText(s) {
+    const t = financeStripFinmeta(s);
+    if (!t || t.includes(FINANCE_META_PREFIX_LOCAL)) return "—";
+    return t;
+  }
+
+  function financeIsManualReceivable(r) {
+    if (!r) return false;
+    if (typeof isManualFinanceLancamento === "function") return isManualFinanceLancamento(r);
+    if (String(r.subcategoria || "").toUpperCase() === "MANUAL") return true;
+    return r.vehicle_id == null || r.vehicle_id === "";
+  }
+
+  function financeFindReceivableForMov(mov) {
+    if (!mov?.conta_id) return null;
+    const id = String(mov.conta_id);
+    const list = state.receivables || [];
+    let rec = list.find((r) => String(r.id) === id);
+    if (rec) return rec;
+    const descClean = financeStripFinmeta(mov.descricao);
+    if (!descClean) return null;
+    return (
+      list.find((r) => financeStripFinmeta(r.responsavel_pagamento) === descClean) ||
+      list.find((r) => financeReceivableOrigemDescricao(r).origem === descClean) ||
+      null
+    );
   }
 
   function financeReceivableLabel(r) {
@@ -145,33 +174,39 @@
       descricao = svc && svc !== "—" ? svc : texto || origem || "—";
     }
     return {
-      origem: financeStripFinmeta(origem) || "—",
-      descricao: financeStripFinmeta(descricao) || "—",
+      origem: financeDisplaySafeText(origem),
+      descricao: financeDisplaySafeText(descricao),
     };
   }
 
   function financeCaixaEntradaLabels(mov, rec) {
-    const manual =
-      rec && typeof isManualFinanceLancamento === "function" && isManualFinanceLancamento(rec);
-    if (manual) {
+    rec = rec || financeFindReceivableForMov(mov);
+    const movRaw = String(mov?.descricao || "");
+    const recRaw = rec ? String(rec.responsavel_pagamento || rec.observacoes || "") : "";
+    const hasFinmeta =
+      movRaw.includes(FINANCE_META_PREFIX_LOCAL) || recRaw.includes(FINANCE_META_PREFIX_LOCAL);
+    const manual = (rec && financeIsManualReceivable(rec)) || hasFinmeta || !rec;
+
+    if (rec && (financeIsManualReceivable(rec) || hasFinmeta)) {
       const { origem, descricao } = financeReceivableOrigemDescricao(rec);
+      const descMov = financeDisplaySafeText(mov?.descricao);
       return {
-        pagante: origem,
-        descricao: descricao || financeStripFinmeta(mov?.descricao) || origem,
+        pagante: financeDisplaySafeText(origem),
+        descricao: financeDisplaySafeText(
+          descricao && descricao !== "—" ? descricao : descMov !== "—" ? descMov : origem
+        ),
       };
     }
+
     const v = rec ? financeVehicleById().get(rec.vehicle_id) : null;
     const placa = v?.placa || "";
-    const pagante = rec ? financeReceberRppNome(rec, v) : financeStripFinmeta(mov?.descricao);
-    let descricao = financeStripFinmeta(mov?.descricao) || "—";
-    if (descricao.startsWith(FINANCE_META_PREFIX_LOCAL) && rec) {
-      descricao = financeReceivableOrigemDescricao(rec).descricao;
-    }
-    if ((!descricao || descricao === "—") && placa) descricao = `Diárias — ${placa}`;
-    if ((!descricao || descricao === "—") && rec) descricao = financeReceivableOrigemDescricao(rec).descricao;
+    const pagante = rec ? financeReceberRppNome(rec, v) : financeDisplaySafeText(mov?.descricao);
+    let descricao = financeDisplaySafeText(mov?.descricao);
+    if (descricao === "—" && rec) descricao = financeReceivableOrigemDescricao(rec).descricao;
+    if (descricao === "—" && placa) descricao = `Diárias — ${placa}`;
     return {
-      pagante: financeStripFinmeta(pagante) || "—",
-      descricao: financeStripFinmeta(descricao) || "—",
+      pagante: financeDisplaySafeText(pagante),
+      descricao: financeDisplaySafeText(descricao),
     };
   }
 
@@ -1314,7 +1349,7 @@
   function financeCashPaganteLabel(mov, rec, pay, vehicle) {
     if (financeCashIsEntrada(mov)) {
       if (rec) {
-        if (typeof isManualFinanceLancamento === "function" && isManualFinanceLancamento(rec)) {
+        if (financeIsManualReceivable(rec)) {
           return financeCaixaEntradaLabels(mov, rec).pagante;
         }
         const rpp = financeReceberRppNome(rec, vehicle);
@@ -2273,7 +2308,10 @@
       .slice(0, 300)
       .map((mov) => {
         const isEntrada = financeCashIsEntrada(mov);
-        const rec = isEntrada ? (state.receivables || []).find((r) => String(r.id) === String(mov.conta_id)) : null;
+        const rec = isEntrada
+          ? (state.receivables || []).find((r) => String(r.id) === String(mov.conta_id)) ||
+            financeFindReceivableForMov(mov)
+          : null;
         const pay = !isEntrada ? (state.payables || []).find((p) => String(p.id) === String(mov.conta_id)) : null;
         const v = rec ? financeVehicleById().get(rec.vehicle_id) : null;
         const tipoLabel = isEntrada ? "Entrada" : "Saída";
@@ -2294,8 +2332,8 @@
             if (text) descText = financeStripFinmeta(text);
           }
         }
-        pagante = financeStripFinmeta(pagante) || "—";
-        descText = financeStripFinmeta(descText) || "—";
+        pagante = financeDisplaySafeText(pagante);
+        descText = financeDisplaySafeText(descText);
         let desc = escapeHtml(descText);
         if (v?.placa) desc += `<br /><span class="notice">${escapeHtml(v.placa)}</span>`;
         return `<tr>
@@ -2462,7 +2500,10 @@
         ["Data", "Tipo", "Pagante", "Descrição", "Forma", "Valor", "Conta"],
         ...financeCaixaMovsMerged().map((m) => {
           const isEntrada = financeCashIsEntrada(m);
-          const rec = isEntrada ? (state.receivables || []).find((r) => String(r.id) === String(m.conta_id)) : null;
+          const rec = isEntrada
+            ? (state.receivables || []).find((r) => String(r.id) === String(m.conta_id)) ||
+              financeFindReceivableForMov(m)
+            : null;
           const pay = !isEntrada ? (state.payables || []).find((p) => String(p.id) === String(m.conta_id)) : null;
           const v = rec ? vmap.get(rec.vehicle_id) : null;
           const entradaLabels = isEntrada ? financeCaixaEntradaLabels(m, rec) : null;
