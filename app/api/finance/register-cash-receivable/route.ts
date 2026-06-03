@@ -107,18 +107,33 @@ function placaFromDescricao(descricao: string | null | undefined) {
   return m ? normalizePlate(m[1]) : "";
 }
 
-function paidDateFromReceivableObservacoes(rec: { observacoes?: string | null; updated_at?: string | null; period_end?: string | null; created_at?: string | null }) {
-  const raw = String(rec?.observacoes || "");
+function metaFromReceivableObservacoes(obs: string | null | undefined) {
+  const raw = String(obs || "");
   const m = raw.match(/^\[\[finmeta:(\{.*?\})\]\]/);
-  if (m) {
-    try {
-      const meta = JSON.parse(m[1]) as { data_pagamento?: string; data_recebimento?: string };
-      const d = meta?.data_pagamento || meta?.data_recebimento;
-      if (d) return toYmd(String(d));
-    } catch {
-      /* ignore */
-    }
+  if (!m) return {};
+  try {
+    return JSON.parse(m[1]) as {
+      data_pagamento?: string;
+      data_recebimento?: string;
+      forma_pagamento?: string;
+    };
+  } catch {
+    return {};
   }
+}
+
+function formaPagamentoFromReceivable(rec: {
+  forma_pagamento?: string | null;
+  observacoes?: string | null;
+}) {
+  if (rec.forma_pagamento) return rec.forma_pagamento;
+  return metaFromReceivableObservacoes(rec.observacoes).forma_pagamento || "PIX";
+}
+
+function paidDateFromReceivableObservacoes(rec: { observacoes?: string | null; updated_at?: string | null; period_end?: string | null; created_at?: string | null }) {
+  const meta = metaFromReceivableObservacoes(rec.observacoes);
+  const d = meta?.data_pagamento || meta?.data_recebimento;
+  if (d) return toYmd(String(d));
   return toYmd(rec.updated_at || rec.period_end || rec.created_at);
 }
 
@@ -250,7 +265,7 @@ async function upsertCashForReceivable(
 
   const dataYmd = toYmd(opts.dataMovimento || rec.updated_at || rec.period_end || rec.created_at);
   const isoMov = new Date(`${dataYmd}T12:00:00`).toISOString();
-  const formaPagamento = opts.formaPagamento || rec.forma_pagamento || "PIX";
+  const formaPagamento = opts.formaPagamento || formaPagamentoFromReceivable(rec);
   const placa = opts.vehiclePlaca || "";
   const descricao =
     opts.descricao ||
@@ -379,7 +394,7 @@ async function loadVrpReceivablesToRecover(
   const { data: recs, error: rErr } = await supabase
     .from("receivables")
     .select(
-      "id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at,period_end"
+      "id,user_id,vehicle_id,valor,status,responsavel_pagamento,observacoes,updated_at,created_at,period_end"
     )
     .eq("user_id", userId)
     .in("vehicle_id", vehicleIds)
@@ -505,7 +520,7 @@ async function loadReceivablesFromRecoverEntries(
     let recQuery = supabase
       .from("receivables")
       .select(
-        "id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at,period_end,period_start,observacoes"
+        "id,user_id,vehicle_id,valor,status,responsavel_pagamento,updated_at,created_at,period_end,period_start,observacoes"
       )
       .eq("user_id", userId)
       .eq("vehicle_id", vehicle.id)
@@ -699,7 +714,7 @@ export async function POST(request: NextRequest) {
       const cleanupBefore = { removed: 0 };
       const { data: paid, error: paidErr } = await supabase
         .from("receivables")
-        .select("id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,observacoes,updated_at,created_at,period_end")
+        .select("id,user_id,vehicle_id,valor,status,responsavel_pagamento,observacoes,updated_at,created_at,period_end")
         .eq("user_id", userId)
         .eq("status", "PAGO");
       if (paidErr) {
@@ -795,7 +810,7 @@ export async function POST(request: NextRequest) {
       await cleanupDuplicateCashEntradas(supabase, userId);
       const { data: paid, error: paidErr } = await supabase
         .from("receivables")
-        .select("id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,observacoes,updated_at,created_at,period_end")
+        .select("id,user_id,vehicle_id,valor,status,responsavel_pagamento,observacoes,updated_at,created_at,period_end")
         .eq("user_id", userId)
         .eq("status", "PAGO");
       if (paidErr) {
@@ -852,7 +867,7 @@ export async function POST(request: NextRequest) {
 
     const { data: rec, error: recErr } = await supabase
       .from("receivables")
-      .select("id,user_id,vehicle_id,valor,status,forma_pagamento,responsavel_pagamento,updated_at,created_at,period_end")
+      .select("id,user_id,vehicle_id,valor,status,responsavel_pagamento,observacoes,updated_at,created_at,period_end")
       .eq("user_id", userId)
       .eq("id", receivableId)
       .maybeSingle();

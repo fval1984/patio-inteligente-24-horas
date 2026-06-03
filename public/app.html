@@ -6558,7 +6558,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260603a"></script>
+    <script src="/finance-module.js?v=20260603b"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -6846,6 +6846,7 @@
             competencia: competencia || yearMonthFromYmd(data) || "",
             origem_modulo: "CONTROLE_RECEITAS",
             gerou_compromisso: !markPago,
+            forma_pagamento: formaPagamento,
             ...(markPago && dataCaixa ? { data_pagamento: dataCaixa } : {}),
             ...(modoUp === "PARCELADA" ? { parcela: i + 1, parcelas_total: count, grupo_id: grupoId } : {}),
             ...(modoUp === "RECORRENTE"
@@ -6864,7 +6865,6 @@
             period_start: data,
             period_end: dueDate,
             observacoes: obsPacked,
-            forma_pagamento: formaPagamento,
             subcategoria: sub,
             financeiro_aprovado_contas_receber: true,
             patio_liberado_financeiro: true,
@@ -6872,7 +6872,7 @@
           let { data: inserted, error } = await runSupabaseWrite(() =>
             supabase.from("receivables").insert(payload).select("id").single()
           );
-          if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
+          if (error && supabaseSchemaColumnError(error)) {
             const fallback = { ...payload };
             delete fallback.patio_liberado_financeiro;
             delete fallback.financeiro_aprovado_contas_receber;
@@ -6993,9 +6993,9 @@
         const modo = financeEntryModoFromRecord(receivable, "receivable");
         if (modo !== "RECORRENTE") return;
         const due = String(receivable.period_end || receivable.period_start || receivable.data_vencimento || "").trim();
+        const { meta, text } = financeMetaUnpack(receivable.observacoes);
         const interval = meta.recorrencia || "mensal";
         const nextDue = addPeriodToYmd(due, interval);
-        const { meta, text } = financeMetaUnpack(receivable.observacoes);
         const payload = {
           user_id: effectiveUserId(),
           responsavel_pagamento: receivable.responsavel_pagamento,
@@ -7004,14 +7004,21 @@
           status: "EM_ABERTO",
           period_start: nextDue,
           period_end: nextDue,
-          observacoes: financeMetaPack({ ...meta, modo: "RECORRENTE", recorrencia: interval }, text),
-          forma_pagamento: receivable.forma_pagamento,
+          observacoes: financeMetaPack(
+            {
+              ...meta,
+              modo: "RECORRENTE",
+              recorrencia: interval,
+              forma_pagamento: financeReceivableFormaPagamento(receivable),
+            },
+            text
+          ),
           subcategoria: "RECORRENTE",
           financeiro_aprovado_contas_receber: true,
           patio_liberado_financeiro: true,
         };
         let { error } = await supabase.from("receivables").insert(payload);
-        if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
+        if (error && supabaseSchemaColumnError(error)) {
           const fallback = { ...payload };
           delete fallback.patio_liberado_financeiro;
           delete fallback.financeiro_aprovado_contas_receber;
@@ -7690,6 +7697,20 @@
         if (fromMeta) return fromMeta;
         return toLocalYmd(receivable.updated_at || receivable.period_end || receivable.created_at || "");
       }
+
+      function supabaseSchemaColumnError(err) {
+        const msg = [err?.message, err?.details, err?.hint, String(err?.code || "")].filter(Boolean).join(" ");
+        return /column|schema cache|PGRST204|could not find/i.test(msg);
+      }
+
+      /** Forma de pagamento: coluna (se existir) ou meta em observacoes. */
+      function financeReceivableFormaPagamento(receivable) {
+        if (!receivable) return "PIX";
+        if (receivable.forma_pagamento) return receivable.forma_pagamento;
+        const { meta } = financeMetaUnpack(receivable.observacoes);
+        return meta?.forma_pagamento || "PIX";
+      }
+      window.financeReceivableFormaPagamento = financeReceivableFormaPagamento;
 
       function financeAttachmentsRead() {
         try {
@@ -14196,7 +14217,7 @@
         const formaEl = document.getElementById("receberBaixaForma");
         const anexoEl = document.getElementById("receberBaixaAnexo");
         if (dataEl) dataEl.value = toLocalYmd(new Date().toISOString());
-        if (formaEl) formaEl.value = receivable.forma_pagamento || "PIX";
+        if (formaEl) formaEl.value = financeReceivableFormaPagamento(receivable);
         if (anexoEl) anexoEl.value = "";
         const obsEl = document.getElementById("receberBaixaObs");
         if (obsEl) obsEl.value = "";
@@ -14359,11 +14380,11 @@
           return null;
         }
         const dataMov = opts.dataMovimento || toLocalYmd(new Date().toISOString());
-        const formaPagamento = opts.formaPagamento || receivable.forma_pagamento || "PIX";
+        const formaPagamento = opts.formaPagamento || financeReceivableFormaPagamento(receivable);
         const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
         const { meta: recMeta, text: recObsText } = financeMetaUnpack(receivable.observacoes);
         const obsPacked = financeMetaPack(
-          { ...recMeta, data_pagamento: dataMov },
+          { ...recMeta, data_pagamento: dataMov, forma_pagamento: formaPagamento },
           opts.observacao ? `${recObsText ? recObsText + " — " : ""}${opts.observacao}` : recObsText
         );
         const runRecUpdate = (patch) =>
@@ -14374,20 +14395,21 @@
           status: "PAGO",
           valor: totalAtual,
           financeiro_aprovado_contas_receber: false,
-          forma_pagamento: formaPagamento,
           observacoes: obsPacked,
         });
-        if (error) {
+        if (error && supabaseSchemaColumnError(error)) {
           const { error: errFallback } = await runRecUpdate({
             status: "PAGO",
             valor: totalAtual,
-            forma_pagamento: formaPagamento,
             observacoes: obsPacked,
           });
           if (errFallback) {
             alertSupabaseError(errFallback, "Não foi possível confirmar o pagamento.");
             return null;
           }
+        } else if (error) {
+          alertSupabaseError(error, "Não foi possível confirmar o pagamento.");
+          return null;
         }
         if (receivable.vehicle_id) {
           await supabase
@@ -14543,7 +14565,7 @@
         const uid = effectiveUserId();
         const valor = Number(opts.valor ?? receivable?.valor ?? 0);
         const dataMov = opts.dataMovimento || toLocalYmd(new Date().toISOString());
-        const formaPagamento = opts.formaPagamento || receivable?.forma_pagamento || "PIX";
+        const formaPagamento = opts.formaPagamento || financeReceivableFormaPagamento(receivable);
         const vehicle = opts.vehicle ?? state.vehicles.find((v) => v.id === receivable?.vehicle_id);
         const vehicleInfo = `${vehicle?.placa || "-"} • ${[vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")}`.trim();
         const descricao =
@@ -14765,7 +14787,7 @@
             const res = await registerReceivableCashMovement(r, {
               valor,
               dataMovimento: financeReceivablePaidDateYmd(r) || toLocalYmd(new Date().toISOString()),
-              formaPagamento: r.forma_pagamento || "PIX",
+              formaPagamento: financeReceivableFormaPagamento(r),
               vehicle,
             });
             if (res?.error) failed += 1;
@@ -14782,7 +14804,7 @@
                 toLocalYmd(mov.data_movimento) ||
                 financeReceivablePaidDateYmd(r) ||
                 toLocalYmd(r.updated_at || r.created_at || new Date().toISOString()),
-              formaPagamento: mov.forma_pagamento || r.forma_pagamento || "PIX",
+              formaPagamento: mov.forma_pagamento || financeReceivableFormaPagamento(r),
               vehicle,
             });
             if (res?.error) failed += 1;

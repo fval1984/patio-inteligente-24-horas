@@ -722,7 +722,10 @@
           conta_id: r.id,
           valor: Number(r.valor || 0),
           data_movimento: toLocalYmd(r.updated_at || r.period_end || r.created_at || new Date().toISOString()),
-          forma_pagamento: r.forma_pagamento || "PIX",
+          forma_pagamento:
+            (typeof financeReceivableFormaPagamento === "function"
+              ? financeReceivableFormaPagamento(r)
+              : r.forma_pagamento) || "PIX",
           descricao: `Recebimento ${placa} (sincronizar caixa)`,
           _syntheticPendingCaixa: true,
         };
