@@ -130,8 +130,8 @@ const FINANCE_META_PREFIX = "[[finmeta:";
 
 function stripFinmetaText(obs: string | null | undefined) {
   const raw = String(obs || "").trim();
-  if (!raw.startsWith(FINANCE_META_PREFIX)) return raw;
-  const end = raw.indexOf("]]");
+  if (!raw.includes(FINANCE_META_PREFIX)) return raw;
+  const end = raw.lastIndexOf("]]");
   return end >= 0 ? raw.slice(end + 2).trim() : raw;
 }
 
@@ -313,9 +313,8 @@ async function upsertCashForReceivable(
   const descTxt =
     stripFinmetaText(meta?.descricao_texto || "") ||
     (origemTxt && stripFinmetaText(rawMeta) !== origemTxt ? stripFinmetaText(rawMeta) : origemTxt);
-  const labelManual = descTxt || origemTxt || "Recebimento pátio";
-  const descricao =
-    opts.descricao || (placa ? `Diárias - ${placa}` : labelManual);
+  const labelManual = origemTxt || descTxt || "Recebimento pátio";
+  const descricao = opts.descricao || (placa ? `Diárias - ${placa}` : labelManual);
 
   const existing = await findExistingMovement(supabase, userId, receivableId);
   const payloads = [
