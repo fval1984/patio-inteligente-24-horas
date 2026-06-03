@@ -6559,7 +6559,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260603s"></script>
+    <script src="/finance-module.js?v=20260603t"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -6846,6 +6846,8 @@
             modo: modoUp,
             competencia: competencia || yearMonthFromYmd(data) || "",
             origem_modulo: "CONTROLE_RECEITAS",
+            origem_texto: clienteNome || String(descricao || "").trim(),
+            descricao_texto: String(descricao || "").trim(),
             gerou_compromisso: !markPago,
             forma_pagamento: formaPagamento,
             ...(markPago && dataCaixa ? { data_pagamento: dataCaixa } : {}),
