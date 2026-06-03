@@ -6556,7 +6556,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260603n"></script>
+    <script src="/finance-module.js?v=20260603o"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -6883,7 +6883,7 @@
             return {
               error: {
                 message:
-                  "Receita manual exige vehicle_id opcional no Supabase. Execute o SQL: supabase/receivables_vehicle_id_nullable.sql",
+                  "No Supabase → SQL Editor, execute uma vez:\n\nALTER TABLE public.receivables ALTER COLUMN vehicle_id DROP NOT NULL;\n\n(ou npm run db:receivables-vehicle-nullable com SUPABASE_DB_URL no .env.local)",
               },
             };
           }
