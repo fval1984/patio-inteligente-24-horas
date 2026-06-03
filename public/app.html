@@ -6556,7 +6556,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260603k"></script>
+    <script src="/finance-module.js?v=20260603l"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -7040,7 +7040,9 @@
           delete fallback.subcategoria;
           ({ error } = await supabase.from("receivables").insert(fallback));
         }
-        if (error) console.warn("recorrente receita", error.message);
+        if (error && supabaseVehicleIdRequiredError(error)) {
+          console.warn("recorrente receita: execute supabase/receivables_vehicle_id_nullable.sql");
+        } else if (error) console.warn("recorrente receita", error.message);
       }
 
       const fichaModal = document.getElementById("fichaModal");
