@@ -6427,8 +6427,8 @@
           <form id="finReceitaForm">
             <div class="form-grid">
               <div class="full">
-                <label for="finRecCliente">Cliente</label>
-                <input id="finRecCliente" type="text" required placeholder="Nome do cliente ou mensalista" />
+                <label for="finRecCliente">Origem</label>
+                <input id="finRecCliente" type="text" required placeholder="Ex.: mensalista, parceiro, balcão…" />
               </div>
               <div class="full">
                 <label for="finRecDescricao">Descrição</label>
@@ -6556,7 +6556,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260603m"></script>
+    <script src="/finance-module.js?v=20260603n"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -7664,6 +7664,7 @@
         { value: "GUARDA_PATIO", label: "Guarda de pátio" },
         { value: "ESTACIONAMENTO_MENSALISTA", label: "Estacionamento mensalista" },
         { value: "REMOCAO_VEICULOS", label: "Remoção de veículos" },
+        { value: "OUTROS", label: "Outros" },
       ];
       const LANC_RECEITA_CATEGORIAS = SERVICOS_RECEITAS;
       const LANC_DESPESA_CATEGORIAS = [

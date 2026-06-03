@@ -1059,7 +1059,7 @@
         const veiculoRpvHtml = isPatio
           ? `<strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span>`
           : isManual
-            ? `<span class="notice">Receita manual</span><br /><span class="notice">${escapeHtml(r.responsavel_pagamento || "—")}</span>`
+            ? `<span class="notice">Receita manual</span><br /><span class="notice">Origem: ${escapeHtml(r.responsavel_pagamento || "—")}</span>`
             : `<span class="notice">—</span>`;
         const rppHtml = escapeHtml(financeReceberRppNome(r, v));
         const diariasHtml = escapeHtml(financeReceberDiariasCell(r, v));
@@ -3125,7 +3125,7 @@
 
     document.getElementById("finReceitaForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const cliente = document.getElementById("finRecCliente")?.value?.trim();
+      const origem = document.getElementById("finRecCliente")?.value?.trim();
       const descricao = document.getElementById("finRecDescricao")?.value?.trim();
       const valor = Number(document.getElementById("finRecValor")?.value);
       const dataLancamento = document.getElementById("finRecDataLancamento")?.value;
@@ -3139,8 +3139,8 @@
       const modo = document.getElementById("finRecModo")?.value || "UNICA";
       const recorrenciaIntervalo = document.getElementById("finRecRecorrencia")?.value || "mensal";
       const parcelas = Number(document.getElementById("finRecParcelas")?.value) || 2;
-      if (!cliente || !descricao || !dataLancamento || !vencimento || !Number.isFinite(valor) || valor <= 0) {
-        alert("Preencha cliente, descrição, data do lançamento, valor e vencimento.");
+      if (!origem || !descricao || !dataLancamento || !vencimento || !Number.isFinite(valor) || valor <= 0) {
+        alert("Preencha origem, descrição, data do lançamento, valor e vencimento.");
         return;
       }
       if (jaRecebido && !dataRecebimento) {
@@ -3156,7 +3156,7 @@
           data: dataLancamento,
           vencimento,
           categoria,
-          cliente,
+          cliente: origem,
           formaPagamento,
           observacoes,
           pago: jaRecebido,
