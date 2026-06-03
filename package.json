@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "db:apply-vehicles": "node scripts/apply-vehicles-recursos.cjs",
+    "db:zerar-saldo-caixa": "node scripts/zerar-saldo-caixa.cjs",
     "dev": "next dev",
     "vercel-build": "next build",
     "build": "next build",

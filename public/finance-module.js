@@ -748,90 +748,6 @@
     return ent - sai;
   }
 
-  async function financeZerarSaldoCaixa() {
-    if (!financeCanLoadData()) {
-      alert("Faça login novamente para ajustar o caixa.");
-      return;
-    }
-    if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) {
-      return;
-    }
-    const saldo = financeSaldoCaixa();
-    if (Math.abs(saldo) < 0.005) {
-      alert("O saldo atual já está em R$ 0,00.");
-      return;
-    }
-    const valor = Math.round(Math.abs(saldo) * 100) / 100;
-    const isSaida = saldo > 0;
-    const ok = window.confirm(
-      `Saldo atual: ${formatCurrency(saldo)}\n\n` +
-        `Será registrada uma ${isSaida ? "saída" : "entrada"} de ${formatCurrency(valor)} ` +
-        `com a descrição «Ajuste — zerar saldo do caixa».\n\n` +
-        `O histórico anterior permanece; apenas o saldo passa a zero.\n\nContinuar?`
-    );
-    if (!ok) return;
-
-    const uid = effectiveUserId();
-    const hoje = financeTodayYmd();
-    const base = {
-      user_id: uid,
-      tipo_conta: isSaida ? "SAIDA" : "ENTRADA",
-      conta_id: null,
-      valor,
-      descricao: "Ajuste — zerar saldo do caixa",
-      data_movimento: hoje,
-      forma_pagamento: "AJUSTE",
-    };
-    const variants = [
-      base,
-      (() => {
-        const p = { ...base };
-        delete p.forma_pagamento;
-        return p;
-      })(),
-      (() => {
-        const p = { ...base };
-        delete p.forma_pagamento;
-        delete p.data_movimento;
-        return p;
-      })(),
-    ];
-
-    const write =
-      typeof runSupabaseWrite === "function" ? runSupabaseWrite : async (fn) => fn();
-
-    let lastErr = null;
-    for (const body of variants) {
-      const { error } = await write(() => supabase.from("cash_movements").insert(body));
-      if (!error) {
-        lastErr = null;
-        break;
-      }
-      lastErr = error;
-      const msg = [error.message, error.details, error.hint].filter(Boolean).join(" ");
-      if (!/column|schema cache|PGRST204|could not find/i.test(msg)) break;
-    }
-
-    if (lastErr) {
-      if (typeof alertSupabaseError === "function") {
-        alertSupabaseError(lastErr, "Não foi possível registrar o ajuste no caixa.");
-      } else {
-        alert(lastErr.message || "Não foi possível registrar o ajuste no caixa.");
-      }
-      return;
-    }
-
-    if (typeof loadCash === "function") await loadCash();
-    financeCaixaMissingSyncPromise = null;
-    if (currentFinanceView === "caixa") {
-      await financeRenderCaixaAsync();
-    } else {
-      financeRenderDashboard();
-    }
-    const novo = financeSaldoCaixa();
-    alert(`Ajuste registrado. Saldo atual: ${formatCurrency(novo)}.`);
-  }
-
   function financeTotalEntradas() {
     return financeCaixaEntradas().reduce((s, m) => s + financeCashMovValor(m), 0);
   }
@@ -2967,9 +2883,6 @@
     document.getElementById("finCaixaSyncBtn")?.addEventListener("click", () => {
       financeSyncCaixaFromPaidReceivables();
     });
-    document.getElementById("finCaixaZerarSaldoBtn")?.addEventListener("click", () => {
-      financeZerarSaldoCaixa();
-    });
     document.getElementById("finChartPeriod")?.addEventListener("change", () => financeRenderDashboard());
 
     document.getElementById("finAguardandoPlateForm")?.addEventListener("submit", (e) => {
@@ -3295,7 +3208,6 @@
     };
   };
 
-  window.financeZerarSaldoCaixa = financeZerarSaldoCaixa;
   window.financeSaldoCaixa = financeSaldoCaixa;
   window.financeCashMovValor = financeCashMovValor;
   window.financeDedupeCaixaMovs = financeDedupeCaixaMovs;
