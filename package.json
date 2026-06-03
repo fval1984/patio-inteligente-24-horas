@@ -8,6 +8,7 @@
     "db:sync-caixa-pagar": "node scripts/sync-caixa-pagar.cjs",
     "db:lancar-despesas-pagas-caixa": "node scripts/lancar-despesas-pagas-caixa.cjs",
     "db:receivables-vehicle-nullable": "node scripts/apply-receivables-vehicle-nullable.cjs",
+    "db:limpar-finmeta": "node scripts/limpar-finmeta-financeiro.cjs",
     "dev": "next dev",
     "vercel-build": "next build",
     "build": "next build",
