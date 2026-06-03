@@ -107,8 +107,26 @@
 
   function financePayablePaidSum(payableId) {
     return (state.cash || [])
-      .filter((m) => m.tipo_conta === "PAGAR" && String(m.conta_id) === String(payableId))
-      .reduce((s, m) => s + Number(m.valor || 0), 0);
+      .filter((m) => financeCashIsSaida(m) && String(m.conta_id) === String(payableId))
+      .reduce((s, m) => s + financeCashMovValor(m), 0);
+  }
+
+  function financePaidPayablesSemCaixa() {
+    const cashPayableIds = new Set(
+      financeDedupeCaixaMovs(state.cash || [])
+        .filter((m) => financeCashIsSaida(m) && m.conta_id != null && m.conta_id !== "")
+        .map((m) => String(m.conta_id))
+    );
+    return (state.payables || []).filter(
+      (p) =>
+        String(p.status || "").toUpperCase() === "PAGO" &&
+        Number(p.valor || 0) > 0 &&
+        !cashPayableIds.has(String(p.id))
+    );
+  }
+
+  function financeCountPaidPayablesSemCaixa() {
+    return financePaidPayablesSemCaixa().length;
   }
 
   function financePayableDisplayStatus(p) {
@@ -1130,7 +1148,11 @@
       financeCaixaMissingSyncPromise = (async () => {
         try {
           await financeSyncMissingCashClient();
+          if (typeof window.syncPaidPayablesCashMovements === "function") {
+            await window.syncPaidPayablesCashMovements();
+          }
           if (typeof loadReceivables === "function") await loadReceivables();
+          if (typeof loadPayables === "function") await loadPayables();
           if (typeof loadCash === "function") await loadCash();
         } catch (e) {
           console.warn("financeEnsureMissingCashInCaixa", e?.message || e);
@@ -1141,13 +1163,41 @@
   }
 
   async function financeSyncCaixaFromPaidReceivables() {
-    return financeRecoverCashViaApi({ syncMissing: true }, {
-      hintId: "finCaixaSyncHint",
-      btnId: "finCaixaSyncBtn",
-      btnBusy: "Sincronizando…",
-      btnDefault: "Sincronizar caixa",
-      onDone: () => financeRenderCaixa(),
-    });
+    const hintEl = document.getElementById("finCaixaSyncHint");
+    const btn = document.getElementById("finCaixaSyncBtn");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Sincronizando…";
+    }
+    let payStats = { created: 0, failed: 0 };
+    try {
+      if (typeof window.syncPaidPayablesCashMovements === "function") {
+        payStats = (await window.syncPaidPayablesCashMovements()) || payStats;
+      }
+      const recStats = await financeRecoverCashViaApi(
+        { syncMissing: true },
+        { hintId: null, btnId: null, onDone: null }
+      );
+      if (hintEl) {
+        const parts = [];
+        if (payStats.created > 0) parts.push(`${payStats.created} saída(s) de despesas`);
+        if (payStats.failed > 0) parts.push(`${payStats.failed} despesa(s) com erro`);
+        if (recStats) {
+          const n = Number(recStats.created || 0) + Number(recStats.fixed || 0);
+          if (n > 0) parts.push(`${n} entrada(s) de recebimentos`);
+        }
+        if (parts.length) {
+          hintEl.textContent = `Sincronizado: ${parts.join(" · ")}.`;
+          hintEl.classList.remove("hidden");
+        }
+      }
+      financeRenderCaixa();
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Sincronizar caixa";
+      }
+    }
   }
 
   /** VRP abr/mai 2026 — placa + valor + saída (+ pagamento para desambiguar VIP Polo). */
@@ -2042,10 +2092,11 @@
             ? ` Nenhuma movimentação na competência ${periodoYm}, mas existem ${totalMovs} no total. Limpe o filtro «Competência» para ver todas.`
             : ` Nenhuma movimentação na competência ${periodoYm}. Limpe o filtro «Competência» para ver todas.`
           : "";
-      const missingPaid = financeCountPaidReceivablesSemCaixa();
+      const missingRec = financeCountPaidReceivablesSemCaixa();
+      const missingPay = financeCountPaidPayablesSemCaixa();
       const missingHint =
-        missingPaid > 0
-          ? ` Há ${missingPaid} pagamento(s) confirmado(s) sem entrada no caixa — clique em «Sincronizar caixa».`
+        missingRec > 0 || missingPay > 0
+          ? ` Há ${missingRec} recebimento(s) e ${missingPay} despesa(s) pagos sem movimento no caixa — clique em «Sincronizar caixa».`
           : "";
       const tipoHint =
         financeFilterCaixaTipo === "entrada"
