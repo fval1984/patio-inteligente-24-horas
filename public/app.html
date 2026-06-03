@@ -6559,7 +6559,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260603p"></script>
+    <script src="/finance-module.js?v=20260603q"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -7707,21 +7707,32 @@
         return `${FINANCE_META_PREFIX}${JSON.stringify(meta)}]] ${clean}`.trim();
       }
 
+      function financeStripFinmetaText(obs) {
+        const raw = String(obs || "").trim();
+        if (!raw.startsWith(FINANCE_META_PREFIX)) return raw;
+        const end = raw.indexOf("]]");
+        return end >= 0 ? raw.slice(end + 2).trim() : raw;
+      }
+      window.financeStripFinmetaText = financeStripFinmetaText;
+
       function financeMetaUnpack(obs) {
         const raw = String(obs || "");
-        const m = raw.match(/^\[\[finmeta:(\{.*?\})\]\]\s*([\s\S]*)$/);
-        if (!m) return { meta: {}, text: raw };
+        if (!raw.startsWith(FINANCE_META_PREFIX)) return { meta: {}, text: raw };
+        const end = raw.indexOf("]]");
+        if (end < 0) return { meta: {}, text: raw };
+        const jsonPart = raw.slice(FINANCE_META_PREFIX.length, end);
+        const text = raw.slice(end + 2).trim();
         try {
-          return { meta: JSON.parse(m[1]), text: m[2] || "" };
+          return { meta: JSON.parse(jsonPart), text };
         } catch (e) {
-          return { meta: {}, text: raw };
+          return { meta: {}, text: financeStripFinmetaText(raw) };
         }
       }
 
       /** Data civil do pagamento/recebimento (meta retroativa ou updated_at). */
       function financeReceivablePaidDateYmd(receivable) {
         if (!receivable) return "";
-        const { meta } = financeMetaUnpack(receivable.observacoes);
+        const { meta } = financeMetaUnpack(financeReceivableMetaText(receivable));
         const fromMeta = toLocalYmd(meta?.data_pagamento || meta?.data_recebimento || "");
         if (fromMeta) return fromMeta;
         return toLocalYmd(receivable.updated_at || receivable.period_end || receivable.created_at || "");
@@ -9404,7 +9415,7 @@
           const v = vehicleById.get(r.vehicle_id);
           return `<tr>
             <td>${veiculoCell(v)}</td>
-            <td>${escapeHtml(r.responsavel_pagamento || "—")}</td>
+            <td>${escapeHtml(financeReceivableDisplayText(r))}</td>
             <td>${escapeHtml(formatReceberEntradaVeiculo(v, r))}</td>
             <td>${escapeHtml(formatReceberSaidaVeiculo(v, r))}</td>
             <td>${escapeHtml(formatCurrency(receivableValor(r)))}</td>
@@ -9786,7 +9797,7 @@
                   ? formatDate(vehicle.data_saida)
                   : "-";
               rows.push(`<tr>
-                <td data-label="Resumo">${escapeHtml(r.responsavel_pagamento || "—")}<br /><span class="notice">${escapeHtml(
+                <td data-label="Resumo">${escapeHtml(financeReceivableDisplayText(r))}<br /><span class="notice">${escapeHtml(
                   vehicleInfo
                 )}</span><br />${escapeHtml(ini)} → ${escapeHtml(fim)}</td>
                 <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
@@ -9834,7 +9845,7 @@
               const saiLabel = saiRaw ? formatDate(saiRaw) : "—";
               const st = r.status === "EM_ABERTO" ? "Em aberto" : r.status || "—";
               return `<tr>
-              <td data-label="Veículo / responsável"><span class="lista-receber-placa">${escapeHtml(placa)}</span> · ${escapeHtml(vm)}<br /><span class="notice" style="font-size:0.86rem">${escapeHtml(r.responsavel_pagamento || "—")}</span></td>
+              <td data-label="Veículo / responsável"><span class="lista-receber-placa">${escapeHtml(placa)}</span> · ${escapeHtml(vm)}<br /><span class="notice" style="font-size:0.86rem">${escapeHtml(financeReceivableDisplayText(r))}</span></td>
               <td data-label="Entrada (pátio)">${escapeHtml(entLabel)}</td>
               <td data-label="Saída">${escapeHtml(saiLabel)}</td>
               <td data-label="Diárias">${listaReceberDiariasCellHtml(r, vehicle)}</td>
@@ -9919,7 +9930,7 @@
               const noCaixa = receivableCashMovementExists(r.id);
               const valorZero = Number(r.valor || 0) < 0.01;
               return `<tr>
-                <td data-label="Veículo / responsável"><span class="lista-receber-placa">${escapeHtml(placa)}</span> · ${escapeHtml(vm)}<br /><span class="notice">${escapeHtml(r.responsavel_pagamento || "—")}</span></td>
+                <td data-label="Veículo / responsável"><span class="lista-receber-placa">${escapeHtml(placa)}</span> · ${escapeHtml(vm)}<br /><span class="notice">${escapeHtml(financeReceivableDisplayText(r))}</span></td>
                 <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
                 <td data-label="Valor" class="lista-receber-valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}${valorZero ? `<br /><span class="notice">Valor zerado no título</span>` : ""}</td>
                 <td data-label="Recebido em">${escapeHtml(formatDateTime(r.updated_at || r.created_at))}</td>
@@ -14261,7 +14272,7 @@
           const placa = vehicle?.placa || "—";
           const vm = [vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ") || "—";
           const servico = receivableCategoryLabel(receivable.receivable_category);
-          resumo.innerHTML = `<strong>${escapeHtml(receivable.responsavel_pagamento || "Responsável")}</strong><br />
+          resumo.innerHTML = `<strong>${escapeHtml(financeReceivableDisplayText(receivable) || "Responsável")}</strong><br />
             ${vehicle ? `Veículo: <strong>${escapeHtml(vm)}</strong> — placa <strong>${escapeHtml(placa)}</strong><br />` : ""}
             Serviço: <strong>${escapeHtml(servico)}</strong>`;
         }
@@ -14281,7 +14292,7 @@
         if (obsEl) obsEl.value = "";
         const nomeEl = document.getElementById("receberBaixaReciboNome");
         const docEl = document.getElementById("receberBaixaReciboDoc");
-        if (nomeEl) nomeEl.value = receivable.responsavel_pagamento || "";
+        if (nomeEl) nomeEl.value = financeReceivableDisplayText(receivable) || "";
         if (docEl) docEl.value = "";
         if (receberBaixaModal.parentElement !== document.body) {
           document.body.appendChild(receberBaixaModal);
@@ -14403,7 +14414,7 @@
       function openReciboModalWithContext(ctx) {
         if (!ctx?.receivable) return;
         pendingReciboContext = ctx;
-        if (reciboDestinatarioNome) reciboDestinatarioNome.value = ctx.receivable.responsavel_pagamento || "";
+        if (reciboDestinatarioNome) reciboDestinatarioNome.value = financeReceivableDisplayText(ctx.receivable) || "";
         if (reciboDestinatarioDoc) reciboDestinatarioDoc.value = "";
         const resumo = document.getElementById("reciboModalResumoAuto");
         const vehicle = ctx.vehicle;
