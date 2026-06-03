@@ -752,6 +752,29 @@
       .filter((syn) => !businessKeysWithCash.has(financeCashMovEntradaBusinessKey(syn)));
   }
 
+  /** Despesas PAGO ainda sem linha em cash_movements — aparecem no caixa até gravar. */
+  function financeSyntheticCashSaidasFromPaidPayables() {
+    const saidaContaIds = new Set(
+      financeDedupeCaixaMovs(state.cash || [])
+        .filter((m) => financeCashIsSaida(m) && m.conta_id != null && m.conta_id !== "")
+        .map((m) => String(m.conta_id))
+    );
+    return financePaidPayablesSemCaixa().map((p) => {
+      if (saidaContaIds.has(String(p.id))) return null;
+      const due = financeContaDueYmd(p, "payable");
+      return {
+        id: `syn-pay-${p.id}`,
+        tipo_conta: "PAGAR",
+        conta_id: p.id,
+        valor: Number(p.valor || 0),
+        data_movimento: due || toLocalYmd(p.updated_at || p.created_at || new Date().toISOString()),
+        forma_pagamento: p.forma_pagamento || "PIX",
+        descricao: p.descricao || "Despesa",
+        _syntheticPendingCaixaPayable: true,
+      };
+    }).filter(Boolean);
+  }
+
   function financeCaixaEntradas() {
     return financeDedupeCaixaMovs(state.cash || []).filter((m) => financeCashIsEntrada(m));
   }
@@ -778,6 +801,7 @@
     let movs = financeDedupeCaixaMovs([
       ...(state.cash || []),
       ...financeSyntheticCashEntradasFromPaidReceivables(),
+      ...financeSyntheticCashSaidasFromPaidPayables(),
     ]);
     const de = (financeFilterCaixaDataDe || "").trim();
     const ate = (financeFilterCaixaDataAte || "").trim();
@@ -1097,10 +1121,13 @@
       .map((p) => {
         const st = financePayableDisplayStatus(p);
         const due = financeContaDueYmd(p, "payable");
+        const semCaixa = st === "Pago" && financePayablePaidSum(p.id) < Number(p.valor || 0);
         const btnPay =
           st !== "Pago"
             ? `<button type="button" class="secondary fin-btn-pagar" data-fin-pagar-id="${escapeHtml(String(p.id))}">Pagar</button>`
-            : "";
+            : semCaixa
+              ? `<button type="button" class="secondary fin-btn-lancar-caixa" data-fin-lancar-caixa-id="${escapeHtml(String(p.id))}">Lançar no caixa</button>`
+              : "";
         return `<tr>
           <td data-label="Fornecedor">${escapeHtml(p.fornecedor || "—")}</td>
           <td data-label="Descrição">${escapeHtml(p.descricao || "—")}</td>
@@ -1158,6 +1185,60 @@
     return financeCaixaMissingSyncPromise;
   }
 
+  async function financeLancarDespesasPagasNoCaixa() {
+    const hintEl = document.getElementById("finCaixaSyncHint");
+    const btn = document.getElementById("finLancarDespesasCaixaBtn");
+    const missing = financeCountPaidPayablesSemCaixa();
+    if (!missing) {
+      if (hintEl) {
+        hintEl.textContent = "Todas as despesas pagas já têm saída no caixa.";
+        hintEl.classList.remove("hidden");
+      }
+      return { created: 0, failed: 0, skipped: 0 };
+    }
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Lançando…";
+    }
+    try {
+      if (typeof loadPayables === "function") await loadPayables();
+      if (typeof loadCash === "function") await loadCash();
+      const api =
+        typeof callRegisterCashPayableApi === "function"
+          ? await callRegisterCashPayableApi({ syncMissing: true })
+          : { ok: false, error: "API indisponível." };
+      if (!api.ok) {
+        if (hintEl) {
+          hintEl.textContent = api.error || "Não foi possível lançar despesas no caixa.";
+          hintEl.classList.remove("hidden");
+        }
+        return { created: 0, failed: missing, skipped: 0 };
+      }
+      if (typeof loadCash === "function") await loadCash();
+      if (typeof loadPayables === "function") await loadPayables();
+      const stats = api.stats || {};
+      const n = Number(stats.created || 0) + Number(stats.updated || 0);
+      const failed = Number(stats.failed || 0);
+      if (hintEl) {
+        hintEl.textContent =
+          n > 0
+            ? `Lançadas ${n} saída(s) no caixa${failed ? ` · ${failed} falha(s)` : ""}.`
+            : failed
+              ? `Nenhuma saída criada (${failed} falha(s)).`
+              : "Nenhuma despesa pendente de lançamento.";
+        hintEl.classList.remove("hidden");
+      }
+      financeRenderCaixa();
+      if (typeof renderFinance === "function") renderFinance();
+      return { created: n, failed, skipped: Number(stats.skipped || 0) };
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Lançar despesas pagas";
+      }
+    }
+  }
+
   async function financeSyncCaixaFromPaidReceivables() {
     const hintEl = document.getElementById("finCaixaSyncHint");
     const btn = document.getElementById("finCaixaSyncBtn");
@@ -1185,7 +1266,7 @@
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.textContent = "Sincronizar caixa";
+        btn.textContent = "Sincronizar recebimentos";
       }
     }
   }
@@ -2045,7 +2126,10 @@
     const ate = (financeFilterCaixaDataAte || "").trim();
     const movsPeriodo = financeCaixaMovsForPeriod(periodoYm);
     const totPeriodo = financeCaixaTotalsForMovs(movsPeriodo);
-    const pendingInPeriodo = movsPeriodo.filter((m) => m._syntheticPendingCaixa).length;
+    const pendingInPeriodo = movsPeriodo.filter(
+      (m) => m._syntheticPendingCaixa || m._syntheticPendingCaixaPayable
+    ).length;
+    const missingPay = financeCountPaidPayablesSemCaixa();
     if (summaryEl) {
       const periodoLabel = de || ate
         ? `Período ${de ? formatDate(de) : "…"} — ${ate ? formatDate(ate) : "…"}`
@@ -2066,7 +2150,8 @@
         <p><strong>Entrada:</strong> <span class="fin-val-entrada">${escapeHtml(formatCurrency(totPeriodo.entradas))}</span></p>
         <p><strong>Saída:</strong> <span class="fin-val-saida">${escapeHtml(formatCurrency(totPeriodo.saidas))}</span></p>
         <p><strong>Saldo:</strong> <span class="${totPeriodo.saldo >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(totPeriodo.saldo))}</span></p>
-        ${pendingInPeriodo > 0 ? `<p class="notice">${pendingInPeriodo} pagamento(s) confirmado(s) aguardando gravação — clique em «Sincronizar caixa».</p>` : ""}
+        ${missingPay > 0 ? `<p class="notice">${missingPay} despesa(s) paga(s) ainda não estão no caixa — clique em «Lançar despesas pagas» (ou limpe o filtro de mês para ver todas as datas).</p>` : ""}
+        ${pendingInPeriodo > 0 ? `<p class="notice">${pendingInPeriodo} lançamento(s) pendente(s) de gravação no banco.</p>` : ""}
       `;
     }
     if (!body) return;
@@ -2083,10 +2168,13 @@
             : ` Nenhuma movimentação na competência ${periodoYm}. Limpe o filtro «Competência» para ver todas.`
           : "";
       const missingRec = financeCountPaidReceivablesSemCaixa();
+      const missingPay = financeCountPaidPayablesSemCaixa();
       const missingHint =
-        missingRec > 0
-          ? ` Há ${missingRec} recebimento(s) confirmado(s) sem entrada no caixa — clique em «Sincronizar caixa».`
-          : "";
+        missingPay > 0
+          ? ` Há ${missingPay} despesa(s) paga(s) sem saída no caixa — clique em «Lançar despesas pagas».`
+          : missingRec > 0
+            ? ` Há ${missingRec} recebimento(s) sem entrada — clique em «Sincronizar recebimentos».`
+            : "";
       const tipoHint =
         financeFilterCaixaTipo === "entrada"
           ? " Nenhuma entrada no filtro atual."
@@ -2112,8 +2200,10 @@
         const valSigned = isEntrada ? amount : -amount;
         const pagante = financeCashPaganteLabel(mov, rec, pay, v);
         let desc = mov.descricao || (isEntrada ? rec?.observacoes : pay?.descricao) || "—";
-        if (mov._syntheticPendingCaixa) {
-          desc += `<br /><span class="notice">Aguardando gravação no caixa — clique «Sincronizar caixa»</span>`;
+        if (mov._syntheticPendingCaixaPayable) {
+          desc += `<br /><span class="notice">Despesa paga — clique «Lançar despesas pagas»</span>`;
+        } else if (mov._syntheticPendingCaixa) {
+          desc += `<br /><span class="notice">Recebimento — clique «Sincronizar recebimentos»</span>`;
         }
         if (v?.placa) desc += `<br /><span class="notice">${escapeHtml(v.placa)}</span>`;
         return `<tr>
@@ -2917,6 +3007,9 @@
       financeFilterTipo = e.target.value || "";
       financeRenderReceber();
     });
+    document.getElementById("finLancarDespesasCaixaBtn")?.addEventListener("click", () => {
+      financeLancarDespesasPagasNoCaixa();
+    });
     document.getElementById("finCaixaSyncBtn")?.addEventListener("click", () => {
       financeSyncCaixaFromPaidReceivables();
     });
@@ -3213,6 +3306,29 @@
         if (!r) return;
         const v = financeVehicleById().get(r.vehicle_id);
         openReceberBaixaModal({ receivable: r, vehicle: v, valor: r.valor });
+        return;
+      }
+      const btnLancarCaixa = e.target.closest("[data-fin-lancar-caixa-id]");
+      if (btnLancarCaixa) {
+        const id = btnLancarCaixa.getAttribute("data-fin-lancar-caixa-id");
+        const p = (state.payables || []).find((x) => String(x.id) === String(id));
+        if (!p) return;
+        if (typeof callRegisterCashPayableApi === "function") {
+          callRegisterCashPayableApi({
+            payableId: id,
+            valor: Number(p.valor || 0),
+            dataMovimento: financeContaDueYmd(p, "payable"),
+            descricao: p.descricao || "Despesa",
+          }).then(async (api) => {
+            if (!api.ok) {
+              alert(api.error || "Não foi possível lançar no caixa.");
+              return;
+            }
+            if (typeof loadCash === "function") await loadCash();
+            financeRenderCaixa();
+            financeRenderPagar();
+          });
+        }
         return;
       }
       const btnPag = e.target.closest("[data-fin-pagar-id]");

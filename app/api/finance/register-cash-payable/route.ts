@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
       if (fullSelect.error && isSchemaError(fullSelect.error.message)) {
         const lean = await supabase
           .from("payables")
-          .select("id,user_id,valor,status,descricao,fornecedor,data_vencimento,observacoes,updated_at,created_at")
+          .select("id,user_id,valor,status,descricao,data_vencimento,observacoes,updated_at,created_at")
           .eq("user_id", userId);
         payables = (lean.data || []) as PayableRow[];
         pErr = lean.error;
@@ -230,7 +230,7 @@ export async function POST(req: NextRequest) {
     if (oneFull.error && isSchemaError(oneFull.error.message)) {
       const oneLean = await supabase
         .from("payables")
-        .select("id,user_id,valor,status,descricao,fornecedor,data_vencimento,observacoes,updated_at,created_at")
+        .select("id,user_id,valor,status,descricao,data_vencimento,observacoes,updated_at,created_at")
         .eq("user_id", userId)
         .eq("id", payableId)
         .maybeSingle();

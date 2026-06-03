@@ -1,11 +1,18 @@
--- LANÇAMENTO ÚNICO: despesas já marcadas como PAGO → saída no caixa.
--- Não precisa clicar em «Sincronizar caixa». Execute UMA VEZ no SQL Editor do Supabase.
--- (Requer supabase/cash_movements.sql já aplicado.)
+-- LANÇAMENTO ÚNICO: despesas já PAGO → saída no caixa (sem «Sincronizar caixa»).
+-- Execute no SQL Editor do Supabase. Requer cash_movements.sql aplicado.
 
 INSERT INTO public.cash_movements (user_id, tipo_conta, conta_id, valor, descricao, data_movimento)
 SELECT
   p.user_id,
-  'PAGAR',
+  (
+    SELECT e.enumlabel::public.account_type
+    FROM pg_enum e
+    INNER JOIN pg_type t ON e.enumtypid = t.oid
+    WHERE t.typname = 'account_type'
+      AND e.enumlabel IN ('PAGAR', 'SAIDA')
+    ORDER BY CASE e.enumlabel WHEN 'PAGAR' THEN 0 ELSE 1 END
+    LIMIT 1
+  ),
   p.id,
   ROUND(p.valor::numeric, 2),
   COALESCE(NULLIF(TRIM(p.descricao), ''), 'Despesa'),
@@ -22,4 +29,8 @@ WHERE p.status::text = 'PAGO'
   );
 
 -- Conferir (opcional):
--- SELECT COUNT(*) FROM cash_movements WHERE tipo_conta::text IN ('PAGAR','SAIDA');
+-- SELECT p.descricao, p.valor, cm.id, cm.tipo_conta::text
+-- FROM payables p
+-- LEFT JOIN cash_movements cm ON cm.conta_id = p.id AND cm.user_id = p.user_id
+-- WHERE p.status::text = 'PAGO'
+-- ORDER BY p.data_vencimento DESC NULLS LAST;
