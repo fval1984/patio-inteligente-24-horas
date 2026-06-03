@@ -57,28 +57,67 @@
     return financePartnerLabel(v.localizador_id);
   }
 
-  function financeStripFinmeta(s) {
-    if (typeof financeStripFinmetaText === "function") return financeStripFinmetaText(s);
-    const raw = String(s || "").trim();
-    if (!raw.startsWith("[[finmeta:")) return raw;
+  const FINANCE_META_PREFIX_LOCAL = "[[finmeta:";
+
+  function financeMetaUnpackLocal(obs) {
+    const raw = String(obs || "");
+    if (!raw.startsWith(FINANCE_META_PREFIX_LOCAL)) return { meta: {}, text: raw };
     const end = raw.indexOf("]]");
-    return end >= 0 ? raw.slice(end + 2).trim() : raw;
+    if (end < 0) return { meta: {}, text: financeStripFinmeta(raw) };
+    const jsonPart = raw.slice(FINANCE_META_PREFIX_LOCAL.length, end);
+    const text = raw.slice(end + 2).trim();
+    try {
+      return { meta: JSON.parse(jsonPart), text };
+    } catch {
+      return { meta: {}, text: financeStripFinmeta(raw) };
+    }
+  }
+
+  function financeStripFinmeta(s) {
+    if (typeof financeStripFinmetaText === "function") {
+      const stripped = financeStripFinmetaText(s);
+      if (stripped && !String(stripped).startsWith(FINANCE_META_PREFIX_LOCAL)) return stripped;
+    }
+    let raw = String(s || "").trim();
+    while (raw.includes(FINANCE_META_PREFIX_LOCAL)) {
+      const start = raw.indexOf(FINANCE_META_PREFIX_LOCAL);
+      const end = raw.indexOf("]]", start);
+      if (end < 0) break;
+      raw = (raw.slice(0, start) + raw.slice(end + 2)).trim();
+    }
+    return raw;
   }
 
   function financeReceivableLabel(r) {
+    if (!r) return "—";
     if (typeof financeReceivableDisplayText === "function") {
       const t = financeReceivableDisplayText(r);
-      if (t && t !== "—") return t;
+      if (t && t !== "—" && !String(t).startsWith(FINANCE_META_PREFIX_LOCAL)) return t;
     }
-    if (typeof financeMetaUnpack === "function") {
-      const raw =
-        typeof financeReceivableMetaText === "function"
-          ? financeReceivableMetaText(r)
-          : r?.observacoes || r?.responsavel_pagamento || "";
-      const { text } = financeMetaUnpack(raw);
-      if (text && String(text).trim()) return String(text).trim();
-    }
-    return financeStripFinmeta(r?.responsavel_pagamento || r?.observacoes || "") || "—";
+    const raw =
+      typeof financeReceivableMetaText === "function"
+        ? financeReceivableMetaText(r)
+        : r?.observacoes || r?.responsavel_pagamento || "";
+    const unpack =
+      typeof financeMetaUnpack === "function" ? financeMetaUnpack(raw) : financeMetaUnpackLocal(raw);
+    const clean = String(unpack.text || "").trim();
+    if (clean && !clean.startsWith(FINANCE_META_PREFIX_LOCAL)) return clean;
+    return financeStripFinmeta(raw) || "—";
+  }
+
+  /** Pagante e descrição iguais para entrada manual — sem [[finmeta:...]]. */
+  function financeCaixaEntradaLabels(mov, rec) {
+    const candidates = [];
+    if (rec) candidates.push(financeReceivableLabel(rec));
+    if (mov?.descricao) candidates.push(financeStripFinmeta(mov.descricao));
+    if (rec?.responsavel_pagamento) candidates.push(financeStripFinmeta(rec.responsavel_pagamento));
+    if (rec?.observacoes) candidates.push(financeStripFinmeta(rec.observacoes));
+    let label =
+      candidates.find((t) => t && t !== "—" && !String(t).startsWith(FINANCE_META_PREFIX_LOCAL)) ||
+      candidates[0] ||
+      "Receita";
+    label = financeStripFinmeta(label) || "Receita";
+    return { pagante: label, descricao: label };
   }
 
   function financeReceivableServicoLabel(r) {
@@ -1218,14 +1257,21 @@
     if (financeCashIsEntrada(mov)) {
       if (rec) {
         if (typeof isManualFinanceLancamento === "function" && isManualFinanceLancamento(rec)) {
-          return financeReceivableLabel(rec);
+          return financeCaixaEntradaLabels(mov, rec).pagante;
         }
-        return financeReceberRppNome(rec, vehicle);
+        const rpp = financeReceberRppNome(rec, vehicle);
+        if (rpp && rpp !== "—") return financeStripFinmeta(rpp);
+        return financeCaixaEntradaLabels(mov, rec).pagante;
       }
-      return "—";
+      return financeStripFinmeta(mov?.descricao) || "—";
     }
     if (financeCashIsSaida(mov)) {
-      return pay?.fornecedor || pay?.descricao || "—";
+      const raw = pay?.fornecedor || pay?.descricao || "—";
+      if (typeof financeMetaUnpack === "function" && typeof financePayableMetaText === "function") {
+        const { text } = financeMetaUnpack(financePayableMetaText(pay));
+        if (text) return financeStripFinmeta(text);
+      }
+      return financeStripFinmeta(raw);
     }
     return "—";
   }
@@ -2176,20 +2222,23 @@
         const tipoClass = isEntrada ? "fin-val-entrada" : "fin-val-saida";
         const amount = financeCashMovValor(mov);
         const valSigned = isEntrada ? amount : -amount;
-        const pagante = financeCashPaganteLabel(mov, rec, pay, v);
+        let pagante = "—";
         let descText = "—";
-        if (isEntrada && rec) {
-          descText = financeReceivableLabel(rec);
+        if (isEntrada) {
+          const labels = financeCaixaEntradaLabels(mov, rec);
+          pagante = labels.pagante;
+          descText = labels.descricao;
         } else {
-          descText = financeStripFinmeta(
-            mov.descricao || (isEntrada ? rec?.observacoes || rec?.responsavel_pagamento : pay?.descricao) || "—"
-          );
-          if (pay && !isEntrada && typeof financeMetaUnpack === "function" && typeof financePayableMetaText === "function") {
+          pagante = financeCashPaganteLabel(mov, rec, pay, v);
+          descText = financeStripFinmeta(mov.descricao || pay?.descricao || pay?.fornecedor || "—");
+          if (pay && typeof financeMetaUnpack === "function" && typeof financePayableMetaText === "function") {
             const { text } = financeMetaUnpack(financePayableMetaText(pay));
-            if (text) descText = text;
+            if (text) descText = financeStripFinmeta(text);
           }
         }
-        let desc = escapeHtml(descText || "—");
+        pagante = financeStripFinmeta(pagante) || "—";
+        descText = financeStripFinmeta(descText) || "—";
+        let desc = escapeHtml(descText);
         if (v?.placa) desc += `<br /><span class="notice">${escapeHtml(v.placa)}</span>`;
         return `<tr>
           <td data-label="Data">${escapeHtml(formatDate(mov.data_movimento || mov.created_at))}</td>
@@ -2353,16 +2402,17 @@
       const vmap = financeVehicleById();
       const rows = [
         ["Data", "Tipo", "Pagante", "Descrição", "Forma", "Valor", "Conta"],
-        ...(state.cash || []).map((m) => {
+        ...financeCaixaMovsMerged().map((m) => {
           const isEntrada = financeCashIsEntrada(m);
           const rec = isEntrada ? (state.receivables || []).find((r) => String(r.id) === String(m.conta_id)) : null;
           const pay = !isEntrada ? (state.payables || []).find((p) => String(p.id) === String(m.conta_id)) : null;
           const v = rec ? vmap.get(rec.vehicle_id) : null;
+          const entradaLabels = isEntrada ? financeCaixaEntradaLabels(m, rec) : null;
           return [
             toLocalYmd(m.data_movimento || m.created_at),
             isEntrada ? "Entrada" : "Saída",
-            financeCashPaganteLabel(m, rec, pay, v),
-            m.descricao || "",
+            isEntrada ? entradaLabels.pagante : financeCashPaganteLabel(m, rec, pay, v),
+            isEntrada ? entradaLabels.descricao : financeStripFinmeta(m.descricao || pay?.descricao || ""),
             m.forma_pagamento || "",
             financeCashMovValor(m).toFixed(2),
             financeMovContaLabel(m),
