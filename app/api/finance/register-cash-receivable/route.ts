@@ -59,9 +59,28 @@ function ymdWithinOneDay(a: string | null | undefined, b: string | null | undefi
 }
 
 function isSchemaError(message: string) {
-  return /column|schema cache|PGRST204|invalid input|enum|22P02|23514|tipo_conta|forma_pagamento|descricao|data_movimento|relation|does not exist|PGRST205/i.test(
+  return /column|schema cache|PGRST204|invalid input|enum|22P02|23514|tipo_conta|forma_pagamento|descricao|data_movimento|observacoes|relation|does not exist|PGRST205/i.test(
     message
   );
+}
+
+async function selectPaidReceivablesForUser(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string
+) {
+  const full = await supabase
+    .from("receivables")
+    .select("id,user_id,vehicle_id,valor,status,responsavel_pagamento,observacoes,updated_at,created_at,period_end")
+    .eq("user_id", userId)
+    .eq("status", "PAGO");
+  if (!full.error || !isSchemaError(full.error.message)) {
+    return { data: (full.data || []) as ReceivableRow[], error: full.error };
+  }
+  return supabase
+    .from("receivables")
+    .select("id,user_id,vehicle_id,valor,status,responsavel_pagamento,updated_at,created_at,period_end")
+    .eq("user_id", userId)
+    .eq("status", "PAGO");
 }
 
 function cashMovIsEntradaTipo(tipo: string | null | undefined) {
@@ -127,7 +146,8 @@ function formaPagamentoFromReceivable(rec: {
   observacoes?: string | null;
 }) {
   if (rec.forma_pagamento) return rec.forma_pagamento;
-  return metaFromReceivableObservacoes(rec.observacoes).forma_pagamento || "PIX";
+  const raw = String(rec.observacoes || rec.responsavel_pagamento || "");
+  return metaFromReceivableObservacoes(raw).forma_pagamento || rec.forma_pagamento || "PIX";
 }
 
 function paidDateFromReceivableObservacoes(rec: { observacoes?: string | null; updated_at?: string | null; period_end?: string | null; created_at?: string | null }) {
@@ -712,11 +732,7 @@ export async function POST(request: NextRequest) {
 
     if (syncMissing) {
       const cleanupBefore = { removed: 0 };
-      const { data: paid, error: paidErr } = await supabase
-        .from("receivables")
-        .select("id,user_id,vehicle_id,valor,status,responsavel_pagamento,observacoes,updated_at,created_at,period_end")
-        .eq("user_id", userId)
-        .eq("status", "PAGO");
+      const { data: paid, error: paidErr } = await selectPaidReceivablesForUser(supabase, userId);
       if (paidErr) {
         return NextResponse.json({ error: paidErr.message }, { status: 500 });
       }
