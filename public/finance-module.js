@@ -106,9 +106,47 @@
   }
 
   function financePayablePaidSum(payableId) {
-    return (state.cash || [])
+    return financeCaixaMovsMerged()
       .filter((m) => financeCashIsSaida(m) && String(m.conta_id) === String(payableId))
       .reduce((s, m) => s + financeCashMovValor(m), 0);
+  }
+
+  /** Saídas a partir de despesas PAGO (quando cash_movements ainda não foi gravado). */
+  function financeSaidasFromPaidPayables() {
+    const cash = financeDedupeCaixaMovs(state.cash || []);
+    const saidaContaIds = new Set(
+      cash
+        .filter((m) => financeCashIsSaida(m) && m.conta_id != null && m.conta_id !== "")
+        .map((m) => String(m.conta_id))
+    );
+    return (state.payables || [])
+      .filter(
+        (p) => String(p.status || "").toUpperCase() === "PAGO" && Number(p.valor || 0) > 0
+      )
+      .filter((p) => !saidaContaIds.has(String(p.id)))
+      .map((p) => {
+        const due = financeContaDueYmd(p, "payable");
+        return {
+          id: `derived-pay-${p.id}`,
+          tipo_conta: "PAGAR",
+          conta_id: p.id,
+          valor: Number(p.valor || 0),
+          data_movimento:
+            due || toLocalYmd(p.updated_at || p.created_at || new Date().toISOString()),
+          forma_pagamento: p.forma_pagamento || null,
+          descricao: p.descricao || "Despesa",
+          user_id: p.user_id,
+        };
+      });
+  }
+
+  /** Movimentações do caixa: banco + despesas pagas sem duplicar. */
+  function financeCaixaMovsMerged() {
+    return financeDedupeCaixaMovs([
+      ...(state.cash || []),
+      ...financeSaidasFromPaidPayables(),
+      ...financeSyntheticCashEntradasFromPaidReceivables(),
+    ]);
   }
 
   function financePaidPayablesSemCaixa() {
@@ -598,8 +636,16 @@
   }
 
   function financeCashIsSaida(mov) {
-    const t = String(mov?.tipo_conta || "").toUpperCase();
-    return t === "PAGAR" || t === "SAIDA" || t === "SAÍDA";
+    const t = String(mov?.tipo_conta || "").toUpperCase().replace(/\s/g, "");
+    return (
+      t === "PAGAR" ||
+      t === "SAIDA" ||
+      t === "SAÍDA" ||
+      t === "DESPESA" ||
+      t === "SANGRIA" ||
+      t.includes("SAIDA") ||
+      t.includes("PAGAR")
+    );
   }
 
   /** Valor da movimentação; se vier zerado na base, usa o título pago vinculado. */
@@ -659,6 +705,9 @@
     const t = String(mov?.tipo_conta || "").toUpperCase();
     if (t === "RECEBER") score += 100;
     else if (t === "ENTRADA") score += 50;
+    else if (t === "PAGAR") score += 80;
+    else if (t === "SAIDA" || t === "SAÍDA") score += 70;
+    if (mov?.id && !String(mov.id).startsWith("derived-pay-")) score += 200;
     if (Number(financeCashMovValor(mov) || 0) > 0) score += 10;
     const ts = new Date(mov?.data_movimento || mov?.created_at || 0).getTime();
     if (Number.isFinite(ts)) score += ts / 1e6;
@@ -753,11 +802,11 @@
   }
 
   function financeCaixaEntradas() {
-    return financeDedupeCaixaMovs(state.cash || []).filter((m) => financeCashIsEntrada(m));
+    return financeCaixaMovsMerged().filter((m) => financeCashIsEntrada(m));
   }
 
   function financeCaixaSaidas() {
-    return financeDedupeCaixaMovs(state.cash || []).filter((m) => financeCashIsSaida(m));
+    return financeCaixaMovsMerged().filter((m) => financeCashIsSaida(m));
   }
 
   function financeSaldoCaixa() {
@@ -775,10 +824,7 @@
   }
 
   function financeCaixaMovsForPeriod(periodoYm) {
-    let movs = financeDedupeCaixaMovs([
-      ...(state.cash || []),
-      ...financeSyntheticCashEntradasFromPaidReceivables(),
-    ]);
+    let movs = financeCaixaMovsMerged();
     const de = (financeFilterCaixaDataDe || "").trim();
     const ate = (financeFilterCaixaDataAte || "").trim();
     if (de || ate) {
@@ -1143,10 +1189,24 @@
 
   let financeCaixaMissingSyncPromise = null;
 
+  async function financeSyncMissingPayablesCashSilent() {
+    if (typeof loadPayables === "function") await loadPayables();
+    if (!financeCountPaidPayablesSemCaixa()) return;
+    if (typeof callRegisterCashPayableApi !== "function") return;
+    try {
+      const api = await callRegisterCashPayableApi({ syncMissing: true });
+      if (api.ok && typeof loadCash === "function") await loadCash();
+    } catch (e) {
+      console.warn("financeSyncMissingPayablesCashSilent", e?.message || e);
+    }
+  }
+
   async function financeEnsureMissingCashInCaixa() {
     if (!financeCaixaMissingSyncPromise) {
       financeCaixaMissingSyncPromise = (async () => {
         try {
+          if (typeof loadPayables === "function") await loadPayables();
+          await financeSyncMissingPayablesCashSilent();
           await financeSyncMissingCashClient();
           if (typeof loadReceivables === "function") await loadReceivables();
           if (typeof loadCash === "function") await loadCash();
@@ -2040,7 +2100,7 @@
       String(b.data_movimento || b.created_at).localeCompare(String(a.data_movimento || a.created_at))
     );
     if (!movs.length) {
-      const totalMovs = (state.cash || []).length;
+      const totalMovs = financeCaixaMovsMerged().length;
       const periodoHint = de || ate
         ? " Nenhuma movimentação no intervalo de datas informado."
         : periodoYm
@@ -3203,6 +3263,7 @@
   window.financeSaldoCaixa = financeSaldoCaixa;
   window.financeCashMovValor = financeCashMovValor;
   window.financeDedupeCaixaMovs = financeDedupeCaixaMovs;
+  window.financeCaixaMovsMerged = financeCaixaMovsMerged;
   window.financeDedupePatioReceivables = financeDedupePatioReceivables;
   window.financeParseDateRangeText = financeParseDateRangeText;
   window.financeYmdInRange = financeYmdInRange;

@@ -4,14 +4,17 @@
 INSERT INTO public.cash_movements (user_id, tipo_conta, conta_id, valor, descricao, data_movimento)
 SELECT
   p.user_id,
-  (
-    SELECT e.enumlabel::public.account_type
-    FROM pg_enum e
-    INNER JOIN pg_type t ON e.enumtypid = t.oid
-    WHERE t.typname = 'account_type'
-      AND e.enumlabel IN ('PAGAR', 'SAIDA')
-    ORDER BY CASE e.enumlabel WHEN 'PAGAR' THEN 0 ELSE 1 END
-    LIMIT 1
+  COALESCE(
+    (
+      SELECT e.enumlabel::public.account_type
+      FROM pg_enum e
+      INNER JOIN pg_type t ON e.enumtypid = t.oid
+      WHERE t.typname = 'account_type'
+        AND e.enumlabel IN ('PAGAR', 'SAIDA')
+      ORDER BY CASE e.enumlabel WHEN 'PAGAR' THEN 0 ELSE 1 END
+      LIMIT 1
+    ),
+    'SAIDA'::public.account_type
   ),
   p.id,
   ROUND(p.valor::numeric, 2),
