@@ -4028,7 +4028,10 @@
         display: block;
       }
       /* Módulo Financeiro */
-      .finance-module-shell { max-width: 1200px; margin: 0 auto; }
+      .finance-module-shell { max-width: min(100%, 1400px); margin: 0 auto; width: 100%; }
+      #viewFinanceiro .table-wrap { overflow-x: auto; }
+      #viewFinanceiro .table-wrap .table { min-width: 800px; }
+      #viewFinanceiro .table tbody td { word-break: break-word; vertical-align: top; }
       .finance-subnav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
       .finance-subnav button {
         border: 1px solid var(--border);
@@ -6556,7 +6559,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260603o"></script>
+    <script src="/finance-module.js?v=20260603p"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -6851,13 +6854,20 @@
               ? { recorrencia: String(recorrenciaIntervalo || "mensal").toLowerCase() }
               : {}),
           };
-          const obsPacked = financeMetaPack(meta, observacoes || descricao);
+          const origemLabel = clienteNome || String(descricao || "").trim();
+          const extraObs = String(observacoes || "").trim();
+          const userText = extraObs
+            ? origemLabel
+              ? `${origemLabel} — ${extraObs}`
+              : extraObs
+            : origemLabel;
+          const obsPacked = financeMetaPack(meta, userText);
           const sub =
             modoUp === "RECORRENTE" ? "RECORRENTE" : modoUp === "PARCELADA" ? `PARCELADA_${i + 1}` : "MANUAL";
           const payload = {
             user_id: effectiveUserId(),
             vehicle_id: null,
-            responsavel_pagamento: obsPacked || clienteNome || descricao,
+            responsavel_pagamento: obsPacked || origemLabel || "Receita manual",
             receivable_category: categoria,
             valor: valorParcela,
             status: markPago ? "PAGO" : "EM_ABERTO",
@@ -7731,6 +7741,18 @@
       function financeReceivableMetaText(r) {
         return String(r?.observacoes || r?.responsavel_pagamento || "");
       }
+
+      /** Texto visível (sem bloco [[finmeta:...]]). */
+      function financeReceivableDisplayText(r) {
+        if (!r) return "—";
+        const { text } = financeMetaUnpack(financeReceivableMetaText(r));
+        const clean = String(text || "").trim();
+        if (clean) return clean;
+        const raw = String(r?.responsavel_pagamento || "").trim();
+        if (raw && !raw.startsWith(FINANCE_META_PREFIX)) return raw;
+        return "—";
+      }
+      window.financeReceivableDisplayText = financeReceivableDisplayText;
 
       function financePayableMetaText(p) {
         return String(p?.observacoes || p?.descricao || "");
