@@ -126,12 +126,29 @@ function placaFromDescricao(descricao: string | null | undefined) {
   return m ? normalizePlate(m[1]) : "";
 }
 
+const FINANCE_META_PREFIX = "[[finmeta:";
+
+function stripFinmetaText(obs: string | null | undefined) {
+  const raw = String(obs || "").trim();
+  if (!raw.startsWith(FINANCE_META_PREFIX)) return raw;
+  const end = raw.indexOf("]]");
+  return end >= 0 ? raw.slice(end + 2).trim() : raw;
+}
+
+function receivableMetaSource(rec: {
+  observacoes?: string | null;
+  responsavel_pagamento?: string | null;
+}) {
+  return String(rec.observacoes || rec.responsavel_pagamento || "");
+}
+
 function metaFromReceivableObservacoes(obs: string | null | undefined) {
   const raw = String(obs || "");
-  const m = raw.match(/^\[\[finmeta:(\{.*?\})\]\]/);
-  if (!m) return {};
+  if (!raw.startsWith(FINANCE_META_PREFIX)) return {};
+  const end = raw.indexOf("]]");
+  if (end < 0) return {};
   try {
-    return JSON.parse(m[1]) as {
+    return JSON.parse(raw.slice(FINANCE_META_PREFIX.length, end)) as {
       data_pagamento?: string;
       data_recebimento?: string;
       forma_pagamento?: string;
@@ -146,12 +163,12 @@ function formaPagamentoFromReceivable(rec: {
   observacoes?: string | null;
 }) {
   if (rec.forma_pagamento) return rec.forma_pagamento;
-  const raw = String(rec.observacoes || rec.responsavel_pagamento || "");
+  const raw = receivableMetaSource(rec);
   return metaFromReceivableObservacoes(raw).forma_pagamento || rec.forma_pagamento || "PIX";
 }
 
-function paidDateFromReceivableObservacoes(rec: { observacoes?: string | null; updated_at?: string | null; period_end?: string | null; created_at?: string | null }) {
-  const meta = metaFromReceivableObservacoes(rec.observacoes);
+function paidDateFromReceivableObservacoes(rec: { observacoes?: string | null; responsavel_pagamento?: string | null; updated_at?: string | null; period_end?: string | null; created_at?: string | null }) {
+  const meta = metaFromReceivableObservacoes(receivableMetaSource(rec));
   const d = meta?.data_pagamento || meta?.data_recebimento;
   if (d) return toYmd(String(d));
   return toYmd(rec.updated_at || rec.period_end || rec.created_at);
@@ -287,9 +304,8 @@ async function upsertCashForReceivable(
   const isoMov = new Date(`${dataYmd}T12:00:00`).toISOString();
   const formaPagamento = opts.formaPagamento || formaPagamentoFromReceivable(rec);
   const placa = opts.vehiclePlaca || "";
-  const descricao =
-    opts.descricao ||
-    (placa ? `Diárias - ${placa}` : rec.responsavel_pagamento || "Recebimento pátio");
+  const labelManual = stripFinmetaText(receivableMetaSource(rec)) || "Recebimento pátio";
+  const descricao = opts.descricao || (placa ? `Diárias - ${placa}` : labelManual);
 
   const existing = await findExistingMovement(supabase, userId, receivableId);
   const payloads = [
