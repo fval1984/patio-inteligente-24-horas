@@ -31,7 +31,12 @@
   /** "" | "entrada" | "saida" */
   let financeFilterCaixaTipo = "";
   let refreshFinanceDataPromise = null;
-  let financeFinmetaCleanupPromise = null;
+
+  const FINANCE_ORIGEM_MODULO_LABELS = {
+    CONTROLE_RECEITAS: "Controle de receitas",
+    CONTROLE_DESPESAS: "Controle de despesas",
+    PATIO_VRP: "Pátio (VRP)",
+  };
 
   function financeCanLoadData() {
     return typeof effectiveUserId === "function" && !!effectiveUserId() && !!supabase;
@@ -106,82 +111,68 @@
     return financeStripFinmeta(raw) || "—";
   }
 
-  /** Pagante e descrição iguais para entrada manual — sem [[finmeta:...]]. */
-  /** Remove [[finmeta:...]] do banco (recebíveis + caixa) — uma vez por navegador. */
-  async function financeCleanupFinmetaInDatabase() {
-    if (!financeCanLoadData() || !supabase) return;
-    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
-    if (!uid) return;
-    const key = "amplipatio_finmeta_db_cleanup_v3";
-    if (localStorage.getItem(key) === "done") return;
-    if (typeof requireSupabaseSessionForWrite === "function") {
-      if (!(await requireSupabaseSessionForWrite())) return;
-    }
-    let changed = 0;
-    const write = (fn) =>
-      typeof runSupabaseWrite === "function" ? runSupabaseWrite(fn) : fn();
-
-    for (const r of state.receivables || []) {
-      const raw = String(r.responsavel_pagamento || r.observacoes || "");
-      if (!raw.includes(FINANCE_META_PREFIX_LOCAL)) continue;
-      const clean = financeReceivableLabel(r);
-      if (!clean || clean === "—" || clean === raw) continue;
-      const patch = { responsavel_pagamento: clean };
-      const { error } = await write(() =>
-        supabase.from("receivables").update(patch).eq("id", r.id).eq("user_id", uid)
-      );
-      if (!error) {
-        r.responsavel_pagamento = clean;
-        changed += 1;
+  /** Origem (pagante) e descrição do título — sem exibir [[finmeta:...]]. */
+  function financeReceivableOrigemDescricao(r) {
+    if (!r) return { origem: "—", descricao: "—" };
+    const raw =
+      typeof financeReceivableMetaText === "function"
+        ? financeReceivableMetaText(r)
+        : r?.observacoes || r?.responsavel_pagamento || "";
+    const unpack =
+      typeof financeMetaUnpack === "function" ? financeMetaUnpack(raw) : financeMetaUnpackLocal(raw);
+    const meta = unpack.meta || {};
+    let origem = String(meta.origem_texto || "").trim();
+    let descricao = String(meta.descricao_texto || "").trim();
+    const texto = financeStripFinmeta(unpack.text || "");
+    if (!origem || !descricao) {
+      const parts = texto.split(/\s*—\s*/).map((p) => p.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        origem = origem || parts[0];
+        descricao = descricao || parts.slice(1).join(" — ");
+      } else if (texto) {
+        origem = origem || texto;
+        descricao = descricao || financeReceivableServicoLabel(r);
       }
     }
-
-    for (const m of state.cash || []) {
-      const raw = String(m.descricao || "");
-      if (!raw.includes(FINANCE_META_PREFIX_LOCAL)) continue;
-      const clean = financeStripFinmeta(raw);
-      if (!clean || clean === raw) continue;
-      const { error } = await write(() =>
-        supabase.from("cash_movements").update({ descricao: clean }).eq("id", m.id).eq("user_id", uid)
-      );
-      if (!error) {
-        m.descricao = clean;
-        changed += 1;
-      }
+    if (!origem) {
+      origem =
+        FINANCE_ORIGEM_MODULO_LABELS[String(meta.origem_modulo || "").toUpperCase()] ||
+        financeStripFinmeta(r?.responsavel_pagamento) ||
+        "—";
     }
-
-    if (changed > 0) {
-      await Promise.all([
-        typeof loadReceivables === "function" ? loadReceivables() : Promise.resolve(),
-        typeof loadCash === "function" ? loadCash() : Promise.resolve(),
-      ]);
+    if (!descricao || descricao === origem) {
+      const svc = financeReceivableServicoLabel(r);
+      descricao = svc && svc !== "—" ? svc : texto || origem || "—";
     }
-    localStorage.setItem(key, "done");
-  }
-
-  function financeScheduleFinmetaCleanup() {
-    if (financeFinmetaCleanupPromise) return financeFinmetaCleanupPromise;
-    financeFinmetaCleanupPromise = financeCleanupFinmetaInDatabase()
-      .catch((e) => console.warn("financeCleanupFinmetaInDatabase", e?.message || e))
-      .finally(() => {
-        financeFinmetaCleanupPromise = null;
-        if (typeof renderFinance === "function") renderFinance();
-      });
-    return financeFinmetaCleanupPromise;
+    return {
+      origem: financeStripFinmeta(origem) || "—",
+      descricao: financeStripFinmeta(descricao) || "—",
+    };
   }
 
   function financeCaixaEntradaLabels(mov, rec) {
-    const candidates = [];
-    if (rec) candidates.push(financeReceivableLabel(rec));
-    if (mov?.descricao) candidates.push(financeStripFinmeta(mov.descricao));
-    if (rec?.responsavel_pagamento) candidates.push(financeStripFinmeta(rec.responsavel_pagamento));
-    if (rec?.observacoes) candidates.push(financeStripFinmeta(rec.observacoes));
-    let label =
-      candidates.find((t) => t && t !== "—" && !String(t).startsWith(FINANCE_META_PREFIX_LOCAL)) ||
-      candidates[0] ||
-      "Receita";
-    label = financeStripFinmeta(label) || "Receita";
-    return { pagante: label, descricao: label };
+    const manual =
+      rec && typeof isManualFinanceLancamento === "function" && isManualFinanceLancamento(rec);
+    if (manual) {
+      const { origem, descricao } = financeReceivableOrigemDescricao(rec);
+      return {
+        pagante: origem,
+        descricao: descricao || financeStripFinmeta(mov?.descricao) || origem,
+      };
+    }
+    const v = rec ? financeVehicleById().get(rec.vehicle_id) : null;
+    const placa = v?.placa || "";
+    const pagante = rec ? financeReceberRppNome(rec, v) : financeStripFinmeta(mov?.descricao);
+    let descricao = financeStripFinmeta(mov?.descricao) || "—";
+    if (descricao.startsWith(FINANCE_META_PREFIX_LOCAL) && rec) {
+      descricao = financeReceivableOrigemDescricao(rec).descricao;
+    }
+    if ((!descricao || descricao === "—") && placa) descricao = `Diárias — ${placa}`;
+    if ((!descricao || descricao === "—") && rec) descricao = financeReceivableOrigemDescricao(rec).descricao;
+    return {
+      pagante: financeStripFinmeta(pagante) || "—",
+      descricao: financeStripFinmeta(descricao) || "—",
+    };
   }
 
   function financeReceivableServicoLabel(r) {
@@ -1196,7 +1187,10 @@
         const veiculoRpvHtml = isPatio
           ? `<strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span>`
           : isManual
-            ? `<span class="notice">Receita manual</span><br /><span class="notice">${escapeHtml(financeReceivableServicoLabel(r))}</span><br /><span class="notice">Origem: ${escapeHtml(financeReceivableLabel(r))}</span>`
+            ? (() => {
+                const od = financeReceivableOrigemDescricao(r);
+                return `<span class="notice">Receita manual</span><br /><span class="notice">Origem: ${escapeHtml(od.origem)}</span><br /><span class="notice">Descrição: ${escapeHtml(od.descricao)}</span>`;
+              })()
             : `<span class="notice">—</span>`;
         const rppHtml = escapeHtml(financeReceberRppNome(r, v));
         const diariasHtml = escapeHtml(financeReceberDiariasCell(r, v));
@@ -2977,7 +2971,6 @@
         if (typeof window.syncPaidReceivablesCashMovements === "function") {
           await window.syncPaidReceivablesCashMovements();
         }
-        financeScheduleFinmetaCleanup();
         if (preserveView) {
           financeActivateSubview(preserveView);
         } else {
