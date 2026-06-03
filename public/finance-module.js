@@ -31,6 +31,7 @@
   /** "" | "entrada" | "saida" */
   let financeFilterCaixaTipo = "";
   let refreshFinanceDataPromise = null;
+  let financeFinmetaCleanupPromise = null;
 
   function financeCanLoadData() {
     return typeof effectiveUserId === "function" && !!effectiveUserId() && !!supabase;
@@ -106,6 +107,69 @@
   }
 
   /** Pagante e descrição iguais para entrada manual — sem [[finmeta:...]]. */
+  /** Remove [[finmeta:...]] do banco (recebíveis + caixa) — uma vez por navegador. */
+  async function financeCleanupFinmetaInDatabase() {
+    if (!financeCanLoadData() || !supabase) return;
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid) return;
+    const key = "amplipatio_finmeta_db_cleanup_v3";
+    if (localStorage.getItem(key) === "done") return;
+    if (typeof requireSupabaseSessionForWrite === "function") {
+      if (!(await requireSupabaseSessionForWrite())) return;
+    }
+    let changed = 0;
+    const write = (fn) =>
+      typeof runSupabaseWrite === "function" ? runSupabaseWrite(fn) : fn();
+
+    for (const r of state.receivables || []) {
+      const raw = String(r.responsavel_pagamento || r.observacoes || "");
+      if (!raw.includes(FINANCE_META_PREFIX_LOCAL)) continue;
+      const clean = financeReceivableLabel(r);
+      if (!clean || clean === "—" || clean === raw) continue;
+      const patch = { responsavel_pagamento: clean };
+      const { error } = await write(() =>
+        supabase.from("receivables").update(patch).eq("id", r.id).eq("user_id", uid)
+      );
+      if (!error) {
+        r.responsavel_pagamento = clean;
+        changed += 1;
+      }
+    }
+
+    for (const m of state.cash || []) {
+      const raw = String(m.descricao || "");
+      if (!raw.includes(FINANCE_META_PREFIX_LOCAL)) continue;
+      const clean = financeStripFinmeta(raw);
+      if (!clean || clean === raw) continue;
+      const { error } = await write(() =>
+        supabase.from("cash_movements").update({ descricao: clean }).eq("id", m.id).eq("user_id", uid)
+      );
+      if (!error) {
+        m.descricao = clean;
+        changed += 1;
+      }
+    }
+
+    if (changed > 0) {
+      await Promise.all([
+        typeof loadReceivables === "function" ? loadReceivables() : Promise.resolve(),
+        typeof loadCash === "function" ? loadCash() : Promise.resolve(),
+      ]);
+    }
+    localStorage.setItem(key, "done");
+  }
+
+  function financeScheduleFinmetaCleanup() {
+    if (financeFinmetaCleanupPromise) return financeFinmetaCleanupPromise;
+    financeFinmetaCleanupPromise = financeCleanupFinmetaInDatabase()
+      .catch((e) => console.warn("financeCleanupFinmetaInDatabase", e?.message || e))
+      .finally(() => {
+        financeFinmetaCleanupPromise = null;
+        if (typeof renderFinance === "function") renderFinance();
+      });
+    return financeFinmetaCleanupPromise;
+  }
+
   function financeCaixaEntradaLabels(mov, rec) {
     const candidates = [];
     if (rec) candidates.push(financeReceivableLabel(rec));
@@ -2913,6 +2977,7 @@
         if (typeof window.syncPaidReceivablesCashMovements === "function") {
           await window.syncPaidReceivablesCashMovements();
         }
+        financeScheduleFinmetaCleanup();
         if (preserveView) {
           financeActivateSubview(preserveView);
         } else {
