@@ -125,6 +125,11 @@
     return dashChunk || "—";
   }
 
+  function financeLooksLikeMetaNoise(value) {
+    const t = String(value || "");
+    return /\[\[finmeta|^\s*\{.*\}\s*$|origem_modulo|competencia|forma_pagamento/i.test(t);
+  }
+
   /** Caixa — coluna Pagante: só quem pagou (origem), sem JSON. */
   function financeQuemPagouCaixa(mov, rec) {
     rec = rec || financeFindReceivableForMov(mov);
@@ -2407,6 +2412,9 @@
         if (isEntrada) {
           pagante = financeQuemPagouCaixa(mov, rec);
           descText = financeCaixaDescricaoEntrada(mov, rec);
+          if (financeLooksLikeMetaNoise(descText) || descText === "—") {
+            descText = pagante;
+          }
         } else {
           pagante = financeCashPaganteLabel(mov, rec, pay, v);
           descText = financeStripFinmeta(mov.descricao || pay?.descricao || pay?.fornecedor || "—");
@@ -2417,6 +2425,8 @@
         }
         pagante = financeDisplaySafeText(pagante);
         descText = financeDisplaySafeText(descText);
+        if (financeLooksLikeMetaNoise(pagante)) pagante = financeNormalizeQuemPagouText(mov?.descricao || rec?.responsavel_pagamento);
+        if (financeLooksLikeMetaNoise(descText)) descText = pagante;
         let desc = escapeHtml(descText);
         if (v?.placa) desc += `<br /><span class="notice">${escapeHtml(v.placa)}</span>`;
         return `<tr>
