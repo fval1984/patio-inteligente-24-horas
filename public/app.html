@@ -5710,7 +5710,7 @@
             </div>
             <div class="table-wrap section-card">
               <table class="table">
-                <thead><tr><th>Origem</th><th>Descrição</th><th>RPP</th><th>Valor</th><th>Vencimento</th><th>Status</th></tr></thead>
+                <thead><tr><th>Origem</th><th>Descrição</th><th>RPP</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Ações</th></tr></thead>
                 <tbody id="finReceberBody"></tbody>
               </table>
             </div>
@@ -5749,7 +5749,7 @@
             <p><strong>Total a pagar (abertas):</strong> <span id="finPagarTotal">R$ 0,00</span></p>
             <div class="table-wrap section-card">
               <table class="table">
-                <thead><tr><th>Fornecedor</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor</th><th>Vencimento</th><th>Forma</th><th>Conta</th><th>Status</th><th></th></tr></thead>
+                <thead><tr><th>Fornecedor</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor</th><th>Vencimento</th><th>Forma</th><th>Conta</th><th>Status</th><th>Ações</th></tr></thead>
                 <tbody id="finPagarBody"></tbody>
               </table>
             </div>
@@ -6326,7 +6326,7 @@
             <strong>Confirmar Pagamento</strong> — registra o recebimento. <strong>Gerar PDF</strong> — confirma e baixa o recibo.
           </p>
           <div class="form-actions" style="flex-wrap: wrap">
-            <button type="button" id="receberBaixaOk">Confirmar Pagamento</button>
+            <button type="button" id="receberBaixaOk">PG</button>
             <button type="button" class="secondary" id="receberBaixaGerarPdf">Gerar PDF</button>
             <button type="button" class="secondary" id="cancelReceberBaixaModal">Cancelar</button>
           </div>
@@ -6550,7 +6550,7 @@
             </div>
           </div>
           <div class="form-actions" style="flex-wrap: wrap">
-            <button type="button" id="pagarBaixaConfirm">Confirmar pagamento</button>
+            <button type="button" id="pagarBaixaConfirm">PG</button>
             <button type="button" class="secondary" id="cancelPagarBaixaModal">Cancelar</button>
           </div>
         </div>
@@ -6559,7 +6559,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260604f"></script>
+    <script src="/finance-module.js?v=20260604g"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =

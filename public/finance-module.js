@@ -276,6 +276,49 @@
     return `${escapeHtml(text || "—")}${obs ? `<br /><span class="notice">Obs.: ${escapeHtml(obs)}</span>` : ""}`;
   }
 
+  function financeRowActionsHtml(kind, id, canPay) {
+    const safeId = escapeHtml(String(id));
+    const payBtn = canPay
+      ? `<button type="button" class="secondary fin-btn-${kind}-pg" data-fin-${kind}-pg="${safeId}">PG</button>`
+      : "";
+    return `<div class="fin-row-actions">
+      ${payBtn}
+      <button type="button" class="secondary fin-btn-${kind}-editar" data-fin-${kind}-editar="${safeId}">Editar</button>
+      <button type="button" class="secondary fin-btn-${kind}-voltar" data-fin-${kind}-voltar="${safeId}">Voltar</button>
+      <button type="button" class="secondary fin-btn-${kind}-apagar" data-fin-${kind}-apagar="${safeId}">Apagar</button>
+    </div>`;
+  }
+
+  async function financeReloadAfterAction() {
+    await Promise.all([
+      typeof loadReceivables === "function" ? loadReceivables() : Promise.resolve(),
+      typeof loadPayables === "function" ? loadPayables() : Promise.resolve(),
+      typeof loadCash === "function" ? loadCash() : Promise.resolve(),
+      typeof loadVehicles === "function" ? loadVehicles() : Promise.resolve(),
+    ]);
+    if (typeof updateDashboard === "function") updateDashboard();
+    if (typeof renderFinance === "function") renderFinance();
+  }
+
+  async function financeDeleteCashForPayableClient(payableId) {
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid || !payableId || typeof supabase === "undefined") return 0;
+    const { data: movs } = await supabase
+      .from("cash_movements")
+      .select("id,tipo_conta")
+      .eq("user_id", uid)
+      .eq("conta_id", payableId);
+    let removed = 0;
+    for (const mov of movs || []) {
+      const t = String(mov?.tipo_conta || "").toUpperCase();
+      if (t !== "PAGAR" && t !== "SAIDA" && t !== "SAÍDA") continue;
+      const runDel = () => supabase.from("cash_movements").delete().eq("id", mov.id).eq("user_id", uid);
+      const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runDel) : await runDel();
+      if (!error) removed += 1;
+    }
+    return removed;
+  }
+
   function financePayableTypedFields(p) {
     if (!p) return { fornecedor: "—", descricao: "—", observacoes: "" };
     const raw =
@@ -1321,7 +1364,7 @@
       !!(financeFilterReceberDataDe || financeFilterReceberDataAte);
     if (totalEl) totalEl.textContent = formatCurrency(list.reduce((s, r) => s + Number(r.valor || 0), 0));
     if (!list.length) {
-      body.innerHTML = `<tr><td colspan="6" class="notice">${
+      body.innerHTML = `<tr><td colspan="7" class="notice">${
         hasOtherFilters
           ? "Nenhuma conta a receber com os filtros informados (placa, busca, tipo, status e/ou datas)."
           : "Nenhuma conta a receber pendente. Cadastre mensalistas em «+ Nova receita» (tipo Recorrente) ou veja «Aguardando faturamento»."
@@ -1337,17 +1380,15 @@
         const origemHtml = escapeHtml(financeReceivableOrigemCellText(r, v));
         const descricaoHtml = financeReceivableDescricaoCellHtml(r, v);
         const rppHtml = isManual ? "—" : escapeHtml(financeReceberRppNome(r, v));
-        const btnPay =
-          st !== "Recebido"
-            ? `<div style="margin-top:6px"><button type="button" class="secondary fin-btn-confirm" data-fin-receber-id="${escapeHtml(String(r.id))}">Confirmar pagamento</button></div>`
-            : "";
+        const actionsHtml = financeRowActionsHtml("receber", r.id, st !== "Recebido");
         return `<tr>
           <td data-label="Origem">${origemHtml}</td>
           <td data-label="Descrição">${descricaoHtml}</td>
           <td data-label="RPP">${rppHtml}</td>
           <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
           <td data-label="Vencimento">${escapeHtml(due ? formatDate(due) : "—")}</td>
-          <td data-label="Status"><span class="${financeReceivableStatusClass(st)}">${escapeHtml(st)}</span>${btnPay}</td>
+          <td data-label="Status"><span class="${financeReceivableStatusClass(st)}">${escapeHtml(st)}</span></td>
+          <td data-label="Ações">${actionsHtml}</td>
         </tr>`;
       })
       .join("");
@@ -1425,10 +1466,7 @@
       .map((p) => {
         const st = financePayableDisplayStatus(p);
         const due = financeContaDueYmd(p, "payable");
-        const btnPay =
-          st !== "Pago"
-            ? `<button type="button" class="secondary fin-btn-pagar" data-fin-pagar-id="${escapeHtml(String(p.id))}">Pagar</button>`
-            : "";
+        const actionsHtml = financeRowActionsHtml("pagar", p.id, st !== "Pago");
         return `<tr>
           <td data-label="Fornecedor">${escapeHtml(financePayableTypedFields(p).fornecedor)}</td>
           <td data-label="Descrição">${escapeHtml(financePayableTypedFields(p).descricao)}</td>
@@ -1439,7 +1477,7 @@
           <td data-label="Forma">${escapeHtml(p.forma_pagamento || "—")}</td>
           <td data-label="Conta">${escapeHtml(financePayableContaBancaria(p))}</td>
           <td data-label="Status"><span class="${financePayableStatusClass(st)}">${escapeHtml(st)}</span></td>
-          <td data-label="">${btnPay}</td>
+          <td data-label="Ações">${actionsHtml}</td>
         </tr>`;
       })
       .join("");
@@ -2514,6 +2552,134 @@
     if (dataRec && dataLanc) dataRec.value = dataLanc;
   }
 
+  async function financeEditReceberPrompt(receivableId) {
+    const rec = (state.receivables || []).find((r) => String(r.id) === String(receivableId));
+    if (!rec) return alert("Conta a receber não encontrada.");
+    if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid) return;
+    const v = financeVehicleById().get(rec.vehicle_id);
+    const typed = financeReceivableTypedFields(rec);
+    const origem = prompt("Origem:", financeReceivableOrigemCellText(rec, v));
+    if (origem == null) return;
+    const descricao = prompt("Descrição:", financeReceivableDescricaoCellText(rec, v));
+    if (descricao == null) return;
+    const valorRaw = prompt("Valor:", String(Number(rec.valor || 0)));
+    if (valorRaw == null) return;
+    const valor = Number(String(valorRaw).replace(",", "."));
+    if (!Number.isFinite(valor) || valor < 0) return alert("Valor inválido.");
+    const vencimento = prompt("Vencimento (AAAA-MM-DD):", financeContaDueYmd(rec, "receivable") || "");
+    if (vencimento == null) return;
+    const patch = { valor, period_end: vencimento || rec.period_end };
+    if (financeIsManualReceivable(rec)) {
+      const raw = typeof financeReceivableMetaText === "function" ? financeReceivableMetaText(rec) : rec.responsavel_pagamento || "";
+      const { meta } = typeof financeMetaUnpack === "function" ? financeMetaUnpack(raw) : { meta: {} };
+      const newMeta = { ...(meta || {}), origem_texto: origem.trim(), descricao_texto: descricao.trim() };
+      const userText = [origem.trim(), descricao.trim(), typed.observacoes].filter(Boolean).join(" — ");
+      patch.responsavel_pagamento =
+        typeof financeMetaPack === "function" ? financeMetaPack(newMeta, userText) : userText;
+    }
+    const write = () => supabase.from("receivables").update(patch).eq("id", rec.id).eq("user_id", uid);
+    const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
+    if (error) return typeof alertSupabaseError === "function" ? alertSupabaseError(error, "Não foi possível editar a conta a receber.") : alert(error.message);
+    await financeReloadAfterAction();
+  }
+
+  async function financeDeleteReceberPrompt(receivableId) {
+    const rec = (state.receivables || []).find((r) => String(r.id) === String(receivableId));
+    if (!rec) return alert("Conta a receber não encontrada.");
+    if (!confirm("Apagar esta conta a receber?")) return;
+    if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid) return;
+    await financeDeleteCashForReceivableClient(rec.id);
+    const write = () => supabase.from("receivables").delete().eq("id", rec.id).eq("user_id", uid);
+    const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
+    if (error) return typeof alertSupabaseError === "function" ? alertSupabaseError(error, "Não foi possível apagar a conta a receber.") : alert(error.message);
+    await financeReloadAfterAction();
+  }
+
+  async function financeVoltarReceberPrompt(receivableId) {
+    const rec = (state.receivables || []).find((r) => String(r.id) === String(receivableId));
+    if (!rec) return alert("Conta a receber não encontrada.");
+    if (!confirm("Voltar esta conta a receber?")) return;
+    if (String(rec.status || "").toUpperCase() === "PAGO") {
+      const result = await financeRevertReceivableClientSide(rec);
+      if (!result.ok) alert(result.error || "Não foi possível voltar a conta a receber.");
+    } else {
+      if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
+      const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+      const patch = rec.vehicle_id
+        ? { status: "EM_ABERTO", financeiro_aprovado_contas_receber: false }
+        : { status: "EM_ABERTO" };
+      const write = () => supabase.from("receivables").update(patch).eq("id", rec.id).eq("user_id", uid);
+      const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
+      if (error) typeof alertSupabaseError === "function" ? alertSupabaseError(error, "Não foi possível voltar a conta a receber.") : alert(error.message);
+    }
+    await financeReloadAfterAction();
+  }
+
+  async function financeEditPagarPrompt(payableId) {
+    const pay = (state.payables || []).find((p) => String(p.id) === String(payableId));
+    if (!pay) return alert("Conta a pagar não encontrada.");
+    if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid) return;
+    const typed = financePayableTypedFields(pay);
+    const fornecedor = prompt("Fornecedor:", typed.fornecedor === "—" ? "" : typed.fornecedor);
+    if (fornecedor == null) return;
+    const descricao = prompt("Descrição:", typed.descricao === "—" ? "" : typed.descricao);
+    if (descricao == null) return;
+    const valorRaw = prompt("Valor:", String(Number(pay.valor || 0)));
+    if (valorRaw == null) return;
+    const valor = Number(String(valorRaw).replace(",", "."));
+    if (!Number.isFinite(valor) || valor < 0) return alert("Valor inválido.");
+    const vencimento = prompt("Vencimento (AAAA-MM-DD):", financeContaDueYmd(pay, "payable") || "");
+    if (vencimento == null) return;
+    const raw = typeof financePayableMetaText === "function" ? financePayableMetaText(pay) : pay.descricao || "";
+    const { meta } = typeof financeMetaUnpack === "function" ? financeMetaUnpack(raw) : { meta: {} };
+    const newMeta = { ...(meta || {}), fornecedor_texto: fornecedor.trim(), descricao_texto: descricao.trim() };
+    const userText = [fornecedor.trim(), descricao.trim(), typed.observacoes].filter(Boolean).join(" — ");
+    const patch = {
+      fornecedor: fornecedor.trim() || null,
+      descricao: typeof financeMetaPack === "function" ? financeMetaPack(newMeta, userText || descricao.trim()) : descricao.trim(),
+      valor,
+      data_vencimento: vencimento || pay.data_vencimento,
+    };
+    const write = () => supabase.from("payables").update(patch).eq("id", pay.id).eq("user_id", uid);
+    const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
+    if (error) return typeof alertSupabaseError === "function" ? alertSupabaseError(error, "Não foi possível editar a conta a pagar.") : alert(error.message);
+    await financeReloadAfterAction();
+  }
+
+  async function financeDeletePagarPrompt(payableId) {
+    const pay = (state.payables || []).find((p) => String(p.id) === String(payableId));
+    if (!pay) return alert("Conta a pagar não encontrada.");
+    if (!confirm("Apagar esta conta a pagar?")) return;
+    if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid) return;
+    await financeDeleteCashForPayableClient(pay.id);
+    const write = () => supabase.from("payables").delete().eq("id", pay.id).eq("user_id", uid);
+    const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
+    if (error) return typeof alertSupabaseError === "function" ? alertSupabaseError(error, "Não foi possível apagar a conta a pagar.") : alert(error.message);
+    await financeReloadAfterAction();
+  }
+
+  async function financeVoltarPagarPrompt(payableId) {
+    const pay = (state.payables || []).find((p) => String(p.id) === String(payableId));
+    if (!pay) return alert("Conta a pagar não encontrada.");
+    if (!confirm("Voltar esta conta a pagar para em aberto?")) return;
+    if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid) return;
+    await financeDeleteCashForPayableClient(pay.id);
+    const write = () => supabase.from("payables").update({ status: "EM_ABERTO" }).eq("id", pay.id).eq("user_id", uid);
+    const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
+    if (error) return typeof alertSupabaseError === "function" ? alertSupabaseError(error, "Não foi possível voltar a conta a pagar.") : alert(error.message);
+    await financeReloadAfterAction();
+  }
+
   function financeOpenDespesaModal(presetRecorrente) {
     const modal = document.getElementById("finDespesaModal");
     const form = document.getElementById("finDespesaForm");
@@ -3533,6 +3699,52 @@
       if (btnVoltar) {
         const id = btnVoltar.getAttribute("data-fin-aguardando-voltar");
         if (typeof financeVoltarAguardandoReceivable === "function") await financeVoltarAguardandoReceivable(id);
+        return;
+      }
+      const btnReceberPg = e.target.closest("[data-fin-receber-pg]");
+      if (btnReceberPg) {
+        const id = btnReceberPg.getAttribute("data-fin-receber-pg");
+        const r = (state.receivables || []).find((x) => String(x.id) === String(id));
+        if (!r) return;
+        const v = financeVehicleById().get(r.vehicle_id);
+        openReceberBaixaModal({ receivable: r, vehicle: v, valor: r.valor });
+        return;
+      }
+      const btnReceberEditar = e.target.closest("[data-fin-receber-editar]");
+      if (btnReceberEditar) {
+        await financeEditReceberPrompt(btnReceberEditar.getAttribute("data-fin-receber-editar"));
+        return;
+      }
+      const btnReceberVoltar = e.target.closest("[data-fin-receber-voltar]");
+      if (btnReceberVoltar) {
+        await financeVoltarReceberPrompt(btnReceberVoltar.getAttribute("data-fin-receber-voltar"));
+        return;
+      }
+      const btnReceberApagar = e.target.closest("[data-fin-receber-apagar]");
+      if (btnReceberApagar) {
+        await financeDeleteReceberPrompt(btnReceberApagar.getAttribute("data-fin-receber-apagar"));
+        return;
+      }
+      const btnPagarPg = e.target.closest("[data-fin-pagar-pg]");
+      if (btnPagarPg) {
+        const id = btnPagarPg.getAttribute("data-fin-pagar-pg");
+        const p = (state.payables || []).find((x) => String(x.id) === String(id));
+        if (p) openPagarBaixaModal(p);
+        return;
+      }
+      const btnPagarEditar = e.target.closest("[data-fin-pagar-editar]");
+      if (btnPagarEditar) {
+        await financeEditPagarPrompt(btnPagarEditar.getAttribute("data-fin-pagar-editar"));
+        return;
+      }
+      const btnPagarVoltar = e.target.closest("[data-fin-pagar-voltar]");
+      if (btnPagarVoltar) {
+        await financeVoltarPagarPrompt(btnPagarVoltar.getAttribute("data-fin-pagar-voltar"));
+        return;
+      }
+      const btnPagarApagar = e.target.closest("[data-fin-pagar-apagar]");
+      if (btnPagarApagar) {
+        await financeDeletePagarPrompt(btnPagarApagar.getAttribute("data-fin-pagar-apagar"));
         return;
       }
       const btnRec = e.target.closest("[data-fin-receber-id]");
