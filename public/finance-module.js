@@ -109,14 +109,6 @@
     return t;
   }
 
-  /** Nome único para entrada manual no caixa (pagante = descrição). */
-  function financeCaixaEntradaNomeExibicao(mov, rec) {
-    for (const src of [rec?.responsavel_pagamento, rec?.observacoes, mov?.descricao]) {
-      const t = financeTextAfterFinmeta(src);
-      if (t && t !== "—") return t;
-    }
-    return "—";
-  }
 
   function financeIsManualReceivable(r) {
     if (!r) return false;
@@ -157,9 +149,9 @@
     return financeStripFinmeta(raw) || "—";
   }
 
-  /** Origem (pagante) e descrição do título — sem exibir [[finmeta:...]]. */
-  function financeReceivableOrigemDescricao(r) {
-    if (!r) return { origem: "—", descricao: "—" };
+  /** Campos digitados no formulário (receita sem veículo) — sem finmeta nem rótulos do sistema. */
+  function financeReceivableTypedFields(r) {
+    if (!r) return { origem: "—", descricao: "—", observacoes: "" };
     const raw =
       typeof financeReceivableMetaText === "function"
         ? financeReceivableMetaText(r)
@@ -167,32 +159,63 @@
     const unpack =
       typeof financeMetaUnpack === "function" ? financeMetaUnpack(raw) : financeMetaUnpackLocal(raw);
     const meta = unpack.meta || {};
-    let origem = String(meta.origem_texto || "").trim();
-    let descricao = String(meta.descricao_texto || "").trim();
-    const texto = financeStripFinmeta(unpack.text || "");
-    if (!origem || !descricao) {
-      const parts = texto.split(/\s*—\s*/).map((p) => p.trim()).filter(Boolean);
-      if (parts.length >= 2) {
-        origem = origem || parts[0];
-        descricao = descricao || parts.slice(1).join(" — ");
-      } else if (texto) {
-        origem = origem || texto;
-        descricao = descricao || financeReceivableServicoLabel(r);
-      }
-    }
-    if (!origem) {
-      origem =
-        FINANCE_ORIGEM_MODULO_LABELS[String(meta.origem_modulo || "").toUpperCase()] ||
-        financeStripFinmeta(r?.responsavel_pagamento) ||
-        "—";
-    }
-    if (!descricao || descricao === origem) {
-      const svc = financeReceivableServicoLabel(r);
-      descricao = svc && svc !== "—" ? svc : texto || origem || "—";
-    }
+    let origem = financeDisplaySafeText(meta.origem_texto || "");
+    let descricao = financeDisplaySafeText(meta.descricao_texto || "");
+    let observacoes = financeDisplaySafeText(meta.observacoes_texto || "");
+    const parts = financeTextAfterFinmeta(unpack.text || "")
+      .split(/\s*—\s*/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (!origem && parts[0]) origem = parts[0];
+    if (!descricao && parts.length >= 2) descricao = parts[1];
+    if (!observacoes && parts.length >= 3) observacoes = parts.slice(2).join(" — ");
+    if (!descricao && parts.length === 1) descricao = parts[0];
     return {
-      origem: financeDisplaySafeText(origem),
-      descricao: financeDisplaySafeText(descricao),
+      origem: origem || "—",
+      descricao: descricao || "—",
+      observacoes: observacoes || "",
+    };
+  }
+
+  function financeReceivableOrigemDescricao(r) {
+    const t = financeReceivableTypedFields(r);
+    return { origem: t.origem, descricao: t.descricao };
+  }
+
+  function financeReceivableManualCellHtml(r) {
+    const t = financeReceivableTypedFields(r);
+    const lines = [
+      t.origem !== "—" ? `<span class="notice">Origem: ${escapeHtml(t.origem)}</span>` : "",
+      t.descricao !== "—" ? `<span class="notice">Descrição: ${escapeHtml(t.descricao)}</span>` : "",
+      t.observacoes ? `<span class="notice">Obs.: ${escapeHtml(t.observacoes)}</span>` : "",
+    ].filter(Boolean);
+    return lines.length ? lines.join("<br />") : "—";
+  }
+
+  function financePayableTypedFields(p) {
+    if (!p) return { fornecedor: "—", descricao: "—", observacoes: "" };
+    const raw =
+      typeof financePayableMetaText === "function"
+        ? financePayableMetaText(p)
+        : p?.observacoes || p?.descricao || "";
+    const unpack =
+      typeof financeMetaUnpack === "function" ? financeMetaUnpack(raw) : financeMetaUnpackLocal(raw);
+    const meta = unpack.meta || {};
+    let fornecedor = financeDisplaySafeText(meta.fornecedor_texto || p.fornecedor || "");
+    let descricao = financeDisplaySafeText(meta.descricao_texto || "");
+    let observacoes = financeDisplaySafeText(meta.observacoes_texto || "");
+    const parts = financeTextAfterFinmeta(unpack.text || "")
+      .split(/\s*—\s*/)
+      .map((x) => x.trim())
+      .filter(Boolean);
+    if (!fornecedor && parts[0]) fornecedor = parts[0];
+    if (!descricao && parts.length >= 2) descricao = parts[1];
+    if (!observacoes && parts.length >= 3) observacoes = parts.slice(2).join(" — ");
+    if (!descricao && parts.length === 1) descricao = parts[0];
+    return {
+      fornecedor: fornecedor || "—",
+      descricao: descricao || "—",
+      observacoes: observacoes || "",
     };
   }
 
@@ -204,15 +227,19 @@
       movRaw.includes(FINANCE_META_PREFIX_LOCAL) || recRaw.includes(FINANCE_META_PREFIX_LOCAL);
 
     if (hasFinmeta || (rec && financeIsManualReceivable(rec))) {
-      const nome = financeCaixaEntradaNomeExibicao(mov, rec);
-      return { pagante: nome, descricao: nome };
+      const t = financeReceivableTypedFields(rec);
+      const descMov = financeDisplaySafeText(financeTextAfterFinmeta(mov?.descricao));
+      return {
+        pagante: t.origem,
+        descricao: t.descricao !== "—" ? t.descricao : descMov !== "—" ? descMov : t.origem,
+      };
     }
 
     const v = rec ? financeVehicleById().get(rec.vehicle_id) : null;
     const placa = v?.placa || "";
     const pagante = rec ? financeReceberRppNome(rec, v) : financeDisplaySafeText(mov?.descricao);
     let descricao = financeDisplaySafeText(mov?.descricao);
-    if (descricao === "—" && rec) descricao = financeCaixaEntradaNomeExibicao(mov, rec);
+    if (descricao === "—" && rec) descricao = financeReceivableTypedFields(rec).descricao;
     if (descricao === "—" && placa) descricao = `Diárias — ${placa}`;
     return {
       pagante: financeDisplaySafeText(pagante),
@@ -700,8 +727,9 @@
         const v = vmap.get(r.vehicle_id);
         const saidaYmd = toLocalYmd(r.period_end || v?.data_saida || "");
         const saidaYm = yearMonthFromYmd(saidaYmd) || "";
+        const typed = financeIsManualReceivable(r) ? financeReceivableTypedFields(r) : null;
         const blob = [
-          financeReceivableLabel(r),
+          typed ? [typed.origem, typed.descricao, typed.observacoes].join(" ") : financeReceivableLabel(r),
           r.observacoes,
           v?.placa,
           v?.marca,
@@ -1242,12 +1270,9 @@
         const veiculoRpvHtml = isPatio
           ? `<strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span>`
           : isManual
-            ? (() => {
-                const od = financeReceivableOrigemDescricao(r);
-                return `<span class="notice">Receita manual</span><br /><span class="notice">Origem: ${escapeHtml(od.origem)}</span><br /><span class="notice">Descrição: ${escapeHtml(od.descricao)}</span>`;
-              })()
+            ? financeReceivableManualCellHtml(r)
             : `<span class="notice">—</span>`;
-        const rppHtml = escapeHtml(financeReceberRppNome(r, v));
+        const rppHtml = isManual ? "—" : escapeHtml(financeReceberRppNome(r, v));
         const diariasHtml = escapeHtml(financeReceberDiariasCell(r, v));
         const btnPay =
           st !== "Recebido"
@@ -1342,8 +1367,8 @@
             ? `<button type="button" class="secondary fin-btn-pagar" data-fin-pagar-id="${escapeHtml(String(p.id))}">Pagar</button>`
             : "";
         return `<tr>
-          <td data-label="Fornecedor">${escapeHtml(p.fornecedor || "—")}</td>
-          <td data-label="Descrição">${escapeHtml(p.descricao || "—")}</td>
+          <td data-label="Fornecedor">${escapeHtml(financePayableTypedFields(p).fornecedor)}</td>
+          <td data-label="Descrição">${escapeHtml(financePayableTypedFields(p).descricao)}</td>
           <td data-label="Categoria">${escapeHtml(payableCategoryLabel(p.payable_category))}</td>
           <td data-label="Tipo">${financeEntryTipoBadgeHtml(p, "payable")}</td>
           <td data-label="Valor">${escapeHtml(formatCurrency(Number(p.valor || 0)))}</td>
@@ -1370,7 +1395,7 @@
     if (financeCashIsEntrada(mov)) {
       if (rec) {
         if (financeIsManualReceivable(rec)) {
-          return financeCaixaEntradaLabels(mov, rec).pagante;
+          return financeReceivableTypedFields(rec).origem;
         }
         const rpp = financeReceberRppNome(rec, vehicle);
         if (rpp && rpp !== "—") return financeStripFinmeta(rpp);
@@ -2481,8 +2506,8 @@
       const rows = [
         header,
         ...list.map((p) => [
-          p.fornecedor || "",
-          p.descricao || "",
+          financePayableTypedFields(p).fornecedor,
+          financePayableTypedFields(p).descricao,
           payableCategoryLabel(p.payable_category),
           financeEntryTipoLabel(p, "payable"),
           Number(p.valor || 0).toFixed(2),
@@ -2503,7 +2528,12 @@
         ...list.map((r) => {
           const v = vmap.get(r.vehicle_id);
           return [
-            v?.placa ? `${v.placa} / ${financeVehicleRpvNome(v)}` : financeReceivableLabel(r),
+            v?.placa
+              ? `${v.placa} / ${financeVehicleRpvNome(v)}`
+              : (() => {
+                  const t = financeReceivableTypedFields(r);
+                  return [t.origem, t.descricao].filter((x) => x && x !== "—").join(" — ") || "—";
+                })(),
             financeReceberRppNome(r, v),
             financeReceberDiariasCell(r, v),
             Number(r.valor || 0).toFixed(2),
@@ -2602,6 +2632,7 @@
       const rpv = financeVehicleRpvNome(v);
       return `<strong>${escapeHtml(v.placa)}</strong><br /><span class="muted">${escapeHtml(vm)}</span><br /><span class="muted">RPV: ${escapeHtml(rpv)}</span>`;
     }
+    if (financeIsManualReceivable(r)) return financeReceivableManualCellHtml(r);
     return `<span class="muted">${escapeHtml(financeReceivableLabel(r))}</span>`;
   }
 
@@ -2860,7 +2891,10 @@
         const due = financeContaDueYmd(r, "receivable");
         const veiculoLines = v?.placa
           ? [String(v.placa), [v.marca, v.modelo].filter(Boolean).join(" ") || "—", `RPV: ${financeVehicleRpvNome(v)}`]
-          : [financeReceivableLabel(r)];
+          : (() => {
+              const t = financeReceivableTypedFields(r);
+              return [t.origem, t.descricao, t.observacoes].filter(Boolean).filter((x) => x !== "—");
+            })();
         const cellLines = [
           veiculoLines.flatMap((line) => pdf.splitTextToSize(line, cols[0].w - 8)),
           pdf.splitTextToSize(String(financeReceberRppNome(r, v)), cols[1].w - 8),
