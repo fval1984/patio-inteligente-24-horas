@@ -109,6 +109,43 @@
     return t;
   }
 
+  /** Caixa — coluna Pagante: só quem pagou (origem), sem JSON. */
+  function financeQuemPagouCaixa(mov, rec) {
+    rec = rec || financeFindReceivableForMov(mov);
+    if (rec) {
+      const t = financeReceivableTypedFields(rec);
+      if (t.origem && t.origem !== "—") return t.origem;
+    }
+    if (rec?.vehicle_id) {
+      const v = financeVehicleById().get(rec.vehicle_id);
+      const rpp = financeReceberRppNome(rec, v);
+      if (rpp && rpp !== "—" && !String(rpp).includes(FINANCE_META_PREFIX_LOCAL)) return rpp;
+      if (v?.placa) return v.placa;
+    }
+    for (const src of [rec?.responsavel_pagamento, rec?.observacoes, mov?.descricao]) {
+      const nome = financeTextAfterFinmeta(src);
+      if (!nome || nome.includes(FINANCE_META_PREFIX_LOCAL)) continue;
+      const first = nome.split(/\s*—\s*/)[0].trim();
+      return first || nome;
+    }
+    return "—";
+  }
+
+  /** Caixa — coluna Descrição (texto digitado, não quem pagou). */
+  function financeCaixaDescricaoEntrada(mov, rec) {
+    rec = rec || financeFindReceivableForMov(mov);
+    if (rec && financeIsManualReceivable(rec)) {
+      const t = financeReceivableTypedFields(rec);
+      if (t.descricao && t.descricao !== "—") return t.descricao;
+      return financeDisplaySafeText(mov?.descricao) || "—";
+    }
+    const v = rec?.vehicle_id ? financeVehicleById().get(rec.vehicle_id) : null;
+    const desc = financeDisplaySafeText(mov?.descricao);
+    if (desc && desc !== "—") return desc;
+    if (v?.placa) return `Diárias — ${v.placa}`;
+    return "—";
+  }
+
 
   function financeIsManualReceivable(r) {
     if (!r) return false;
@@ -220,40 +257,26 @@
   }
 
   function financeCaixaEntradaLabels(mov, rec) {
-    rec = rec || financeFindReceivableForMov(mov);
-    const movRaw = String(mov?.descricao || "");
-    const recRaw = rec ? String(rec.responsavel_pagamento || rec.observacoes || "") : "";
-    const hasFinmeta =
-      movRaw.includes(FINANCE_META_PREFIX_LOCAL) || recRaw.includes(FINANCE_META_PREFIX_LOCAL);
-
-    if (hasFinmeta || (rec && financeIsManualReceivable(rec))) {
-      const t = financeReceivableTypedFields(rec);
-      const descMov = financeDisplaySafeText(financeTextAfterFinmeta(mov?.descricao));
-      return {
-        pagante: t.origem,
-        descricao: t.descricao !== "—" ? t.descricao : descMov !== "—" ? descMov : t.origem,
-      };
-    }
-
-    const v = rec ? financeVehicleById().get(rec.vehicle_id) : null;
-    const placa = v?.placa || "";
-    const pagante = rec ? financeReceberRppNome(rec, v) : financeDisplaySafeText(mov?.descricao);
-    let descricao = financeDisplaySafeText(mov?.descricao);
-    if (descricao === "—" && rec) descricao = financeReceivableTypedFields(rec).descricao;
-    if (descricao === "—" && placa) descricao = `Diárias — ${placa}`;
     return {
-      pagante: financeDisplaySafeText(pagante),
-      descricao: financeDisplaySafeText(descricao),
+      pagante: financeQuemPagouCaixa(mov, rec),
+      descricao: financeCaixaDescricaoEntrada(mov, rec),
     };
   }
 
   function financeSanitizeCaixaTableCells(root) {
     if (!root) return;
-    root.querySelectorAll('td[data-label="Pagante"], td[data-label="Descrição"]').forEach((td) => {
+    root.querySelectorAll('td[data-label="Pagante"]').forEach((td) => {
+      const t = td.textContent || "";
+      if (!t.includes(FINANCE_META_PREFIX_LOCAL)) return;
+      const clean =
+        financeTextAfterFinmeta(t).split(/\s*—\s*/)[0].trim() || financeTextAfterFinmeta(t);
+      if (clean && !clean.includes(FINANCE_META_PREFIX_LOCAL)) td.textContent = clean;
+    });
+    root.querySelectorAll('td[data-label="Descrição"]').forEach((td) => {
       const t = td.textContent || "";
       if (!t.includes(FINANCE_META_PREFIX_LOCAL)) return;
       const clean = financeTextAfterFinmeta(t);
-      if (clean && clean !== "—") td.textContent = clean;
+      if (clean && !clean.includes(FINANCE_META_PREFIX_LOCAL)) td.textContent = clean;
     });
   }
 
@@ -1395,7 +1418,7 @@
     if (financeCashIsEntrada(mov)) {
       if (rec) {
         if (financeIsManualReceivable(rec)) {
-          return financeReceivableTypedFields(rec).origem;
+          return financeQuemPagouCaixa(mov, rec);
         }
         const rpp = financeReceberRppNome(rec, vehicle);
         if (rpp && rpp !== "—") return financeStripFinmeta(rpp);
@@ -2366,9 +2389,8 @@
         let pagante = "—";
         let descText = "—";
         if (isEntrada) {
-          const labels = financeCaixaEntradaLabels(mov, rec);
-          pagante = labels.pagante;
-          descText = labels.descricao;
+          pagante = financeQuemPagouCaixa(mov, rec);
+          descText = financeCaixaDescricaoEntrada(mov, rec);
         } else {
           pagante = financeCashPaganteLabel(mov, rec, pay, v);
           descText = financeStripFinmeta(mov.descricao || pay?.descricao || pay?.fornecedor || "—");
