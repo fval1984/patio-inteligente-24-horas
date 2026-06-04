@@ -6559,7 +6559,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260603v"></script>
+    <script src="/finance-module.js?v=20260603w"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -6842,12 +6842,16 @@
           const isLast = i === count - 1;
           const markPago = pago && (count === 1 || isLast);
           const dataCaixa = markPago ? toLocalYmd(dataPagamento || data) || data : "";
+          const origemLabel = clienteNome || "";
+          const descLabel = String(descricao || "").trim();
+          const extraObs = String(observacoes || "").trim();
           const meta = {
             modo: modoUp,
             competencia: competencia || yearMonthFromYmd(data) || "",
             origem_modulo: "CONTROLE_RECEITAS",
-            origem_texto: origemLabel || descLabel,
-            descricao_texto: descLabel || origemLabel,
+            origem_texto: origemLabel,
+            descricao_texto: descLabel,
+            observacoes_texto: extraObs,
             gerou_compromisso: !markPago,
             forma_pagamento: formaPagamento,
             ...(markPago && dataCaixa ? { data_pagamento: dataCaixa } : {}),
@@ -6856,17 +6860,14 @@
               ? { recorrencia: String(recorrenciaIntervalo || "mensal").toLowerCase() }
               : {}),
           };
-          const origemLabel = clienteNome || "";
-          const descLabel = String(descricao || "").trim();
-          const extraObs = String(observacoes || "").trim();
-          const userText = [origemLabel, descLabel, extraObs].filter(Boolean).join(" — ") || descLabel || "Receita manual";
+          const userText = [origemLabel, descLabel, extraObs].filter(Boolean).join(" — ") || descLabel || origemLabel;
           const obsPacked = financeMetaPack(meta, userText);
           const sub =
             modoUp === "RECORRENTE" ? "RECORRENTE" : modoUp === "PARCELADA" ? `PARCELADA_${i + 1}` : "MANUAL";
           const payload = {
             user_id: effectiveUserId(),
             vehicle_id: null,
-            responsavel_pagamento: obsPacked || origemLabel || "Receita manual",
+            responsavel_pagamento: obsPacked || origemLabel || descLabel || "—",
             receivable_category: categoria,
             valor: valorParcela,
             status: markPago ? "PAGO" : "EM_ABERTO",
@@ -6943,12 +6944,18 @@
           const dueDate = addMonthsToYmd(vencimento, i) || vencimento;
           const isLast = i === count - 1;
           const markPago = pago && (count === 1 || isLast);
+          const fornLabel = String(fornecedor || "").trim();
+          const descLabel = String(descricao || "").trim();
+          const obsLabel = String(observacoes || "").trim();
           const meta = {
             modo: modoUp,
             natureza: String(natureza || "VARIAVEL").toUpperCase(),
             centro_custo: String(centroCusto || "").trim() || null,
             competencia: competencia || yearMonthFromYmd(vencimento) || "",
             origem_modulo: "CONTROLE_DESPESAS",
+            fornecedor_texto: fornLabel,
+            descricao_texto: descLabel,
+            observacoes_texto: obsLabel,
             gerou_compromisso: !markPago,
             conta_bancaria: String(contaBancaria || "").trim() || null,
             ...(modoUp === "RECORRENTE"
@@ -6956,10 +6963,10 @@
               : {}),
             ...(modoUp === "PARCELADA" ? { parcela: i + 1, parcelas_total: count, grupo_id: grupoId } : {}),
           };
-          const baseDesc = count > 1 ? `${descricao} (${i + 1}/${count})` : descricao;
+          const baseDesc = count > 1 ? `${descLabel} (${i + 1}/${count})` : descLabel;
           const descricaoFinal = financeMetaPack(
             meta,
-            [observacoes, baseDesc].filter(Boolean).join(" — ").trim() || baseDesc
+            [fornLabel, baseDesc, obsLabel].filter(Boolean).join(" — ").trim() || baseDesc
           );
           const payload = {
             user_id: effectiveUserId(),
