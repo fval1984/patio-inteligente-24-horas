@@ -6434,6 +6434,10 @@
                 <input id="finRecCliente" type="text" required placeholder="Ex.: mensalista, parceiro, balcão…" />
               </div>
               <div class="full">
+                <label for="finRecRpp">RPP</label>
+                <input id="finRecRpp" type="text" placeholder="Responsável pelo pagamento" />
+              </div>
+              <div class="full">
                 <label for="finRecDescricao">Descrição</label>
                 <input id="finRecDescricao" type="text" required placeholder="Ex.: Mensalidade março — placa ABC1D23" />
               </div>
@@ -6559,7 +6563,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260604g"></script>
+    <script src="/finance-module.js?v=20260604h"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -6820,6 +6824,7 @@
         vencimento,
         categoria,
         cliente,
+        rpp,
         formaPagamento,
         observacoes,
         pago,
@@ -6844,6 +6849,7 @@
           const dataCaixa = markPago ? toLocalYmd(dataPagamento || data) || data : "";
           const origemLabel = clienteNome || "";
           const descLabel = String(descricao || "").trim();
+          const rppLabel = String(rpp || "").trim();
           const extraObs = String(observacoes || "").trim();
           const meta = {
             modo: modoUp,
@@ -6851,6 +6857,7 @@
             origem_modulo: "CONTROLE_RECEITAS",
             origem_texto: origemLabel,
             descricao_texto: descLabel,
+            rpp_texto: rppLabel,
             observacoes_texto: extraObs,
             gerou_compromisso: !markPago,
             forma_pagamento: formaPagamento,
@@ -6860,7 +6867,10 @@
               ? { recorrencia: String(recorrenciaIntervalo || "mensal").toLowerCase() }
               : {}),
           };
-          const userText = [origemLabel, descLabel, extraObs].filter(Boolean).join(" — ") || descLabel || origemLabel;
+          const userText =
+            [origemLabel, descLabel, rppLabel ? `RPP: ${rppLabel}` : "", extraObs].filter(Boolean).join(" — ") ||
+            descLabel ||
+            origemLabel;
           const obsPacked = financeMetaPack(meta, userText);
           const sub =
             modoUp === "RECORRENTE" ? "RECORRENTE" : modoUp === "PARCELADA" ? `PARCELADA_${i + 1}` : "MANUAL";

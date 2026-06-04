@@ -210,7 +210,7 @@
 
   /** Campos digitados no formulário (receita sem veículo) — sem finmeta nem rótulos do sistema. */
   function financeReceivableTypedFields(r) {
-    if (!r) return { origem: "—", descricao: "—", observacoes: "" };
+    if (!r) return { origem: "—", descricao: "—", rpp: "—", observacoes: "" };
     const raw =
       typeof financeReceivableMetaText === "function"
         ? financeReceivableMetaText(r)
@@ -220,18 +220,28 @@
     const meta = unpack.meta || {};
     let origem = financeDisplaySafeText(meta.origem_texto || "");
     let descricao = financeDisplaySafeText(meta.descricao_texto || "");
+    let rpp = financeDisplaySafeText(meta.rpp_texto || "");
     let observacoes = financeDisplaySafeText(meta.observacoes_texto || "");
+    if (origem === "—") origem = "";
+    if (descricao === "—") descricao = "";
+    if (rpp === "—") rpp = "";
+    if (observacoes === "—") observacoes = "";
     const parts = financeTextAfterFinmeta(unpack.text || "")
       .split(/\s*—\s*/)
       .map((p) => p.trim())
       .filter(Boolean);
     if (!origem && parts[0]) origem = parts[0];
     if (!descricao && parts.length >= 2) descricao = parts[1];
-    if (!observacoes && parts.length >= 3) observacoes = parts.slice(2).join(" — ");
+    if (!rpp && parts.length >= 3 && /^RPP\s*:/i.test(parts[2])) rpp = parts[2].replace(/^RPP\s*:\s*/i, "").trim();
+    if (!observacoes && parts.length >= 3) {
+      const obsStart = rpp && /^RPP\s*:/i.test(parts[2]) ? 3 : 2;
+      observacoes = parts.slice(obsStart).join(" — ");
+    }
     if (!descricao && parts.length === 1) descricao = parts[0];
     return {
       origem: origem || "—",
       descricao: descricao || "—",
+      rpp: rpp || "—",
       observacoes: observacoes || "",
     };
   }
@@ -377,9 +387,7 @@
   }
 
   function financeReceberRppNome(r, v) {
-    if (typeof isManualFinanceLancamento === "function" && isManualFinanceLancamento(r)) {
-      return "—";
-    }
+    if (financeIsManualReceivable(r)) return financeReceivableTypedFields(r).rpp;
     if (typeof vehicleRpfNome === "function" && v) {
       const rpf = vehicleRpfNome(v);
       if (rpf && rpf !== "—") return rpf;
@@ -1379,7 +1387,7 @@
         const isManual = financeIsManualReceivable(r);
         const origemHtml = escapeHtml(financeReceivableOrigemCellText(r, v));
         const descricaoHtml = financeReceivableDescricaoCellHtml(r, v);
-        const rppHtml = isManual ? "—" : escapeHtml(financeReceberRppNome(r, v));
+        const rppHtml = escapeHtml(financeReceberRppNome(r, v));
         const actionsHtml = financeRowActionsHtml("receber", r.id, st !== "Recebido");
         return `<tr>
           <td data-label="Origem">${origemHtml}</td>
@@ -2564,6 +2572,8 @@
     if (origem == null) return;
     const descricao = prompt("Descrição:", financeReceivableDescricaoCellText(rec, v));
     if (descricao == null) return;
+    const rpp = prompt("RPP:", financeReceberRppNome(rec, v));
+    if (rpp == null) return;
     const valorRaw = prompt("Valor:", String(Number(rec.valor || 0)));
     if (valorRaw == null) return;
     const valor = Number(String(valorRaw).replace(",", "."));
@@ -2574,8 +2584,10 @@
     if (financeIsManualReceivable(rec)) {
       const raw = typeof financeReceivableMetaText === "function" ? financeReceivableMetaText(rec) : rec.responsavel_pagamento || "";
       const { meta } = typeof financeMetaUnpack === "function" ? financeMetaUnpack(raw) : { meta: {} };
-      const newMeta = { ...(meta || {}), origem_texto: origem.trim(), descricao_texto: descricao.trim() };
-      const userText = [origem.trim(), descricao.trim(), typed.observacoes].filter(Boolean).join(" — ");
+      const newMeta = { ...(meta || {}), origem_texto: origem.trim(), descricao_texto: descricao.trim(), rpp_texto: rpp.trim() };
+      const userText = [origem.trim(), descricao.trim(), rpp.trim() ? `RPP: ${rpp.trim()}` : "", typed.observacoes]
+        .filter(Boolean)
+        .join(" — ");
       patch.responsavel_pagamento =
         typeof financeMetaPack === "function" ? financeMetaPack(newMeta, userText) : userText;
     }
@@ -3600,6 +3612,7 @@
     document.getElementById("finReceitaForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const origem = document.getElementById("finRecCliente")?.value?.trim();
+      const rpp = document.getElementById("finRecRpp")?.value?.trim();
       const descricao = document.getElementById("finRecDescricao")?.value?.trim();
       const valor = Number(document.getElementById("finRecValor")?.value);
       const dataLancamento = document.getElementById("finRecDataLancamento")?.value;
@@ -3631,6 +3644,7 @@
           vencimento,
           categoria,
           cliente: origem,
+          rpp,
           formaPagamento,
           observacoes,
           pago: jaRecebido,
