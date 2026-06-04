@@ -109,26 +109,43 @@
     return t;
   }
 
+  function financeNormalizeQuemPagouText(value) {
+    const clean = financeDisplaySafeText(value);
+    if (!clean || clean === "—") return "—";
+    const tabChunk =
+      clean
+        .split(/\t+/)
+        .map((p) => p.trim())
+        .find(Boolean) || clean;
+    const dashChunk =
+      tabChunk
+        .split(/\s*—\s*/)
+        .map((p) => p.trim())
+        .find(Boolean) || tabChunk;
+    return dashChunk || "—";
+  }
+
   /** Caixa — coluna Pagante: só quem pagou (origem), sem JSON. */
   function financeQuemPagouCaixa(mov, rec) {
     rec = rec || financeFindReceivableForMov(mov);
     if (rec) {
       const t = financeReceivableTypedFields(rec);
-      if (t.origem && t.origem !== "—") return t.origem;
+      if (t.origem && t.origem !== "—") return financeNormalizeQuemPagouText(t.origem);
     }
     if (rec?.vehicle_id) {
       const v = financeVehicleById().get(rec.vehicle_id);
       const rpp = financeReceberRppNome(rec, v);
-      if (rpp && rpp !== "—" && !String(rpp).includes(FINANCE_META_PREFIX_LOCAL)) return rpp;
-      if (v?.placa) return v.placa;
+      if (rpp && rpp !== "—" && !String(rpp).includes(FINANCE_META_PREFIX_LOCAL)) {
+        return financeNormalizeQuemPagouText(rpp);
+      }
+      if (v?.placa) return financeNormalizeQuemPagouText(v.placa);
     }
     for (const src of [rec?.responsavel_pagamento, rec?.observacoes, mov?.descricao]) {
       const nome = financeTextAfterFinmeta(src);
       if (!nome || nome.includes(FINANCE_META_PREFIX_LOCAL)) continue;
-      const first = nome.split(/\s*—\s*/)[0].trim();
-      return first || nome;
+      return financeNormalizeQuemPagouText(nome);
     }
-    return "—";
+    return financeNormalizeQuemPagouText(mov?.descricao);
   }
 
   /** Caixa — coluna Descrição (texto digitado, não quem pagou). */
@@ -268,8 +285,7 @@
     root.querySelectorAll('td[data-label="Pagante"]').forEach((td) => {
       const t = td.textContent || "";
       if (!t.includes(FINANCE_META_PREFIX_LOCAL)) return;
-      const clean =
-        financeTextAfterFinmeta(t).split(/\s*—\s*/)[0].trim() || financeTextAfterFinmeta(t);
+      const clean = financeNormalizeQuemPagouText(financeTextAfterFinmeta(t));
       if (clean && !clean.includes(FINANCE_META_PREFIX_LOCAL)) td.textContent = clean;
     });
     root.querySelectorAll('td[data-label="Descrição"]').forEach((td) => {
