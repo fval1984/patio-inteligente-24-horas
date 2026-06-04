@@ -6569,14 +6569,35 @@
         return `${FINANCE_META_PREFIX}${JSON.stringify(meta)}]] ${clean}`.trim();
       }
 
+      function financeStripFinmetaText(obs) {
+        const raw = String(obs || "").trim();
+        if (!raw.includes(FINANCE_META_PREFIX)) return raw;
+        const end = raw.lastIndexOf("]]");
+        if (end >= 0) {
+          const tail = raw.slice(end + 2).trim();
+          if (tail && !tail.includes(FINANCE_META_PREFIX)) return tail;
+        }
+        let t = raw;
+        while (t.includes(FINANCE_META_PREFIX)) {
+          const s = t.indexOf(FINANCE_META_PREFIX);
+          const e = t.indexOf("]]", s);
+          if (e < 0) break;
+          t = (t.slice(0, s) + t.slice(e + 2)).trim();
+        }
+        return t;
+      }
+
       function financeMetaUnpack(obs) {
         const raw = String(obs || "");
-        const m = raw.match(/^\[\[finmeta:(\{.*?\})\]\]\s*([\s\S]*)$/);
-        if (!m) return { meta: {}, text: raw };
+        if (!raw.startsWith(FINANCE_META_PREFIX)) return { meta: {}, text: raw };
+        const end = raw.indexOf("]]");
+        if (end < 0) return { meta: {}, text: raw };
+        const jsonPart = raw.slice(FINANCE_META_PREFIX.length, end).replace(/^[^\{]*/, "");
+        const text = raw.slice(end + 2).trim();
         try {
-          return { meta: JSON.parse(m[1]), text: m[2] || "" };
+          return { meta: JSON.parse(jsonPart), text };
         } catch (e) {
-          return { meta: {}, text: raw };
+          return { meta: {}, text: financeStripFinmetaText(raw) };
         }
       }
 
@@ -8504,18 +8525,30 @@
         }
 
         if (currentListaView === "caixa") {
-          head.innerHTML = `<tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Valor</th></tr>`;
+          head.innerHTML = `<tr><th>Data</th><th>Tipo</th><th>Origem</th><th>Descrição</th><th>Valor</th></tr>`;
           const list = (state.cash || []).filter(listaCashMatches);
           if (!list.length) {
-            body.innerHTML = `<tr><td colspan="4" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="5" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
             return;
           }
           body.innerHTML = list
             .map((mov) => {
+              const rec =
+                mov.tipo_conta === "RECEBER" && mov.conta_id != null && mov.conta_id !== ""
+                  ? state.receivables.find((r) => String(r.id) === String(mov.conta_id))
+                  : null;
+              const { meta, text } = financeMetaUnpack(rec?.observacoes || rec?.responsavel_pagamento || "");
+              const origem = financeStripFinmetaText(
+                meta?.origem_texto || rec?.responsavel_pagamento || mov.descricao || "—"
+              );
+              const descricao = financeStripFinmetaText(
+                meta?.descricao_texto || text || mov.descricao || "—"
+              );
               return `<tr>
               <td data-label="Data">${escapeHtml(formatDateTime(mov.data_movimento))}</td>
               <td data-label="Tipo">${escapeHtml(mov.tipo_conta || "—")}</td>
-              <td data-label="Descrição">${escapeHtml(mov.descricao || "—")}</td>
+              <td data-label="Origem">${escapeHtml(origem || "—")}</td>
+              <td data-label="Descrição">${escapeHtml(descricao || "—")}</td>
               <td data-label="Valor">${escapeHtml(formatCurrency(Number(mov.valor || 0)))}</td>
             </tr>`;
             })
