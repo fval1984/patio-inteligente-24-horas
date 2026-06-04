@@ -287,7 +287,7 @@
 
   function financeSanitizeCaixaTableCells(root) {
     if (!root) return;
-    root.querySelectorAll('td[data-label="Pagante"]').forEach((td) => {
+    root.querySelectorAll('td[data-label="Origem"], td[data-label="Pagante"]').forEach((td) => {
       const t = td.textContent || "";
       if (!t.includes(FINANCE_META_PREFIX_LOCAL)) return;
       const clean = financeNormalizeQuemPagouText(financeTextAfterFinmeta(t));
@@ -2390,7 +2390,7 @@
       const placaHint = financeNormalizePlate(financeFilterCaixaPlaca)
         ? " Nenhuma movimentação para a placa informada."
         : "";
-      body.innerHTML = `<tr><td colspan="7" class="notice">Nenhuma movimentação registrada.${periodoHint}${placaHint}${tipoHint}</td></tr>`;
+      body.innerHTML = `<tr><td colspan="5" class="notice">Nenhuma movimentação registrada.${periodoHint}${placaHint}${tipoHint}</td></tr>`;
       return;
     }
     const rowsHtml = movs
@@ -2432,20 +2432,17 @@
         return `<tr>
           <td data-label="Data">${escapeHtml(formatDate(mov.data_movimento || mov.created_at))}</td>
           <td data-label="Tipo"><span class="${tipoClass}">${tipoLabel}</span></td>
-          <td data-label="Pagante">${escapeHtml(pagante)}</td>
+          <td data-label="Origem">${escapeHtml(pagante)}</td>
           <td data-label="Descrição">${desc}</td>
-          <td data-label="Forma">${escapeHtml(mov.forma_pagamento || "—")}</td>
           <td data-label="Valor"><span class="${tipoClass}">${escapeHtml(formatCurrency(valSigned))}</span></td>
-          <td data-label="Conta">${escapeHtml(financeMovContaLabel(mov))}</td>
         </tr>`;
       })
       .join("");
     body.innerHTML =
       rowsHtml +
       `<tr class="fin-caixa-total-row">
-        <td colspan="5" data-label=""><strong>Saldo</strong></td>
+        <td colspan="4" data-label=""><strong>Saldo</strong></td>
         <td data-label="Valor"><strong class="${totPeriodo.saldo >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(totPeriodo.saldo))}</strong></td>
-        <td data-label=""></td>
       </tr>`;
     financeSanitizeCaixaTableCells(body);
   }
@@ -2596,7 +2593,7 @@
     if (view === "caixa") {
       const vmap = financeVehicleById();
       const rows = [
-        ["Data", "Tipo", "Pagante", "Descrição", "Forma", "Valor", "Conta"],
+        ["Data", "Tipo", "Origem", "Descrição", "Valor"],
         ...financeCaixaMovsMerged().map((m) => {
           const isEntrada = financeCashIsEntrada(m);
           const rec = isEntrada
@@ -2611,9 +2608,7 @@
             isEntrada ? "Entrada" : "Saída",
             isEntrada ? entradaLabels.pagante : financeCashPaganteLabel(m, rec, pay, v),
             isEntrada ? entradaLabels.descricao : financeStripFinmeta(m.descricao || pay?.descricao || ""),
-            m.forma_pagamento || "",
             financeCashMovValor(m).toFixed(2),
-            financeMovContaLabel(m),
           ];
         }),
       ];
