@@ -6559,7 +6559,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260604d"></script>
+    <script src="/finance-module.js?v=20260604e"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -9906,18 +9906,30 @@
         }
 
         if (currentListaView === "caixa") {
-          head.innerHTML = `<tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Valor</th></tr>`;
+          head.innerHTML = `<tr><th>Data</th><th>Tipo</th><th>Origem</th><th>Descrição</th><th>Valor</th></tr>`;
           const list = (state.cash || []).filter(listaCashMatches);
           if (!list.length) {
-            body.innerHTML = `<tr><td colspan="4" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="5" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
             return;
           }
           body.innerHTML = list
             .map((mov) => {
+              const rec =
+                String(mov.tipo_conta || "").toUpperCase() === "RECEBER" && mov.conta_id != null && mov.conta_id !== ""
+                  ? state.receivables.find((r) => String(r.id) === String(mov.conta_id))
+                  : null;
+              const { meta, text } = financeMetaUnpack(
+                rec?.observacoes || rec?.responsavel_pagamento || mov.descricao || ""
+              );
+              const origem = financeStripFinmetaText(
+                meta?.origem_texto || rec?.responsavel_pagamento || text || mov.descricao || "—"
+              );
+              const descricao = financeStripFinmetaText(meta?.descricao_texto || text || mov.descricao || "—");
               return `<tr>
               <td data-label="Data">${escapeHtml(formatDateTime(mov.data_movimento))}</td>
               <td data-label="Tipo">${escapeHtml(mov.tipo_conta || "—")}</td>
-              <td data-label="Descrição">${escapeHtml(mov.descricao || "—")}</td>
+              <td data-label="Origem">${escapeHtml(origem || "—")}</td>
+              <td data-label="Descrição">${escapeHtml(descricao || "—")}</td>
               <td data-label="Valor">${escapeHtml(formatCurrency(Number(mov.valor || 0)))}</td>
             </tr>`;
             })
