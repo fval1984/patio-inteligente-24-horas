@@ -1682,7 +1682,10 @@
         display: flex;
         flex-direction: column;
       }
-      #viewPatio.patio-flyout-open #patioContent .section-card.patio-subview:not(.hidden) .table-wrap {
+      #viewPatio.patio-flyout-open #patioContent:has(.section-card.patio-subview[data-subview="no_patio"]:not(.hidden)) {
+        overflow: hidden;
+      }
+      #viewPatio.patio-flyout-open #patioContent .section-card.patio-subview:not(.hidden) #vnpMainTableWrap {
         flex: 1 1 auto;
         min-height: 0;
         overflow: auto;
@@ -2955,6 +2958,55 @@
       #viewPatio.patio-flyout-open .vnp-destaque-sticky {
         top: 8px;
       }
+      /* VNP: painel de prioridade fixo no topo; só a lista principal rola */
+      #viewPatio .section-card.patio-subview[data-subview="no_patio"] {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        gap: 0;
+      }
+      #viewPatio .section-card.patio-subview[data-subview="no_patio"] .vnp-destaque-sticky:not(.hidden) {
+        position: sticky;
+        top: 0;
+        z-index: 45;
+        flex-shrink: 0;
+      }
+      #viewPatio #vnpMainTableWrap {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+      }
+      #patioContent.modal-backdrop.tab-view-modal .section-card.patio-subview[data-subview="no_patio"]:not(.hidden) {
+        flex: 1 1 auto;
+        min-height: 0;
+      }
+      #patioContent.modal-backdrop.tab-view-modal .tab-modal-body:has(
+          .section-card.patio-subview[data-subview="no_patio"]:not(.hidden)
+        ) {
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      #patioContent.modal-backdrop.tab-view-modal #vnpMainTableWrap {
+        max-height: none;
+      }
+      #viewLista #listaCaptureRoot > .section-card {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      #viewLista #listaVnpDestaqueSticky:not(.hidden) {
+        position: sticky;
+        top: 0;
+        z-index: 45;
+        flex-shrink: 0;
+      }
+      #viewLista #listaVnpDestaqueSticky:not(.hidden) + .table-wrap {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        max-height: min(52vh, 520px);
+      }
       .actions {
         display: flex;
         gap: 8px;
@@ -3246,12 +3298,13 @@
       .modal.modal--wide {
         width: min(1180px, 96vw);
       }
-      #patioContent.modal-backdrop,
+      #patioContent.modal-backdrop {
         margin-top: 0 !important;
       }
       #viewPatio.patio-module-shell.patio-subtab-modal-open {
         overflow: visible !important;
       }
+      #patioContent.modal-backdrop.tab-view-modal {
         position: fixed !important;
         inset: 0 !important;
         width: auto !important;
@@ -3272,69 +3325,24 @@
         justify-content: center;
         box-sizing: border-box;
       }
+      [data-theme="light"] #patioContent.modal-backdrop.tab-view-modal {
         background: rgba(15, 23, 42, 0.45) !important;
       }
+      #patioContent.modal-backdrop.tab-view-modal > .modal.modal--wide {
         width: min(1180px, 96vw);
         max-height: calc(100vh - 40px);
         overflow: hidden;
         display: flex;
         flex-direction: column;
       }
+      #patioContent.modal-backdrop.tab-view-modal .tab-modal-body {
         flex: 1 1 auto;
         min-height: 0;
         overflow: auto;
         max-height: calc(100vh - 140px);
       }
+      #patioContent.modal-backdrop.tab-view-modal #patioFlyoutSummaryCards {
         display: none !important;
-      }
-        margin-bottom: 12px;
-      }
-        --ft-bg: var(--bg);
-        --ft-surface: var(--card);
-        --ft-surface-elevated: color-mix(in srgb, var(--card) 98%, #fff 2%);
-        --ft-border: var(--border);
-        --ft-text: var(--text);
-        --ft-muted: var(--muted);
-        --ft-accent: var(--primary);
-        --ft-accent-strong: var(--primary-strong);
-        --ft-accent-soft: var(--primary-weak);
-        --ft-accent-border: rgba(225, 29, 46, 0.35);
-        --ft-shadow: var(--shadow-soft);
-        --ft-radius: 12px;
-        --ft-table-head: color-mix(in srgb, var(--card) 82%, rgba(225, 29, 46, 0.1));
-        --ft-row-hover: color-mix(in srgb, var(--card) 90%, rgba(225, 29, 46, 0.12));
-        color: var(--ft-text);
-      }
-        --ft-surface: rgba(255, 255, 255, 0.96);
-        --ft-surface-elevated: #ffffff;
-        --ft-accent-soft: var(--primary-weak);
-        --ft-table-head: #fef2f2;
-        --ft-row-hover: rgba(225, 29, 46, 0.06);
-      }
-        border: 1px solid var(--ft-border);
-        border-radius: var(--ft-radius);
-        background: var(--ft-surface-elevated);
-        box-shadow: var(--ft-shadow);
-      }
-        background: var(--ft-table-head) !important;
-        color: var(--ft-text) !important;
-        border-bottom: 1px solid var(--ft-border) !important;
-      }
-        color: var(--ft-text);
-        border-bottom: 1px solid var(--ft-border);
-      }
-        border: 1px solid var(--ft-border);
-        border-radius: var(--ft-radius);
-        background: var(--ft-surface);
-      }
-        border-color: var(--ft-border);
-        background: var(--ft-surface-elevated);
-      }
-        display: none !important;
-      }
-        display: none !important;
-      }
-        z-index: 200 !important;
       }
       .tab-modal-backdrop {
         position: fixed;
@@ -3382,7 +3390,7 @@
       [data-theme="light"] .tab-modal-panel {
         background: rgba(255, 255, 255, 0.78);
       }
-      .tab-modal-body .table-wrap {
+      .tab-modal-body .table-wrap:not(#vnpMainTableWrap) {
         max-height: min(58vh, 520px);
         overflow: auto;
       }
