@@ -1682,10 +1682,7 @@
         display: flex;
         flex-direction: column;
       }
-      #viewPatio.patio-flyout-open #patioContent:has(.section-card.patio-subview[data-subview="no_patio"]:not(.hidden)) {
-        overflow: hidden;
-      }
-      #viewPatio.patio-flyout-open #patioContent .section-card.patio-subview:not(.hidden) #vnpMainTableWrap {
+      #viewPatio.patio-flyout-open #patioContent .section-card.patio-subview:not(.hidden) .table-wrap {
         flex: 1 1 auto;
         min-height: 0;
         overflow: auto;
@@ -2923,90 +2920,6 @@
         background: rgba(254, 202, 202, 0.35);
         box-shadow: inset 3px 0 0 0 rgba(185, 28, 28, 0.9);
       }
-      .vnp-destaque-sticky {
-        position: sticky;
-        top: 0;
-        z-index: 40;
-        margin: 0 0 14px;
-        padding: 10px 12px 8px;
-        border-radius: 12px;
-        border: 1px solid rgba(245, 158, 11, 0.35);
-        background: rgba(11, 18, 32, 0.97);
-        backdrop-filter: blur(10px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-      }
-      [data-theme="light"] .vnp-destaque-sticky {
-        background: rgba(255, 255, 255, 0.98);
-        border-color: rgba(217, 119, 6, 0.35);
-        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
-      }
-      .vnp-destaque-sticky-title {
-        margin: 0 0 8px;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        color: #fbbf24;
-      }
-      [data-theme="light"] .vnp-destaque-sticky-title {
-        color: #b45309;
-      }
-      .vnp-destaque-sticky .table-wrap {
-        max-height: min(44vh, 380px);
-        overflow-y: auto;
-        overflow-x: auto;
-      }
-      #viewPatio.patio-flyout-open .vnp-destaque-sticky {
-        top: 8px;
-      }
-      /* VNP: painel de prioridade fixo no topo; só a lista principal rola */
-      #viewPatio .section-card.patio-subview[data-subview="no_patio"] {
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
-        gap: 0;
-      }
-      #viewPatio .section-card.patio-subview[data-subview="no_patio"] .vnp-destaque-sticky:not(.hidden) {
-        position: sticky;
-        top: 0;
-        z-index: 45;
-        flex-shrink: 0;
-      }
-      #viewPatio #vnpMainTableWrap {
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow: auto;
-      }
-      #patioContent.modal-backdrop.tab-view-modal .section-card.patio-subview[data-subview="no_patio"]:not(.hidden) {
-        flex: 1 1 auto;
-        min-height: 0;
-      }
-      #patioContent.modal-backdrop.tab-view-modal .tab-modal-body:has(
-          .section-card.patio-subview[data-subview="no_patio"]:not(.hidden)
-        ) {
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-      }
-      #patioContent.modal-backdrop.tab-view-modal #vnpMainTableWrap {
-        max-height: none;
-      }
-      #viewLista #listaCaptureRoot > .section-card {
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
-      }
-      #viewLista #listaVnpDestaqueSticky:not(.hidden) {
-        position: sticky;
-        top: 0;
-        z-index: 45;
-        flex-shrink: 0;
-      }
-      #viewLista #listaVnpDestaqueSticky:not(.hidden) + .table-wrap {
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow: auto;
-        max-height: min(52vh, 520px);
-      }
       .actions {
         display: flex;
         gap: 8px;
@@ -3390,7 +3303,7 @@
       [data-theme="light"] .tab-modal-panel {
         background: rgba(255, 255, 255, 0.78);
       }
-      .tab-modal-body .table-wrap:not(#vnpMainTableWrap) {
+      .tab-modal-body .table-wrap {
         max-height: min(58vh, 520px);
         overflow: auto;
       }
@@ -5250,15 +5163,6 @@
               />
             </div>
             <div class="section-card" style="margin: 0; border: 0; box-shadow: none; padding: 0">
-              <div id="listaVnpDestaqueSticky" class="vnp-destaque-sticky hidden" aria-label="Veículos em prioridade">
-                <p class="vnp-destaque-sticky-title">Prioridade — liberação solicitada, confirmada e VRP</p>
-                <div class="table-wrap">
-                  <table class="table stacked">
-                    <thead id="listaTableDestaqueHead"></thead>
-                    <tbody id="listaTableDestaqueBody"></tbody>
-                  </table>
-                </div>
-              </div>
               <div class="table-wrap">
                 <table class="table stacked">
                   <thead id="listaTableHead"></thead>
@@ -5388,27 +5292,7 @@
             </div>
             <div class="section-card patio-subview hidden" data-subview="no_patio">
               <div class="pill">VNP</div>
-              <div id="vnpDestaqueSticky" class="vnp-destaque-sticky hidden" aria-label="Veículos em prioridade">
-                <p class="vnp-destaque-sticky-title">Prioridade — liberação solicitada, confirmada e VRP</p>
-                <div class="table-wrap">
-                  <table class="table stacked">
-                    <thead>
-                      <tr>
-                        <th>Placa</th>
-                        <th>Registo</th>
-                        <th>Veículo</th>
-                        <th>RPV</th>
-                        <th>RPP</th>
-                        <th>Entrada</th>
-                        <th>Valor gerado</th>
-                        <th>Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody id="tableNoPatioDestaque"></tbody>
-                  </table>
-                </div>
-              </div>
-              <div class="table-wrap" id="vnpMainTableWrap">
+              <div class="table-wrap">
                 <table class="table stacked">
                 <thead>
                   <tr>
@@ -7119,8 +7003,6 @@
       const reciboDestinatarioDoc = document.getElementById("reciboDestinatarioDoc");
 
       const tableNoPatio = document.getElementById("tableNoPatio");
-      const tableNoPatioDestaque = document.getElementById("tableNoPatioDestaque");
-      const vnpDestaqueSticky = document.getElementById("vnpDestaqueSticky");
       const tableVlp = document.getElementById("tableVlp");
       const tableConfirmada = document.getElementById("tableConfirmada");
       const tableRemocaoConfirmada = document.getElementById("tableRemocaoConfirmada");
@@ -9773,13 +9655,18 @@
         }
 
         try {
-        if (currentListaView !== "vnp") {
-          document.getElementById("listaVnpDestaqueSticky")?.classList.add("hidden");
-        }
         if (currentListaView === "vnp") {
           const ocultarValorColuna = semVal || listaPrintVnpSemValores;
           const items = buildListaVnpVehicleRows();
-          renderListaVnpWithDestaqueSticky(items, ocultarValorColuna, locLabel);
+          const colspan = ocultarValorColuna ? 7 : 8;
+          head.innerHTML = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>RPF</th><th>Entrada</th><th>Situação</th>${
+            ocultarValorColuna ? "" : "<th>Valor estimado</th>"
+          }</tr>`;
+          if (!items.length) {
+            body.innerHTML = `<tr><td colspan="${colspan}" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
+            return;
+          }
+          body.innerHTML = items.map((v) => buildListaVnpRowHtml(v, ocultarValorColuna, locLabel)).join("");
           return;
         }
 
@@ -12703,12 +12590,9 @@
           if (patioCardMeta3) patioCardMeta3.textContent = "antes da efetivação";
         }
 
-        renderVnpUnifiedTableWithDestaqueSticky({
-          destaqueTbody: tableNoPatioDestaque,
-          mainTbody: tableNoPatio,
-          stickyEl: vnpDestaqueSticky,
-          items: vnpOnPatio,
-          opts: { registoKind: "vnp", emptyText: "Nenhum veículo no pátio." },
+        renderVnpUnifiedTable(tableNoPatio, vnpOnPatio, {
+          registoKind: "vnp",
+          emptyText: "Nenhum veículo no pátio.",
         });
         renderVnpUnifiedTable(tableVlp, vlpItems, { registoKind: "vlp", emptyText: "Nenhum veículo em liberação." });
         renderRemovedVehicles(tableRemovidos, byStatus.REMOVIDO);
@@ -12850,23 +12734,6 @@
         tbody.innerHTML = items.map((v) => buildVnpUnifiedRowHtml(v, opts)).join("");
       }
 
-      function renderVnpUnifiedTableWithDestaqueSticky({ destaqueTbody, mainTbody, stickyEl, items, opts }) {
-        const destaque = items.filter((v) => isVehiclePatioDestaque(v));
-        const resto = items.filter((v) => !isVehiclePatioDestaque(v));
-        if (stickyEl) stickyEl.classList.toggle("hidden", destaque.length === 0);
-        if (destaqueTbody) {
-          renderVnpUnifiedTable(destaqueTbody, destaque, { ...opts, skipEmptyNotice: true });
-        }
-        if (!resto.length && destaque.length) {
-          renderVnpUnifiedTable(mainTbody, [], {
-            ...opts,
-            emptyText: "Nenhum outro veículo no pátio.",
-          });
-          return;
-        }
-        renderVnpUnifiedTable(mainTbody, destaque.length ? resto : items, opts);
-      }
-
       function buildListaVnpRowHtml(v, ocultarValorColuna, locLabel) {
         const sit =
           v.status === "NO_PATIO"
@@ -12888,39 +12755,6 @@
           <td data-label="Situação">${escapeHtml(sit)}</td>
           ${val}
         </tr>`;
-      }
-
-      function renderListaVnpWithDestaqueSticky(items, ocultarValorColuna, locLabel) {
-        const stickyEl = document.getElementById("listaVnpDestaqueSticky");
-        const destaqueHead = document.getElementById("listaTableDestaqueHead");
-        const destaqueBody = document.getElementById("listaTableDestaqueBody");
-        const head = document.getElementById("listaTableHead");
-        const body = document.getElementById("listaTableBody");
-        const headHtml = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>RPF</th><th>Entrada</th><th>Situação</th>${
-          ocultarValorColuna ? "" : "<th>Valor estimado</th>"
-        }</tr>`;
-        if (head) head.innerHTML = headHtml;
-        if (destaqueHead) destaqueHead.innerHTML = headHtml;
-        const destaque = items.filter((v) => isVehiclePatioDestaque(v));
-        const resto = items.filter((v) => !isVehiclePatioDestaque(v));
-        const colspan = ocultarValorColuna ? 7 : 8;
-        if (stickyEl) stickyEl.classList.toggle("hidden", destaque.length === 0);
-        if (destaqueBody) {
-          destaqueBody.innerHTML = destaque.length
-            ? destaque.map((v) => buildListaVnpRowHtml(v, ocultarValorColuna, locLabel)).join("")
-            : "";
-        }
-        if (!body) return;
-        if (!items.length) {
-          body.innerHTML = `<tr><td colspan="${colspan}" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
-          return;
-        }
-        if (!resto.length && destaque.length) {
-          body.innerHTML = `<tr><td colspan="${colspan}" class="notice">Nenhum outro veículo nesta lista.</td></tr>`;
-          return;
-        }
-        const rows = (destaque.length ? resto : items).map((v) => buildListaVnpRowHtml(v, ocultarValorColuna, locLabel));
-        body.innerHTML = rows.join("");
       }
 
       function setPatioView(view, opts = {}) {
