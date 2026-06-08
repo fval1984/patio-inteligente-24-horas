@@ -88,7 +88,7 @@ async function runLegacyFallback(userId: string, vehicleId: string, referenceDat
           receivable_category: "GUARDA_PATIO",
           valor: 0,
           status: "EM_ABERTO",
-          period_start: ymd,
+          period_start: v.data_entrada || ymd,
           period_end: null,
         })
         .select("id,valor")

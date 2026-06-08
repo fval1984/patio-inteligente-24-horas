@@ -11274,6 +11274,34 @@
         return calcFinanceChargeBreakdown(vehicle, periodStart, periodEnd).total;
       }
 
+      /** Início de cobrança efetivo: sem ciclos anteriores fechados, alinha ao data_entrada do pátio. */
+      function resolveReceivableBillingPeriodStart(vehicle, cyclePeriodStart, hasPriorClosedCycles) {
+        if (hasPriorClosedCycles) return cyclePeriodStart || vehicle?.data_entrada || null;
+        const entrada = vehicle?.data_entrada;
+        if (!entrada) return cyclePeriodStart || null;
+        if (!cyclePeriodStart) return entrada;
+        const tEntrada = new Date(entrada).getTime();
+        const tCycle = new Date(cyclePeriodStart).getTime();
+        if (!Number.isFinite(tEntrada) || !Number.isFinite(tCycle)) return cyclePeriodStart || entrada;
+        return tEntrada <= tCycle ? entrada : cyclePeriodStart;
+      }
+
+      async function vehicleHasPriorClosedReceivableCycles(vehicleId) {
+        if (!vehicleId) return false;
+        const { data, error } = await supabase
+          .from("receivables")
+          .select("id")
+          .eq("user_id", effectiveUserId())
+          .eq("vehicle_id", vehicleId)
+          .not("period_end", "is", null)
+          .limit(1);
+        if (error) {
+          console.warn("vehicleHasPriorClosedReceivableCycles", error);
+          return false;
+        }
+        return !!(data && data.length > 0);
+      }
+
       /** Detalhamento da cobrança na saída do veículo (diárias, remoção e taxas). */
       function calcFinanceChargeBreakdown(vehicle, periodStart, periodEnd, opts = {}) {
         const valorDiaria = Number(vehicle?.valor_diaria || 0);
@@ -16693,9 +16721,15 @@
               return;
             }
           } else {
+            const cycle = existingCycle[0];
+            const hasPriorClosed = await vehicleHasPriorClosedReceivableCycles(id);
+            const billingStart = resolveReceivableBillingPeriodStart(vehicle, cycle.period_start, hasPriorClosed);
+            const valorAtualizado = calcPeriodTotal(vehicle, billingStart, null);
+            const recPatch = { responsavel_pagamento: responsavel, valor: valorAtualizado };
+            if (billingStart && billingStart !== cycle.period_start) recPatch.period_start = billingStart;
             const { error: updRecErr } = await supabase
               .from("receivables")
-              .update({ responsavel_pagamento: responsavel })
+              .update(recPatch)
               .eq("user_id", effectiveUserId())
               .eq("vehicle_id", id)
               .is("period_end", null)
@@ -17061,7 +17095,13 @@
           if (cycleAberto?.id) {
             const hadRemocao = isRemocaoSolicitada(liveVehicle);
             const closedVehicle = { ...liveVehicle, status: "REMOVIDO", data_saida: dataSaida };
-            const breakdown = calcFinanceChargeBreakdown(closedVehicle, cycleAberto.period_start, dataSaida, {
+            const hasPriorClosed = await vehicleHasPriorClosedReceivableCycles(id);
+            const billingPeriodStart = resolveReceivableBillingPeriodStart(
+              closedVehicle,
+              cycleAberto.period_start,
+              hasPriorClosed
+            );
+            const breakdown = calcFinanceChargeBreakdown(closedVehicle, billingPeriodStart, dataSaida, {
               aplicarRemocao: hadRemocao,
             });
             const valorFechamento = breakdown.total;
@@ -17084,6 +17124,9 @@
               patio_liberado_financeiro: true,
               observacoes: calcMeta,
             };
+            if (billingPeriodStart && billingPeriodStart !== cycleAberto.period_start) {
+              recPatchBase.period_start = billingPeriodStart;
+            }
             const recPatchFull = vrpSemCobranca
               ? {
                   ...recPatchBase,
@@ -17172,7 +17215,7 @@
               });
             }
 
-            const dIni = new Date(cycleAberto.period_start);
+            const dIni = new Date(billingPeriodStart || cycleAberto.period_start);
             const dFim = new Date(dataSaida);
             const diarias = Math.max(1, Math.ceil((dFim.getTime() - dIni.getTime()) / 86400000));
             const fechamentoPayload = {
@@ -17180,7 +17223,7 @@
               vehicle_id: id,
               receivable_id: cycleAberto.id,
               responsavel_financeiro: actors.responsavelFinanceiro || null,
-              period_start: cycleAberto.period_start,
+              period_start: billingPeriodStart || cycleAberto.period_start,
               period_end: dataSaida,
               diarias,
               valor: valorFechamento,
