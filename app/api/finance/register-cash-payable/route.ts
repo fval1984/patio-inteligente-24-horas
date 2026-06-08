@@ -92,7 +92,11 @@ async function upsertCashForPayable(
   if (!(valor > 0)) return { ok: true, action: "skipped" as const, reason: "valor_zero" };
 
   const dataYmd = toYmd(
-    opts.dataMovimento || payable.data_vencimento || payable.updated_at || payable.created_at
+    opts.dataMovimento ||
+      metaFromObs(payable.observacoes || payable.descricao).data_pagamento ||
+      payable.data_vencimento ||
+      payable.updated_at ||
+      payable.created_at
   );
   const isoMov = new Date(`${dataYmd}T12:00:00`).toISOString();
   const formaPagamento = opts.formaPagamento || formaFromPayable(payable);

@@ -6525,7 +6525,7 @@
           <div class="form-grid" style="margin-bottom: 12px">
             <div>
               <label for="pagarBaixaData">Data do pagamento</label>
-              <input id="pagarBaixaData" type="date" required />
+              <input id="pagarBaixaData" type="date" required title="Permite data anterior (lançamento retroativo no caixa)" />
             </div>
             <div>
               <label for="pagarBaixaForma">Forma de pagamento</label>
@@ -14739,7 +14739,11 @@
         const dataEl = document.getElementById("pagarBaixaData");
         const formaEl = document.getElementById("pagarBaixaForma");
         const anexoEl = document.getElementById("pagarBaixaAnexo");
-        if (dataEl) dataEl.value = toLocalYmd(new Date().toISOString());
+        const defaultBaixaDate =
+          typeof window.financePayableDefaultBaixaDateYmd === "function"
+            ? window.financePayableDefaultBaixaDateYmd(payable)
+            : toLocalYmd(payable.data_vencimento || payable.updated_at || new Date().toISOString());
+        if (dataEl) dataEl.value = defaultBaixaDate || toLocalYmd(new Date().toISOString());
         if (formaEl) formaEl.value = payable.forma_pagamento || "PIX";
         if (anexoEl) anexoEl.value = "";
         const obsEl = document.getElementById("pagarBaixaObs");
@@ -15222,7 +15226,12 @@
         const payableId = payable?.id;
         const uid = effectiveUserId();
         const valor = Number(opts.valor ?? payable?.valor ?? 0);
-        const dataMov = opts.dataMovimento || toLocalYmd(new Date().toISOString());
+        const dataMov =
+          opts.dataMovimento ||
+          (typeof window.financePayableCashCompetenciaYmd === "function"
+            ? window.financePayableCashCompetenciaYmd(payable)
+            : null) ||
+          toLocalYmd(payable?.data_vencimento || new Date().toISOString());
         const formaPagamento = opts.formaPagamento || payable?.forma_pagamento || "PIX";
         const descricao = opts.descricao || payable?.descricao || payable?.fornecedor || "Despesa";
         if (!payableId || !uid) {
@@ -15390,7 +15399,12 @@
           alert("Esta conta já possui saída registrada no caixa.");
           return false;
         }
-        const dataMov = opts.dataMovimento || toLocalYmd(new Date().toISOString());
+        const dataMov =
+          opts.dataMovimento ||
+          (typeof window.financePayableCashCompetenciaYmd === "function"
+            ? window.financePayableCashCompetenciaYmd(payable)
+            : null) ||
+          toLocalYmd(payable.data_vencimento || new Date().toISOString());
         const formaPagamento = opts.formaPagamento || payable.forma_pagamento || "PIX";
         const cashResult = await registerPayableCashMovement(payable, {
           dataMovimento: dataMov,

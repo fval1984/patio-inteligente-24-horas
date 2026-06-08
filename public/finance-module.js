@@ -463,22 +463,36 @@
     if (fromMeta) return fromMeta;
     const fromPay = toLocalYmd(p.data_pagamento || "");
     if (fromPay) return fromPay;
+    const due = financeContaDueYmd(p, "payable");
+    if (due) return due;
     if (String(p.status || "").toUpperCase() === "PAGO") {
       const paid = toLocalYmd(p.updated_at || "");
       if (paid) return paid;
     }
-    return financeContaDueYmd(p, "payable") || toLocalYmd(p.created_at || "") || "";
+    return toLocalYmd(p.created_at || "") || "";
+  }
+
+  /** Data padrão nos modais PG/Caixa (retroativa: vencimento ou data de pagamento já informada). */
+  function financePayableDefaultBaixaDateYmd(p) {
+    return financePayableCashCompetenciaYmd(p) || financeTodayYmd();
   }
 
   /** Data civil (YYYY-MM-DD) usada para filtrar/agrupar movimentações do caixa. */
   function financeCaixaMovCompetenciaYmd(mov) {
     if (!mov) return "";
-    const direct = toLocalYmd(mov.data_movimento || mov.created_at);
-    if (direct) return direct;
     if (financeCashIsSaida(mov) && mov.conta_id != null && mov.conta_id !== "") {
       const pay = (state.payables || []).find((p) => String(p.id) === String(mov.conta_id));
-      if (pay) return financePayableCashCompetenciaYmd(pay);
+      if (pay) {
+        const payComp = financePayableCashCompetenciaYmd(pay);
+        const movComp = toLocalYmd(mov.data_movimento || "");
+        const { meta } = financePayableMeta(pay);
+        const hasExplicitPayDate = !!(meta?.data_pagamento || meta?.data_baixa || pay.data_pagamento);
+        if (hasExplicitPayDate && payComp) return payComp;
+        return movComp || payComp || toLocalYmd(mov.created_at) || "";
+      }
     }
+    const direct = toLocalYmd(mov.data_movimento || mov.created_at);
+    if (direct) return direct;
     if (financeCashIsEntrada(mov) && mov.conta_id != null && mov.conta_id !== "") {
       const rec = (state.receivables || []).find((r) => String(r.id) === String(mov.conta_id));
       if (rec) {
@@ -2567,8 +2581,9 @@
         if (financeLooksLikeMetaNoise(descText)) descText = pagante;
         let desc = escapeHtml(descText);
         if (v?.placa) desc += `<br /><span class="notice">${escapeHtml(v.placa)}</span>`;
+        const dataComp = financeCaixaMovCompetenciaYmd(mov);
         return `<tr>
-          <td data-label="Data">${escapeHtml(formatDate(mov.data_movimento || mov.created_at))}</td>
+          <td data-label="Data">${escapeHtml(formatDate(dataComp || mov.data_movimento || mov.created_at))}</td>
           <td data-label="Tipo"><span class="${tipoClass}">${tipoLabel}</span></td>
           <td data-label="Origem">${escapeHtml(pagante)}</td>
           <td data-label="Descrição">${desc}</td>
@@ -4260,6 +4275,7 @@
   window.financeCaixaMovsForPeriod = financeCaixaMovsForPeriod;
   window.financeCaixaMovCompetenciaYmd = financeCaixaMovCompetenciaYmd;
   window.financePayableCashCompetenciaYmd = financePayableCashCompetenciaYmd;
+  window.financePayableDefaultBaixaDateYmd = financePayableDefaultBaixaDateYmd;
   window.financeDedupePatioReceivables = financeDedupePatioReceivables;
   window.financeParseDateRangeText = financeParseDateRangeText;
   window.financeYmdInRange = financeYmdInRange;
