@@ -2885,8 +2885,8 @@
       }
       #viewPatio tr.vnp-row-liberacao-solicitada,
       #viewLista tr.vnp-row-liberacao-solicitada {
-        background: rgba(245, 158, 11, 0.14);
-        box-shadow: inset 4px 0 0 0 rgba(245, 158, 11, 0.9);
+        background: rgba(250, 204, 21, 0.18);
+        box-shadow: inset 4px 0 0 0 rgba(234, 179, 8, 0.95);
       }
       #viewPatio tr.vnp-row-liberacao-confirmada,
       #viewLista tr.vnp-row-liberacao-confirmada {
@@ -2900,7 +2900,8 @@
       }
       [data-theme="light"] #viewPatio tr.vnp-row-liberacao-solicitada,
       [data-theme="light"] #viewLista tr.vnp-row-liberacao-solicitada {
-        background: rgba(251, 191, 36, 0.28);
+        background: rgba(254, 240, 138, 0.55);
+        box-shadow: inset 4px 0 0 0 rgba(202, 138, 4, 0.95);
       }
       [data-theme="light"] #viewPatio tr.vnp-row-liberacao-confirmada,
       [data-theme="light"] #viewLista tr.vnp-row-liberacao-confirmada {
@@ -8910,30 +8911,19 @@
         return !!v && v.status !== "REMOVIDO";
       }
 
-      /** Ordem na lista: liberação e VRP pronto no topo; veículos só no pátio por último. */
+      /** VNP: liberação solicitada no topo; demais veículos por entrada mais recente. */
       function patioVehicleDisplayRank(v) {
-        if (!v) return 50;
-        const st = v.status;
-        if (st === "LIBERACAO_SOLICITADA") return 0;
-        if (st === "LIBERACAO_CONFIRMADA") return 1;
-        if (st === "REMocao_CONFIRMADA" || canEfetivarRemocaoVrp(v)) return 2;
-        if (st === "NO_PATIO" && isRemocaoSolicitada(v)) return 3;
-        if (st === "NO_PATIO") return 10;
-        return 50;
+        if (!v) return 10;
+        if (v.status === "LIBERACAO_SOLICITADA") return 0;
+        return 10;
       }
 
       function isVehiclePatioDestaque(v) {
-        return patioVehicleDisplayRank(v) < 10;
+        return !!v && v.status === "LIBERACAO_SOLICITADA";
       }
 
       function patioVehicleDestaqueRowClass(v) {
-        if (!v) return "";
-        const st = v.status;
-        if (st === "LIBERACAO_SOLICITADA") return "vnp-row-destaque vnp-row-liberacao-solicitada";
-        if (st === "LIBERACAO_CONFIRMADA") return "vnp-row-destaque vnp-row-liberacao-confirmada";
-        if (st === "REMocao_CONFIRMADA" || canEfetivarRemocaoVrp(v)) return "vnp-row-destaque vnp-row-vrp-pronto";
-        if (st === "NO_PATIO" && isRemocaoSolicitada(v)) return "vnp-row-destaque vnp-row-liberacao";
-        return "";
+        return isVehiclePatioDestaque(v) ? "vnp-row-liberacao-solicitada" : "";
       }
 
       function sortVnpOnPatioForDisplay(list) {
