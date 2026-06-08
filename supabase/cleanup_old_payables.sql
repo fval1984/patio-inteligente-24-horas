@@ -1,0 +1,24 @@
+-- Remove contas a pagar de meses anteriores ao mês corrente (por data de vencimento).
+-- Ajuste :keep_from se quiser preservar a partir de outro mês (YYYY-MM).
+-- Execute no SQL Editor do Supabase substituindo :user_id pelo UUID do usuário.
+
+-- Exemplo (descomente e ajuste):
+-- WITH keep_from AS (
+--   SELECT to_char(date_trunc('month', CURRENT_DATE), 'YYYY-MM') AS ym
+-- ),
+-- old_payables AS (
+--   SELECT p.id
+--   FROM payables p, keep_from k
+--   WHERE p.user_id = 'SEU_USER_ID_AQUI'
+--     AND left(coalesce(p.data_vencimento::text, p.created_at::text, ''), 7) < k.ym
+-- )
+-- DELETE FROM cash_movements c
+-- USING old_payables o
+-- WHERE c.conta_id = o.id
+--   AND c.user_id = 'SEU_USER_ID_AQUI'
+--   AND upper(c.tipo_conta) IN ('PAGAR', 'SAIDA', 'SAÍDA');
+--
+-- DELETE FROM payables p
+-- USING keep_from k
+-- WHERE p.user_id = 'SEU_USER_ID_AQUI'
+--   AND left(coalesce(p.data_vencimento::text, p.created_at::text, ''), 7) < k.ym;

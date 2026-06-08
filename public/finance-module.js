@@ -289,13 +289,20 @@
     return `${escapeHtml(text || "—")}${obs ? `<br /><span class="notice">Obs.: ${escapeHtml(obs)}</span>` : ""}`;
   }
 
-  function financeRowActionsHtml(kind, id, canPay) {
+  function financeRowActionsHtml(kind, id, opts = {}) {
     const safeId = escapeHtml(String(id));
+    const canPay = opts.canPay === true;
+    const canCaixa = opts.canCaixa === true;
     const payBtn = canPay
       ? `<button type="button" class="secondary fin-btn-${kind}-pg" data-fin-${kind}-pg="${safeId}">PG</button>`
       : "";
+    const caixaBtn =
+      canCaixa && kind === "pagar"
+        ? `<button type="button" class="secondary fin-btn-pagar-caixa" data-fin-pagar-caixa="${safeId}">Caixa</button>`
+        : "";
     return `<div class="fin-row-actions">
       ${payBtn}
+      ${caixaBtn}
       <button type="button" class="secondary fin-btn-${kind}-editar" data-fin-${kind}-editar="${safeId}">Editar</button>
       <button type="button" class="secondary fin-btn-${kind}-voltar" data-fin-${kind}-voltar="${safeId}">Voltar</button>
       <button type="button" class="secondary fin-btn-${kind}-apagar" data-fin-${kind}-apagar="${safeId}">Apagar</button>
@@ -481,41 +488,14 @@
     return "";
   }
 
-  /** Saídas a partir de despesas PAGO (quando cash_movements ainda não foi gravado). */
+  /** @deprecated Saídas de payables não são mais sintetizadas no caixa — registro manual apenas. */
   function financeSaidasFromPaidPayables() {
-    const cash = financeDedupeCaixaMovs(state.cash || []);
-    const saidaContaIds = new Set(
-      cash
-        .filter((m) => financeCashIsSaida(m) && m.conta_id != null && m.conta_id !== "")
-        .map((m) => String(m.conta_id))
-    );
-    return (state.payables || [])
-      .filter(
-        (p) => String(p.status || "").toUpperCase() === "PAGO" && Number(p.valor || 0) > 0
-      )
-      .filter((p) => !saidaContaIds.has(String(p.id)))
-      .map((p) => {
-        const competenciaYmd = financePayableCashCompetenciaYmd(p);
-        return {
-          id: `derived-pay-${p.id}`,
-          tipo_conta: "PAGAR",
-          conta_id: p.id,
-          valor: Number(p.valor || 0),
-          data_movimento: competenciaYmd || new Date().toISOString(),
-          forma_pagamento: p.forma_pagamento || null,
-          descricao: p.descricao || "Despesa",
-          user_id: p.user_id,
-        };
-      });
+    return [];
   }
 
-  /** Movimentações do caixa: banco + despesas pagas sem duplicar. */
+  /** Movimentações do caixa: entradas reais + entradas sintéticas de recebíveis pagos sem caixa. */
   function financeCaixaMovsMerged() {
-    return financeDedupeCaixaMovs([
-      ...(state.cash || []),
-      ...financeSaidasFromPaidPayables(),
-      ...financeSyntheticCashEntradasFromPaidReceivables(),
-    ]);
+    return financeDedupeCaixaMovs([...(state.cash || []), ...financeSyntheticCashEntradasFromPaidReceivables()]);
   }
 
   function financePaidPayablesSemCaixa() {
@@ -1444,7 +1424,7 @@
         const origemHtml = escapeHtml(financeReceivableOrigemCellText(r, v));
         const descricaoHtml = financeReceivableDescricaoCellHtml(r, v);
         const rppHtml = escapeHtml(financeReceberRppNome(r, v));
-        const actionsHtml = financeRowActionsHtml("receber", r.id, st !== "Recebido");
+        const actionsHtml = financeRowActionsHtml("receber", r.id, { canPay: st !== "Recebido" });
         return `<tr>
           <td data-label="Origem">${origemHtml}</td>
           <td data-label="Descrição">${descricaoHtml}</td>
@@ -1530,7 +1510,12 @@
       .map((p) => {
         const st = financePayableDisplayStatus(p);
         const due = financeContaDueYmd(p, "payable");
-        const actionsHtml = financeRowActionsHtml("pagar", p.id, st !== "Pago");
+        const hasCash =
+          typeof window.payableCashMovementExists === "function" && window.payableCashMovementExists(p.id);
+        const actionsHtml = financeRowActionsHtml("pagar", p.id, {
+          canPay: st !== "Pago",
+          canCaixa: st === "Pago" && !hasCash,
+        });
         return `<tr>
           <td data-label="Fornecedor">${escapeHtml(financePayableTypedFields(p).fornecedor)}</td>
           <td data-label="Descrição">${escapeHtml(financePayableTypedFields(p).descricao)}</td>
@@ -1586,14 +1571,45 @@
   let financeCaixaMissingSyncPromise = null;
 
   async function financeSyncMissingPayablesCashSilent() {
-    if (typeof loadPayables === "function") await loadPayables();
-    if (!financeCountPaidPayablesSemCaixa()) return;
-    if (typeof callRegisterCashPayableApi !== "function") return;
+    /* Saídas de caixa para contas a pagar são registradas manualmente (botão Caixa). */
+    return;
+  }
+
+  async function financePurgeOldPayablesOnce() {
+    const key = "finance_purge_old_payables_v2";
     try {
-      const api = await callRegisterCashPayableApi({ syncMissing: true });
-      if (api.ok && typeof loadCash === "function") await loadCash();
+      if (localStorage.getItem(key) === "1") return { skipped: true };
     } catch (e) {
-      console.warn("financeSyncMissingPayablesCashSilent", e?.message || e);
+      /* ignore */
+    }
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid) return { skipped: true };
+    const keepFromYm =
+      typeof getOperationalMonth === "function"
+        ? getOperationalMonth()
+        : yearMonthFromYmd(financeTodayYmd());
+    try {
+      const resp = await fetch("/api/finance/cleanup-old-payables", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: uid, keepFromYm }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        console.warn("financePurgeOldPayablesOnce", data?.error || resp.status);
+        return { ok: false, error: data?.error };
+      }
+      try {
+        localStorage.setItem(key, "1");
+      } catch (e) {
+        /* ignore */
+      }
+      if (typeof loadPayables === "function") await loadPayables();
+      if (typeof loadCash === "function") await loadCash();
+      return { ok: true, stats: data?.stats };
+    } catch (e) {
+      console.warn("financePurgeOldPayablesOnce", e?.message || e);
+      return { ok: false, error: e?.message || String(e) };
     }
   }
 
@@ -1601,8 +1617,8 @@
     if (!financeCaixaMissingSyncPromise) {
       financeCaixaMissingSyncPromise = (async () => {
         try {
+          await financePurgeOldPayablesOnce();
           if (typeof loadPayables === "function") await loadPayables();
-          await financeSyncMissingPayablesCashSilent();
           if (typeof loadCash === "function") await loadCash();
         } catch (e) {
           console.warn("financeEnsureMissingCashInCaixa", e?.message || e);
@@ -3676,6 +3692,7 @@
     }
     refreshFinanceDataPromise = (async () => {
       try {
+        await financePurgeOldPayablesOnce();
         await Promise.all([
           loadReceivables(),
           loadPayables(),
@@ -4172,7 +4189,14 @@
       if (btnPagarPg) {
         const id = btnPagarPg.getAttribute("data-fin-pagar-pg");
         const p = (state.payables || []).find((x) => String(x.id) === String(id));
-        if (p) openPagarBaixaModal(p);
+        if (p) openPagarBaixaModal(p, { mode: "payment" });
+        return;
+      }
+      const btnPagarCaixa = e.target.closest("[data-fin-pagar-caixa]");
+      if (btnPagarCaixa) {
+        const id = btnPagarCaixa.getAttribute("data-fin-pagar-caixa");
+        const p = (state.payables || []).find((x) => String(x.id) === String(id));
+        if (p) openPagarBaixaModal(p, { mode: "caixa" });
         return;
       }
       const btnPagarEditar = e.target.closest("[data-fin-pagar-editar]");

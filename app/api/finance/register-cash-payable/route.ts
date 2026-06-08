@@ -169,54 +169,12 @@ export async function POST(req: NextRequest) {
     const supabase = getSupabaseAdmin();
 
     if (syncMissing) {
-      let payables: PayableRow[] | null = null;
-      let pErr: { message: string } | null = null;
-      const fullSelect = await supabase
-        .from("payables")
-        .select(
-          "id,user_id,valor,status,descricao,fornecedor,data_vencimento,forma_pagamento,updated_at,created_at"
-        )
-        .eq("user_id", userId);
-      if (fullSelect.error && isSchemaError(fullSelect.error.message)) {
-        const lean = await supabase
-          .from("payables")
-          .select("id,user_id,valor,status,descricao,data_vencimento,updated_at,created_at")
-          .eq("user_id", userId);
-        payables = (lean.data || []) as PayableRow[];
-        pErr = lean.error;
-      } else {
-        payables = (fullSelect.data || []) as PayableRow[];
-        pErr = fullSelect.error;
-      }
-      if (pErr) {
-        return NextResponse.json({ error: pErr.message }, { status: 500 });
-      }
-
-      const paid = ((payables || []) as PayableRow[]).filter(
-        (p) => isPaidStatus(p.status) && Number(p.valor || 0) > 0
-      );
-      let created = 0;
-      let updated = 0;
-      let failed = 0;
-      let skipped = 0;
-
-      for (const p of paid) {
-        const existing = await findExistingPayableMovement(supabase, userId, p.id);
-        if (existing) {
-          skipped += 1;
-          continue;
-        }
-        const result = await upsertCashForPayable(supabase, userId, p);
-        if (result.ok && result.action === "created") created += 1;
-        else if (result.ok && result.action === "updated") updated += 1;
-        else if (result.ok && result.action === "skipped") skipped += 1;
-        else failed += 1;
-      }
-
       return NextResponse.json({
         ok: true,
         syncMissing: true,
-        stats: { created, updated, failed, skipped, total: paid.length },
+        disabled: true,
+        stats: { created: 0, updated: 0, failed: 0, skipped: 0, total: 0 },
+        message: "Sincronização automática de contas a pagar no caixa está desativada. Registre manualmente pelo botão Caixa.",
       });
     }
 

@@ -7001,18 +7001,6 @@
           if (error) return { error };
           const payableId = inserted?.id;
           if (payableId) insertedIds.push(payableId);
-          if (markPago && payableId) {
-            const cashRes = await registerPayableCashMovement(
-              { id: payableId, valor: valorParcela, descricao: descricao || "Despesa manual", forma_pagamento: formaPagamento },
-              { dataMovimento: dueDate, formaPagamento, descricao: descricao || "Despesa manual", valor: valorParcela }
-            );
-            if (cashRes.error) {
-              await runSupabaseWrite(() =>
-                supabase.from("payables").update({ status: "EM_ABERTO" }).eq("id", payableId).eq("user_id", effectiveUserId())
-              );
-              return { error: cashRes.error };
-            }
-          }
         }
         return { id: insertedIds[0], ids: insertedIds };
       }
@@ -14723,15 +14711,30 @@
 
       window.openReceberBaixaModal = openReceberBaixaModal;
 
-      function openPagarBaixaModal(payable) {
+      function openPagarBaixaModal(payable, opts = {}) {
         if (!payable || !pagarBaixaModal) return;
-        pendingBaixaPagar = { payableId: payable.id, payable };
+        const mode = opts.mode === "caixa" ? "caixa" : "payment";
+        pendingBaixaPagar = { payableId: payable.id, payable, mode };
         const resumo = document.getElementById("pagarBaixaResumo");
+        const titulo = pagarBaixaModal.querySelector("h2, .modal-title, h3");
+        if (titulo) {
+          titulo.textContent = mode === "caixa" ? "Registrar saída no caixa" : "Confirmar pagamento";
+        }
         if (resumo) {
-          resumo.innerHTML = `<strong>${escapeHtml(payable.descricao || "Despesa")}</strong><br />
+          resumo.innerHTML =
+            mode === "caixa"
+              ? `<strong>${escapeHtml(payable.descricao || "Despesa")}</strong><br />
+            Fornecedor: <strong>${escapeHtml(payable.fornecedor || "—")}</strong><br />
+            Conta já paga — informe data e forma para lançar manualmente no caixa.<br />
+            Valor: <strong>${escapeHtml(formatCurrency(Number(payable.valor || 0)))}</strong>`
+              : `<strong>${escapeHtml(payable.descricao || "Despesa")}</strong><br />
             Fornecedor: <strong>${escapeHtml(payable.fornecedor || "—")}</strong><br />
             Vencimento: <strong>${escapeHtml(formatDate(payable.data_vencimento))}</strong><br />
             Valor: <strong>${escapeHtml(formatCurrency(Number(payable.valor || 0)))}</strong>`;
+        }
+        const submitBtn = pagarBaixaModal.querySelector('button[type="submit"], #pagarBaixaConfirm');
+        if (submitBtn) {
+          submitBtn.textContent = mode === "caixa" ? "Registrar no caixa" : "Confirmar pagamento";
         }
         const dataEl = document.getElementById("pagarBaixaData");
         const formaEl = document.getElementById("pagarBaixaForma");
@@ -14828,6 +14831,15 @@
         const observacao = (document.getElementById("pagarBaixaObs")?.value || "").trim();
         const anexo = await readFinanceFileInput(document.getElementById("pagarBaixaAnexo"));
         closePagarBaixaModal();
+        if (pending.mode === "caixa") {
+          await registerPayableInCaixaManual(pending.payableId, {
+            dataMovimento: dataMov,
+            formaPagamento,
+            anexo,
+            observacao,
+          });
+          return;
+        }
         await finalizePayablePayment(pending.payableId, { dataMovimento: dataMov, formaPagamento, anexo, observacao });
       }
 
@@ -15204,6 +15216,7 @@
           (m) => payableCashMovIsSaida(m) && String(m.conta_id) === String(payableId)
         );
       }
+      window.payableCashMovementExists = payableCashMovementExists;
 
       async function registerPayableCashMovement(payable, opts = {}) {
         const payableId = payable?.id;
@@ -15359,36 +15372,42 @@
       };
 
       window.syncPaidPayablesCashMovements = async function syncPaidPayablesCashMovements() {
-        const uid = effectiveUserId();
-        if (!uid || !supabase) return { created: 0, failed: 0 };
-        const api = await callRegisterCashPayableApi({ syncMissing: true });
-        await loadPayables();
-        await loadCash();
-        if (api.ok && api.stats) {
-          return {
-            created: Number(api.stats.created || 0) + Number(api.stats.updated || 0),
-            failed: Number(api.stats.failed || 0),
-          };
-        }
-        console.warn("syncPaidPayablesCashMovements api", api.error);
-        let created = 0;
-        let failed = 0;
-        const paid = (state.payables || []).filter(
-          (p) => String(p.status || "").toUpperCase() === "PAGO" && Number(p.valor || 0) > 0
-        );
-        for (const p of paid) {
-          if (payableCashMovementExists(p.id)) continue;
-          const res = await registerPayableCashMovement(p, {
-            dataMovimento: toLocalYmd(p.updated_at || p.data_vencimento || p.created_at || new Date().toISOString()),
-            formaPagamento: p.forma_pagamento || "PIX",
-            descricao: p.descricao || p.fornecedor || "Despesa",
-          });
-          if (res?.error) failed += 1;
-          else created += 1;
-        }
-        if (created > 0) await loadCash();
-        return { created, failed };
+        return { created: 0, failed: 0, skipped: true };
       };
+
+      async function registerPayableInCaixaManual(payableId, opts = {}) {
+        if (!(await requireSupabaseSessionForWrite())) return false;
+        const payable = state.payables.find((p) => p.id === payableId);
+        if (!payable) {
+          alert("Conta a pagar não encontrada.");
+          return false;
+        }
+        if (String(payable.status || "").toUpperCase() !== "PAGO") {
+          alert("Marque a conta como paga antes de registrar no caixa.");
+          return false;
+        }
+        if (payableCashMovementExists(payableId)) {
+          alert("Esta conta já possui saída registrada no caixa.");
+          return false;
+        }
+        const dataMov = opts.dataMovimento || toLocalYmd(new Date().toISOString());
+        const formaPagamento = opts.formaPagamento || payable.forma_pagamento || "PIX";
+        const cashResult = await registerPayableCashMovement(payable, {
+          dataMovimento: dataMov,
+          formaPagamento,
+          descricao: payable.descricao,
+        });
+        if (cashResult.error) {
+          alertSupabaseError(cashResult.error, "Não foi possível registrar a saída no caixa.");
+          return false;
+        }
+        if (opts.anexo) await financeAttachmentSave("payable", payableId, opts.anexo);
+        await Promise.all([loadPayables(), loadCash()]);
+        updateDashboard();
+        if (typeof renderFinance === "function") renderFinance();
+        return true;
+      }
+      window.registerPayableInCaixaManual = registerPayableInCaixaManual;
 
       async function finalizePayablePayment(payableId, opts = {}) {
         if (!(await requireSupabaseSessionForWrite())) return false;
@@ -15401,31 +15420,21 @@
         const formaPagamento = opts.formaPagamento || payable.forma_pagamento || "PIX";
 
         if (String(payable.status || "").toUpperCase() === "PAGO") {
-          const hasMov = payableCashMovementExists(payableId);
-          if (hasMov) {
-            alert("Esta conta já foi paga.");
-            return false;
-          }
-          const cashOnly = await registerPayableCashMovement(payable, {
-            dataMovimento: dataMov,
-            formaPagamento,
-            descricao: payable.descricao,
-          });
-          if (cashOnly.error) {
-            alertSupabaseError(cashOnly.error, "Não foi possível registrar a saída no caixa.");
-            return false;
-          }
-          await loadCash();
-          updateDashboard();
-          if (typeof renderFinance === "function") renderFinance();
-          return true;
+          alert("Esta conta já foi paga. Use o botão Caixa para registrar a saída manualmente.");
+          return false;
         }
 
         const { meta, text } = financeMetaUnpack(financePayableMetaText(payable));
         const obsUpdate =
           opts.observacao && String(opts.observacao).trim()
-            ? financeMetaPack(meta, `${text ? text + " — " : ""}${String(opts.observacao).trim()}`)
-            : financePayableMetaText(payable);
+            ? financeMetaPack(
+                { ...meta, data_pagamento: dataMov, forma_pagamento: formaPagamento },
+                `${text ? text + " — " : ""}${String(opts.observacao).trim()}`
+              )
+            : financeMetaPack(
+                { ...meta, data_pagamento: dataMov, forma_pagamento: formaPagamento },
+                financePayableMetaText(payable)
+              );
         const patch = { status: "PAGO", forma_pagamento: formaPagamento };
         if (obsUpdate && obsUpdate !== financePayableMetaText(payable)) patch.descricao = obsUpdate;
         const { error } = await runSupabaseWrite(() =>
@@ -15441,27 +15450,6 @@
           }
         }
 
-        const cashResult = await registerPayableCashMovement(payable, {
-          dataMovimento: dataMov,
-          formaPagamento,
-          descricao: payable.descricao,
-        });
-        if (cashResult.error) {
-          await runSupabaseWrite(() =>
-            supabase
-              .from("payables")
-              .update({ status: "EM_ABERTO" })
-              .eq("id", payableId)
-              .eq("user_id", effectiveUserId())
-          );
-          alertSupabaseError(
-            cashResult.error,
-            "A conta foi atualizada, mas a saída no caixa não foi registrada. Tente pagar novamente."
-          );
-          await loadPayables();
-          return false;
-        }
-
         if (opts.anexo) await financeAttachmentSave("payable", payableId, opts.anexo);
 
         if ((payable.tipo || "").toUpperCase() === "RECORRENTE" || financeEntryModoFromRecord(payable, "payable") === "RECORRENTE") {
@@ -15470,7 +15458,7 @@
             alert(`Pagamento registrado, mas falhou ao gerar o próximo título recorrente: ${nextRes.error.message}`);
           }
         }
-        await Promise.all([loadPayables(), loadCash()]);
+        await loadPayables();
         updateDashboard();
         if (typeof renderFinance === "function") renderFinance();
         return true;
