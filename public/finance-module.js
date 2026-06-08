@@ -3295,6 +3295,15 @@
           loadVehicles(),
           typeof loadCycleClosures === "function" ? loadCycleClosures() : Promise.resolve(),
         ]);
+        if (typeof window.ensureRecorrentesAutomaticos === "function") {
+          const recorrenteStats = await window.ensureRecorrentesAutomaticos();
+          if (recorrenteStats?.created > 0) {
+            await Promise.all([
+              typeof loadReceivables === "function" ? loadReceivables() : Promise.resolve(),
+              typeof loadPayables === "function" ? loadPayables() : Promise.resolve(),
+            ]);
+          }
+        }
         if (typeof window.syncPaidReceivablesCashMovements === "function") {
           await window.syncPaidReceivablesCashMovements();
         }

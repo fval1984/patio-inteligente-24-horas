@@ -6851,17 +6851,18 @@
         return { id: insertedIds[0], ids: insertedIds };
       }
 
-      async function createNextRecorrenteReceivable(receivable) {
-        if (!receivable) return;
+      async function createNextRecorrenteReceivable(receivable, opts = {}) {
+        if (!receivable) return { error: null, skipped: true };
         const modo = financeEntryModoFromRecord(receivable, "receivable");
-        if (modo !== "RECORRENTE") return;
+        if (modo !== "RECORRENTE") return { error: null, skipped: true };
         const due = String(receivable.period_end || receivable.period_start || receivable.data_vencimento || "").trim();
         const { meta, text } = financeMetaUnpack(financeReceivableMetaText(receivable));
         const interval = meta.recorrencia || "mensal";
-        const nextDue = addPeriodToYmd(due, interval);
+        const nextDue = opts.nextDue || addPeriodToYmd(due, interval);
+        if (!nextDue) return { error: null, skipped: true };
         const payload = {
           user_id: effectiveUserId(),
-          vehicle_id: null,
+          vehicle_id: receivable.vehicle_id || null,
           receivable_category: receivable.receivable_category || "GUARDA_PATIO",
           valor: Number(receivable.valor || 0),
           status: "EM_ABERTO",
@@ -6880,17 +6881,23 @@
           financeiro_aprovado_contas_receber: true,
           patio_liberado_financeiro: true,
         };
-        let { error } = await supabase.from("receivables").insert(payload);
+        let { error } = await runSupabaseWrite(() => supabase.from("receivables").insert(payload));
         if (error && supabaseSchemaColumnError(error)) {
           const fallback = { ...payload };
           delete fallback.patio_liberado_financeiro;
           delete fallback.financeiro_aprovado_contas_receber;
           delete fallback.subcategoria;
-          ({ error } = await supabase.from("receivables").insert(fallback));
+          ({ error } = await runSupabaseWrite(() => supabase.from("receivables").insert(fallback)));
         }
         if (error && supabaseVehicleIdRequiredError(error)) {
-          console.warn("recorrente receita: execute supabase/receivables_vehicle_id_nullable.sql");
+          const lean = { ...payload, vehicle_id: null };
+          delete lean.patio_liberado_financeiro;
+          delete lean.financeiro_aprovado_contas_receber;
+          delete lean.subcategoria;
+          ({ error } = await runSupabaseWrite(() => supabase.from("receivables").insert(lean)));
+          if (error) console.warn("recorrente receita: execute supabase/receivables_vehicle_id_nullable.sql");
         } else if (error) console.warn("recorrente receita", error.message);
+        return { error: error || null, skipped: false };
       }
 
       const fichaModal = document.getElementById("fichaModal");
@@ -7891,6 +7898,153 @@
         const { meta } = financeMetaUnpack(financeReceivableMetaText(record));
         return meta.modo || "UNICA";
       }
+
+      function recorrentePayableDueYmd(payable) {
+        return toLocalYmd(payable?.data_vencimento || "") || "";
+      }
+
+      function recorrenteReceivableDueYmd(receivable) {
+        return (
+          toLocalYmd(receivable?.period_end || receivable?.period_start || receivable?.data_vencimento || "") || ""
+        );
+      }
+
+      function recorrentePayableSeriesKey(payable) {
+        const { meta } = financeMetaUnpack(financePayableMetaText(payable));
+        return [
+          String(payable?.payable_category || payable?.categoria || "OUTROS").toUpperCase(),
+          String(payable?.fornecedor || meta?.fornecedor_texto || "")
+            .trim()
+            .toLowerCase(),
+          String(meta?.descricao_texto || "")
+            .trim()
+            .toLowerCase(),
+          Number(payable?.valor || 0).toFixed(2),
+          String(meta?.recorrencia || "mensal").toLowerCase(),
+        ].join("|");
+      }
+
+      function recorrenteReceivableSeriesKey(receivable) {
+        const { meta } = financeMetaUnpack(financeReceivableMetaText(receivable));
+        return [
+          String(receivable?.receivable_category || "GUARDA_PATIO").toUpperCase(),
+          String(meta?.origem_texto || meta?.descricao_texto || meta?.rpp_texto || "")
+            .trim()
+            .toLowerCase(),
+          String(meta?.descricao_texto || "")
+            .trim()
+            .toLowerCase(),
+          Number(receivable?.valor || 0).toFixed(2),
+          String(meta?.recorrencia || "mensal").toLowerCase(),
+        ].join("|");
+      }
+
+      async function createNextRecorrentePayable(payable, opts = {}) {
+        if (!payable) return { error: null, skipped: true };
+        const modo = financeEntryModoFromRecord(payable, "payable");
+        if (modo !== "RECORRENTE") return { error: null, skipped: true };
+        const { meta, text } = financeMetaUnpack(financePayableMetaText(payable));
+        const interval = meta.recorrencia || "mensal";
+        const nextDue = opts.nextDue || addPeriodToYmd(payable.data_vencimento, interval);
+        if (!nextDue) return { error: null, skipped: true };
+        const nextPayload = {
+          user_id: effectiveUserId(),
+          tipo: "RECORRENTE",
+          payable_category: payable.payable_category || "OUTROS",
+          descricao: financeMetaPack({ ...meta, modo: "RECORRENTE", recorrencia: interval }, text || payable.descricao || ""),
+          valor: Number(payable.valor || 0),
+          data_vencimento: nextDue,
+          status: "EM_ABERTO",
+          fornecedor: payable.fornecedor || null,
+          forma_pagamento: opts.formaPagamento || payable.forma_pagamento || "PIX",
+        };
+        const { error } = await insertPayableWithSchemaFallback(nextPayload);
+        return { error: error || null, skipped: false };
+      }
+
+      async function ensureRecorrentePayablesUpToMonth(targetYm) {
+        const recurring = (state.payables || []).filter(
+          (p) => financeEntryModoFromRecord(p, "payable") === "RECORRENTE"
+        );
+        const bySeries = new Map();
+        for (const payable of recurring) {
+          const key = recorrentePayableSeriesKey(payable);
+          if (!bySeries.has(key)) bySeries.set(key, []);
+          bySeries.get(key).push(payable);
+        }
+        let created = 0;
+        for (const records of bySeries.values()) {
+          const sorted = [...records].sort((a, b) =>
+            recorrentePayableDueYmd(a).localeCompare(recorrentePayableDueYmd(b))
+          );
+          const template = sorted[sorted.length - 1];
+          const { meta } = financeMetaUnpack(financePayableMetaText(template));
+          const interval = meta.recorrencia || "mensal";
+          const existingDues = new Set(sorted.map(recorrentePayableDueYmd).filter(Boolean));
+          let cursor = [...existingDues].sort().pop();
+          if (!cursor) continue;
+          while (yearMonthFromYmd(cursor) < targetYm) {
+            const nextDue = addPeriodToYmd(cursor, interval);
+            if (!nextDue) break;
+            if (!existingDues.has(nextDue)) {
+              const res = await createNextRecorrentePayable(template, { nextDue });
+              if (!res?.error) {
+                existingDues.add(nextDue);
+                created += 1;
+              }
+            }
+            cursor = nextDue;
+          }
+        }
+        return created;
+      }
+
+      async function ensureRecorrenteReceivablesUpToMonth(targetYm) {
+        const recurring = (state.receivables || []).filter(
+          (r) => financeEntryModoFromRecord(r, "receivable") === "RECORRENTE"
+        );
+        const bySeries = new Map();
+        for (const receivable of recurring) {
+          const key = recorrenteReceivableSeriesKey(receivable);
+          if (!bySeries.has(key)) bySeries.set(key, []);
+          bySeries.get(key).push(receivable);
+        }
+        let created = 0;
+        for (const records of bySeries.values()) {
+          const sorted = [...records].sort((a, b) =>
+            recorrenteReceivableDueYmd(a).localeCompare(recorrenteReceivableDueYmd(b))
+          );
+          const template = sorted[sorted.length - 1];
+          const { meta } = financeMetaUnpack(financeReceivableMetaText(template));
+          const interval = meta.recorrencia || "mensal";
+          const existingDues = new Set(sorted.map(recorrenteReceivableDueYmd).filter(Boolean));
+          let cursor = [...existingDues].sort().pop();
+          if (!cursor) continue;
+          while (yearMonthFromYmd(cursor) < targetYm) {
+            const nextDue = addPeriodToYmd(cursor, interval);
+            if (!nextDue) break;
+            if (!existingDues.has(nextDue)) {
+              const res = await createNextRecorrenteReceivable(template, { nextDue });
+              if (!res?.error) {
+                existingDues.add(nextDue);
+                created += 1;
+              }
+            }
+            cursor = nextDue;
+          }
+        }
+        return created;
+      }
+
+      async function ensureRecorrentesAutomaticos() {
+        if (!(await requireSupabaseSessionForWrite())) return { created: 0 };
+        const targetYm = currentYearMonthLocal();
+        let created = 0;
+        created += await ensureRecorrentePayablesUpToMonth(targetYm);
+        created += await ensureRecorrenteReceivablesUpToMonth(targetYm);
+        return { created };
+      }
+      window.ensureRecorrentesAutomaticos = ensureRecorrentesAutomaticos;
 
       function financeModoBadgeHtml(modo, meta) {
         const m = String(modo || "UNICA").toUpperCase();
@@ -14908,22 +15062,9 @@
         if (opts.anexo) await financeAttachmentSave("payable", payableId, opts.anexo);
 
         if ((payable.tipo || "").toUpperCase() === "RECORRENTE" || financeEntryModoFromRecord(payable, "payable") === "RECORRENTE") {
-          const interval = meta.recorrencia || "mensal";
-          const nextDue = addPeriodToYmd(payable.data_vencimento, interval);
-          const nextPayload = {
-            user_id: effectiveUserId(),
-            tipo: "RECORRENTE",
-            payable_category: payable.payable_category || "OUTROS",
-            descricao: financeMetaPack({ ...meta, modo: "RECORRENTE", recorrencia: interval }, text || payable.descricao || ""),
-            valor: Number(payable.valor || 0),
-            data_vencimento: nextDue,
-            status: "EM_ABERTO",
-            fornecedor: payable.fornecedor || null,
-            forma_pagamento: payable.forma_pagamento || formaPagamento,
-          };
-          const { error: nextErr } = await insertPayableWithSchemaFallback(nextPayload);
-          if (nextErr) {
-            alert(`Pagamento registrado, mas falhou ao gerar o próximo título recorrente: ${nextErr.message}`);
+          const nextRes = await createNextRecorrentePayable(payable, { formaPagamento });
+          if (nextRes?.error) {
+            alert(`Pagamento registrado, mas falhou ao gerar o próximo título recorrente: ${nextRes.error.message}`);
           }
         }
         await Promise.all([loadPayables(), loadCash()]);
