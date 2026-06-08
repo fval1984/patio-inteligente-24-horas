@@ -4721,20 +4721,7 @@
           <span id="themeLabel">Tema escuro</span>
         </button>
         <div class="user" id="userInfo">Não autenticado</div>
-        <button type="button" id="headerLogoutBtn" class="secondary header-logout-btn hidden" title="Sair da conta">Sair</button>
         <div id="appHeaderMenuWrap" class="header-app-menu-wrap hidden">
-          <button
-            type="button"
-            id="appHeaderMenuBtn"
-            class="header-menu-trigger"
-            aria-expanded="false"
-            aria-controls="appHeaderMenu"
-            aria-label="Abrir menu principal"
-          >
-            <span class="header-menu-bar" aria-hidden="true"></span>
-            <span class="header-menu-bar" aria-hidden="true"></span>
-            <span class="header-menu-bar" aria-hidden="true"></span>
-          </button>
           <div id="appHeaderMenuBackdrop" class="header-menu-backdrop hidden" aria-hidden="true"></div>
           <div class="header-menu-tray">
             <div id="appHeaderMenu" class="header-menu-dropdown hidden" aria-label="Menu principal">
@@ -4812,6 +4799,7 @@
             <button type="submit" id="plateSearchOk">OK</button>
             <button type="button" class="secondary" id="goDashboardFromPlate">AMPLIPATIO</button>
             <button type="button" class="secondary" id="clearPlateFilter">Limpar</button>
+            <button type="button" id="headerLogoutBtn" class="secondary header-logout-btn hidden" title="Sair da conta">Sair</button>
           </form>
           <div class="dashboard-system-entry header-module-nav" id="dashboardSystemEntry">
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenPatio">
@@ -5079,7 +5067,6 @@
         <div id="viewLista" class="panel hidden" style="max-width: 1200px; margin: 0 auto">
           <div class="toolbar">
             <div>
-              <p class="module-kicker module-kicker--finance" style="margin: 0 0 4px">Consulta</p>
               <h2 style="margin: 0">Lista</h2>
             </div>
             <div class="actions lista-toolbar-actions">
@@ -5186,16 +5173,8 @@
         </div>
 
         <div id="viewPatio" class="panel hidden patio-module-shell">
-          <div class="patio-module-ribbon">
-            <div class="patio-module-ribbon-right">
-              <div class="patio-module-meta">
-                <span class="patio-module-name">Gestão de pátio</span>
-              </div>
-            </div>
-          </div>
           <div class="toolbar patio-toolbar">
             <div class="patio-toolbar-text">
-              <p class="module-kicker module-kicker--patio">Operação</p>
               <h2>Gestão de Pátio</h2>
               <nav id="patioSubnav" class="subnav patio-nav-inline" aria-label="Secções do pátio">
                 <button type="button" class="secondary" data-subview="inicio">Dashboard</button>
@@ -5381,19 +5360,8 @@
         </div>
 
         <div id="viewParceiros" class="panel hidden partners-module-shell">
-          <div class="partners-module-ribbon">
-            <div class="partners-module-ribbon-left">
-              <button type="button" class="secondary" id="exitParceirosToPatio">← Voltar à Gestão de pátio</button>
-            </div>
-            <div class="partners-module-ribbon-right">
-              <div class="partners-module-meta">
-                <span class="partners-module-name">Rede de parceiros</span>
-              </div>
-            </div>
-          </div>
           <div class="toolbar">
             <div>
-              <p class="module-kicker module-kicker--partners">Cadastro</p>
               <h2>Rede de parceiros</h2>
             </div>
             <div class="actions">
@@ -5439,10 +5407,6 @@
               <h2 style="margin: 0">Financeiro</h2>
             </div>
             <div class="actions">
-              <button type="button" class="secondary" id="finBtnRefresh">Atualizar</button>
-              <button type="button" class="secondary" id="finBtnExcel">Excel</button>
-              <button type="button" class="secondary" id="finBtnPrint">Imprimir</button>
-              <button type="button" class="secondary" id="finBtnPdf">PDF</button>
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar">X</button>
             </div>
           </div>
@@ -5583,7 +5547,6 @@
               </div>
             </div>
             <p id="finReceberPlateHint" class="notice hidden" style="margin: 0 0 10px"></p>
-            <p class="notice" style="margin: 0 0 10px">Recorrentes (ex.: mensalista) são cadastrados aqui com tipo <strong>Recorrente</strong> — ao confirmar o pagamento, o próximo título é gerado automaticamente.</p>
             <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
             <div class="actions" style="margin: 0 0 12px; flex-wrap: wrap; gap: 8px">
               <button type="button" class="secondary" id="finReceberBtnPrint">Imprimir para cliente</button>
@@ -5680,13 +5643,9 @@
             <div class="config-module-ribbon-left">
               <button type="button" class="secondary" id="exitConfigToPatio">← Voltar à Gestão de pátio</button>
             </div>
-            <div class="config-module-meta">
-              <span class="config-module-name">Definições do sistema</span>
-            </div>
           </div>
           <div class="toolbar">
             <div>
-              <p class="module-kicker module-kicker--config">Administrativo</p>
               <h2>Configurações</h2>
             </div>
             <div class="actions">
@@ -17337,7 +17296,6 @@
       document.getElementById("dashboardOpenLista")?.addEventListener("click", () => openMainView("lista"));
       document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openMainView("parceiros"));
       document.getElementById("dashboardOpenConfiguracoes")?.addEventListener("click", () => openMainView("configuracoes"));
-      document.getElementById("exitParceirosToPatio")?.addEventListener("click", () => closeStackTop());
       document.getElementById("exitConfigToPatio")?.addEventListener("click", () => closeStackTop());
 
       cardVeiculosLink?.addEventListener("click", () => openPatioSubview("no_patio"));
