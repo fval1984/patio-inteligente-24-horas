@@ -4910,10 +4910,6 @@
         <button type="button" id="logoutBtn" class="hidden" aria-hidden="true" tabindex="-1">Sair</button>
 
         <div id="viewDashboard" class="panel dashboard-shell">
-          <div class="toolbar dashboard-toolbar">
-            <span class="pill pill--premium"
-              ><span class="pill-dot" aria-hidden="true"></span> Dados ao vivo</span>
-          </div>
           <div class="grid">
             <div class="card clickable dashboard-stat-card dashboard-stat--vnp" id="cardVeiculosLink">
               <div class="card-head">
@@ -5192,10 +5188,6 @@
         <div id="viewPatio" class="panel hidden patio-module-shell">
           <div class="patio-module-ribbon">
             <div class="patio-module-ribbon-right">
-              <div class="patio-module-tools">
-                <button type="button" class="secondary" id="openParceirosFromPatio">Rede de parceiros</button>
-                <button type="button" class="secondary" id="openConfigFromPatio">Configurações</button>
-              </div>
               <div class="patio-module-meta">
                 <span class="patio-module-name">Gestão de pátio</span>
               </div>
@@ -5221,9 +5213,6 @@
           <div id="patioInicioPanel" class="patio-inicio-panel hidden">
             <div class="patio-inicio-head">
               <h3>Dashboard</h3>
-              <p class="patio-inicio-lede">
-                Indicadores operacionais do pátio.
-              </p>
             </div>
             <div class="patio-inicio-grid" aria-label="Dashboard do pátio">
               <div class="patio-inicio-stat">
@@ -5447,9 +5436,7 @@
         <div id="viewFinanceiro" class="panel hidden finance-module-shell">
           <div class="toolbar">
             <div>
-              <p class="module-kicker module-kicker--finance" style="margin: 0 0 4px">Integrado ao pátio</p>
               <h2 style="margin: 0">Financeiro</h2>
-              <p class="module-lede" style="margin: 6px 0 0">Automático após saída do veículo — sem alterar a operação do pátio.</p>
             </div>
             <div class="actions">
               <button type="button" class="secondary" id="finBtnRefresh">Atualizar</button>
@@ -5491,7 +5478,6 @@
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="em_patio">
-            <p class="notice">Receita em geração — serviço em andamento (ainda não é conta a receber).</p>
             <p><strong>Total acumulado:</strong> <span id="finEmPatioTotal">R$ 0,00</span></p>
             <div class="table-wrap section-card">
               <table class="table">
@@ -5502,7 +5488,6 @@
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="aguardando">
-            <p class="notice">Veículos que saíram do pátio e aguardam confirmação antes de ir para Contas a receber. Aprove em Pátio → Fechando ciclo ou confirme aqui.</p>
             <div class="fin-toolbar">
               <form id="finAguardandoPlateForm" action="#" novalidate style="display: contents">
                 <div class="fin-filter-busca-datas" style="flex: 1 1 100%; min-width: min(100%, 320px)">
@@ -5640,7 +5625,6 @@
               <div><label for="finPagarPeriodoDe">De</label><input id="finPagarPeriodoDe" type="date" /></div>
               <div><label for="finPagarPeriodoAte">Até</label><input id="finPagarPeriodoAte" type="date" /></div>
             </div>
-            <p class="notice" style="margin: 0 0 10px">Despesas recorrentes (aluguel, internet, salários…) use tipo <strong>Recorrente</strong> ao cadastrar — o próximo vencimento é gerado ao confirmar o pagamento.</p>
             <div class="fin-alert-row" id="finPagarAlerts"></div>
             <p><strong>Total a pagar (abertas):</strong> <span id="finPagarTotal">R$ 0,00</span></p>
             <div class="table-wrap section-card">
@@ -5704,9 +5688,6 @@
             <div>
               <p class="module-kicker module-kicker--config">Administrativo</p>
               <h2>Configurações</h2>
-              <p class="module-lede" id="configModuleLede">
-                Dados do pátio, utilizadores e textos padrão.
-              </p>
             </div>
             <div class="actions">
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
@@ -5764,9 +5745,6 @@
                   <input id="settingsInvoice" type="text" placeholder="Mensagem para nota fiscal" />
                 </div>
               </div>
-              <p class="notice">
-                O <strong>recibo em PDF</strong> (A4) usa o logotipo em <code>public/assets/recibo-header-logo.png</code> (ou <code>logo.png</code> como reserva), emitente e CNPJ padrão da empresa, e permite alterar rodapé em endereço/telefone.
-              </p>
             </div>
           </div>
 
@@ -7047,7 +7025,6 @@
       const configPanelUsuarios = document.getElementById("configPanelUsuarios");
       const configGestorGeralEmail = document.getElementById("configGestorGeralEmail");
       const tableTrackManagersBody = document.getElementById("tableTrackManagersBody");
-      const configModuleLede = document.getElementById("configModuleLede");
       let currentConfigSubview = "dados";
 
       const reloadPatio = document.getElementById("reloadPatio");
@@ -11545,8 +11522,6 @@
         document.querySelectorAll("#appHeaderMenu button[data-view]").forEach((btn) => {
           btn.style.display = "";
         });
-        document.getElementById("openParceirosFromPatio")?.classList.remove("hidden");
-        document.getElementById("openConfigFromPatio")?.classList.remove("hidden");
         patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.remove("hidden");
         patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.remove("hidden");
         const vehicleDailyReset = document.getElementById("vehicleDaily");
@@ -11588,14 +11563,12 @@
           .forEach((el) => el.classList.add("hidden"));
         document.getElementById("dashboardSystemEntry")?.classList.add("dashboard-system-entry--single");
         document.getElementById("dashboardOpenFinance")?.classList.add("hidden");
-        document.getElementById("openConfigFromPatio")?.classList.add("hidden");
 
         if (!opts.skipDefaultView) {
           showMainView("patio");
           setPatioView("inicio");
         }
 
-        document.getElementById("openParceirosFromPatio")?.classList.add("hidden");
         patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.add("hidden");
         patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.add("hidden");
 
@@ -17154,12 +17127,6 @@
         configPanelUsuarios?.classList.toggle("hidden", currentConfigSubview !== "usuarios");
         const saveCfgBtn = document.getElementById("saveSettings");
         if (saveCfgBtn) saveCfgBtn.classList.toggle("hidden", currentConfigSubview !== "dados");
-        if (configModuleLede) {
-          configModuleLede.textContent =
-            currentConfigSubview === "usuarios"
-              ? "Gestor geral (conta principal) e gestores de pista delegados."
-              : "CNPJ, nome do pátio e textos de cobrança e nota — use Salvar alterações.";
-        }
         if (currentConfigSubview === "usuarios") {
           refreshConfigUsuariosPanel();
         }
@@ -17370,8 +17337,6 @@
       document.getElementById("dashboardOpenLista")?.addEventListener("click", () => openMainView("lista"));
       document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openMainView("parceiros"));
       document.getElementById("dashboardOpenConfiguracoes")?.addEventListener("click", () => openMainView("configuracoes"));
-      document.getElementById("openParceirosFromPatio")?.addEventListener("click", () => openPartnerSubview("parceiros"));
-      document.getElementById("openConfigFromPatio")?.addEventListener("click", () => openMainView("configuracoes"));
       document.getElementById("exitParceirosToPatio")?.addEventListener("click", () => closeStackTop());
       document.getElementById("exitConfigToPatio")?.addEventListener("click", () => closeStackTop());
 
