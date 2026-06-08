@@ -9640,7 +9640,11 @@
       }
 
       function listaCashMatches(mov) {
-        if (!listaDateMatchesYmd(mov?.data_movimento || mov?.created_at)) return false;
+        const refYmd =
+          typeof window.financeCaixaMovCompetenciaYmd === "function"
+            ? window.financeCaixaMovCompetenciaYmd(mov)
+            : mov?.data_movimento || mov?.created_at;
+        if (!listaDateMatchesYmd(refYmd)) return false;
         const rec =
           mov.tipo_conta === "RECEBER" && mov.conta_id != null && mov.conta_id !== ""
             ? state.receivables.find((r) => String(r.id) === String(mov.conta_id))
@@ -10000,12 +10004,22 @@
           return { amount, label, hideAmount: false };
         }
         if (currentListaView === "caixa") {
-          const list = (typeof window.financeDedupeCaixaMovs === "function"
-            ? window.financeDedupeCaixaMovs(state.cash || [])
-            : state.cash || []
+          const list = (
+            typeof window.financeCaixaMovsForPeriod === "function"
+              ? window.financeCaixaMovsForPeriod("", { useDomFilters: false, de: listaFilterDataDe, ate: listaFilterDataAte })
+              : typeof window.financeDedupeCaixaMovs === "function"
+                ? window.financeDedupeCaixaMovs(state.cash || [])
+                : state.cash || []
           ).filter(listaCashMatches);
           const label = "Soma dos valores (movimentos filtrados)";
-          const amount = list.reduce((s, mov) => s + Number(mov.valor || 0), 0);
+          const amount = list.reduce(
+            (s, mov) =>
+              s +
+              (typeof window.financeCashMovValor === "function"
+                ? window.financeCashMovValor(mov)
+                : Number(mov.valor || 0)),
+            0
+          );
           return { amount, label, hideAmount: false };
         }
         if (currentListaView === "historico_receber") {
@@ -10233,7 +10247,11 @@
 
         if (currentListaView === "caixa") {
           head.innerHTML = `<tr><th>Data</th><th>Tipo</th><th>Origem</th><th>Descrição</th><th>Valor</th></tr>`;
-          const list = (state.cash || []).filter(listaCashMatches);
+          const list = (
+            typeof window.financeCaixaMovsForPeriod === "function"
+              ? window.financeCaixaMovsForPeriod("", { useDomFilters: false, de: listaFilterDataDe, ate: listaFilterDataAte })
+              : state.cash || []
+          ).filter(listaCashMatches);
           if (!list.length) {
             body.innerHTML = `<tr><td colspan="5" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
             return;
@@ -10256,7 +10274,13 @@
               <td data-label="Tipo">${escapeHtml(mov.tipo_conta || "—")}</td>
               <td data-label="Origem">${escapeHtml(origem || "—")}</td>
               <td data-label="Descrição">${escapeHtml(descricao || "—")}</td>
-              <td data-label="Valor">${escapeHtml(formatCurrency(Number(mov.valor || 0)))}</td>
+              <td data-label="Valor">${escapeHtml(
+                formatCurrency(
+                  typeof window.financeCashMovValor === "function"
+                    ? window.financeCashMovValor(mov)
+                    : Number(mov.valor || 0)
+                )
+              )}</td>
             </tr>`;
             })
             .join("");
@@ -12317,18 +12341,34 @@
 
         let revenue = 0;
         let expense = 0;
-        const cashForMonth = typeof window.financeDedupeCaixaMovs === "function"
-          ? window.financeDedupeCaixaMovs(state.cash || [])
-          : state.cash || [];
+        let caixa = 0;
+        const cashForMonth =
+          typeof window.financeCaixaMovsForPeriod === "function"
+            ? window.financeCaixaMovsForPeriod(ym, { useDomFilters: false })
+            : typeof window.financeCaixaMovsMerged === "function"
+              ? window.financeCaixaMovsMerged()
+              : typeof window.financeDedupeCaixaMovs === "function"
+                ? window.financeDedupeCaixaMovs(state.cash || [])
+                : state.cash || [];
+        const movCompetenciaYmd =
+          typeof window.financeCaixaMovCompetenciaYmd === "function"
+            ? window.financeCaixaMovCompetenciaYmd
+            : (mov) => toLocalYmd(mov?.data_movimento || mov?.created_at) || "";
         cashForMonth.forEach((mov) => {
-          const ymd = toLocalYmd(mov.data_movimento || mov.created_at);
+          const ymd = movCompetenciaYmd(mov);
           if (!ymd || ymd < first || ymd > last) return;
           const val =
             typeof window.financeCashMovValor === "function"
               ? window.financeCashMovValor(mov)
               : Number(mov.valor || 0);
-          if (cashMovIsEntradaTipo(mov.tipo_conta)) revenue += val;
-          if (cashMovIsSaidaTipo(mov.tipo_conta)) expense += val;
+          if (cashMovIsEntradaTipo(mov.tipo_conta)) {
+            revenue += val;
+            caixa += val;
+          }
+          if (cashMovIsSaidaTipo(mov.tipo_conta)) {
+            expense += val;
+            caixa -= val;
+          }
         });
 
         const openRec = (state.receivables || [])
@@ -12337,15 +12377,6 @@
         const openPag = (state.payables || [])
           .filter((p) => p.status === "EM_ABERTO")
           .reduce((s, p) => s + Number(p.valor || 0), 0);
-        const caixa = cashForMonth.reduce((sum, mov) => {
-          const val =
-            typeof window.financeCashMovValor === "function"
-              ? window.financeCashMovValor(mov)
-              : Number(mov.valor || 0);
-          if (cashMovIsSaidaTipo(mov.tipo_conta)) return sum - val;
-          if (cashMovIsEntradaTipo(mov.tipo_conta)) return sum + val;
-          return sum;
-        }, 0);
 
         return { entered, exited, inYardEnd, revenue, expense, openRec, openPag, caixa };
       }
@@ -12479,11 +12510,18 @@
         if (!buckets.length) return;
         const firstKey = buckets[0].key;
         let saldoInicial = 0;
-        const cashChartMovs = typeof window.financeDedupeCaixaMovs === "function"
-          ? window.financeDedupeCaixaMovs(state.cash || [])
-          : state.cash || [];
+        const cashChartMovs =
+          typeof window.financeCaixaMovsMerged === "function"
+            ? window.financeCaixaMovsMerged()
+            : typeof window.financeDedupeCaixaMovs === "function"
+              ? window.financeDedupeCaixaMovs(state.cash || [])
+              : state.cash || [];
+        const movCompetenciaYmd =
+          typeof window.financeCaixaMovCompetenciaYmd === "function"
+            ? window.financeCaixaMovCompetenciaYmd
+            : (mov) => toLocalYmd(mov?.data_movimento || mov?.created_at) || "";
         cashChartMovs.forEach((mov) => {
-          const ymd = toLocalYmd(mov.data_movimento || mov.created_at);
+          const ymd = movCompetenciaYmd(mov);
           if (!ymd) return;
           let key = null;
           if (mode === "dia") key = ymd;
@@ -12494,7 +12532,10 @@
             d.setDate(d.getDate() - diffToMonday);
             key = mkYmd(d);
           } else key = yearMonthFromYmd(ymd);
-          const val = Number(mov.valor || 0);
+          const val =
+            typeof window.financeCashMovValor === "function"
+              ? window.financeCashMovValor(mov)
+              : Number(mov.valor || 0);
           const signed = cashMovIsSaidaTipo(mov.tipo_conta) ? -val : cashMovIsEntradaTipo(mov.tipo_conta) ? val : 0;
           if (key && bucketMap.has(key)) {
             if (cashMovIsSaidaTipo(mov.tipo_conta)) bucketMap.get(key).saida += val;
@@ -12549,10 +12590,31 @@
             })
             .join("");
         }
-        const topExpenseCategories = [...(state.payables || [])]
-          .reduce((acc, p) => {
-            const cat = payableCategoryLabel(p.payable_category || p.categoria || "OUTROS");
-            acc.set(cat, (acc.get(cat) || 0) + Number(p.valor || 0));
+        const topExpenseCategories = cashChartMovs
+          .filter((mov) => cashMovIsSaidaTipo(mov.tipo_conta))
+          .reduce((acc, mov) => {
+            const ymd = movCompetenciaYmd(mov);
+            if (!ymd) return acc;
+            let key = null;
+            if (mode === "dia") key = ymd;
+            else if (mode === "semana") {
+              const d = new Date(`${ymd}T00:00:00`);
+              const day = d.getDay();
+              const diffToMonday = day === 0 ? 6 : day - 1;
+              d.setDate(d.getDate() - diffToMonday);
+              key = mkYmd(d);
+            } else key = yearMonthFromYmd(ymd);
+            if (!key || !bucketMap.has(key)) return acc;
+            const pay =
+              mov.conta_id != null && mov.conta_id !== ""
+                ? (state.payables || []).find((p) => String(p.id) === String(mov.conta_id))
+                : null;
+            const cat = payableCategoryLabel(pay?.payable_category || pay?.categoria || "OUTROS");
+            const val =
+              typeof window.financeCashMovValor === "function"
+                ? window.financeCashMovValor(mov)
+                : Number(mov.valor || 0);
+            acc.set(cat, (acc.get(cat) || 0) + val);
             return acc;
           }, new Map());
         const expenseRows = [...topExpenseCategories.entries()]
