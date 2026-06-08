@@ -3218,7 +3218,7 @@
       #viewPatio.patio-module-shell.patio-subtab-modal-open {
         overflow: visible !important;
       }
-      #patioContent.modal-backdrop.tab-view-modal {
+      #patioContent.modal-backdrop.tab-view-modal:not(.hidden) {
         position: fixed !important;
         inset: 0 !important;
         width: auto !important;
@@ -3238,6 +3238,9 @@
         align-items: center;
         justify-content: center;
         box-sizing: border-box;
+      }
+      #patioContent.modal-backdrop.tab-view-modal.hidden {
+        display: none !important;
       }
       [data-theme="light"] #patioContent.modal-backdrop.tab-view-modal {
         background: rgba(15, 23, 42, 0.45) !important;
@@ -7382,7 +7385,13 @@
       }
 
       function cleanupFloatingTabModals(activeView) {
-        if (activeView !== "patio") document.getElementById("patioContent")?.classList.add("hidden");      }
+        const patioContent = document.getElementById("patioContent");
+        const patioRoot = document.getElementById("viewPatio");
+        if (activeView !== "patio") {
+          patioContent?.classList.add("hidden");
+          patioRoot?.classList.remove("patio-subtab-modal-open");
+        }
+      }
 
 
       function ensureTabModalShell(backdropEl, onClose, options = {}) {
@@ -7529,11 +7538,7 @@
 
         restoreTabModalDom();
 
-        const patioContent = document.getElementById("patioContent");
-        if (patioContent) {
-          ensureTabModalShell(patioContent, returnToPainelFromPatioFlyout);
-          bindPatioVehicleTableActions();
-        }
+        bindPatioVehicleTableActions();
       }
 
 
@@ -13666,6 +13671,11 @@
       };
       function returnToPainelFromPatioFlyout() {
         setPatioView("none", { silent: true });
+        document.getElementById("patioContent")?.classList.add("hidden");
+        document.getElementById("viewPatio")?.classList.remove("patio-subtab-modal-open");
+        const top = navStack[navStack.length - 1];
+        const onPatio = top === "patio" || (typeof top === "string" && top.startsWith("patio:"));
+        if (!onPatio) return;
         navStack.splice(0, navStack.length, "patio", "patio:inicio");
         showMainView("patio");
         setPatioView("inicio");
