@@ -6886,20 +6886,7 @@
             forma_pagamento: formaPagamento,
             centro_custo: centroCusto || null,
           };
-          let { data: inserted, error } = await runSupabaseWrite(() =>
-            supabase.from("payables").insert(payload).select("id").single()
-          );
-          if (error && supabaseSchemaColumnError(error)) {
-            const fallback = { ...payload };
-            delete fallback.fornecedor;
-            delete fallback.forma_pagamento;
-            delete fallback.centro_custo;
-            delete fallback.tipo;
-            delete fallback.payable_category;
-            ({ data: inserted, error } = await runSupabaseWrite(() =>
-              supabase.from("payables").insert(fallback).select("id").single()
-            ));
-          }
+          const { data: inserted, error } = await insertPayableWithSchemaFallback(payload);
           if (error && /receivables/i.test(error.message || "") && supabaseVehicleIdRequiredError(error)) {
             return {
               error: {
@@ -7665,6 +7652,68 @@
       function supabaseSchemaColumnError(err) {
         const msg = [err?.message, err?.details, err?.hint, String(err?.code || "")].filter(Boolean).join(" ");
         return /column|schema cache|PGRST204|could not find/i.test(msg);
+      }
+
+      const PAYABLES_REQUIRED_INSERT_COLS = new Set([
+        "user_id",
+        "tipo",
+        "descricao",
+        "valor",
+        "data_vencimento",
+        "status",
+      ]);
+
+      function supabaseMissingColumnFromError(err) {
+        const msg = [err?.message, err?.details, err?.hint].filter(Boolean).join(" ");
+        const patterns = [
+          /Could not find the ['"](\w+)['"] column/i,
+          /column ['"]?(\w+)['"]? of relation/i,
+          /column ['"]?(\w+)['"]? does not exist/i,
+        ];
+        for (const re of patterns) {
+          const m = msg.match(re);
+          if (m) return m[1];
+        }
+        return null;
+      }
+
+      function payablesInsertFallbackPayload(payload) {
+        const fb = { ...payload };
+        ["fornecedor", "forma_pagamento", "centro_custo", "observacoes"].forEach((k) => delete fb[k]);
+        if (fb.payable_category != null && fb.categoria == null) {
+          fb.categoria = fb.payable_category;
+        }
+        delete fb.payable_category;
+        return fb;
+      }
+
+      async function insertPayableWithSchemaFallback(payload) {
+        let current = { ...payload };
+        let lastError = null;
+        for (let attempt = 0; attempt < 6; attempt++) {
+          const { data, error } = await runSupabaseWrite(() =>
+            supabase.from("payables").insert(current).select("id").single()
+          );
+          if (!error) return { data, error: null };
+          lastError = error;
+          if (!supabaseSchemaColumnError(error)) return { data: null, error };
+          const missing = supabaseMissingColumnFromError(error);
+          if (missing && !PAYABLES_REQUIRED_INSERT_COLS.has(missing) && Object.prototype.hasOwnProperty.call(current, missing)) {
+            const next = { ...current };
+            if (missing === "payable_category" && next.payable_category != null) {
+              next.categoria = next.payable_category;
+            }
+            delete next[missing];
+            current = next;
+            continue;
+          }
+          if (attempt === 0) {
+            current = payablesInsertFallbackPayload(current);
+            continue;
+          }
+          break;
+        }
+        return { data: null, error: lastError };
       }
 
       function supabaseVehicleIdRequiredError(err) {
@@ -14933,22 +14982,14 @@
             user_id: effectiveUserId(),
             tipo: "RECORRENTE",
             payable_category: payable.payable_category || "OUTROS",
-            descricao: payable.descricao || null,
+            descricao: financeMetaPack({ ...meta, modo: "RECORRENTE", recorrencia: interval }, text || payable.descricao || ""),
             valor: Number(payable.valor || 0),
             data_vencimento: nextDue,
             status: "EM_ABERTO",
             fornecedor: payable.fornecedor || null,
             forma_pagamento: payable.forma_pagamento || formaPagamento,
-            descricao: financeMetaPack({ ...meta, modo: "RECORRENTE", recorrencia: interval }, text || payable.descricao || ""),
           };
-          let { error: nextErr } = await supabase.from("payables").insert(nextPayload);
-          if (nextErr && supabaseSchemaColumnError(nextErr)) {
-            const fb = { ...nextPayload };
-            delete fb.fornecedor;
-            delete fb.forma_pagamento;
-            delete fb.tipo;
-            ({ error: nextErr } = await supabase.from("payables").insert(fb));
-          }
+          const { error: nextErr } = await insertPayableWithSchemaFallback(nextPayload);
           if (nextErr) {
             alert(`Pagamento registrado, mas falhou ao gerar o próximo título recorrente: ${nextErr.message}`);
           }
@@ -15396,7 +15437,7 @@
           data_vencimento: document.getElementById("payableDue").value,
           status: "EM_ABERTO",
         };
-        const { error } = await runSupabaseWrite(() => supabase.from("payables").insert(payload));
+        const { error } = await insertPayableWithSchemaFallback(payload);
         if (error) {
           alertSupabaseError(error);
           return;
