@@ -444,6 +444,13 @@
     return financeMetaUnpack(raw);
   }
 
+  function financeIsManualPayable(p) {
+    if (!p) return false;
+    const { meta } = financePayableMeta(p);
+    if (meta.geracao_automatica === true) return false;
+    return meta.cadastro_manual === true;
+  }
+
   function financePayableContaBancaria(p) {
     const { meta } = financePayableMeta(p);
     return meta.conta_bancaria || state.settings?.conta_bancaria || "Caixa";
@@ -928,7 +935,7 @@
   }
 
   function financeContasPagarList() {
-    let list = [...(state.payables || [])];
+    let list = (state.payables || []).filter((p) => financeIsManualPayable(p));
     const q = finPagarBusca.trim().toLowerCase();
     if (q) {
       list = list.filter((p) => {
@@ -987,7 +994,9 @@
   }
 
   function financePayablesAbertas() {
-    return (state.payables || []).filter((p) => financePayableDisplayStatus(p) !== "Pago");
+    return (state.payables || []).filter(
+      (p) => financeIsManualPayable(p) && financePayableDisplayStatus(p) !== "Pago"
+    );
   }
 
   function financeHistoricoRecebidos() {
@@ -1587,6 +1596,41 @@
   async function financeSyncMissingPayablesCashSilent() {
     /* Saídas de caixa para contas a pagar são registradas manualmente (botão Caixa). */
     return;
+  }
+
+  async function financePurgeAutoPayablesOnce() {
+    const key = "finance_purge_auto_payables_v1";
+    try {
+      if (localStorage.getItem(key) === "1") return { skipped: true };
+    } catch (e) {
+      /* ignore */
+    }
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid) return { skipped: true };
+    const keepManualFromYmd = financeTodayYmd();
+    try {
+      const resp = await fetch("/api/finance/cleanup-auto-payables", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: uid, keepManualFromYmd }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        console.warn("financePurgeAutoPayablesOnce", data?.error || resp.status);
+        return { ok: false, error: data?.error };
+      }
+      try {
+        localStorage.setItem(key, "1");
+      } catch (e) {
+        /* ignore */
+      }
+      if (typeof loadPayables === "function") await loadPayables();
+      if (typeof loadCash === "function") await loadCash();
+      return { ok: true, stats: data?.stats };
+    } catch (e) {
+      console.warn("financePurgeAutoPayablesOnce", e?.message || e);
+      return { ok: false, error: e?.message || String(e) };
+    }
   }
 
   async function financePurgeOldPayablesOnce() {
@@ -3498,15 +3542,6 @@
     }
     financeCloseContactModal();
     if (typeof loadFinanceContacts === "function") await loadFinanceContacts();
-    if (typeof window.ensureRecorrentesAutomaticos === "function") {
-      const stats = await window.ensureRecorrentesAutomaticos();
-      if (stats?.created > 0) {
-        await Promise.all([
-          typeof loadReceivables === "function" ? loadReceivables() : Promise.resolve(),
-          typeof loadPayables === "function" ? loadPayables() : Promise.resolve(),
-        ]);
-      }
-    }
     financeRenderCadastros();
     financePopulateContactSelects();
   }
@@ -3707,6 +3742,7 @@
     }
     refreshFinanceDataPromise = (async () => {
       try {
+        await financePurgeAutoPayablesOnce();
         await financePurgeOldPayablesOnce();
         await Promise.all([
           loadReceivables(),
@@ -4276,6 +4312,7 @@
   window.financeCaixaMovCompetenciaYmd = financeCaixaMovCompetenciaYmd;
   window.financePayableCashCompetenciaYmd = financePayableCashCompetenciaYmd;
   window.financePayableDefaultBaixaDateYmd = financePayableDefaultBaixaDateYmd;
+  window.financeIsManualPayable = financeIsManualPayable;
   window.financeDedupePatioReceivables = financeDedupePatioReceivables;
   window.financeParseDateRangeText = financeParseDateRangeText;
   window.financeYmdInRange = financeYmdInRange;

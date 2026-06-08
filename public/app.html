@@ -6961,6 +6961,7 @@
             centro_custo: String(centroCusto || "").trim() || null,
             competencia: competencia || yearMonthFromYmd(vencimento) || "",
             origem_modulo: "CONTROLE_DESPESAS",
+            cadastro_manual: true,
             fornecedor_texto: fornLabel,
             descricao_texto: descLabel,
             observacoes_texto: obsLabel,
@@ -8105,11 +8106,13 @@
         const interval = meta.recorrencia || "mensal";
         const nextDue = opts.nextDue || addPeriodToYmd(payable.data_vencimento, interval);
         if (!nextDue) return { error: null, skipped: true };
+        const nextMeta = { ...meta, modo: "RECORRENTE", recorrencia: interval, geracao_automatica: true };
+        delete nextMeta.cadastro_manual;
         const nextPayload = {
           user_id: effectiveUserId(),
           tipo: "RECORRENTE",
           payable_category: payable.payable_category || "OUTROS",
-          descricao: financeMetaPack({ ...meta, modo: "RECORRENTE", recorrencia: interval }, text || payable.descricao || ""),
+          descricao: financeMetaPack(nextMeta, text || payable.descricao || ""),
           valor: Number(payable.valor || 0),
           data_vencimento: nextDue,
           status: "EM_ABERTO",
@@ -8313,10 +8316,8 @@
       async function ensureRecorrentesAutomaticos() {
         if (!(await requireSupabaseSessionForWrite())) return { created: 0 };
         const targetYm = currentYearMonthLocal();
-        let created = 0;
-        created += await ensureRecorrentePayablesUpToMonth(targetYm);
-        created += await ensureRecorrenteReceivablesUpToMonth(targetYm);
-        created += await ensureRecorrentesFromFinanceContacts(targetYm);
+        /* Contas a pagar: apenas cadastro manual (+ botão Gerar no cadastro). Sem geração automática. */
+        const created = await ensureRecorrenteReceivablesUpToMonth(targetYm);
         return { created };
       }
       window.ensureRecorrentesAutomaticos = ensureRecorrentesAutomaticos;
@@ -15466,12 +15467,6 @@
 
         if (opts.anexo) await financeAttachmentSave("payable", payableId, opts.anexo);
 
-        if ((payable.tipo || "").toUpperCase() === "RECORRENTE" || financeEntryModoFromRecord(payable, "payable") === "RECORRENTE") {
-          const nextRes = await createNextRecorrentePayable(payable, { formaPagamento });
-          if (nextRes?.error) {
-            alert(`Pagamento registrado, mas falhou ao gerar o próximo título recorrente: ${nextRes.error.message}`);
-          }
-        }
         await loadPayables();
         updateDashboard();
         if (typeof renderFinance === "function") renderFinance();
