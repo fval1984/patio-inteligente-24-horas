@@ -31,6 +31,9 @@
   /** "" | "entrada" | "saida" */
   let financeFilterCaixaTipo = "";
   let refreshFinanceDataPromise = null;
+  let finCadastroTipo = "PRESTADOR";
+  let finCadastroBusca = "";
+  let finContactEditingId = null;
 
   const FINANCE_ORIGEM_MODULO_LABELS = {
     CONTROLE_RECEITAS: "Controle de receitas",
@@ -2535,6 +2538,7 @@
       if (presetRecorrente) cat.value = "ESTACIONAMENTO_MENSALISTA";
     }
     financeSyncReceitaModoFields();
+    financePopulateContactSelects();
     const title = document.getElementById("finReceitaModalTitle");
     if (title) title.textContent = presetRecorrente ? "Nova receita recorrente" : "Nova receita";
     if (modal.parentElement !== document.body) document.body.appendChild(modal);
@@ -2710,6 +2714,7 @@
       cat.innerHTML = cats.map((c) => `<option value="${escapeHtml(c.value)}">${escapeHtml(c.label)}</option>`).join("");
     }
     financeSyncDespesaModoFields();
+    financePopulateContactSelects();
     const title = document.getElementById("finDespesaModalTitle");
     if (title) title.textContent = presetRecorrente ? "Nova despesa recorrente" : "Nova despesa";
     if (modal.parentElement !== document.body) document.body.appendChild(modal);
@@ -3192,7 +3197,334 @@
     window.print();
   }
 
-  const FINANCE_SUBVIEWS = ["dashboard", "em_patio", "aguardando", "receber", "pagar", "caixa"];
+  const FINANCE_SUBVIEWS = ["dashboard", "em_patio", "aguardando", "receber", "pagar", "caixa", "cadastros"];
+
+  const FIN_CADASTRO_TIPO_LABELS = {
+    PRESTADOR: "Prestador de serviço",
+    FORNECEDOR: "Fornecedor",
+    CLIENTE: "Cliente",
+  };
+
+  function financeContactsByTipo(tipo) {
+    return (state.financeContacts || []).filter((c) => String(c.tipo || "").toUpperCase() === String(tipo || "").toUpperCase());
+  }
+
+  function financeContactById(id) {
+    return (state.financeContacts || []).find((c) => String(c.id) === String(id)) || null;
+  }
+
+  function financePopulateContactSelects() {
+    const despSel = document.getElementById("finDespContactSelect");
+    const recSel = document.getElementById("finRecContactSelect");
+    const payTypes = ["FORNECEDOR", "PRESTADOR"];
+    if (despSel) {
+      const cur = despSel.value;
+      despSel.innerHTML =
+        `<option value="">— Digitar manualmente —</option>` +
+        payTypes
+          .flatMap((t) => financeContactsByTipo(t))
+          .map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)} (${escapeHtml(FIN_CADASTRO_TIPO_LABELS[c.tipo] || c.tipo)})</option>`)
+          .join("");
+      if (cur) despSel.value = cur;
+    }
+    if (recSel) {
+      const cur = recSel.value;
+      recSel.innerHTML =
+        `<option value="">— Digitar manualmente —</option>` +
+        financeContactsByTipo("CLIENTE")
+          .map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}</option>`)
+          .join("");
+      if (cur) recSel.value = cur;
+    }
+  }
+  window.financePopulateContactSelects = financePopulateContactSelects;
+
+  function financeApplyContactToDespesaForm(contactId) {
+    const contact = financeContactById(contactId);
+    if (!contact) return;
+    const forn = document.getElementById("finDespFornecedor");
+    const desc = document.getElementById("finDespDescricao");
+    const val = document.getElementById("finDespValor");
+    const venc = document.getElementById("finDespVencimento");
+    const cat = document.getElementById("finDespCategoria");
+    const forma = document.getElementById("finDespForma");
+    const conta = document.getElementById("finDespConta");
+    const modo = document.getElementById("finDespModo");
+    const rec = document.getElementById("finDespRecorrencia");
+    if (forn) forn.value = contact.nome || "";
+    if (desc) desc.value = contact.descricao_padrao || `${contact.nome} — recorrente`;
+    if (val && contact.valor_padrao != null) val.value = String(Number(contact.valor_padrao));
+    if (forma && contact.forma_pagamento) forma.value = contact.forma_pagamento;
+    if (conta) conta.value = contact.conta_bancaria || state.settings?.conta_bancaria || "";
+    if (cat && contact.payable_category) cat.value = contact.payable_category;
+    if (modo) modo.value = contact.recorrente_ativo ? "RECORRENTE" : "UNICA";
+    if (rec && contact.recorrencia) rec.value = contact.recorrencia;
+    if (venc && contact.dia_vencimento) {
+      const ym = typeof currentYearMonthLocal === "function" ? currentYearMonthLocal() : financeTodayYmd().slice(0, 7);
+      const due =
+        typeof financeContactDueYmdForMonth === "function"
+          ? financeContactDueYmdForMonth(contact, ym)
+          : financeTodayYmd();
+      if (due) venc.value = due;
+    }
+    financeSyncDespesaModoFields();
+  }
+
+  function financeApplyContactToReceitaForm(contactId) {
+    const contact = financeContactById(contactId);
+    if (!contact) return;
+    const cli = document.getElementById("finRecCliente");
+    const desc = document.getElementById("finRecDescricao");
+    const val = document.getElementById("finRecValor");
+    const venc = document.getElementById("finRecVencimento");
+    const dataLanc = document.getElementById("finRecDataLancamento");
+    const cat = document.getElementById("finRecCategoria");
+    const forma = document.getElementById("finRecForma");
+    const modo = document.getElementById("finRecModo");
+    const rec = document.getElementById("finRecRecorrencia");
+    if (cli) cli.value = contact.nome || "";
+    if (desc) desc.value = contact.descricao_padrao || `${contact.nome} — recorrente`;
+    if (val && contact.valor_padrao != null) val.value = String(Number(contact.valor_padrao));
+    if (forma && contact.forma_pagamento) forma.value = contact.forma_pagamento;
+    if (cat && contact.receivable_category) cat.value = contact.receivable_category;
+    if (modo) modo.value = contact.recorrente_ativo ? "RECORRENTE" : "UNICA";
+    if (rec && contact.recorrencia) rec.value = contact.recorrencia;
+    const dueYm = typeof currentYearMonthLocal === "function" ? currentYearMonthLocal() : financeTodayYmd().slice(0, 7);
+    const due =
+      typeof financeContactDueYmdForMonth === "function"
+        ? financeContactDueYmdForMonth(contact, dueYm)
+        : financeTodayYmd();
+    if (venc && due) venc.value = due;
+    if (dataLanc && due) dataLanc.value = due;
+    financeSyncReceitaModoFields();
+  }
+
+  function financeSyncContactModalTipoFields() {
+    const tipo = document.getElementById("finContactTipo")?.value || "PRESTADOR";
+    const recOn = document.getElementById("finContactRecorrente")?.checked;
+    document.getElementById("finContactRecorrenteFields")?.classList.toggle("hidden", !recOn);
+    document.getElementById("finContactPayableCatWrap")?.classList.toggle("hidden", tipo === "CLIENTE");
+    document.getElementById("finContactReceivableCatWrap")?.classList.toggle("hidden", tipo !== "CLIENTE");
+    document.getElementById("finContactContaWrap")?.classList.toggle("hidden", tipo === "CLIENTE");
+  }
+
+  function financeFillContactCategorySelects() {
+    const payCat = document.getElementById("finContactPayableCat");
+    const recCat = document.getElementById("finContactReceivableCat");
+    if (payCat && typeof getLancDespesaCategorias === "function") {
+      const cats = getLancDespesaCategorias();
+      payCat.innerHTML = cats.map((c) => `<option value="${escapeHtml(c.value)}">${escapeHtml(c.label)}</option>`).join("");
+    }
+    if (recCat && typeof getLancReceitaCategorias === "function") {
+      const cats = getLancReceitaCategorias();
+      recCat.innerHTML = cats.map((c) => `<option value="${escapeHtml(c.value)}">${escapeHtml(c.label)}</option>`).join("");
+    }
+  }
+
+  function financeOpenContactModal(contact, presetTipo) {
+    const modal = document.getElementById("finContactModal");
+    const form = document.getElementById("finContactForm");
+    if (!modal || !form) return;
+    form.reset();
+    financeFillContactCategorySelects();
+    finContactEditingId = contact?.id || null;
+    const tipo = contact?.tipo || presetTipo || finCadastroTipo || "PRESTADOR";
+    document.getElementById("finContactId").value = contact?.id || "";
+    document.getElementById("finContactTipo").value = tipo;
+    document.getElementById("finContactAtivo").value = contact?.ativo === false ? "0" : "1";
+    document.getElementById("finContactNome").value = contact?.nome || "";
+    document.getElementById("finContactDocumento").value = contact?.documento || "";
+    document.getElementById("finContactTelefone").value = contact?.telefone || "";
+    document.getElementById("finContactEmail").value = contact?.email || "";
+    document.getElementById("finContactContato").value = contact?.contato || "";
+    document.getElementById("finContactObs").value = contact?.observacoes || "";
+    const rec = document.getElementById("finContactRecorrente");
+    if (rec) rec.checked = !!contact?.recorrente_ativo;
+    document.getElementById("finContactRecorrencia").value = contact?.recorrencia || "mensal";
+    document.getElementById("finContactDiaVenc").value = String(contact?.dia_vencimento || 5);
+    document.getElementById("finContactValor").value =
+      contact?.valor_padrao != null ? String(Number(contact.valor_padrao)) : "";
+    document.getElementById("finContactForma").value = contact?.forma_pagamento || "PIX";
+    document.getElementById("finContactDescricao").value = contact?.descricao_padrao || "";
+    document.getElementById("finContactConta").value = contact?.conta_bancaria || state.settings?.conta_bancaria || "";
+    if (contact?.payable_category) document.getElementById("finContactPayableCat").value = contact.payable_category;
+    if (contact?.receivable_category) document.getElementById("finContactReceivableCat").value = contact.receivable_category;
+    financeSyncContactModalTipoFields();
+    const title = document.getElementById("finContactModalTitle");
+    if (title) title.textContent = contact ? "Editar cadastro" : "Novo cadastro";
+    if (modal.parentElement !== document.body) document.body.appendChild(modal);
+    modal.classList.remove("hidden");
+  }
+
+  function financeCloseContactModal() {
+    document.getElementById("finContactModal")?.classList.add("hidden");
+    finContactEditingId = null;
+  }
+
+  async function financeSaveContactFromForm(e) {
+    e.preventDefault();
+    if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid) return;
+    const tipo = document.getElementById("finContactTipo")?.value || "PRESTADOR";
+    const nome = document.getElementById("finContactNome")?.value?.trim();
+    if (!nome) return alert("Informe o nome.");
+    const recorrente = document.getElementById("finContactRecorrente")?.checked === true;
+    const valorRaw = document.getElementById("finContactValor")?.value;
+    const valor = valorRaw === "" || valorRaw == null ? null : Number(valorRaw);
+    if (recorrente && (!Number.isFinite(valor) || valor <= 0)) {
+      return alert("Para recorrência automática, informe um valor padrão maior que zero.");
+    }
+    const payload = {
+      user_id: uid,
+      tipo,
+      nome,
+      documento: document.getElementById("finContactDocumento")?.value?.trim() || null,
+      email: document.getElementById("finContactEmail")?.value?.trim() || null,
+      telefone: document.getElementById("finContactTelefone")?.value?.trim() || null,
+      contato: document.getElementById("finContactContato")?.value?.trim() || null,
+      observacoes: document.getElementById("finContactObs")?.value?.trim() || null,
+      recorrente_ativo: recorrente,
+      recorrencia: document.getElementById("finContactRecorrencia")?.value || "mensal",
+      valor_padrao: valor,
+      dia_vencimento: Math.min(28, Math.max(1, Number(document.getElementById("finContactDiaVenc")?.value) || 5)),
+      payable_category:
+        tipo === "CLIENTE" ? null : document.getElementById("finContactPayableCat")?.value || "OUTROS",
+      receivable_category:
+        tipo === "CLIENTE" ? document.getElementById("finContactReceivableCat")?.value || "ESTACIONAMENTO_MENSALISTA" : null,
+      descricao_padrao: document.getElementById("finContactDescricao")?.value?.trim() || null,
+      forma_pagamento: document.getElementById("finContactForma")?.value || "PIX",
+      conta_bancaria: document.getElementById("finContactConta")?.value?.trim() || null,
+      ativo: document.getElementById("finContactAtivo")?.value !== "0",
+      updated_at: new Date().toISOString(),
+    };
+    const id = finContactEditingId || document.getElementById("finContactId")?.value;
+    const write = id
+      ? () => supabase.from("finance_contacts").update(payload).eq("id", id).eq("user_id", uid)
+      : () => supabase.from("finance_contacts").insert(payload);
+    const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
+    if (error) {
+      if (/relation|schema cache|does not exist|PGRST205/i.test(error.message || "")) {
+        return alert("Execute no Supabase o script supabase/finance_contacts.sql e tente novamente.");
+      }
+      return typeof alertSupabaseError === "function"
+        ? alertSupabaseError(error, "Não foi possível salvar o cadastro.")
+        : alert(error.message);
+    }
+    financeCloseContactModal();
+    if (typeof loadFinanceContacts === "function") await loadFinanceContacts();
+    if (typeof window.ensureRecorrentesAutomaticos === "function") {
+      const stats = await window.ensureRecorrentesAutomaticos();
+      if (stats?.created > 0) {
+        await Promise.all([
+          typeof loadReceivables === "function" ? loadReceivables() : Promise.resolve(),
+          typeof loadPayables === "function" ? loadPayables() : Promise.resolve(),
+        ]);
+      }
+    }
+    financeRenderCadastros();
+    financePopulateContactSelects();
+  }
+
+  async function financeDeleteContact(contactId) {
+    if (!contactId) return;
+    if (!window.confirm("Excluir este cadastro? Lançamentos já gerados não serão removidos.")) return;
+    if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    const write = () => supabase.from("finance_contacts").delete().eq("id", contactId).eq("user_id", uid);
+    const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
+    if (error) {
+      return typeof alertSupabaseError === "function"
+        ? alertSupabaseError(error, "Não foi possível excluir.")
+        : alert(error.message);
+    }
+    if (typeof loadFinanceContacts === "function") await loadFinanceContacts();
+    financeRenderCadastros();
+    financePopulateContactSelects();
+  }
+
+  async function financeGerarLancamentoFromContact(contactId) {
+    const contact = financeContactById(contactId);
+    if (!contact) return alert("Cadastro não encontrado.");
+    if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
+    const ym = typeof currentYearMonthLocal === "function" ? currentYearMonthLocal() : financeTodayYmd().slice(0, 7);
+    const due =
+      typeof financeContactDueYmdForMonth === "function"
+        ? financeContactDueYmdForMonth(contact, ym)
+        : financeTodayYmd();
+    if (typeof window.createLancamentoFromFinanceContact !== "function") return;
+    const res = await window.createLancamentoFromFinanceContact(contact, due);
+    if (res?.error) return alert(res.error.message || "Falha ao gerar lançamento.");
+    await Promise.all([
+      typeof loadReceivables === "function" ? loadReceivables() : Promise.resolve(),
+      typeof loadPayables === "function" ? loadPayables() : Promise.resolve(),
+    ]);
+    renderFinance();
+    alert("Lançamento gerado para o mês atual.");
+  }
+
+  function financeRenderCadastros() {
+    const body = document.getElementById("finCadastrosBody");
+    const hint = document.getElementById("finCadastrosSchemaHint");
+    if (!body) return;
+    if (state.financeContactsLoadError && /relation|schema cache|does not exist|PGRST205/i.test(state.financeContactsLoadError.message || "")) {
+      if (hint) {
+        hint.textContent =
+          "Para usar cadastros financeiros, execute no Supabase (SQL Editor) o script supabase/finance_contacts.sql.";
+        hint.classList.remove("hidden");
+      }
+      body.innerHTML = `<tr><td colspan="8"><em>Cadastros indisponíveis até criar a tabela no Supabase.</em></td></tr>`;
+      return;
+    }
+    if (hint) hint.classList.add("hidden");
+    const q = String(finCadastroBusca || "").trim().toLowerCase();
+    let list = financeContactsByTipo(finCadastroTipo);
+    if (q) {
+      list = list.filter((c) =>
+        [c.nome, c.documento, c.email, c.telefone, c.contato, c.descricao_padrao]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(q)
+      );
+    }
+    if (!list.length) {
+      body.innerHTML = `<tr><td colspan="8"><em>Nenhum cadastro nesta categoria.</em></td></tr>`;
+      return;
+    }
+    body.innerHTML = list
+      .map((c) => {
+        const rec = c.recorrente_ativo
+          ? `<span class="finance-lanc-badge finance-lanc-badge--recorrente">${escapeHtml(c.recorrencia || "mensal")}</span>`
+          : "—";
+        const venc = c.dia_vencimento ? `Dia ${Number(c.dia_vencimento)}` : "—";
+        const status = c.ativo === false ? `<span class="tag">Inativo</span>` : `<span class="tag ok">Ativo</span>`;
+        return `<tr>
+          <td data-label="Nome"><strong>${escapeHtml(c.nome || "—")}</strong></td>
+          <td data-label="Documento">${escapeHtml(c.documento || "—")}</td>
+          <td data-label="Contato">${escapeHtml([c.telefone, c.email].filter(Boolean).join(" · ") || c.contato || "—")}</td>
+          <td data-label="Recorrente">${rec}</td>
+          <td data-label="Valor">${escapeHtml(c.valor_padrao != null ? formatCurrency(Number(c.valor_padrao)) : "—")}</td>
+          <td data-label="Vencimento">${escapeHtml(venc)}</td>
+          <td data-label="Status">${status}</td>
+          <td data-label="Ações" class="actions">
+            <button type="button" class="secondary fin-contact-edit" data-id="${escapeHtml(c.id)}">Editar</button>
+            <button type="button" class="secondary fin-contact-gerar" data-id="${escapeHtml(c.id)}">Gerar mês</button>
+            <button type="button" class="secondary fin-contact-del" data-id="${escapeHtml(c.id)}">Excluir</button>
+          </td>
+        </tr>`;
+      })
+      .join("");
+    body.querySelectorAll(".fin-contact-edit").forEach((btn) => {
+      btn.addEventListener("click", () => financeOpenContactModal(financeContactById(btn.getAttribute("data-id"))));
+    });
+    body.querySelectorAll(".fin-contact-gerar").forEach((btn) => {
+      btn.addEventListener("click", () => financeGerarLancamentoFromContact(btn.getAttribute("data-id")));
+    });
+    body.querySelectorAll(".fin-contact-del").forEach((btn) => {
+      btn.addEventListener("click", () => financeDeleteContact(btn.getAttribute("data-id")));
+    });
+  }
 
   function financeNormalizeFinanceView(view) {
     if (view === "recebidos") return "caixa";
@@ -3207,6 +3539,7 @@
     else if (view === "aguardando") financeRenderAguardando();
     else if (view === "pagar") financeRenderPagar();
     else if (view === "caixa") financeRenderCaixa();
+    else if (view === "cadastros") financeRenderCadastros();
   }
 
   function financeActivateSubview(view, opts = {}) {
@@ -3294,6 +3627,7 @@
           loadCash(),
           loadVehicles(),
           typeof loadCycleClosures === "function" ? loadCycleClosures() : Promise.resolve(),
+          typeof loadFinanceContacts === "function" ? loadFinanceContacts() : Promise.resolve(),
         ]);
         if (typeof window.ensureRecorrentesAutomaticos === "function") {
           const recorrenteStats = await window.ensureRecorrentesAutomaticos();
@@ -3549,6 +3883,33 @@
 
     document.getElementById("finBtnNovaDespesa")?.addEventListener("click", () => financeOpenDespesaModal(false));
     document.getElementById("finBtnNovaReceita")?.addEventListener("click", () => financeOpenReceitaModal(false));
+    document.getElementById("finBtnNovoContato")?.addEventListener("click", () => financeOpenContactModal(null, finCadastroTipo));
+    document.getElementById("finCadastroBusca")?.addEventListener("input", (e) => {
+      finCadastroBusca = e.target.value || "";
+      if (currentFinanceView === "cadastros") financeRenderCadastros();
+    });
+    document.getElementById("finCadastroSubnav")?.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-fin-cadastro-tipo]");
+      if (!btn) return;
+      finCadastroTipo = btn.getAttribute("data-fin-cadastro-tipo") || "PRESTADOR";
+      document.querySelectorAll("#finCadastroSubnav [data-fin-cadastro-tipo]").forEach((b) => {
+        b.classList.toggle("active", b.getAttribute("data-fin-cadastro-tipo") === finCadastroTipo);
+      });
+      financeRenderCadastros();
+    });
+    document.getElementById("finContactForm")?.addEventListener("submit", financeSaveContactFromForm);
+    document.getElementById("finContactTipo")?.addEventListener("change", financeSyncContactModalTipoFields);
+    document.getElementById("finContactRecorrente")?.addEventListener("change", financeSyncContactModalTipoFields);
+    document.getElementById("closeFinContactModal")?.addEventListener("click", financeCloseContactModal);
+    document.getElementById("cancelFinContactModal")?.addEventListener("click", financeCloseContactModal);
+    document.getElementById("finDespContactSelect")?.addEventListener("change", (e) => {
+      const id = e.target.value;
+      if (id) financeApplyContactToDespesaForm(id);
+    });
+    document.getElementById("finRecContactSelect")?.addEventListener("change", (e) => {
+      const id = e.target.value;
+      if (id) financeApplyContactToReceitaForm(id);
+    });
     document.getElementById("finDespModo")?.addEventListener("change", financeSyncDespesaModoFields);
     document.getElementById("finRecModo")?.addEventListener("change", financeSyncReceitaModoFields);
     document.getElementById("finRecJaRecebido")?.addEventListener("change", financeSyncReceitaModoFields);
@@ -3580,6 +3941,7 @@
       const submitBtn = e.target.querySelector('button[type="submit"]');
       if (submitBtn) submitBtn.disabled = true;
       try {
+        const contactId = document.getElementById("finDespContactSelect")?.value || null;
         const result = await insertManualPayableLancamento({
           descricao,
           valor,
@@ -3593,6 +3955,7 @@
           parcelas,
           recorrenciaIntervalo,
           contaBancaria,
+          financeContactId: contactId || null,
         });
         if (result.error) {
           alert(result.error.message || "Não foi possível salvar a despesa.");
@@ -3646,6 +4009,7 @@
       const submitBtn = e.target.querySelector('button[type="submit"]');
       if (submitBtn) submitBtn.disabled = true;
       try {
+        const contactId = document.getElementById("finRecContactSelect")?.value || null;
         const result = await insertManualReceivableLancamento({
           descricao,
           valor,
@@ -3661,6 +4025,7 @@
           modo,
           parcelas,
           recorrenciaIntervalo,
+          financeContactId: contactId || null,
         });
         if (result.error) {
           alert(result.error.message || "Não foi possível salvar a receita.");

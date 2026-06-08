@@ -4747,6 +4747,7 @@
                   <button type="button" data-finance-subview="receber">Contas a receber</button>
                   <button type="button" data-finance-subview="pagar">Contas a pagar</button>
                   <button type="button" data-finance-subview="caixa">Caixa</button>
+                  <button type="button" data-finance-subview="cadastros">Cadastros</button>
                 </div>
               </details>
 
@@ -5417,6 +5418,7 @@
             <button type="button" data-finance-subview-btn="receber">Contas a receber</button>
             <button type="button" data-finance-subview-btn="pagar">Contas a pagar</button>
             <button type="button" data-finance-subview-btn="caixa">Caixa</button>
+            <button type="button" data-finance-subview-btn="cadastros">Cadastros</button>
           </div>
           <p id="finRecebidosRecoverHint" class="notice hidden" style="margin: 0 0 10px"></p>
 
@@ -5633,6 +5635,39 @@
               <table class="table">
                 <thead><tr><th>Data</th><th>Tipo</th><th>Origem</th><th>Descrição</th><th>Valor</th></tr></thead>
                 <tbody id="finCaixaBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="finance-subview hidden" data-finance-subview="cadastros">
+            <div class="fin-toolbar">
+              <div><button type="button" id="finBtnNovoContato">+ Novo cadastro</button></div>
+              <div>
+                <label for="finCadastroBusca">Buscar</label>
+                <input id="finCadastroBusca" type="search" placeholder="Nome, documento, e-mail…" />
+              </div>
+            </div>
+            <div class="subnav fin-cadastro-subnav" id="finCadastroSubnav" style="margin-bottom: 12px">
+              <button type="button" data-fin-cadastro-tipo="PRESTADOR" class="active">Prestadores de serviço</button>
+              <button type="button" data-fin-cadastro-tipo="FORNECEDOR">Fornecedores</button>
+              <button type="button" data-fin-cadastro-tipo="CLIENTE">Clientes</button>
+            </div>
+            <p id="finCadastrosSchemaHint" class="notice hidden" style="margin: 0 0 10px"></p>
+            <div class="table-wrap section-card">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Documento</th>
+                    <th>Contato</th>
+                    <th>Recorrente</th>
+                    <th>Valor padrão</th>
+                    <th>Vencimento</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="finCadastrosBody"></tbody>
               </table>
             </div>
           </div>
@@ -6166,6 +6201,121 @@
         </div>
       </div>
 
+      <div id="finContactModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 560px">
+          <div class="modal-header">
+            <div>
+              <h3 id="finContactModalTitle">Novo cadastro</h3>
+              <p class="subtitle" style="margin: 4px 0 0" id="finContactModalSubtitle">Prestadores, fornecedores e clientes com vínculo a lançamentos recorrentes.</p>
+            </div>
+            <button type="button" class="modal-close" id="closeFinContactModal">Fechar</button>
+          </div>
+          <form id="finContactForm">
+            <input type="hidden" id="finContactId" value="" />
+            <div class="form-grid">
+              <div>
+                <label for="finContactTipo">Tipo</label>
+                <select id="finContactTipo" required>
+                  <option value="PRESTADOR">Prestador de serviço</option>
+                  <option value="FORNECEDOR">Fornecedor</option>
+                  <option value="CLIENTE">Cliente</option>
+                </select>
+              </div>
+              <div>
+                <label for="finContactAtivo">Status</label>
+                <select id="finContactAtivo">
+                  <option value="1">Ativo</option>
+                  <option value="0">Inativo</option>
+                </select>
+              </div>
+              <div class="full">
+                <label for="finContactNome">Nome</label>
+                <input id="finContactNome" type="text" required placeholder="Nome ou razão social" />
+              </div>
+              <div>
+                <label for="finContactDocumento">CPF / CNPJ</label>
+                <input id="finContactDocumento" type="text" placeholder="Opcional" />
+              </div>
+              <div>
+                <label for="finContactTelefone">Telefone</label>
+                <input id="finContactTelefone" type="text" placeholder="Opcional" />
+              </div>
+              <div class="full">
+                <label for="finContactEmail">E-mail</label>
+                <input id="finContactEmail" type="email" placeholder="Opcional" />
+              </div>
+              <div class="full">
+                <label for="finContactContato">Pessoa de contato</label>
+                <input id="finContactContato" type="text" placeholder="Opcional" />
+              </div>
+              <div class="full">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer">
+                  <input type="checkbox" id="finContactRecorrente" />
+                  Gerar lançamentos recorrentes automaticamente
+                </label>
+              </div>
+              <div id="finContactRecorrenteFields" class="full hidden">
+                <div class="form-grid" style="margin: 0">
+                  <div>
+                    <label for="finContactRecorrencia">Recorrência</label>
+                    <select id="finContactRecorrencia">
+                      <option value="semanal">Semanal</option>
+                      <option value="quinzenal">Quinzenal</option>
+                      <option value="mensal" selected>Mensal</option>
+                      <option value="anual">Anual</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="finContactDiaVenc">Dia do vencimento</label>
+                    <input id="finContactDiaVenc" type="number" min="1" max="28" value="5" />
+                  </div>
+                  <div>
+                    <label for="finContactValor">Valor padrão (R$)</label>
+                    <input id="finContactValor" type="number" step="0.01" min="0" placeholder="0,00" />
+                  </div>
+                  <div>
+                    <label for="finContactForma">Forma de pagamento</label>
+                    <select id="finContactForma">
+                      <option value="PIX">PIX</option>
+                      <option value="Dinheiro">Dinheiro</option>
+                      <option value="Transferência">Transferência</option>
+                      <option value="Boleto">Boleto</option>
+                      <option value="Cartão Débito">Cartão Débito</option>
+                      <option value="Cartão Crédito">Cartão Crédito</option>
+                      <option value="Cheque">Cheque</option>
+                    </select>
+                  </div>
+                  <div id="finContactPayableCatWrap">
+                    <label for="finContactPayableCat">Categoria (despesa)</label>
+                    <select id="finContactPayableCat"></select>
+                  </div>
+                  <div id="finContactReceivableCatWrap" class="hidden">
+                    <label for="finContactReceivableCat">Serviço (receita)</label>
+                    <select id="finContactReceivableCat"></select>
+                  </div>
+                  <div class="full">
+                    <label for="finContactDescricao">Descrição padrão do lançamento</label>
+                    <input id="finContactDescricao" type="text" placeholder="Ex.: Mensalidade — serviço de limpeza" />
+                  </div>
+                  <div class="full" id="finContactContaWrap">
+                    <label for="finContactConta">Conta bancária (despesa)</label>
+                    <input id="finContactConta" type="text" placeholder="Banco / conta" />
+                  </div>
+                </div>
+              </div>
+              <div class="full">
+                <label for="finContactObs">Observações</label>
+                <textarea id="finContactObs" rows="2" placeholder="Opcional"></textarea>
+              </div>
+            </div>
+            <div class="form-actions" style="margin-top: 14px">
+              <button type="submit">Salvar cadastro</button>
+              <button type="button" class="secondary" id="cancelFinContactModal">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div id="finDespesaModal" class="modal-backdrop hidden">
         <div class="modal" style="max-width: 520px">
           <div class="modal-header">
@@ -6177,6 +6327,12 @@
           </div>
           <form id="finDespesaForm">
             <div class="form-grid">
+              <div class="full">
+                <label for="finDespContactSelect">Vincular cadastro</label>
+                <select id="finDespContactSelect">
+                  <option value="">— Digitar manualmente —</option>
+                </select>
+              </div>
               <div class="full">
                 <label for="finDespFornecedor">Fornecedor</label>
                 <input id="finDespFornecedor" type="text" required placeholder="Nome do fornecedor" />
@@ -6262,6 +6418,12 @@
           </div>
           <form id="finReceitaForm">
             <div class="form-grid">
+              <div class="full">
+                <label for="finRecContactSelect">Vincular cadastro</label>
+                <select id="finRecContactSelect">
+                  <option value="">— Digitar manualmente —</option>
+                </select>
+              </div>
               <div class="full">
                 <label for="finRecCliente">Origem</label>
                 <input id="finRecCliente" type="text" required placeholder="Ex.: mensalista, parceiro, balcão…" />
@@ -6666,6 +6828,7 @@
         parcelas = 2,
         competencia = "",
         recorrenciaIntervalo = "mensal",
+        financeContactId = null,
       }) {
         if (!(await requireSupabaseSessionForWrite())) return { error: { message: "Sessão expirada" } };
         const clienteNome = String(cliente || "").trim();
@@ -6699,6 +6862,7 @@
             ...(modoUp === "RECORRENTE"
               ? { recorrencia: String(recorrenciaIntervalo || "mensal").toLowerCase() }
               : {}),
+            ...(financeContactId ? { finance_contact_id: String(financeContactId) } : {}),
           };
           const userText =
             [origemLabel, descLabel, rppLabel ? `RPP: ${rppLabel}` : "", extraObs].filter(Boolean).join(" — ") ||
@@ -6775,6 +6939,7 @@
         competencia = "",
         recorrenciaIntervalo = "mensal",
         contaBancaria = "",
+        financeContactId = null,
       }) {
         if (!(await requireSupabaseSessionForWrite())) return { error: { message: "Sessão expirada" } };
         const modoUp = String(modo || "UNICA").toUpperCase();
@@ -6805,6 +6970,7 @@
               ? { recorrencia: String(recorrenciaIntervalo || "mensal").toLowerCase() }
               : {}),
             ...(modoUp === "PARCELADA" ? { parcela: i + 1, parcelas_total: count, grupo_id: grupoId } : {}),
+            ...(financeContactId ? { finance_contact_id: String(financeContactId) } : {}),
           };
           const baseDesc = count > 1 ? `${descLabel} (${i + 1}/${count})` : descLabel;
           const descricaoFinal = financeMetaPack(
@@ -7078,6 +7244,8 @@
         /** Quando logado como gestor/operador delegado: dono dos dados (veículos, parceiros, etc.). */
         patioOwnerUserId: null,
         partners: [],
+        financeContacts: [],
+        financeContactsLoadError: null,
         vehicles: [],
         receivables: [],
         cycleClosures: [],
@@ -7911,6 +8079,7 @@
 
       function recorrentePayableSeriesKey(payable) {
         const { meta } = financeMetaUnpack(financePayableMetaText(payable));
+        if (meta.finance_contact_id) return `fc:${meta.finance_contact_id}`;
         return [
           String(payable?.payable_category || payable?.categoria || "OUTROS").toUpperCase(),
           String(payable?.fornecedor || meta?.fornecedor_texto || "")
@@ -7926,6 +8095,7 @@
 
       function recorrenteReceivableSeriesKey(receivable) {
         const { meta } = financeMetaUnpack(financeReceivableMetaText(receivable));
+        if (meta.finance_contact_id) return `fc:${meta.finance_contact_id}`;
         return [
           String(receivable?.receivable_category || "GUARDA_PATIO").toUpperCase(),
           String(meta?.origem_texto || meta?.descricao_texto || meta?.rpp_texto || "")
@@ -8036,12 +8206,129 @@
         return created;
       }
 
+      function financeContactDueYmdForMonth(contact, ym) {
+        const day = Math.min(28, Math.max(1, Number(contact?.dia_vencimento) || 5));
+        const [y, m] = String(ym || "").split("-").map(Number);
+        if (!y || !m) return null;
+        const last = new Date(y, m, 0).getDate();
+        const d = Math.min(day, last);
+        return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      }
+      window.financeContactDueYmdForMonth = financeContactDueYmdForMonth;
+
+      function financeContactLastDueYmd(contact) {
+        const cid = String(contact?.id || "");
+        if (!cid) return "";
+        const tipo = String(contact?.tipo || "").toUpperCase();
+        if (tipo === "CLIENTE") {
+          const dues = (state.receivables || [])
+            .filter((r) => {
+              const { meta } = financeMetaUnpack(financeReceivableMetaText(r));
+              return String(meta.finance_contact_id || "") === cid;
+            })
+            .map(recorrenteReceivableDueYmd)
+            .filter(Boolean)
+            .sort();
+          return dues.pop() || "";
+        }
+        const dues = (state.payables || [])
+          .filter((p) => {
+            const { meta } = financeMetaUnpack(financePayableMetaText(p));
+            return String(meta.finance_contact_id || "") === cid;
+          })
+          .map(recorrentePayableDueYmd)
+          .filter(Boolean)
+          .sort();
+        return dues.pop() || "";
+      }
+
+      function financeContactLancamentoExists(contactId, dueYmd) {
+        const cid = String(contactId || "");
+        const due = String(dueYmd || "");
+        if (!cid || !due) return false;
+        const contact = (state.financeContacts || []).find((c) => String(c.id) === cid);
+        const tipo = String(contact?.tipo || "").toUpperCase();
+        if (tipo === "CLIENTE") {
+          return (state.receivables || []).some((r) => {
+            const { meta } = financeMetaUnpack(financeReceivableMetaText(r));
+            return String(meta.finance_contact_id || "") === cid && recorrenteReceivableDueYmd(r) === due;
+          });
+        }
+        return (state.payables || []).some((p) => {
+          const { meta } = financeMetaUnpack(financePayableMetaText(p));
+          return String(meta.finance_contact_id || "") === cid && recorrentePayableDueYmd(p) === due;
+        });
+      }
+
+      async function createLancamentoFromFinanceContact(contact, dueYmd) {
+        if (!contact || !dueYmd) return { error: { message: "Cadastro ou vencimento inválido." } };
+        const valor = Number(contact.valor_padrao || 0);
+        if (!Number.isFinite(valor) || valor <= 0) return { error: { message: "Defina um valor padrão no cadastro." } };
+        const desc = String(contact.descricao_padrao || `${contact.nome} — recorrente`).trim();
+        const forma = contact.forma_pagamento || "PIX";
+        const interval = String(contact.recorrencia || "mensal").toLowerCase();
+        const tipo = String(contact.tipo || "").toUpperCase();
+        if (tipo === "CLIENTE") {
+          return insertManualReceivableLancamento({
+            cliente: contact.nome,
+            descricao: desc,
+            valor,
+            data: dueYmd,
+            vencimento: dueYmd,
+            categoria: contact.receivable_category || "ESTACIONAMENTO_MENSALISTA",
+            formaPagamento: forma,
+            observacoes: contact.observacoes || "",
+            pago: false,
+            modo: "RECORRENTE",
+            recorrenciaIntervalo: interval,
+            financeContactId: contact.id,
+          });
+        }
+        return insertManualPayableLancamento({
+          fornecedor: contact.nome,
+          descricao: desc,
+          valor,
+          vencimento: dueYmd,
+          categoria: contact.payable_category || "OUTROS",
+          formaPagamento: forma,
+          observacoes: contact.observacoes || "",
+          pago: false,
+          modo: "RECORRENTE",
+          recorrenciaIntervalo: interval,
+          contaBancaria: contact.conta_bancaria || "",
+          financeContactId: contact.id,
+        });
+      }
+      window.createLancamentoFromFinanceContact = createLancamentoFromFinanceContact;
+
+      async function ensureRecorrentesFromFinanceContacts(targetYm) {
+        const contacts = (state.financeContacts || []).filter((c) => c.recorrente_ativo && c.ativo !== false);
+        let created = 0;
+        for (const contact of contacts) {
+          const interval = String(contact.recorrencia || "mensal").toLowerCase();
+          let lastDue = financeContactLastDueYmd(contact);
+          let nextDue = lastDue
+            ? addPeriodToYmd(lastDue, interval)
+            : financeContactDueYmdForMonth(contact, yearMonthFromYmd(toLocalYmd(contact.created_at)) || targetYm);
+          while (nextDue && yearMonthFromYmd(nextDue) <= targetYm) {
+            if (!financeContactLancamentoExists(contact.id, nextDue)) {
+              const res = await createLancamentoFromFinanceContact(contact, nextDue);
+              if (!res?.error) created += 1;
+            }
+            lastDue = nextDue;
+            nextDue = addPeriodToYmd(lastDue, interval);
+          }
+        }
+        return created;
+      }
+
       async function ensureRecorrentesAutomaticos() {
         if (!(await requireSupabaseSessionForWrite())) return { created: 0 };
         const targetYm = currentYearMonthLocal();
         let created = 0;
         created += await ensureRecorrentePayablesUpToMonth(targetYm);
         created += await ensureRecorrenteReceivablesUpToMonth(targetYm);
+        created += await ensureRecorrentesFromFinanceContacts(targetYm);
         return { created };
       }
       window.ensureRecorrentesAutomaticos = ensureRecorrentesAutomaticos;
@@ -11759,6 +12046,31 @@
         maybeRefreshListaPanel();
       }
 
+      async function loadFinanceContacts() {
+        const uid = supabaseOwnerUserId();
+        if (!uid) return;
+        const { data, error } = await supabase
+          .from("finance_contacts")
+          .select("*")
+          .eq("user_id", uid)
+          .order("nome", { ascending: true });
+        if (error) {
+          state.financeContactsLoadError = error;
+          if (/relation|schema cache|does not exist|PGRST205/i.test(error.message || "")) {
+            state.financeContacts = [];
+          } else {
+            logSupabaseLoadError("loadFinanceContacts", error);
+          }
+          return;
+        }
+        state.financeContactsLoadError = null;
+        state.financeContacts = data || [];
+        if (typeof window.financePopulateContactSelects === "function") {
+          window.financePopulateContactSelects();
+        }
+      }
+      window.loadFinanceContacts = loadFinanceContacts;
+
       async function loadVehicles() {
         const uid = supabaseOwnerUserId();
         if (!uid) return;
@@ -12037,6 +12349,7 @@
         }
         await Promise.all([
           loadPartners(),
+          loadFinanceContacts(),
           loadVehicles(),
           loadReceivables(),
           loadCycleClosures(),
