@@ -462,6 +462,21 @@
       .reduce((s, m) => s + financeCashMovValor(m), 0);
   }
 
+  /** Data de competência da entrada de caixa vinculada a um recebível pago. */
+  function financeReceivableCashCompetenciaYmd(r) {
+    if (!r) return "";
+    const raw =
+      typeof financeReceivableMetaText === "function"
+        ? financeReceivableMetaText(r)
+        : r?.observacoes || r?.responsavel_pagamento || r?.descricao || "";
+    const { meta } = financeMetaUnpack(raw);
+    const fromMeta = toLocalYmd(meta?.data_pagamento || meta?.data_recebimento || "");
+    if (fromMeta) return fromMeta;
+    const period = toLocalYmd(r.period_end || r.period_start || "");
+    if (period) return period;
+    return toLocalYmd(r.updated_at || r.created_at || "") || "";
+  }
+
   /** Data de competência da saída de caixa vinculada a uma despesa paga. */
   function financePayableCashCompetenciaYmd(p) {
     if (!p) return "";
@@ -498,15 +513,22 @@
         return movComp || payComp || toLocalYmd(mov.created_at) || "";
       }
     }
-    const direct = toLocalYmd(mov.data_movimento || mov.created_at);
-    if (direct) return direct;
-    if (financeCashIsEntrada(mov) && mov.conta_id != null && mov.conta_id !== "") {
-      const rec = (state.receivables || []).find((r) => String(r.id) === String(mov.conta_id));
+    if (financeCashIsEntrada(mov)) {
+      const rec = financeCashMovLinkedReceivable(mov);
       if (rec) {
-        return toLocalYmd(rec.updated_at || rec.period_end || rec.created_at) || "";
+        const recComp = financeReceivableCashCompetenciaYmd(rec);
+        const movComp = toLocalYmd(mov.data_movimento || "");
+        const raw =
+          typeof financeReceivableMetaText === "function"
+            ? financeReceivableMetaText(rec)
+            : rec?.observacoes || rec?.responsavel_pagamento || "";
+        const { meta } = financeMetaUnpack(raw);
+        const hasExplicitPayDate = !!(meta?.data_pagamento || meta?.data_recebimento);
+        if (hasExplicitPayDate && recComp) return recComp;
+        return movComp || recComp || toLocalYmd(mov.created_at) || "";
       }
     }
-    return "";
+    return toLocalYmd(mov.data_movimento || mov.created_at) || "";
   }
 
   /** @deprecated Saídas de payables não são mais sintetizadas no caixa — registro manual apenas. */
@@ -1161,7 +1183,7 @@
           tipo_conta: "RECEBER",
           conta_id: r.id,
           valor: Number(r.valor || 0),
-          data_movimento: toLocalYmd(r.updated_at || r.period_end || r.created_at || new Date().toISOString()),
+          data_movimento: financeReceivableCashCompetenciaYmd(r) || toLocalYmd(new Date().toISOString()),
           forma_pagamento:
             (typeof financeReceivableFormaPagamento === "function"
               ? financeReceivableFormaPagamento(r)
@@ -2566,7 +2588,7 @@
     }
     if (!body) return;
     let movs = [...movsPeriodo].sort((a, b) =>
-      String(b.data_movimento || b.created_at).localeCompare(String(a.data_movimento || a.created_at))
+      financeCaixaMovCompetenciaYmd(b).localeCompare(financeCaixaMovCompetenciaYmd(a))
     );
     if (!movs.length) {
       const totalMovs = financeCaixaMovsMerged().length;
@@ -4310,6 +4332,7 @@
   window.financeCaixaMovsMerged = financeCaixaMovsMerged;
   window.financeCaixaMovsForPeriod = financeCaixaMovsForPeriod;
   window.financeCaixaMovCompetenciaYmd = financeCaixaMovCompetenciaYmd;
+  window.financeReceivableCashCompetenciaYmd = financeReceivableCashCompetenciaYmd;
   window.financePayableCashCompetenciaYmd = financePayableCashCompetenciaYmd;
   window.financePayableDefaultBaixaDateYmd = financePayableDefaultBaixaDateYmd;
   window.financeIsManualPayable = financeIsManualPayable;

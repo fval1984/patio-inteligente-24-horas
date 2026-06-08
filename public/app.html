@@ -7746,7 +7746,9 @@
         const { meta } = financeMetaUnpack(financeReceivableMetaText(receivable));
         const fromMeta = toLocalYmd(meta?.data_pagamento || meta?.data_recebimento || "");
         if (fromMeta) return fromMeta;
-        return toLocalYmd(receivable.updated_at || receivable.period_end || receivable.created_at || "");
+        const period = toLocalYmd(receivable.period_end || receivable.period_start || "");
+        if (period) return period;
+        return toLocalYmd(receivable.updated_at || receivable.created_at || "");
       }
 
       function supabaseSchemaColumnError(err) {
@@ -12193,9 +12195,6 @@
           return;
         }
         state.cash = data || [];
-        if (typeof window.financeDedupeCaixaMovs === "function") {
-          state.cash = window.financeDedupeCaixaMovs(state.cash);
-        }
         maybeRefreshListaPanel();
       }
 
@@ -15363,13 +15362,16 @@
             }
             continue;
           }
-          if (Number(mov.valor || 0) !== valor) {
+          const expectDate =
+            financeReceivablePaidDateYmd(r) ||
+            toLocalYmd(r.period_end || r.period_start || r.updated_at || r.created_at || "");
+          const movDate = toLocalYmd(mov.data_movimento);
+          const valorMismatch = Number(mov.valor || 0) !== valor;
+          const dateMismatch = !!expectDate && movDate !== expectDate;
+          if (valorMismatch || dateMismatch) {
             const res = await registerReceivableCashMovement(r, {
               valor,
-              dataMovimento:
-                toLocalYmd(mov.data_movimento) ||
-                financeReceivablePaidDateYmd(r) ||
-                toLocalYmd(r.updated_at || r.created_at || new Date().toISOString()),
+              dataMovimento: expectDate || movDate || toLocalYmd(new Date().toISOString()),
               formaPagamento: mov.forma_pagamento || financeReceivableFormaPagamento(r),
               vehicle,
             });
