@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "db:apply-vehicles": "node scripts/apply-vehicles-recursos.cjs",
+    "db:caixa-reset": "node scripts/execute-caixa-reset.cjs",
     "db:zerar-saldo-caixa": "node scripts/zerar-saldo-caixa.cjs",
     "db:sync-caixa-pagar": "node scripts/sync-caixa-pagar.cjs",
     "db:lancar-despesas-pagas-caixa": "node scripts/lancar-despesas-pagas-caixa.cjs",

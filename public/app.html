@@ -12410,16 +12410,6 @@
             console.warn("syncLostReceivablesToContasReceber", e?.message || e);
           });
         }
-        if (typeof callRegisterCashReceivableApi === "function") {
-          callRegisterCashReceivableApi({ syncMissing: true })
-            .then((r) => {
-              if (r?.ok) {
-                loadReceivables();
-                loadCash();
-              }
-            })
-            .catch((e) => console.warn("register-cash-receivable syncMissing", e?.message || e));
-        }
         probeVehiclesRpfColumns().catch(() => {});
         const userId = effectiveUserId();
         if (userId && !FINANCE_MANUAL_ONLY) {
@@ -15311,21 +15301,19 @@
         const uid = effectiveUserId();
         if (!uid || !supabase) return { created: 0, fixed: 0, failed: 0 };
 
-        const apiSync = await callRegisterCashReceivableApi({ syncMissing: true });
-        if (apiSync.ok) {
-          await loadCash();
-          const stats = apiSync.stats || {};
-          return {
-            created: Number(stats.created || 0) + Number(stats.updated || 0),
-            fixed: Number(stats.updated || 0),
-            failed: Number(stats.failed || 0),
-          };
-        }
-        if (apiSync.error) {
-          console.warn("syncPaidReceivablesCashMovements api", apiSync.error);
-        }
+        const resetYm =
+          (typeof window.financeGetCaixaResetYm === "function" && window.financeGetCaixaResetYm()) ||
+          currentYearMonthLocal();
 
-        const paid = (state.receivables || []).filter((r) => String(r.status || "").toUpperCase() === "PAGO");
+        const paidInWindow = (state.receivables || []).filter((r) => {
+          if (String(r.status || "").toUpperCase() !== "PAGO") return false;
+          const paidYmd = financeReceivablePaidDateYmd(r);
+          const ym = yearMonthFromYmd(paidYmd);
+          return ym && ym >= resetYm;
+        });
+
+        if (!paidInWindow.length) return { created: 0, fixed: 0, failed: 0, skipped: true };
+
         const { data: remoteCash, error: remoteErr } = await supabase
           .from("cash_movements")
           .select("id,conta_id,valor,data_movimento,forma_pagamento,tipo_conta")
@@ -15343,7 +15331,7 @@
         let created = 0;
         let fixed = 0;
         let failed = 0;
-        for (const r of paid) {
+        for (const r of paidInWindow) {
           const valor = Number(r.valor || 0);
           if (!(valor > 0)) continue;
           const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);

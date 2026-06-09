@@ -53,6 +53,33 @@
     return toLocalYmd(new Date().toISOString());
   }
 
+  /** Mês marco do caixa (gravado em settings.caixa_reset_ym após o reset). */
+  function financeGetCaixaResetYm() {
+    const ym = state.settings?.caixa_reset_ym;
+    return ym && /^\d{4}-\d{2}$/.test(String(ym)) ? String(ym) : "";
+  }
+
+  function financeCaixaResetActive() {
+    return !!financeGetCaixaResetYm();
+  }
+
+  /** Movimentação entra no cálculo do caixa apenas a partir do mês marco. */
+  function financeMovInCaixaWindow(mov) {
+    const resetYm = financeGetCaixaResetYm();
+    if (!resetYm) return true;
+    const comp = financeCaixaMovCompetenciaYmd(mov);
+    const ym = yearMonthFromYmd(comp);
+    return !!ym && ym >= resetYm;
+  }
+
+  function financeReceivableInCaixaWindow(r) {
+    const resetYm = financeGetCaixaResetYm() || yearMonthFromYmd(financeTodayYmd());
+    if (!r || String(r.status || "").toUpperCase() !== "PAGO") return false;
+    const paid = financeReceivableCashCompetenciaYmd(r);
+    const ym = yearMonthFromYmd(paid);
+    return !!ym && ym >= resetYm;
+  }
+
   function financeVehicleById() {
     return new Map((state.vehicles || []).map((v) => [v.id, v]));
   }
@@ -538,7 +565,8 @@
 
   /** Movimentações do caixa: entradas reais + entradas sintéticas de recebíveis pagos sem caixa. */
   function financeCaixaMovsMerged() {
-    return financeDedupeCaixaMovs([...(state.cash || []), ...financeSyntheticCashEntradasFromPaidReceivables()]);
+    const cashFiltered = (state.cash || []).filter((m) => financeMovInCaixaWindow(m));
+    return financeDedupeCaixaMovs([...cashFiltered, ...financeSyntheticCashEntradasFromPaidReceivables()]);
   }
 
   function financePaidPayablesSemCaixa() {
@@ -1175,6 +1203,7 @@
     const businessKeysWithCash = new Set(cashEntradas.map((m) => financeCashMovEntradaBusinessKey(m)));
     const vmap = financeVehicleById();
     return financePaidReceivablesSemCaixa()
+      .filter((r) => financeReceivableInCaixaWindow(r))
       .map((r) => {
         const v = vmap.get(r.vehicle_id);
         const placa = v?.placa || "—";
@@ -1697,7 +1726,6 @@
     if (!financeCaixaMissingSyncPromise) {
       financeCaixaMissingSyncPromise = (async () => {
         try {
-          await financePurgeOldPayablesOnce();
           if (typeof loadPayables === "function") await loadPayables();
           if (typeof loadCash === "function") await loadCash();
         } catch (e) {
@@ -3764,8 +3792,6 @@
     }
     refreshFinanceDataPromise = (async () => {
       try {
-        await financePurgeAutoPayablesOnce();
-        await financePurgeOldPayablesOnce();
         await Promise.all([
           loadReceivables(),
           loadPayables(),
@@ -4326,6 +4352,35 @@
     };
   };
 
+  window.financeGetCaixaResetYm = financeGetCaixaResetYm;
+  window.financeCaixaResetActive = financeCaixaResetActive;
+  window.financeMovInCaixaWindow = financeMovInCaixaWindow;
+  window.financeCaixaResetPreview = async function financeCaixaResetPreview(opts = {}) {
+    const userId = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!userId) return { ok: false, error: "Usuário não autenticado." };
+    const resp = await fetch("/api/finance/caixa-reset/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, resetYm: opts.resetYm }),
+    });
+    return resp.json();
+  };
+  window.financeCaixaResetExecute = async function financeCaixaResetExecute(opts = {}) {
+    const userId = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!userId) return { ok: false, error: "Usuário não autenticado." };
+    const resp = await fetch("/api/finance/caixa-reset/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId,
+        resetYm: opts.resetYm,
+        confirm: opts.confirm || "EXECUTE_CAIXA_RESET",
+      }),
+    });
+    const data = await resp.json();
+    if (data.ok && typeof refreshFinanceData === "function") await refreshFinanceData();
+    return data;
+  };
   window.financeSaldoCaixa = financeSaldoCaixa;
   window.financeCashMovValor = financeCashMovValor;
   window.financeDedupeCaixaMovs = financeDedupeCaixaMovs;
