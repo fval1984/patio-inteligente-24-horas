@@ -100,6 +100,12 @@ export function isPaidReceivableInMonth(rec: ReceivableRow, resetYm: string) {
   return yearMonthFromYmd(paidYmd) === resetYm;
 }
 
+function isSchemaError(message: string) {
+  return /column|schema cache|PGRST204|invalid input|enum|22P02|23514|forma_pagamento|descricao|data_movimento|relation|does not exist|PGRST205/i.test(
+    message
+  );
+}
+
 export function backupTableNameForToday() {
   const d = new Date();
   const tag = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
@@ -180,19 +186,33 @@ export async function loadCaixaResetPreview(
 
   const { data: movs, error: mErr } = await supabase
     .from("cash_movements")
-    .select("id,user_id,tipo_conta,conta_id,valor,descricao,data_movimento,forma_pagamento,created_at")
+    .select("id,user_id,tipo_conta,conta_id,valor,descricao,data_movimento,created_at")
     .eq("user_id", userId)
     .order("data_movimento", { ascending: true });
   if (mErr) throw new Error(mErr.message);
 
-  const { data: recs, error: rErr } = await supabase
+  let recs: ReceivableRow[] | null = null;
+  const recSelectFull =
+    "id,user_id,vehicle_id,valor,status,period_end,period_start,observacoes,responsavel_pagamento,forma_pagamento,updated_at,created_at";
+  const recSelectLean =
+    "id,user_id,vehicle_id,valor,status,period_end,period_start,observacoes,responsavel_pagamento,updated_at,created_at";
+  const recFull = await supabase
     .from("receivables")
-    .select(
-      "id,user_id,vehicle_id,valor,status,period_end,period_start,observacoes,responsavel_pagamento,forma_pagamento,updated_at,created_at"
-    )
+    .select(recSelectFull)
     .eq("user_id", userId)
     .eq("status", "PAGO");
-  if (rErr) throw new Error(rErr.message);
+  if (recFull.error && isSchemaError(recFull.error.message || "")) {
+    const recLean = await supabase
+      .from("receivables")
+      .select(recSelectLean)
+      .eq("user_id", userId)
+      .eq("status", "PAGO");
+    if (recLean.error) throw new Error(recLean.error.message);
+    recs = (recLean.data || []) as ReceivableRow[];
+  } else {
+    if (recFull.error) throw new Error(recFull.error.message);
+    recs = (recFull.data || []) as ReceivableRow[];
+  }
 
   const vehicleIds = [...new Set((recs || []).map((r) => r.vehicle_id).filter(Boolean))] as string[];
   const placaByVehicle = new Map<string, string>();
@@ -318,17 +338,36 @@ export async function executeCaixaReset(
   let inserted = 0;
   let insertFailed = 0;
   for (const row of preview.receivablesToInsert) {
-    const { error: insErr } = await supabase.from("cash_movements").insert({
-      user_id: userId,
-      tipo_conta: "RECEBER",
-      conta_id: row.receivableId,
-      valor: row.valor,
-      descricao: row.descricao,
-      data_movimento: row.paidDate,
-      forma_pagamento: row.formaPagamento,
-    });
-    if (insErr) insertFailed += 1;
-    else inserted += 1;
+    const payloads = [
+      {
+        user_id: userId,
+        tipo_conta: "RECEBER",
+        conta_id: row.receivableId,
+        valor: row.valor,
+        descricao: row.descricao,
+        data_movimento: row.paidDate,
+        forma_pagamento: row.formaPagamento,
+      },
+      {
+        user_id: userId,
+        tipo_conta: "RECEBER",
+        conta_id: row.receivableId,
+        valor: row.valor,
+        descricao: row.descricao,
+        data_movimento: row.paidDate,
+      },
+    ];
+    let ok = false;
+    for (const body of payloads) {
+      const { error: insErr } = await supabase.from("cash_movements").insert(body);
+      if (!insErr) {
+        ok = true;
+        break;
+      }
+      if (!isSchemaError(insErr.message || "")) break;
+    }
+    if (ok) inserted += 1;
+    else insertFailed += 1;
   }
 
   const { data: settings } = await supabase
