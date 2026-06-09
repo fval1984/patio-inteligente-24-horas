@@ -328,8 +328,8 @@ export async function executeCaixaReset(
   }));
   if (archiveRows.length) {
     const { error: archErr } = await supabase.from("cash_movements_archive").insert(archiveRows);
-    if (archErr && /relation|does not exist/i.test(archErr.message)) {
-      // Schema archive ausente: segue com reset (movimentos já carregados em memória).
+    if (archErr && isSchemaError(archErr.message || "")) {
+      // Tabela archive ausente: segue com reset (movimentos já carregados em memória).
     } else if (archErr) {
       throw new Error(`Falha no backup (archive): ${archErr.message}`);
     }
