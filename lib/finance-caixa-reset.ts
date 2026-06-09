@@ -59,8 +59,8 @@ export function lastDayOfYm(ym: string) {
   return `${y}-${String(m).padStart(2, "0")}-${String(last).padStart(2, "0")}`;
 }
 
-function receivableMetaSource(rec: ReceivableRow) {
-  return String(rec.observacoes || rec.responsavel_pagamento || "");
+function receivableMetaSource(rec: ReceivableRow & { descricao?: string | null }) {
+  return String(rec.observacoes || rec.responsavel_pagamento || rec.descricao || "");
 }
 
 function metaFromReceivableText(raw: string) {
@@ -82,9 +82,11 @@ export function paidDateFromReceivable(rec: ReceivableRow) {
   const meta = metaFromReceivableText(receivableMetaSource(rec));
   const d = meta?.data_pagamento || meta?.data_recebimento;
   if (d) return toYmd(String(d));
+  const paid = toYmd(rec.updated_at || "");
+  if (paid) return paid;
   const period = toYmd(rec.period_end || rec.period_start || "");
   if (period) return period;
-  return toYmd(rec.updated_at || rec.created_at);
+  return toYmd(rec.created_at);
 }
 
 export function formaFromReceivable(rec: ReceivableRow) {
@@ -407,6 +409,7 @@ export async function executeCaixaReset(
 
   return {
     ok: true,
+    userId,
     resetYm: preview.resetYm,
     backupRunId,
     backupTable: preview.backupTable,
