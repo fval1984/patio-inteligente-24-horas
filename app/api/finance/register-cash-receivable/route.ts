@@ -439,17 +439,31 @@ async function loadVrpReceivablesToRecover(
   const vehicleIds = matched.map((v) => v.id).filter(Boolean);
   if (!vehicleIds.length) return { receivables: [] as ReceivableRow[], placaByVehicle: new Map<string, string>() };
 
-  const { data: recs, error: rErr } = await supabase
-    .from("receivables")
-    .select(
-      "id,user_id,vehicle_id,valor,status,responsavel_pagamento,observacoes,updated_at,created_at,period_end"
-    )
-    .eq("user_id", userId)
-    .in("vehicle_id", vehicleIds)
-    .not("period_end", "is", null)
-    .gt("valor", 0)
-    .order("created_at", { ascending: false });
-  if (rErr) throw new Error(rErr.message);
+  const recSelects = [
+    "id,user_id,vehicle_id,valor,status,responsavel_pagamento,observacoes,updated_at,created_at,period_end",
+    "id,user_id,vehicle_id,valor,status,responsavel_pagamento,updated_at,created_at,period_end",
+    "id,user_id,vehicle_id,valor,status,period_end,updated_at,created_at",
+  ];
+  let recs: ReceivableRow[] = [];
+  let lastErr: string | null = null;
+  for (const sel of recSelects) {
+    const res = await supabase
+      .from("receivables")
+      .select(sel)
+      .eq("user_id", userId)
+      .in("vehicle_id", vehicleIds)
+      .not("period_end", "is", null)
+      .gt("valor", 0)
+      .order("created_at", { ascending: false });
+    if (!res.error) {
+      recs = (res.data || []) as ReceivableRow[];
+      lastErr = null;
+      break;
+    }
+    lastErr = res.error.message;
+    if (!isSchemaError(lastErr || "")) break;
+  }
+  if (lastErr) throw new Error(lastErr);
 
   const byVehicle = new Map<string, ReceivableRow>();
   for (const r of recs || []) {
@@ -565,19 +579,33 @@ async function loadReceivablesFromRecoverEntries(
     }
     placaByVehicle.set(vehicle.id, vehicle.placa);
 
-    let recQuery = supabase
-      .from("receivables")
-      .select(
-        "id,user_id,vehicle_id,valor,status,responsavel_pagamento,updated_at,created_at,period_end,period_start,observacoes"
-      )
-      .eq("user_id", userId)
-      .eq("vehicle_id", vehicle.id)
-      .not("period_end", "is", null);
-    if (!entry.includeZeroValor && entry.valor !== 0) {
-      recQuery = recQuery.gt("valor", 0);
+    const recSelects = [
+      "id,user_id,vehicle_id,valor,status,responsavel_pagamento,updated_at,created_at,period_end,period_start,observacoes",
+      "id,user_id,vehicle_id,valor,status,responsavel_pagamento,updated_at,created_at,period_end,period_start",
+      "id,user_id,vehicle_id,valor,status,period_end,period_start,updated_at,created_at",
+    ];
+    let recs: ReceivableRow[] = [];
+    let lastErr: string | null = null;
+    for (const sel of recSelects) {
+      let recQuery = supabase
+        .from("receivables")
+        .select(sel)
+        .eq("user_id", userId)
+        .eq("vehicle_id", vehicle.id)
+        .not("period_end", "is", null);
+      if (!entry.includeZeroValor && entry.valor !== 0) {
+        recQuery = recQuery.gt("valor", 0);
+      }
+      const res = await recQuery;
+      if (!res.error) {
+        recs = (res.data || []) as ReceivableRow[];
+        lastErr = null;
+        break;
+      }
+      lastErr = res.error.message;
+      if (!isSchemaError(lastErr || "")) break;
     }
-    const { data: recs, error: rErr } = await recQuery;
-    if (rErr) throw new Error(rErr.message);
+    if (lastErr) throw new Error(lastErr);
 
     const rec = pickBestReceivableForEntry((recs || []) as ReceivableRow[], entry, seenRecIds);
     if (!rec) {
