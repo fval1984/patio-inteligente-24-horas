@@ -15301,15 +15301,9 @@
         const uid = effectiveUserId();
         if (!uid || !supabase) return { created: 0, fixed: 0, failed: 0 };
 
-        const resetYm =
-          (typeof window.financeGetCaixaResetYm === "function" && window.financeGetCaixaResetYm()) ||
-          currentYearMonthLocal();
-
         const paidInWindow = (state.receivables || []).filter((r) => {
           if (String(r.status || "").toUpperCase() !== "PAGO") return false;
-          const paidYmd = financeReceivablePaidDateYmd(r);
-          const ym = yearMonthFromYmd(paidYmd);
-          return ym && ym >= resetYm;
+          return Number(r.valor || 0) > 0;
         });
 
         if (!paidInWindow.length) return { created: 0, fixed: 0, failed: 0, skipped: true };

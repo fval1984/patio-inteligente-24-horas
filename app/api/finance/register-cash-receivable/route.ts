@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { clearCaixaResetYm, restoreCashMovementsFromArchive } from "@/lib/finance-caixa-repair";
 
 type ReceivableRow = {
   id: string;
@@ -788,6 +789,7 @@ export async function POST(request: NextRequest) {
 
     if (syncMissing) {
       const cleanupBefore = { removed: 0 };
+      const archive = await restoreCashMovementsFromArchive(supabase, userId);
       const { data: paid, error: paidErr } = await selectPaidReceivablesForUser(supabase, userId);
       if (paidErr) {
         return NextResponse.json({ error: paidErr.message }, { status: 500 });
@@ -819,10 +821,13 @@ export async function POST(request: NextRequest) {
       const stats = await processReceivableBatch(supabase, userId, targets, placaByVehicle, {
         markUnpaidAsPaid: true,
       });
+      const reset = await clearCaixaResetYm(supabase, userId);
       const cleanupAfter = { removed: 0 };
       return NextResponse.json({
         ok: true,
         syncMissing: true,
+        archive,
+        reset,
         stats: {
           ...stats,
           fixed: stats.updated,

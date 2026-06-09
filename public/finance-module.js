@@ -63,21 +63,14 @@
     return !!financeGetCaixaResetYm();
   }
 
-  /** Movimentação entra no cálculo do caixa apenas a partir do mês marco. */
+  /** Todas as movimentações entram no caixa (histórico completo; caixa_reset_ym não filtra mais a exibição). */
   function financeMovInCaixaWindow(mov) {
-    const resetYm = financeGetCaixaResetYm();
-    if (!resetYm) return true;
-    const comp = financeCaixaMovCompetenciaYmd(mov);
-    const ym = yearMonthFromYmd(comp);
-    return !!ym && ym >= resetYm;
+    return !!mov;
   }
 
   function financeReceivableInCaixaWindow(r) {
-    const resetYm = financeGetCaixaResetYm() || yearMonthFromYmd(financeTodayYmd());
     if (!r || String(r.status || "").toUpperCase() !== "PAGO") return false;
-    const paid = financeReceivableCashCompetenciaYmd(r);
-    const ym = yearMonthFromYmd(paid);
-    return !!ym && ym >= resetYm;
+    return Number(r.valor || 0) > 0;
   }
 
   function financeVehicleById() {
@@ -2316,7 +2309,7 @@
     let failed = 0;
     let skipped = 0;
     const paid = (state.receivables || []).filter(
-      (r) => String(r.status || "").toUpperCase() === "PAGO" && Number(r.valor || 0) > 0 && r.vehicle_id
+      (r) => String(r.status || "").toUpperCase() === "PAGO" && Number(r.valor || 0) > 0
     );
     for (const rec of paid) {
       if (financeReceivableHasCaixa(rec.id)) {
@@ -3770,6 +3763,45 @@
     return null;
   }
 
+  const FINANCE_CAIXA_REPAIR_KEY = "finance_caixa_repair_v2_done";
+
+  async function financeRunCaixaRepairIfNeeded() {
+    const userId = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!userId) return null;
+    try {
+      const prev = localStorage.getItem(FINANCE_CAIXA_REPAIR_KEY);
+      if (prev === userId) return null;
+      let json = null;
+      const repairResp = await fetch("/api/finance/repair-caixa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      if (repairResp.ok) {
+        json = await repairResp.json().catch(() => ({}));
+      } else if (typeof window.callRegisterCashReceivableApi === "function") {
+        json = await window.callRegisterCashReceivableApi({ syncMissing: true, repairCash: true });
+        if (!json?.ok) {
+          console.warn("financeRunCaixaRepairIfNeeded fallback", json?.error || repairResp.status);
+          return null;
+        }
+      } else {
+        console.warn("financeRunCaixaRepairIfNeeded", repairResp.status);
+        return null;
+      }
+      localStorage.setItem(FINANCE_CAIXA_REPAIR_KEY, userId);
+      if (typeof loadCash === "function") await loadCash();
+      if (typeof loadSettings === "function") await loadSettings();
+      console.info("financeRunCaixaRepairIfNeeded", json);
+      return json;
+    } catch (e) {
+      console.warn("financeRunCaixaRepairIfNeeded", e?.message || e);
+      return null;
+    }
+  }
+
+  window.financeRunCaixaRepairIfNeeded = financeRunCaixaRepairIfNeeded;
+
   window.refreshFinanceData = async function refreshFinanceData(opts = {}) {
     const preserveView = financeResolvePreserveView(opts);
     if (preserveView) {
@@ -3808,6 +3840,9 @@
               typeof loadPayables === "function" ? loadPayables() : Promise.resolve(),
             ]);
           }
+        }
+        if (typeof financeRunCaixaRepairIfNeeded === "function") {
+          await financeRunCaixaRepairIfNeeded();
         }
         if (typeof window.syncPaidReceivablesCashMovements === "function") {
           await window.syncPaidReceivablesCashMovements();
