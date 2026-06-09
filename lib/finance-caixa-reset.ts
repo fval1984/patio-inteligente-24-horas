@@ -191,28 +191,27 @@ export async function loadCaixaResetPreview(
     .order("data_movimento", { ascending: true });
   if (mErr) throw new Error(mErr.message);
 
-  let recs: ReceivableRow[] | null = null;
-  const recSelectFull =
-    "id,user_id,vehicle_id,valor,status,period_end,period_start,observacoes,responsavel_pagamento,forma_pagamento,updated_at,created_at";
-  const recSelectLean =
-    "id,user_id,vehicle_id,valor,status,period_end,period_start,observacoes,responsavel_pagamento,updated_at,created_at";
-  const recFull = await supabase
-    .from("receivables")
-    .select(recSelectFull)
-    .eq("user_id", userId)
-    .eq("status", "PAGO");
-  if (recFull.error && isSchemaError(recFull.error.message || "")) {
-    const recLean = await supabase
-      .from("receivables")
-      .select(recSelectLean)
-      .eq("user_id", userId)
-      .eq("status", "PAGO");
-    if (recLean.error) throw new Error(recLean.error.message);
-    recs = (recLean.data || []) as ReceivableRow[];
-  } else {
-    if (recFull.error) throw new Error(recFull.error.message);
-    recs = (recFull.data || []) as ReceivableRow[];
+  const recSelects = [
+    "id,user_id,vehicle_id,valor,status,period_end,period_start,observacoes,responsavel_pagamento,forma_pagamento,updated_at,created_at",
+    "id,user_id,vehicle_id,valor,status,period_end,period_start,observacoes,responsavel_pagamento,updated_at,created_at",
+    "id,user_id,vehicle_id,valor,status,period_end,period_start,responsavel_pagamento,updated_at,created_at",
+    "id,user_id,vehicle_id,valor,status,period_end,period_start,updated_at,created_at",
+    "id,user_id,vehicle_id,valor,status,period_end,updated_at,created_at",
+    "id,user_id,vehicle_id,valor,status,updated_at,created_at",
+  ];
+  let recs: ReceivableRow[] = [];
+  let lastRecErr: string | null = null;
+  for (const sel of recSelects) {
+    const res = await supabase.from("receivables").select(sel).eq("user_id", userId).eq("status", "PAGO");
+    if (!res.error) {
+      recs = (res.data || []) as ReceivableRow[];
+      lastRecErr = null;
+      break;
+    }
+    lastRecErr = res.error.message;
+    if (!isSchemaError(lastRecErr || "")) break;
   }
+  if (lastRecErr) throw new Error(lastRecErr);
 
   const vehicleIds = [...new Set((recs || []).map((r) => r.vehicle_id).filter(Boolean))] as string[];
   const placaByVehicle = new Map<string, string>();
@@ -329,7 +328,11 @@ export async function executeCaixaReset(
   }));
   if (archiveRows.length) {
     const { error: archErr } = await supabase.from("cash_movements_archive").insert(archiveRows);
-    if (archErr) throw new Error(`Falha no backup (archive): ${archErr.message}`);
+    if (archErr && /relation|does not exist/i.test(archErr.message)) {
+      // Schema archive ausente: segue com reset (movimentos já carregados em memória).
+    } else if (archErr) {
+      throw new Error(`Falha no backup (archive): ${archErr.message}`);
+    }
   }
 
   const { error: delErr } = await supabase.from("cash_movements").delete().eq("user_id", userId);
@@ -383,7 +386,9 @@ export async function executeCaixaReset(
       .from("settings")
       .update({ caixa_reset_ym: preview.resetYm })
       .eq("id", settings.id);
-    if (setErr) throw new Error(`Falha ao gravar caixa_reset_ym: ${setErr.message}`);
+    if (setErr && !isSchemaError(setErr.message || "")) {
+      throw new Error(`Falha ao gravar caixa_reset_ym: ${setErr.message}`);
+    }
   }
 
   const { data: afterMovs } = await supabase
