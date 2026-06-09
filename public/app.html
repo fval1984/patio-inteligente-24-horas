@@ -17277,8 +17277,9 @@
             );
             if (fechamentoErr) {
               if (isMissingRelationError(fechamentoErr)) {
-                financeWarning =
-                  "A tabela patio_cycle_closures ainda não existe neste projeto Supabase. Abra o SQL Editor, execute o script «supabase/patio_cycle_closures.sql» do repositório e recarregue o painel.";
+                console.warn(
+                  "patio_cycle_closures ausente — VRP e Aguardando faturamento seguem normais. Aplicar supabase/patio_cycle_closures.sql quando possível."
+                );
               } else {
                 financeWarning = fechamentoErr.message || String(fechamentoErr);
               }

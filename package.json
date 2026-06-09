@@ -9,6 +9,7 @@
     "db:sync-caixa-pagar": "node scripts/sync-caixa-pagar.cjs",
     "db:lancar-despesas-pagas-caixa": "node scripts/lancar-despesas-pagas-caixa.cjs",
     "db:receivables-vehicle-nullable": "node scripts/apply-receivables-vehicle-nullable.cjs",
+    "db:apply-patio-cycle-closures": "node scripts/apply-patio-cycle-closures.cjs",
     "dev": "next dev",
     "vercel-build": "next build",
     "build": "next build",
@@ -20,11 +21,13 @@
     "@supabase/supabase-js": "^2.103.0",
     "lucide-react": "^0.460.0",
     "next": "14.2.18",
+    "pg": "^8.13.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
+    "@types/pg": "^8.11.10",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "autoprefixer": "^10.4.20",
