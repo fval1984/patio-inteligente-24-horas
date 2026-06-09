@@ -17176,67 +17176,58 @@
             if (billingPeriodStart && billingPeriodStart !== cycleAberto.period_start) {
               recPatchBase.period_start = billingPeriodStart;
             }
+            const recPatchAguardando = {
+              period_end: dataSaida,
+              valor: valorFechamento,
+              status: RECEIVABLE_AGUARDANDO_LANCAMENTO,
+              financeiro_aprovado_contas_receber: false,
+              patio_liberado_financeiro: true,
+            };
+            if (billingPeriodStart && billingPeriodStart !== cycleAberto.period_start) {
+              recPatchAguardando.period_start = billingPeriodStart;
+            }
             const recPatchFull = vrpSemCobranca
               ? {
-                  ...recPatchBase,
+                  period_end: dataSaida,
+                  valor: valorFechamento,
                   status: "PAGO",
                   financeiro_aprovado_contas_receber: true,
+                  patio_liberado_financeiro: true,
                 }
-              : typeof financeAutoContaReceberPatch === "function"
-                ? financeAutoContaReceberPatch(recPatchBase, dataSaida)
-                : {
-                  ...recPatchBase,
-                  status: "EM_ABERTO",
-                  financeiro_aprovado_contas_receber: true,
-                };
-            let { error: recErr } = await supabase
-              .from("receivables")
-              .update(recPatchFull)
-              .eq("id", cycleAberto.id)
-              .eq("user_id", effectiveUserId());
-            if (
-              recErr &&
-              /patio_liberado|financeiro_aprovado|column|schema cache|PGRST204/i.test(recErr.message || "")
-            ) {
-              const recPatchFallback = { ...recPatchBase };
-              recPatchFallback.status = vrpSemCobranca ? "PAGO" : RECEIVABLE_AGUARDANDO_LANCAMENTO;
-              recErr = (
-                await supabase
-                  .from("receivables")
-                  .update(recPatchFallback)
-                  .eq("id", cycleAberto.id)
-                  .eq("user_id", effectiveUserId())
-              ).error;
-            }
-            if (recErr && /invalid input value for enum payment_status/i.test(recErr.message || "")) {
-              const recPatchEnum = {
-                ...recPatchBase,
-                status: vrpSemCobranca ? "PAGO" : "EM_ABERTO",
-                patio_liberado_financeiro: true,
-                financeiro_aprovado_contas_receber: vrpSemCobranca,
-              };
-              recErr = (
-                await supabase
-                  .from("receivables")
-                  .update(recPatchEnum)
-                  .eq("id", cycleAberto.id)
-                  .eq("user_id", effectiveUserId())
-              ).error;
-              if (
-                recErr &&
-                /patio_liberado|financeiro_aprovado|column|schema cache|PGRST204/i.test(recErr.message || "")
-              ) {
-                recErr = (
-                  await supabase
-                    .from("receivables")
-                    .update({
-                      period_end: dataSaida,
-                      valor: valorFechamento,
-                      status: vrpSemCobranca ? "PAGO" : "EM_ABERTO",
-                    })
-                    .eq("id", cycleAberto.id)
-                    .eq("user_id", effectiveUserId())
-                ).error;
+              : { ...recPatchAguardando };
+            const recPatchAttempts = vrpSemCobranca
+              ? [
+                  recPatchFull,
+                  { period_end: dataSaida, valor: valorFechamento, status: "PAGO" },
+                ]
+              : [
+                  recPatchFull,
+                  { ...recPatchAguardando },
+                  {
+                    period_end: dataSaida,
+                    valor: valorFechamento,
+                    status: "EM_ABERTO",
+                    financeiro_aprovado_contas_receber: false,
+                    patio_liberado_financeiro: true,
+                  },
+                  { period_end: dataSaida, valor: valorFechamento, status: "EM_ABERTO" },
+                  { period_end: dataSaida, valor: valorFechamento, status: RECEIVABLE_AGUARDANDO_LANCAMENTO },
+                ];
+            let recErr = null;
+            for (const patch of recPatchAttempts) {
+              const res = await supabase
+                .from("receivables")
+                .update(patch)
+                .eq("id", cycleAberto.id)
+                .eq("user_id", effectiveUserId());
+              if (!res.error) {
+                recErr = null;
+                break;
+              }
+              recErr = res.error;
+              const msg = res.error.message || "";
+              if (!/column|schema cache|PGRST204|patio_liberado|financeiro_aprovado|observacoes|invalid input value for enum payment_status/i.test(msg)) {
+                break;
               }
             }
             if (recErr) {
@@ -17257,8 +17248,8 @@
                 note: `${breakdown.dias} dia(s), diária ${formatCurrency(breakdown.valorDiaria)}`,
               });
             } else {
-              await ensureReceivablePromotedToContasReceber(cycleAberto.id, { silent: true });
-              financeAuditAppend(cycleAberto.id, "Enviado para Contas a Receber", {
+              removeReceberTriagemId(cycleAberto.id);
+              financeAuditAppend(cycleAberto.id, "Enviado para Aguardando Faturamento", {
                 valor: valorFechamento,
                 note: `${breakdown.dias} dia(s), remoção: ${formatCurrency(breakdown.taxaRemocao)}`,
               });
@@ -17278,8 +17269,8 @@
               valor: valorFechamento,
               nf_emitida: liveVehicle.nfse_status === "EMITIDA",
               nf_enviada: vehicleNfseEnviadaFlag(liveVehicle),
-              triagem_ok: true,
-              sent_to_finance: true,
+              triagem_ok: vrpSemCobranca,
+              sent_to_finance: vrpSemCobranca,
             };
             const { error: fechamentoErr } = await runSupabaseWrite(() =>
               supabase.from("patio_cycle_closures").insert(fechamentoPayload)
@@ -17325,7 +17316,7 @@
             alert(
               vrpSemCobranca
                 ? "Veículo removido do pátio (VRP). Valor R$ 0,00 — encerrado sem cobrança."
-                : "Veículo removido. Cobrança gerada em Financeiro → Contas a receber."
+                : "Veículo removido (VRP). O valor foi calculado e enviado para Financeiro → Aguardando faturamento."
             );
           }
           fichaModal.classList.add("hidden");
