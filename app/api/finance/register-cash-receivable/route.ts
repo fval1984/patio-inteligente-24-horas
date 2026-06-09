@@ -68,19 +68,22 @@ async function selectPaidReceivablesForUser(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   userId: string
 ) {
-  const full = await supabase
-    .from("receivables")
-    .select("id,user_id,vehicle_id,valor,status,responsavel_pagamento,observacoes,updated_at,created_at,period_end")
-    .eq("user_id", userId)
-    .eq("status", "PAGO");
-  if (!full.error || !isSchemaError(full.error.message)) {
-    return { data: (full.data || []) as ReceivableRow[], error: full.error };
+  const selects = [
+    "id,user_id,vehicle_id,valor,status,responsavel_pagamento,observacoes,updated_at,created_at,period_end,period_start,forma_pagamento",
+    "id,user_id,vehicle_id,valor,status,responsavel_pagamento,observacoes,updated_at,created_at,period_end,period_start",
+    "id,user_id,vehicle_id,valor,status,responsavel_pagamento,updated_at,created_at,period_end,period_start",
+    "id,user_id,vehicle_id,valor,status,period_end,period_start,updated_at,created_at",
+    "id,user_id,vehicle_id,valor,status,period_end,updated_at,created_at",
+    "id,user_id,vehicle_id,valor,status,updated_at,created_at",
+  ];
+  let lastError: string | null = null;
+  for (const sel of selects) {
+    const res = await supabase.from("receivables").select(sel).eq("user_id", userId).eq("status", "PAGO");
+    if (!res.error) return { data: (res.data || []) as ReceivableRow[], error: null };
+    lastError = res.error.message;
+    if (!isSchemaError(lastError || "")) break;
   }
-  return supabase
-    .from("receivables")
-    .select("id,user_id,vehicle_id,valor,status,responsavel_pagamento,updated_at,created_at,period_end")
-    .eq("user_id", userId)
-    .eq("status", "PAGO");
+  return { data: null, error: { message: lastError || "Falha ao carregar recebíveis." } };
 }
 
 function cashMovIsEntradaTipo(tipo: string | null | undefined) {
@@ -849,11 +852,7 @@ export async function POST(request: NextRequest) {
 
     if (syncAll) {
       await cleanupDuplicateCashEntradas(supabase, userId);
-      const { data: paid, error: paidErr } = await supabase
-        .from("receivables")
-        .select("id,user_id,vehicle_id,valor,status,responsavel_pagamento,observacoes,updated_at,created_at,period_end")
-        .eq("user_id", userId)
-        .eq("status", "PAGO");
+      const { data: paid, error: paidErr } = await selectPaidReceivablesForUser(supabase, userId);
       if (paidErr) {
         return NextResponse.json({ error: paidErr.message }, { status: 500 });
       }
@@ -906,13 +905,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: rec, error: recErr } = await supabase
-      .from("receivables")
-      .select("id,user_id,vehicle_id,valor,status,responsavel_pagamento,observacoes,updated_at,created_at,period_end")
-      .eq("user_id", userId)
-      .eq("id", receivableId)
-      .maybeSingle();
-    if (recErr) return NextResponse.json({ error: recErr.message }, { status: 500 });
+    let rec: ReceivableRow | null = null;
+    const recSelects = [
+      "id,user_id,vehicle_id,valor,status,responsavel_pagamento,observacoes,updated_at,created_at,period_end,period_start,forma_pagamento",
+      "id,user_id,vehicle_id,valor,status,responsavel_pagamento,updated_at,created_at,period_end,period_start",
+      "id,user_id,vehicle_id,valor,status,period_end,period_start,updated_at,created_at",
+      "id,user_id,vehicle_id,valor,status,updated_at,created_at",
+    ];
+    for (const sel of recSelects) {
+      const one = await supabase
+        .from("receivables")
+        .select(sel)
+        .eq("user_id", userId)
+        .eq("id", receivableId)
+        .maybeSingle();
+      if (!one.error && one.data) {
+        rec = one.data as ReceivableRow;
+        break;
+      }
+      if (one.error && !isSchemaError(one.error.message || "")) {
+        return NextResponse.json({ error: one.error.message }, { status: 500 });
+      }
+    }
     if (!rec) return NextResponse.json({ error: "Recebível não encontrado." }, { status: 404 });
 
     let vehiclePlaca: string | null = null;
