@@ -6558,7 +6558,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260610pagamento"></script>
+    <script src="/finance-module.js?v=20260610pagar"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -15305,11 +15305,48 @@
       }
 
       function payableCashMovementExists(payableId) {
+        const checkApproved =
+          typeof window.financeCashAprovadoCaixa === "function"
+            ? (m) => window.financeCashAprovadoCaixa(m)
+            : (m) => m.aprovado_caixa === true;
         return (state.cash || []).some(
-          (m) => payableCashMovIsSaida(m) && String(m.conta_id) === String(payableId)
+          (m) =>
+            payableCashMovIsSaida(m) &&
+            String(m.conta_id) === String(payableId) &&
+            checkApproved(m)
         );
       }
       window.payableCashMovementExists = payableCashMovementExists;
+
+      async function findExistingPayableCashMovement(payableId, uid, opts = {}) {
+        if (!payableId || !uid) return null;
+        const selects = [
+          "id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id,aprovado_caixa,excluir_do_saldo,descricao,created_at",
+          "id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id,excluir_do_saldo,descricao,created_at",
+          "id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id,descricao,created_at",
+          "id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id",
+        ];
+        let linked = [];
+        for (const sel of selects) {
+          const { data, error } = await supabase
+            .from("cash_movements")
+            .select(sel)
+            .eq("user_id", uid)
+            .eq("conta_id", payableId)
+            .limit(10);
+          if (!error && data?.length) {
+            linked = data;
+            break;
+          }
+          if (error && !supabaseSchemaColumnError(error)) break;
+        }
+        const saidas = (linked || []).filter((m) => payableCashMovIsSaida(m));
+        if (!saidas.length) return null;
+        if (opts.forApprovedPayment) {
+          return saidas.find((m) => !cashMovIsLegacyNeutralizedLocal(m)) || null;
+        }
+        return saidas[0] || null;
+      }
 
       async function registerPayableCashMovement(payable, opts = {}) {
         const payableId = payable?.id;
@@ -15330,68 +15367,107 @@
           return { data: null, error: null };
         }
 
-        const api = await callRegisterCashPayableApi({
+        const manualCaixa =
+          typeof window.financeOperationalModeActive === "function" && window.financeOperationalModeActive();
+        const aprovadoCaixa = opts.aprovadoCaixa === true || (!manualCaixa && opts.aprovadoCaixa !== false);
+        const aprovadoOperacional = manualCaixa ? opts.aprovadoCaixa !== false : aprovadoCaixa;
+
+        const existingMov = await findExistingPayableCashMovement(payableId, uid, {
+          forApprovedPayment: aprovadoOperacional === true,
+        });
+        const isoMov = new Date(String(dataMov).includes("T") ? dataMov : `${dataMov}T12:00:00`).toISOString();
+        const cashFlags = aprovadoOperacional
+          ? { aprovado_caixa: true, excluir_do_saldo: false }
+          : { aprovado_caixa: false, excluir_do_saldo: true };
+        const descricaoComFlags = aprovadoOperacional
+          ? applyCashFlagsToDescricaoLocal(descricao, { aprovado_caixa: true, excluir_do_saldo: false })
+          : applyCashFlagsToDescricaoLocal(descricao, { aprovado_caixa: false, excluir_do_saldo: true });
+        const basePayload = {
+          user_id: uid,
+          tipo_conta: existingMov?.tipo_conta || "PAGAR",
+          conta_id: payableId,
+          valor,
+          descricao: descricaoComFlags,
+          data_movimento: dataMov,
+          forma_pagamento: formaPagamento,
+          ...cashFlags,
+        };
+        const payloadVariants = [
+          basePayload,
+          { ...basePayload, data_movimento: isoMov },
+          (() => {
+            const p = { ...basePayload, data_movimento: isoMov };
+            delete p.forma_pagamento;
+            return p;
+          })(),
+          { user_id: uid, tipo_conta: "SAIDA", conta_id: payableId, valor, descricao: descricaoComFlags, data_movimento: dataMov, ...cashFlags },
+          { user_id: uid, tipo_conta: "PAGAR", conta_id: payableId, valor, ...cashFlags },
+        ];
+
+        const writePayload = async (body, existing) => {
+          const tipo = String(body.tipo_conta || existing?.tipo_conta || "PAGAR");
+          if (existing?.id) {
+            return runSupabaseWrite(() =>
+              supabase.from("cash_movements").update(body).eq("id", existing.id).eq("user_id", uid)
+            );
+          }
+          return runSupabaseWrite(() => supabase.from("cash_movements").insert({ ...body, tipo_conta: tipo }));
+        };
+
+        let lastError = null;
+        for (const body of payloadVariants) {
+          const result = await writePayload(body, existingMov);
+          if (!result.error) {
+            await loadCash();
+            const verified = await findExistingPayableCashMovement(payableId, uid, {
+              forApprovedPayment: aprovadoOperacional === true,
+            });
+            if (verified) return { data: verified, error: null };
+            return { data: { conta_id: payableId, valor, data_movimento: dataMov }, error: null };
+          }
+          lastError = result.error;
+          const msg = String(result.error.message || "");
+          if (
+            !/column|schema cache|PGRST204|invalid input|date|time|format|forma_pagamento|descricao|data_movimento|enum|22P02|23514|tipo_conta|aprovado_caixa|excluir_do_saldo/i.test(
+              msg
+            )
+          ) {
+            break;
+          }
+        }
+
+        const stillThere = await findExistingPayableCashMovement(payableId, uid, {
+          forApprovedPayment: aprovadoOperacional === true,
+        });
+        if (stillThere) {
+          await loadCash();
+          return { data: stillThere, error: null };
+        }
+
+        const apiFallback = await callRegisterCashPayableApi({
           payableId,
           valor,
           dataMovimento: dataMov,
           formaPagamento,
           descricao,
+          aprovadoCaixa: aprovadoOperacional,
         });
-        if (api.ok) {
+        if (apiFallback.ok) {
           await loadCash();
-          const verified = (state.cash || []).find(
-            (m) => payableCashMovIsSaida(m) && String(m.conta_id) === String(payableId)
-          );
-          return { data: verified || { id: payableId }, error: null };
+          const verifiedApi = await findExistingPayableCashMovement(payableId, uid, {
+            forApprovedPayment: aprovadoOperacional === true,
+          });
+          if (verifiedApi) return { data: verifiedApi, error: null };
         }
 
-        const uid2 = uid;
-        const { data: existingRows, error: findErr } = await supabase
-          .from("cash_movements")
-          .select("id,tipo_conta,valor,data_movimento")
-          .eq("conta_id", payableId)
-          .eq("user_id", uid2);
-        if (findErr) {
-          return { data: null, error: { message: api.error || findErr.message } };
-        }
-        const existingMov = (existingRows || []).find((m) => payableCashMovIsSaida(m)) || null;
-        const basePayload = {
-          user_id: uid2,
-          tipo_conta: "PAGAR",
-          conta_id: payableId,
-          valor,
-          descricao,
-          data_movimento: dataMov,
-          forma_pagamento: formaPagamento,
+        return {
+          data: null,
+          error:
+            lastError ||
+            (apiFallback.error
+              ? { message: String(apiFallback.error) }
+              : { message: "Não foi possível registrar saída no caixa." }),
         };
-        const payloadVariants = [
-          basePayload,
-          (() => {
-            const p = { ...basePayload };
-            delete p.forma_pagamento;
-            return p;
-          })(),
-          { user_id: uid2, tipo_conta: "SAIDA", conta_id: payableId, valor, descricao, data_movimento: dataMov },
-          { user_id: uid2, tipo_conta: "PAGAR", conta_id: payableId, valor },
-        ];
-        const writePayload = async (body) => {
-          if (existingMov?.id) {
-            return runSupabaseWrite(() =>
-              supabase.from("cash_movements").update(body).eq("id", existingMov.id).eq("user_id", uid2)
-            );
-          }
-          return runSupabaseWrite(() => supabase.from("cash_movements").insert(body).select("id").single());
-        };
-        let lastError = { message: api.error || "Falha na API do caixa." };
-        for (const body of payloadVariants) {
-          const result = await writePayload(body);
-          if (!result.error) {
-            await loadCash();
-            return { data: result.data, error: null };
-          }
-          lastError = result.error;
-        }
-        return { data: null, error: lastError };
       }
 
       window.payableCashMovementExists = payableCashMovementExists;
@@ -15497,6 +15573,7 @@
           dataMovimento: dataMov,
           formaPagamento,
           descricao: payable.descricao,
+          aprovadoCaixa: true,
         });
         if (cashResult.error) {
           alertSupabaseError(cashResult.error, "Não foi possível registrar a saída no caixa.");

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  applyCashFlagsToDescricao,
+  cashMovementIsLegacyNeutralized,
+} from "@/lib/finance-cash-meta";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { isOperationalManualMode } from "@/lib/finance-operational-mode";
 
 type PayableRow = {
   id: string;
@@ -62,18 +67,42 @@ function formaFromPayable(p: PayableRow) {
   return metaFromObs(raw).forma_pagamento || p.forma_pagamento || "PIX";
 }
 
+const CASH_MOV_SELECTS = [
+  "id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id,aprovado_caixa,excluir_do_saldo,descricao,created_at",
+  "id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id,excluir_do_saldo,descricao,created_at",
+  "id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id,descricao,created_at",
+  "id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id",
+];
+
 async function findExistingPayableMovement(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   userId: string,
-  payableId: string
+  payableId: string,
+  opts: { forApprovedPayment?: boolean } = {}
 ) {
-  const { data, error } = await supabase
-    .from("cash_movements")
-    .select("id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id")
-    .eq("user_id", userId)
-    .eq("conta_id", payableId);
-  if (error) throw new Error(error.message);
-  return (data || []).find((m) => cashIsSaida(m.tipo_conta)) || null;
+  let linked: Array<Record<string, unknown>> = [];
+  for (const sel of CASH_MOV_SELECTS) {
+    const { data, error } = await supabase
+      .from("cash_movements")
+      .select(sel)
+      .eq("user_id", userId)
+      .eq("conta_id", payableId)
+      .limit(10);
+    if (!error && data?.length) {
+      linked = data as Array<Record<string, unknown>>;
+      break;
+    }
+    if (error && !isSchemaError(error.message || "")) throw new Error(error.message);
+  }
+  const saidas = linked.filter((m) => cashIsSaida(m.tipo_conta as string));
+  if (!saidas.length) return null;
+  if (opts.forApprovedPayment) {
+    const operational = saidas.find(
+      (m) => !cashMovementIsLegacyNeutralized(m as Parameters<typeof cashMovementIsLegacyNeutralized>[0])
+    );
+    return operational || null;
+  }
+  return saidas[0] || null;
 }
 
 async function upsertCashForPayable(
@@ -85,6 +114,7 @@ async function upsertCashForPayable(
     dataMovimento?: string;
     formaPagamento?: string;
     descricao?: string;
+    aprovadoCaixa?: boolean;
   } = {}
 ) {
   const payableId = payable.id;
@@ -103,35 +133,48 @@ async function upsertCashForPayable(
   const descricao =
     opts.descricao || payable.descricao || payable.fornecedor || "Despesa";
 
-  const existing = await findExistingPayableMovement(supabase, userId, payableId);
+  const existing = await findExistingPayableMovement(supabase, userId, payableId, {
+    forApprovedPayment: opts.aprovadoCaixa === true,
+  });
+  const cashFlags =
+    opts.aprovadoCaixa === true
+      ? { aprovado_caixa: true, excluir_do_saldo: false }
+      : { aprovado_caixa: false, excluir_do_saldo: true };
+  const descricaoComFlags =
+    opts.aprovadoCaixa === true
+      ? applyCashFlagsToDescricao(descricao, { aprovado_caixa: true, excluir_do_saldo: false })
+      : applyCashFlagsToDescricao(descricao, { aprovado_caixa: false, excluir_do_saldo: true });
   const payloads = [
     {
       user_id: userId,
-      tipo_conta: "PAGAR",
+      tipo_conta: existing?.tipo_conta || "PAGAR",
       conta_id: payableId,
       valor,
-      descricao,
+      descricao: descricaoComFlags,
       data_movimento: dataYmd,
       forma_pagamento: formaPagamento,
+      ...cashFlags,
     },
     {
       user_id: userId,
       tipo_conta: "PAGAR",
       conta_id: payableId,
       valor,
-      descricao,
+      descricao: descricaoComFlags,
       data_movimento: isoMov,
+      ...cashFlags,
     },
     {
       user_id: userId,
       tipo_conta: "SAIDA",
       conta_id: payableId,
       valor,
-      descricao,
+      descricao: descricaoComFlags,
       data_movimento: dataYmd,
+      ...cashFlags,
     },
-    { user_id: userId, tipo_conta: "PAGAR", conta_id: payableId, valor },
-    { user_id: userId, tipo_conta: "SAIDA", conta_id: payableId, valor, data_movimento: dataYmd },
+    { user_id: userId, tipo_conta: "PAGAR", conta_id: payableId, valor, ...cashFlags },
+    { user_id: userId, tipo_conta: "SAIDA", conta_id: payableId, valor, data_movimento: dataYmd, ...cashFlags },
   ];
 
   let lastError: string | null = null;
@@ -171,6 +214,14 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin();
+    const { data: settings } = await supabase
+      .from("settings")
+      .select("finance_manual_caixa_mode,caixa_operational_reset_at,caixa_reset_ym")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const manualCaixa = isOperationalManualMode(settings);
 
     if (syncMissing) {
       return NextResponse.json({
@@ -216,11 +267,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Conta a pagar não encontrada." }, { status: 404 });
     }
 
+    const aprovadoCaixa = body?.aprovadoCaixa === true;
+    if (manualCaixa && !aprovadoCaixa) {
+      return NextResponse.json(
+        {
+          error:
+            "Modo caixa manual: envie aprovadoCaixa=true para registrar saída operacional (após confirmação manual).",
+          manualCaixaMode: true,
+        },
+        { status: 403 }
+      );
+    }
+
     const result = await upsertCashForPayable(supabase, userId, payable as PayableRow, {
       valor: body?.valor != null ? Number(body.valor) : undefined,
       dataMovimento: body?.dataMovimento ? toYmd(String(body.dataMovimento)) : undefined,
       formaPagamento: body?.formaPagamento ? String(body.formaPagamento) : undefined,
       descricao: body?.descricao ? String(body.descricao) : undefined,
+      aprovadoCaixa: manualCaixa ? true : aprovadoCaixa,
     });
 
     if (!result.ok) {
