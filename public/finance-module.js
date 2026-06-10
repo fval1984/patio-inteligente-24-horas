@@ -610,11 +610,13 @@
 
   /** Movimentações que impactam saldo, fluxo, lucro e dashboards (somente APROVADO_CAIXA no modo manual). */
   function financeCaixaMovsMerged() {
+    const cashOperacional = (state.cash || []).filter(
+      (m) => financeMovInCaixaWindow(m) && financeCashAprovadoCaixa(m)
+    );
     if (financeOperationalModeActive()) {
-      return financeDedupeCaixaMovs((state.cash || []).filter((m) => financeCashAprovadoCaixa(m)));
+      return financeDedupeCaixaMovs(cashOperacional);
     }
-    const cashFiltered = (state.cash || []).filter((m) => financeMovInCaixaWindow(m));
-    return financeDedupeCaixaMovs([...cashFiltered, ...financeSyntheticCashEntradasFromPaidReceivables()]);
+    return financeDedupeCaixaMovs([...cashOperacional, ...financeSyntheticCashEntradasFromPaidReceivables()]);
   }
 
   function financePaidPayablesSemCaixa() {
