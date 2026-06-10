@@ -23,6 +23,9 @@ ALTER TABLE public.settings
 ALTER TABLE public.settings
   ADD COLUMN IF NOT EXISTS finance_manual_caixa_mode boolean NOT NULL DEFAULT false;
 
+ALTER TABLE public.settings
+  ADD COLUMN IF NOT EXISTS caixa_reset_ym text;
+
 CREATE INDEX IF NOT EXISTS idx_cash_movements_excluir_saldo
   ON public.cash_movements (user_id, excluir_do_saldo)
   WHERE excluir_do_saldo = true;
