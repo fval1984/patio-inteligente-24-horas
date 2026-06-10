@@ -12,6 +12,7 @@ export type CashMovementLike = {
   aprovado_caixa?: boolean | null;
   excluir_do_saldo?: boolean | null;
   descricao?: string | null;
+  created_at?: string | null;
 };
 
 export type SettingsLike = {
@@ -28,11 +29,25 @@ export function isOperationalManualMode(settings: SettingsLike | null | undefine
   return !!settings.caixa_operational_reset_at;
 }
 
+function operationalResetAtMs(settings: SettingsLike | null | undefined) {
+  const raw = settings?.caixa_operational_reset_at;
+  if (!raw) return 0;
+  const ts = new Date(String(raw)).getTime();
+  return Number.isFinite(ts) ? ts : 0;
+}
+
 /** Movimentação válida para saldo operacional, fluxo, lucro e dashboards. */
 export function isAprovadoCaixa(mov: CashMovementLike | null | undefined, settings?: SettingsLike | null) {
   if (!mov) return false;
   if (isOperationalManualMode(settings)) {
-    return cashMovementAprovadoCaixa(mov);
+    if (!cashMovementAprovadoCaixa(mov)) return false;
+    if (cashMovementExcluirDoSaldo(mov)) return false;
+    const resetMs = operationalResetAtMs(settings);
+    if (resetMs > 0 && mov.created_at) {
+      const movMs = new Date(String(mov.created_at)).getTime();
+      if (Number.isFinite(movMs) && movMs < resetMs) return false;
+    }
+    return true;
   }
   return !cashMovementExcluirDoSaldo(mov);
 }

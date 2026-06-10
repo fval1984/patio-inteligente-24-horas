@@ -103,14 +103,30 @@
     return Number(state.settings?.caixa_opening_balance || 0);
   }
 
+  function financeCaixaOperationalResetAtMs() {
+    const raw = state.settings?.caixa_operational_reset_at;
+    if (!raw) return 0;
+    const ts = new Date(String(raw)).getTime();
+    return Number.isFinite(ts) ? ts : 0;
+  }
+
   /** Movimentação aprovada para o caixa operacional (APROVADO_CAIXA). */
   function financeCashAprovadoCaixa(mov) {
     if (!mov) return false;
-    if (financeOperationalModeActive()) return financeCashAprovadoFromMov(mov);
+    if (financeOperationalModeActive()) {
+      if (!financeCashAprovadoFromMov(mov)) return false;
+      if (financeCashExcluirFromMov(mov)) return false;
+      const resetMs = financeCaixaOperationalResetAtMs();
+      if (resetMs > 0 && mov.created_at) {
+        const movMs = new Date(String(mov.created_at)).getTime();
+        if (Number.isFinite(movMs) && movMs < resetMs) return false;
+      }
+      return true;
+    }
     return !financeCashExcluirFromMov(mov);
   }
 
-  /** Histórico completo para auditoria (aba Caixa). */
+  /** Histórico bruto (não usar na listagem operacional do Caixa). */
   function financeCaixaMovsHistorico() {
     return financeDedupeCaixaMovs((state.cash || []).filter((m) => financeMovInCaixaWindow(m)));
   }
@@ -760,12 +776,24 @@
     return storedNorm.includes(queryNorm) || queryNorm.includes(storedNorm);
   }
 
+  function financeReceivableIdsComCaixaHistoricoInvalido() {
+    if (!financeOperationalModeActive()) return new Set();
+    const ids = new Set();
+    for (const m of state.cash || []) {
+      if (!m?.conta_id || !financeCashIsEntrada(m)) continue;
+      if (!financeCashAprovadoCaixa(m)) ids.add(String(m.conta_id));
+    }
+    return ids;
+  }
+
   function financeContasAguardandoList() {
+    const legacyCaixaRecIds = financeReceivableIdsComCaixaHistoricoInvalido();
     const matched = (state.receivables || []).filter((r) => {
       if (!r || r.status === "PAGO") return false;
       if (receivableSemCobrancaFinanceira(r)) return false;
       if (receivableIsContaReceberFinanceiro(r)) return false;
       if (!r.vehicle_id) return false;
+      if (legacyCaixaRecIds.has(String(r.id))) return true;
       if (typeof receivableOrfaoEntreFilasFinanceiro === "function" && receivableOrfaoEntreFilasFinanceiro(r)) {
         return true;
       }
@@ -1300,7 +1328,7 @@
 
   function financeCaixaMovsForPeriod(periodoYm, opts = {}) {
     const useDomFilters = opts.useDomFilters !== false;
-    const auditView = opts.auditView === true;
+    const auditView = opts.auditView === true && !financeOperationalModeActive();
     let movs = auditView ? financeCaixaMovsHistorico() : financeCaixaMovsMerged();
     const de = useDomFilters ? (financeFilterCaixaDataDe || "").trim() : String(opts.de || "").trim();
     const ate = useDomFilters ? (financeFilterCaixaDataAte || "").trim() : String(opts.ate || "").trim();
@@ -2645,7 +2673,6 @@
     const ate = (financeFilterCaixaDataAte || "").trim();
     const movsOperacionais = financeCaixaMovsForPeriod(periodoYm);
     const totPeriodo = financeCaixaTotalsForMovs(movsOperacionais);
-    const movsHistorico = financeCaixaMovsForPeriod(periodoYm, { auditView: true });
     if (summaryEl) {
       const periodoLabel = de || ate
         ? `Período ${de ? formatDate(de) : "…"} — ${ate ? formatDate(ate) : "…"}`
@@ -2665,15 +2692,14 @@
       const saldoOperacional = financeSaldoCaixa();
       summaryEl.innerHTML = `
         <p><strong>${escapeHtml(periodoLabel)}${escapeHtml(tipoLabel)}${placaLabel}</strong></p>
-        ${modoManual ? `<p class="notice">Modo auditoria manual — somente lançamentos <strong>APROVADO_CAIXA</strong> entram no saldo operacional.</p>` : ""}
+        ${modoManual ? `<p class="notice">Caixa operacional pós-migração — apenas pagamentos confirmados manualmente aparecem aqui. Registros antigos estão em <strong>Aguardando faturamento</strong> para triagem.</p>` : ""}
         <p><strong>Entrada (operacional):</strong> <span class="fin-val-entrada">${escapeHtml(formatCurrency(totPeriodo.entradas))}</span></p>
         <p><strong>Saída (operacional):</strong> <span class="fin-val-saida">${escapeHtml(formatCurrency(totPeriodo.saidas))}</span></p>
         <p><strong>Saldo operacional:</strong> <span class="${saldoOperacional >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(saldoOperacional))}</span></p>
-        ${modoManual ? `<p><small>Histórico para auditoria: ${movsHistorico.length} movimentação(ões) no filtro atual.</small></p>` : ""}
       `;
     }
     if (!body) return;
-    let movs = [...(financeOperationalModeActive() ? movsHistorico : movsOperacionais)].sort((a, b) =>
+    let movs = [...movsOperacionais].sort((a, b) =>
       financeCaixaMovCompetenciaYmd(b).localeCompare(financeCaixaMovCompetenciaYmd(a))
     );
     if (!movs.length) {
@@ -2702,11 +2728,9 @@
       .map((mov) => {
         const isEntrada = financeCashIsEntrada(mov);
         const auditBadge =
-          financeOperationalModeActive() && !financeCashAprovadoCaixa(mov)
-            ? `<span class="fin-tag fin-tag--late" title="Apenas auditoria">Histórico</span> `
-            : financeOperationalModeActive() && financeCashAprovadoCaixa(mov)
-              ? `<span class="fin-tag fin-tag--ok" title="Conta no saldo operacional">Aprovado</span> `
-              : "";
+          financeOperationalModeActive() && financeCashAprovadoCaixa(mov)
+            ? `<span class="fin-tag fin-tag--ok" title="Conta no saldo operacional">Aprovado</span> `
+            : "";
         const rec = isEntrada
           ? (state.receivables || []).find((r) => String(r.id) === String(mov.conta_id)) ||
             financeFindReceivableForMov(mov)
