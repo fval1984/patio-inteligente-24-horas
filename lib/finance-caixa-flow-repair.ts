@@ -295,8 +295,39 @@ export async function buildCaixaFlowRepairPreview(supabase: SupabaseClient, user
   };
 }
 
+async function saveRollbackSnapshot(
+  supabase: SupabaseClient,
+  migrationId: string,
+  userId: string,
+  entityType: string,
+  entityId: string,
+  payloadBefore: Record<string, unknown>,
+  useArchiveFallback: boolean
+) {
+  if (!useArchiveFallback) {
+    const { error } = await supabase.from("finance_migration_snapshots").insert({
+      migration_id: migrationId,
+      user_id: userId,
+      entity_type: entityType,
+      entity_id: entityId,
+      payload_before: payloadBefore,
+    });
+    if (!error) return;
+    if (!isSchemaError(error.message || "")) throw new Error(error.message);
+  }
+  await supabase.from("cash_movements_archive").insert({
+    backup_run_id: `caixa_flow_rollback:${migrationId}`,
+    user_id: userId,
+    original_id: entityId,
+    payload: { entity_type: entityType, rollback: true, ...payloadBefore },
+  });
+}
+
 export async function executeCaixaFlowRepair(supabase: SupabaseClient, userId: string) {
   const preview = await buildCaixaFlowRepairPreview(supabase, userId);
+
+  let migrationId = crypto.randomUUID();
+  let useArchiveFallback = false;
 
   const { data: runRow, error: runErr } = await supabase
     .from("finance_migration_runs")
@@ -310,14 +341,12 @@ export async function executeCaixaFlowRepair(supabase: SupabaseClient, userId: s
     .select("id")
     .single();
 
-  if (runErr) {
-    if (isSchemaError(runErr.message || "")) {
-      throw new Error("Execute supabase/finance_june_migration.sql no Supabase antes da migração.");
-    }
-    throw new Error(runErr.message);
+  if (!runErr && runRow?.id) {
+    migrationId = String(runRow.id);
+  } else {
+    useArchiveFallback = true;
   }
 
-  const migrationId = String(runRow.id);
   const errors: string[] = [];
   let snapshots = 0;
   let receivablesUpdated = 0;
@@ -325,56 +354,69 @@ export async function executeCaixaFlowRepair(supabase: SupabaseClient, userId: s
 
   const [receivables, cash] = await Promise.all([loadReceivables(supabase, userId), loadCash(supabase, userId)]);
   const receivableIdsInCaixa = collectReceivableIdsLinkedToCaixa(cash);
+  const toRevert = receivables.filter((r) => receivableIdsInCaixa.has(r.id));
+  const updatedAt = new Date().toISOString();
 
-  for (const r of receivables) {
-    if (!receivableIdsInCaixa.has(r.id)) continue;
-    await supabase.from("finance_migration_snapshots").insert({
-      migration_id: migrationId,
-      user_id: userId,
-      entity_type: "receivable",
-      entity_id: r.id,
-      payload_before: r,
-    });
-    snapshots += 1;
+  for (const r of toRevert) {
+    try {
+      await saveRollbackSnapshot(supabase, migrationId, userId, "receivable", r.id, r as Record<string, unknown>, useArchiveFallback);
+      snapshots += 1;
+    } catch (e) {
+      errors.push(`snapshot receivable ${r.id}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  const recIds = toRevert.map((r) => r.id);
+  for (let i = 0; i < recIds.length; i += 50) {
+    const chunk = recIds.slice(i, i + 50);
     const patch = {
       status: AGUARDANDO_FATURAMENTO_STATUS,
       financeiro_aprovado_contas_receber: false,
-      updated_at: new Date().toISOString(),
+      updated_at: updatedAt,
     };
-    let { error } = await supabase.from("receivables").update(patch).eq("id", r.id).eq("user_id", userId);
+    let { error } = await supabase.from("receivables").update(patch).eq("user_id", userId).in("id", chunk);
     if (error && isSchemaError(error.message || "")) {
       ({ error } = await supabase
         .from("receivables")
-        .update({ status: AGUARDANDO_FATURAMENTO_STATUS, updated_at: patch.updated_at })
-        .eq("id", r.id)
-        .eq("user_id", userId));
+        .update({ status: AGUARDANDO_FATURAMENTO_STATUS, updated_at: updatedAt })
+        .eq("user_id", userId)
+        .in("id", chunk));
     }
-    if (error) errors.push(`receivable ${r.id}: ${error.message}`);
-    else receivablesUpdated += 1;
+    if (error) errors.push(`receivables batch: ${error.message}`);
+    else receivablesUpdated += chunk.length;
   }
 
-  for (const m of cash) {
-    if (m.aprovado_caixa === true && m.excluir_do_saldo === true) continue;
-    await supabase.from("finance_migration_snapshots").insert({
-      migration_id: migrationId,
-      user_id: userId,
-      entity_type: "cash_movement",
-      entity_id: m.id,
-      payload_before: m,
-    });
-    snapshots += 1;
-    const patch = { aprovado_caixa: false, excluir_do_saldo: true };
-    let { error } = await supabase.from("cash_movements").update(patch).eq("id", m.id).eq("user_id", userId);
-    if (error && isSchemaError(error.message || "")) {
-      ({ error } = await supabase
-        .from("cash_movements")
-        .update({ excluir_do_saldo: true })
-        .eq("id", m.id)
-        .eq("user_id", userId));
+  const cashToFix = cash.filter((m) => !(m.aprovado_caixa === true && m.excluir_do_saldo === true));
+  for (let i = 0; i < cashToFix.length; i += 40) {
+    const batch = cashToFix.slice(i, i + 40);
+    for (const m of batch) {
+      try {
+        await saveRollbackSnapshot(
+          supabase,
+          migrationId,
+          userId,
+          "cash_movement",
+          m.id,
+          m as Record<string, unknown>,
+          useArchiveFallback
+        );
+        snapshots += 1;
+      } catch (e) {
+        errors.push(`snapshot cash ${m.id}: ${e instanceof Error ? e.message : String(e)}`);
+      }
     }
-    if (error) errors.push(`cash ${m.id}: ${error.message}`);
-    else cashUpdated += 1;
   }
+
+  const cashPatch = { aprovado_caixa: false, excluir_do_saldo: true };
+  let { error: cashBulkErr } = await supabase.from("cash_movements").update(cashPatch).eq("user_id", userId);
+  if (cashBulkErr && isSchemaError(cashBulkErr.message || "")) {
+    ({ error: cashBulkErr } = await supabase
+      .from("cash_movements")
+      .update({ excluir_do_saldo: true })
+      .eq("user_id", userId));
+  }
+  if (cashBulkErr) errors.push(`cash bulk: ${cashBulkErr.message}`);
+  else cashUpdated = cashToFix.length;
 
   const { data: settings } = await supabase
     .from("settings")
@@ -385,14 +427,20 @@ export async function executeCaixaFlowRepair(supabase: SupabaseClient, userId: s
     .maybeSingle();
 
   if (settings?.id) {
-    await supabase.from("finance_migration_snapshots").insert({
-      migration_id: migrationId,
-      user_id: userId,
-      entity_type: "settings",
-      entity_id: settings.id,
-      payload_before: settings,
-    });
-    snapshots += 1;
+    try {
+      await saveRollbackSnapshot(
+        supabase,
+        migrationId,
+        userId,
+        "settings",
+        settings.id,
+        settings as Record<string, unknown>,
+        useArchiveFallback
+      );
+      snapshots += 1;
+    } catch (e) {
+      errors.push(`snapshot settings: ${e instanceof Error ? e.message : String(e)}`);
+    }
     const resetAt = new Date().toISOString();
     const settingsPatch = {
       caixa_opening_balance: 0,
@@ -406,16 +454,43 @@ export async function executeCaixaFlowRepair(supabase: SupabaseClient, userId: s
     if (error && !isSchemaError(error.message || "")) errors.push(`settings: ${error.message}`);
   }
 
-  await supabase
-    .from("finance_migration_runs")
-    .update({
-      status: errors.length ? "executed_with_errors" : "executed",
-      executed_at: new Date().toISOString(),
-      summary: { ...preview.summary, snapshots, receivablesUpdated, cashUpdated, errors },
-    })
-    .eq("id", migrationId);
+  const finalSummary = {
+    ...preview.summary,
+    snapshots,
+    receivablesUpdated,
+    cashUpdated,
+    errors,
+    rollbackStorage: useArchiveFallback ? "cash_movements_archive" : "finance_migration_snapshots",
+  };
 
-  return { ok: errors.length === 0, migrationId, snapshots, receivablesUpdated, cashUpdated, errors, preview: preview.summary };
+  if (!useArchiveFallback) {
+    await supabase
+      .from("finance_migration_runs")
+      .update({
+        status: errors.length ? "executed_with_errors" : "executed",
+        executed_at: new Date().toISOString(),
+        summary: finalSummary,
+      })
+      .eq("id", migrationId);
+  } else {
+    await supabase.from("cash_movements_archive").insert({
+      backup_run_id: `caixa_flow_rollback_meta:${migrationId}`,
+      user_id: userId,
+      original_id: migrationId,
+      payload: { entity_type: "migration_meta", migration_type: MIGRATION_TYPE, summary: finalSummary, executed_at: new Date().toISOString() },
+    });
+  }
+
+  return {
+    ok: errors.length === 0,
+    migrationId,
+    snapshots,
+    receivablesUpdated,
+    cashUpdated,
+    errors,
+    rollbackStorage: useArchiveFallback ? "cash_movements_archive" : "finance_migration_snapshots",
+    preview: preview.summary,
+  };
 }
 
 export async function rollbackCaixaFlowRepair(supabase: SupabaseClient, userId: string, migrationId: string) {
