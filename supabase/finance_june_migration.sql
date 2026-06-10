@@ -1,9 +1,16 @@
 -- Migração financeira junho/2026: snapshots para reversão + flag em movimentações.
 -- Execute no SQL Editor do Supabase ANTES de rodar a migração.
 
--- Flag opcional: movimentação visível no histórico mas fora dos cálculos
+-- Flag: movimentação visível no histórico mas fora do caixa operacional
 ALTER TABLE public.cash_movements
   ADD COLUMN IF NOT EXISTS excluir_do_saldo boolean NOT NULL DEFAULT false;
+
+-- Saldo inicial da fase operacional (0 após reset)
+ALTER TABLE public.settings
+  ADD COLUMN IF NOT EXISTS caixa_opening_balance numeric DEFAULT 0;
+
+ALTER TABLE public.settings
+  ADD COLUMN IF NOT EXISTS caixa_operational_reset_at timestamptz;
 
 CREATE INDEX IF NOT EXISTS idx_cash_movements_excluir_saldo
   ON public.cash_movements (user_id, excluir_do_saldo)
