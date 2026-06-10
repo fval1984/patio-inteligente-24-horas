@@ -367,23 +367,35 @@ export async function executeCaixaFlowRepair(supabase: SupabaseClient, userId: s
   }
 
   const recIds = toRevert.map((r) => r.id);
-  for (let i = 0; i < recIds.length; i += 50) {
-    const chunk = recIds.slice(i, i + 50);
-    const patch = {
+  const recPatches = [
+    {
       status: AGUARDANDO_FATURAMENTO_STATUS,
       financeiro_aprovado_contas_receber: false,
       updated_at: updatedAt,
-    };
-    let { error } = await supabase.from("receivables").update(patch).eq("user_id", userId).in("id", chunk);
-    if (error && isSchemaError(error.message || "")) {
-      ({ error } = await supabase
-        .from("receivables")
-        .update({ status: AGUARDANDO_FATURAMENTO_STATUS, updated_at: updatedAt })
-        .eq("user_id", userId)
-        .in("id", chunk));
+    },
+    { status: AGUARDANDO_FATURAMENTO_STATUS, updated_at: updatedAt },
+    { status: "EM_ABERTO", financeiro_aprovado_contas_receber: false, updated_at: updatedAt },
+    { status: "EM_ABERTO", updated_at: updatedAt },
+  ];
+  for (let i = 0; i < recIds.length; i += 50) {
+    const chunk = recIds.slice(i, i + 50);
+    let chunkOk = false;
+    for (const patch of recPatches) {
+      const { error } = await supabase.from("receivables").update(patch).eq("user_id", userId).in("id", chunk);
+      if (!error) {
+        chunkOk = true;
+        receivablesUpdated += chunk.length;
+        break;
+      }
+      const msg = error.message || "";
+      if (!isSchemaError(msg) && !/invalid input value for enum payment_status/i.test(msg)) {
+        errors.push(`receivables batch: ${msg}`);
+        break;
+      }
     }
-    if (error) errors.push(`receivables batch: ${error.message}`);
-    else receivablesUpdated += chunk.length;
+    if (!chunkOk && !errors.some((e) => e.startsWith("receivables batch"))) {
+      errors.push(`receivables batch: falha ao atualizar ${chunk.length} ids`);
+    }
   }
 
   const cashToFix = cash.filter((m) => !(m.aprovado_caixa === true && m.excluir_do_saldo === true));
@@ -415,8 +427,16 @@ export async function executeCaixaFlowRepair(supabase: SupabaseClient, userId: s
       .update({ excluir_do_saldo: true })
       .eq("user_id", userId));
   }
-  if (cashBulkErr) errors.push(`cash bulk: ${cashBulkErr.message}`);
-  else cashUpdated = cashToFix.length;
+  if (cashBulkErr) {
+    errors.push(`cash bulk: ${cashBulkErr.message}`);
+    if (/excluir_do_saldo|aprovado_caixa|schema cache/i.test(cashBulkErr.message || "")) {
+      errors.push(
+        "cash: colunas excluir_do_saldo/aprovado_caixa ausentes — execute supabase/finance_june_migration.sql. O modo manual no settings ainda zera o saldo na interface."
+      );
+    }
+  } else {
+    cashUpdated = cashToFix.length;
+  }
 
   const { data: settings } = await supabase
     .from("settings")
