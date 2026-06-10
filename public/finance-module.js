@@ -63,11 +63,39 @@
     return !!financeGetCaixaResetYm();
   }
 
+  const FINANCE_MANUAL_CAIXA_RESET_YM = "MANUAL_CAIXA_V1";
+
   /** Modo caixa manual (Opção 1): só aprovado_caixa=true impacta saldo e relatórios. */
   function financeOperationalModeActive() {
     return (
-      state.settings?.finance_manual_caixa_mode === true || !!state.settings?.caixa_operational_reset_at
+      state.settings?.finance_manual_caixa_mode === true ||
+      state.settings?.caixa_reset_ym === FINANCE_MANUAL_CAIXA_RESET_YM ||
+      !!state.settings?.caixa_operational_reset_at
     );
+  }
+
+  function financeCashMetaFromDescricao(descricao) {
+    const raw = String(descricao || "");
+    if (!raw.startsWith(FINANCE_META_PREFIX_LOCAL)) return { meta: {}, text: raw };
+    const end = raw.indexOf("]]");
+    if (end < 0) return { meta: {}, text: raw };
+    try {
+      return { meta: JSON.parse(raw.slice(FINANCE_META_PREFIX_LOCAL.length, end)), text: raw.slice(end + 2).trim() };
+    } catch {
+      return { meta: {}, text: raw };
+    }
+  }
+
+  function financeCashAprovadoFromMov(mov) {
+    if (!mov) return false;
+    if (mov.aprovado_caixa === true) return true;
+    return financeCashMetaFromDescricao(mov.descricao).meta.aprovado_caixa === true;
+  }
+
+  function financeCashExcluirFromMov(mov) {
+    if (!mov) return false;
+    if (mov.excluir_do_saldo === true) return true;
+    return financeCashMetaFromDescricao(mov.descricao).meta.excluir_do_saldo === true;
   }
 
   function financeCaixaOpeningBalance() {
@@ -78,8 +106,8 @@
   /** Movimentação aprovada para o caixa operacional (APROVADO_CAIXA). */
   function financeCashAprovadoCaixa(mov) {
     if (!mov) return false;
-    if (financeOperationalModeActive()) return mov.aprovado_caixa === true;
-    return mov.excluir_do_saldo !== true;
+    if (financeOperationalModeActive()) return financeCashAprovadoFromMov(mov);
+    return !financeCashExcluirFromMov(mov);
   }
 
   /** Histórico completo para auditoria (aba Caixa). */

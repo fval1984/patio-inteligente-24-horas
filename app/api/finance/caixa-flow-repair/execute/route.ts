@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
       );
     }
     const supabase = getSupabaseAdmin();
-    const result = await executeCaixaFlowRepair(supabase, userId);
+    const cashOnly = body?.cashOnly === true;
+    const result = await executeCaixaFlowRepair(supabase, userId, { cashOnly });
     return NextResponse.json({
       ok: result.ok,
       message: result.ok

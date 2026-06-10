@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { clearCaixaResetYm, restoreCashMovementsFromArchive } from "@/lib/finance-caixa-repair";
+import { applyCashFlagsToDescricao } from "@/lib/finance-cash-meta";
 import { isOperationalManualMode } from "@/lib/finance-operational-mode";
 
 async function loadSettingsForUser(supabase: ReturnType<typeof getSupabaseAdmin>, userId: string) {
   const selects = [
-    "finance_manual_caixa_mode,caixa_operational_reset_at,caixa_opening_balance",
-    "caixa_operational_reset_at,caixa_opening_balance",
+    "finance_manual_caixa_mode,caixa_operational_reset_at,caixa_opening_balance,caixa_reset_ym",
+    "caixa_operational_reset_at,caixa_opening_balance,caixa_reset_ym",
+    "caixa_reset_ym",
   ];
   for (const sel of selects) {
     const res = await supabase
@@ -346,6 +348,10 @@ async function upsertCashForReceivable(
     opts.aprovadoCaixa === true
       ? { aprovado_caixa: true, excluir_do_saldo: false }
       : { aprovado_caixa: false, excluir_do_saldo: true };
+  const descricaoComFlags =
+    opts.aprovadoCaixa === true
+      ? applyCashFlagsToDescricao(descricao, { aprovado_caixa: true, excluir_do_saldo: false })
+      : applyCashFlagsToDescricao(descricao, { aprovado_caixa: false, excluir_do_saldo: true });
 
   const payloads = [
     {
@@ -364,7 +370,7 @@ async function upsertCashForReceivable(
       conta_id: receivableId,
       valor,
       data_movimento: isoMov,
-      descricao,
+      descricao: descricaoComFlags,
     },
     { user_id: userId, tipo_conta: "ENTRADA", conta_id: receivableId, valor, data_movimento: dataYmd },
     { user_id: userId, tipo_conta: "RECEBER", conta_id: receivableId, valor },

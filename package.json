@@ -11,6 +11,7 @@
     "db:lancar-despesas-pagas-caixa": "node scripts/lancar-despesas-pagas-caixa.cjs",
     "db:receivables-vehicle-nullable": "node scripts/apply-receivables-vehicle-nullable.cjs",
     "db:apply-patio-cycle-closures": "node scripts/apply-patio-cycle-closures.cjs",
+    "db:apply-finance-june-migration": "node scripts/apply-finance-june-migration.cjs",
     "dev": "next dev",
     "vercel-build": "next build",
     "build": "next build",

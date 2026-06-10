@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  applyCashFlagsToDescricao,
+  cashMovementAprovadoCaixa,
+  cashMovementExcluirDoSaldo,
+  MANUAL_CAIXA_RESET_YM,
+} from "@/lib/finance-cash-meta";
+import {
   AGUARDANDO_FATURAMENTO_STATUS,
   cashMovCompetenceYmd,
   receivableCompetenceYmd,
@@ -110,12 +116,54 @@ export function collectReceivableIdsLinkedToCaixa(cash: CashRow[]) {
   return ids;
 }
 
+function cashIsNeutralized(m: CashRow) {
+  if (m.aprovado_caixa === true || cashMovementAprovadoCaixa(m)) return false;
+  if (m.excluir_do_saldo === true) return true;
+  return cashMovementExcluirDoSaldo(m);
+}
+
+function cashNeedsNeutralize(m: CashRow) {
+  return !cashIsNeutralized(m);
+}
+
+async function neutralizeCashViaDescricaoMeta(
+  supabase: SupabaseClient,
+  rows: CashRow[],
+  userId: string
+) {
+  const CHUNK = 40;
+  let updated = 0;
+  const errors: string[] = [];
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const chunk = rows.slice(i, i + CHUNK);
+    const results = await Promise.all(
+      chunk.map(async (m) => {
+        const descricao = applyCashFlagsToDescricao(m.descricao, {
+          aprovado_caixa: false,
+          excluir_do_saldo: true,
+        });
+        const { error } = await supabase
+          .from("cash_movements")
+          .update({ descricao })
+          .eq("id", m.id)
+          .eq("user_id", userId);
+        return error ? error.message : null;
+      })
+    );
+    for (const err of results) {
+      if (err) errors.push(err);
+      else updated += 1;
+    }
+  }
+  return { updated, errors };
+}
+
 function calcOperationalBalance(cash: CashRow[]) {
   let entradas = 0;
   let saidas = 0;
   let counted = 0;
   for (const m of cash) {
-    if (m.aprovado_caixa !== true) continue;
+    if (!cashMovementAprovadoCaixa(m)) continue;
     counted += 1;
     const v = Number(m.valor || 0);
     if (isEntradaTipo(m.tipo_conta)) entradas += v;
@@ -128,7 +176,7 @@ function calcLegacyBalance(cash: CashRow[]) {
   let entradas = 0;
   let saidas = 0;
   for (const m of cash) {
-    if (m.excluir_do_saldo === true) continue;
+    if (cashMovementExcluirDoSaldo(m)) continue;
     const v = Number(m.valor || 0);
     if (isEntradaTipo(m.tipo_conta)) entradas += v;
     else if (isSaidaTipo(m.tipo_conta)) saidas += v;
@@ -179,7 +227,7 @@ export async function buildCaixaFlowRepairPreview(supabase: SupabaseClient, user
     }
   }
 
-  const cashToNeutralize = cash.filter((m) => m.aprovado_caixa === true || m.excluir_do_saldo !== true);
+  const cashToNeutralize = cash.filter((m) => cashNeedsNeutralize(m));
   const saldoAprovado = calcOperationalBalance(cash);
   const saldoLegado = calcLegacyBalance(cash);
 
@@ -323,7 +371,11 @@ async function saveRollbackSnapshot(
   });
 }
 
-export async function executeCaixaFlowRepair(supabase: SupabaseClient, userId: string) {
+export async function executeCaixaFlowRepair(
+  supabase: SupabaseClient,
+  userId: string,
+  opts: { cashOnly?: boolean } = {}
+) {
   const preview = await buildCaixaFlowRepairPreview(supabase, userId);
 
   let migrationId = crypto.randomUUID();
@@ -348,6 +400,7 @@ export async function executeCaixaFlowRepair(supabase: SupabaseClient, userId: s
   }
 
   const errors: string[] = [];
+  const warnings: string[] = [];
   let snapshots = 0;
   let receivablesUpdated = 0;
   let cashUpdated = 0;
@@ -357,63 +410,65 @@ export async function executeCaixaFlowRepair(supabase: SupabaseClient, userId: s
   const toRevert = receivables.filter((r) => receivableIdsInCaixa.has(r.id));
   const updatedAt = new Date().toISOString();
 
-  try {
-    if (!useArchiveFallback) {
-      const { error } = await supabase.from("finance_migration_snapshots").insert({
-        migration_id: migrationId,
-        user_id: userId,
-        entity_type: "receivables_bulk",
-        entity_id: migrationId,
-        payload_before: { rows: toRevert },
-      });
-      if (error) throw error;
-    } else {
-      const { error } = await supabase.from("cash_movements_archive").insert({
-        backup_run_id: `caixa_flow_rollback:${migrationId}`,
-        user_id: userId,
-        original_id: migrationId,
-        payload: { entity_type: "receivables_bulk", rollback: true, rows: toRevert },
-      });
-      if (error) throw error;
+  if (!opts.cashOnly) {
+    try {
+      if (!useArchiveFallback) {
+        const { error } = await supabase.from("finance_migration_snapshots").insert({
+          migration_id: migrationId,
+          user_id: userId,
+          entity_type: "receivables_bulk",
+          entity_id: migrationId,
+          payload_before: { rows: toRevert },
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("cash_movements_archive").insert({
+          backup_run_id: `caixa_flow_rollback:${migrationId}`,
+          user_id: userId,
+          original_id: migrationId,
+          payload: { entity_type: "receivables_bulk", rollback: true, rows: toRevert },
+        });
+        if (error) throw error;
+      }
+      snapshots += toRevert.length;
+    } catch (e) {
+      errors.push(`snapshot receivables bulk: ${e instanceof Error ? e.message : String(e)}`);
     }
-    snapshots += toRevert.length;
-  } catch (e) {
-    errors.push(`snapshot receivables bulk: ${e instanceof Error ? e.message : String(e)}`);
+
+    const recIds = toRevert.map((r) => r.id);
+    const recPatches = [
+      {
+        status: AGUARDANDO_FATURAMENTO_STATUS,
+        financeiro_aprovado_contas_receber: false,
+        updated_at: updatedAt,
+      },
+      { status: AGUARDANDO_FATURAMENTO_STATUS, updated_at: updatedAt },
+      { status: "EM_ABERTO", financeiro_aprovado_contas_receber: false, updated_at: updatedAt },
+      { status: "EM_ABERTO", updated_at: updatedAt },
+    ];
+    for (let i = 0; i < recIds.length; i += 50) {
+      const chunk = recIds.slice(i, i + 50);
+      let chunkOk = false;
+      for (const patch of recPatches) {
+        const { error } = await supabase.from("receivables").update(patch).eq("user_id", userId).in("id", chunk);
+        if (!error) {
+          chunkOk = true;
+          receivablesUpdated += chunk.length;
+          break;
+        }
+        const msg = error.message || "";
+        if (!isSchemaError(msg) && !/invalid input value for enum payment_status/i.test(msg)) {
+          errors.push(`receivables batch: ${msg}`);
+          break;
+        }
+      }
+      if (!chunkOk && !errors.some((e) => e.startsWith("receivables batch"))) {
+        errors.push(`receivables batch: falha ao atualizar ${chunk.length} ids`);
+      }
+    }
   }
 
-  const recIds = toRevert.map((r) => r.id);
-  const recPatches = [
-    {
-      status: AGUARDANDO_FATURAMENTO_STATUS,
-      financeiro_aprovado_contas_receber: false,
-      updated_at: updatedAt,
-    },
-    { status: AGUARDANDO_FATURAMENTO_STATUS, updated_at: updatedAt },
-    { status: "EM_ABERTO", financeiro_aprovado_contas_receber: false, updated_at: updatedAt },
-    { status: "EM_ABERTO", updated_at: updatedAt },
-  ];
-  for (let i = 0; i < recIds.length; i += 50) {
-    const chunk = recIds.slice(i, i + 50);
-    let chunkOk = false;
-    for (const patch of recPatches) {
-      const { error } = await supabase.from("receivables").update(patch).eq("user_id", userId).in("id", chunk);
-      if (!error) {
-        chunkOk = true;
-        receivablesUpdated += chunk.length;
-        break;
-      }
-      const msg = error.message || "";
-      if (!isSchemaError(msg) && !/invalid input value for enum payment_status/i.test(msg)) {
-        errors.push(`receivables batch: ${msg}`);
-        break;
-      }
-    }
-    if (!chunkOk && !errors.some((e) => e.startsWith("receivables batch"))) {
-      errors.push(`receivables batch: falha ao atualizar ${chunk.length} ids`);
-    }
-  }
-
-  const cashToFix = cash.filter((m) => !(m.aprovado_caixa === true && m.excluir_do_saldo === true));
+  const cashToFix = cash.filter((m) => cashNeedsNeutralize(m));
   try {
     if (!useArchiveFallback) {
       const { error } = await supabase.from("finance_migration_snapshots").insert({
@@ -447,11 +502,24 @@ export async function executeCaixaFlowRepair(supabase: SupabaseClient, userId: s
       .eq("user_id", userId));
   }
   if (cashBulkErr) {
-    errors.push(`cash bulk: ${cashBulkErr.message}`);
     if (/excluir_do_saldo|aprovado_caixa|schema cache/i.test(cashBulkErr.message || "")) {
-      errors.push(
-        "cash: colunas excluir_do_saldo/aprovado_caixa ausentes — execute supabase/finance_june_migration.sql. O modo manual no settings ainda zera o saldo na interface."
-      );
+      const viaMeta = await neutralizeCashViaDescricaoMeta(supabase, cashToFix, userId);
+      cashUpdated = viaMeta.updated;
+      if (viaMeta.errors.length) {
+        errors.push(`cash finmeta fallback: ${viaMeta.errors.slice(0, 3).join("; ")}`);
+      }
+      if (cashUpdated >= cashToFix.length) {
+        warnings.push(
+          `cash: neutralizado via finmeta em descricao (${cashUpdated}). Recomendado executar supabase/finance_june_migration.sql quando possível.`
+        );
+      } else if (cashUpdated > 0) {
+        errors.push(`cash bulk: ${cashBulkErr.message}`);
+        warnings.push(`cash: parcial via finmeta (${cashUpdated}/${cashToFix.length}).`);
+      } else {
+        errors.push(`cash bulk: ${cashBulkErr.message}`);
+      }
+    } else {
+      errors.push(`cash bulk: ${cashBulkErr.message}`);
     }
   } else {
     cashUpdated = cashToFix.length;
@@ -459,7 +527,7 @@ export async function executeCaixaFlowRepair(supabase: SupabaseClient, userId: s
 
   const { data: settings } = await supabase
     .from("settings")
-    .select("id,caixa_opening_balance,finance_manual_caixa_mode,caixa_operational_reset_at")
+    .select("id,caixa_opening_balance,finance_manual_caixa_mode,caixa_operational_reset_at,caixa_reset_ym")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -488,7 +556,16 @@ export async function executeCaixaFlowRepair(supabase: SupabaseClient, userId: s
     };
     let { error } = await supabase.from("settings").update(settingsPatch).eq("id", settings.id);
     if (error && isSchemaError(error.message || "")) {
-      ({ error } = await supabase.from("settings").update({ caixa_opening_balance: 0 }).eq("id", settings.id));
+      ({ error } = await supabase
+        .from("settings")
+        .update({ caixa_opening_balance: 0, caixa_reset_ym: MANUAL_CAIXA_RESET_YM })
+        .eq("id", settings.id));
+    }
+    if (error && isSchemaError(error.message || "")) {
+      ({ error } = await supabase
+        .from("settings")
+        .update({ caixa_reset_ym: MANUAL_CAIXA_RESET_YM })
+        .eq("id", settings.id));
     }
     if (error && !isSchemaError(error.message || "")) errors.push(`settings: ${error.message}`);
   }
@@ -499,6 +576,8 @@ export async function executeCaixaFlowRepair(supabase: SupabaseClient, userId: s
     receivablesUpdated,
     cashUpdated,
     errors,
+    warnings,
+    cashOnly: !!opts.cashOnly,
     rollbackStorage: useArchiveFallback ? "cash_movements_archive" : "finance_migration_snapshots",
   };
 
@@ -527,6 +606,7 @@ export async function executeCaixaFlowRepair(supabase: SupabaseClient, userId: s
     receivablesUpdated,
     cashUpdated,
     errors,
+    warnings,
     rollbackStorage: useArchiveFallback ? "cash_movements_archive" : "finance_migration_snapshots",
     preview: preview.summary,
   };
