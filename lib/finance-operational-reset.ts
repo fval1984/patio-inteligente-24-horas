@@ -51,21 +51,13 @@ type CashRow = {
   descricao?: string | null;
   data_movimento?: string | null;
   excluir_do_saldo?: boolean | null;
+  aprovado_caixa?: boolean | null;
   created_at?: string | null;
 };
 
-function receivableSemCobranca(r: ReceivableRow) {
-  if (Number(r.valor || 0) > 0) return false;
-  const raw = r.observacoes || r.responsavel_pagamento || "";
-  const { meta } = unpackFinanceMeta(raw);
-  return meta.sem_cobranca === true;
-}
-
-/** Recebível que deve entrar na fila de triagem (Aguardando Faturamento). */
+/** Todos os recebíveis existentes entram na fila de triagem (Opção 1). */
 export function receivableNeedsTriagem(r: ReceivableRow) {
-  if (!r) return false;
-  if (receivableSemCobranca(r) && String(r.status || "").toUpperCase() === "PAGO") return false;
-  return true;
+  return !!r;
 }
 
 async function loadReceivables(supabase: SupabaseClient, userId: string) {
@@ -83,6 +75,7 @@ async function loadReceivables(supabase: SupabaseClient, userId: string) {
 
 async function loadCash(supabase: SupabaseClient, userId: string) {
   const selects = [
+    "id,user_id,tipo_conta,conta_id,valor,descricao,data_movimento,excluir_do_saldo,aprovado_caixa,created_at",
     "id,user_id,tipo_conta,conta_id,valor,descricao,data_movimento,excluir_do_saldo,created_at",
     "id,user_id,tipo_conta,conta_id,valor,descricao,data_movimento,created_at",
   ];
@@ -110,7 +103,7 @@ function calcCashBalance(movs: CashRow[], onlyOperational = true) {
   let counted = 0;
   let excluded = 0;
   for (const m of movs) {
-    if (onlyOperational && m.excluir_do_saldo) {
+    if (onlyOperational && m.aprovado_caixa !== true) {
       excluded += 1;
       continue;
     }
@@ -137,15 +130,12 @@ export async function buildOperationalResetPreview(supabase: SupabaseClient, use
       precisaResetAprovacao: boolean;
     }
   > = [];
-  const receivablesSkipped = { sem_cobranca_pago_zero: 0 };
+  const receivablesSkipped = { nenhum: 0 };
 
   const statusAtualCount = { PAGO: 0, EM_ABERTO: 0, AGUARDANDO_LANCAMENTO: 0, OUTROS: 0 };
 
   for (const r of receivables) {
-    if (!receivableNeedsTriagem(r)) {
-      receivablesSkipped.sem_cobranca_pago_zero += 1;
-      continue;
-    }
+    if (!receivableNeedsTriagem(r)) continue;
     const st = String(r.status || "").toUpperCase();
     if (st === "PAGO") statusAtualCount.PAGO += 1;
     else if (st === "EM_ABERTO") statusAtualCount.EM_ABERTO += 1;
@@ -165,8 +155,8 @@ export async function buildOperationalResetPreview(supabase: SupabaseClient, use
     });
   }
 
-  const cashToExclude = cash.filter((m) => !m.excluir_do_saldo);
-  const cashAlreadyExcluded = cash.filter((m) => m.excluir_do_saldo).length;
+  const cashToArchive = cash.filter((m) => m.aprovado_caixa !== true);
+  const cashAlreadyApproved = cash.filter((m) => m.aprovado_caixa === true).length;
 
   const saldoAtualOperacional = calcCashBalance(cash, true);
   const saldoSeTodosExcluidos = calcCashBalance(
@@ -174,7 +164,7 @@ export async function buildOperationalResetPreview(supabase: SupabaseClient, use
     true
   );
 
-  const impactoRemovido = cashToExclude.reduce(
+  const impactoRemovido = cashToArchive.reduce(
     (acc, m) => {
       const v = Number(m.valor || 0);
       if (isEntradaTipo(m.tipo_conta)) acc.entradas += v;
@@ -213,7 +203,7 @@ export async function buildOperationalResetPreview(supabase: SupabaseClient, use
     receivables: {
       totalNoSistema: receivables.length,
       totalParaAguardando: receivablesToAguardando.length,
-      ignoradosSemCobrancaPagoZero: receivablesSkipped.sem_cobranca_pago_zero,
+      ignorados: receivablesSkipped.nenhum,
       statusAtualAntesDaMigracao: statusAtualCount,
       jaPagos: statusAtualCount.PAGO,
       emAberto: statusAtualCount.EM_ABERTO,
@@ -230,8 +220,8 @@ export async function buildOperationalResetPreview(supabase: SupabaseClient, use
     cash: {
       totalNoSistema: cash.length,
       movimentosOperacionaisHoje: saldoAtualOperacional.counted,
-      movimentosJaExcluidos: cashAlreadyExcluded,
-      movimentosAPassarParaHistorico: cashToExclude.length,
+      movimentosJaAprovadosCaixa: cashAlreadyApproved,
+      movimentosQueSairaoDoCalculoOperacional: cashToArchive.length,
       saldoOperacionalAtual: saldoAtualOperacional,
       impactoFinanceiroRemovidoDoCaixa: {
         entradas: impactoRemovido.entradas,
@@ -244,22 +234,30 @@ export async function buildOperationalResetPreview(supabase: SupabaseClient, use
         saldo: 0,
         movimentosContabilizados: saldoSeTodosExcluidos.counted,
       },
-      campoAlterado: "excluir_do_saldo = true",
+      camposAlterados: ["excluir_do_saldo = true", "aprovado_caixa = false"],
+      regraGlobal: "Somente aprovado_caixa=true entra no caixa operacional",
     },
     comoSaldoOperacionalFicaZero: {
       passo1:
-        "Todas as movimentações existentes em cash_movements recebem excluir_do_saldo = true. Permanecem no banco para auditoria, mas deixam de entrar na soma do caixa operacional.",
+        "Todas as movimentações existentes recebem aprovado_caixa=false e excluir_do_saldo=true. Permanecem no banco para auditoria.",
       passo2:
-        "settings.caixa_opening_balance é gravado como 0 (saldo inicial da nova fase operacional).",
+        "settings: caixa_opening_balance=0, finance_manual_caixa_mode=true, caixa_operational_reset_at=now.",
       passo3:
-        "A função de saldo operacional passa a calcular: saldo_abertura (0) + entradas válidas − saídas válidas, onde válido = excluir_do_saldo false E recebível/despesa aprovado manualmente.",
+        "saldo_operacional = caixa_opening_balance + Σ(movimentos com aprovado_caixa=true). Após migração: 0 + 0 = R$ 0,00.",
       passo4:
-        "Recebíveis vão para AGUARDANDO_LANCAMENTO com financeiro_aprovado_contas_receber = false. Nenhum deles gera entrada no caixa até você aprovar na triagem e confirmar pagamento.",
-      passo5:
-        "Após a migração, sem novos lançamentos aprovados, o saldo operacional exibido será R$ 0,00.",
-      formula:
-        "saldo_operacional = caixa_opening_balance (0) + Σ movimentos com excluir_do_saldo=false → 0 após migração",
+        "Todos os recebíveis → AGUARDANDO_LANCAMENTO. Fluxo: triagem → aprovar → Contas a Receber → confirmar pagamento → nova movimentação com aprovado_caixa=true.",
+      passo5: "Syncs automáticos de caixa são desativados no frontend e na API enquanto finance_manual_caixa_mode=true.",
+      formula: "saldo_operacional = opening_balance (0) + Σ(aprovado_caixa=true)",
     },
+    autoSyncDesativadosAposMigracao: [
+      "syncPaidReceivablesCashMovements",
+      "financeRunCaixaRepairIfNeeded",
+      "financeEnsureMissingCashInCaixa",
+      "financeSyntheticCashEntradasFromPaidReceivables",
+      "POST register-cash-receivable { syncMissing: true }",
+      "POST register-cash-receivable { repairCash: true }",
+      "POST repair-caixa",
+    ],
     tablesAndFields: {
       receivables: {
         table: "receivables",
@@ -268,12 +266,13 @@ export async function buildOperationalResetPreview(supabase: SupabaseClient, use
       },
       cash_movements: {
         table: "cash_movements",
-        action: "UPDATE excluir_do_saldo → true (todas as linhas operacionais)",
+        action: "UPDATE aprovado_caixa=false, excluir_do_saldo=true (todas as linhas)",
         delete: false,
       },
       settings: {
         table: "settings",
-        action: "UPDATE caixa_opening_balance → 0; caixa_operational_reset_at → now",
+        action:
+          "UPDATE caixa_opening_balance=0, finance_manual_caixa_mode=true, caixa_operational_reset_at=now",
         delete: false,
       },
       finance_migration_runs: { table: "finance_migration_runs", action: "INSERT registro da execução" },
@@ -297,7 +296,7 @@ export async function buildOperationalResetPreview(supabase: SupabaseClient, use
         competence: r.competence,
         precisaMudarStatus: r.precisaMudarStatus,
       })),
-      cashMovements: cashToExclude.slice(0, 30).map((m) => ({
+      cashMovements: cashToArchive.slice(0, 30).map((m) => ({
         id: m.id,
         tipo_conta: m.tipo_conta,
         valor: m.valor,
@@ -308,7 +307,25 @@ export async function buildOperationalResetPreview(supabase: SupabaseClient, use
     executeRequires: {
       confirm: OPERATIONAL_RESET_CONFIRM,
       endpoint: "POST /api/finance/operational-reset/execute",
-      sqlPreRequisite: "supabase/finance_june_migration.sql (coluna excluir_do_saldo + tabelas snapshot)",
+      sqlPreRequisite: "supabase/finance_june_migration.sql",
+    },
+    implementationPlan: {
+      fase1_sql: "Executar finance_june_migration.sql (aprovado_caixa, snapshots, settings)",
+      fase2_migracao: "POST operational-reset/execute com confirm EXECUTE_OPERATIONAL_RESET",
+      fase3_frontend: [
+        "financeOperationalModeActive() via settings.finance_manual_caixa_mode",
+        "financeCaixaMovsMerged() → só aprovado_caixa=true",
+        "financeCaixaMovsHistorico() → todas para auditoria na aba Caixa",
+        "financeSaldoCaixa() → opening_balance + aprovados",
+        "financeMetrics(), gráficos, fechamento mensal → mesma regra",
+        "Desativar syncs automáticos listados em autoSyncDesativadosAposMigracao",
+      ],
+      fase4_api: [
+        "register-cash-receivable: bloquear syncMissing se modo manual",
+        "Inserir aprovado_caixa=true apenas com flag explícita aprovadoCaixa no pagamento confirmado",
+      ],
+      fase5_triagem: "Usuário aprova item a item em Aguardando Faturamento",
+      rollback: "POST operational-reset/rollback com migrationId",
     },
   };
 }
@@ -372,7 +389,7 @@ export async function executeOperationalReset(supabase: SupabaseClient, userId: 
   }
 
   for (const m of cash) {
-    if (m.excluir_do_saldo) continue;
+    if (m.aprovado_caixa === true && m.excluir_do_saldo === true) continue;
     await supabase.from("finance_migration_snapshots").insert({
       migration_id: migrationId,
       user_id: userId,
@@ -381,18 +398,22 @@ export async function executeOperationalReset(supabase: SupabaseClient, userId: 
       payload_before: m,
     });
     snapshots += 1;
-    const { error } = await supabase
-      .from("cash_movements")
-      .update({ excluir_do_saldo: true })
-      .eq("id", m.id)
-      .eq("user_id", userId);
+    const patch = { excluir_do_saldo: true, aprovado_caixa: false };
+    let { error } = await supabase.from("cash_movements").update(patch).eq("id", m.id).eq("user_id", userId);
+    if (error && isSchemaError(error.message || "")) {
+      ({ error } = await supabase
+        .from("cash_movements")
+        .update({ excluir_do_saldo: true })
+        .eq("id", m.id)
+        .eq("user_id", userId));
+    }
     if (error) errors.push(`cash ${m.id}: ${error.message}`);
     else cashUpdated += 1;
   }
 
   const { data: settings } = await supabase
     .from("settings")
-    .select("id,caixa_opening_balance,caixa_operational_reset_at")
+    .select("id,caixa_opening_balance,caixa_operational_reset_at,finance_manual_caixa_mode")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -408,10 +429,18 @@ export async function executeOperationalReset(supabase: SupabaseClient, userId: 
     });
     snapshots += 1;
     const resetAt = new Date().toISOString();
-    const { error } = await supabase
-      .from("settings")
-      .update({ caixa_opening_balance: 0, caixa_operational_reset_at: resetAt })
-      .eq("id", settings.id);
+    const settingsPatch = {
+      caixa_opening_balance: 0,
+      caixa_operational_reset_at: resetAt,
+      finance_manual_caixa_mode: true,
+    };
+    let { error } = await supabase.from("settings").update(settingsPatch).eq("id", settings.id);
+    if (error && isSchemaError(error.message || "")) {
+      ({ error } = await supabase
+        .from("settings")
+        .update({ caixa_opening_balance: 0, caixa_operational_reset_at: resetAt })
+        .eq("id", settings.id));
+    }
     if (error && !isSchemaError(error.message || "")) errors.push(`settings: ${error.message}`);
   }
 

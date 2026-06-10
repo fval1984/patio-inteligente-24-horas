@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { clearCaixaResetYm, restoreCashMovementsFromArchive } from "@/lib/finance-caixa-repair";
+import { isOperationalManualMode } from "@/lib/finance-operational-mode";
+
+async function loadSettingsForUser(supabase: ReturnType<typeof getSupabaseAdmin>, userId: string) {
+  const selects = [
+    "finance_manual_caixa_mode,caixa_operational_reset_at,caixa_opening_balance",
+    "caixa_operational_reset_at,caixa_opening_balance",
+  ];
+  for (const sel of selects) {
+    const res = await supabase
+      .from("settings")
+      .select(sel)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!res.error) return res.data;
+    if (!/column|schema cache|PGRST204/i.test(res.error.message || "")) break;
+  }
+  return null;
+}
 
 type ReceivableRow = {
   id: string;
@@ -298,6 +318,7 @@ async function upsertCashForReceivable(
     formaPagamento?: string;
     descricao?: string;
     vehiclePlaca?: string | null;
+    aprovadoCaixa?: boolean;
   } = {}
 ) {
   const receivableId = rec.id;
@@ -321,6 +342,11 @@ async function upsertCashForReceivable(
   const descricao = opts.descricao || (placa ? `Diárias - ${placa}` : labelManual);
 
   const existing = await findExistingMovement(supabase, userId, receivableId);
+  const cashFlags =
+    opts.aprovadoCaixa === true
+      ? { aprovado_caixa: true, excluir_do_saldo: false }
+      : { aprovado_caixa: false, excluir_do_saldo: true };
+
   const payloads = [
     {
       user_id: userId,
@@ -330,6 +356,7 @@ async function upsertCashForReceivable(
       descricao,
       data_movimento: dataYmd,
       forma_pagamento: formaPagamento,
+      ...cashFlags,
     },
     {
       user_id: userId,
@@ -781,6 +808,19 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin();
+    const settings = await loadSettingsForUser(supabase, userId);
+    const manualCaixa = isOperationalManualMode(settings);
+
+    if (manualCaixa && (syncMissing || syncAll || recoverVrp || body?.repairCash === true)) {
+      return NextResponse.json(
+        {
+          error:
+            "Modo caixa manual ativo: sync automático de entradas está desabilitado. Use pagamento confirmado com aprovação explícita.",
+          manualCaixaMode: true,
+        },
+        { status: 403 }
+      );
+    }
 
     if (dedupeCash && !syncMissing && !syncAll) {
       const cleanup = await cleanupDuplicateCashEntradas(supabase, userId);
@@ -973,12 +1013,25 @@ export async function POST(request: NextRequest) {
       vehiclePlaca = v?.placa ? String(v.placa) : null;
     }
 
+    const aprovadoCaixa = body?.aprovadoCaixa === true;
+    if (manualCaixa && !aprovadoCaixa) {
+      return NextResponse.json(
+        {
+          error:
+            "Modo caixa manual: envie aprovadoCaixa=true para registrar entrada operacional (após aprovação e confirmação de pagamento).",
+          manualCaixaMode: true,
+        },
+        { status: 403 }
+      );
+    }
+
     const result = await upsertCashForReceivable(supabase, userId, rec as ReceivableRow, {
       valor: body?.valor != null ? Number(body.valor) : undefined,
       dataMovimento: body?.dataMovimento ? String(body.dataMovimento) : undefined,
       formaPagamento: body?.formaPagamento ? String(body.formaPagamento) : undefined,
       descricao: body?.descricao ? String(body.descricao) : undefined,
       vehiclePlaca,
+      aprovadoCaixa: manualCaixa ? true : aprovadoCaixa,
     });
 
     if (!result.ok) {

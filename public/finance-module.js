@@ -63,7 +63,31 @@
     return !!financeGetCaixaResetYm();
   }
 
-  /** Todas as movimentações entram no caixa (histórico completo; caixa_reset_ym não filtra mais a exibição). */
+  /** Modo caixa manual (Opção 1): só aprovado_caixa=true impacta saldo e relatórios. */
+  function financeOperationalModeActive() {
+    return (
+      state.settings?.finance_manual_caixa_mode === true || !!state.settings?.caixa_operational_reset_at
+    );
+  }
+
+  function financeCaixaOpeningBalance() {
+    if (!financeOperationalModeActive()) return 0;
+    return Number(state.settings?.caixa_opening_balance || 0);
+  }
+
+  /** Movimentação aprovada para o caixa operacional (APROVADO_CAIXA). */
+  function financeCashAprovadoCaixa(mov) {
+    if (!mov) return false;
+    if (financeOperationalModeActive()) return mov.aprovado_caixa === true;
+    return mov.excluir_do_saldo !== true;
+  }
+
+  /** Histórico completo para auditoria (aba Caixa). */
+  function financeCaixaMovsHistorico() {
+    return financeDedupeCaixaMovs((state.cash || []).filter((m) => financeMovInCaixaWindow(m)));
+  }
+
+  /** Todas as movimentações entram na lista de histórico (auditoria). */
   function financeMovInCaixaWindow(mov) {
     return !!mov;
   }
@@ -556,8 +580,11 @@
     return [];
   }
 
-  /** Movimentações do caixa: entradas reais + entradas sintéticas de recebíveis pagos sem caixa. */
+  /** Movimentações que impactam saldo, fluxo, lucro e dashboards (somente APROVADO_CAIXA no modo manual). */
   function financeCaixaMovsMerged() {
+    if (financeOperationalModeActive()) {
+      return financeDedupeCaixaMovs((state.cash || []).filter((m) => financeCashAprovadoCaixa(m)));
+    }
     const cashFiltered = (state.cash || []).filter((m) => financeMovInCaixaWindow(m));
     return financeDedupeCaixaMovs([...cashFiltered, ...financeSyntheticCashEntradasFromPaidReceivables()]);
   }
@@ -1192,6 +1219,7 @@
   }
 
   function financeSyntheticCashEntradasFromPaidReceivables() {
+    if (financeOperationalModeActive()) return [];
     const cashEntradas = financeDedupeCaixaMovs(state.cash || []).filter((m) => financeCashIsEntrada(m));
     const businessKeysWithCash = new Set(cashEntradas.map((m) => financeCashMovEntradaBusinessKey(m)));
     const vmap = financeVehicleById();
@@ -1229,7 +1257,7 @@
   function financeSaldoCaixa() {
     const ent = financeCaixaEntradas().reduce((s, m) => s + financeCashMovValor(m), 0);
     const sai = financeCaixaSaidas().reduce((s, m) => s + financeCashMovValor(m), 0);
-    return ent - sai;
+    return financeCaixaOpeningBalance() + ent - sai;
   }
 
   function financeTotalEntradas() {
@@ -1242,7 +1270,8 @@
 
   function financeCaixaMovsForPeriod(periodoYm, opts = {}) {
     const useDomFilters = opts.useDomFilters !== false;
-    let movs = financeCaixaMovsMerged();
+    const auditView = opts.auditView === true;
+    let movs = auditView ? financeCaixaMovsHistorico() : financeCaixaMovsMerged();
     const de = useDomFilters ? (financeFilterCaixaDataDe || "").trim() : String(opts.de || "").trim();
     const ate = useDomFilters ? (financeFilterCaixaDataAte || "").trim() : String(opts.ate || "").trim();
     const tipoFilter = useDomFilters ? financeFilterCaixaTipo : opts.tipo || "";
@@ -1716,6 +1745,7 @@
   }
 
   async function financeEnsureMissingCashInCaixa() {
+    if (financeOperationalModeActive()) return;
     if (!financeCaixaMissingSyncPromise) {
       financeCaixaMissingSyncPromise = (async () => {
         try {
@@ -2583,8 +2613,9 @@
     const periodoYm = financeFilterPeriodo || "";
     const de = (financeFilterCaixaDataDe || "").trim();
     const ate = (financeFilterCaixaDataAte || "").trim();
-    const movsPeriodo = financeCaixaMovsForPeriod(periodoYm);
-    const totPeriodo = financeCaixaTotalsForMovs(movsPeriodo);
+    const movsOperacionais = financeCaixaMovsForPeriod(periodoYm);
+    const totPeriodo = financeCaixaTotalsForMovs(movsOperacionais);
+    const movsHistorico = financeCaixaMovsForPeriod(periodoYm, { auditView: true });
     if (summaryEl) {
       const periodoLabel = de || ate
         ? `Período ${de ? formatDate(de) : "…"} — ${ate ? formatDate(ate) : "…"}`
@@ -2600,15 +2631,19 @@
       const placaLabel = (financeFilterCaixaPlaca || "").trim()
         ? ` · placa: ${escapeHtml(financeFilterCaixaPlaca.trim())}`
         : "";
+      const modoManual = financeOperationalModeActive();
+      const saldoOperacional = financeSaldoCaixa();
       summaryEl.innerHTML = `
         <p><strong>${escapeHtml(periodoLabel)}${escapeHtml(tipoLabel)}${placaLabel}</strong></p>
-        <p><strong>Entrada:</strong> <span class="fin-val-entrada">${escapeHtml(formatCurrency(totPeriodo.entradas))}</span></p>
-        <p><strong>Saída:</strong> <span class="fin-val-saida">${escapeHtml(formatCurrency(totPeriodo.saidas))}</span></p>
-        <p><strong>Saldo:</strong> <span class="${totPeriodo.saldo >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(totPeriodo.saldo))}</span></p>
+        ${modoManual ? `<p class="notice">Modo auditoria manual — somente lançamentos <strong>APROVADO_CAIXA</strong> entram no saldo operacional.</p>` : ""}
+        <p><strong>Entrada (operacional):</strong> <span class="fin-val-entrada">${escapeHtml(formatCurrency(totPeriodo.entradas))}</span></p>
+        <p><strong>Saída (operacional):</strong> <span class="fin-val-saida">${escapeHtml(formatCurrency(totPeriodo.saidas))}</span></p>
+        <p><strong>Saldo operacional:</strong> <span class="${saldoOperacional >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(saldoOperacional))}</span></p>
+        ${modoManual ? `<p><small>Histórico para auditoria: ${movsHistorico.length} movimentação(ões) no filtro atual.</small></p>` : ""}
       `;
     }
     if (!body) return;
-    let movs = [...movsPeriodo].sort((a, b) =>
+    let movs = [...(financeOperationalModeActive() ? movsHistorico : movsOperacionais)].sort((a, b) =>
       financeCaixaMovCompetenciaYmd(b).localeCompare(financeCaixaMovCompetenciaYmd(a))
     );
     if (!movs.length) {
@@ -2636,6 +2671,12 @@
       .slice(0, 300)
       .map((mov) => {
         const isEntrada = financeCashIsEntrada(mov);
+        const auditBadge =
+          financeOperationalModeActive() && !financeCashAprovadoCaixa(mov)
+            ? `<span class="fin-tag fin-tag--late" title="Apenas auditoria">Histórico</span> `
+            : financeOperationalModeActive() && financeCashAprovadoCaixa(mov)
+              ? `<span class="fin-tag fin-tag--ok" title="Conta no saldo operacional">Aprovado</span> `
+              : "";
         const rec = isEntrada
           ? (state.receivables || []).find((r) => String(r.id) === String(mov.conta_id)) ||
             financeFindReceivableForMov(mov)
@@ -2666,7 +2707,7 @@
         descText = financeDisplaySafeText(descText);
         if (financeLooksLikeMetaNoise(pagante)) pagante = financeNormalizeQuemPagouText(mov?.descricao || rec?.responsavel_pagamento);
         if (financeLooksLikeMetaNoise(descText)) descText = pagante;
-        let desc = escapeHtml(descText);
+        let desc = auditBadge + escapeHtml(descText);
         if (v?.placa) desc += `<br /><span class="notice">${escapeHtml(v.placa)}</span>`;
         const dataComp = financeCaixaMovCompetenciaYmd(mov);
         return `<tr>
@@ -2681,8 +2722,8 @@
     body.innerHTML =
       rowsHtml +
       `<tr class="fin-caixa-total-row">
-        <td colspan="4" data-label=""><strong>Saldo</strong></td>
-        <td data-label="Valor"><strong class="${totPeriodo.saldo >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(totPeriodo.saldo))}</strong></td>
+        <td colspan="4" data-label=""><strong>Saldo operacional</strong></td>
+        <td data-label="Valor"><strong class="${financeSaldoCaixa() >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(financeSaldoCaixa()))}</strong></td>
       </tr>`;
     financeSanitizeCaixaTableCells(body);
   }
@@ -3766,6 +3807,7 @@
   const FINANCE_CAIXA_REPAIR_KEY = "finance_caixa_repair_v2_done";
 
   async function financeRunCaixaRepairIfNeeded() {
+    if (financeOperationalModeActive()) return null;
     const userId = typeof effectiveUserId === "function" ? effectiveUserId() : null;
     if (!userId) return null;
     try {
@@ -3844,7 +3886,10 @@
         if (typeof financeRunCaixaRepairIfNeeded === "function") {
           await financeRunCaixaRepairIfNeeded();
         }
-        if (typeof window.syncPaidReceivablesCashMovements === "function") {
+        if (
+          !financeOperationalModeActive() &&
+          typeof window.syncPaidReceivablesCashMovements === "function"
+        ) {
           await window.syncPaidReceivablesCashMovements();
         }
         if (preserveView) {
@@ -4416,6 +4461,9 @@
     if (data.ok && typeof refreshFinanceData === "function") await refreshFinanceData();
     return data;
   };
+  window.financeOperationalModeActive = financeOperationalModeActive;
+  window.financeCashAprovadoCaixa = financeCashAprovadoCaixa;
+  window.financeCaixaMovsHistorico = financeCaixaMovsHistorico;
   window.financeSaldoCaixa = financeSaldoCaixa;
   window.financeCashMovValor = financeCashMovValor;
   window.financeDedupeCaixaMovs = financeDedupeCaixaMovs;

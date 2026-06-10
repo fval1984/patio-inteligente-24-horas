@@ -14919,6 +14919,7 @@
             dataMovimento: dataMov,
             formaPagamento,
             vehicle,
+            aprovadoCaixa: true,
           });
           if (cashResult.error) {
             alertSupabaseError(
@@ -14969,6 +14970,7 @@
                 dataMovimento: dataMov,
                 formaPagamento,
                 vehicle,
+                aprovadoCaixa: true,
               }
             );
             if (!retryCash.error) await loadCash();
@@ -15091,12 +15093,26 @@
           return { data: null, error: null };
         }
 
+        const manualCaixa =
+          typeof window.financeOperationalModeActive === "function" && window.financeOperationalModeActive();
+        const aprovadoCaixa = opts.aprovadoCaixa === true || (!manualCaixa && opts.aprovadoCaixa !== false);
+        if (manualCaixa && !opts.aprovadoCaixa) {
+          return {
+            data: null,
+            error: {
+              message:
+                "Modo caixa manual: confirme o pagamento após aprovação para gerar entrada operacional (APROVADO_CAIXA).",
+            },
+          };
+        }
+
         const apiFirst = await callRegisterCashReceivableApi({
           receivableId,
           valor,
           dataMovimento: dataMov,
           formaPagamento,
           descricao,
+          aprovadoCaixa: manualCaixa ? true : aprovadoCaixa,
         });
         if (apiFirst.ok) {
           await loadCash();
@@ -15113,6 +15129,9 @@
 
         const existingMov = await findExistingReceivableCashMovement(receivableId, uid);
         const isoMov = new Date(String(dataMov).includes("T") ? dataMov : `${dataMov}T12:00:00`).toISOString();
+        const cashFlags = aprovadoCaixa
+          ? { aprovado_caixa: true, excluir_do_saldo: false }
+          : { aprovado_caixa: false, excluir_do_saldo: true };
         const basePayload = {
           user_id: uid,
           tipo_conta: existingMov?.tipo_conta || "RECEBER",
@@ -15121,6 +15140,7 @@
           descricao,
           data_movimento: dataMov,
           forma_pagamento: formaPagamento,
+          ...cashFlags,
         };
         const payloadVariants = [
           basePayload,
@@ -15298,6 +15318,9 @@
       window.payableCashMovementExists = payableCashMovementExists;
 
       window.syncPaidReceivablesCashMovements = async function syncPaidReceivablesCashMovements() {
+        if (typeof window.financeOperationalModeActive === "function" && window.financeOperationalModeActive()) {
+          return { created: 0, fixed: 0, failed: 0, skipped: true, manualCaixaMode: true };
+        }
         const uid = effectiveUserId();
         if (!uid || !supabase) return { created: 0, fixed: 0, failed: 0 };
 

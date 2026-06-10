@@ -5,12 +5,23 @@
 ALTER TABLE public.cash_movements
   ADD COLUMN IF NOT EXISTS excluir_do_saldo boolean NOT NULL DEFAULT false;
 
+-- Somente aprovado_caixa=true entra no saldo operacional (modo manual pós-migração)
+ALTER TABLE public.cash_movements
+  ADD COLUMN IF NOT EXISTS aprovado_caixa boolean NOT NULL DEFAULT false;
+
+CREATE INDEX IF NOT EXISTS idx_cash_movements_aprovado_caixa
+  ON public.cash_movements (user_id, aprovado_caixa)
+  WHERE aprovado_caixa = true;
+
 -- Saldo inicial da fase operacional (0 após reset)
 ALTER TABLE public.settings
   ADD COLUMN IF NOT EXISTS caixa_opening_balance numeric DEFAULT 0;
 
 ALTER TABLE public.settings
   ADD COLUMN IF NOT EXISTS caixa_operational_reset_at timestamptz;
+
+ALTER TABLE public.settings
+  ADD COLUMN IF NOT EXISTS finance_manual_caixa_mode boolean NOT NULL DEFAULT false;
 
 CREATE INDEX IF NOT EXISTS idx_cash_movements_excluir_saldo
   ON public.cash_movements (user_id, excluir_do_saldo)
