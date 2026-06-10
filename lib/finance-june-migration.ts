@@ -168,12 +168,17 @@ async function loadReceivables(supabase: SupabaseClient, userId: string) {
 }
 
 async function loadPayables(supabase: SupabaseClient, userId: string) {
-  const res = await supabase
-    .from("payables")
-    .select("id,user_id,valor,status,observacoes,descricao,data_vencimento,updated_at,created_at")
-    .eq("user_id", userId);
-  if (res.error) throw new Error(res.error.message);
-  return (res.data || []) as PayableRow[];
+  const selects = [
+    "id,user_id,valor,status,observacoes,descricao,data_vencimento,updated_at,created_at",
+    "id,user_id,valor,status,descricao,data_vencimento,updated_at,created_at",
+    "id,user_id,valor,status,updated_at,created_at",
+  ];
+  for (const sel of selects) {
+    const res = await supabase.from("payables").select(sel).eq("user_id", userId);
+    if (!res.error) return (res.data || []) as PayableRow[];
+    if (!isSchemaError(res.error.message || "")) throw new Error(res.error.message);
+  }
+  return [];
 }
 
 async function loadCash(supabase: SupabaseClient, userId: string) {
