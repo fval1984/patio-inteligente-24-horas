@@ -1,16 +1,6 @@
 -- Migração financeira junho/2026: snapshots para reversão + flag em movimentações.
 -- Execute no SQL Editor do Supabase ANTES de rodar a migração.
 
--- Status AGUARDANDO_LANCAMENTO no enum (se existir payment_status em receivables.status)
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_status') THEN
-    ALTER TYPE public.payment_status ADD VALUE IF NOT EXISTS 'AGUARDANDO_LANCAMENTO';
-  END IF;
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
-
 -- Flag: movimentação visível no histórico mas fora do caixa operacional
 ALTER TABLE public.cash_movements
   ADD COLUMN IF NOT EXISTS excluir_do_saldo boolean NOT NULL DEFAULT false;
