@@ -4,6 +4,7 @@ import {
   MANUAL_CAIXA_RESET_YM,
   cashMovementAprovadoCaixa,
   cashMovementExcluirDoSaldo,
+  cashMovementIsLegacyNeutralized,
 } from "@/lib/finance-cash-meta";
 
 export const FINANCE_MANUAL_CAIXA_SETTING = "finance_manual_caixa_mode";
@@ -29,27 +30,14 @@ export function isOperationalManualMode(settings: SettingsLike | null | undefine
   return !!settings.caixa_operational_reset_at;
 }
 
-function operationalResetAtMs(settings: SettingsLike | null | undefined) {
-  const raw = settings?.caixa_operational_reset_at;
-  if (!raw) return 0;
-  const ts = new Date(String(raw)).getTime();
-  return Number.isFinite(ts) ? ts : 0;
-}
-
 /** Movimentação válida para saldo operacional, fluxo, lucro e dashboards. */
 export function isAprovadoCaixa(mov: CashMovementLike | null | undefined, settings?: SettingsLike | null) {
   if (!mov) return false;
+  if (cashMovementExcluirDoSaldo(mov)) return false;
   if (isOperationalManualMode(settings)) {
-    if (!cashMovementAprovadoCaixa(mov)) return false;
-    if (cashMovementExcluirDoSaldo(mov)) return false;
-    const resetMs = operationalResetAtMs(settings);
-    if (resetMs > 0 && mov.created_at) {
-      const movMs = new Date(String(mov.created_at)).getTime();
-      if (Number.isFinite(movMs) && movMs < resetMs) return false;
-    }
-    return true;
+    return cashMovementAprovadoCaixa(mov);
   }
-  return !cashMovementExcluirDoSaldo(mov);
+  return !cashMovementIsLegacyNeutralized(mov);
 }
 
 export function openingBalance(settings: SettingsLike | null | undefined) {

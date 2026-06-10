@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { clearCaixaResetYm, restoreCashMovementsFromArchive } from "@/lib/finance-caixa-repair";
-import { applyCashFlagsToDescricao } from "@/lib/finance-cash-meta";
+import {
+  applyCashFlagsToDescricao,
+  cashMovementIsLegacyNeutralized,
+} from "@/lib/finance-cash-meta";
 import { isOperationalManualMode } from "@/lib/finance-operational-mode";
 
 async function loadSettingsForUser(supabase: ReturnType<typeof getSupabaseAdmin>, userId: string) {
@@ -281,33 +284,40 @@ async function cleanupDuplicateCashEntradas(supabase: ReturnType<typeof getSupab
   return { removed };
 }
 
+const CASH_MOV_SELECTS = [
+  "id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id,aprovado_caixa,excluir_do_saldo,descricao,created_at",
+  "id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id,excluir_do_saldo,descricao,created_at",
+  "id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id,descricao,created_at",
+  "id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id",
+];
+
 async function findExistingMovement(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   userId: string,
-  receivableId: string
+  receivableId: string,
+  opts: { forApprovedPayment?: boolean } = {}
 ) {
-  for (const tipo of ["RECEBER", "ENTRADA"]) {
-    const { data } = await supabase
+  let linked: Array<Record<string, unknown>> = [];
+  for (const sel of CASH_MOV_SELECTS) {
+    const { data, error } = await supabase
       .from("cash_movements")
-      .select("id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id")
+      .select(sel)
       .eq("user_id", userId)
       .eq("conta_id", receivableId)
-      .eq("tipo_conta", tipo)
-      .limit(1);
-    if (data?.length) return data[0];
+      .limit(10);
+    if (!error && data?.length) {
+      linked = data as Array<Record<string, unknown>>;
+      break;
+    }
+    if (error && !isSchemaError(error.message || "")) break;
   }
-  const { data: linked } = await supabase
-    .from("cash_movements")
-    .select("id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id")
-    .eq("user_id", userId)
-    .eq("conta_id", receivableId)
-    .limit(5);
-  return (
-    (linked || []).find((m) => {
-      const t = String(m?.tipo_conta || "").toUpperCase();
-      return t === "RECEBER" || t === "ENTRADA";
-    }) || null
-  );
+  const entradas = linked.filter((m) => cashMovIsEntradaTipo(m.tipo_conta as string));
+  if (!entradas.length) return null;
+  if (opts.forApprovedPayment) {
+    const operational = entradas.find((m) => !cashMovementIsLegacyNeutralized(m as Parameters<typeof cashMovementIsLegacyNeutralized>[0]));
+    return operational || null;
+  }
+  return entradas[0] || null;
 }
 
 async function upsertCashForReceivable(
@@ -343,7 +353,9 @@ async function upsertCashForReceivable(
   const labelManual = origemTxt || descTxt || "Recebimento pátio";
   const descricao = opts.descricao || (placa ? `Diárias - ${placa}` : labelManual);
 
-  const existing = await findExistingMovement(supabase, userId, receivableId);
+  const existing = await findExistingMovement(supabase, userId, receivableId, {
+    forApprovedPayment: opts.aprovadoCaixa === true,
+  });
   const cashFlags =
     opts.aprovadoCaixa === true
       ? { aprovado_caixa: true, excluir_do_saldo: false }

@@ -6558,7 +6558,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260610caixa2"></script>
+    <script src="/finance-module.js?v=20260610pagamento"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -14792,14 +14792,26 @@
         }
         const anexo = await readFinanceFileInput(document.getElementById("receberBaixaAnexo"));
         closeReceberBaixaModal();
-        const result = await finalizeReceivablePayment(pending.receivableId, valorRecebido, {
-          dataMovimento: dataMov,
-          formaPagamento,
-          anexo,
-          observacao,
-          desconto,
-          valorOriginal,
-        });
+        let result = null;
+        try {
+          result = await finalizeReceivablePayment(pending.receivableId, valorRecebido, {
+            dataMovimento: dataMov,
+            formaPagamento,
+            anexo,
+            observacao,
+            desconto,
+            valorOriginal,
+          });
+        } catch (e) {
+          console.error("executeReceberBaixa", e);
+          const msg = e?.message || String(e);
+          alert(
+            /failed to fetch/i.test(msg)
+              ? "Falha de rede ao confirmar o pagamento. Verifique a internet, recarregue a página (Ctrl+Shift+R) e tente novamente."
+              : msg || "Não foi possível confirmar o pagamento."
+          );
+          return;
+        }
         if (!result) return;
         if (mode === "pdf") {
           try {
@@ -15014,7 +15026,16 @@
           if (!resp.ok) return { ok: false, error: json?.error || `Falha ${resp.status}` };
           return { ok: true, ...json };
         } catch (e) {
-          return { ok: false, error: e?.message || String(e) };
+          const msg = e?.message || String(e);
+          if (/failed to fetch/i.test(msg)) {
+            return {
+              ok: false,
+              error:
+                "Não foi possível contactar o servidor (rede/API). A gravação direta no Supabase será tentada em seguida.",
+              networkError: true,
+            };
+          }
+          return { ok: false, error: msg };
         }
       }
 
@@ -15039,30 +15060,68 @@
 
       window.callRegisterCashPayableApi = callRegisterCashPayableApi;
 
-      async function findExistingReceivableCashMovement(receivableId, uid) {
+      function cashMovIsEntradaTipoLocal(tipo) {
+        const t = String(tipo || "").toUpperCase();
+        return t === "RECEBER" || t === "ENTRADA";
+      }
+
+      function cashMovIsLegacyNeutralizedLocal(mov) {
+        if (typeof window.financeCashMovIsLegacyNeutralized === "function") {
+          return window.financeCashMovIsLegacyNeutralized(mov);
+        }
+        if (!mov) return false;
+        if (mov.excluir_do_saldo === true) return true;
+        return mov.aprovado_caixa !== true;
+      }
+
+      function applyCashFlagsToDescricaoLocal(descricao, flags) {
+        const prefix = "[[finmeta:";
+        const raw = String(descricao || "");
+        let meta = {};
+        let text = raw;
+        if (raw.startsWith(prefix)) {
+          const end = raw.indexOf("]]");
+          if (end > 0) {
+            try {
+              meta = JSON.parse(raw.slice(prefix.length, end));
+            } catch {
+              meta = {};
+            }
+            text = raw.slice(end + 2).trim();
+          }
+        }
+        const next = { ...meta, ...flags };
+        return `${prefix}${JSON.stringify(next)}]]${text ? text : ""}`;
+      }
+
+      async function findExistingReceivableCashMovement(receivableId, uid, opts = {}) {
         if (!receivableId || !uid) return null;
-        for (const tipo of ["RECEBER", "ENTRADA"]) {
+        const selects = [
+          "id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id,aprovado_caixa,excluir_do_saldo,descricao,created_at",
+          "id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id,excluir_do_saldo,descricao,created_at",
+          "id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id,descricao,created_at",
+          "id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id",
+        ];
+        let linked = [];
+        for (const sel of selects) {
           const { data, error } = await supabase
             .from("cash_movements")
-            .select("id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id")
+            .select(sel)
             .eq("user_id", uid)
             .eq("conta_id", receivableId)
-            .eq("tipo_conta", tipo)
-            .limit(1);
-          if (!error && data?.length) return data[0];
+            .limit(10);
+          if (!error && data?.length) {
+            linked = data;
+            break;
+          }
+          if (error && !supabaseSchemaColumnError(error)) break;
         }
-        const { data: linked } = await supabase
-          .from("cash_movements")
-          .select("id,valor,data_movimento,forma_pagamento,tipo_conta,conta_id")
-          .eq("user_id", uid)
-          .eq("conta_id", receivableId)
-          .limit(5);
-        return (
-          (linked || []).find((m) => {
-            const t = String(m?.tipo_conta || "").toUpperCase();
-            return t === "RECEBER" || t === "ENTRADA";
-          }) || null
-        );
+        const entradas = (linked || []).filter((m) => cashMovIsEntradaTipoLocal(m.tipo_conta));
+        if (!entradas.length) return null;
+        if (opts.forApprovedPayment) {
+          return entradas.find((m) => !cashMovIsLegacyNeutralizedLocal(m)) || null;
+        }
+        return entradas[0] || null;
       }
 
       function receivableCashMovementExists(receivableId) {
@@ -15106,38 +15165,22 @@
           };
         }
 
-        const apiFirst = await callRegisterCashReceivableApi({
-          receivableId,
-          valor,
-          dataMovimento: dataMov,
-          formaPagamento,
-          descricao,
-          aprovadoCaixa: manualCaixa ? true : aprovadoCaixa,
+        const existingMov = await findExistingReceivableCashMovement(receivableId, uid, {
+          forApprovedPayment: aprovadoCaixa === true,
         });
-        if (apiFirst.ok) {
-          await loadCash();
-          const verifiedApi = await findExistingReceivableCashMovement(receivableId, uid);
-          if (verifiedApi) return { data: verifiedApi, error: null };
-          if (receivableCashMovementExists(receivableId)) {
-            const local = (state.cash || []).find(
-              (m) => String(m.conta_id) === String(receivableId) && (String(m.tipo_conta || "").toUpperCase() === "RECEBER" || String(m.tipo_conta || "").toUpperCase() === "ENTRADA")
-            );
-            if (local) return { data: local, error: null };
-          }
-          // API respondeu ok mas movimento não apareceu — grava direto no Supabase abaixo.
-        }
-
-        const existingMov = await findExistingReceivableCashMovement(receivableId, uid);
         const isoMov = new Date(String(dataMov).includes("T") ? dataMov : `${dataMov}T12:00:00`).toISOString();
         const cashFlags = aprovadoCaixa
           ? { aprovado_caixa: true, excluir_do_saldo: false }
           : { aprovado_caixa: false, excluir_do_saldo: true };
+        const descricaoComFlags = aprovadoCaixa
+          ? applyCashFlagsToDescricaoLocal(descricao, { aprovado_caixa: true, excluir_do_saldo: false })
+          : applyCashFlagsToDescricaoLocal(descricao, { aprovado_caixa: false, excluir_do_saldo: true });
         const basePayload = {
           user_id: uid,
           tipo_conta: existingMov?.tipo_conta || "RECEBER",
           conta_id: receivableId,
           valor,
-          descricao,
+          descricao: descricaoComFlags,
           data_movimento: dataMov,
           forma_pagamento: formaPagamento,
           ...cashFlags,
@@ -15177,7 +15220,10 @@
         for (const body of payloadVariants) {
           const result = await writePayload(body, existingMov);
           if (!result.error) {
-            const verified = await findExistingReceivableCashMovement(receivableId, uid);
+            await loadCash();
+            const verified = await findExistingReceivableCashMovement(receivableId, uid, {
+              forApprovedPayment: aprovadoCaixa === true,
+            });
             if (verified) return { data: verified, error: null };
             return { data: { conta_id: receivableId, valor, data_movimento: dataMov }, error: null };
           }
@@ -15193,7 +15239,9 @@
         }
 
         if (lastError && /duplicate key|unique constraint|23505/i.test(String(lastError.message || ""))) {
-          const fresh = await findExistingReceivableCashMovement(receivableId, uid);
+          const fresh = await findExistingReceivableCashMovement(receivableId, uid, {
+            forApprovedPayment: aprovadoCaixa === true,
+          });
           const retry = await writePayload(
             {
               user_id: uid,
@@ -15207,17 +15255,48 @@
             fresh
           );
           if (!retry.error) {
-            const verified = await findExistingReceivableCashMovement(receivableId, uid);
+            await loadCash();
+            const verified = await findExistingReceivableCashMovement(receivableId, uid, {
+              forApprovedPayment: aprovadoCaixa === true,
+            });
             if (verified) return { data: verified, error: null };
             return { data: { conta_id: receivableId, valor, data_movimento: dataMov }, error: null };
           }
           lastError = retry.error;
         }
 
-        const stillThere = await findExistingReceivableCashMovement(receivableId, uid);
-        if (stillThere) return { data: stillThere, error: null };
+        const stillThere = await findExistingReceivableCashMovement(receivableId, uid, {
+          forApprovedPayment: aprovadoCaixa === true,
+        });
+        if (stillThere) {
+          await loadCash();
+          return { data: stillThere, error: null };
+        }
 
-        return { data: null, error: lastError || { message: "Não foi possível registrar entrada no caixa." } };
+        const apiFallback = await callRegisterCashReceivableApi({
+          receivableId,
+          valor,
+          dataMovimento: dataMov,
+          formaPagamento,
+          descricao,
+          aprovadoCaixa: manualCaixa ? true : aprovadoCaixa,
+        });
+        if (apiFallback.ok) {
+          await loadCash();
+          const verifiedApi = await findExistingReceivableCashMovement(receivableId, uid, {
+            forApprovedPayment: aprovadoCaixa === true,
+          });
+          if (verifiedApi) return { data: verifiedApi, error: null };
+        }
+
+        return {
+          data: null,
+          error:
+            lastError ||
+            (apiFallback.error
+              ? { message: String(apiFallback.error) }
+              : { message: "Não foi possível registrar entrada no caixa." }),
+        };
       }
 
       function payableCashMovIsSaida(m) {

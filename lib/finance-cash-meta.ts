@@ -52,3 +52,14 @@ export function cashMovementAprovadoCaixa(mov: {
   const { meta } = unpackCashMetaFromDescricao(mov.descricao);
   return meta.aprovado_caixa === true;
 }
+
+/** Movimentação neutralizada pela migração — não reutilizar no update de pagamento confirmado. */
+export function cashMovementIsLegacyNeutralized(mov: {
+  aprovado_caixa?: boolean | null;
+  excluir_do_saldo?: boolean | null;
+  descricao?: string | null;
+} | null | undefined): boolean {
+  if (!mov) return false;
+  if (cashMovementExcluirDoSaldo(mov)) return true;
+  return !cashMovementAprovadoCaixa(mov);
+}

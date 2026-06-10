@@ -103,27 +103,18 @@
     return Number(state.settings?.caixa_opening_balance || 0);
   }
 
-  function financeCaixaOperationalResetAtMs() {
-    const raw = state.settings?.caixa_operational_reset_at;
-    if (!raw) return 0;
-    const ts = new Date(String(raw)).getTime();
-    return Number.isFinite(ts) ? ts : 0;
+  function financeCashMovIsLegacyNeutralized(mov) {
+    if (!mov) return false;
+    if (financeCashExcluirFromMov(mov)) return true;
+    return !financeCashAprovadoFromMov(mov);
   }
 
   /** Movimentação aprovada para o caixa operacional (APROVADO_CAIXA). */
   function financeCashAprovadoCaixa(mov) {
     if (!mov) return false;
-    if (financeOperationalModeActive()) {
-      if (!financeCashAprovadoFromMov(mov)) return false;
-      if (financeCashExcluirFromMov(mov)) return false;
-      const resetMs = financeCaixaOperationalResetAtMs();
-      if (resetMs > 0 && mov.created_at) {
-        const movMs = new Date(String(mov.created_at)).getTime();
-        if (Number.isFinite(movMs) && movMs < resetMs) return false;
-      }
-      return true;
-    }
-    return !financeCashExcluirFromMov(mov);
+    if (financeCashExcluirFromMov(mov)) return false;
+    if (financeOperationalModeActive()) return financeCashAprovadoFromMov(mov);
+    return !financeCashMovIsLegacyNeutralized(mov);
   }
 
   /** Histórico bruto (não usar na listagem operacional do Caixa). */
@@ -4517,6 +4508,9 @@
   };
   window.financeOperationalModeActive = financeOperationalModeActive;
   window.financeCashAprovadoCaixa = financeCashAprovadoCaixa;
+  window.financeCashAprovadoFromMov = financeCashAprovadoFromMov;
+  window.financeCashExcluirFromMov = financeCashExcluirFromMov;
+  window.financeCashMovIsLegacyNeutralized = financeCashMovIsLegacyNeutralized;
   window.financeCaixaMovsHistorico = financeCaixaMovsHistorico;
   window.financeSaldoCaixa = financeSaldoCaixa;
   window.financeCashMovValor = financeCashMovValor;
