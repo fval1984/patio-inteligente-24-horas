@@ -1,6 +1,9 @@
 -- Sincroniza flags nativas após finance_june_migration.sql + migração do caixa.
 -- Substitua :USER_ID pelo uuid do usuário (auth.users.id).
 
+-- Opcional (marco legado do reset de caixa; não está em finance_june_migration.sql)
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS caixa_reset_ym text;
+
 UPDATE public.settings
 SET
   finance_manual_caixa_mode = true,
