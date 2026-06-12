@@ -550,6 +550,8 @@
     financePopulateRppFilterSelect("finCaixaRpp", financeFilterCaixaRppId);
   }
 
+  window.financePopulateFinanceRppFilters = financePopulateFinanceRppFilters;
+
   function financeReceberDiariasParts(r, vehicle) {
     if (!r?.vehicle_id || !vehicle) return null;
     let days = null;
@@ -3913,6 +3915,7 @@
       });
     }
     if (opts.skipRender) return;
+    financePopulateFinanceRppFilters();
     if (resolved === "caixa") {
       financeEnsureCaixaPeriodoDefault();
       financeRenderCaixaAsync();
@@ -4011,6 +4014,7 @@
     refreshFinanceDataPromise = (async () => {
       try {
         await Promise.all([
+          typeof loadPartners === "function" ? loadPartners() : Promise.resolve(),
           loadReceivables(),
           loadPayables(),
           loadCash(),
@@ -4018,6 +4022,7 @@
           typeof loadCycleClosures === "function" ? loadCycleClosures() : Promise.resolve(),
           typeof loadFinanceContacts === "function" ? loadFinanceContacts() : Promise.resolve(),
         ]);
+        financePopulateFinanceRppFilters();
         if (typeof window.ensureRecorrentesAutomaticos === "function") {
           const recorrenteStats = await window.ensureRecorrentesAutomaticos();
           if (recorrenteStats?.created > 0) {
