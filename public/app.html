@@ -5467,6 +5467,12 @@
                   />
                 </div>
                 <div>
+                  <label for="finAguardandoRpp">RPP</label>
+                  <select id="finAguardandoRpp" title="Responsável financeiro / pagamento">
+                    <option value="">Todos os RPP</option>
+                  </select>
+                </div>
+                <div>
                   <label for="finAguardandoPlaca">Busca por placa</label>
                   <input
                     id="finAguardandoPlaca"
@@ -5510,6 +5516,12 @@
           <div class="finance-subview hidden" data-finance-subview="receber">
             <div class="fin-toolbar">
               <div><button type="button" id="finBtnNovaReceita">+ Nova receita</button></div>
+              <div>
+                <label for="finReceberRpp">RPP</label>
+                <select id="finReceberRpp" title="Responsável financeiro / pagamento">
+                  <option value="">Todos os RPP</option>
+                </select>
+              </div>
               <div>
                 <label for="finReceberPlaca">Busca por placa</label>
                 <input
@@ -5602,6 +5614,12 @@
 
           <div class="finance-subview hidden" data-finance-subview="caixa">
             <div class="fin-toolbar">
+              <div>
+                <label for="finCaixaRpp">RPP</label>
+                <select id="finCaixaRpp" title="Responsável financeiro / pagamento">
+                  <option value="">Todos os RPP</option>
+                </select>
+              </div>
               <div>
                 <label for="finCaixaPlaca">Busca por placa</label>
                 <input
@@ -6558,7 +6576,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260610pagar"></script>
+    <script src="/finance-module.js?v=20260610rpp"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
