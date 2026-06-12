@@ -6576,7 +6576,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260610rpp"></script>
+    <script src="/finance-module.js?v=20260610rpp2"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -12105,6 +12105,7 @@
         renderPartnerOptions();
         syncWorkflowPartnerSelects();
         maybeRefreshListaPanel();
+        if (typeof financePopulateFinanceRppFilters === "function") financePopulateFinanceRppFilters();
       }
 
       async function loadFinanceContacts() {
