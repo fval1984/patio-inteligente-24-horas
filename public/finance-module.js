@@ -22,12 +22,15 @@
   let financeFilterAguardandoPeriodo = "";
   let financeFilterAguardandoDataDe = "";
   let financeFilterAguardandoDataAte = "";
+  let financeFilterAguardandoRppId = "";
   let financeFilterReceberDataDe = "";
   let financeFilterReceberDataAte = "";
   let financeFilterReceberPlaca = "";
+  let financeFilterReceberRppId = "";
   let financeFilterCaixaDataDe = "";
   let financeFilterCaixaDataAte = "";
   let financeFilterCaixaPlaca = "";
+  let financeFilterCaixaRppId = "";
   /** "" | "entrada" | "saida" */
   let financeFilterCaixaTipo = "";
   let refreshFinanceDataPromise = null;
@@ -484,6 +487,69 @@
     return financeReceivableLabel(r);
   }
 
+  function financeVehicleEffectiveRppPartnerId(v) {
+    if (typeof listaVehicleEffectiveRpfPartnerId === "function") return listaVehicleEffectiveRpfPartnerId(v);
+    if (!v) return "";
+    return String(v.responsavel_financeiro_id || v.localizador_id || "").trim();
+  }
+
+  function financePartnerNomeById(partnerId) {
+    if (!partnerId) return "";
+    return String((state.partners || []).find((p) => String(p.id) === String(partnerId))?.nome || "").trim();
+  }
+
+  function financeReceivableRppPartnerId(r, v) {
+    if (!r) return "";
+    if (financeIsManualReceivable(r)) {
+      const rppName = String(financeReceivableTypedFields(r).rpp || "").trim();
+      if (!rppName || rppName === "—") return "";
+      const exact = (state.partners || []).find(
+        (p) => String(p.nome || "").trim().toLowerCase() === rppName.toLowerCase()
+      );
+      if (exact?.id) return String(exact.id);
+      const partial = (state.partners || []).find((p) => {
+        const n = String(p.nome || "").trim().toLowerCase();
+        return n && (rppName.toLowerCase().includes(n) || n.includes(rppName.toLowerCase()));
+      });
+      return partial?.id ? String(partial.id) : "";
+    }
+    return financeVehicleEffectiveRppPartnerId(v);
+  }
+
+  function financeReceivableMatchesRppFilter(r, v, rppPartnerId) {
+    if (!rppPartnerId) return true;
+    const pid = String(rppPartnerId);
+    if (financeReceivableRppPartnerId(r, v) === pid) return true;
+    const partnerName = financePartnerNomeById(pid).toLowerCase();
+    if (!partnerName) return false;
+    const rppLabel = String(financeReceberRppNome(r, v) || "")
+      .trim()
+      .toLowerCase();
+    return !!rppLabel && rppLabel !== "—" && (rppLabel === partnerName || rppLabel.includes(partnerName));
+  }
+
+  function financePopulateRppFilterSelect(selectId, currentValue) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    const parceiros = [...(state.partners || [])].sort((a, b) =>
+      String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR")
+    );
+    const opt = (id, label) => {
+      const vid = String(id).replace(/"/g, "&quot;");
+      return `<option value="${vid}">${escapeHtml(label)}</option>`;
+    };
+    sel.innerHTML =
+      `<option value="">Todos os RPP</option>` + parceiros.map((p) => opt(p.id, p.nome || "-")).join("");
+    if (currentValue && parceiros.some((p) => String(p.id) === String(currentValue))) sel.value = currentValue;
+    else sel.value = "";
+  }
+
+  function financePopulateFinanceRppFilters() {
+    financePopulateRppFilterSelect("finAguardandoRpp", financeFilterAguardandoRppId);
+    financePopulateRppFilterSelect("finReceberRpp", financeFilterReceberRppId);
+    financePopulateRppFilterSelect("finCaixaRpp", financeFilterCaixaRppId);
+  }
+
   function financeReceberDiariasParts(r, vehicle) {
     if (!r?.vehicle_id || !vehicle) return null;
     let days = null;
@@ -835,6 +901,7 @@
 
   function financeSyncAguardandoFiltersFromDom() {
     financeFilterAguardandoPlaca = (document.getElementById("finAguardandoPlaca")?.value || "").trim();
+    financeFilterAguardandoRppId = document.getElementById("finAguardandoRpp")?.value || "";
     financeFilterAguardandoPeriodo = document.getElementById("finAguardandoPeriodo")?.value || "";
     financeFilterAguardandoDataDe = document.getElementById("finAguardandoDataDe")?.value || "";
     financeFilterAguardandoDataAte = document.getElementById("finAguardandoDataAte")?.value || "";
@@ -852,6 +919,7 @@
 
   function financeSyncReceberPlacaFromDom() {
     financeFilterReceberPlaca = (document.getElementById("finReceberPlaca")?.value || "").trim();
+    financeFilterReceberRppId = document.getElementById("finReceberRpp")?.value || "";
   }
 
   function financeSyncReceberDateFiltersFromDom() {
@@ -871,6 +939,7 @@
 
   function financeSyncCaixaFiltersFromDom() {
     financeFilterPeriodo = document.getElementById("finFilterPeriodo")?.value || "";
+    financeFilterCaixaRppId = document.getElementById("finCaixaRpp")?.value || "";
     financeFilterCaixaPlaca = (document.getElementById("finCaixaPlaca")?.value || "").trim();
     financeFilterCaixaDataDe = document.getElementById("finCaixaDataDe")?.value || "";
     financeFilterCaixaDataAte = document.getElementById("finCaixaDataAte")?.value || "";
@@ -908,9 +977,11 @@
     const periodo = (financeFilterAguardandoPeriodo || "").trim();
     const de = (financeFilterAguardandoDataDe || "").trim();
     const ate = (financeFilterAguardandoDataAte || "").trim();
+    const rppId = (financeFilterAguardandoRppId || "").trim();
     return financeContasAguardandoList().filter((r) => {
       const v = vmap.get(r.vehicle_id);
       if (!financePlateMatchesQuery(v, plateNorm)) return false;
+      if (!financeReceivableMatchesRppFilter(r, v, rppId)) return false;
       if (de || ate) {
         if (!financeYmdInRange(financeReceivableSaidaYmd(r, v), de, ate)) return false;
       } else if (periodo && financeReceivableSaidaYm(r, v) !== periodo) {
@@ -924,11 +995,13 @@
     const hint = document.getElementById("finAguardandoPlateHint");
     if (!hint) return;
     const q = (financeFilterAguardandoPlaca || "").trim();
+    const rppNome = financePartnerNomeById(financeFilterAguardandoRppId);
     const periodo = (financeFilterAguardandoPeriodo || "").trim();
     const de = (financeFilterAguardandoDataDe || "").trim();
     const ate = (financeFilterAguardandoDataAte || "").trim();
     const parts = [];
     if (q) parts.push(`placa: ${q}`);
+    if (rppNome) parts.push(`RPP: ${rppNome}`);
     if (periodo) {
       const [y, m] = periodo.split("-");
       parts.push(`mês: ${m}/${y}`);
@@ -949,10 +1022,12 @@
     const hint = document.getElementById("finReceberPlateHint");
     if (!hint) return;
     const q = (financeFilterReceberPlaca || "").trim();
+    const rppNome = financePartnerNomeById(financeFilterReceberRppId);
     const de = (financeFilterReceberDataDe || "").trim();
     const ate = (financeFilterReceberDataAte || "").trim();
     const parts = [];
     if (q) parts.push(`placa: ${q}`);
+    if (rppNome) parts.push(`RPP: ${rppNome}`);
     if (de || ate) {
       parts.push(`saída: ${de ? formatDate(de) : "…"} — ${ate ? formatDate(ate) : "…"}`);
     }
@@ -963,6 +1038,14 @@
     }
     hint.textContent = `Filtros — ${parts.join(" · ")}`;
     hint.classList.remove("hidden");
+  }
+
+  function financeCashMovMatchesRpp(mov, rppPartnerId) {
+    if (!rppPartnerId) return true;
+    const rec = financeCashMovLinkedReceivable(mov);
+    if (!rec) return false;
+    const v = financeVehicleById().get(rec.vehicle_id);
+    return financeReceivableMatchesRppFilter(rec, v, rppPartnerId);
   }
 
   function financeCashMovMatchesPlaca(mov, plateNorm) {
@@ -983,8 +1066,12 @@
     const vmap = financeVehicleById();
     let list = (state.receivables || []).filter((r) => receivableIsContaReceberFinanceiro(r));
     const plateNorm = financeNormalizePlate(financeFilterReceberPlaca);
+    const rppId = (financeFilterReceberRppId || "").trim();
     if (plateNorm) {
       list = list.filter((r) => financePlateMatchesQuery(vmap.get(r.vehicle_id), plateNorm));
+    }
+    if (rppId) {
+      list = list.filter((r) => financeReceivableMatchesRppFilter(r, vmap.get(r.vehicle_id), rppId));
     }
     const qRaw = (financeFilterBanco || "").trim();
     const q = qRaw.toLowerCase();
@@ -1327,6 +1414,7 @@
     const plateNorm = useDomFilters
       ? financeNormalizePlate(financeFilterCaixaPlaca)
       : financeNormalizePlate(opts.placa || "");
+    const rppId = useDomFilters ? (financeFilterCaixaRppId || "").trim() : String(opts.rppId || "").trim();
     if (de || ate) {
       movs = movs.filter((mov) => financeYmdInRange(financeCaixaMovCompetenciaYmd(mov), de, ate));
     }
@@ -1340,6 +1428,9 @@
     }
     if (plateNorm) {
       movs = movs.filter((mov) => financeCashMovMatchesPlaca(mov, plateNorm));
+    }
+    if (rppId) {
+      movs = movs.filter((mov) => financeCashMovMatchesRpp(mov, rppId));
     }
     return movs;
   }
@@ -1547,6 +1638,7 @@
     const plateFilter = financeNormalizePlate(financeFilterReceberPlaca);
     const hasOtherFilters =
       plateFilter ||
+      !!(financeFilterReceberRppId || "").trim() ||
       !!(financeFilterBanco || "").trim() ||
       !!financeFilterStatus ||
       !!financeFilterTipo ||
@@ -1555,7 +1647,7 @@
     if (!list.length) {
       body.innerHTML = `<tr><td colspan="7" class="notice">${
         hasOtherFilters
-          ? "Nenhuma conta a receber com os filtros informados (placa, busca, tipo, status e/ou datas)."
+          ? "Nenhuma conta a receber com os filtros informados (placa, RPP, busca, tipo, status e/ou datas)."
           : "Nenhuma conta a receber pendente. Cadastre mensalistas em «+ Nova receita» (tipo Recorrente) ou veja «Aguardando faturamento»."
       }</td></tr>`;
       return;
@@ -1592,13 +1684,14 @@
     const vmap = financeVehicleById();
     const list = financeContasAguardandoFilteredList();
     const plateFilter = financeNormalizePlate(financeFilterAguardandoPlaca);
+    const rppFilter = !!(financeFilterAguardandoRppId || "").trim();
     const periodoFilter = (financeFilterAguardandoPeriodo || "").trim();
     const dataFilter = !!(financeFilterAguardandoDataDe || financeFilterAguardandoDataAte);
     if (totalEl) totalEl.textContent = formatCurrency(list.reduce((s, r) => s + Number(r.valor || 0), 0));
     if (!list.length) {
       body.innerHTML = `<tr><td colspan="6" class="notice">${
-        plateFilter || periodoFilter || dataFilter
-          ? "Nenhum veículo aguardando faturamento com os filtros informados (placa, mês e/ou datas)."
+        plateFilter || rppFilter || periodoFilter || dataFilter
+          ? "Nenhum veículo aguardando faturamento com os filtros informados (placa, RPP, mês e/ou datas)."
           : "Nenhum veículo aguardando faturamento. Após saída (VRP), o registro aparece aqui até ir para Contas a receber."
       }</td></tr>`;
       return;
@@ -2679,10 +2772,12 @@
       const placaLabel = (financeFilterCaixaPlaca || "").trim()
         ? ` · placa: ${escapeHtml(financeFilterCaixaPlaca.trim())}`
         : "";
+      const rppNome = financePartnerNomeById(financeFilterCaixaRppId);
+      const rppLabel = rppNome ? ` · RPP: ${escapeHtml(rppNome)}` : "";
       const modoManual = financeOperationalModeActive();
       const saldoOperacional = financeSaldoCaixa();
       summaryEl.innerHTML = `
-        <p><strong>${escapeHtml(periodoLabel)}${escapeHtml(tipoLabel)}${placaLabel}</strong></p>
+        <p><strong>${escapeHtml(periodoLabel)}${escapeHtml(tipoLabel)}${placaLabel}${rppLabel}</strong></p>
         ${modoManual ? `<p class="notice">Caixa operacional pós-migração — apenas pagamentos confirmados manualmente aparecem aqui. Registros antigos estão em <strong>Aguardando faturamento</strong> para triagem.</p>` : ""}
         <p><strong>Entrada (operacional):</strong> <span class="fin-val-entrada">${escapeHtml(formatCurrency(totPeriodo.entradas))}</span></p>
         <p><strong>Saída (operacional):</strong> <span class="fin-val-saida">${escapeHtml(formatCurrency(totPeriodo.saidas))}</span></p>
@@ -2711,7 +2806,10 @@
       const placaHint = financeNormalizePlate(financeFilterCaixaPlaca)
         ? " Nenhuma movimentação para a placa informada."
         : "";
-      body.innerHTML = `<tr><td colspan="5" class="notice">Nenhuma movimentação registrada.${periodoHint}${placaHint}${tipoHint}</td></tr>`;
+      const rppHint = (financeFilterCaixaRppId || "").trim()
+        ? " Nenhuma movimentação para o RPP selecionado."
+        : "";
+      body.innerHTML = `<tr><td colspan="5" class="notice">Nenhuma movimentação registrada.${periodoHint}${placaHint}${rppHint}${tipoHint}</td></tr>`;
       return;
     }
     const rowsHtml = movs
@@ -3824,6 +3922,7 @@
   }
 
   window.renderFinance = function renderFinance() {
+    financePopulateFinanceRppFilters();
     financePurgeRecebidosUi();
     try {
       financeActivateSubview(currentFinanceView, { skipRender: true });
@@ -4066,6 +4165,9 @@
       financeFilterTipo = e.target.value || "";
       financeRenderReceber();
     });
+    document.getElementById("finReceberRpp")?.addEventListener("change", () => {
+      if (currentFinanceView === "receber") financeRenderReceber();
+    });
     document.getElementById("finChartPeriod")?.addEventListener("change", () => financeRenderDashboard());
 
     document.getElementById("finAguardandoPlateForm")?.addEventListener("submit", (e) => {
@@ -4076,6 +4178,9 @@
       if (currentFinanceView === "aguardando") financeRenderAguardando();
     });
     document.getElementById("finAguardandoPeriodo")?.addEventListener("change", () => {
+      if (currentFinanceView === "aguardando") financeRenderAguardando();
+    });
+    document.getElementById("finAguardandoRpp")?.addEventListener("change", () => {
       if (currentFinanceView === "aguardando") financeRenderAguardando();
     });
     ["finAguardandoDataDe", "finAguardandoDataAte", "finAguardandoDataBusca"].forEach((id) => {
@@ -4090,11 +4195,12 @@
       if (currentFinanceView === "receber") financeRenderReceber();
     });
     document.getElementById("finReceberPlacaClear")?.addEventListener("click", () => {
-      ["finReceberPlaca"].forEach((id) => {
+      ["finReceberPlaca", "finReceberRpp"].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.value = "";
       });
       financeFilterReceberPlaca = "";
+      financeFilterReceberRppId = "";
       if (currentFinanceView === "receber") financeRenderReceber();
     });
     document.getElementById("finCaixaPlaca")?.addEventListener("input", () => {
@@ -4103,6 +4209,7 @@
     document.getElementById("finAguardandoPlacaClear")?.addEventListener("click", () => {
       [
         "finAguardandoPlaca",
+        "finAguardandoRpp",
         "finAguardandoPeriodo",
         "finAguardandoDataDe",
         "finAguardandoDataAte",
@@ -4112,6 +4219,7 @@
         if (el) el.value = "";
       });
       financeFilterAguardandoPlaca = "";
+      financeFilterAguardandoRppId = "";
       financeFilterAguardandoPeriodo = "";
       financeFilterAguardandoDataDe = "";
       financeFilterAguardandoDataAte = "";
@@ -4136,16 +4244,20 @@
     });
     document.getElementById("finCaixaFilterApply")?.addEventListener("click", () => financeRenderCaixa());
     document.getElementById("finCaixaFilterClear")?.addEventListener("click", () => {
-      ["finCaixaPlaca", "finCaixaDataDe", "finCaixaDataAte", "finCaixaDataBusca", "finFilterPeriodo"].forEach((id) => {
+      ["finCaixaPlaca", "finCaixaRpp", "finCaixaDataDe", "finCaixaDataAte", "finCaixaDataBusca", "finFilterPeriodo"].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.value = "";
       });
       financeFilterPeriodo = "";
       financeFilterCaixaPlaca = "";
+      financeFilterCaixaRppId = "";
       financeFilterCaixaDataDe = "";
       financeFilterCaixaDataAte = "";
       financeFilterCaixaTipo = "";
       financeRenderCaixa();
+    });
+    document.getElementById("finCaixaRpp")?.addEventListener("change", () => {
+      if (currentFinanceView === "caixa") financeRenderCaixa();
     });
     ["finCaixaPlaca", "finCaixaDataDe", "finCaixaDataAte", "finCaixaDataBusca", "finFilterPeriodo"].forEach((id) => {
       document.getElementById(id)?.addEventListener("change", () => {
