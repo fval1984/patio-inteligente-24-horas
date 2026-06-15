@@ -2366,6 +2366,31 @@
           max-width: 160px;
         }
       }
+      #viewLista.lista-module-shell {
+        max-width: min(100%, 1680px);
+        width: 100%;
+        margin: 0 auto;
+      }
+      #viewLista .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      #viewLista #listaCaptureRoot .table {
+        min-width: 1200px;
+        table-layout: auto;
+      }
+      #viewLista #listaCaptureRoot .table thead th,
+      #viewLista #listaCaptureRoot .table tbody td {
+        white-space: nowrap;
+        vertical-align: middle;
+        word-break: normal;
+        padding: 10px 12px;
+      }
+      #viewLista #listaCaptureRoot .table tbody td[data-label="Veículo / responsável"],
+      #viewLista #listaCaptureRoot .table tbody td[data-label="Resumo"] {
+        white-space: normal;
+        min-width: 11rem;
+      }
       .lista-capture-heading-row {
         display: flex;
         justify-content: space-between;
@@ -3953,10 +3978,35 @@
         display: block;
       }
       /* Módulo Financeiro */
-      .finance-module-shell { max-width: min(100%, 1400px); margin: 0 auto; width: 100%; }
-      #viewFinanceiro .table-wrap { overflow-x: auto; }
-      #viewFinanceiro .table-wrap .table { min-width: 800px; }
-      #viewFinanceiro .table tbody td { word-break: break-word; vertical-align: top; }
+      .finance-module-shell { max-width: min(100%, 1680px); margin: 0 auto; width: 100%; }
+      body.app-module-finance main,
+      body.app-module-lista main {
+        max-width: min(100%, 1680px);
+      }
+      #viewFinanceiro .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      #viewFinanceiro .table-wrap .table { min-width: 1320px; table-layout: auto; }
+      #viewFinanceiro .table thead th {
+        white-space: nowrap;
+        vertical-align: middle;
+        font-size: 12px;
+        padding: 10px 12px;
+      }
+      #viewFinanceiro .table tbody td {
+        white-space: nowrap;
+        vertical-align: middle;
+        word-break: normal;
+        font-size: 13px;
+        padding: 10px 12px;
+      }
+      #viewFinanceiro .table tbody td[data-label="Veículo / responsável"],
+      #viewFinanceiro .table tbody td[data-label="Veículo / RPV"] {
+        white-space: normal;
+        min-width: 11rem;
+      }
+      #viewFinanceiro .fin-row-actions {
+        flex-wrap: nowrap;
+        max-width: none;
+      }
       .finance-subnav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
       .finance-subnav button {
         border: 1px solid var(--border);
@@ -5064,7 +5114,7 @@
           </div>
         </div>
 
-        <div id="viewLista" class="panel hidden" style="max-width: 1200px; margin: 0 auto">
+        <div id="viewLista" class="panel hidden lista-module-shell">
           <div class="toolbar">
             <div>
               <h2 style="margin: 0">Lista</h2>
@@ -17689,11 +17739,12 @@
         document.querySelectorAll("#appHeaderMenu button[data-view]").forEach((btn) => {
           btn.classList.toggle("active", btn.getAttribute("data-view") === view);
         });
-        document.body.classList.remove("app-module-patio", "app-module-finance");
+        document.body.classList.remove("app-module-patio", "app-module-finance", "app-module-lista");
         if (view === "patio") {
           document.body.classList.add("app-module-patio");
           document.title = "Amplipatio · Gestão de pátio";
         } else if (view === "lista") {
+          document.body.classList.add("app-module-lista");
           document.title = "Amplipatio · Lista";
         } else if (view === "financeiro") {
           document.body.classList.add("app-module-finance");
