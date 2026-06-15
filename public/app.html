@@ -8787,6 +8787,306 @@
       window.syncLostReceivablesToContasReceber = syncLostReceivablesToContasReceber;
       window.receivableOrfaoEntreFilasFinanceiro = receivableOrfaoEntreFilasFinanceiro;
 
+      async function findReceivableCycleForVrpClose(vehicleId) {
+        const uid = effectiveUserId();
+        if (!uid || !vehicleId) return null;
+        const { data: openCycle, error: openErr } = await supabase
+          .from("receivables")
+          .select("id,period_start,period_end,status")
+          .eq("user_id", uid)
+          .eq("vehicle_id", vehicleId)
+          .is("period_end", null)
+          .eq("status", "EM_ABERTO")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (openErr) console.warn("findReceivableCycleForVrpClose", openErr);
+        if (openCycle?.id) return openCycle;
+        const { data: latest, error: latestErr } = await supabase
+          .from("receivables")
+          .select("id,period_start,period_end,status")
+          .eq("user_id", uid)
+          .eq("vehicle_id", vehicleId)
+          .in("status", ["EM_ABERTO", RECEIVABLE_AGUARDANDO_LANCAMENTO])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (latestErr) console.warn("findReceivableCycleForVrpClose latest", latestErr);
+        return latest || null;
+      }
+
+      function vehicleHasAguardandoOuReceberReceivable(vehicleId) {
+        const recs = (state.receivables || []).filter((r) => String(r.vehicle_id) === String(vehicleId));
+        return recs.some(
+          (r) =>
+            r.status !== "PAGO" &&
+            !receivableSemCobrancaFinanceira(r) &&
+            (receivableNaFilaAguardandoTriagem(r) ||
+              r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO ||
+              receivableIsContaReceberFinanceiro(r))
+        );
+      }
+
+      async function applyVrpFinanceClosure(vehicleId, liveVehicle, dataSaida, actors = {}) {
+        const result = {
+          ok: false,
+          receivableId: null,
+          vrpSemCobranca: false,
+          financeWarning: "",
+          valorFechamento: 0,
+        };
+        if (FINANCE_MANUAL_ONLY) return result;
+        const uid = effectiveUserId();
+        if (!uid) {
+          result.financeWarning = "Usuário não identificado.";
+          return result;
+        }
+
+        const cycleRec = await findReceivableCycleForVrpClose(vehicleId);
+        const hadRemocao = isRemocaoSolicitada(liveVehicle);
+        const closedVehicle = { ...liveVehicle, status: "REMOVIDO", data_saida: dataSaida };
+        const hasPriorClosed = await vehicleHasPriorClosedReceivableCycles(vehicleId);
+        const billingPeriodStart = resolveReceivableBillingPeriodStart(
+          closedVehicle,
+          cycleRec?.period_start || closedVehicle.data_entrada,
+          hasPriorClosed
+        );
+        const breakdown = calcFinanceChargeBreakdown(closedVehicle, billingPeriodStart, dataSaida, {
+          aplicarRemocao: hadRemocao,
+        });
+        const valorFechamento = breakdown.total;
+        result.valorFechamento = valorFechamento;
+        result.vrpSemCobranca = !(valorFechamento > 0);
+        const calcMeta = financeMetaPack(
+          {
+            calculo_patio: breakdown,
+            aplicar_remocao: hadRemocao,
+            origem_modulo: "PATIO_VRP",
+            gerado_em: dataSaida,
+            sem_cobranca: result.vrpSemCobranca,
+          },
+          result.vrpSemCobranca
+            ? "Sem cobrança — valor zerado na saída (VRP)"
+            : `Cobrança automática — ${breakdown.dias} dia(s) × ${formatCurrency(breakdown.valorDiaria)}`
+        );
+        const recPatchAguardando = {
+          period_end: dataSaida,
+          valor: valorFechamento,
+          status: RECEIVABLE_AGUARDANDO_LANCAMENTO,
+          financeiro_aprovado_contas_receber: false,
+          patio_liberado_financeiro: true,
+          observacoes: calcMeta,
+        };
+        if (billingPeriodStart && billingPeriodStart !== cycleRec?.period_start) {
+          recPatchAguardando.period_start = billingPeriodStart;
+        }
+        const recPatchFull = result.vrpSemCobranca
+          ? {
+              period_end: dataSaida,
+              valor: valorFechamento,
+              status: "PAGO",
+              financeiro_aprovado_contas_receber: true,
+              patio_liberado_financeiro: true,
+              observacoes: calcMeta,
+            }
+          : { ...recPatchAguardando };
+        const recPatchAttempts = result.vrpSemCobranca
+          ? [recPatchFull, { period_end: dataSaida, valor: valorFechamento, status: "PAGO" }]
+          : [
+              recPatchFull,
+              { ...recPatchAguardando },
+              {
+                period_end: dataSaida,
+                valor: valorFechamento,
+                status: "EM_ABERTO",
+                financeiro_aprovado_contas_receber: false,
+                patio_liberado_financeiro: true,
+              },
+              { period_end: dataSaida, valor: valorFechamento, status: "EM_ABERTO" },
+              { period_end: dataSaida, valor: valorFechamento, status: RECEIVABLE_AGUARDANDO_LANCAMENTO },
+            ];
+
+        let receivableId = cycleRec?.id || null;
+        let recErr = null;
+
+        if (receivableId) {
+          for (const patch of recPatchAttempts) {
+            const res = await supabase
+              .from("receivables")
+              .update(patch)
+              .eq("id", receivableId)
+              .eq("user_id", uid);
+            if (!res.error) {
+              recErr = null;
+              break;
+            }
+            recErr = res.error;
+            const msg = res.error.message || "";
+            if (
+              !/column|schema cache|PGRST204|patio_liberado|financeiro_aprovado|observacoes|invalid input value for enum payment_status/i.test(
+                msg
+              )
+            ) {
+              break;
+            }
+          }
+        } else {
+          const responsavel =
+            actors.responsavelFinanceiro ||
+            vehicleRpfNome(liveVehicle) ||
+            liveVehicle.responsavel_financeiro_nome ||
+            null;
+          const insertBase = {
+            user_id: uid,
+            vehicle_id: vehicleId,
+            responsavel_pagamento: responsavel,
+            receivable_category: "GUARDA_PATIO",
+            valor: valorFechamento,
+            period_start: billingPeriodStart || closedVehicle.data_entrada || dataSaida,
+            period_end: dataSaida,
+            observacoes: calcMeta,
+          };
+          const insertAttempts = result.vrpSemCobranca
+            ? [
+                {
+                  ...insertBase,
+                  status: "PAGO",
+                  financeiro_aprovado_contas_receber: true,
+                  patio_liberado_financeiro: true,
+                },
+                { ...insertBase, status: "PAGO" },
+              ]
+            : [
+                {
+                  ...insertBase,
+                  status: RECEIVABLE_AGUARDANDO_LANCAMENTO,
+                  financeiro_aprovado_contas_receber: false,
+                  patio_liberado_financeiro: true,
+                },
+                { ...insertBase, status: RECEIVABLE_AGUARDANDO_LANCAMENTO },
+                {
+                  ...insertBase,
+                  status: "EM_ABERTO",
+                  financeiro_aprovado_contas_receber: false,
+                  patio_liberado_financeiro: true,
+                },
+                { ...insertBase, status: "EM_ABERTO" },
+              ];
+          for (const payload of insertAttempts) {
+            let res = await runSupabaseWrite(() =>
+              supabase.from("receivables").insert(payload).select("id").single()
+            );
+            if (res.error && supabaseSchemaColumnError(res.error)) {
+              const lean = { ...payload };
+              delete lean.patio_liberado_financeiro;
+              delete lean.financeiro_aprovado_contas_receber;
+              delete lean.observacoes;
+              res = await runSupabaseWrite(() =>
+                supabase.from("receivables").insert(lean).select("id").single()
+              );
+            }
+            if (!res.error && res.data?.id) {
+              receivableId = res.data.id;
+              recErr = null;
+              break;
+            }
+            recErr = res.error;
+            const msg = res.error?.message || "";
+            if (!/invalid input value for enum payment_status/i.test(msg)) break;
+          }
+        }
+
+        if (recErr || !receivableId) {
+          result.financeWarning = recErr?.message || String(recErr || "Não foi possível registrar o financeiro do VRP.");
+          return result;
+        }
+
+        removePatioFinanceiroBloqueadoReceivableId(receivableId);
+        if (result.vrpSemCobranca) {
+          removeReceberTriagemId(receivableId);
+          const flags = financeReceberFlagsRead();
+          flags[String(receivableId)] = {
+            ...(flags[String(receivableId)] || {}),
+            isento: true,
+            sem_cobranca: true,
+          };
+          financeReceberFlagsWrite(flags);
+          financeAuditAppend(receivableId, "Encerrado sem cobrança (valor R$ 0,00)", {
+            valor: 0,
+            note: `${breakdown.dias} dia(s), diária ${formatCurrency(breakdown.valorDiaria)}`,
+          });
+        } else {
+          removeReceberTriagemId(receivableId);
+          financeAuditAppend(receivableId, "Enviado para Aguardando Faturamento", {
+            valor: valorFechamento,
+            note: `${breakdown.dias} dia(s), remoção: ${formatCurrency(breakdown.taxaRemocao)}`,
+          });
+        }
+
+        const dIni = new Date(billingPeriodStart || cycleRec?.period_start || closedVehicle.data_entrada);
+        const dFim = new Date(dataSaida);
+        const diarias = Math.max(1, Math.ceil((dFim.getTime() - dIni.getTime()) / 86400000));
+        const fechamentoPayload = {
+          user_id: uid,
+          vehicle_id: vehicleId,
+          receivable_id: receivableId,
+          responsavel_financeiro: actors.responsavelFinanceiro || null,
+          period_start: billingPeriodStart || cycleRec?.period_start || closedVehicle.data_entrada,
+          period_end: dataSaida,
+          diarias,
+          valor: valorFechamento,
+          nf_emitida: liveVehicle.nfse_status === "EMITIDA",
+          nf_enviada: vehicleNfseEnviadaFlag(liveVehicle),
+          triagem_ok: result.vrpSemCobranca,
+          sent_to_finance: result.vrpSemCobranca,
+        };
+        const { error: fechamentoErr } = await runSupabaseWrite(() =>
+          supabase.from("patio_cycle_closures").insert(fechamentoPayload)
+        );
+        if (fechamentoErr) {
+          if (isMissingRelationError(fechamentoErr)) {
+            console.warn(
+              "patio_cycle_closures ausente — VRP e Aguardando faturamento seguem normais. Aplicar supabase/patio_cycle_closures.sql quando possível."
+            );
+          } else {
+            result.financeWarning = fechamentoErr.message || String(fechamentoErr);
+          }
+        }
+
+        result.ok = true;
+        result.receivableId = receivableId;
+        return result;
+      }
+
+      async function syncVrpVehiclesMissingAguardandoFaturamento() {
+        if (FINANCE_MANUAL_ONLY) return 0;
+        if (!effectiveUserId()) return 0;
+        let fixed = 0;
+        for (const v of state.vehicles || []) {
+          if (String(v.status || "").toUpperCase() !== "REMOVIDO" || !v.data_saida) continue;
+          if (vehicleHasAguardandoOuReceberReceivable(v.id)) continue;
+          const breakdown = calcFinanceChargeBreakdown(v, v.data_entrada, v.data_saida, {
+            aplicarRemocao: isRemocaoSolicitada(v),
+          });
+          if (!(breakdown.total > 0)) continue;
+          const actors = {
+            responsavelFinanceiro: vehicleRpfNome(v) || v.responsavel_financeiro_nome || "",
+          };
+          const res = await applyVrpFinanceClosure(v.id, v, v.data_saida, actors);
+          if (res.ok && !res.vrpSemCobranca) fixed += 1;
+        }
+        if (fixed > 0) {
+          await Promise.all([
+            typeof loadReceivables === "function" ? loadReceivables() : Promise.resolve(),
+            typeof loadCycleClosures === "function" ? loadCycleClosures() : Promise.resolve(),
+          ]);
+        }
+        return fixed;
+      }
+
+      window.applyVrpFinanceClosure = applyVrpFinanceClosure;
+      window.syncVrpVehiclesMissingAguardandoFaturamento = syncVrpVehiclesMissingAguardandoFaturamento;
+
       function patioFinanceiroBloqueadoReceivableIdSet() {
         try {
           const raw = localStorage.getItem(PATIO_FINANCEIRO_BLOQUEADO_IDS_KEY);
@@ -12435,6 +12735,11 @@
         if (typeof syncLostReceivablesToContasReceber === "function") {
           syncLostReceivablesToContasReceber().catch((e) => {
             console.warn("syncLostReceivablesToContasReceber", e?.message || e);
+          });
+        }
+        if (typeof syncVrpVehiclesMissingAguardandoFaturamento === "function") {
+          syncVrpVehiclesMissingAguardandoFaturamento().catch((e) => {
+            console.warn("syncVrpVehiclesMissingAguardandoFaturamento", e?.message || e);
           });
         }
         probeVehiclesRpfColumns().catch(() => {});
@@ -17328,164 +17633,9 @@
           let vrpSemCobranca = false;
           let financeWarning = "";
           if (!FINANCE_MANUAL_ONLY) {
-          const { data: cycleAberto, error: cycleQErr } = await supabase
-            .from("receivables")
-            .select("id,period_start")
-            .eq("user_id", effectiveUserId())
-            .eq("vehicle_id", id)
-            .is("period_end", null)
-            .eq("status", "EM_ABERTO")
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (cycleQErr) {
-            console.warn(cycleQErr);
-          }
-          if (cycleAberto?.id) {
-            const hadRemocao = isRemocaoSolicitada(liveVehicle);
-            const closedVehicle = { ...liveVehicle, status: "REMOVIDO", data_saida: dataSaida };
-            const hasPriorClosed = await vehicleHasPriorClosedReceivableCycles(id);
-            const billingPeriodStart = resolveReceivableBillingPeriodStart(
-              closedVehicle,
-              cycleAberto.period_start,
-              hasPriorClosed
-            );
-            const breakdown = calcFinanceChargeBreakdown(closedVehicle, billingPeriodStart, dataSaida, {
-              aplicarRemocao: hadRemocao,
-            });
-            const valorFechamento = breakdown.total;
-            vrpSemCobranca = !(valorFechamento > 0);
-            const calcMeta = financeMetaPack(
-              {
-                calculo_patio: breakdown,
-                aplicar_remocao: hadRemocao,
-                origem_modulo: "PATIO_VRP",
-                gerado_em: dataSaida,
-                sem_cobranca: vrpSemCobranca,
-              },
-              vrpSemCobranca
-                ? "Sem cobrança — valor zerado na saída (VRP)"
-                : `Cobrança automática — ${breakdown.dias} dia(s) × ${formatCurrency(breakdown.valorDiaria)}`
-            );
-            const recPatchBase = {
-              period_end: dataSaida,
-              valor: valorFechamento,
-              patio_liberado_financeiro: true,
-              observacoes: calcMeta,
-            };
-            if (billingPeriodStart && billingPeriodStart !== cycleAberto.period_start) {
-              recPatchBase.period_start = billingPeriodStart;
-            }
-            const recPatchAguardando = {
-              period_end: dataSaida,
-              valor: valorFechamento,
-              status: RECEIVABLE_AGUARDANDO_LANCAMENTO,
-              financeiro_aprovado_contas_receber: false,
-              patio_liberado_financeiro: true,
-            };
-            if (billingPeriodStart && billingPeriodStart !== cycleAberto.period_start) {
-              recPatchAguardando.period_start = billingPeriodStart;
-            }
-            const recPatchFull = vrpSemCobranca
-              ? {
-                  period_end: dataSaida,
-                  valor: valorFechamento,
-                  status: "PAGO",
-                  financeiro_aprovado_contas_receber: true,
-                  patio_liberado_financeiro: true,
-                }
-              : { ...recPatchAguardando };
-            const recPatchAttempts = vrpSemCobranca
-              ? [
-                  recPatchFull,
-                  { period_end: dataSaida, valor: valorFechamento, status: "PAGO" },
-                ]
-              : [
-                  recPatchFull,
-                  { ...recPatchAguardando },
-                  {
-                    period_end: dataSaida,
-                    valor: valorFechamento,
-                    status: "EM_ABERTO",
-                    financeiro_aprovado_contas_receber: false,
-                    patio_liberado_financeiro: true,
-                  },
-                  { period_end: dataSaida, valor: valorFechamento, status: "EM_ABERTO" },
-                  { period_end: dataSaida, valor: valorFechamento, status: RECEIVABLE_AGUARDANDO_LANCAMENTO },
-                ];
-            let recErr = null;
-            for (const patch of recPatchAttempts) {
-              const res = await supabase
-                .from("receivables")
-                .update(patch)
-                .eq("id", cycleAberto.id)
-                .eq("user_id", effectiveUserId());
-              if (!res.error) {
-                recErr = null;
-                break;
-              }
-              recErr = res.error;
-              const msg = res.error.message || "";
-              if (!/column|schema cache|PGRST204|patio_liberado|financeiro_aprovado|observacoes|invalid input value for enum payment_status/i.test(msg)) {
-                break;
-              }
-            }
-            if (recErr) {
-              financeWarning = recErr.message || String(recErr);
-            } else {
-            removePatioFinanceiroBloqueadoReceivableId(cycleAberto.id);
-            if (vrpSemCobranca) {
-              removeReceberTriagemId(cycleAberto.id);
-              const flags = financeReceberFlagsRead();
-              flags[String(cycleAberto.id)] = {
-                ...(flags[String(cycleAberto.id)] || {}),
-                isento: true,
-                sem_cobranca: true,
-              };
-              financeReceberFlagsWrite(flags);
-              financeAuditAppend(cycleAberto.id, "Encerrado sem cobrança (valor R$ 0,00)", {
-                valor: 0,
-                note: `${breakdown.dias} dia(s), diária ${formatCurrency(breakdown.valorDiaria)}`,
-              });
-            } else {
-              removeReceberTriagemId(cycleAberto.id);
-              financeAuditAppend(cycleAberto.id, "Enviado para Aguardando Faturamento", {
-                valor: valorFechamento,
-                note: `${breakdown.dias} dia(s), remoção: ${formatCurrency(breakdown.taxaRemocao)}`,
-              });
-            }
-
-            const dIni = new Date(billingPeriodStart || cycleAberto.period_start);
-            const dFim = new Date(dataSaida);
-            const diarias = Math.max(1, Math.ceil((dFim.getTime() - dIni.getTime()) / 86400000));
-            const fechamentoPayload = {
-              user_id: effectiveUserId(),
-              vehicle_id: id,
-              receivable_id: cycleAberto.id,
-              responsavel_financeiro: actors.responsavelFinanceiro || null,
-              period_start: billingPeriodStart || cycleAberto.period_start,
-              period_end: dataSaida,
-              diarias,
-              valor: valorFechamento,
-              nf_emitida: liveVehicle.nfse_status === "EMITIDA",
-              nf_enviada: vehicleNfseEnviadaFlag(liveVehicle),
-              triagem_ok: vrpSemCobranca,
-              sent_to_finance: vrpSemCobranca,
-            };
-            const { error: fechamentoErr } = await runSupabaseWrite(() =>
-              supabase.from("patio_cycle_closures").insert(fechamentoPayload)
-            );
-            if (fechamentoErr) {
-              if (isMissingRelationError(fechamentoErr)) {
-                console.warn(
-                  "patio_cycle_closures ausente — VRP e Aguardando faturamento seguem normais. Aplicar supabase/patio_cycle_closures.sql quando possível."
-                );
-              } else {
-                financeWarning = fechamentoErr.message || String(fechamentoErr);
-              }
-            }
-            }
-          }
+            const finRes = await applyVrpFinanceClosure(id, liveVehicle, dataSaida, actors);
+            vrpSemCobranca = finRes.vrpSemCobranca;
+            financeWarning = finRes.financeWarning || "";
           }
 
           await loadVehicles();
