@@ -95,6 +95,10 @@
       #viewPatio.patio-module-shell {
         position: relative;
         overflow: hidden;
+        max-width: min(100%, 1680px);
+        width: 100%;
+        margin-left: auto;
+        margin-right: auto;
         border-color: rgba(248, 113, 113, 0.38);
         background: linear-gradient(165deg, rgba(225, 29, 46, 0.11) 0%, rgba(15, 19, 26, 0.74) 38%, rgba(15, 19, 26, 0.58) 100%);
         box-shadow:
@@ -3980,7 +3984,8 @@
       /* Módulo Financeiro */
       .finance-module-shell { max-width: min(100%, 1680px); margin: 0 auto; width: 100%; }
       body.app-module-finance main,
-      body.app-module-lista main {
+      body.app-module-lista main,
+      body.app-module-patio main {
         max-width: min(100%, 1680px);
       }
       #viewFinanceiro .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
