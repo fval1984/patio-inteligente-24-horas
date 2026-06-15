@@ -4054,9 +4054,11 @@
           });
         }
         if (typeof window.syncVrpVehiclesMissingAguardandoFaturamento === "function") {
-          window.syncVrpVehiclesMissingAguardandoFaturamento().catch((e) => {
+          try {
+            await window.syncVrpVehiclesMissingAguardandoFaturamento();
+          } catch (e) {
             console.warn("syncVrpVehiclesMissingAguardandoFaturamento", e?.message || e);
-          });
+          }
         }
       } catch (e) {
         console.error("refreshFinanceData", e?.message || e);
