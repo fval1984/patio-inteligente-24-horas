@@ -551,6 +551,7 @@
   }
 
   window.financePopulateFinanceRppFilters = financePopulateFinanceRppFilters;
+  window.financeContasAguardandoList = financeContasAguardandoList;
 
   function financeReceberDiariasParts(r, vehicle) {
     if (!r?.vehicle_id || !vehicle) return null;
