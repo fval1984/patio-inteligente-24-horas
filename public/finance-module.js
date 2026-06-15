@@ -4053,6 +4053,11 @@
             console.warn("syncLostReceivablesToContasReceber", e?.message || e);
           });
         }
+        if (typeof window.syncVrpVehiclesMissingAguardandoFaturamento === "function") {
+          window.syncVrpVehiclesMissingAguardandoFaturamento().catch((e) => {
+            console.warn("syncVrpVehiclesMissingAguardandoFaturamento", e?.message || e);
+          });
+        }
       } catch (e) {
         console.error("refreshFinanceData", e?.message || e);
         if (preserveView) {
