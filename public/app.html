@@ -4763,11 +4763,10 @@
                 <div class="header-menu-nested">
                   <button type="button" data-lista-subview="vnp">VNP</button>
                   <button type="button" data-lista-subview="vrp">VRP</button>
-                  <button type="button" data-lista-subview="receber" data-lista-gestor-hide="1">Receber</button>
-                  <button type="button" data-lista-subview="historico_receber" data-lista-gestor-hide="1">Histórico de recebimentos</button>
-                  <button type="button" data-lista-subview="receber_alerta" data-lista-gestor-hide="1">Recebimentos em alerta</button>
-                  <button type="button" data-lista-subview="pagar" data-lista-gestor-hide="1">Despesas</button>
-                  <button type="button" data-lista-subview="caixa" data-lista-gestor-hide="1">Fluxo de caixa</button>
+                  <button type="button" data-lista-subview="aguardando_faturamento" data-lista-gestor-hide="1">Aguardando faturamento</button>
+                  <button type="button" data-lista-subview="receber" data-lista-gestor-hide="1">Contas a receber</button>
+                  <button type="button" data-lista-subview="pagar" data-lista-gestor-hide="1">Contas a pagar</button>
+                  <button type="button" data-lista-subview="caixa" data-lista-gestor-hide="1">Caixa</button>
                 </div>
               </details>
 
@@ -5130,13 +5129,12 @@
             <button type="button" class="secondary" id="listaFiltersDownloadPdf">Baixar PDF (A4)</button>
           </div>
           <div class="subnav" id="listaSubnav" style="margin-bottom: 12px; flex-wrap: wrap">
-            <button type="button" data-lista-subview="vnp">VNP</button>
+            <button type="button" class="active" data-lista-subview="vnp">VNP</button>
             <button type="button" data-lista-subview="vrp">VRP</button>
-            <button type="button" data-lista-subview="receber" data-lista-gestor-hide="1">Receber</button>
-            <button type="button" data-lista-subview="historico_receber" data-lista-gestor-hide="1">Histórico de recebimentos</button>
-            <button type="button" data-lista-subview="receber_alerta" data-lista-gestor-hide="1">Recebimentos em alerta</button>
-            <button type="button" data-lista-subview="pagar" data-lista-gestor-hide="1">Despesas</button>
-            <button type="button" data-lista-subview="caixa" data-lista-gestor-hide="1">Fluxo de caixa</button>
+            <button type="button" data-lista-subview="aguardando_faturamento" data-lista-gestor-hide="1">Aguardando faturamento</button>
+            <button type="button" data-lista-subview="receber" data-lista-gestor-hide="1">Contas a receber</button>
+            <button type="button" data-lista-subview="pagar" data-lista-gestor-hide="1">Contas a pagar</button>
+            <button type="button" data-lista-subview="caixa" data-lista-gestor-hide="1">Caixa</button>
           </div>
           <div id="listaCaptureRoot" class="lista-capture-root" style="background: #fff; color: #111; padding: 16px; border-radius: 12px; border: 1px solid #ddd">
             <div class="lista-capture-heading-row">
@@ -6576,7 +6574,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260610rpp2"></script>
+    <script src="/finance-module.js?v=20260610lista"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -9672,6 +9670,17 @@
         return listaTextoBancoMatch(mov.descricao);
       }
 
+      function collectListaAguardandoFaturamento(vehicleById) {
+        const vmap = vehicleById || new Map((state.vehicles || []).map((v) => [v.id, v]));
+        const base =
+          typeof window.financeContasAguardandoList === "function"
+            ? window.financeContasAguardandoList()
+            : (state.receivables || []).filter((r) => receivableNaFilaAguardandoTriagem(r));
+        return base
+          .filter((r) => listaReceivableMatches(r, vmap.get(r.vehicle_id)))
+          .filter((r) => listaReceivableDateMatches(r, vmap.get(r.vehicle_id)));
+      }
+
       function syncListaSubnavActive() {
         document.querySelectorAll("#listaSubnav button[data-lista-subview]").forEach((btn) => {
           btn.classList.toggle("active", btn.getAttribute("data-lista-subview") === currentListaView);
@@ -9680,7 +9689,7 @@
       }
 
       function updateListaReceberPrintUi() {
-        const isReceberView = currentListaView === "receber" || currentListaView === "receber_alerta";
+        const isReceberView = currentListaView === "receber";
         document.getElementById("listaFiltersPrintReceber")?.classList.toggle("hidden", !isReceberView);
         document.getElementById("listaFiltersPrint")?.classList.toggle("hidden", isReceberView);
       }
@@ -9871,9 +9880,7 @@
         }
         const filterLocId = document.getElementById("listaPrintFilterLocator")?.value || "";
         const filterRpfId = document.getElementById("listaPrintFilterRpf")?.value || "";
-        const alertaOnly = currentListaView === "receber_alerta";
         const { list: openRec, vehicleById } = collectListaReceberFilteredList({
-          alertaOnly,
           filterLocId,
           filterRpfId,
         });
@@ -9881,9 +9888,7 @@
           alert(
             filterLocId || filterRpfId || listaFilterBanco
               ? "Nenhuma conta em aberto com os filtros escolhidos."
-              : alertaOnly
-                ? "Não há títulos em alerta (+10 dias) para imprimir."
-                : "Não há títulos em aberto para receber."
+              : "Não há títulos em aberto para receber."
           );
           return;
         }
@@ -9978,29 +9983,17 @@
             hideAmount: false,
           };
         }
-        if (currentListaView === "aguardando_lancamento") {
-          const rows = (state.receivables || [])
-            .filter((r) => receivableNaFilaAguardandoTriagem(r))
-            .filter((r) => listaReceivableMatches(r, vehicleById.get(r.vehicle_id)))
-            .filter((r) => listaReceivableDateMatches(r, vehicleById.get(r.vehicle_id)));
-          const label = "Total";
+        if (currentListaView === "aguardando_faturamento") {
+          const rows = collectListaAguardandoFaturamento(vehicleById);
+          const label = "Total aguardando faturamento";
           const amount = rows.reduce((s, r) => s + Number(r.valor || 0), 0);
           return { amount, label, hideAmount: false };
         }
-        if (currentListaView === "receber" || currentListaView === "receber_alerta") {
+        if (currentListaView === "receber") {
           const openList = (state.receivables || []).filter((r) => receivableIsContaReceberFinanceiro(r));
-          const overdueReceivables = openList.filter((r) => {
-            if (!r.created_at) return false;
-            const created = new Date(r.created_at).getTime();
-            const days = Math.floor((Date.now() - created) / 86400000);
-            return days > 10;
-          });
           let list = openList.filter((r) => listaReceivableMatches(r, vehicleById.get(r.vehicle_id)));
           list = list.filter((r) => listaReceivableDateMatches(r, vehicleById.get(r.vehicle_id)));
-          if (currentListaView === "receber_alerta") {
-            list = list.filter((r) => overdueReceivables.some((o) => o.id === r.id));
-          }
-          const label = currentListaView === "receber_alerta" ? "Total (títulos em alerta)" : "Total em receber";
+          const label = "Total contas a receber";
           const amount = list.reduce((s, r) => s + Number(r.valor || 0), 0);
           return { amount, label, hideAmount: false };
         }
@@ -10030,23 +10023,6 @@
             0
           );
           return { amount, label, hideAmount: false };
-        }
-        if (currentListaView === "historico_receber") {
-          const list = (typeof window.financeDedupePatioReceivables === "function"
-            ? window.financeDedupePatioReceivables
-            : (rows) => rows)(
-            (state.receivables || []).filter(
-              (r) =>
-                String(r.status || "").toUpperCase() === "PAGO" &&
-                listaReceivableMatches(r, vehicleById.get(r.vehicle_id)) &&
-                listaReceivableDateMatches(r, vehicleById.get(r.vehicle_id))
-            )
-          );
-          return {
-            amount: list.reduce((s, r) => s + Number(r.valor || 0), 0),
-            label: "Total recebido (histórico)",
-            hideAmount: false,
-          };
         }
         return { amount: 0, label: "Total", hideAmount: false };
       }
@@ -10092,10 +10068,7 @@
         const locLabel = (id) => state.partners.find((p) => p.id === id)?.nome || "-";
         const captureRoot = document.getElementById("listaCaptureRoot");
         if (captureRoot) {
-          captureRoot.classList.toggle(
-            "lista-root--receber",
-            currentListaView === "receber" || currentListaView === "receber_alerta"
-          );
+          captureRoot.classList.toggle("lista-root--receber", currentListaView === "receber");
         }
 
         try {
@@ -10145,52 +10118,36 @@
           return;
         }
 
-        if (currentListaView === "aguardando_lancamento") {
-          head.innerHTML = `<tr><th>Resumo</th><th>Valor</th><th>Estado</th></tr>`;
-          const rows = [];
-          state.receivables
-            .filter((r) => receivableNaFilaAguardandoTriagem(r))
-            .filter((r) => listaReceivableMatches(r, vehicleById.get(r.vehicle_id)))
-            .filter((r) => listaReceivableDateMatches(r, vehicleById.get(r.vehicle_id)))
-            .forEach((r) => {
-              const vehicle = vehicleById.get(r.vehicle_id);
-              const vehicleInfo = vehicle
-                ? `${vehicle.placa || "-"} • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`
-                : "Veículo não encontrado";
-              const ini = r.period_start ? formatDate(r.period_start) : "-";
-              const fim = r.period_end
-                ? formatDate(r.period_end)
-                : vehicle?.data_saida
-                  ? formatDate(vehicle.data_saida)
-                  : "-";
-              rows.push(`<tr>
-                <td data-label="Resumo">${escapeHtml(financeReceivableDisplayText(r))}<br /><span class="notice">${escapeHtml(
-                  vehicleInfo
-                )}</span><br />${escapeHtml(ini)} → ${escapeHtml(fim)}</td>
+        if (currentListaView === "aguardando_faturamento") {
+          head.innerHTML = `<tr><th>Placa</th><th>Veículo</th><th>RPV</th><th>RPP</th><th>Saída</th><th>Valor</th><th>Estado</th></tr>`;
+          const list = collectListaAguardandoFaturamento(vehicleById);
+          if (!list.length) {
+            body.innerHTML = `<tr><td colspan="7" class="notice">Nenhum veículo aguardando faturamento com os filtros atuais.</td></tr>`;
+            return;
+          }
+          body.innerHTML = list
+            .map((r) => {
+              const v = vehicleById.get(r.vehicle_id);
+              const saida = v?.data_saida || r.period_end;
+              return `<tr>
+                <td data-label="Placa">${escapeHtml(v?.placa || "—")}</td>
+                <td data-label="Veículo">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</td>
+                <td data-label="RPV">${escapeHtml(locLabel(v?.localizador_id))}</td>
+                <td data-label="RPP">${escapeHtml(vehicleRpfNome(v))}</td>
+                <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
                 <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
-                <td data-label="Estado"><span class="tag warning">Aguardando triagem</span></td>
-              </tr>`);
-            });
-          body.innerHTML = rows.length
-            ? rows.join("")
-            : `<tr><td colspan="3" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
+                <td data-label="Estado"><span class="tag warning">Aguardando faturamento</span></td>
+              </tr>`;
+            })
+            .join("");
           return;
         }
 
-        if (currentListaView === "receber" || currentListaView === "receber_alerta") {
+        if (currentListaView === "receber") {
           head.innerHTML = `<tr><th>Veículo / responsável</th><th>Entrada (pátio)</th><th>Saída</th><th>Diárias</th><th>Valor</th><th>Estado</th></tr>`;
           const openList = (state.receivables || []).filter((r) => receivableIsContaReceberFinanceiro(r));
-          const overdueReceivables = openList.filter((r) => {
-            if (!r.created_at) return false;
-            const created = new Date(r.created_at).getTime();
-            const days = Math.floor((Date.now() - created) / 86400000);
-            return days > 10;
-          });
           let list = openList.filter((r) => listaReceivableMatches(r, vehicleById.get(r.vehicle_id)));
           list = list.filter((r) => listaReceivableDateMatches(r, vehicleById.get(r.vehicle_id)));
-          if (currentListaView === "receber_alerta") {
-            list = list.filter((r) => overdueReceivables.some((o) => o.id === r.id));
-          }
           const totalReceber = list.reduce((s, r) => s + Number(r.valor || 0), 0);
           const footReceber = `<tr class="lista-tabela-total">
               <td data-label="Veículo / responsável" colspan="4" style="text-align: right; font-weight: 700">Total (soma dos valores da lista)</td>
@@ -10291,40 +10248,6 @@
                 )
               )}</td>
             </tr>`;
-            })
-            .join("");
-          return;
-        }
-
-        if (currentListaView === "historico_receber") {
-          head.innerHTML = `<tr><th>Veículo / responsável</th><th>Saída</th><th>Valor</th><th>Recebido em</th><th>Estado</th></tr>`;
-          const list = (typeof window.financeDedupePatioReceivables === "function"
-            ? window.financeDedupePatioReceivables
-            : (rows) => rows)(
-            (state.receivables || [])
-              .filter((r) => String(r.status || "").toUpperCase() === "PAGO")
-              .filter((r) => listaReceivableMatches(r, vehicleById.get(r.vehicle_id)))
-              .filter((r) => listaReceivableDateMatches(r, vehicleById.get(r.vehicle_id)))
-          ).sort((a, b) => String(b.updated_at || b.created_at).localeCompare(String(a.updated_at || a.created_at)));
-          if (!list.length) {
-            body.innerHTML = `<tr><td colspan="5" class="notice">Nenhum recebimento confirmado com os filtros atuais.</td></tr>`;
-            return;
-          }
-          body.innerHTML = list
-            .map((r) => {
-              const v = vehicleById.get(r.vehicle_id);
-              const placa = v?.placa || "—";
-              const vm = [v?.marca, v?.modelo].filter(Boolean).join(" ") || "—";
-              const saida = r.period_end || v?.data_saida;
-              const noCaixa = receivableCashMovementExists(r.id);
-              const valorZero = Number(r.valor || 0) < 0.01;
-              return `<tr>
-                <td data-label="Veículo / responsável"><span class="lista-receber-placa">${escapeHtml(placa)}</span> · ${escapeHtml(vm)}<br /><span class="notice">${escapeHtml(financeReceivableDisplayText(r))}</span></td>
-                <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
-                <td data-label="Valor" class="lista-receber-valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}${valorZero ? `<br /><span class="notice">Valor zerado no título</span>` : ""}</td>
-                <td data-label="Recebido em">${escapeHtml(formatDateTime(r.updated_at || r.created_at))}</td>
-                <td data-label="Estado"><span class="tag ok">Pago</span>${noCaixa ? "" : `<br /><span class="notice">Sem entrada no caixa</span>`}</td>
-              </tr>`;
             })
             .join("");
           return;
@@ -17945,10 +17868,11 @@
 
       function openListaSubview(sub) {
         if (!sub) return;
-        if (sub === "aguardando_lancamento") sub = "receber";
+        if (sub === "aguardando_lancamento") sub = "aguardando_faturamento";
+        if (sub === "historico_receber" || sub === "receber_alerta") sub = "receber";
         if (
           isGestorPista &&
-          ["receber", "receber_alerta", "pagar", "caixa", "historico_receber"].includes(sub)
+          ["aguardando_faturamento", "receber", "pagar", "caixa"].includes(sub)
         ) {
           alert("Com o perfil de gestor de pista só estão disponíveis as listas VNP e VRP.");
           sub = "vnp";
