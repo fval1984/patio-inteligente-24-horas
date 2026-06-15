@@ -8815,15 +8815,63 @@
         return latest || null;
       }
 
-      function vehicleHasAguardandoOuReceberReceivable(vehicleId) {
-        const recs = (state.receivables || []).filter((r) => String(r.vehicle_id) === String(vehicleId));
-        return recs.some(
+      async function findReceivableForVrpRepair(vehicleId, dataSaida) {
+        const open = await findReceivableCycleForVrpClose(vehicleId);
+        if (open?.id) return open;
+        const uid = effectiveUserId();
+        if (!uid || !vehicleId) return null;
+        const exitYmd = toLocalYmd(dataSaida);
+        const { data: rows, error } = await supabase
+          .from("receivables")
+          .select("id,period_start,period_end,status,valor,created_at")
+          .eq("user_id", uid)
+          .eq("vehicle_id", vehicleId)
+          .order("created_at", { ascending: false })
+          .limit(30);
+        if (error) {
+          console.warn("findReceivableForVrpRepair", error);
+          return null;
+        }
+        if (!rows?.length) return null;
+        if (exitYmd) {
+          const byExit = rows.find((r) => toLocalYmd(r.period_end) === exitYmd);
+          if (byExit) return byExit;
+        }
+        const unpaid = rows.find((r) => r.status !== "PAGO" && Number(r.valor || 0) > 0);
+        if (unpaid) return unpaid;
+        const anyVal = rows.find((r) => Number(r.valor || 0) > 0);
+        return anyVal || rows[0];
+      }
+
+      function vehicleVisibleInAguardandoFaturamento(vehicleId) {
+        if (typeof window.financeContasAguardandoList !== "function") return false;
+        return window.financeContasAguardandoList().some((r) => String(r.vehicle_id) === String(vehicleId));
+      }
+
+      function vehicleVisibleInContasReceber(vehicleId) {
+        return (state.receivables || []).some(
           (r) =>
+            String(r.vehicle_id) === String(vehicleId) &&
             r.status !== "PAGO" &&
             !receivableSemCobrancaFinanceira(r) &&
-            (receivableNaFilaAguardandoTriagem(r) ||
-              r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO ||
-              receivableIsContaReceberFinanceiro(r))
+            receivableIsContaReceberFinanceiro(r)
+        );
+      }
+
+      function vehicleNeedsVrpAguardandoRepair(vehicle) {
+        if (String(vehicle?.status || "").toUpperCase() !== "REMOVIDO" || !vehicle?.data_saida) return false;
+        const breakdown = calcFinanceChargeBreakdown(vehicle, vehicle.data_entrada, vehicle.data_saida, {
+          aplicarRemocao: isRemocaoSolicitada(vehicle),
+        });
+        if (!(breakdown.total > 0)) return false;
+        if (vehicleVisibleInAguardandoFaturamento(vehicle.id)) return false;
+        if (vehicleVisibleInContasReceber(vehicle.id)) return false;
+        return true;
+      }
+
+      function vehicleHasAguardandoOuReceberReceivable(vehicleId) {
+        return !vehicleNeedsVrpAguardandoRepair(
+          (state.vehicles || []).find((v) => String(v.id) === String(vehicleId)) || {}
         );
       }
 
@@ -8842,7 +8890,7 @@
           return result;
         }
 
-        const cycleRec = await findReceivableCycleForVrpClose(vehicleId);
+        const cycleRec = await findReceivableForVrpRepair(vehicleId, dataSaida);
         const hadRemocao = isRemocaoSolicitada(liveVehicle);
         const closedVehicle = { ...liveVehicle, status: "REMOVIDO", data_saida: dataSaida };
         const hasPriorClosed = await vehicleHasPriorClosedReceivableCycles(vehicleId);
@@ -9063,12 +9111,7 @@
         if (!effectiveUserId()) return 0;
         let fixed = 0;
         for (const v of state.vehicles || []) {
-          if (String(v.status || "").toUpperCase() !== "REMOVIDO" || !v.data_saida) continue;
-          if (vehicleHasAguardandoOuReceberReceivable(v.id)) continue;
-          const breakdown = calcFinanceChargeBreakdown(v, v.data_entrada, v.data_saida, {
-            aplicarRemocao: isRemocaoSolicitada(v),
-          });
-          if (!(breakdown.total > 0)) continue;
+          if (!vehicleNeedsVrpAguardandoRepair(v)) continue;
           const actors = {
             responsavelFinanceiro: vehicleRpfNome(v) || v.responsavel_financeiro_nome || "",
           };
@@ -9084,8 +9127,39 @@
         return fixed;
       }
 
+      async function repairVrpAguardandoByPlate(plate) {
+        const norm = normalizePlateSearch(plate);
+        if (!norm) return { ok: false, error: "Informe uma placa válida." };
+        const v = (state.vehicles || []).find((x) => normalizePlateSearch(x.placa) === norm);
+        if (!v) return { ok: false, error: `Nenhum veículo encontrado com a placa ${String(plate || "").trim().toUpperCase()}.` };
+        if (String(v.status || "").toUpperCase() !== "REMOVIDO" || !v.data_saida) {
+          return { ok: false, error: "O veículo precisa estar em VRP (removido) com data de saída para ir ao financeiro." };
+        }
+        const actors = {
+          responsavelFinanceiro: vehicleRpfNome(v) || v.responsavel_financeiro_nome || "",
+        };
+        const res = await applyVrpFinanceClosure(v.id, v, v.data_saida, actors);
+        if (res.ok) {
+          await Promise.all([
+            typeof loadReceivables === "function" ? loadReceivables() : Promise.resolve(),
+            typeof loadCycleClosures === "function" ? loadCycleClosures() : Promise.resolve(),
+            typeof loadVehicles === "function" ? loadVehicles() : Promise.resolve(),
+          ]);
+          if (typeof renderFinance === "function") renderFinance();
+          if (typeof renderVehicles === "function") renderVehicles();
+        }
+        return {
+          ok: res.ok,
+          placa: v.placa,
+          receivableId: res.receivableId,
+          valor: res.valorFechamento,
+          warning: res.financeWarning || "",
+        };
+      }
+
       window.applyVrpFinanceClosure = applyVrpFinanceClosure;
       window.syncVrpVehiclesMissingAguardandoFaturamento = syncVrpVehiclesMissingAguardandoFaturamento;
+      window.repairVrpAguardandoByPlate = repairVrpAguardandoByPlate;
 
       function patioFinanceiroBloqueadoReceivableIdSet() {
         try {
@@ -12738,9 +12812,11 @@
           });
         }
         if (typeof syncVrpVehiclesMissingAguardandoFaturamento === "function") {
-          syncVrpVehiclesMissingAguardandoFaturamento().catch((e) => {
+          try {
+            await syncVrpVehiclesMissingAguardandoFaturamento();
+          } catch (e) {
             console.warn("syncVrpVehiclesMissingAguardandoFaturamento", e?.message || e);
-          });
+          }
         }
         probeVehiclesRpfColumns().catch(() => {});
         const userId = effectiveUserId();
