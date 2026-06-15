@@ -3239,7 +3239,7 @@
         display: none !important;
       }
       .modal.modal--wide {
-        width: min(1180px, 96vw);
+        width: min(1680px, 98vw);
       }
       #patioContent.modal-backdrop {
         margin-top: 0 !important;
@@ -3275,7 +3275,7 @@
         background: rgba(15, 23, 42, 0.45) !important;
       }
       #patioContent.modal-backdrop.tab-view-modal > .modal.modal--wide {
-        width: min(1180px, 96vw);
+        width: min(1680px, 98vw);
         max-height: calc(100vh - 40px);
         overflow: hidden;
         display: flex;
@@ -3286,6 +3286,36 @@
         min-height: 0;
         overflow: auto;
         max-height: calc(100vh - 140px);
+      }
+      #patioContent [data-subview="no_patio"] .table-wrap,
+      #patioContent [data-subview="vlp"] .table-wrap,
+      #patioContent [data-subview="removidos"] .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      #patioContent [data-subview="no_patio"] .table,
+      #patioContent [data-subview="vlp"] .table,
+      #patioContent [data-subview="removidos"] .table {
+        min-width: 1280px;
+        width: 100%;
+        table-layout: auto;
+      }
+      #patioContent [data-subview="no_patio"] .table thead th,
+      #patioContent [data-subview="no_patio"] .table tbody td,
+      #patioContent [data-subview="vlp"] .table thead th,
+      #patioContent [data-subview="vlp"] .table tbody td,
+      #patioContent [data-subview="removidos"] .table thead th,
+      #patioContent [data-subview="removidos"] .table tbody td {
+        white-space: nowrap;
+        vertical-align: middle;
+        word-break: normal;
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+      #patioContent [data-subview="no_patio"] .table tbody td[data-label="Ações"],
+      #patioContent [data-subview="vlp"] .table tbody td[data-label="Ações"],
+      #patioContent [data-subview="removidos"] .table tbody td[data-label="Situação / ações"] {
+        white-space: normal;
       }
       #patioContent.modal-backdrop.tab-view-modal #patioFlyoutSummaryCards {
         display: none !important;
