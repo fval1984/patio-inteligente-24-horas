@@ -861,7 +861,10 @@
       if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return true;
       return r.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(r);
     });
-    return financeDedupePatioReceivables(matched);
+    const deduped = financeDedupePatioReceivables(matched);
+    if (typeof window.financeIsAguardandoDismissed !== "function") return deduped;
+    const vmap = financeVehicleById();
+    return deduped.filter((r) => !window.financeIsAguardandoDismissed(r, vmap.get(r.vehicle_id)));
   }
 
   function financeParseBrDateToYmd(str) {
