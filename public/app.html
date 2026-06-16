@@ -6659,7 +6659,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260610lista"></script>
+    <script src="/finance-module.js?v=20260610dismiss"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -7761,6 +7761,8 @@
       const CADASTRO_BASE_STORAGE_KEY = "amplipatio_financeiro_cadastro_base_v1";
       const FINANCE_META_KEY = "amplipatio_financeiro_meta_v1";
       const FINANCE_RECEBER_FLAGS_KEY = "amplipatio_financeiro_receber_flags_v1";
+      /** Ciclos VRP removidos manualmente em Aguardando faturamento — não recriar no sync. */
+      const FINANCE_AGUARDANDO_DISMISSED_KEY = "amplipatio_finance_aguardando_dismissed_v1";
       const CADASTRO_BASE_FIELDS = [
         { key: "categorias", label: "Categorias" },
         { key: "subcategorias", label: "Subcategorias" },
@@ -8860,6 +8862,9 @@
 
       function vehicleNeedsVrpAguardandoRepair(vehicle) {
         if (String(vehicle?.status || "").toUpperCase() !== "REMOVIDO" || !vehicle?.data_saida) return false;
+        if (typeof window.financeIsAguardandoDismissed === "function" && window.financeIsAguardandoDismissed(null, vehicle)) {
+          return false;
+        }
         const breakdown = calcFinanceChargeBreakdown(vehicle, vehicle.data_entrada, vehicle.data_saida, {
           aplicarRemocao: isRemocaoSolicitada(vehicle),
         });
@@ -8889,6 +8894,7 @@
           result.financeWarning = "Usuário não identificado.";
           return result;
         }
+        removeFinanceAguardandoDismissed(vehicleId, dataSaida);
 
         const cycleRec = await findReceivableForVrpRepair(vehicleId, dataSaida);
         const hadRemocao = isRemocaoSolicitada(liveVehicle);
@@ -9192,6 +9198,57 @@
           console.warn("localStorage patio financeiro bloqueado", e);
         }
       }
+
+      function financeAguardandoDismissKey(vehicleId, periodEndYmd) {
+        return `${String(vehicleId)}|${String(periodEndYmd || "sem-data")}`;
+      }
+
+      function financeAguardandoDismissedSet() {
+        try {
+          const raw = localStorage.getItem(FINANCE_AGUARDANDO_DISMISSED_KEY);
+          const arr = JSON.parse(raw || "[]");
+          return new Set((Array.isArray(arr) ? arr : []).map(String));
+        } catch (e) {
+          return new Set();
+        }
+      }
+
+      function addFinanceAguardandoDismissed(vehicleId, periodEnd) {
+        if (!vehicleId) return;
+        const key = financeAguardandoDismissKey(vehicleId, toLocalYmd(periodEnd) || "sem-data");
+        const s = financeAguardandoDismissedSet();
+        if (s.has(key)) return;
+        s.add(key);
+        try {
+          localStorage.setItem(FINANCE_AGUARDANDO_DISMISSED_KEY, JSON.stringify([...s]));
+        } catch (e) {
+          console.warn("localStorage finance aguardando dismissed", e);
+        }
+      }
+
+      function removeFinanceAguardandoDismissed(vehicleId, periodEnd) {
+        if (!vehicleId) return;
+        const key = financeAguardandoDismissKey(vehicleId, toLocalYmd(periodEnd) || "sem-data");
+        const s = financeAguardandoDismissedSet();
+        if (!s.delete(key)) return;
+        try {
+          localStorage.setItem(FINANCE_AGUARDANDO_DISMISSED_KEY, JSON.stringify([...s]));
+        } catch (e) {
+          console.warn("localStorage finance aguardando dismissed", e);
+        }
+      }
+
+      window.financeIsAguardandoDismissed = function financeIsAguardandoDismissed(receivable, vehicle) {
+        const vehicleId = receivable?.vehicle_id || vehicle?.id;
+        if (!vehicleId) return false;
+        const ymd =
+          toLocalYmd(receivable?.period_end) ||
+          toLocalYmd(vehicle?.data_saida) ||
+          "sem-data";
+        return financeAguardandoDismissedSet().has(financeAguardandoDismissKey(vehicleId, ymd));
+      };
+      window.addFinanceAguardandoDismissed = addFinanceAguardandoDismissed;
+      window.removeFinanceAguardandoDismissed = removeFinanceAguardandoDismissed;
 
       /**
        * Quando false, o ciclo não entra em «Contas a receber» até OK em Pátio → Fechando ciclo.
@@ -17858,6 +17915,10 @@
         if (error) {
           alert(error.message);
           return;
+        }
+        if (r.vehicle_id) {
+          const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(r.vehicle_id));
+          addFinanceAguardandoDismissed(r.vehicle_id, r.period_end || vehicle?.data_saida);
         }
         removeReceberTriagemId(receivableId);
         removePatioFinanceiroBloqueadoReceivableId(receivableId);
