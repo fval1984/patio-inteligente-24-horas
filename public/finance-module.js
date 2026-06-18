@@ -431,14 +431,22 @@
 
   function financeUpdateBatchBar(view) {
     const count = financeRowSelection[view]?.size || 0;
-    document.querySelectorAll(`[data-fin-batch-view="${view}"]`).forEach((btn) => {
-      btn.classList.toggle("hidden", count < 1);
+    const panel = document.querySelector(`.finance-subview[data-finance-subview="${view}"]`);
+    const scope = panel || document;
+    scope.querySelectorAll(`[data-fin-batch-view="${view}"]`).forEach((btn) => {
+      const action = btn.getAttribute("data-fin-batch-action") || "";
+      const isDelete = action === "delete";
       btn.disabled = count < 1;
+      if (isDelete) {
+        btn.classList.toggle("hidden", count < 1);
+      } else {
+        btn.classList.remove("hidden");
+      }
       const base = btn.getAttribute("data-fin-batch-label") || btn.textContent.replace(/\s*\(\d+\)\s*$/, "");
       btn.textContent = count > 0 ? `${base} (${count})` : base;
     });
-    const selectAll = document.querySelector(`[data-fin-select-all="${view}"]`);
-    const checks = document.querySelectorAll(`.fin-row-check[data-fin-row-check="${view}"]`);
+    const selectAll = scope.querySelector(`.fin-select-all[data-fin-select-all="${view}"]`);
+    const checks = scope.querySelectorAll(`.fin-row-check[data-fin-row-check="${view}"]`);
     if (!selectAll) return;
     if (!checks.length) {
       selectAll.checked = false;
@@ -4567,6 +4575,7 @@
     if (bindFinanceDashboardUiOnce._done) return;
     bindFinanceDashboardUiOnce._done = true;
     financePurgeRecebidosUi();
+    ["aguardando", "receber", "pagar"].forEach((view) => financeUpdateBatchBar(view));
 
     document.getElementById("finSubnav")?.addEventListener("click", (e) => {
       const btn = e.target.closest("[data-finance-subview-btn]");
