@@ -2,8 +2,44 @@
 <!-- amplipatio-static build=finance-layout-patio-par -->
 <html lang="pt-BR">
   <head>
+    <script>
+      (function () {
+        var RESTORE_EPOCH = "27923ee9";
+        try {
+          if (localStorage.getItem("amplipatio_restore_epoch") === RESTORE_EPOCH) return;
+          Object.keys(localStorage).forEach(function (k) {
+            if (/^amplipatio_/i.test(k) || /^finance_/i.test(k)) localStorage.removeItem(k);
+          });
+          sessionStorage.clear();
+          localStorage.setItem("amplipatio_restore_epoch", RESTORE_EPOCH);
+        } catch (e) {
+          console.warn("amplipatio restore purge localStorage", e);
+        }
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (r) {
+              r.unregister();
+            });
+          });
+        }
+        if ("caches" in window) {
+          caches.keys().then(function (keys) {
+            keys.forEach(function (k) {
+              caches.delete(k);
+            });
+          });
+        }
+        if (indexedDB && indexedDB.databases) {
+          indexedDB.databases().then(function (dbs) {
+            dbs.forEach(function (db) {
+              if (db && db.name) indexedDB.deleteDatabase(db.name);
+            });
+          });
+        }
+      })();
+    </script>
     <meta charset="utf-8" />
-    <meta name="amplipatio-build" content="finance-layout-patio-par" />
+    <meta name="amplipatio-build" content="finance-layout-patio-par-27923ee9" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta
       name="viewport"
@@ -6659,7 +6695,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260610dismiss"></script>
+    <script src="/finance-module.js?v=27923ee9"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
