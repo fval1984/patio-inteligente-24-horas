@@ -1223,18 +1223,32 @@
 
   function financeReceivableIdsComCaixaHistoricoInvalido() {
     if (!financeOperationalModeActive()) return new Set();
-    const ids = new Set();
+    const needsRepair = new Set();
+    const hasApproved = new Set();
     for (const m of state.cash || []) {
       if (!m?.conta_id || !financeCashIsEntrada(m)) continue;
-      if (!financeCashAprovadoCaixa(m)) ids.add(String(m.conta_id));
+      const id = String(m.conta_id);
+      if (financeCashAprovadoCaixa(m)) hasApproved.add(id);
+      else needsRepair.add(id);
     }
-    return ids;
+    for (const id of hasApproved) needsRepair.delete(id);
+    for (const r of state.receivables || []) {
+      if (typeof receivableFluxoFinanceiroQuitado === "function" && receivableFluxoFinanceiroQuitado(r)) {
+        needsRepair.delete(String(r.id));
+      } else if (r?.status === "PAGO") {
+        needsRepair.delete(String(r.id));
+      }
+    }
+    return needsRepair;
   }
 
   function financeContasAguardandoList() {
     const legacyCaixaRecIds = financeReceivableIdsComCaixaHistoricoInvalido();
     const matched = (state.receivables || []).filter((r) => {
       if (!r || r.status === "PAGO") return false;
+      if (typeof receivableFluxoFinanceiroQuitado === "function" && receivableFluxoFinanceiroQuitado(r)) {
+        return false;
+      }
       if (receivableSemCobrancaFinanceira(r)) return false;
       if (receivableIsContaReceberFinanceiro(r)) return false;
       if (!r.vehicle_id) return false;
@@ -4451,6 +4465,10 @@
         }
         if (typeof financeRunCaixaRepairIfNeeded === "function") {
           await financeRunCaixaRepairIfNeeded();
+        }
+        if (typeof window.repairReceivablesQuitadosComStatusAberto === "function") {
+          const repaired = await window.repairReceivablesQuitadosComStatusAberto();
+          if (repaired > 0 && typeof loadReceivables === "function") await loadReceivables();
         }
         if (
           !financeOperationalModeActive() &&
