@@ -38,7 +38,7 @@
     receber: new Set(),
     pagar: new Set(),
   };
-  let financeBatchDeleteView = null;
+  let financeBatchConfirmContext = null;
   let refreshFinanceDataPromise = null;
   let finCadastroTipo = "PRESTADOR";
   let finCadastroBusca = "";
@@ -385,8 +385,8 @@
       ? `<button type="button" class="secondary fin-btn-${kind}-pg" data-fin-${kind}-pg="${safeId}">PG</button>`
       : "";
     const caixaBtn =
-      canCaixa && kind === "pagar"
-        ? `<button type="button" class="secondary fin-btn-pagar-caixa" data-fin-pagar-caixa="${safeId}">Caixa</button>`
+      canCaixa && (kind === "pagar" || kind === "receber")
+        ? `<button type="button" class="secondary fin-btn-${kind}-caixa" data-fin-${kind}-caixa="${safeId}">Caixa</button>`
         : "";
     return `<div class="fin-row-actions">
       ${payBtn}
@@ -416,13 +416,13 @@
   }
 
   function financeUpdateBatchBar(view) {
-    const btn = document.querySelector(`[data-fin-batch-delete="${view}"]`);
     const count = financeRowSelection[view]?.size || 0;
-    if (btn) {
+    document.querySelectorAll(`[data-fin-batch-view="${view}"]`).forEach((btn) => {
       btn.classList.toggle("hidden", count < 1);
       btn.disabled = count < 1;
-      btn.textContent = count > 0 ? `Apagar Selecionados (${count})` : "Apagar Selecionados";
-    }
+      const base = btn.getAttribute("data-fin-batch-label") || btn.textContent.replace(/\s*\(\d+\)\s*$/, "");
+      btn.textContent = count > 0 ? `${base} (${count})` : base;
+    });
     const selectAll = document.querySelector(`[data-fin-select-all="${view}"]`);
     const checks = document.querySelectorAll(`.fin-row-check[data-fin-row-check="${view}"]`);
     if (!selectAll) return;
@@ -436,19 +436,153 @@
     selectAll.indeterminate = checkedCount > 0 && checkedCount < checks.length;
   }
 
-  function financeOpenBatchDeleteModal(view, count) {
-    financeBatchDeleteView = view;
+  function financeOpenBatchConfirmModal(opts) {
+    financeBatchConfirmContext = { view: opts.view, action: opts.action };
     const modal = document.getElementById("finBatchDeleteModal");
+    const titleEl = document.getElementById("finBatchDeleteTitle");
+    const subEl = document.getElementById("finBatchDeleteSub");
     const msg = document.getElementById("finBatchDeleteMessage");
-    if (msg) {
-      msg.textContent = `Deseja realmente apagar ${count} registro(s) selecionado(s)?`;
+    const confirmBtn = document.getElementById("finBatchDeleteConfirm");
+    const payFields = document.getElementById("finBatchPayFields");
+    if (titleEl) titleEl.textContent = opts.title || "Confirmar";
+    if (subEl) subEl.textContent = opts.subtitle || "";
+    if (msg) msg.textContent = opts.message || "";
+    if (confirmBtn) confirmBtn.textContent = opts.confirmLabel || "Confirmar";
+    if (payFields) {
+      payFields.classList.toggle("hidden", !opts.showPayFields);
+      if (opts.showPayFields) {
+        const dataEl = document.getElementById("finBatchPayData");
+        const formaEl = document.getElementById("finBatchPayForma");
+        if (dataEl) dataEl.value = financeTodayYmd();
+        if (formaEl) formaEl.value = "PIX";
+      }
     }
     modal?.classList.remove("hidden");
   }
 
-  function financeCloseBatchDeleteModal() {
-    financeBatchDeleteView = null;
+  function financeCloseBatchConfirmModal() {
+    financeBatchConfirmContext = null;
     document.getElementById("finBatchDeleteModal")?.classList.add("hidden");
+    document.getElementById("finBatchPayFields")?.classList.add("hidden");
+  }
+
+  function financeOpenBatchDeleteModal(view, count) {
+    financeOpenBatchConfirmModal({
+      view,
+      action: "delete",
+      title: "Confirmar exclusão",
+      subtitle: "Esta ação não pode ser desfeita.",
+      message: `Deseja realmente apagar ${count} registro(s) selecionado(s)?`,
+      confirmLabel: "Confirmar exclusão",
+      showPayFields: false,
+    });
+  }
+
+  function financeCloseBatchDeleteModal() {
+    financeCloseBatchConfirmModal();
+  }
+
+  async function financeBatchPromoteAguardando(ids) {
+    let ok = 0;
+    let fail = 0;
+    for (const id of ids) {
+      if (await financePromoteReceivableToContasReceber(id)) ok += 1;
+      else fail += 1;
+    }
+    return { ok, fail };
+  }
+
+  async function financeBatchPgReceber(ids, opts = {}) {
+    const finalize =
+      typeof window.finalizeReceivablePayment === "function"
+        ? window.finalizeReceivablePayment
+        : typeof finalizeReceivablePayment === "function"
+          ? finalizeReceivablePayment
+          : null;
+    if (!finalize) return { ok: 0, fail: ids.length, skip: 0 };
+    let ok = 0;
+    let fail = 0;
+    let skip = 0;
+    for (const id of ids) {
+      const r = (state.receivables || []).find((x) => String(x.id) === String(id));
+      if (!r) {
+        fail += 1;
+        continue;
+      }
+      if (String(r.status || "").toUpperCase() === "PAGO") {
+        skip += 1;
+        continue;
+      }
+      const valor = Number(r.valor || 0);
+      const result = await finalize(id, valor, {
+        dataMovimento: opts.dataMovimento,
+        formaPagamento: opts.formaPagamento,
+      });
+      if (result) ok += 1;
+      else fail += 1;
+    }
+    return { ok, fail, skip };
+  }
+
+  async function financeBatchCaixaReceber(ids, opts = {}) {
+    const finalize =
+      typeof window.finalizeReceivablePayment === "function"
+        ? window.finalizeReceivablePayment
+        : typeof finalizeReceivablePayment === "function"
+          ? finalizeReceivablePayment
+          : null;
+    let ok = 0;
+    let fail = 0;
+    let skip = 0;
+    for (const id of ids) {
+      const r = (state.receivables || []).find((x) => String(x.id) === String(id));
+      if (!r) {
+        fail += 1;
+        continue;
+      }
+      const st = String(r.status || "").toUpperCase();
+      if (st === "PAGO") {
+        if (financeReceivableHasCaixa(id)) {
+          skip += 1;
+          continue;
+        }
+        const res = await financeRecoverCashForReceivableClient(r, {
+          paidDate: opts.dataMovimento,
+          formaPagamento: opts.formaPagamento,
+        });
+        if (res.ok && res.action === "created") ok += 1;
+        else if (res.ok) skip += 1;
+        else fail += 1;
+        continue;
+      }
+      if (!finalize) {
+        fail += 1;
+        continue;
+      }
+      const valor = Number(r.valor || 0);
+      const result = await finalize(id, valor, {
+        dataMovimento: opts.dataMovimento,
+        formaPagamento: opts.formaPagamento,
+      });
+      if (result) ok += 1;
+      else fail += 1;
+    }
+    return { ok, fail, skip };
+  }
+
+  function financeBatchResultMessage(action, stats) {
+    const parts = [];
+    if (stats.ok) parts.push(`${stats.ok} concluído(s)`);
+    if (stats.skip) parts.push(`${stats.skip} ignorado(s)`);
+    if (stats.fail) parts.push(`${stats.fail} falha(s)`);
+    if (!parts.length) return "Nenhum registro processado.";
+    const labels = {
+      promote: "Envio para Contas a receber",
+      pg: "Pagamento (PG)",
+      caixa: "Registro no caixa",
+      delete: "Exclusão",
+    };
+    return `${labels[action] || "Operação"}: ${parts.join(", ")}.`;
   }
 
   async function financeDeleteCashForReceivableIds(ids) {
@@ -546,28 +680,78 @@
     return { ok: true };
   }
 
-  async function financeExecuteBatchDelete(view) {
+  async function financeExecuteBatchConfirm() {
+    const ctx = financeBatchConfirmContext;
+    if (!ctx?.view || !ctx?.action) return;
+    const view = ctx.view;
+    const action = ctx.action;
     const ids = [...(financeRowSelection[view] || [])];
     if (!ids.length) return;
     if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
-    let result = { ok: false };
-    if (view === "aguardando") result = await financeBatchDeleteAguardando(ids);
-    else if (view === "receber") result = await financeBatchDeleteReceber(ids);
-    else if (view === "pagar") result = await financeBatchDeletePagar(ids);
-    if (!result.ok) {
-      if (result.supabaseError && typeof alertSupabaseError === "function") {
-        alertSupabaseError(result.supabaseError, "Não foi possível apagar os registros selecionados.");
-      } else {
-        alert(result.error || "Não foi possível apagar os registros selecionados.");
+
+    const payOpts = {
+      dataMovimento: document.getElementById("finBatchPayData")?.value || financeTodayYmd(),
+      formaPagamento: document.getElementById("finBatchPayForma")?.value || "PIX",
+    };
+
+    let stats = { ok: 0, fail: 0, skip: 0 };
+    if (action === "delete") {
+      if (view === "aguardando") {
+        const result = await financeBatchDeleteAguardando(ids);
+        if (!result.ok) {
+          if (result.supabaseError && typeof alertSupabaseError === "function") {
+            alertSupabaseError(result.supabaseError, "Não foi possível apagar os registros selecionados.");
+          } else {
+            alert(result.error || "Não foi possível apagar os registros selecionados.");
+          }
+          return;
+        }
+        stats.ok = ids.length;
+      } else if (view === "receber") {
+        const result = await financeBatchDeleteReceber(ids);
+        if (!result.ok) {
+          if (result.supabaseError && typeof alertSupabaseError === "function") {
+            alertSupabaseError(result.supabaseError, "Não foi possível apagar os registros selecionados.");
+          } else {
+            alert(result.error || "Não foi possível apagar os registros selecionados.");
+          }
+          return;
+        }
+        stats.ok = ids.length;
+      } else if (view === "pagar") {
+        const result = await financeBatchDeletePagar(ids);
+        if (!result.ok) {
+          if (result.supabaseError && typeof alertSupabaseError === "function") {
+            alertSupabaseError(result.supabaseError, "Não foi possível apagar os registros selecionados.");
+          } else {
+            alert(result.error || "Não foi possível apagar os registros selecionados.");
+          }
+          return;
+        }
+        stats.ok = ids.length;
       }
-      return;
+    } else if (action === "promote" && view === "aguardando") {
+      stats = await financeBatchPromoteAguardando(ids);
+    } else if (action === "pg" && view === "receber") {
+      stats = await financeBatchPgReceber(ids, payOpts);
+    } else if (action === "caixa" && view === "receber") {
+      stats = await financeBatchCaixaReceber(ids, payOpts);
     }
+
     financeRowSelection[view]?.clear();
-    financeCloseBatchDeleteModal();
+    financeCloseBatchConfirmModal();
     if (view === "aguardando" && typeof loadCycleClosures === "function") {
       await loadCycleClosures();
     }
     await financeReloadAfterAction();
+    if (action !== "delete" || stats.fail) {
+      alert(financeBatchResultMessage(action, stats));
+    }
+  }
+
+  async function financeExecuteBatchDelete(view) {
+    financeBatchConfirmContext = { view, action: "delete" };
+    await financeExecuteBatchConfirm();
   }
 
   async function financeReloadAfterAction() {
@@ -1853,7 +2037,10 @@
         const origemHtml = escapeHtml(financeReceivableOrigemCellText(r, v));
         const descricaoHtml = financeReceivableDescricaoCellHtml(r, v);
         const rppHtml = escapeHtml(financeReceberRppNome(r, v));
-        const actionsHtml = financeRowActionsHtml("receber", r.id, { canPay: st !== "Recebido" });
+        const actionsHtml = financeRowActionsHtml("receber", r.id, {
+          canPay: st !== "Recebido",
+          canCaixa: st === "Recebido" && !financeReceivableHasCaixa(r.id),
+        });
         const rowSel = financeRowIsSelected("receber", r.id) ? " fin-row-selected" : "";
         return `<tr class="${rowSel.trim()}">
           ${financeRowCheckCell("receber", r.id)}
@@ -2640,19 +2827,27 @@
     if (financeReceivableHasCaixa(rec.id)) {
       return { ok: true, action: "skipped", reason: "already_in_caixa" };
     }
-    if (typeof registerReceivableCashMovement !== "function") {
-      return { ok: false, error: "register_unavailable", action: "failed" };
-    }
     const ymd = typeof toLocalYmd === "function" ? toLocalYmd : (v) => String(v || "").slice(0, 10);
     const dataMov =
       (entry.paidDate ? ymd(entry.paidDate) : null) ||
       ymd(rec.updated_at || rec.period_end || rec.created_at) ||
       ymd(new Date().toISOString());
     const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(rec.vehicle_id));
-    const result = await registerReceivableCashMovement(rec, {
+    const registerCash =
+      typeof window.registerReceivableCashMovement === "function"
+        ? window.registerReceivableCashMovement
+        : typeof registerReceivableCashMovement === "function"
+          ? registerReceivableCashMovement
+          : null;
+    if (!registerCash) {
+      return { ok: false, error: "register_unavailable", action: "failed" };
+    }
+    const result = await registerCash(rec, {
       valor: entry.valor != null ? Number(entry.valor) : Number(rec.valor || 0),
       dataMovimento: dataMov,
+      formaPagamento: entry.formaPagamento || financeReceivableFormaPagamento(rec),
       vehicle,
+      aprovadoCaixa: true,
     });
     if (result.error) return { ok: false, error: result.error?.message || "cash_failed", action: "failed" };
     return { ok: true, action: "created" };
@@ -4282,21 +4477,25 @@
     return refreshFinanceDataPromise;
   };
 
+  async function financePromoteReceivableToContasReceber(receivableId) {
+    const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
+    if (!r) return false;
+    if (typeof window.ensureReceivablePromotedToContasReceber === "function") {
+      return !!(await window.ensureReceivablePromotedToContasReceber(receivableId));
+    }
+    if (typeof addReceberTriagemId === "function") addReceberTriagemId(receivableId);
+    return true;
+  }
+
   async function financeApproveReceivable(receivableId) {
     const stayView = currentFinanceView;
     if (typeof requireSupabaseSessionForWrite === "function") {
       if (!(await requireSupabaseSessionForWrite())) return;
     }
-    const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
-    if (!r) return;
-    if (typeof window.ensureReceivablePromotedToContasReceber === "function") {
-      const ok = await window.ensureReceivablePromotedToContasReceber(receivableId);
-      if (!ok) {
-        alert("Não foi possível enviar para Contas a receber. Atualize a página e tente novamente.");
-        return;
-      }
-    } else {
-      addReceberTriagemId(receivableId);
+    const ok = await financePromoteReceivableToContasReceber(receivableId);
+    if (!ok) {
+      alert("Não foi possível enviar para Contas a receber. Atualize a página e tente novamente.");
+      return;
     }
     await refreshFinanceData({ preserveView: stayView && stayView !== "none" ? stayView : true });
   }
@@ -4537,30 +4736,68 @@
     });
 
     document.getElementById("viewFinanceiro")?.addEventListener("click", (e) => {
-      const batchBtn = e.target.closest("[data-fin-batch-delete]");
+      const batchBtn = e.target.closest("[data-fin-batch-action]");
       if (batchBtn) {
-        const view = batchBtn.getAttribute("data-fin-batch-delete");
+        const view = batchBtn.getAttribute("data-fin-batch-view");
+        const action = batchBtn.getAttribute("data-fin-batch-action");
         const count = financeRowSelection[view]?.size || 0;
-        if (count > 0) financeOpenBatchDeleteModal(view, count);
-        return;
+        if (!view || !action || count < 1) return;
+        if (action === "delete") {
+          financeOpenBatchDeleteModal(view, count);
+          return;
+        }
+        if (action === "promote") {
+          financeOpenBatchConfirmModal({
+            view,
+            action,
+            title: "Enviar para Contas a receber",
+            subtitle: "Os títulos selecionados sairão de Aguardando faturamento.",
+            message: `Enviar ${count} registro(s) selecionado(s) para Contas a receber?`,
+            confirmLabel: "Confirmar envio",
+            showPayFields: false,
+          });
+          return;
+        }
+        if (action === "pg") {
+          financeOpenBatchConfirmModal({
+            view,
+            action,
+            title: "Confirmar pagamento (PG)",
+            subtitle: "Valor integral de cada título, com a data e forma informadas abaixo.",
+            message: `Confirmar pagamento de ${count} conta(s) a receber selecionada(s)?`,
+            confirmLabel: "Confirmar PG",
+            showPayFields: true,
+          });
+          return;
+        }
+        if (action === "caixa") {
+          financeOpenBatchConfirmModal({
+            view,
+            action,
+            title: "Registrar no caixa",
+            subtitle: "Pendentes serão quitados; pagos sem caixa receberão entrada.",
+            message: `Registrar no caixa ${count} registro(s) selecionado(s)?`,
+            confirmLabel: "Confirmar caixa",
+            showPayFields: true,
+          });
+          return;
+        }
       }
     });
 
     document.getElementById("finBatchDeleteConfirm")?.addEventListener("click", async () => {
-      const view = financeBatchDeleteView;
-      if (!view) return;
       const btn = document.getElementById("finBatchDeleteConfirm");
       if (btn) btn.disabled = true;
       try {
-        await financeExecuteBatchDelete(view);
+        await financeExecuteBatchConfirm();
       } finally {
         if (btn) btn.disabled = false;
       }
     });
-    document.getElementById("finBatchDeleteCancel")?.addEventListener("click", financeCloseBatchDeleteModal);
-    document.getElementById("finBatchDeleteClose")?.addEventListener("click", financeCloseBatchDeleteModal);
+    document.getElementById("finBatchDeleteCancel")?.addEventListener("click", financeCloseBatchConfirmModal);
+    document.getElementById("finBatchDeleteClose")?.addEventListener("click", financeCloseBatchConfirmModal);
     document.getElementById("finBatchDeleteModal")?.addEventListener("click", (e) => {
-      if (e.target.id === "finBatchDeleteModal") financeCloseBatchDeleteModal();
+      if (e.target.id === "finBatchDeleteModal") financeCloseBatchConfirmModal();
     });
 
     document.getElementById("finBtnNovaDespesa")?.addEventListener("click", () => financeOpenDespesaModal(false));
@@ -4778,6 +5015,15 @@
         if (!r) return;
         const v = financeVehicleById().get(r.vehicle_id);
         openReceberBaixaModal({ receivable: r, vehicle: v, valor: r.valor });
+        return;
+      }
+      const btnReceberCaixa = e.target.closest("[data-fin-receber-caixa]");
+      if (btnReceberCaixa) {
+        const id = btnReceberCaixa.getAttribute("data-fin-receber-caixa");
+        const r = (state.receivables || []).find((x) => String(x.id) === String(id));
+        if (!r) return;
+        const v = financeVehicleById().get(r.vehicle_id);
+        openReceberBaixaModal({ receivable: r, vehicle: v, valor: r.valor, mode: "caixa" });
         return;
       }
       const btnReceberEditar = e.target.closest("[data-fin-receber-editar]");
