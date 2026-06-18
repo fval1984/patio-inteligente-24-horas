@@ -99,6 +99,22 @@
     return total;
   }
 
+  function ocupacaoNoDia(vehicles, dayYmd, endCapYmd) {
+    let count = 0;
+    for (const v of vehicles) {
+      if (vehicleStayIncludesDay(v, dayYmd, endCapYmd)) count++;
+    }
+    return count;
+  }
+
+  function buildDailyOccupancyMap(vehicles, fromYmd, toYmd, endCapYmd) {
+    const map = new Map();
+    for (const day of enumerateYmdRange(fromYmd, toYmd)) {
+      map.set(day, ocupacaoNoDia(vehicles, day, endCapYmd));
+    }
+    return map;
+  }
+
   function patioOpsVehicles(vehicles) {
     return (vehicles || []).filter((v) => v?.data_entrada);
   }
@@ -194,15 +210,27 @@
       avgDiariasPerVehicle: 0,
       avgStayPerVehicle: 0,
       perVehicleTrend: 0,
+      avgOccupancy: 0,
+      occupancyTrend: 0,
+      occupancySpark: [],
+      occupancyLastClosed: 0,
       vehicleCount: ops.length,
       closedDays: 0,
     };
     if (!firstDay || firstDay > lastClosed || !ops.length) return empty;
 
     const dailyMap = buildDailyTotalsMap(ops, firstDay, lastClosed, lastClosed);
+    const occupancyMap = buildDailyOccupancyMap(ops, firstDay, lastClosed, lastClosed);
     const closedDays = enumerateYmdRange(firstDay, lastClosed);
     const dailyTotals = closedDays.map((d) => dailyMap.get(d) || 0);
+    const dailyOccupancy = closedDays.map((d) => occupancyMap.get(d) || 0);
     const dailyAvg = avgOf(dailyTotals);
+    const avgOccupancy = avgOf(dailyOccupancy);
+    const occupancyLast30 = dailyOccupancy.slice(-30);
+    const occupancyPrev30 = dailyOccupancy.slice(-60, -30);
+    const occupancyTrend = pctChange(avgOf(occupancyLast30), avgOf(occupancyPrev30));
+    const occupancySpark = dailyOccupancy.slice(-14);
+    const occupancyLastClosed = dailyOccupancy[dailyOccupancy.length - 1] || 0;
 
     const last30 = dailyTotals.slice(-30);
     const prev30 = dailyTotals.slice(-60, -30);
@@ -289,6 +317,10 @@
       avgDiariasPerVehicle,
       avgStayPerVehicle,
       perVehicleTrend,
+      avgOccupancy,
+      occupancyTrend,
+      occupancySpark,
+      occupancyLastClosed,
       vehicleCount: ops.length,
       closedDays: closedDays.length,
     };
@@ -358,6 +390,8 @@
         '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
       vehicle:
         '<path d="M4 16l2-6h12l2 6M6 16h12M8 20h2M14 20h2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+      occupancy:
+        '<rect x="3" y="4" width="7" height="16" rx="1.5" stroke="currentColor" stroke-width="2" fill="none"/><rect x="14" y="4" width="7" height="16" rx="1.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M6.5 9h0M17.5 9h0M6.5 15h0M17.5 15h0" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>',
     };
     const body = icons[name] || icons.daily;
     return `<svg class="patio-ops-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">${body}</svg>`;
@@ -401,6 +435,7 @@
     }
 
     const fmtDays = (n) => `${Number(n).toFixed(1).replace(".", ",")} dias`;
+    const fmtVehicles = (n) => `${Number(n).toFixed(1).replace(".", ",")} veíc.`;
 
     el.innerHTML = [
       renderCard({
@@ -444,6 +479,18 @@
         compare: "Soma real por mês / meses analisados",
         spark: m.monthlySpark,
         sparkColor: "#a78bfa",
+      }),
+      renderCard({
+        theme: "occupancy",
+        icon: "occupancy",
+        label: "Média de ocupação do pátio",
+        value: fmtVehicles(m.avgOccupancy),
+        meta: `último dia fechado: ${m.occupancyLastClosed} veículo(s)`,
+        trend: m.occupancyTrend,
+        trendLabel: "vs. 30 dias anteriores",
+        compare: "Veículos no pátio por dia fechado (média histórica)",
+        spark: m.occupancySpark,
+        sparkColor: "#22d3ee",
       }),
       renderCard({
         theme: "stay",
