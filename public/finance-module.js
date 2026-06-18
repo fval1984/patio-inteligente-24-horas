@@ -406,13 +406,27 @@
     return `<td class="fin-td-select" data-label="Selecionar"><input type="checkbox" class="fin-row-check" data-fin-row-check="${escapeHtml(view)}" value="${escapeHtml(String(id))}"${checked ? " checked" : ""} aria-label="Selecionar registro"></td>`;
   }
 
-  function financePruneRowSelection(view, visibleIds) {
+  function financePruneStaleRowSelection(view) {
     const set = financeRowSelection[view];
-    if (!set) return;
-    const visible = new Set(visibleIds.map(String));
+    if (!set?.size) return;
     for (const id of [...set]) {
-      if (!visible.has(id)) set.delete(id);
+      if (!financeRowSelectionStillValid(view, id)) set.delete(id);
     }
+  }
+
+  function financeRowSelectionStillValid(view, id) {
+    const sid = String(id);
+    if (view === "aguardando") {
+      return financeContasAguardandoList().some((r) => String(r.id) === sid);
+    }
+    if (view === "receber") {
+      const rec = (state.receivables || []).find((r) => String(r.id) === sid);
+      return !!rec && receivableIsContaReceberFinanceiro(rec);
+    }
+    if (view === "pagar") {
+      return (state.payables || []).some((p) => String(p.id) === sid);
+    }
+    return false;
   }
 
   function financeUpdateBatchBar(view) {
@@ -2015,7 +2029,7 @@
       !!(financeFilterReceberDataDe || financeFilterReceberDataAte);
     if (totalEl) totalEl.textContent = formatCurrency(list.reduce((s, r) => s + Number(r.valor || 0), 0));
     if (!list.length) {
-      financePruneRowSelection("receber", []);
+      financePruneStaleRowSelection("receber");
       financeUpdateBatchBar("receber");
       body.innerHTML = `<tr><td colspan="8" class="notice">${
         hasOtherFilters
@@ -2024,10 +2038,7 @@
       }</td></tr>`;
       return;
     }
-    financePruneRowSelection(
-      "receber",
-      list.map((r) => r.id)
-    );
+    financePruneStaleRowSelection("receber");
     body.innerHTML = list
       .map((r) => {
         const v = vmap.get(r.vehicle_id);
@@ -2071,7 +2082,7 @@
     const dataFilter = !!(financeFilterAguardandoDataDe || financeFilterAguardandoDataAte);
     if (totalEl) totalEl.textContent = formatCurrency(list.reduce((s, r) => s + Number(r.valor || 0), 0));
     if (!list.length) {
-      financePruneRowSelection("aguardando", []);
+      financePruneStaleRowSelection("aguardando");
       financeUpdateBatchBar("aguardando");
       body.innerHTML = `<tr><td colspan="7" class="notice">${
         plateFilter || rppFilter || periodoFilter || dataFilter
@@ -2080,10 +2091,7 @@
       }</td></tr>`;
       return;
     }
-    financePruneRowSelection(
-      "aguardando",
-      list.map((r) => r.id)
-    );
+    financePruneStaleRowSelection("aguardando");
     body.innerHTML = list
       .map((r) => {
         const v = vmap.get(r.vehicle_id);
@@ -2131,16 +2139,13 @@
     const abertas = list.filter((p) => financePayableDisplayStatus(p) !== "Pago");
     if (totalEl) totalEl.textContent = formatCurrency(abertas.reduce((s, p) => s + Number(p.valor || 0), 0));
     if (!list.length) {
-      financePruneRowSelection("pagar", []);
+      financePruneStaleRowSelection("pagar");
       financeUpdateBatchBar("pagar");
       const total = (state.payables || []).length;
       body.innerHTML = `<tr><td colspan="11" class="notice">Nenhuma despesa com os filtros atuais.${total ? ` (${total} no total — limpe filtros ou clique Atualizar)` : " Cadastre em + Nova despesa."}</td></tr>`;
       return;
     }
-    financePruneRowSelection(
-      "pagar",
-      list.map((p) => p.id)
-    );
+    financePruneStaleRowSelection("pagar");
     body.innerHTML = list
       .map((p) => {
         const st = financePayableDisplayStatus(p);
