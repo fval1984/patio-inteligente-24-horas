@@ -6907,7 +6907,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260605batch4"></script>
+    <script src="/finance-module.js?v=20260605fluxo"></script>
     <script src="/finance-dashboard.js?v=202604fin"></script>
     <script src="/patio-dashboard.js?v=202604from"></script>
     <script>
@@ -9008,6 +9008,7 @@
       /** Título que saiu de «Aguardando» mas não aparece em «Contas a receber». */
       function receivableOrfaoEntreFilasFinanceiro(r) {
         if (!r || r.status === "PAGO" || receivableSemCobrancaFinanceira(r)) return false;
+        if (receivableFluxoFinanceiroQuitado(r)) return false;
         if (!r.vehicle_id) return false;
         if (receivableIsContaReceberFinanceiro(r)) return false;
         if (receivableNaFilaAguardandoTriagem(r)) return false;
@@ -9024,6 +9025,7 @@
         const toFix = new Set();
         for (const r of state.receivables || []) {
           if (r.status === "PAGO" || receivableSemCobrancaFinanceira(r)) continue;
+          if (receivableFluxoFinanceiroQuitado(r)) continue;
           if (receivableIsContaReceberFinanceiro(r)) continue;
           if (!receivableMarcadoEnvioContasReceber(r)) continue;
           toFix.add(r.id);
@@ -9035,8 +9037,40 @@
         return fixed;
       }
 
+      /** Corrige títulos com entrada no caixa mas status ainda aberto (reabertos indevidamente pelo sync VRP). */
+      async function repairReceivablesQuitadosComStatusAberto() {
+        if (FINANCE_MANUAL_ONLY) return 0;
+        const uid = effectiveUserId();
+        if (!uid) return 0;
+        let fixed = 0;
+        for (const r of state.receivables || []) {
+          if (!r?.id || r.status === "PAGO") continue;
+          if (!receivableFluxoFinanceiroQuitado(r)) continue;
+          if (typeof receivableCashMovementExists !== "function" || !receivableCashMovementExists(r.id)) continue;
+          const patch = { status: "PAGO", financeiro_aprovado_contas_receber: true };
+          const runUpdate = () => supabase.from("receivables").update(patch).eq("id", r.id).eq("user_id", uid);
+          let { error } =
+            typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runUpdate) : await runUpdate();
+          if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
+            const runFallback = () =>
+              supabase.from("receivables").update({ status: "PAGO" }).eq("id", r.id).eq("user_id", uid);
+            ({ error } =
+              typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runFallback) : await runFallback());
+          }
+          if (error) {
+            console.warn("repairReceivablesQuitadosComStatusAberto", r.id, error.message || error);
+            continue;
+          }
+          fixed += 1;
+          const idx = (state.receivables || []).findIndex((x) => String(x.id) === String(r.id));
+          if (idx >= 0) state.receivables[idx] = { ...state.receivables[idx], ...patch };
+        }
+        return fixed;
+      }
+
       window.ensureReceivablePromotedToContasReceber = ensureReceivablePromotedToContasReceber;
       window.syncLostReceivablesToContasReceber = syncLostReceivablesToContasReceber;
+      window.repairReceivablesQuitadosComStatusAberto = repairReceivablesQuitadosComStatusAberto;
       window.receivableOrfaoEntreFilasFinanceiro = receivableOrfaoEntreFilasFinanceiro;
 
       async function findReceivableCycleForVrpClose(vehicleId) {
@@ -9087,7 +9121,10 @@
         if (!rows?.length) return null;
         if (exitYmd) {
           const byExit = rows.find((r) => toLocalYmd(r.period_end) === exitYmd);
-          if (byExit) return byExit;
+          if (byExit) {
+            if (receivableFluxoFinanceiroQuitado(byExit)) return null;
+            return byExit;
+          }
         }
         const unpaid = rows.find((r) => r.status !== "PAGO" && Number(r.valor || 0) > 0);
         if (unpaid) return unpaid;
@@ -9112,6 +9149,7 @@
 
       function vehicleNeedsVrpAguardandoRepair(vehicle) {
         if (String(vehicle?.status || "").toUpperCase() !== "REMOVIDO" || !vehicle?.data_saida) return false;
+        if (vehicleFinanceiroQuitadoParaSaida(vehicle)) return false;
         if (typeof window.financeIsAguardandoDismissed === "function" && window.financeIsAguardandoDismissed(null, vehicle)) {
           return false;
         }
@@ -9147,6 +9185,11 @@
         removeFinanceAguardandoDismissed(vehicleId, dataSaida);
 
         const cycleRec = await findReceivableForVrpRepair(vehicleId, dataSaida);
+        if (cycleRec?.id && receivableFluxoFinanceiroQuitado(cycleRec)) {
+          result.ok = true;
+          result.receivableId = cycleRec.id;
+          return result;
+        }
         const hadRemocao = isRemocaoSolicitada(liveVehicle);
         const closedVehicle = { ...liveVehicle, status: "REMOVIDO", data_saida: dataSaida };
         const hasPriorClosed = await vehicleHasPriorClosedReceivableCycles(vehicleId);
@@ -9738,6 +9781,41 @@
         return receberTriagemIdSet().has(String(r.id));
       }
 
+      /** Título já quitado no fluxo (PAGO ou entrada aprovada no caixa operacional). */
+      function receivableFluxoFinanceiroQuitado(r) {
+        if (!r) return true;
+        if (r.status === "PAGO") return true;
+        if (typeof receivableCashMovementExists !== "function" || !receivableCashMovementExists(r.id)) return false;
+        const manual =
+          typeof window.financeOperationalModeActive === "function" && window.financeOperationalModeActive();
+        if (!manual) return true;
+        const rid = String(r.id);
+        const movs = (state.cash || []).filter((m) => {
+          if (String(m.conta_id) !== rid) return false;
+          const t = String(m.tipo_conta || "").toUpperCase();
+          return t === "RECEBER" || t === "ENTRADA";
+        });
+        return movs.some((m) =>
+          typeof window.financeCashAprovadoCaixa === "function"
+            ? window.financeCashAprovadoCaixa(m)
+            : m.aprovado_caixa === true
+        );
+      }
+
+      function vehicleFinanceiroQuitadoParaSaida(vehicle) {
+        if (!vehicle?.id || !vehicle?.data_saida) return false;
+        const exitYmd = toLocalYmd(vehicle.data_saida);
+        return (state.receivables || []).some((r) => {
+          if (String(r.vehicle_id) !== String(vehicle.id)) return false;
+          const endYmd = toLocalYmd(r.period_end);
+          if (exitYmd && endYmd && endYmd !== exitYmd) return false;
+          return receivableFluxoFinanceiroQuitado(r);
+        });
+      }
+
+      window.receivableFluxoFinanceiroQuitado = receivableFluxoFinanceiroQuitado;
+      window.vehicleFinanceiroQuitadoParaSaida = vehicleFinanceiroQuitadoParaSaida;
+
       function receivableIsCicloPatioAberto(r) {
         if (!r || r.status !== "EM_ABERTO") return false;
         return r.period_end == null || r.period_end === "";
@@ -9783,6 +9861,7 @@
        */
       function receivableIsContaReceberFinanceiro(r) {
         if (!r || r.status === "PAGO") return false;
+        if (receivableFluxoFinanceiroQuitado(r)) return false;
         if (receivableSemCobrancaFinanceira(r)) return false;
         if (isManualFinanceLancamento(r)) {
           return r.status === "EM_ABERTO" && receivableAprovadoParaContasReceber(r);
@@ -15665,7 +15744,7 @@
         let { error } = await runRecUpdate({
           status: "PAGO",
           valor: totalAtual,
-          financeiro_aprovado_contas_receber: false,
+          financeiro_aprovado_contas_receber: true,
           responsavel_pagamento: obsPacked || receivable.responsavel_pagamento,
         });
         if (error && supabaseSchemaColumnError(error)) {
