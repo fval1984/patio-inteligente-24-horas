@@ -7,6 +7,9 @@
 
   let _cache = null;
 
+  /** Período mínimo para médias operacionais do dashboard (abril/2026 em diante). */
+  const PATIO_METRICS_FROM_YMD = "2026-04-01";
+
   function isCalendarYmd(value) {
     return /^\d{4}-\d{2}-\d{2}$/.test(String(value || "").trim());
   }
@@ -123,6 +126,12 @@
     return addDaysYmd(todayYmd(), -1);
   }
 
+  function ymdMax(a, b) {
+    if (!a) return b || null;
+    if (!b) return a;
+    return a > b ? a : b;
+  }
+
   function patioFirstOperationalDay(vehicles) {
     let min = null;
     for (const v of patioOpsVehicles(vehicles)) {
@@ -130,6 +139,22 @@
       if (ymd && (!min || ymd < min)) min = ymd;
     }
     return min;
+  }
+
+  function patioMetricsStartYmd(vehicles) {
+    const first = patioFirstOperationalDay(vehicles);
+    if (!first) return PATIO_METRICS_FROM_YMD;
+    return first > PATIO_METRICS_FROM_YMD ? first : PATIO_METRICS_FROM_YMD;
+  }
+
+  function vehicleRelevantInMetricsPeriod(vehicle, fromYmd) {
+    if (!vehicle?.data_entrada || !fromYmd) return false;
+    const entrada = toLocalYmd(vehicle.data_entrada);
+    if (!entrada) return false;
+    if (entrada >= fromYmd) return true;
+    if (!vehicle.data_saida) return true;
+    const saida = toLocalYmd(vehicle.data_saida);
+    return !!(saida && saida >= fromYmd);
   }
 
   function vehiclesSignature(vehicles) {
@@ -170,11 +195,29 @@
     return Math.max(1, diff);
   }
 
+  function vehicleStayDaysInPeriod(vehicle, fromYmd, endYmd) {
+    if (!vehicle?.data_entrada || !fromYmd) return 0;
+    const entrada = toLocalYmd(vehicle.data_entrada);
+    if (!entrada) return 0;
+    const end = vehicle.data_saida ? toLocalYmd(vehicle.data_saida) : endYmd || todayYmd();
+    if (!end || end < fromYmd) return 0;
+    const start = ymdMax(entrada, fromYmd);
+    if (!start || start > end) return 0;
+    const diff = Math.ceil((ymdToDate(end).getTime() - ymdToDate(start).getTime()) / 86400000);
+    return Math.max(1, diff);
+  }
+
   function vehicleTotalDiariasGeradas(vehicle, endYmd) {
-    const start = toLocalYmd(vehicle?.data_entrada);
-    if (!start) return 0;
+    return vehicleTotalDiariasGeradasInPeriod(vehicle, toLocalYmd(vehicle?.data_entrada), endYmd);
+  }
+
+  function vehicleTotalDiariasGeradasInPeriod(vehicle, fromYmd, endYmd) {
+    const entrada = toLocalYmd(vehicle?.data_entrada);
+    if (!entrada || !fromYmd) return 0;
     const cap = vehicle.data_saida ? toLocalYmd(vehicle.data_saida) : endYmd || todayYmd();
-    if (!cap || cap < start) return 0;
+    if (!cap || cap < fromYmd) return 0;
+    const start = ymdMax(entrada, fromYmd);
+    if (!start || start > cap) return 0;
     const vd = vehicleValorDiaria(vehicle);
     if (!vd) return 0;
     let total = 0;
@@ -192,10 +235,12 @@
   function computeMetrics(vehicles) {
     const ops = patioOpsVehicles(vehicles);
     const lastClosed = patioLastClosedDayYmd();
-    const firstDay = patioFirstOperationalDay(ops);
+    const metricsFrom = patioMetricsStartYmd(ops);
+    const opsPeriod = ops.filter((v) => vehicleRelevantInMetricsPeriod(v, PATIO_METRICS_FROM_YMD));
     const empty = {
       hasData: false,
       lastClosed,
+      metricsFrom: PATIO_METRICS_FROM_YMD,
       dailyAvg: 0,
       dailyTrend: 0,
       dailySpark: [],
@@ -214,14 +259,14 @@
       occupancyTrend: 0,
       occupancySpark: [],
       occupancyLastClosed: 0,
-      vehicleCount: ops.length,
+      vehicleCount: opsPeriod.length,
       closedDays: 0,
     };
-    if (!firstDay || firstDay > lastClosed || !ops.length) return empty;
+    if (!metricsFrom || metricsFrom > lastClosed || !opsPeriod.length) return empty;
 
-    const dailyMap = buildDailyTotalsMap(ops, firstDay, lastClosed, lastClosed);
-    const occupancyMap = buildDailyOccupancyMap(ops, firstDay, lastClosed, lastClosed);
-    const closedDays = enumerateYmdRange(firstDay, lastClosed);
+    const dailyMap = buildDailyTotalsMap(ops, metricsFrom, lastClosed, lastClosed);
+    const occupancyMap = buildDailyOccupancyMap(ops, metricsFrom, lastClosed, lastClosed);
+    const closedDays = enumerateYmdRange(metricsFrom, lastClosed);
     const dailyTotals = closedDays.map((d) => dailyMap.get(d) || 0);
     const dailyOccupancy = closedDays.map((d) => occupancyMap.get(d) || 0);
     const dailyAvg = avgOf(dailyTotals);
@@ -258,7 +303,7 @@
     const monthlyTotals = months.map((ym) => {
       const mStart = monthStartYm(ym);
       const mEnd = monthEndYm(ym);
-      const from = mStart < firstDay ? firstDay : mStart;
+      const from = mStart < metricsFrom ? metricsFrom : mStart;
       const to = mEnd > lastClosed ? lastClosed : mEnd;
       return sumMapValues(enumerateYmdRange(from, to), dailyMap);
     });
@@ -269,40 +314,43 @@
     const monthlySpark = monthlyTotals.slice(-6);
 
     const today = todayYmd();
-    const stayDaysList = ops.map((v) => vehicleStayDays(v, today));
+    const stayDaysList = opsPeriod.map((v) => vehicleStayDaysInPeriod(v, PATIO_METRICS_FROM_YMD, today));
     const avgStayDays = avgOf(stayDaysList);
 
-    const exited = ops
+    const exited = opsPeriod
       .filter((v) => v.data_saida)
       .sort((a, b) => String(b.data_saida).localeCompare(String(a.data_saida)));
     const recentExited = exited.slice(0, Math.min(20, exited.length));
     const priorExited = exited.slice(20, 40);
     const stayTrend = pctChange(
-      avgOf(recentExited.map((v) => vehicleStayDays(v, toLocalYmd(v.data_saida)))),
-      avgOf(priorExited.map((v) => vehicleStayDays(v, toLocalYmd(v.data_saida))))
+      avgOf(recentExited.map((v) => vehicleStayDaysInPeriod(v, PATIO_METRICS_FROM_YMD, toLocalYmd(v.data_saida)))),
+      avgOf(priorExited.map((v) => vehicleStayDaysInPeriod(v, PATIO_METRICS_FROM_YMD, toLocalYmd(v.data_saida))))
     );
 
-    const diariasPerVehicle = ops.map((v) => vehicleTotalDiariasGeradas(v, today));
+    const diariasPerVehicle = opsPeriod.map((v) =>
+      vehicleTotalDiariasGeradasInPeriod(v, PATIO_METRICS_FROM_YMD, today)
+    );
     const avgDiariasPerVehicle = avgOf(diariasPerVehicle);
     const avgStayPerVehicle = avgStayDays;
 
     const sixMonthsAgo = addDaysYmd(today, -183);
-    const recentOps = ops.filter((v) => {
+    const recentOps = opsPeriod.filter((v) => {
       const ent = toLocalYmd(v.data_entrada);
       return ent && ent >= sixMonthsAgo;
     });
-    const olderOps = ops.filter((v) => {
+    const olderOps = opsPeriod.filter((v) => {
       const ent = toLocalYmd(v.data_entrada);
       return ent && ent < sixMonthsAgo;
     });
     const perVehicleTrend = pctChange(
-      avgOf(recentOps.map((v) => vehicleTotalDiariasGeradas(v, today))),
-      avgOf(olderOps.map((v) => vehicleTotalDiariasGeradas(v, today)))
+      avgOf(recentOps.map((v) => vehicleTotalDiariasGeradasInPeriod(v, PATIO_METRICS_FROM_YMD, today))),
+      avgOf(olderOps.map((v) => vehicleTotalDiariasGeradasInPeriod(v, PATIO_METRICS_FROM_YMD, today)))
     );
 
     return {
       hasData: true,
       lastClosed,
+      metricsFrom: PATIO_METRICS_FROM_YMD,
       dailyAvg,
       dailyTrend,
       dailySpark,
