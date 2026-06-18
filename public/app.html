@@ -4264,6 +4264,92 @@
       .fin-card-label { font-size: 0.78rem; color: var(--muted); }
       .fin-card strong { font-size: 1.25rem; }
       .fin-card small { font-size: 0.74rem; color: var(--muted); }
+      .fin-ops-cards,
+      #finDashCards.fin-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+      #finDashCards .fin-ops-card,
+      #finDashCards.fin-cards .fin-ops-card {
+        border-radius: 16px;
+        padding: 16px 16px 14px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-height: 168px;
+        position: relative;
+        overflow: hidden;
+      }
+      .fin-ops-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 3px;
+        opacity: 0.9;
+      }
+      .fin-ops-card--billing-daily::before { background: linear-gradient(90deg, #34d399, #10b981); }
+      .fin-ops-card--billing-weekly::before { background: linear-gradient(90deg, #60a5fa, #3b82f6); }
+      .fin-ops-card--billing-monthly::before { background: linear-gradient(90deg, #a78bfa, #8b5cf6); }
+      .fin-ops-card--collection::before { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+      .fin-ops-card--ticket::before { background: linear-gradient(90deg, #f472b6, #ec4899); }
+      .fin-ops-card--recv::before { background: linear-gradient(90deg, #fb923c, #f97316); }
+      .fin-ops-card--paid-month::before { background: linear-gradient(90deg, #4ade80, #22c55e); }
+      .fin-ops-card--bill-month::before { background: linear-gradient(90deg, #38bdf8, #0ea5e9); }
+      .fin-ops-card--default::before { background: linear-gradient(90deg, #f87171, #ef4444); }
+      .fin-ops-card--flow::before { background: linear-gradient(90deg, #22d3ee, #06b6d4); }
+      .fin-ops-card-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 4px;
+      }
+      .fin-ops-card-icon { color: var(--muted); opacity: 0.9; }
+      .fin-ops-card-trend {
+        font-size: 0.72rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .fin-ops-trend--up { color: #34d399; background: rgba(52, 211, 153, 0.12); }
+      .fin-ops-trend--down { color: #f87171; background: rgba(248, 113, 113, 0.12); }
+      .fin-ops-trend--flat { color: var(--muted); background: rgba(148, 163, 184, 0.12); }
+      .fin-ops-card-label {
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .fin-ops-card-value {
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+      }
+      .fin-ops-card-meta,
+      .fin-ops-card-compare {
+        font-size: 0.72rem;
+        color: var(--muted);
+        line-height: 1.35;
+      }
+      .fin-ops-card-spark { margin-top: auto; padding-top: 6px; min-height: 32px; }
+      .fin-ops-spark { display: block; max-width: 88px; }
+      .fin-ops-footnote {
+        grid-column: 1 / -1;
+        margin: 4px 0 0;
+        font-size: 0.72rem;
+        color: var(--muted);
+        line-height: 1.4;
+      }
       .fin-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
       .fin-tag {
         display: inline-block;
@@ -6730,6 +6816,7 @@
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-module.js?v=20260605fin"></script>
+    <script src="/finance-dashboard.js?v=202604fin"></script>
     <script src="/patio-dashboard.js?v=202604from"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
