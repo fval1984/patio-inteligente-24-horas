@@ -1580,9 +1580,22 @@
   }
 
   function financeRenderDashboard() {
-    const m = financeMetrics();
     const el = document.getElementById("finDashCards");
     if (!el) return;
+    if (typeof window.financeDashboardRender === "function") {
+      window.financeDashboardRender(
+        {
+          receivables: state.receivables || [],
+          payables: state.payables || [],
+          cash: state.cash || [],
+          vehicles: state.vehicles || [],
+          settings: state.settings || {},
+        },
+        { formatCurrency, escapeHtml }
+      );
+      return;
+    }
+    const m = financeMetrics();
     el.innerHTML = `
       <div class="fin-card fin-card--recv"><span class="fin-card-label">Total a receber</span><strong>${escapeHtml(formatCurrency(m.totalReceber))}</strong><small>${m.pendentes} pendente(s)</small></div>
       <div class="fin-card fin-card--pay"><span class="fin-card-label">Total a pagar</span><strong>${escapeHtml(formatCurrency(m.totalPagar))}</strong><small>${m.vencidas} vencida(s)</small></div>
