@@ -1470,8 +1470,7 @@
   }
 
   function financeRecebidoMesAtual() {
-    const ym = yearMonthFromYmd(financeTodayYmd());
-    return sumReceivableRevenueByMonth(ym, state.receivables || [], state.cash || []);
+    return financeReceitasMesAtual();
   }
 
   function financeDespesasMesAtual(ym) {
@@ -1587,7 +1586,7 @@
     el.innerHTML = `
       <div class="fin-card fin-card--recv"><span class="fin-card-label">Total a receber</span><strong>${escapeHtml(formatCurrency(m.totalReceber))}</strong><small>${m.pendentes} pendente(s)</small></div>
       <div class="fin-card fin-card--pay"><span class="fin-card-label">Total a pagar</span><strong>${escapeHtml(formatCurrency(m.totalPagar))}</strong><small>${m.vencidas} vencida(s)</small></div>
-      <div class="fin-card fin-card--month"><span class="fin-card-label">Receitas do mês</span><strong>${escapeHtml(formatCurrency(m.recebidoMes))}</strong><small>entradas confirmadas</small></div>
+      <div class="fin-card fin-card--month"><span class="fin-card-label">Entradas confirmadas</span><strong>${escapeHtml(formatCurrency(m.recebidoMes))}</strong><small>mês atual</small></div>
       <div class="fin-card fin-card--expense"><span class="fin-card-label">Despesas do mês</span><strong>${escapeHtml(formatCurrency(m.despesasMes))}</strong><small>saídas registradas</small></div>
       <div class="fin-card fin-card--saldo"><span class="fin-card-label">Saldo atual</span><strong>${escapeHtml(formatCurrency(m.saldo))}</strong><small>entradas − saídas</small></div>
       <div class="fin-card fin-card--gen"><span class="fin-card-label">Receita em geração</span><strong>${escapeHtml(formatCurrency(m.totalGeracao))}</strong><small>${m.veiculosPatio} no pátio</small></div>
