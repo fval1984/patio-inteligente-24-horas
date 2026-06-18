@@ -4195,6 +4195,44 @@
         flex-wrap: nowrap;
         max-width: none;
       }
+      .fin-th-select,
+      .fin-td-select {
+        width: 42px;
+        min-width: 42px;
+        max-width: 42px;
+        text-align: center;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+      }
+      .fin-row-check,
+      .fin-select-all {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        accent-color: var(--primary-strong, #e11d2e);
+        cursor: pointer;
+        vertical-align: middle;
+      }
+      #viewFinanceiro .table tbody tr.fin-row-selected {
+        background: rgba(225, 29, 46, 0.08);
+      }
+      [data-theme="light"] #viewFinanceiro .table tbody tr.fin-row-selected {
+        background: rgba(225, 29, 46, 0.06);
+      }
+      .fin-batch-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin: 0 0 10px;
+      }
+      .fin-batch-delete.hidden {
+        display: none;
+      }
+      .fin-batch-delete:not(.hidden) {
+        border-color: rgba(248, 113, 113, 0.45);
+        color: #f87171;
+      }
       .finance-subnav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
       .finance-subnav button {
         border: 1px solid var(--border);
@@ -5765,10 +5803,13 @@
               </form>
             </div>
             <p id="finAguardandoPlateHint" class="notice hidden" style="margin: 0 0 10px"></p>
+            <div class="fin-batch-bar">
+              <button type="button" class="secondary fin-batch-delete hidden" data-fin-batch-delete="aguardando">Apagar Selecionados</button>
+            </div>
             <p><strong>Total aguardando:</strong> <span id="finAguardandoTotal">R$ 0,00</span></p>
             <div class="table-wrap section-card">
               <table class="table">
-                <thead><tr><th>Veículo / RPV</th><th>RPP</th><th>Saída</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
+                <thead><tr><th class="fin-th-select" scope="col"><input type="checkbox" class="fin-select-all" data-fin-select-all="aguardando" title="Selecionar todos" aria-label="Selecionar todos"></th><th>Veículo / RPV</th><th>RPP</th><th>Saída</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
                 <tbody id="finAguardandoBody"></tbody>
               </table>
             </div>
@@ -5800,6 +5841,9 @@
               <div style="align-self: flex-end"><button type="button" class="secondary" id="finReceberPlacaClear">Limpar placa</button></div>
             </div>
             <p id="finReceberPlateHint" class="notice hidden" style="margin: 0 0 10px"></p>
+            <div class="fin-batch-bar">
+              <button type="button" class="secondary fin-batch-delete hidden" data-fin-batch-delete="receber">Apagar Selecionados</button>
+            </div>
             <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
             <div class="actions" style="margin: 0 0 12px; flex-wrap: wrap; gap: 8px">
               <button type="button" class="secondary" id="finReceberBtnPrint">Imprimir para cliente</button>
@@ -5807,7 +5851,7 @@
             </div>
             <div class="table-wrap section-card">
               <table class="table">
-                <thead><tr><th>Origem</th><th>Descrição</th><th>RPP</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Ações</th></tr></thead>
+                <thead><tr><th class="fin-th-select" scope="col"><input type="checkbox" class="fin-select-all" data-fin-select-all="receber" title="Selecionar todos" aria-label="Selecionar todos"></th><th>Origem</th><th>Descrição</th><th>RPP</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Ações</th></tr></thead>
                 <tbody id="finReceberBody"></tbody>
               </table>
             </div>
@@ -5842,10 +5886,13 @@
               <div><label for="finPagarPeriodoAte">Até</label><input id="finPagarPeriodoAte" type="date" /></div>
             </div>
             <div class="fin-alert-row" id="finPagarAlerts"></div>
+            <div class="fin-batch-bar">
+              <button type="button" class="secondary fin-batch-delete hidden" data-fin-batch-delete="pagar">Apagar Selecionados</button>
+            </div>
             <p><strong>Total a pagar (abertas):</strong> <span id="finPagarTotal">R$ 0,00</span></p>
             <div class="table-wrap section-card">
               <table class="table">
-                <thead><tr><th>Fornecedor</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor</th><th>Vencimento</th><th>Forma</th><th>Conta</th><th>Status</th><th>Ações</th></tr></thead>
+                <thead><tr><th class="fin-th-select" scope="col"><input type="checkbox" class="fin-select-all" data-fin-select-all="pagar" title="Selecionar todos" aria-label="Selecionar todos"></th><th>Fornecedor</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor</th><th>Vencimento</th><th>Forma</th><th>Conta</th><th>Status</th><th>Ações</th></tr></thead>
                 <tbody id="finPagarBody"></tbody>
               </table>
             </div>
@@ -6573,6 +6620,23 @@
         </div>
       </div>
 
+      <div id="finBatchDeleteModal" class="modal-backdrop hidden">
+        <div class="modal">
+          <div class="modal-header">
+            <div>
+              <h3>Confirmar exclusão</h3>
+              <p class="subtitle" id="finBatchDeleteSub" style="margin: 4px 0 0">Esta ação não pode ser desfeita.</p>
+            </div>
+            <button type="button" class="modal-close" id="finBatchDeleteClose" aria-label="Fechar">Fechar</button>
+          </div>
+          <p id="finBatchDeleteMessage" style="margin: 0 0 16px; line-height: 1.5"></p>
+          <div class="form-actions">
+            <button type="button" id="finBatchDeleteConfirm">Confirmar</button>
+            <button type="button" class="secondary" id="finBatchDeleteCancel">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
       <div id="finDespesaModal" class="modal-backdrop hidden">
         <div class="modal" style="max-width: 520px">
           <div class="modal-header">
@@ -6815,7 +6879,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260605fin"></script>
+    <script src="/finance-module.js?v=20260605batch"></script>
     <script src="/finance-dashboard.js?v=202604fin"></script>
     <script src="/patio-dashboard.js?v=202604from"></script>
     <script>
@@ -9407,6 +9471,8 @@
       };
       window.addFinanceAguardandoDismissed = addFinanceAguardandoDismissed;
       window.removeFinanceAguardandoDismissed = removeFinanceAguardandoDismissed;
+      window.removeReceberTriagemId = removeReceberTriagemId;
+      window.removePatioFinanceiroBloqueadoReceivableId = removePatioFinanceiroBloqueadoReceivableId;
 
       /**
        * Quando false, o ciclo não entra em «Contas a receber» até OK em Pátio → Fechando ciclo.
