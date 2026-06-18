@@ -4233,6 +4233,9 @@
         border-color: rgba(248, 113, 113, 0.45);
         color: #f87171;
       }
+      .fin-batch-action.hidden {
+        display: none;
+      }
       .finance-subnav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
       .finance-subnav button {
         border: 1px solid var(--border);
@@ -5804,7 +5807,8 @@
             </div>
             <p id="finAguardandoPlateHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <div class="fin-batch-bar">
-              <button type="button" class="secondary fin-batch-delete hidden" data-fin-batch-delete="aguardando">Apagar Selecionados</button>
+              <button type="button" class="secondary fin-batch-action hidden" data-fin-batch-view="aguardando" data-fin-batch-action="promote" data-fin-batch-label="Contas a receber">Contas a receber</button>
+              <button type="button" class="secondary fin-batch-delete fin-batch-action hidden" data-fin-batch-view="aguardando" data-fin-batch-action="delete" data-fin-batch-label="Apagar Selecionados">Apagar Selecionados</button>
             </div>
             <p><strong>Total aguardando:</strong> <span id="finAguardandoTotal">R$ 0,00</span></p>
             <div class="table-wrap section-card">
@@ -5842,7 +5846,9 @@
             </div>
             <p id="finReceberPlateHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <div class="fin-batch-bar">
-              <button type="button" class="secondary fin-batch-delete hidden" data-fin-batch-delete="receber">Apagar Selecionados</button>
+              <button type="button" class="secondary fin-batch-action hidden" data-fin-batch-view="receber" data-fin-batch-action="pg" data-fin-batch-label="PG Selecionados">PG Selecionados</button>
+              <button type="button" class="secondary fin-batch-action hidden" data-fin-batch-view="receber" data-fin-batch-action="caixa" data-fin-batch-label="Caixa Selecionados">Caixa Selecionados</button>
+              <button type="button" class="secondary fin-batch-delete fin-batch-action hidden" data-fin-batch-view="receber" data-fin-batch-action="delete" data-fin-batch-label="Apagar Selecionados">Apagar Selecionados</button>
             </div>
             <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
             <div class="actions" style="margin: 0 0 12px; flex-wrap: wrap; gap: 8px">
@@ -5887,7 +5893,7 @@
             </div>
             <div class="fin-alert-row" id="finPagarAlerts"></div>
             <div class="fin-batch-bar">
-              <button type="button" class="secondary fin-batch-delete hidden" data-fin-batch-delete="pagar">Apagar Selecionados</button>
+              <button type="button" class="secondary fin-batch-delete fin-batch-action hidden" data-fin-batch-view="pagar" data-fin-batch-action="delete" data-fin-batch-label="Apagar Selecionados">Apagar Selecionados</button>
             </div>
             <p><strong>Total a pagar (abertas):</strong> <span id="finPagarTotal">R$ 0,00</span></p>
             <div class="table-wrap section-card">
@@ -6494,7 +6500,7 @@
               <input id="receberBaixaReciboDoc" type="text" placeholder="Opcional para gerar PDF" />
             </div>
           </div>
-          <p class="notice" style="margin: 0 0 12px; font-size: 13px; line-height: 1.45">
+          <p class="notice receber-baixa-notice" style="margin: 0 0 12px; font-size: 13px; line-height: 1.45">
             <strong>Confirmar Pagamento</strong> — registra o recebimento. <strong>Gerar PDF</strong> — confirma e baixa o recibo.
           </p>
           <div class="form-actions" style="flex-wrap: wrap">
@@ -6624,12 +6630,30 @@
         <div class="modal">
           <div class="modal-header">
             <div>
-              <h3>Confirmar exclusão</h3>
-              <p class="subtitle" id="finBatchDeleteSub" style="margin: 4px 0 0">Esta ação não pode ser desfeita.</p>
+              <h3 id="finBatchDeleteTitle">Confirmar</h3>
+              <p class="subtitle" id="finBatchDeleteSub" style="margin: 4px 0 0"></p>
             </div>
             <button type="button" class="modal-close" id="finBatchDeleteClose" aria-label="Fechar">Fechar</button>
           </div>
           <p id="finBatchDeleteMessage" style="margin: 0 0 16px; line-height: 1.5"></p>
+          <div id="finBatchPayFields" class="form-grid hidden" style="margin-bottom: 14px">
+            <div>
+              <label for="finBatchPayData">Data</label>
+              <input id="finBatchPayData" type="date" />
+            </div>
+            <div>
+              <label for="finBatchPayForma">Forma de pagamento</label>
+              <select id="finBatchPayForma">
+                <option value="PIX">PIX</option>
+                <option value="Dinheiro">Dinheiro</option>
+                <option value="Transferência">Transferência</option>
+                <option value="Boleto">Boleto</option>
+                <option value="Cartão Débito">Cartão Débito</option>
+                <option value="Cartão Crédito">Cartão Crédito</option>
+                <option value="Cheque">Cheque</option>
+              </select>
+            </div>
+          </div>
           <div class="form-actions">
             <button type="button" id="finBatchDeleteConfirm">Confirmar</button>
             <button type="button" class="secondary" id="finBatchDeleteCancel">Cancelar</button>
@@ -6879,7 +6903,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260605batch"></script>
+    <script src="/finance-module.js?v=20260605batch3"></script>
     <script src="/finance-dashboard.js?v=202604fin"></script>
     <script src="/patio-dashboard.js?v=202604from"></script>
     <script>
@@ -15350,22 +15374,52 @@
         });
       }
 
-      function openReceberBaixaModal({ receivable, vehicle, valor }) {
+      function setReceberBaixaModalMode(mode) {
+        const isCaixa = mode === "caixa";
+        const titulo = receberBaixaModal?.querySelector("h3");
+        const subtitle = receberBaixaModal?.querySelector(".modal-header .subtitle");
+        if (titulo) titulo.textContent = isCaixa ? "Registrar entrada no caixa" : "Confirmar pagamento";
+        if (subtitle) {
+          subtitle.textContent = isCaixa
+            ? "Conta já recebida — informe data e forma para lançar manualmente no caixa."
+            : "Informe desconto, valor recebido e data do recebimento (pode ser retroativa).";
+        }
+        ["receberBaixaValorOriginal", "receberBaixaDesconto", "receberBaixaValorRecebido", "receberBaixaReciboNome", "receberBaixaReciboDoc"].forEach(
+          (id) => {
+            document.getElementById(id)?.closest("div")?.classList.toggle("hidden", isCaixa);
+          }
+        );
+        receberBaixaModal?.querySelector(".receber-baixa-notice")?.classList.toggle("hidden", isCaixa);
+        document.getElementById("receberBaixaGerarPdf")?.classList.toggle("hidden", isCaixa);
+        const okBtn = document.getElementById("receberBaixaOk");
+        if (okBtn) okBtn.textContent = isCaixa ? "Registrar no caixa" : "PG";
+      }
+
+      function openReceberBaixaModal({ receivable, vehicle, valor, mode = "payment" }) {
         if (!receivable || !receberBaixaModal) return;
         bindReceberBaixaValorFieldsOnce();
         const valorOriginal = Number(valor || receivable.valor || 0);
+        const baixaMode = mode === "caixa" ? "caixa" : "payment";
         pendingBaixaReceber = {
           receivableId: receivable.id,
           valorOriginal,
           receivable,
           vehicle: vehicle || null,
+          mode: baixaMode,
         };
+        setReceberBaixaModalMode(baixaMode);
         const resumo = document.getElementById("receberBaixaResumo");
         if (resumo) {
           const placa = vehicle?.placa || "—";
           const vm = [vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ") || "—";
           const servico = receivableCategoryLabel(receivable.receivable_category);
-          resumo.innerHTML = `<strong>${escapeHtml(financeReceivableDisplayText(receivable) || "Responsável")}</strong><br />
+          resumo.innerHTML =
+            baixaMode === "caixa"
+              ? `<strong>${escapeHtml(financeReceivableDisplayText(receivable) || "Responsável")}</strong><br />
+            ${vehicle ? `Veículo: <strong>${escapeHtml(vm)}</strong> — placa <strong>${escapeHtml(placa)}</strong><br />` : ""}
+            Conta já recebida — informe data e forma para lançar no caixa.<br />
+            Valor: <strong>${escapeHtml(formatCurrency(valorOriginal))}</strong>`
+              : `<strong>${escapeHtml(financeReceivableDisplayText(receivable) || "Responsável")}</strong><br />
             ${vehicle ? `Veículo: <strong>${escapeHtml(vm)}</strong> — placa <strong>${escapeHtml(placa)}</strong><br />` : ""}
             Serviço: <strong>${escapeHtml(servico)}</strong>`;
         }
@@ -15461,6 +15515,20 @@
       async function executeReceberBaixa(mode) {
         const pending = pendingBaixaReceber;
         if (!pending) return;
+        const dataMov = document.getElementById("receberBaixaData")?.value || toLocalYmd(new Date().toISOString());
+        const formaPagamento = document.getElementById("receberBaixaForma")?.value || "PIX";
+        const observacao = (document.getElementById("receberBaixaObs")?.value || "").trim();
+        const anexo = await readFinanceFileInput(document.getElementById("receberBaixaAnexo"));
+        if (pending.mode === "caixa") {
+          closeReceberBaixaModal();
+          await registerReceivableInCaixaManual(pending.receivableId, {
+            dataMovimento: dataMov,
+            formaPagamento,
+            anexo,
+            observacao,
+          });
+          return;
+        }
         let destinatarioNome = "";
         let destinatarioDoc = "";
         if (mode === "pdf") {
@@ -15471,9 +15539,6 @@
             return;
           }
         }
-        const dataMov = document.getElementById("receberBaixaData")?.value || toLocalYmd(new Date().toISOString());
-        const formaPagamento = document.getElementById("receberBaixaForma")?.value || "PIX";
-        let observacao = (document.getElementById("receberBaixaObs")?.value || "").trim();
         const valorOriginal = Number(document.getElementById("receberBaixaValorOriginal")?.value) || pending.valorOriginal || 0;
         const desconto = Math.max(0, Number(document.getElementById("receberBaixaDesconto")?.value) || 0);
         const valorRecebido = Number(document.getElementById("receberBaixaValorRecebido")?.value);
@@ -15481,11 +15546,11 @@
           alert("Informe o valor recebido (pode ser R$ 0,00).");
           return;
         }
+        let obsFinal = observacao;
         if (desconto > 0) {
           const descNote = `Desconto: ${formatCurrency(desconto)} (título ${formatCurrency(valorOriginal)})`;
-          observacao = observacao ? `${observacao} — ${descNote}` : descNote;
+          obsFinal = obsFinal ? `${obsFinal} — ${descNote}` : descNote;
         }
-        const anexo = await readFinanceFileInput(document.getElementById("receberBaixaAnexo"));
         closeReceberBaixaModal();
         let result = null;
         try {
@@ -15493,7 +15558,7 @@
             dataMovimento: dataMov,
             formaPagamento,
             anexo,
-            observacao,
+            observacao: obsFinal,
             desconto,
             valorOriginal,
           });
@@ -15707,6 +15772,7 @@
           valor: totalAtual,
         };
       }
+      window.finalizeReceivablePayment = finalizeReceivablePayment;
 
       async function callRegisterCashReceivableApi(payload = {}) {
         const userId = effectiveUserId();
@@ -15993,6 +16059,7 @@
               : { message: "Não foi possível registrar entrada no caixa." }),
         };
       }
+      window.registerReceivableCashMovement = registerReceivableCashMovement;
 
       function payableCashMovIsSaida(m) {
         const t = String(m?.tipo_conta || "").toUpperCase();
@@ -16241,6 +16308,45 @@
       window.syncPaidPayablesCashMovements = async function syncPaidPayablesCashMovements() {
         return { created: 0, failed: 0, skipped: true };
       };
+
+      async function registerReceivableInCaixaManual(receivableId, opts = {}) {
+        if (!(await requireSupabaseSessionForWrite())) return false;
+        const receivable = state.receivables.find((r) => r.id === receivableId);
+        if (!receivable) {
+          alert("Conta a receber não encontrada.");
+          return false;
+        }
+        if (String(receivable.status || "").toUpperCase() !== "PAGO") {
+          alert("Marque a conta como recebida antes de registrar no caixa.");
+          return false;
+        }
+        if (receivableCashMovementExists(receivableId)) {
+          alert("Esta conta já possui entrada registrada no caixa.");
+          return false;
+        }
+        const dataMov =
+          opts.dataMovimento ||
+          toLocalYmd(receivable.updated_at || receivable.period_end || receivable.created_at || new Date().toISOString());
+        const formaPagamento = opts.formaPagamento || financeReceivableFormaPagamento(receivable);
+        const vehicle = state.vehicles.find((v) => v.id === receivable.vehicle_id);
+        const cashResult = await registerReceivableCashMovement(receivable, {
+          valor: Number(receivable.valor || 0),
+          dataMovimento: dataMov,
+          formaPagamento,
+          vehicle,
+          aprovadoCaixa: true,
+        });
+        if (cashResult.error) {
+          alertSupabaseError(cashResult.error, "Não foi possível registrar a entrada no caixa.");
+          return false;
+        }
+        if (opts.anexo) await financeAttachmentSave("receivable", receivableId, opts.anexo);
+        await Promise.all([loadReceivables(), loadCash()]);
+        updateDashboard();
+        if (typeof renderFinance === "function") renderFinance();
+        return true;
+      }
+      window.registerReceivableInCaixaManual = registerReceivableInCaixaManual;
 
       async function registerPayableInCaixaManual(payableId, opts = {}) {
         if (!(await requireSupabaseSessionForWrite())) return false;
