@@ -22,6 +22,8 @@ const nextConfig = {
     return [
       { source: "/app.html", headers: [...htmlUtf8, ...noStore] },
       { source: "/finance-module.js", headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }] },
+      { source: "/manifest.json", headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }] },
+      { source: "/vendor/:path*", headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }] },
       { source: "/", headers: [...htmlUtf8, ...noStore] },
       { source: "/app", headers: [...htmlUtf8, ...noStore] },
       { source: "/amplipatio", headers: [...htmlUtf8, ...noStore] },
