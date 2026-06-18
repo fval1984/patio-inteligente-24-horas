@@ -5142,42 +5142,6 @@
               </div>
               <div class="card-value" id="cardNfsePendente">0</div>
             </div>
-            <section class="dashboard-charts section-card">
-              <div class="dashboard-charts-head">
-                <h3>Financeiro no tempo</h3>
-                <label>
-                  Período
-                  <select id="dashboardChartPeriod">
-                    <option value="dia">Dia</option>
-                    <option value="semana">Semana</option>
-                    <option value="mes" selected>Mês</option>
-                  </select>
-                </label>
-              </div>
-              <div class="dashboard-charts-grid">
-                <div class="dashboard-chart-card">
-                  <p class="dashboard-chart-title">Fluxo de caixa (entrada vs saída)</p>
-                  <svg id="dashboardCashFlowSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                </div>
-                <div class="dashboard-chart-card">
-                  <p class="dashboard-chart-title">Saldo de caixa (evolução)</p>
-                  <svg id="dashboardBalanceSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                </div>
-                <div class="dashboard-chart-card">
-                  <p class="dashboard-chart-title">Receitas vs despesas</p>
-                  <svg id="dashboardCompareSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                </div>
-                <div class="dashboard-chart-card">
-                  <p class="dashboard-chart-title">Despesas por categoria</p>
-                  <svg id="dashboardExpenseCategorySvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                </div>
-                <div class="dashboard-chart-card">
-                  <p class="dashboard-chart-title">Top clientes</p>
-                  <svg id="dashboardTopClientsSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg>
-                </div>
-                                </div>
-              </div>
-            </section>
             </div>
           </div>
         </div>
@@ -5543,23 +5507,6 @@
 
           <div class="finance-subview" data-finance-subview="dashboard">
             <div class="fin-cards" id="finDashCards"></div>
-            <div class="fin-toolbar">
-              <div>
-                <label for="finChartPeriod">Período dos gráficos</label>
-                <select id="finChartPeriod">
-                  <option value="dia">Diário</option>
-                  <option value="semana">Semanal</option>
-                  <option value="mes" selected>Mensal</option>
-                </select>
-              </div>
-            </div>
-            <div class="fin-charts-grid">
-              <div class="fin-chart-card"><h4>Fluxo de caixa</h4><svg id="finChartFlowSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg></div>
-              <div class="fin-chart-card"><h4>Saldo</h4><svg id="finChartBalanceSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg></div>
-              <div class="fin-chart-card"><h4>Receitas x Despesas</h4><svg id="finChartCompareSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg></div>
-              <div class="fin-chart-card"><h4>Despesas por categoria</h4><svg id="finChartExpenseSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg></div>
-              <div class="fin-chart-card"><h4>Aging</h4><svg id="finChartAgingSvg" class="dashboard-chart-svg" viewBox="0 0 360 130" preserveAspectRatio="none"></svg></div>
-            </div>
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="em_patio">
@@ -5606,18 +5553,6 @@
                     spellcheck="false"
                   />
                 </div>
-                <div>
-                  <label for="finAguardandoPeriodo">Mês (saída)</label>
-                  <input id="finAguardandoPeriodo" name="periodo" type="month" title="Competência pela data de saída do veículo (VRP)" />
-                </div>
-                <div>
-                  <label for="finAguardandoDataDe">Saída de</label>
-                  <input id="finAguardandoDataDe" name="dataDe" type="date" />
-                </div>
-                <div>
-                  <label for="finAguardandoDataAte">Saída até</label>
-                  <input id="finAguardandoDataAte" name="dataAte" type="date" />
-                </div>
                 <div style="align-self: flex-end"><button type="submit" id="finAguardandoPlacaOk">OK</button></div>
                 <div style="align-self: flex-end"><button type="button" class="secondary" id="finAguardandoPlacaClear">Limpar</button></div>
               </form>
@@ -5656,28 +5591,6 @@
                 />
               </div>
               <div style="align-self: flex-end"><button type="button" class="secondary" id="finReceberPlacaClear">Limpar placa</button></div>
-              <div><label for="finFilterBusca">Buscar</label><input id="finFilterBusca" type="search" placeholder="Cliente, descrição, período (ex.: 2026-05)…" /></div>
-              <div><label for="finReceberTipo">Tipo</label>
-                <select id="finReceberTipo">
-                  <option value="">Todos</option>
-                  <option value="unica">Única</option>
-                  <option value="recorrente">Recorrente</option>
-                  <option value="parcelada">Parcelada</option>
-                  <option value="patio">Pátio (VRP)</option>
-                </select>
-              </div>
-              <div><label for="finFilterStatus">Status</label>
-                <select id="finFilterStatus"><option value="">Todos</option><option value="pendente">Pendente</option><option value="atrasado">Atrasado</option></select>
-              </div>
-              <div><label for="finSortReceber">Ordenar</label>
-                <select id="finSortReceber"><option value="vencimento">Vencimento</option><option value="valor">Valor</option><option value="placa">Placa</option></select>
-              </div>
-              <div><label for="finReceberDataDe">Saída de</label><input id="finReceberDataDe" type="date" /></div>
-              <div><label for="finReceberDataAte">Saída até</label><input id="finReceberDataAte" type="date" /></div>
-              <div class="fin-filter-busca-datas" style="flex: 1 1 100%; min-width: min(100%, 320px)">
-                <label for="finReceberDataBusca">Buscar por datas</label>
-                <input id="finReceberDataBusca" type="search" placeholder="Ex.: 15/04/2026 a 01/05/2026" autocomplete="off" />
-              </div>
             </div>
             <p id="finReceberPlateHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
@@ -6695,7 +6608,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=27923ee9"></script>
+    <script src="/finance-module.js?v=20260618ui"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -13261,11 +13174,13 @@
         if (pdSM) pdSM.textContent = String(saidasMes);
 
         const chartPeriodEl = document.getElementById("dashboardChartPeriod");
-        const selectedPeriod = chartPeriodEl?.value || "mes";
-        renderDashboardFinanceCharts(selectedPeriod);
-        if (chartPeriodEl && !chartPeriodEl.dataset.bound) {
-          chartPeriodEl.addEventListener("change", () => renderDashboardFinanceCharts(chartPeriodEl.value || "mes"));
-          chartPeriodEl.dataset.bound = "1";
+        if (chartPeriodEl || document.getElementById("dashboardCashFlowSvg")) {
+          const selectedPeriod = chartPeriodEl?.value || "mes";
+          renderDashboardFinanceCharts(selectedPeriod);
+          if (chartPeriodEl && !chartPeriodEl.dataset.bound) {
+            chartPeriodEl.addEventListener("change", () => renderDashboardFinanceCharts(chartPeriodEl.value || "mes"));
+            chartPeriodEl.dataset.bound = "1";
+          }
         }
       }
 
