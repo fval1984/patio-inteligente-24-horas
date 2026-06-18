@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Limpar cache — Amplipatio</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #0b0d11;
+        color: #e8eaed;
+        max-width: 520px;
+        margin: 40px auto;
+        padding: 24px;
+        line-height: 1.5;
+      }
+      button {
+        margin-top: 16px;
+        padding: 12px 20px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .ok {
+        color: #6ee7a0;
+      }
+      .warn {
+        color: #fbbf24;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Limpar persistência local</h1>
+    <p>Use após restaurar o sistema ao commit <strong>27923ee9</strong>.</p>
+    <p class="warn">Não apaga dados do Supabase — só cache e storage deste navegador.</p>
+    <button type="button" id="btn">Limpar tudo e ir para o app</button>
+    <pre id="log"></pre>
+    <script>
+      const log = (m) => {
+        document.getElementById("log").textContent += m + "\n";
+      };
+      document.getElementById("btn").addEventListener("click", async () => {
+        try {
+          Object.keys(localStorage).forEach((k) => {
+            if (/^amplipatio_/i.test(k) || /^finance_/i.test(k)) localStorage.removeItem(k);
+          });
+          localStorage.removeItem("amplipatio_restore_epoch");
+          sessionStorage.clear();
+          log("localStorage/sessionStorage: ok");
+        } catch (e) {
+          log("storage: " + e.message);
+        }
+        if ("serviceWorker" in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const r of regs) await r.unregister();
+          log("service workers: " + regs.length + " removidos");
+        }
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          for (const k of keys) await caches.delete(k);
+          log("cache API: " + keys.length + " removidos");
+        }
+        if (indexedDB?.databases) {
+          const dbs = await indexedDB.databases();
+          for (const db of dbs) {
+            if (db?.name) indexedDB.deleteDatabase(db.name);
+          }
+          log("indexedDB: " + dbs.length + " bancos");
+        }
+        log("Concluído. Redirecionando…");
+        setTimeout(() => {
+          location.href = "/app.html?restored=27923ee9";
+        }, 800);
+      });
+    </script>
+  </body>
+</html>
