@@ -143,18 +143,19 @@
 
   function patioMetricsStartYmd(vehicles) {
     const first = patioFirstOperationalDay(vehicles);
-    if (!first) return PATIO_METRICS_FROM_YMD;
-    return first > PATIO_METRICS_FROM_YMD ? first : PATIO_METRICS_FROM_YMD;
+    if (!first || first < PATIO_METRICS_FROM_YMD) return PATIO_METRICS_FROM_YMD;
+    return first;
   }
 
-  function vehicleRelevantInMetricsPeriod(vehicle, fromYmd) {
+  function vehicleRelevantInMetricsPeriod(vehicle, fromYmd, lastClosedYmd) {
     if (!vehicle?.data_entrada || !fromYmd) return false;
     const entrada = toLocalYmd(vehicle.data_entrada);
     if (!entrada) return false;
+    if (entrada > lastClosedYmd) return false;
     if (entrada >= fromYmd) return true;
     if (!vehicle.data_saida) return true;
     const saida = toLocalYmd(vehicle.data_saida);
-    return !!(saida && saida >= fromYmd);
+    return !!saida && saida >= fromYmd;
   }
 
   function vehiclesSignature(vehicles) {
@@ -183,16 +184,6 @@
   function avgOf(values) {
     if (!values.length) return 0;
     return values.reduce((a, b) => a + b, 0) / values.length;
-  }
-
-  function vehicleStayDays(vehicle, endYmd) {
-    if (!vehicle?.data_entrada) return 0;
-    const start = toLocalYmd(vehicle.data_entrada);
-    if (!start) return 0;
-    const end = vehicle.data_saida ? toLocalYmd(vehicle.data_saida) : endYmd || todayYmd();
-    if (!end || end < start) return 0;
-    const diff = Math.ceil((ymdToDate(end).getTime() - ymdToDate(start).getTime()) / 86400000);
-    return Math.max(1, diff);
   }
 
   function vehicleStayDaysInPeriod(vehicle, fromYmd, endYmd) {
@@ -236,7 +227,7 @@
     const ops = patioOpsVehicles(vehicles);
     const lastClosed = patioLastClosedDayYmd();
     const metricsFrom = patioMetricsStartYmd(ops);
-    const opsPeriod = ops.filter((v) => vehicleRelevantInMetricsPeriod(v, PATIO_METRICS_FROM_YMD));
+    const opsPeriod = ops.filter((v) => vehicleRelevantInMetricsPeriod(v, PATIO_METRICS_FROM_YMD, lastClosed));
     const empty = {
       hasData: false,
       lastClosed,
@@ -369,7 +360,7 @@
       occupancyTrend,
       occupancySpark,
       occupancyLastClosed,
-      vehicleCount: ops.length,
+      vehicleCount: opsPeriod.length,
       closedDays: closedDays.length,
     };
   }
@@ -474,8 +465,8 @@
     const formatCurrency = ctx?.formatCurrency || ((n) => `R$ ${Number(n || 0).toFixed(2)}`);
     const m = getMetrics(vehicles);
     const footnote = m.hasData
-      ? `Base: ${m.closedDays} dia(s) fechado(s) até ${m.lastClosed?.split("-").reverse().join("/") || "—"}`
-      : "Sem histórico operacional suficiente";
+      ? `Base: ${m.closedDays} dia(s) fechado(s) desde abr/2026 até ${m.lastClosed?.split("-").reverse().join("/") || "—"}`
+      : "Sem histórico operacional desde abr/2026";
 
     if (!m.hasData) {
       el.innerHTML = `<p class="patio-ops-empty">${escapeHtml(footnote)}</p>`;
@@ -493,7 +484,7 @@
         value: m.dailyAvg,
         valueType: "currency",
         formatCurrency,
-        meta: "diárias operacionais / dia fechado",
+        meta: "diárias operacionais / dia fechado (desde abr/2026)",
         trend: m.dailyTrend,
         trendLabel: "vs. 30 dias anteriores",
         compare: "Comparado aos 30 dias fechados anteriores",
@@ -507,7 +498,7 @@
         value: m.weeklyAvg,
         valueType: "currency",
         formatCurrency,
-        meta: "semanas completas no histórico",
+        meta: "semanas completas desde abr/2026",
         trend: m.weeklyTrend,
         trendLabel: "vs. 4 semanas anteriores",
         compare: "Média real por semana fechada (não projetada)",
@@ -521,7 +512,7 @@
         value: m.monthlyAvg,
         valueType: "currency",
         formatCurrency,
-        meta: "meses com dias encerrados",
+        meta: "meses com dias encerrados desde abr/2026",
         trend: m.monthlyTrend,
         trendLabel: "vs. 3 meses anteriores",
         compare: "Soma real por mês / meses analisados",
@@ -536,7 +527,7 @@
         meta: `último dia fechado: ${m.occupancyLastClosed} veículo(s)`,
         trend: m.occupancyTrend,
         trendLabel: "vs. 30 dias anteriores",
-        compare: "Veículos no pátio por dia fechado (média histórica)",
+        compare: "Veículos no pátio por dia fechado (desde abr/2026)",
         spark: m.occupancySpark,
         sparkColor: "#22d3ee",
       }),
@@ -545,11 +536,11 @@
         icon: "stay",
         label: "Tempo médio de permanência",
         value: fmtDays(m.avgStayDays),
-        meta: `${m.vehicleCount} veículo(s) no histórico`,
+        meta: `${m.vehicleCount} veículo(s) desde abr/2026`,
         trend: m.stayTrend,
         invertTrend: true,
         trendLabel: "vs. saídas anteriores",
-        compare: "Entrada → saída (ativos até hoje)",
+        compare: "Permanência contada a partir de abr/2026",
         spark: [],
         sparkColor: "#fbbf24",
       }),
@@ -563,7 +554,7 @@
         meta: `permanência média ${fmtDays(m.avgStayPerVehicle)}`,
         trend: m.perVehicleTrend,
         trendLabel: "entradas recentes vs. anteriores",
-        compare: "Diárias geradas acumuladas ÷ veículos",
+        compare: "Diárias geradas desde abr/2026 ÷ veículos",
         spark: [],
         sparkColor: "#f472b6",
       }),
