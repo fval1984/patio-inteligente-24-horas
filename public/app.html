@@ -4236,6 +4236,10 @@
       .fin-batch-action.hidden {
         display: none;
       }
+      .fin-batch-bar button.fin-batch-action:disabled:not(.hidden) {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
       .finance-subnav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
       .finance-subnav button {
         border: 1px solid var(--border);
@@ -5806,8 +5810,8 @@
               </form>
             </div>
             <p id="finAguardandoPlateHint" class="notice hidden" style="margin: 0 0 10px"></p>
-            <div class="fin-batch-bar">
-              <button type="button" class="secondary fin-batch-action hidden" data-fin-batch-view="aguardando" data-fin-batch-action="promote" data-fin-batch-label="Contas a receber">Contas a receber</button>
+            <div class="fin-batch-bar" aria-label="Ações em lote">
+              <button type="button" class="secondary fin-batch-action" data-fin-batch-view="aguardando" data-fin-batch-action="promote" data-fin-batch-label="Contas a receber" disabled>Contas a receber</button>
               <button type="button" class="secondary fin-batch-delete fin-batch-action hidden" data-fin-batch-view="aguardando" data-fin-batch-action="delete" data-fin-batch-label="Apagar Selecionados">Apagar Selecionados</button>
             </div>
             <p><strong>Total aguardando:</strong> <span id="finAguardandoTotal">R$ 0,00</span></p>
@@ -5845,9 +5849,9 @@
               <div style="align-self: flex-end"><button type="button" class="secondary" id="finReceberPlacaClear">Limpar placa</button></div>
             </div>
             <p id="finReceberPlateHint" class="notice hidden" style="margin: 0 0 10px"></p>
-            <div class="fin-batch-bar">
-              <button type="button" class="secondary fin-batch-action hidden" data-fin-batch-view="receber" data-fin-batch-action="pg" data-fin-batch-label="PG Selecionados">PG Selecionados</button>
-              <button type="button" class="secondary fin-batch-action hidden" data-fin-batch-view="receber" data-fin-batch-action="caixa" data-fin-batch-label="Caixa Selecionados">Caixa Selecionados</button>
+            <div class="fin-batch-bar" aria-label="Ações em lote">
+              <button type="button" class="secondary fin-batch-action" data-fin-batch-view="receber" data-fin-batch-action="pg" data-fin-batch-label="PG Selecionados" disabled>PG Selecionados</button>
+              <button type="button" class="secondary fin-batch-action" data-fin-batch-view="receber" data-fin-batch-action="caixa" data-fin-batch-label="Caixa Selecionados" disabled>Caixa Selecionados</button>
               <button type="button" class="secondary fin-batch-delete fin-batch-action hidden" data-fin-batch-view="receber" data-fin-batch-action="delete" data-fin-batch-label="Apagar Selecionados">Apagar Selecionados</button>
             </div>
             <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
@@ -6903,7 +6907,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260605sel"></script>
+    <script src="/finance-module.js?v=20260605batch4"></script>
     <script src="/finance-dashboard.js?v=202604fin"></script>
     <script src="/patio-dashboard.js?v=202604from"></script>
     <script>
