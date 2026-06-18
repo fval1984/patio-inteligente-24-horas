@@ -3910,6 +3910,122 @@
         color: var(--muted);
         line-height: 1.35;
       }
+      .patio-inicio-ops-section {
+        margin-top: 20px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(148, 163, 184, 0.14);
+      }
+      .patio-inicio-ops-section h4 {
+        margin: 0 0 14px;
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .patio-ops-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+      }
+      .patio-ops-card {
+        border-radius: 16px;
+        padding: 16px 16px 14px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(15, 19, 26, 0.72);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-height: 168px;
+        position: relative;
+        overflow: hidden;
+      }
+      [data-theme="light"] .patio-ops-card {
+        background: rgba(255, 255, 255, 0.96);
+        border-color: rgba(148, 163, 184, 0.28);
+      }
+      .patio-ops-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 3px;
+        opacity: 0.9;
+      }
+      .patio-ops-card--daily::before { background: linear-gradient(90deg, #34d399, #10b981); }
+      .patio-ops-card--weekly::before { background: linear-gradient(90deg, #60a5fa, #3b82f6); }
+      .patio-ops-card--monthly::before { background: linear-gradient(90deg, #a78bfa, #8b5cf6); }
+      .patio-ops-card--stay::before { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+      .patio-ops-card--vehicle::before { background: linear-gradient(90deg, #f472b6, #ec4899); }
+      .patio-ops-card-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 4px;
+      }
+      .patio-ops-card-icon {
+        color: var(--muted);
+        opacity: 0.9;
+      }
+      .patio-ops-card-trend {
+        font-size: 0.72rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .patio-ops-trend--up {
+        color: #34d399;
+        background: rgba(52, 211, 153, 0.12);
+      }
+      .patio-ops-trend--down {
+        color: #f87171;
+        background: rgba(248, 113, 113, 0.12);
+      }
+      .patio-ops-trend--flat {
+        color: var(--muted);
+        background: rgba(148, 163, 184, 0.12);
+      }
+      .patio-ops-card-label {
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .patio-ops-card-value {
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+      }
+      .patio-ops-card-meta,
+      .patio-ops-card-compare {
+        font-size: 0.72rem;
+        color: var(--muted);
+        line-height: 1.35;
+      }
+      .patio-ops-card-spark {
+        margin-top: auto;
+        padding-top: 6px;
+        min-height: 32px;
+      }
+      .patio-ops-spark {
+        display: block;
+        width: 100%;
+        max-width: 88px;
+      }
+      .patio-ops-footnote,
+      .patio-ops-empty {
+        grid-column: 1 / -1;
+        margin: 4px 0 0;
+        font-size: 0.72rem;
+        color: var(--muted);
+        line-height: 1.4;
+      }
       .patio-inicio-actions {
         display: flex;
         flex-wrap: wrap;
@@ -5313,6 +5429,10 @@
                 <span class="value" id="patioDashSaidasMes">0</span>
               </div>
             </div>
+            <section class="patio-inicio-ops-section" aria-label="Indicadores operacionais históricos">
+              <h4>Indicadores operacionais</h4>
+              <div id="patioDashOpsCards" class="patio-ops-cards"></div>
+            </section>
           </div>
           <div id="patioPlateSearchBar">
           <p id="patioPlateSearchHint" class="notice plate-search-hint hidden" style="margin: 6px 0 10px"></p>
@@ -6609,6 +6729,7 @@
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-module.js?v=20260605fin"></script>
+    <script src="/patio-dashboard.js?v=20260605ops"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -13172,6 +13293,10 @@
         if (pdSS) pdSS.textContent = String(saidasSemana);
         if (pdEM) pdEM.textContent = String(entradasMes);
         if (pdSM) pdSM.textContent = String(saidasMes);
+
+        if (typeof window.patioDashboardRender === "function") {
+          window.patioDashboardRender(state.vehicles, { formatCurrency });
+        }
 
         const chartPeriodEl = document.getElementById("dashboardChartPeriod");
         if (chartPeriodEl || document.getElementById("dashboardCashFlowSvg")) {
