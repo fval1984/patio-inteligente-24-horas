@@ -1595,17 +1595,6 @@
       <div class="fin-card fin-card--open"><span class="fin-card-label">Aguardando faturamento</span><strong>${m.aguardandoFaturamento}</strong><small>veículo(s) pós-saída</small></div>
       <div class="fin-card fin-card--today"><span class="fin-card-label">Vencendo hoje</span><strong>${m.venceHoje}</strong><small>${m.proximas} nos próximos 7 dias</small></div>
     `;
-    const period = document.getElementById("finChartPeriod")?.value || "mes";
-    if (typeof renderDashboardFinanceCharts === "function") {
-      renderDashboardFinanceCharts(period, {
-        flow: "finChartFlowSvg",
-        balance: "finChartBalanceSvg",
-        compare: "finChartCompareSvg",
-        expense: "finChartExpenseSvg",
-        clients: "finChartClientsSvg",
-        aging: "finChartAgingSvg",
-      });
-    }
   }
 
   function financeRenderEmPatio() {
@@ -2780,11 +2769,9 @@
         : "";
       const rppNome = financePartnerNomeById(financeFilterCaixaRppId);
       const rppLabel = rppNome ? ` · RPP: ${escapeHtml(rppNome)}` : "";
-      const modoManual = financeOperationalModeActive();
       const saldoOperacional = financeSaldoCaixa();
       summaryEl.innerHTML = `
         <p><strong>${escapeHtml(periodoLabel)}${escapeHtml(tipoLabel)}${placaLabel}${rppLabel}</strong></p>
-        ${modoManual ? `<p class="notice">Caixa operacional pós-migração — apenas pagamentos confirmados manualmente aparecem aqui. Registros antigos estão em <strong>Aguardando faturamento</strong> para triagem.</p>` : ""}
         <p><strong>Entrada (operacional):</strong> <span class="fin-val-entrada">${escapeHtml(formatCurrency(totPeriodo.entradas))}</span></p>
         <p><strong>Saída (operacional):</strong> <span class="fin-val-saida">${escapeHtml(formatCurrency(totPeriodo.saidas))}</span></p>
         <p><strong>Saldo operacional:</strong> <span class="${saldoOperacional >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(saldoOperacional))}</span></p>
@@ -4184,8 +4171,6 @@
     document.getElementById("finReceberRpp")?.addEventListener("change", () => {
       if (currentFinanceView === "receber") financeRenderReceber();
     });
-    document.getElementById("finChartPeriod")?.addEventListener("change", () => financeRenderDashboard());
-
     document.getElementById("finAguardandoPlateForm")?.addEventListener("submit", (e) => {
       e.preventDefault();
       if (currentFinanceView === "aguardando") financeRenderAguardando();
