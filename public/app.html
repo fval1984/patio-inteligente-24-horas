@@ -7200,7 +7200,8 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260605manualrecv"></script>
+    <script src="/finance-persist-audit.js?v=20260605persist"></script>
+    <script src="/finance-module.js?v=20260605persist"></script>
     <script src="/finance-dashboard.js?v=202604fin"></script>
     <script src="/patio-dashboard.js?v=202604from"></script>
     <script src="/partners-dashboard.js?v=20260605partners601"></script>
@@ -7556,16 +7557,56 @@
               },
             };
           }
-          if (error) return { error };
-          const receivableId = inserted?.id;
-          if (receivableId) {
-            insertedIds.push(receivableId);
-            const row = inserted?.id ? inserted : { ...payload, id: receivableId };
-            state.receivables = [
-              row,
-              ...(state.receivables || []).filter((x) => String(x.id) !== String(receivableId)),
-            ];
+          if (error) {
+            window.financePersistAudit?.save?.({
+              ok: false,
+              step: "insert",
+              error: error.message || String(error),
+              payload_summary: { valor: valorParcela, status: payload.status, subcategoria: sub },
+            });
+            return { error };
           }
+          const receivableId = inserted?.id;
+          if (!receivableId) {
+            window.financePersistAudit?.save?.({
+              ok: false,
+              step: "insert_no_id",
+              payload_summary: { valor: valorParcela, status: payload.status },
+            });
+            return { error: { message: "Insert sem ID retornado — verifique RLS/sessão no Supabase." } };
+          }
+          const verified = await verifyReceivableRow(receivableId);
+          if (!verified) {
+            window.financePersistAudit?.save?.({
+              ok: false,
+              step: "verify_after_insert",
+              id: receivableId,
+              user_id: effectiveUserId(),
+            });
+            state.receivables = (state.receivables || []).filter((x) => String(x.id) !== String(receivableId));
+            return {
+              error: {
+                message:
+                  "O lançamento não foi confirmado no banco (sessão, RLS ou user_id). Saia e entre novamente; confira o SQL de diagnóstico.",
+              },
+            };
+          }
+          insertedIds.push(receivableId);
+          const row = verified;
+          state.receivables = [
+            row,
+            ...(state.receivables || []).filter((x) => String(x.id) !== String(receivableId)),
+          ];
+          window.financePersistAudit?.save?.({
+            ok: true,
+            id: receivableId,
+            status: row.status,
+            subcategoria: row.subcategoria,
+            visible_contas_receber:
+              typeof receivableIsContaReceberFinanceiro === "function"
+                ? receivableIsContaReceberFinanceiro(row)
+                : null,
+          });
           if (markPago && receivableId) {
             await supabase.from("cash_movements").insert({
               user_id: effectiveUserId(),
@@ -7576,6 +7617,25 @@
               data_movimento: dataCaixa || data,
               forma_pagamento: formaPagamento,
             });
+          }
+        }
+        if (
+          insertedIds.length &&
+          typeof repairManualReceivablesAprovacao === "function" &&
+          (state.receivables || []).some(
+            (r) =>
+              insertedIds.some((id) => String(id) === String(r.id)) &&
+              receivableIsManualControleReceitas(r) &&
+              receivableFinanceStatus(r) !== "PAGO" &&
+              !receivableIsContaReceberFinanceiro(r)
+          )
+        ) {
+          await repairManualReceivablesAprovacao();
+          for (const id of insertedIds) {
+            const v = await verifyReceivableRow(id);
+            if (!v) continue;
+            const idx = (state.receivables || []).findIndex((x) => String(x.id) === String(id));
+            if (idx >= 0) state.receivables[idx] = v;
           }
         }
         return { id: insertedIds[0], ids: insertedIds };
@@ -9570,6 +9630,18 @@
           if (vrp > 0 && typeof loadCycleClosures === "function") await loadCycleClosures();
           if ((repaired || vrp) && typeof loadCash === "function") await loadCash();
         }
+        window.financePersistAudit?.sync?.({
+          migrated,
+          repaired,
+          lost,
+          vrp,
+          dismissed,
+          bloqueado,
+          manual,
+          ...(typeof window.financePersistAudit?.summarizeReceivables === "function"
+            ? window.financePersistAudit.summarizeReceivables(state.receivables)
+            : {}),
+        });
         return { migrated, repaired, lost, vrp, dismissed, bloqueado, manual };
       }
       window.financeSyncReceivablesIntegrity = financeSyncReceivablesIntegrity;
@@ -9653,8 +9725,25 @@
         );
       }
 
+      /** Título de saída já gravado para este ciclo (vehicles.id + data de saída). */
+      function vehicleClosedReceivableForExit(vehicleId, dataSaida) {
+        const exitYmd = toLocalYmd(dataSaida);
+        if (!vehicleId || !exitYmd) return null;
+        const rows = (state.receivables || []).filter(
+          (r) => String(r.vehicle_id) === String(vehicleId) && toLocalYmd(r.period_end) === exitYmd
+        );
+        if (!rows.length) return null;
+        return [...rows].sort((a, b) => {
+          const ta = new Date(a.created_at || 0).getTime();
+          const tb = new Date(b.created_at || 0).getTime();
+          return tb - ta;
+        })[0];
+      }
+      window.vehicleClosedReceivableForExit = vehicleClosedReceivableForExit;
+
       function vehicleNeedsVrpAguardandoRepair(vehicle) {
         if (String(vehicle?.status || "").toUpperCase() !== "REMOVIDO" || !vehicle?.data_saida) return false;
+        if (vehicleClosedReceivableForExit(vehicle.id, vehicle.data_saida)) return false;
         if (vehicleFinanceiroQuitadoParaSaida(vehicle)) return false;
         if (typeof window.financeIsAguardandoDismissed === "function" && window.financeIsAguardandoDismissed(null, vehicle)) {
           return false;
@@ -9674,7 +9763,7 @@
         );
       }
 
-      async function applyVrpFinanceClosure(vehicleId, liveVehicle, dataSaida, actors = {}) {
+      async function applyVrpFinanceClosure(vehicleId, liveVehicle, dataSaida, actors = {}, opts = {}) {
         const result = {
           ok: false,
           receivableId: null,
@@ -9691,10 +9780,21 @@
         await removeFinanceAguardandoDismissed(vehicleId, dataSaida);
 
         const cycleRec = await findReceivableForVrpRepair(vehicleId, dataSaida);
-        if (cycleRec?.id && receivableFluxoFinanceiroQuitado(cycleRec)) {
-          result.ok = true;
-          result.receivableId = cycleRec.id;
-          return result;
+        const exitYmd = toLocalYmd(dataSaida);
+        if (cycleRec?.id) {
+          if (receivableFluxoFinanceiroQuitado(cycleRec)) {
+            result.ok = true;
+            result.receivableId = cycleRec.id;
+            return result;
+          }
+          /** Ciclo já fechado no financeiro — não recalcular (evita sobrescrever histórico na reentrada da placa). */
+          if (!opts.forceReclosure && exitYmd && toLocalYmd(cycleRec.period_end) === exitYmd) {
+            result.ok = true;
+            result.receivableId = cycleRec.id;
+            result.valorFechamento = Number(cycleRec.valor || 0);
+            result.vrpSemCobranca = !(result.valorFechamento > 0);
+            return result;
+          }
         }
         const hadRemocao = isRemocaoSolicitada(liveVehicle);
         const closedVehicle = { ...liveVehicle, status: "REMOVIDO", data_saida: dataSaida };
@@ -9935,7 +10035,7 @@
       async function repairVrpAguardandoByPlate(plate) {
         const norm = normalizePlateSearch(plate);
         if (!norm) return { ok: false, error: "Informe uma placa válida." };
-        const v = (state.vehicles || []).find((x) => normalizePlateSearch(x.placa) === norm);
+        const v = pickVehicleByPlate(plate, { requireRemoved: true });
         if (!v) return { ok: false, error: `Nenhum veículo encontrado com a placa ${String(plate || "").trim().toUpperCase()}.` };
         if (String(v.status || "").toUpperCase() !== "REMOVIDO" || !v.data_saida) {
           return { ok: false, error: "O veículo precisa estar em VRP (removido) com data de saída para ir ao financeiro." };
@@ -13595,9 +13695,24 @@
           .order("created_at", { ascending: false });
         if (error) {
           logSupabaseLoadError("loadReceivables", error);
+          window.financePersistAudit?.load?.({
+            ok: false,
+            user_id: uid,
+            error: error.message || String(error),
+          });
           return;
         }
         state.receivables = data || [];
+        const summary =
+          typeof window.financePersistAudit?.summarizeReceivables === "function"
+            ? window.financePersistAudit.summarizeReceivables(state.receivables)
+            : { total: (data || []).length };
+        window.financePersistAudit?.load?.({
+          ok: true,
+          user_id: uid,
+          rows: summary.total,
+          ...summary,
+        });
         maybeRefreshListaPanel();
       }
 
@@ -14281,6 +14396,60 @@
           return String(b.id || "").localeCompare(String(a.id || ""), "pt-BR");
         })[0];
       }
+
+      /** Todos os ciclos (registos vehicles) com a mesma placa — mais recente primeiro. */
+      function findVehiclesByPlateNorm(norm) {
+        if (!norm) return [];
+        return (state.vehicles || [])
+          .filter((v) => normalizePlateSearch(v.placa) === norm)
+          .sort((a, b) => vehiclePlateSearchActivityTs(b) - vehiclePlateSearchActivityTs(a));
+      }
+
+      function findVehiclesByPlate(plate) {
+        return findVehiclesByPlateNorm(normalizePlateSearch(plate));
+      }
+
+      /**
+       * Resolve um único veículo pela placa — nunca usar .find() direto (há vários ciclos por placa).
+       * Cada vehicles.id = um ciclo/atendimento independente.
+       */
+      function pickVehicleByPlate(plate, opts = {}) {
+        const norm = normalizePlateSearch(plate);
+        let matches = findVehiclesByPlateNorm(norm);
+        if (!matches.length) return null;
+        if (opts.vehicleId) {
+          const exact = matches.find((v) => String(v.id) === String(opts.vehicleId));
+          if (exact) return exact;
+        }
+        if (opts.requireRemoved) {
+          const removidos = matches.filter(
+            (v) => String(v.status || "").toUpperCase() === "REMOVIDO" && v.data_saida
+          );
+          if (removidos.length) matches = removidos;
+          else return null;
+        }
+        if (opts.requireOnPatio) {
+          const ativos = matches.filter((v) => vehiclePlacaBloqueiaNovoCadastro(v));
+          if (ativos.length) matches = ativos;
+          else return null;
+        }
+        const prefer = (opts.preferStatuses || []).map((s) => String(s).toUpperCase());
+        if (opts.preferStatus) prefer.unshift(String(opts.preferStatus).toUpperCase());
+        if (prefer.length) {
+          const preferred = matches.filter((v) => prefer.includes(String(v.status || "").toUpperCase()));
+          if (preferred.length) matches = preferred;
+        }
+        const req = opts.requireStatus ? String(opts.requireStatus).toUpperCase() : "";
+        if (req) {
+          const required = matches.filter((v) => String(v.status || "").toUpperCase() === req);
+          if (!required.length) return null;
+          matches = required;
+        }
+        return pickMostRecentPlateVehicle(matches);
+      }
+      window.findVehiclesByPlate = findVehiclesByPlate;
+      window.findVehiclesByPlateNorm = findVehiclesByPlateNorm;
+      window.pickVehicleByPlate = pickVehicleByPlate;
 
       function resolvePlateSearchSubview(v) {
         if (!v) return "no_patio";
