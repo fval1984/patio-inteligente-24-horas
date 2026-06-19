@@ -117,7 +117,7 @@
     const c = (data?.cash || []).length;
     const lastP = (data?.partners || [])[0]?.updated_at || (data?.partners || [])[0]?.created_at || "";
     const lastV = (data?.vehicles || [])[0]?.updated_at || "";
-    return `${p}:${v}:${r}:${c}:${lastP}:${lastV}:${_filterPeriod}:${_filterPartnerId}:${_filterCustomDe}:${_filterCustomAte}`;
+    return `${p}:${v}:${r}:${c}:${lastP}:${lastV}:${_filterPeriod}:${_filterPartnerId}:${_filterCustomDe}:${_filterCustomAte}:v4`;
   }
 
   function activePartners(partners) {
@@ -152,11 +152,6 @@
     return Math.max(0, Number(m?.valor || 0));
   }
 
-  function cashIsReceberEntrada(m) {
-    const t = String(m?.tipo_conta || "").toUpperCase();
-    return t === "RECEBER" || t === "ENTRADA";
-  }
-
   function partnerVehicleEntryYmd(v) {
     return toLocalYmd(v?.data_entrada || v?.created_at);
   }
@@ -167,43 +162,108 @@
     return current;
   }
 
+  function dedupeCash(list) {
+    if (typeof global.financeDedupeCaixaMovs === "function") {
+      return global.financeDedupeCaixaMovs(list || []);
+    }
+    return list || [];
+  }
+
+  function dedupeReceivables(list) {
+    if (typeof global.financeDedupePatioReceivables === "function") {
+      return global.financeDedupePatioReceivables(list || []);
+    }
+    return list || [];
+  }
+
+  function vehicleRemoved(v) {
+    return String(v?.status || "").toUpperCase() === "REMOVIDO";
+  }
+
+  /** Um faturamento por veículo (evita títulos/sync duplicados no mesmo RPV). */
+  function partnerRevenueCycleKey(vehicleId) {
+    return String(vehicleId);
+  }
+
+  function initPartnerBucket(byPartner, p) {
+    byPartner.set(String(p.id), {
+      id: p.id,
+      nome: p.nome || "Parceiro",
+      vehicles: 0,
+      revenue: 0,
+      revenueVehicles: 0,
+      cycleRevenue: new Map(),
+      lastActivityYmd: null,
+      createdAt: toLocalYmd(p.created_at),
+    });
+  }
+
+  function addPartnerCycleRevenue(bucket, cycleKey, amount, activityYmd) {
+    const val = Math.max(0, Number(amount || 0));
+    if (!val || !cycleKey) return;
+    const prev = bucket.cycleRevenue.get(cycleKey);
+    // Em duplicatas do mesmo veículo, usa o menor valor (corrige títulos inflados no caixa).
+    bucket.cycleRevenue.set(cycleKey, prev == null ? val : Math.min(prev, val));
+    bucket.lastActivityYmd = updateLastYmd(bucket.lastActivityYmd, activityYmd);
+  }
+
+  function finalizePartnerBuckets(byPartner) {
+    return [...byPartner.values()].map((row) => {
+      const cycles = row.cycleRevenue ? [...row.cycleRevenue.values()] : [];
+      const revenue = cycles.reduce((acc, n) => acc + n, 0);
+      const revenueVehicles = row.cycleRevenue ? row.cycleRevenue.size : 0;
+      const denom = revenueVehicles > 0 ? revenueVehicles : row.vehicles;
+      return {
+        id: row.id,
+        nome: row.nome,
+        vehicles: row.vehicles,
+        revenue,
+        revenueVehicles,
+        lastActivityYmd: row.lastActivityYmd,
+        createdAt: row.createdAt,
+        ticket: denom > 0 ? revenue / denom : 0,
+        conversion: denom > 0 ? revenue / denom : 0,
+      };
+    });
+  }
+
   function buildPartnerAggregates(data, range, partnerFilterId) {
     const partners = activePartners(data.partners);
     const vehMap = vehicleMaps(data.vehicles);
-    const recMap = receivableMaps(data.receivables);
-    const cash = data.cash || [];
+    const recMap = receivableMaps(dedupeReceivables(data.receivables));
+    const cash = dedupeCash(data.cash);
 
     const byPartner = new Map();
     for (const p of partners) {
-      byPartner.set(String(p.id), {
-        id: p.id,
-        nome: p.nome || "Parceiro",
-        vehicles: 0,
-        revenue: 0,
-        lastActivityYmd: null,
-        createdAt: toLocalYmd(p.created_at),
-      });
+      initPartnerBucket(byPartner, p);
     }
 
-    const cashByReceivable = new Set();
+    // Faturamento real: somente entradas RECEBER no caixa (valor do movimento), veículo REMOVIDO.
+    // Igual ao ranking legado «Top retorno financeiro» — sem fallback inflado em receivable.valor.
     for (const m of cash) {
-      if (!cashIsReceberEntrada(m) || !m?.conta_id) continue;
-      const ymd = toLocalYmd(m.data_movimento || m.created_at);
+      if (String(m?.tipo_conta || "").toUpperCase() !== "RECEBER") continue;
+      if (m?.conta_id == null || m.conta_id === "") continue;
+
       const rec = recMap.get(String(m.conta_id));
       if (!rec?.vehicle_id) continue;
       const v = vehMap.get(String(rec.vehicle_id));
-      if (!v?.localizador_id) continue;
+      if (!v?.localizador_id || !vehicleRemoved(v)) continue;
+
       const pid = String(v.localizador_id);
       if (!byPartner.has(pid)) continue;
       if (partnerFilterId && pid !== String(partnerFilterId)) continue;
 
-      const bucket = byPartner.get(pid);
-      bucket.lastActivityYmd = updateLastYmd(bucket.lastActivityYmd, ymd);
+      const ymd = toLocalYmd(m.data_movimento || m.created_at);
+      if (!ymd || !inRange(ymd, range.from, range.to)) continue;
 
-      if (inRange(ymd, range.from, range.to)) {
-        bucket.revenue += cashValor(m);
-      }
-      cashByReceivable.add(String(m.conta_id));
+      const rawVal = Number(m.valor ?? 0);
+      if (!Number.isFinite(rawVal) || rawVal <= 0) continue;
+      const recVal = receivableValor(rec);
+      const val = recVal > 0 ? Math.min(rawVal, recVal) : rawVal;
+      if (val <= 0) continue;
+
+      const cycleKey = partnerRevenueCycleKey(v.id);
+      addPartnerCycleRevenue(byPartner.get(pid), cycleKey, val, ymd);
     }
 
     for (const v of data.vehicles || []) {
@@ -222,29 +282,7 @@
       }
     }
 
-    for (const r of data.receivables || []) {
-      if (!r?.vehicle_id || cashByReceivable.has(String(r.id))) continue;
-      const v = vehMap.get(String(r.vehicle_id));
-      if (!v?.localizador_id) continue;
-      const pid = String(v.localizador_id);
-      if (!byPartner.has(pid)) continue;
-      if (partnerFilterId && pid !== String(partnerFilterId)) continue;
-
-      const ymd = receivableFaturamentoYmd(r, v);
-      if (!ymd || !inRange(ymd, range.from, range.to)) continue;
-      const st = String(r.status || "").toUpperCase();
-      if (st !== "PAGO" && receivableValor(r) <= 0) continue;
-      if (st === "PAGO" || r.financeiro_aprovado_contas_receber === true || receivableValor(r) > 0) {
-        byPartner.get(pid).revenue += receivableValor(r);
-        byPartner.get(pid).lastActivityYmd = updateLastYmd(byPartner.get(pid).lastActivityYmd, ymd);
-      }
-    }
-
-    return [...byPartner.values()].map((row) => ({
-      ...row,
-      ticket: row.vehicles > 0 ? row.revenue / row.vehicles : 0,
-      conversion: row.vehicles > 0 ? row.revenue / row.vehicles : 0,
-    }));
+    return finalizePartnerBuckets(byPartner);
   }
 
   function sumRows(rows, field) {
@@ -328,7 +366,7 @@
     const rankedVehicles = [...rows].sort((a, b) => b.vehicles - a.vehicles);
     const rankedActive = [...rows].sort((a, b) => b.vehicles + b.revenue - (a.vehicles + a.revenue));
     const rankedConversion = [...rows]
-      .filter((r) => r.vehicles > 0)
+      .filter((r) => r.revenue > 0 && r.revenueVehicles > 0)
       .sort((a, b) => b.conversion - a.conversion);
 
     const inactive = partners
@@ -755,10 +793,12 @@
         value: m.rankedConversion[0]?.conversion || 0,
         valueType: "currency",
         formatCurrency,
-        meta: m.rankedConversion[0]?.nome || "R$ / veículo",
+        meta: m.rankedConversion[0]
+          ? `${m.rankedConversion[0].nome} · ${formatCurrency(m.rankedConversion[0].revenue)} faturado`
+          : "R$ / veículo recebido",
         trend: m.ticketTrend,
-        trendLabel: "melhor retorno proporcional",
-        compare: "Faturado ÷ quantidade de veículos",
+        trendLabel: "ticket médio no período",
+        compare: "Faturamento recebido ÷ veículos com receita",
         spark: m.ticketSpark,
         sparkColor: "#fbbf24",
         detailKey: "conversion",
