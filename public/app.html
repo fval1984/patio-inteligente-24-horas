@@ -4567,6 +4567,178 @@
         #partnerDashCards { grid-template-columns: 1fr; }
         .partner-dash-grid { grid-template-columns: 1fr; }
       }
+      /* Dashboard Geral — central inteligente */
+      .hub-dash-filters { margin-bottom: 16px; }
+      .hub-dash-alerts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+      .hub-alert {
+        display: inline-flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        font-size: 0.82rem;
+        cursor: pointer;
+        text-align: left;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      .hub-alert:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+      .hub-alert--ok { border-color: rgba(52,211,153,0.35); color: #34d399; cursor: default; }
+      .hub-alert--info { border-color: rgba(96,165,250,0.35); }
+      .hub-alert--warn { border-color: rgba(251,191,36,0.45); background: rgba(251,191,36,0.06); }
+      .hub-alert--danger { border-color: rgba(248,113,113,0.45); background: rgba(248,113,113,0.08); }
+      .hub-alert-body { display: flex; flex-direction: column; gap: 2px; }
+      .hub-alert-body strong { font-size: 0.85rem; }
+      .hub-alert-body small { color: var(--muted); font-size: 0.75rem; }
+      .hub-dash-section { margin-bottom: 22px; }
+      .hub-dash-section-title {
+        margin: 0 0 12px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .hub-ops-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 14px;
+      }
+      .hub-ops-card {
+        border-radius: 16px;
+        padding: 16px 16px 14px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-height: 156px;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      }
+      .hub-ops-card--clickable { cursor: pointer; }
+      .hub-ops-card--clickable:hover,
+      .hub-ops-card--clickable:focus-visible {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+        border-color: rgba(96,165,250,0.45);
+        outline: none;
+      }
+      .hub-ops-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 3px;
+        opacity: 0.9;
+      }
+      .hub-ops-card--recv::before { background: linear-gradient(90deg, #fb923c, #f97316); }
+      .hub-ops-card--pay::before { background: linear-gradient(90deg, #f87171, #ef4444); }
+      .hub-ops-card--wait::before { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+      .hub-ops-card--month::before { background: linear-gradient(90deg, #a78bfa, #8b5cf6); }
+      .hub-ops-card--ticket::before, .hub-ops-card--ticket-p::before { background: linear-gradient(90deg, #f472b6, #ec4899); }
+      .hub-ops-card--profit::before { background: linear-gradient(90deg, #4ade80, #22c55e); }
+      .hub-ops-card--pending-recv::before { background: linear-gradient(90deg, #fdba74, #fb923c); }
+      .hub-ops-card--pending-pay::before { background: linear-gradient(90deg, #fca5a5, #f87171); }
+      .hub-ops-card--vnp::before, .hub-ops-card--in::before { background: linear-gradient(90deg, #34d399, #10b981); }
+      .hub-ops-card--out::before, .hub-ops-card--done::before { background: linear-gradient(90deg, #60a5fa, #3b82f6); }
+      .hub-ops-card--stay::before { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+      .hub-ops-card--status::before, .hub-ops-card--vlp::before { background: linear-gradient(90deg, #22d3ee, #06b6d4); }
+      .hub-ops-card--occupancy::before { background: linear-gradient(90deg, #38bdf8, #0ea5e9); }
+      .hub-ops-card--partners::before { background: linear-gradient(90deg, #a78bfa, #8b5cf6); }
+      .hub-ops-card--active::before { background: linear-gradient(90deg, #34d399, #10b981); }
+      .hub-ops-card--rev-top::before { background: linear-gradient(90deg, #60a5fa, #3b82f6); }
+      .hub-ops-card--veh-top::before { background: linear-gradient(90deg, #22d3ee, #06b6d4); }
+      .hub-ops-card--idle::before { background: linear-gradient(90deg, #f87171, #ef4444); }
+      .hub-ops-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+      .hub-ops-card-icon { color: var(--muted); opacity: 0.9; }
+      .hub-ops-card-trend {
+        font-size: 0.72rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: rgba(148,163,184,0.12);
+      }
+      .hub-ops-trend--up { color: #34d399; }
+      .hub-ops-trend--down { color: #f87171; }
+      .hub-ops-trend--flat { color: var(--muted); }
+      .hub-ops-card-label {
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .hub-ops-card-value {
+        font-size: 1.28rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+      }
+      .hub-ops-card-meta, .hub-ops-card-compare { font-size: 0.72rem; color: var(--muted); line-height: 1.35; }
+      .hub-ops-card-spark { margin-top: auto; padding-top: 6px; min-height: 32px; }
+      .hub-dash-charts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 14px;
+        margin-bottom: 22px;
+      }
+      .hub-chart-panel { padding: 16px; }
+      .hub-chart-panel h4 { margin: 0 0 12px; font-size: 0.95rem; }
+      .hub-chart { color: var(--muted); max-width: 100%; display: block; }
+      .hub-chart-empty { font-size: 0.82rem; color: var(--muted); margin: 0; }
+      .hub-dash-rankings {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 14px;
+        margin-bottom: 8px;
+      }
+      .hub-rank-panel { padding: 16px; }
+      .hub-rank-panel h4 { margin: 0 0 10px; font-size: 0.92rem; }
+      .hub-rank-list { list-style: none; margin: 0; padding: 0; }
+      .hub-rank-item {
+        display: grid;
+        grid-template-columns: 28px 1fr auto;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(148,163,184,0.1);
+        font-size: 0.84rem;
+      }
+      .hub-rank-item:last-child { border-bottom: none; }
+      .hub-rank-pos {
+        font-weight: 800;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+      .hub-rank-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .hub-rank-val { font-weight: 700; font-size: 0.8rem; color: var(--muted); }
+      .hub-rank-empty { font-size: 0.82rem; color: var(--muted); margin: 0; }
+      .hub-growth-list { list-style: none; margin: 0; padding: 0; }
+      .hub-growth-list li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(148,163,184,0.1);
+        font-size: 0.84rem;
+      }
+      .hub-growth-list li:last-child { border-bottom: none; }
+      .hub-ops-footnote { margin: 10px 0 0; font-size: 0.72rem; color: var(--muted); }
+      .hub-dash-legacy-hidden { display: none !important; }
+      @media (max-width: 640px) {
+        .hub-ops-cards { grid-template-columns: 1fr; }
+        .hub-dash-charts, .hub-dash-rankings { grid-template-columns: 1fr; }
+      }
       .fin-ops-spark { display: block; max-width: 88px; }
       .fin-ops-footnote {
         grid-column: 1 / -1;
@@ -5447,133 +5619,45 @@
         <button type="button" id="logoutBtn" class="hidden" aria-hidden="true" tabindex="-1">Sair</button>
 
         <div id="viewDashboard" class="panel dashboard-shell">
-          <div class="grid">
-            <div class="card clickable dashboard-stat-card dashboard-stat--vnp" id="cardVeiculosLink">
-              <div class="card-head">
-                <span class="card-title">Veículos no pátio</span>
-                <span class="icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M3 13l2-5a3 3 0 012.8-2h8.4a3 3 0 012.8 2l2 5M5 13h14M7 17a2 2 0 104 0m6 0a2 2 0 104 0"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </span>
-              </div>
-              <div class="card-value" id="cardVeiculos">0</div>
+          <div class="dashboard-toolbar">
+            <div>
+              <p class="dashboard-kicker">AmpliPátio</p>
+              <h2>Central inteligente</h2>
+              <p class="dashboard-subtitle">Visão executiva unificada — Financeiro, Pátio e Parceiros em tempo real.</p>
             </div>
-            <div class="card clickable dashboard-stat-card dashboard-stat--release" id="cardSolicitadasLink">
-              <div class="card-head">
-                <span class="card-title">Entraram no mês</span>
-                <span class="icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M12 3v6l4 2M6 8h3M6 12h3M6 16h3M14 15l2 2 4-4"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </span>
-              </div>
-              <div class="card-value" id="cardSolicitadas">0</div>
-            </div>
-            <div class="card clickable dashboard-stat-card dashboard-stat--entries" id="cardEntradasHojeLink">
-              <div class="card-head">
-                <span class="card-title">Saíram no mês</span>
-                <span class="icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M12 20V4M12 4l-4 4m4-4l4 4M5 20h14"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </span>
-              </div>
-              <div class="card-value" id="cardEntradasHoje">0</div>
-              <div class="dashboard-stat-meta" id="cardEntradasHojeMeta">Mês atual</div>
-            </div>
-            <div class="card clickable dashboard-stat-card dashboard-stat--exits" id="cardSaidasHojeLink">
-              <div class="card-head">
-                <span class="card-title">Entraram na semana</span>
-                <span class="icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M12 4v16M12 20l-4-4m4 4l4-4M5 4h14"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </span>
-              </div>
-              <div class="card-value" id="cardSaidasHoje">0</div>
-              <div class="dashboard-stat-meta" id="cardSaidasHojeMeta">Semana atual</div>
-            </div>
-            <div class="card clickable dashboard-stat-card dashboard-stat--entries" id="cardSaidasSemanaLink">
-              <div class="card-head">
-                <span class="card-title">Saíram na semana</span>
-                <span class="icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M12 20V4M12 4l-4 4m4-4l4 4M5 20h14"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </span>
-              </div>
-              <div class="card-value" id="cardSaidasSemana">0</div>
-              <div class="dashboard-stat-meta" id="cardSaidasSemanaMeta">Semana atual</div>
-            </div>
-            <div class="card clickable dashboard-stat-card dashboard-stat--exits" id="cardVrpLink">
-              <div class="card-head">
-                <span class="card-title">Entraram no dia</span>
-                <span class="icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M12 4v16M12 20l-4-4m4 4l4-4M5 4h14"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </span>
-              </div>
-              <div class="card-value" id="cardVrp">0</div>
-            </div>
-            <div class="card clickable dashboard-stat-card dashboard-stat--release" id="cardNfsePendenteLink">
-              <div class="card-head">
-                <span class="card-title">Saíram no dia</span>
-                <span class="icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M7 3h8l4 4v14H7V3zM11 3v4h4M9 12h6M9 16h4"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </span>
-              </div>
-              <div class="card-value" id="cardNfsePendente">0</div>
-            </div>
-            </div>
+            <span class="pill pill--premium">Dashboard geral</span>
           </div>
-        </div>
-        </div>
+          <div class="filter-bar hub-dash-filters">
+            <label for="hubDashFilterPeriod">Período</label>
+            <select id="hubDashFilterPeriod" title="Período global">
+              <option value="today">Hoje</option>
+              <option value="7d">Últimos 7 dias</option>
+              <option value="30d" selected>Últimos 30 dias</option>
+              <option value="month">Mês atual</option>
+              <option value="year">Ano atual</option>
+            </select>
+            <label for="hubDashFilterPartner">Parceiro</label>
+            <select id="hubDashFilterPartner"><option value="">Todos</option></select>
+            <label for="hubDashFilterStatus">Status veículo</label>
+            <select id="hubDashFilterStatus">
+              <option value="">Todos</option>
+              <option value="no_patio">No pátio (VNP)</option>
+              <option value="vlp">Liberação (VLP)</option>
+              <option value="removido">Removidos (VRP)</option>
+            </select>
+            <label for="hubDashFilterSearch">Busca rápida</label>
+            <input type="search" id="hubDashFilterSearch" placeholder="Placa, parceiro, valor…" autocomplete="off" />
+          </div>
+          <div id="hubDashAlerts" class="hub-dash-alerts" aria-live="polite"></div>
+          <div id="hubDashRoot"></div>
+          <div class="hub-dash-legacy-hidden" aria-hidden="true" hidden>
+            <span id="cardVeiculos">0</span>
+            <span id="cardSolicitadas">0</span>
+            <span id="cardEntradasHoje">0</span>
+            <span id="cardSaidasHoje">0</span>
+            <span id="cardSaidasSemana">0</span>
+            <span id="cardVrp">0</span>
+            <span id="cardNfsePendente">0</span>
           </div>
         </div>
 
@@ -6103,7 +6187,9 @@
               <div><label for="finPagarPeriodoAte">Até</label><input id="finPagarPeriodoAte" type="date" /></div>
             </div>
             <div class="fin-alert-row" id="finPagarAlerts"></div>
-            <div class="fin-batch-bar">
+            <div class="fin-batch-bar" aria-label="Ações em lote">
+              <button type="button" class="secondary fin-batch-action" data-fin-batch-view="pagar" data-fin-batch-action="pg" data-fin-batch-label="PG Selecionados" disabled>PG Selecionados</button>
+              <button type="button" class="secondary fin-batch-action" data-fin-batch-view="pagar" data-fin-batch-action="caixa" data-fin-batch-label="Caixa Selecionados" disabled>Caixa Selecionados</button>
               <button type="button" class="secondary fin-batch-delete fin-batch-action hidden" data-fin-batch-view="pagar" data-fin-batch-action="delete" data-fin-batch-label="Apagar Selecionados">Apagar Selecionados</button>
             </div>
             <p><strong>Total a pagar (abertas):</strong> <span id="finPagarTotal">R$ 0,00</span></p>
@@ -7114,10 +7200,11 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260605aguardando"></script>
+    <script src="/finance-module.js?v=20260605pagarbatch"></script>
     <script src="/finance-dashboard.js?v=202604fin"></script>
     <script src="/patio-dashboard.js?v=202604from"></script>
-    <script src="/partners-dashboard.js?v=20260605partners600b"></script>
+    <script src="/partners-dashboard.js?v=20260605partners601"></script>
+    <script src="/amplipatio-dashboard.js?v=20260605hub"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -14027,6 +14114,24 @@
         const elNfse = document.getElementById("cardNfsePendente");
         if (elVrp) elVrp.textContent = String(entradasHoje);
         if (elNfse) elNfse.textContent = String(saidasHoje);
+
+        if (
+          !document.getElementById("viewDashboard")?.classList.contains("hidden") &&
+          typeof window.amplipatioDashboardRender === "function"
+        ) {
+          window.amplipatioDashboardRender(
+            {
+              vehicles: state.vehicles,
+              partners: state.partners,
+              receivables: state.receivables,
+              payables: state.payables,
+              cash: state.cash,
+              settings: state.settings,
+            },
+            { formatCurrency }
+          );
+        }
+
         const pdVnp = document.getElementById("patioDashVnp");
         const pdVlp = document.getElementById("patioDashVlp");
         const pdED = document.getElementById("patioDashEntradasDia");
@@ -19480,6 +19585,7 @@
       setFinanceView("none");
       setPartnerView("none");
       if (typeof window.partnersDashboardInit === "function") window.partnersDashboardInit();
+      if (typeof window.amplipatioDashboardInit === "function") window.amplipatioDashboardInit();
       syncHeaderMenuHighlightFromDom();
     </script>
   </body>
