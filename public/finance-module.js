@@ -771,9 +771,16 @@
   async function financeBatchDeleteReceber(ids) {
     const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
     if (!uid || !ids.length) return { ok: false, error: "Usuário não autenticado." };
+    window.financePersistAudit?.delete?.({ ids, count: ids.length, view: "receber" });
     await financeDeleteCashForReceivableIds(ids);
     const runDel = () => supabase.from("receivables").delete().in("id", ids).eq("user_id", uid);
     const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runDel) : await runDel();
+    window.financePersistAudit?.delete?.({
+      ids,
+      ok: !error,
+      error: error?.message || null,
+      view: "receber_batch_done",
+    });
     if (error) return { ok: false, supabaseError: error };
     return { ok: true };
   }
@@ -3489,6 +3496,12 @@
     }
     const write = () => supabase.from("receivables").update(patch).eq("id", rec.id).eq("user_id", uid);
     const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
+    window.financePersistAudit?.edit?.({
+      id: rec.id,
+      ok: !error,
+      patch_keys: Object.keys(patch),
+      error: error?.message || null,
+    });
     if (error) return typeof alertSupabaseError === "function" ? alertSupabaseError(error, "Não foi possível editar a conta a receber.") : alert(error.message);
     await financeReloadAfterAction();
   }
@@ -3500,9 +3513,16 @@
     if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
     const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
     if (!uid) return;
+    window.financePersistAudit?.delete?.({ ids: [rec.id], count: 1, view: "receber_single" });
     await financeDeleteCashForReceivableClient(rec.id);
     const write = () => supabase.from("receivables").delete().eq("id", rec.id).eq("user_id", uid);
     const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
+    window.financePersistAudit?.delete?.({
+      ids: [rec.id],
+      ok: !error,
+      error: error?.message || null,
+      view: "receber_single_done",
+    });
     if (error) return typeof alertSupabaseError === "function" ? alertSupabaseError(error, "Não foi possível apagar a conta a receber.") : alert(error.message);
     await financeReloadAfterAction();
   }
