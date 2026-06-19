@@ -7200,7 +7200,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260605pagarbatch"></script>
+    <script src="/finance-module.js?v=20260605manualrecv"></script>
     <script src="/finance-dashboard.js?v=202604fin"></script>
     <script src="/patio-dashboard.js?v=202604from"></script>
     <script src="/partners-dashboard.js?v=20260605partners601"></script>
@@ -7522,6 +7522,7 @@
           const payload = {
             user_id: effectiveUserId(),
             vehicle_id: null,
+            observacoes: obsPacked,
             responsavel_pagamento: obsPacked || origemLabel || descLabel || "—",
             receivable_category: categoria,
             valor: valorParcela,
@@ -7533,15 +7534,18 @@
             patio_liberado_financeiro: true,
           };
           let { data: inserted, error } = await runSupabaseWrite(() =>
-            supabase.from("receivables").insert(payload).select("id").single()
+            supabase.from("receivables").insert(payload).select("*").single()
           );
           if (error && supabaseSchemaColumnError(error)) {
             const fallback = { ...payload };
             delete fallback.patio_liberado_financeiro;
             delete fallback.financeiro_aprovado_contas_receber;
             delete fallback.subcategoria;
+            if (supabaseSchemaColumnError(error) && /observacoes/i.test(error.message || "")) {
+              delete fallback.observacoes;
+            }
             ({ data: inserted, error } = await runSupabaseWrite(() =>
-              supabase.from("receivables").insert(fallback).select("id").single()
+              supabase.from("receivables").insert(fallback).select("*").single()
             ));
           }
           if (error && supabaseVehicleIdRequiredError(error)) {
@@ -7554,7 +7558,14 @@
           }
           if (error) return { error };
           const receivableId = inserted?.id;
-          if (receivableId) insertedIds.push(receivableId);
+          if (receivableId) {
+            insertedIds.push(receivableId);
+            const row = inserted?.id ? inserted : { ...payload, id: receivableId };
+            state.receivables = [
+              row,
+              ...(state.receivables || []).filter((x) => String(x.id) !== String(receivableId)),
+            ];
+          }
           if (markPago && receivableId) {
             await supabase.from("cash_movements").insert({
               user_id: effectiveUserId(),
@@ -8298,6 +8309,20 @@
         return r.vehicle_id == null || r.vehicle_id === "";
       }
 
+      /** Receita lançada em + Nova receita / Controle de receitas (sem fluxo de triagem do pátio). */
+      function receivableIsManualControleReceitas(r) {
+        if (!r) return false;
+        const meta = receivableObservacoesMeta(r);
+        if (meta.origem_modulo === "CONTROLE_RECEITAS") return true;
+        if (meta.gerou_compromisso === true && !r.vehicle_id) return true;
+        return isManualFinanceLancamento(r);
+      }
+      window.receivableIsManualControleReceitas = receivableIsManualControleReceitas;
+
+      function receivableFinanceStatus(r) {
+        return String(r?.status || "").trim().toUpperCase();
+      }
+
 
       const RECEIVABLE_AGUARDANDO_LANCAMENTO = "AGUARDANDO_LANCAMENTO";
       const RECEIVABLE_AGUARDANDO_FATURAMENTO = RECEIVABLE_AGUARDANDO_LANCAMENTO;
@@ -8394,15 +8419,14 @@
       window.financeMetaUnpack = financeMetaUnpack;
 
       function receivablePackObservacoesMeta(r, metaExtra = {}) {
-        const raw = r?.observacoes || r?.responsavel_pagamento || "";
+        const raw = financeReceivableMetaRaw(r);
         const { meta, text } = financeMetaUnpack(raw);
         return financeMetaPack({ ...meta, ...metaExtra }, text);
       }
       window.receivablePackObservacoesMeta = receivablePackObservacoesMeta;
 
       function receivableObservacoesMeta(r) {
-        const raw = r?.observacoes || r?.responsavel_pagamento || "";
-        return financeMetaUnpack(raw).meta || {};
+        return financeMetaUnpack(financeReceivableMetaRaw(r)).meta || {};
       }
 
       /** Grava meta em observações e/ou responsavel_pagamento conforme o registro usa hoje. */
@@ -8519,9 +8543,18 @@
         return /vehicle_id|violates not-null constraint/i.test(msg);
       }
 
+      /** Preferir o campo que contém [[finmeta:...]] (observacoes ou responsavel_pagamento). */
+      function financeReceivableMetaRaw(r) {
+        const obs = String(r?.observacoes ?? "");
+        const resp = String(r?.responsavel_pagamento ?? "");
+        if (obs.includes(FINANCE_META_PREFIX)) return obs;
+        if (resp.includes(FINANCE_META_PREFIX)) return resp;
+        return obs.trim() ? obs : resp;
+      }
+
       /** Meta [[finmeta:...]] — observacoes pode não existir no Supabase. */
       function financeReceivableMetaText(r) {
-        return String(r?.observacoes || r?.responsavel_pagamento || "");
+        return financeReceivableMetaRaw(r);
       }
 
       /** Texto visível (sem bloco [[finmeta:...]]). */
@@ -9442,7 +9475,8 @@
         if (!uid) return 0;
         let fixed = 0;
         for (const r of state.receivables || []) {
-          if (!r?.id || r.status === "PAGO") continue;
+          if (!r?.id || receivableFinanceStatus(r) === "PAGO") continue;
+          if (receivableIsManualControleReceitas(r)) continue;
           if (!receivableFluxoFinanceiroQuitado(r)) continue;
           if (typeof receivableCashMovementExists !== "function" || !receivableCashMovementExists(r.id)) continue;
           const patch = { status: "PAGO", financeiro_aprovado_contas_receber: true };
@@ -9473,7 +9507,7 @@
         if (!uid) return 0;
         let fixed = 0;
         for (const r of state.receivables || []) {
-          if (!isManualFinanceLancamento(r)) continue;
+          if (!receivableIsManualControleReceitas(r)) continue;
           if (r.status !== "EM_ABERTO" && r.status !== RECEIVABLE_AGUARDANDO_LANCAMENTO) continue;
           if (receivableAprovadoParaContasReceber(r)) continue;
           const patch = {
@@ -10381,7 +10415,8 @@
       /** Título já quitado no fluxo (PAGO ou entrada aprovada no caixa operacional). */
       function receivableFluxoFinanceiroQuitado(r) {
         if (!r) return true;
-        if (r.status === "PAGO") return true;
+        if (receivableFinanceStatus(r) === "PAGO") return true;
+        if (receivableIsManualControleReceitas(r) && receivableFinanceStatus(r) === "EM_ABERTO") return false;
         if (typeof receivableCashMovementExists !== "function" || !receivableCashMovementExists(r.id)) return false;
         const manual =
           typeof window.financeOperationalModeActive === "function" && window.financeOperationalModeActive();
@@ -10484,23 +10519,26 @@
        * Lançamentos manuais (+ Nova receita): entram direto em Contas a receber.
        */
       function receivableIsContaReceberFinanceiro(r) {
-        if (!r || r.status === "PAGO") return false;
+        if (!r) return false;
+        const st = receivableFinanceStatus(r);
+        if (st === "PAGO") return false;
+        if (receivableIsManualControleReceitas(r)) {
+          return st === "EM_ABERTO" || st === String(RECEIVABLE_AGUARDANDO_LANCAMENTO || "").toUpperCase();
+        }
         if (receivableFluxoFinanceiroQuitado(r)) return false;
         if (receivableSemCobrancaFinanceira(r)) return false;
-        if (isManualFinanceLancamento(r)) {
-          return r.status === "EM_ABERTO" || r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO;
-        }
         if (FINANCE_MANUAL_ONLY) {
-          return isManualFinanceLancamento(r) && r.status === "EM_ABERTO";
+          return isManualFinanceLancamento(r) && st === "EM_ABERTO";
         }
         if (receivableNaFilaAguardandoTriagem(r)) return false;
         if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return receivableAprovadoParaContasReceber(r);
         if (r.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(r)) {
           return receivableAprovadoParaContasReceber(r);
         }
-        if (receivableAprovadoParaContasReceber(r) && r.status === "EM_ABERTO") return true;
+        if (receivableAprovadoParaContasReceber(r) && st === "EM_ABERTO") return true;
         return false;
       }
+      window.receivableIsContaReceberFinanceiro = receivableIsContaReceberFinanceiro;
 
       function triagemDefaultNfEmitida(receivable, vehicle) {
         const closure = (state.cycleClosures || []).find(
@@ -15756,6 +15794,8 @@
               await financeAttachmentSave("receivable", result.id, anexo);
             }
             await Promise.all([loadReceivables(), loadCash()]);
+            if (typeof setFinanceView === "function") setFinanceView("receber");
+            else if (typeof showMainView === "function") showMainView("financeiro");
             if (!pago) {
               alert(
                 `Receita registrada no Controle de Receitas.\n\nTítulo gerado automaticamente em Contas a Receber com vencimento em ${formatDate(vencimento)}.`
