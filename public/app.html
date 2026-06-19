@@ -4396,6 +4396,177 @@
         line-height: 1.35;
       }
       .fin-ops-card-spark { margin-top: auto; padding-top: 6px; min-height: 32px; }
+      .partner-ops-cards,
+      #partnerDashCards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+      .partner-ops-card {
+        border-radius: 16px;
+        padding: 16px 16px 14px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-height: 168px;
+        position: relative;
+        overflow: hidden;
+      }
+      .partner-ops-card--clickable {
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      }
+      .partner-ops-card--clickable:hover,
+      .partner-ops-card--clickable:focus-visible {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+        border-color: rgba(96, 165, 250, 0.45);
+        outline: none;
+      }
+      .partner-ops-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 3px;
+        opacity: 0.9;
+      }
+      .partner-ops-card--total::before { background: linear-gradient(90deg, #a78bfa, #8b5cf6); }
+      .partner-ops-card--active::before { background: linear-gradient(90deg, #34d399, #10b981); }
+      .partner-ops-card--ticket::before { background: linear-gradient(90deg, #f472b6, #ec4899); }
+      .partner-ops-card--revenue::before { background: linear-gradient(90deg, #60a5fa, #3b82f6); }
+      .partner-ops-card--vehicles::before { background: linear-gradient(90deg, #22d3ee, #06b6d4); }
+      .partner-ops-card--billing::before { background: linear-gradient(90deg, #38bdf8, #0ea5e9); }
+      .partner-ops-card--entries::before { background: linear-gradient(90deg, #4ade80, #22c55e); }
+      .partner-ops-card--conversion::before { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+      .partner-ops-card--idle::before { background: linear-gradient(90deg, #f87171, #ef4444); }
+      .partner-ops-card-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 4px;
+      }
+      .partner-ops-card-icon { color: var(--muted); opacity: 0.9; }
+      .partner-ops-card-trend {
+        font-size: 0.72rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .partner-ops-trend--up { color: #34d399; background: rgba(52, 211, 153, 0.12); }
+      .partner-ops-trend--down { color: #f87171; background: rgba(248, 113, 113, 0.12); }
+      .partner-ops-trend--flat { color: var(--muted); background: rgba(148, 163, 184, 0.12); }
+      .partner-ops-card-label {
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .partner-ops-card-value {
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+      }
+      .partner-ops-card-meta,
+      .partner-ops-card-compare {
+        font-size: 0.72rem;
+        color: var(--muted);
+        line-height: 1.35;
+      }
+      .partner-ops-card-spark { margin-top: auto; padding-top: 6px; min-height: 32px; }
+      .partner-ops-footnote {
+        grid-column: 1 / -1;
+        margin: 4px 0 0;
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+      .partner-dash-custom-range {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: flex-end;
+      }
+      .partner-dash-custom-range.hidden { display: none; }
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: flex-end;
+      }
+      .partner-dash-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+      .partner-dash-grid section {
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        padding: 14px 14px 10px;
+      }
+      .partner-dash-grid h4,
+      #partnerDashEvolution h4 {
+        margin: 0 0 10px;
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .partner-rank-empty {
+        margin: 0;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+      .partner-rank-row { cursor: pointer; }
+      .partner-rank-row:hover { background: rgba(96, 165, 250, 0.08); }
+      .partner-evolution-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 8px;
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+      .partner-evolution-legend i {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        margin-right: 4px;
+        vertical-align: middle;
+      }
+      #partnerDashEvolution {
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        padding: 14px;
+        margin-bottom: 18px;
+      }
+      .partner-evolution-chart { color: var(--muted); max-width: 100%; }
+      .partner-dash-detail-inner { margin-top: 12px; }
+      .partner-dash-detail-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .partner-dash-detail-head h4 { margin: 0; }
+      @media (max-width: 640px) {
+        .partner-ops-cards,
+        #partnerDashCards { grid-template-columns: 1fr; }
+        .partner-dash-grid { grid-template-columns: 1fr; }
+      }
       .fin-ops-spark { display: block; max-width: 88px; }
       .fin-ops-footnote {
         grid-column: 1 / -1;
@@ -5714,18 +5885,45 @@
               <button id="openPartnerForm">Novo cadastro</button>
             </div>
           </div>
-          <div id="partnerSubnav" class="subnav hidden" aria-hidden="true"></div>
-          <div class="grid" style="margin-bottom: 18px;">
-            <div class="card">
-                <div class="card-title">Top parceiros por veículos</div>
-              <div id="rankByVehicles" class="notice">Sem dados</div>
-            </div>
-            <div class="card">
-              <div class="card-title">Top retorno financeiro</div>
-              <div id="rankByRevenue" class="notice">Sem dados</div>
-            </div>
+          <div id="partnerSubnav" class="subnav">
+            <button type="button" data-subview="dashboard" class="active">Dashboard</button>
+            <button type="button" data-subview="parceiros">Cadastro</button>
           </div>
-          <div class="section-card partner-subview" data-subview="parceiros">
+
+          <div class="partner-subview" data-subview="dashboard">
+            <div class="filter-bar partner-dash-toolbar">
+              <label for="partnerDashFilterPeriod">Período</label>
+              <select id="partnerDashFilterPeriod" title="Período de análise">
+                <option value="today">Hoje</option>
+                <option value="7d">Últimos 7 dias</option>
+                <option value="30d" selected>Últimos 30 dias</option>
+                <option value="week">Semana atual</option>
+                <option value="month">Mês atual</option>
+                <option value="year">Ano atual</option>
+                <option value="custom">Período personalizado</option>
+              </select>
+              <span id="partnerDashCustomRange" class="hidden partner-dash-custom-range">
+                <label for="partnerDashFilterDe">De</label>
+                <input type="date" id="partnerDashFilterDe" />
+                <label for="partnerDashFilterAte">Até</label>
+                <input type="date" id="partnerDashFilterAte" />
+              </span>
+              <label for="partnerDashFilterPartner">Parceiro</label>
+              <select id="partnerDashFilterPartner" title="Filtrar por parceiro">
+                <option value="">Todos os parceiros</option>
+              </select>
+            </div>
+            <div id="partnerDashCards" class="partner-ops-cards"></div>
+            <div class="partner-dash-grid">
+              <section id="partnerDashRankRevenue"></section>
+              <section id="partnerDashRankVehicles"></section>
+              <section id="partnerDashRankConversion"></section>
+            </div>
+            <section id="partnerDashEvolution" aria-label="Evolução mensal"></section>
+            <div id="partnerDashDetail" class="hidden" aria-live="polite"></div>
+          </div>
+
+          <div class="section-card partner-subview hidden" data-subview="parceiros">
             <p class="notice" style="margin: 0 0 12px">
               Lista única de parceiros. RPV, RPP, quem solicitou/confirmou/removeu e demais papéis no pátio são escolhidos apenas entre estes cadastros.
             </p>
@@ -6919,6 +7117,7 @@
     <script src="/finance-module.js?v=20260605aguardando"></script>
     <script src="/finance-dashboard.js?v=202604fin"></script>
     <script src="/patio-dashboard.js?v=202604from"></script>
+    <script src="/partners-dashboard.js?v=20260605partners"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -7460,8 +7659,8 @@
       const tableRemovidos = document.getElementById("tableRemovidos");
       const tableFechamentoCiclo = document.getElementById("tableFechamentoCiclo");
       const tablePartners = document.getElementById("tablePartners");
-      const rankByVehicles = document.getElementById("rankByVehicles");
-      const rankByRevenue = document.getElementById("rankByRevenue");
+      const rankByVehicles = null;
+      const rankByRevenue = null;
       const receivableAlert = document.getElementById("receivableAlert");
       const clearFinancePlateFilter = document.getElementById("clearFinancePlateFilter");
       const filterFrom = document.getElementById("filterFrom");
@@ -13163,6 +13362,9 @@
           return;
         }
         state.partners = data || [];
+        if (typeof window.partnersDashboardInvalidateCache === "function") window.partnersDashboardInvalidateCache();
+        const partnerFilter = document.getElementById("partnerDashFilterPartner");
+        if (partnerFilter) partnerFilter.dataset.filled = "";
         renderPartners();
         renderPartnerOptions();
         syncWorkflowPartnerSelects();
@@ -13846,6 +14048,14 @@
           window.patioDashboardRender(state.vehicles, { formatCurrency });
         }
 
+        if (
+          currentPartnerView === "dashboard" &&
+          !document.getElementById("viewParceiros")?.classList.contains("hidden") &&
+          typeof window.renderPartnersDashboard === "function"
+        ) {
+          window.renderPartnersDashboard();
+        }
+
         const chartPeriodEl = document.getElementById("dashboardChartPeriod");
         if (chartPeriodEl || document.getElementById("dashboardCashFlowSvg")) {
           const selectedPeriod = chartPeriodEl?.value || "mes";
@@ -14398,12 +14608,31 @@
         }
       }
 
+      function renderPartnersDashboard() {
+        if (typeof window.partnersDashboardRender !== "function") return;
+        window.partnersDashboardRender(
+          {
+            partners: state.partners || [],
+            vehicles: state.vehicles || [],
+            receivables: state.receivables || [],
+            cash: state.cash || [],
+          },
+          { formatCurrency, escapeHtml }
+        );
+      }
+      window.renderPartnersDashboard = renderPartnersDashboard;
+
       function setPartnerView(view) {
         const show = view && view !== "none";
-        currentPartnerView = show ? "parceiros" : null;
-        partnerSubnav?.classList.add("hidden");
+        const resolved = show ? (view === "parceiros" ? "parceiros" : "dashboard") : null;
+        currentPartnerView = resolved;
+        partnerSubnav?.classList.toggle("hidden", !show);
+        partnerSubnav?.querySelectorAll("[data-subview]").forEach((btn) => {
+          btn.classList.toggle("active", btn.getAttribute("data-subview") === resolved);
+        });
         partnerSubviews.forEach((panel) => {
-          const match = show && panel.getAttribute("data-subview") === "parceiros";
+          const sub = panel.getAttribute("data-subview");
+          const match = show && sub === resolved;
           panel.classList.toggle("hidden", !match);
           if (match) {
             panel.classList.remove("air-open");
@@ -14411,9 +14640,12 @@
             panel.classList.add("air-open");
           }
         });
-        if (openPartnerForm) openPartnerForm.textContent = "Novo parceiro";
+        if (openPartnerForm) openPartnerForm.textContent = resolved === "parceiros" ? "Novo parceiro" : "Novo cadastro";
         syncPartnerFormForCurrentView();
+        if (resolved === "dashboard") renderPartnersDashboard();
       }
+
+      window.setPartnerView = setPartnerView;
 
       function syncPartnerFormForCurrentView() {
         if (partnerNameLabel) partnerNameLabel.textContent = "Nome";
@@ -15146,44 +15378,12 @@
             })
             .join("");
         }
-        renderPartnerRankings();
+        renderPartnerOptions();
+        if (currentPartnerView === "dashboard" || !currentPartnerView) renderPartnersDashboard();
       }
 
       function renderPartnerRankings() {
-        const partnerMap = new Map(allPartnersSorted().map((p) => [p.id, p.nome || "-"]));
-
-        const vehiclesByPartner = new Map();
-        state.vehicles.forEach((v) => {
-          if (!v.localizador_id) return;
-          vehiclesByPartner.set(v.localizador_id, (vehiclesByPartner.get(v.localizador_id) || 0) + 1);
-        });
-        const topVehicles = [...vehiclesByPartner.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 5)
-          .map(([id, count], idx) => `${idx + 1}. ${partnerMap.get(id) || "Parceiro"} (${count})`);
-        rankByVehicles.textContent = topVehicles.length ? topVehicles.join(" • ") : "Sem dados";
-
-        const receivableMap = new Map(state.receivables.map((r) => [r.id, r]));
-        const vehicleMap = new Map(state.vehicles.map((v) => [v.id, v]));
-        const revenueByPartner = new Map();
-        state.cash
-          .filter((c) => c.tipo_conta === "RECEBER")
-          .forEach((c) => {
-            const receivable = receivableMap.get(c.conta_id);
-            if (!receivable) return;
-            const vehicle = vehicleMap.get(receivable.vehicle_id);
-            if (!vehicle || vehicle.status !== "REMOVIDO") return;
-            if (!vehicle.localizador_id) return;
-            revenueByPartner.set(
-              vehicle.localizador_id,
-              (revenueByPartner.get(vehicle.localizador_id) || 0) + Number(c.valor || 0)
-            );
-          });
-        const topRevenue = [...revenueByPartner.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 5)
-          .map(([id, total], idx) => `${idx + 1}. ${partnerMap.get(id) || "Parceiro"} (${formatCurrency(total)})`);
-        rankByRevenue.textContent = topRevenue.length ? topRevenue.join(" • ") : "Sem dados";
+        /* substituído pelo dashboard inteligente (partners-dashboard.js) */
       }
 
       function renderPartnerOptions() {
@@ -18907,7 +19107,10 @@
           setPatioView("inicio");
           navStack.push("patio:inicio");
         }
-        if (view === "parceiros") setPartnerView("parceiros");
+        if (view === "parceiros") {
+          setPartnerView(currentPartnerView === "parceiros" ? "parceiros" : "dashboard");
+          if (typeof window.partnersDashboardInit === "function") window.partnersDashboardInit();
+        }
         if (view === "lista") {
           syncListaFilterSelects();
           renderListaPanel();
@@ -18946,10 +19149,10 @@
       }
 
       function openPartnerSubview(sub) {
-        sub = "parceiros";
+        sub = sub === "parceiros" ? "parceiros" : "dashboard";
         const top = navStack[navStack.length - 1];
         if (top === `parceiros:${sub}`) {
-          setPartnerView("parceiros");
+          setPartnerView(sub);
           return;
         }
         if (top && typeof top === "string" && top.startsWith("parceiros:")) navStack.pop();
@@ -18960,7 +19163,8 @@
 
         showMainView("parceiros");
         navStack.push(`parceiros:${sub}`);
-        setPartnerView("parceiros");
+        setPartnerView(sub);
+        if (typeof window.partnersDashboardInit === "function") window.partnersDashboardInit();
       }
 
       function openListaSubview(sub) {
@@ -19008,7 +19212,7 @@
         }
         if (top === "parceiros") {
           showMainView("parceiros");
-          return setPartnerView("none");
+          return setPartnerView("dashboard");
         }
         if (top === "configuracoes") return showMainView("configuracoes");
         if (top === "financeiro") {
@@ -19275,6 +19479,7 @@
       setPatioView("inicio");
       setFinanceView("none");
       setPartnerView("none");
+      if (typeof window.partnersDashboardInit === "function") window.partnersDashboardInit();
       syncHeaderMenuHighlightFromDom();
     </script>
   </body>
