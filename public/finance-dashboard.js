@@ -130,6 +130,9 @@
   function isContaReceberAberta(r) {
     if (!r || String(r.status || "").toUpperCase() === "PAGO") return false;
     if (receivableValor(r) <= 0) return false;
+    if (typeof global.receivableAprovadoParaContasReceber === "function" && global.receivableAprovadoParaContasReceber(r)) {
+      return true;
+    }
     if (r.financeiro_aprovado_contas_receber === true) return true;
     if (!r.vehicle_id && String(r.status || "").toUpperCase() === "EM_ABERTO") return true;
     return false;
