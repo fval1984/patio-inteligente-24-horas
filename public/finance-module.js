@@ -414,14 +414,20 @@
     }
   }
 
-  function financeRowSelectionStillValid(view, id) {
+      function financeRowSelectionStillValid(view, id) {
     const sid = String(id);
     if (view === "aguardando") {
       return financeContasAguardandoList().some((r) => String(r.id) === sid);
     }
     if (view === "receber") {
       const rec = (state.receivables || []).find((r) => String(r.id) === sid);
-      return !!rec && receivableIsContaReceberFinanceiro(rec);
+      const isConta =
+        typeof window.receivableIsContaReceberFinanceiro === "function"
+          ? window.receivableIsContaReceberFinanceiro
+          : typeof receivableIsContaReceberFinanceiro === "function"
+            ? receivableIsContaReceberFinanceiro
+            : () => false;
+      return !!rec && isConta(rec);
     }
     if (view === "pagar") {
       return (state.payables || []).some((p) => String(p.id) === sid);
@@ -1553,11 +1559,24 @@
 
   function financeContasReceberList() {
     const vmap = financeVehicleById();
-    let list = (state.receivables || []).filter((r) => receivableIsContaReceberFinanceiro(r));
+    const isContaReceber =
+      typeof window.receivableIsContaReceberFinanceiro === "function"
+        ? window.receivableIsContaReceberFinanceiro
+        : typeof receivableIsContaReceberFinanceiro === "function"
+          ? receivableIsContaReceberFinanceiro
+          : () => false;
+    const isManualReceita =
+      typeof window.receivableIsManualControleReceitas === "function"
+        ? window.receivableIsManualControleReceitas
+        : () => false;
+    let list = (state.receivables || []).filter((r) => isContaReceber(r));
     const plateNorm = financeNormalizePlate(financeFilterReceberPlaca);
     const rppId = (financeFilterReceberRppId || "").trim();
     if (plateNorm) {
-      list = list.filter((r) => financePlateMatchesQuery(vmap.get(r.vehicle_id), plateNorm));
+      list = list.filter((r) => {
+        if (isManualReceita(r)) return true;
+        return financePlateMatchesQuery(vmap.get(r.vehicle_id), plateNorm);
+      });
     }
     if (rppId) {
       list = list.filter((r) => financeReceivableMatchesRppFilter(r, vmap.get(r.vehicle_id), rppId));
@@ -5070,7 +5089,11 @@
         }
         financeCloseReceitaModal();
         await Promise.all([loadReceivables(), loadCash()]);
-        renderFinance();
+        if (typeof financeActivateSubview === "function") {
+          financeActivateSubview("receber");
+        } else {
+          renderFinance();
+        }
         updateDashboard?.();
         if (modo === "RECORRENTE") {
           financeFilterTipo = "recorrente";
