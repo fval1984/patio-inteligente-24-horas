@@ -670,9 +670,9 @@
     }
     for (const id of ids) {
       const r = (state.receivables || []).find((x) => String(x.id) === String(id));
-      if (r?.vehicle_id && typeof window.addFinanceAguardandoDismissed === "function") {
+      if (r?.vehicle_id && typeof window.persistFinanceAguardandoDismissed === "function") {
         const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(r.vehicle_id));
-        window.addFinanceAguardandoDismissed(r.vehicle_id, r.period_end || vehicle?.data_saida);
+        await window.persistFinanceAguardandoDismissed(r.vehicle_id, r.period_end || vehicle?.data_saida);
       }
       if (typeof window.removeReceberTriagemId === "function") window.removeReceberTriagemId(id);
       if (typeof window.removePatioFinanceiroBloqueadoReceivableId === "function") {
@@ -1253,20 +1253,12 @@
   function financeContasAguardandoList() {
     const legacyCaixaRecIds = financeReceivableIdsComCaixaHistoricoInvalido();
     const matched = (state.receivables || []).filter((r) => {
-      if (!r || r.status === "PAGO") return false;
-      if (typeof receivableFluxoFinanceiroQuitado === "function" && receivableFluxoFinanceiroQuitado(r)) {
-        return false;
-      }
-      if (receivableSemCobrancaFinanceira(r)) return false;
-      if (receivableIsContaReceberFinanceiro(r)) return false;
-      if (!r.vehicle_id) return false;
-      if (legacyCaixaRecIds.has(String(r.id))) return true;
-      if (typeof receivableOrfaoEntreFilasFinanceiro === "function" && receivableOrfaoEntreFilasFinanceiro(r)) {
-        return true;
-      }
-      if (receivableNaFilaAguardandoTriagem(r)) return true;
-      if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return true;
-      return r.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(r);
+      const inAguardando =
+        typeof receivableIsAguardandoFaturamentoFinanceiro === "function"
+          ? receivableIsAguardandoFaturamentoFinanceiro(r)
+          : false;
+      if (!inAguardando && !legacyCaixaRecIds.has(String(r?.id))) return false;
+      return true;
     });
     const deduped = financeDedupePatioReceivables(matched);
     if (typeof window.financeIsAguardandoDismissed !== "function") return deduped;
