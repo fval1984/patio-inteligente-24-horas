@@ -11,7 +11,8 @@
             if (/^amplipatio_/i.test(k) || /^finance_/i.test(k)) {
               if (
                 k === "amplipatio_triagem_em_contas_ids" ||
-                k === "amplipatio_receivable_aguarda_fechamento_patio_ids"
+                k === "amplipatio_receivable_aguarda_fechamento_patio_ids" ||
+                k === "amplipatio_finance_aguardando_dismissed_v1"
               ) {
                 return;
               }
@@ -6915,7 +6916,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260605audit"></script>
+    <script src="/finance-module.js?v=20260605aguardando"></script>
     <script src="/finance-dashboard.js?v=202604fin"></script>
     <script src="/patio-dashboard.js?v=202604from"></script>
     <script>
@@ -9180,12 +9181,18 @@
        * Deve rodar ANTES de renderizar o financeiro para evitar race conditions.
        */
       async function financeSyncReceivablesIntegrity(opts = {}) {
-        if (FINANCE_MANUAL_ONLY) return { migrated: 0, repaired: 0, lost: 0, vrp: 0 };
+        if (FINANCE_MANUAL_ONLY) return { migrated: 0, repaired: 0, lost: 0, vrp: 0, dismissed: 0, bloqueado: 0 };
         let migrated = 0;
         let repaired = 0;
         let lost = 0;
         let vrp = 0;
+        let dismissed = 0;
+        let bloqueado = 0;
         try {
+          bloqueado = await migratePatioBloqueadoIdsToDatabase();
+          dismissed = await migrateLocalAguardandoDismissedToVehicles();
+          if (dismissed > 0 && typeof loadVehicles === "function") await loadVehicles();
+          if (bloqueado > 0 && typeof loadReceivables === "function") await loadReceivables();
           migrated = await migrateLocalTriagemIdsToDatabase();
           repaired = await repairReceivablesQuitadosComStatusAberto();
           lost = await syncLostReceivablesToContasReceber();
@@ -9193,12 +9200,13 @@
         } catch (e) {
           console.warn("financeSyncReceivablesIntegrity", e?.message || e);
         }
-        if (migrated || repaired || lost || vrp || opts.alwaysReload) {
+        if (migrated || repaired || lost || vrp || bloqueado || opts.alwaysReload) {
           if (typeof loadReceivables === "function") await loadReceivables();
+          if ((vrp || dismissed > 0) && typeof loadVehicles === "function") await loadVehicles();
           if (vrp > 0 && typeof loadCycleClosures === "function") await loadCycleClosures();
           if ((repaired || vrp) && typeof loadCash === "function") await loadCash();
         }
-        return { migrated, repaired, lost, vrp };
+        return { migrated, repaired, lost, vrp, dismissed, bloqueado };
       }
       window.financeSyncReceivablesIntegrity = financeSyncReceivablesIntegrity;
 
@@ -9316,7 +9324,7 @@
           result.financeWarning = "Usuário não identificado.";
           return result;
         }
-        removeFinanceAguardandoDismissed(vehicleId, dataSaida);
+        await removeFinanceAguardandoDismissed(vehicleId, dataSaida);
 
         const cycleRec = await findReceivableForVrpRepair(vehicleId, dataSaida);
         if (cycleRec?.id && receivableFluxoFinanceiroQuitado(cycleRec)) {
@@ -9630,6 +9638,12 @@
         return `${String(vehicleId)}|${String(periodEndYmd || "sem-data")}`;
       }
 
+      function vehicleAguardandoDismissedYmds(vehicle) {
+        const { meta } = financeMetaUnpack(vehicle?.observacoes || "");
+        const arr = meta?.aguardando_dismissed_ymds;
+        return Array.isArray(arr) ? arr.map((x) => String(x)) : [];
+      }
+
       function financeAguardandoDismissedSet() {
         try {
           const raw = localStorage.getItem(FINANCE_AGUARDANDO_DISMISSED_KEY);
@@ -9640,7 +9654,7 @@
         }
       }
 
-      function addFinanceAguardandoDismissed(vehicleId, periodEnd) {
+      function addFinanceAguardandoDismissedLocal(vehicleId, periodEnd) {
         if (!vehicleId) return;
         const key = financeAguardandoDismissKey(vehicleId, toLocalYmd(periodEnd) || "sem-data");
         const s = financeAguardandoDismissedSet();
@@ -9653,7 +9667,7 @@
         }
       }
 
-      function removeFinanceAguardandoDismissed(vehicleId, periodEnd) {
+      function removeFinanceAguardandoDismissedLocal(vehicleId, periodEnd) {
         if (!vehicleId) return;
         const key = financeAguardandoDismissKey(vehicleId, toLocalYmd(periodEnd) || "sem-data");
         const s = financeAguardandoDismissedSet();
@@ -9665,6 +9679,124 @@
         }
       }
 
+      /** Persiste no Supabase (vehicles.observacoes) ciclos dispensados de Aguardando — sincroniza entre terminais. */
+      async function persistFinanceAguardandoDismissed(vehicleId, periodEnd) {
+        if (!vehicleId) return false;
+        const ymd = toLocalYmd(periodEnd) || "sem-data";
+        const uid = effectiveUserId();
+        if (!uid) {
+          addFinanceAguardandoDismissedLocal(vehicleId, periodEnd);
+          return false;
+        }
+        let vehicle = (state.vehicles || []).find((v) => String(v.id) === String(vehicleId));
+        if (!vehicle) {
+          const { data } = await supabase
+            .from("vehicles")
+            .select("id,observacoes")
+            .eq("id", vehicleId)
+            .eq("user_id", uid)
+            .maybeSingle();
+          vehicle = data || null;
+        }
+        if (!vehicle) {
+          addFinanceAguardandoDismissedLocal(vehicleId, periodEnd);
+          return false;
+        }
+        const { meta, text } = financeMetaUnpack(vehicle.observacoes || "");
+        const ymds = new Set(vehicleAguardandoDismissedYmds(vehicle));
+        ymds.add(ymd);
+        const packed = financeMetaPack({ ...meta, aguardando_dismissed_ymds: [...ymds] }, text);
+        const runUpdate = () =>
+          supabase.from("vehicles").update({ observacoes: packed }).eq("id", vehicleId).eq("user_id", uid);
+        const { error } =
+          typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runUpdate) : await runUpdate();
+        if (error) {
+          console.warn("persistFinanceAguardandoDismissed", vehicleId, error.message || error);
+          addFinanceAguardandoDismissedLocal(vehicleId, periodEnd);
+          return false;
+        }
+        const idx = (state.vehicles || []).findIndex((v) => String(v.id) === String(vehicleId));
+        if (idx >= 0) state.vehicles[idx] = { ...state.vehicles[idx], observacoes: packed };
+        removeFinanceAguardandoDismissedLocal(vehicleId, periodEnd);
+        return true;
+      }
+      window.persistFinanceAguardandoDismissed = persistFinanceAguardandoDismissed;
+
+      async function removeFinanceAguardandoDismissed(vehicleId, periodEnd) {
+        if (!vehicleId) return;
+        const ymd = toLocalYmd(periodEnd) || "sem-data";
+        removeFinanceAguardandoDismissedLocal(vehicleId, periodEnd);
+        const uid = effectiveUserId();
+        if (!uid) return;
+        const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(vehicleId));
+        if (!vehicle) return;
+        const ymds = vehicleAguardandoDismissedYmds(vehicle).filter((x) => x !== ymd);
+        const { meta, text } = financeMetaUnpack(vehicle.observacoes || "");
+        const packed = financeMetaPack({ ...meta, aguardando_dismissed_ymds: ymds }, text);
+        const runUpdate = () =>
+          supabase.from("vehicles").update({ observacoes: packed }).eq("id", vehicleId).eq("user_id", uid);
+        const { error } =
+          typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runUpdate) : await runUpdate();
+        if (error) {
+          console.warn("removeFinanceAguardandoDismissed", vehicleId, error.message || error);
+          return;
+        }
+        const idx = (state.vehicles || []).findIndex((v) => String(v.id) === String(vehicleId));
+        if (idx >= 0) state.vehicles[idx] = { ...state.vehicles[idx], observacoes: packed };
+      }
+
+      /** Migra dispensas legadas do localStorage para vehicles.observacoes no Supabase. */
+      async function migrateLocalAguardandoDismissedToVehicles() {
+        const keys = [...financeAguardandoDismissedSet()];
+        if (!keys.length) return 0;
+        let fixed = 0;
+        for (const key of keys) {
+          const pipe = String(key).indexOf("|");
+          if (pipe < 0) continue;
+          const vehicleId = key.slice(0, pipe);
+          const ymd = key.slice(pipe + 1);
+          if (!vehicleId) continue;
+          const periodEnd = ymd === "sem-data" ? null : ymd;
+          if (await persistFinanceAguardandoDismissed(vehicleId, periodEnd)) fixed += 1;
+        }
+        return fixed;
+      }
+      window.migrateLocalAguardandoDismissedToVehicles = migrateLocalAguardandoDismissedToVehicles;
+
+      /** Migra bloqueios legados do localStorage para receivables.patio_liberado_financeiro no Supabase. */
+      async function migratePatioBloqueadoIdsToDatabase() {
+        const ids = [...patioFinanceiroBloqueadoReceivableIdSet()];
+        if (!ids.length) return 0;
+        const uid = effectiveUserId();
+        if (!uid) return 0;
+        let fixed = 0;
+        for (const id of ids) {
+          const r = (state.receivables || []).find((x) => String(x.id) === String(id));
+          if (!r) {
+            removePatioFinanceiroBloqueadoReceivableId(id);
+            continue;
+          }
+          const patch = {
+            patio_liberado_financeiro: false,
+            ...receivableObservacoesPatchFields(r, { patio_liberado_financeiro: false }),
+          };
+          const runUpdate = () =>
+            supabase.from("receivables").update(patch).eq("id", id).eq("user_id", uid);
+          const { error } =
+            typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runUpdate) : await runUpdate();
+          if (error) {
+            console.warn("migratePatioBloqueadoIdsToDatabase", id, error.message || error);
+            continue;
+          }
+          removePatioFinanceiroBloqueadoReceivableId(id);
+          fixed += 1;
+          const idx = (state.receivables || []).findIndex((x) => String(x.id) === String(id));
+          if (idx >= 0) state.receivables[idx] = { ...state.receivables[idx], ...patch };
+        }
+        return fixed;
+      }
+      window.migratePatioBloqueadoIdsToDatabase = migratePatioBloqueadoIdsToDatabase;
+
       window.financeIsAguardandoDismissed = function financeIsAguardandoDismissed(receivable, vehicle) {
         const vehicleId = receivable?.vehicle_id || vehicle?.id;
         if (!vehicleId) return false;
@@ -9672,16 +9804,21 @@
           toLocalYmd(receivable?.period_end) ||
           toLocalYmd(vehicle?.data_saida) ||
           "sem-data";
+        const v =
+          vehicle ||
+          (state.vehicles || []).find((x) => String(x.id) === String(vehicleId)) ||
+          null;
+        if (v && vehicleAguardandoDismissedYmds(v).includes(ymd)) return true;
         return financeAguardandoDismissedSet().has(financeAguardandoDismissKey(vehicleId, ymd));
       };
-      window.addFinanceAguardandoDismissed = addFinanceAguardandoDismissed;
+      window.addFinanceAguardandoDismissed = persistFinanceAguardandoDismissed;
       window.removeFinanceAguardandoDismissed = removeFinanceAguardandoDismissed;
       window.removeReceberTriagemId = removeReceberTriagemId;
       window.removePatioFinanceiroBloqueadoReceivableId = removePatioFinanceiroBloqueadoReceivableId;
 
       /**
-       * Quando false, o ciclo não entra em «Contas a receber» até OK em Pátio → Fechando ciclo.
-       * Sem coluna no Supabase: usa lista local de IDs bloqueados após VRP.
+       * Quando false, o ciclo não entra em «Aguardando faturamento» até OK em Pátio → Fechando ciclo.
+       * Somente Supabase (coluna ou meta em observações) — igual a Contas a Receber.
        */
       function receivablePatioLiberadoParaFinanceiro(r) {
         if (!r) return false;
@@ -9691,7 +9828,7 @@
         const meta = receivableObservacoesMeta(r);
         if (meta.patio_liberado_financeiro === true) return true;
         if (meta.patio_liberado_financeiro === false) return false;
-        return !patioFinanceiroBloqueadoReceivableIdSet().has(String(r.id));
+        return true;
       }
 
       function nfseEnviadaVehicleIdSet() {
@@ -9970,7 +10107,7 @@
 
       /**
        * Fila «Aguardando lançamento»: status AGUARDANDO no Supabase OU EM_ABERTO com ciclo encerrado
-       * ainda não aprovado para «Contas a receber» (Supabase ou fallback local).
+       * ainda não aprovado para «Contas a receber» (somente Supabase).
        * Veículos com valor R$ 0,00 na saída não entram (sem cobrança).
        */
       function receivableNaFilaAguardandoTriagem(r) {
@@ -9984,6 +10121,31 @@
         if (!receivableCicloEncerradoParaFinanceiro(r)) return false;
         return true;
       }
+
+      /**
+       * Registros exibidos em «Aguardando faturamento» — mesma fonte que Contas a Receber (state.receivables do Supabase).
+       */
+      function receivableIsAguardandoFaturamentoFinanceiro(r) {
+        if (!r || r.status === "PAGO") return false;
+        if (receivableFluxoFinanceiroQuitado(r)) return false;
+        if (receivableSemCobrancaFinanceira(r)) return false;
+        if (receivableIsContaReceberFinanceiro(r)) return false;
+        if (!r.vehicle_id) return false;
+        if (typeof receivableOrfaoEntreFilasFinanceiro === "function" && receivableOrfaoEntreFilasFinanceiro(r)) {
+          return true;
+        }
+        if (receivableNaFilaAguardandoTriagem(r)) return true;
+        if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return true;
+        if (
+          r.status === "EM_ABERTO" &&
+          receivableCicloEncerradoParaFinanceiro(r) &&
+          !receivableAprovadoParaContasReceber(r)
+        ) {
+          return true;
+        }
+        return false;
+      }
+      window.receivableIsAguardandoFaturamentoFinanceiro = receivableIsAguardandoFaturamentoFinanceiro;
 
       /**
        * Registros exibidos em «Contas a receber» (Receber).
@@ -18478,7 +18640,9 @@
         }
         if (r.vehicle_id) {
           const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(r.vehicle_id));
-          addFinanceAguardandoDismissed(r.vehicle_id, r.period_end || vehicle?.data_saida);
+          if (typeof persistFinanceAguardandoDismissed === "function") {
+            await persistFinanceAguardandoDismissed(r.vehicle_id, r.period_end || vehicle?.data_saida);
+          }
         }
         removeReceberTriagemId(receivableId);
         removePatioFinanceiroBloqueadoReceivableId(receivableId);
