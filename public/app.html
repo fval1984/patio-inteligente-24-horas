@@ -8,7 +8,15 @@
         try {
           if (localStorage.getItem("amplipatio_restore_epoch") === RESTORE_EPOCH) return;
           Object.keys(localStorage).forEach(function (k) {
-            if (/^amplipatio_/i.test(k) || /^finance_/i.test(k)) localStorage.removeItem(k);
+            if (/^amplipatio_/i.test(k) || /^finance_/i.test(k)) {
+              if (
+                k === "amplipatio_triagem_em_contas_ids" ||
+                k === "amplipatio_receivable_aguarda_fechamento_patio_ids"
+              ) {
+                return;
+              }
+              localStorage.removeItem(k);
+            }
           });
           sessionStorage.clear();
           localStorage.setItem("amplipatio_restore_epoch", RESTORE_EPOCH);
@@ -6907,7 +6915,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260605persist"></script>
+    <script src="/finance-module.js?v=20260605audit"></script>
     <script src="/finance-dashboard.js?v=202604fin"></script>
     <script src="/patio-dashboard.js?v=202604from"></script>
     <script>
@@ -8106,6 +8114,37 @@
         return financeMetaUnpack(raw).meta || {};
       }
 
+      /** Grava meta em observações e/ou responsavel_pagamento conforme o registro usa hoje. */
+      function receivableObservacoesPatchFields(r, metaExtra = {}) {
+        const packed = receivablePackObservacoesMeta(r, metaExtra);
+        const patch = {};
+        const hasObs = r?.observacoes != null && String(r.observacoes).trim() !== "";
+        const hasResp = r?.responsavel_pagamento != null && String(r.responsavel_pagamento).trim() !== "";
+        const meta = receivableObservacoesMeta(r);
+        if (hasObs || meta?.origem_modulo === "PATIO_VRP") patch.observacoes = packed;
+        if (!hasObs && hasResp) patch.responsavel_pagamento = packed;
+        if (!patch.observacoes && !patch.responsavel_pagamento) patch.observacoes = packed;
+        return patch;
+      }
+      window.receivableObservacoesPatchFields = receivableObservacoesPatchFields;
+
+      async function verifyReceivableRow(receivableId) {
+        const uid = effectiveUserId();
+        if (!uid || !receivableId) return null;
+        const { data, error } = await supabase
+          .from("receivables")
+          .select("*")
+          .eq("id", receivableId)
+          .eq("user_id", uid)
+          .maybeSingle();
+        if (error) {
+          console.warn("verifyReceivableRow", receivableId, error.message || error);
+          return null;
+        }
+        return data || null;
+      }
+      window.verifyReceivableRow = verifyReceivableRow;
+
       /** Data civil do pagamento/recebimento (meta retroativa ou updated_at). */
       function financeReceivablePaidDateYmd(receivable) {
         if (!receivable) return "";
@@ -9002,7 +9041,7 @@
         const patch = {
           financeiro_aprovado_contas_receber: true,
           patio_liberado_financeiro: true,
-          observacoes: receivablePackObservacoesMeta(r, metaExtra),
+          ...receivableObservacoesPatchFields(r, metaExtra),
         };
         if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) patch.status = "EM_ABERTO";
 
@@ -9010,8 +9049,8 @@
           supabase.from("receivables").update(patch).eq("id", receivableId).eq("user_id", effectiveUserId());
         let { error } =
           typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runUpdate) : await runUpdate();
-        if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
-          const lean = { observacoes: patch.observacoes };
+        if (error && supabaseSchemaColumnError(error)) {
+          const lean = { ...receivableObservacoesPatchFields(r, metaExtra) };
           if (patch.status) lean.status = patch.status;
           const runLean = () =>
             supabase.from("receivables").update(lean).eq("id", receivableId).eq("user_id", effectiveUserId());
@@ -9024,10 +9063,22 @@
           return false;
         }
 
+        const verified = await verifyReceivableRow(receivableId);
+        if (!verified || !receivableIsContaReceberFinanceiro(verified)) {
+          if (!opts.silent) {
+            alert(
+              "O servidor não confirmou o envio para Contas a receber. Atualize a página e tente novamente. Se persistir, execute as migrações SQL do financeiro no Supabase."
+            );
+          }
+          return false;
+        }
+
         removePatioFinanceiroBloqueadoReceivableId(receivableId);
         removeReceberTriagemId(receivableId);
         financeAuditAppend(receivableId, "Enviado para Contas a Receber", { valor: r.valor, persisted: true });
-        if (typeof loadReceivables === "function") await loadReceivables();
+        const idx = (state.receivables || []).findIndex((x) => String(x.id) === String(receivableId));
+        if (idx >= 0) state.receivables[idx] = verified;
+        else if (typeof loadReceivables === "function") await loadReceivables();
         return true;
       }
 
@@ -9123,6 +9174,33 @@
         }
         return fixed;
       }
+
+      /**
+       * Sincroniza integridade dos recebíveis com o Supabase (migração local → DB, reparos, VRP).
+       * Deve rodar ANTES de renderizar o financeiro para evitar race conditions.
+       */
+      async function financeSyncReceivablesIntegrity(opts = {}) {
+        if (FINANCE_MANUAL_ONLY) return { migrated: 0, repaired: 0, lost: 0, vrp: 0 };
+        let migrated = 0;
+        let repaired = 0;
+        let lost = 0;
+        let vrp = 0;
+        try {
+          migrated = await migrateLocalTriagemIdsToDatabase();
+          repaired = await repairReceivablesQuitadosComStatusAberto();
+          lost = await syncLostReceivablesToContasReceber();
+          vrp = await syncVrpVehiclesMissingAguardandoFaturamento();
+        } catch (e) {
+          console.warn("financeSyncReceivablesIntegrity", e?.message || e);
+        }
+        if (migrated || repaired || lost || vrp || opts.alwaysReload) {
+          if (typeof loadReceivables === "function") await loadReceivables();
+          if (vrp > 0 && typeof loadCycleClosures === "function") await loadCycleClosures();
+          if ((repaired || vrp) && typeof loadCash === "function") await loadCash();
+        }
+        return { migrated, repaired, lost, vrp };
+      }
+      window.financeSyncReceivablesIntegrity = financeSyncReceivablesIntegrity;
 
       window.ensureReceivablePromotedToContasReceber = ensureReceivablePromotedToContasReceber;
       window.syncLostReceivablesToContasReceber = syncLostReceivablesToContasReceber;
@@ -13246,35 +13324,11 @@
           loadSettings(),
           loadMonthlyClosures(),
         ]);
-        if (typeof migrateLocalTriagemIdsToDatabase === "function") {
+        if (typeof financeSyncReceivablesIntegrity === "function") {
           try {
-            const migrated = await migrateLocalTriagemIdsToDatabase();
-            if (migrated > 0) await loadReceivables();
+            await financeSyncReceivablesIntegrity({ alwaysReload: true });
           } catch (e) {
-            console.warn("migrateLocalTriagemIdsToDatabase", e?.message || e);
-          }
-        }
-        if (typeof repairReceivablesQuitadosComStatusAberto === "function") {
-          try {
-            const repaired = await repairReceivablesQuitadosComStatusAberto();
-            if (repaired > 0) await loadReceivables();
-          } catch (e) {
-            console.warn("repairReceivablesQuitadosComStatusAberto", e?.message || e);
-          }
-        }
-        if (typeof syncLostReceivablesToContasReceber === "function") {
-          try {
-            await syncLostReceivablesToContasReceber();
-            await loadReceivables();
-          } catch (e) {
-            console.warn("syncLostReceivablesToContasReceber", e?.message || e);
-          }
-        }
-        if (typeof syncVrpVehiclesMissingAguardandoFaturamento === "function") {
-          try {
-            await syncVrpVehiclesMissingAguardandoFaturamento();
-          } catch (e) {
-            console.warn("syncVrpVehiclesMissingAguardandoFaturamento", e?.message || e);
+            console.warn("financeSyncReceivablesIntegrity loadAll", e?.message || e);
           }
         }
         probeVehiclesRpfColumns().catch(() => {});
@@ -15819,9 +15873,17 @@
           responsavel_pagamento: obsPacked || receivable.responsavel_pagamento,
         });
         if (error && supabaseSchemaColumnError(error)) {
+          const obsFallback = receivableObservacoesPatchFields(receivable, {
+            ...recMeta,
+            data_pagamento: dataMov,
+            forma_pagamento: formaPagamento,
+            financeiro_aprovado_contas_receber: true,
+          });
           const { error: errFallback } = await runRecUpdate({
             status: "PAGO",
             valor: totalAtual,
+            ...obsFallback,
+            responsavel_pagamento: obsPacked || receivable.responsavel_pagamento,
           });
           if (errFallback) {
             alertSupabaseError(errFallback, "Não foi possível confirmar o pagamento.");
