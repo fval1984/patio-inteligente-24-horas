@@ -4470,6 +4470,10 @@
           const repaired = await window.repairReceivablesQuitadosComStatusAberto();
           if (repaired > 0 && typeof loadReceivables === "function") await loadReceivables();
         }
+        if (typeof window.migrateLocalTriagemIdsToDatabase === "function") {
+          const migrated = await window.migrateLocalTriagemIdsToDatabase();
+          if (migrated > 0 && typeof loadReceivables === "function") await loadReceivables();
+        }
         if (
           !financeOperationalModeActive() &&
           typeof window.syncPaidReceivablesCashMovements === "function"
@@ -4509,13 +4513,10 @@
   };
 
   async function financePromoteReceivableToContasReceber(receivableId) {
-    const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
-    if (!r) return false;
     if (typeof window.ensureReceivablePromotedToContasReceber === "function") {
       return !!(await window.ensureReceivablePromotedToContasReceber(receivableId));
     }
-    if (typeof addReceberTriagemId === "function") addReceberTriagemId(receivableId);
-    return true;
+    return false;
   }
 
   async function financeApproveReceivable(receivableId) {
