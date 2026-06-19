@@ -592,6 +592,86 @@
     return { ok, fail, skip };
   }
 
+  async function financeBatchPgPagar(ids, opts = {}) {
+    const finalize =
+      typeof window.finalizePayablePayment === "function" ? window.finalizePayablePayment : null;
+    if (!finalize) return { ok: 0, fail: ids.length, skip: 0 };
+    let ok = 0;
+    let fail = 0;
+    let skip = 0;
+    for (const id of ids) {
+      const p = (state.payables || []).find((x) => String(x.id) === String(id));
+      if (!p) {
+        fail += 1;
+        continue;
+      }
+      if (String(p.status || "").toUpperCase() === "PAGO") {
+        skip += 1;
+        continue;
+      }
+      const result = await finalize(id, {
+        dataMovimento: opts.dataMovimento,
+        formaPagamento: opts.formaPagamento,
+      });
+      if (result) ok += 1;
+      else fail += 1;
+    }
+    return { ok, fail, skip };
+  }
+
+  async function financeBatchCaixaPagar(ids, opts = {}) {
+    const finalize =
+      typeof window.finalizePayablePayment === "function" ? window.finalizePayablePayment : null;
+    const register =
+      typeof window.registerPayableInCaixaManual === "function"
+        ? window.registerPayableInCaixaManual
+        : null;
+    const exists =
+      typeof window.payableCashMovementExists === "function"
+        ? window.payableCashMovementExists
+        : () => false;
+    let ok = 0;
+    let fail = 0;
+    let skip = 0;
+    for (const id of ids) {
+      let p = (state.payables || []).find((x) => String(x.id) === String(id));
+      if (!p) {
+        fail += 1;
+        continue;
+      }
+      if (String(p.status || "").toUpperCase() !== "PAGO") {
+        if (!finalize) {
+          fail += 1;
+          continue;
+        }
+        const pg = await finalize(id, {
+          dataMovimento: opts.dataMovimento,
+          formaPagamento: opts.formaPagamento,
+        });
+        if (!pg) {
+          fail += 1;
+          continue;
+        }
+        p = (state.payables || []).find((x) => String(x.id) === String(id));
+      }
+      if (exists(id)) {
+        skip += 1;
+        continue;
+      }
+      if (!register) {
+        fail += 1;
+        continue;
+      }
+      const result = await register(id, {
+        dataMovimento: opts.dataMovimento,
+        formaPagamento: opts.formaPagamento,
+      });
+      if (result) ok += 1;
+      else fail += 1;
+    }
+    return { ok, fail, skip };
+  }
+
   function financeBatchResultMessage(action, stats) {
     const parts = [];
     if (stats.ok) parts.push(`${stats.ok} concluído(s)`);
@@ -758,6 +838,10 @@
       stats = await financeBatchPgReceber(ids, payOpts);
     } else if (action === "caixa" && view === "receber") {
       stats = await financeBatchCaixaReceber(ids, payOpts);
+    } else if (action === "pg" && view === "pagar") {
+      stats = await financeBatchPgPagar(ids, payOpts);
+    } else if (action === "caixa" && view === "pagar") {
+      stats = await financeBatchCaixaPagar(ids, payOpts);
     }
 
     financeRowSelection[view]?.clear();
@@ -4777,24 +4861,34 @@
           return;
         }
         if (action === "pg") {
+          const isPagar = view === "pagar";
           financeOpenBatchConfirmModal({
             view,
             action,
             title: "Confirmar pagamento (PG)",
-            subtitle: "Valor integral de cada título, com a data e forma informadas abaixo.",
-            message: `Confirmar pagamento de ${count} conta(s) a receber selecionada(s)?`,
+            subtitle: isPagar
+              ? "Cada despesa será marcada como paga, com a data e forma informadas abaixo."
+              : "Valor integral de cada título, com a data e forma informadas abaixo.",
+            message: isPagar
+              ? `Confirmar pagamento de ${count} conta(s) a pagar selecionada(s)?`
+              : `Confirmar pagamento de ${count} conta(s) a receber selecionada(s)?`,
             confirmLabel: "Confirmar PG",
             showPayFields: true,
           });
           return;
         }
         if (action === "caixa") {
+          const isPagar = view === "pagar";
           financeOpenBatchConfirmModal({
             view,
             action,
             title: "Registrar no caixa",
-            subtitle: "Pendentes serão quitados; pagos sem caixa receberão entrada.",
-            message: `Registrar no caixa ${count} registro(s) selecionado(s)?`,
+            subtitle: isPagar
+              ? "Pendentes serão quitadas e registradas no caixa; pagas sem saída receberão lançamento."
+              : "Pendentes serão quitados; pagos sem caixa receberão entrada.",
+            message: isPagar
+              ? `Registrar no caixa ${count} despesa(s) selecionada(s)?`
+              : `Registrar no caixa ${count} registro(s) selecionado(s)?`,
             confirmLabel: "Confirmar caixa",
             showPayFields: true,
           });
@@ -5176,4 +5270,8 @@
   window.financeParseDateRangeText = financeParseDateRangeText;
   window.financeYmdInRange = financeYmdInRange;
   window.financeReceivableSaidaYmd = financeReceivableSaidaYmd;
+  window.financeMetricsSnapshot = financeMetrics;
+  window.financeContasAguardandoList = financeContasAguardandoList;
+  window.financeContasReceberList = financeContasReceberList;
+  window.financePayablesAbertas = financePayablesAbertas;
 })();
