@@ -7504,7 +7504,7 @@
             gerou_compromisso: !markPago,
             forma_pagamento: formaPagamento,
             patio_liberado_financeiro: true,
-            ...(markPago ? {} : { financeiro_aprovado_contas_receber: true }),
+            financeiro_aprovado_contas_receber: true,
             ...(markPago && dataCaixa ? { data_pagamento: dataCaixa } : {}),
             ...(modoUp === "PARCELADA" ? { parcela: i + 1, parcelas_total: count, grupo_id: grupoId } : {}),
             ...(modoUp === "RECORRENTE"
@@ -7676,6 +7676,10 @@
               modo: "RECORRENTE",
               recorrencia: interval,
               forma_pagamento: financeReceivableFormaPagamento(receivable),
+              origem_modulo: meta.origem_modulo || "CONTROLE_RECEITAS",
+              gerou_compromisso: true,
+              patio_liberado_financeiro: true,
+              financeiro_aprovado_contas_receber: true,
             },
             text || receivable.responsavel_pagamento || ""
           ),
@@ -9462,6 +9466,43 @@
         return fixed;
       }
 
+      /** Garante aprovação persistida para receitas manuais já lançadas (dados antigos sem flag). */
+      async function repairManualReceivablesAprovacao() {
+        if (FINANCE_MANUAL_ONLY) return 0;
+        const uid = effectiveUserId();
+        if (!uid) return 0;
+        let fixed = 0;
+        for (const r of state.receivables || []) {
+          if (!isManualFinanceLancamento(r)) continue;
+          if (r.status !== "EM_ABERTO" && r.status !== RECEIVABLE_AGUARDANDO_LANCAMENTO) continue;
+          if (receivableAprovadoParaContasReceber(r)) continue;
+          const patch = {
+            financeiro_aprovado_contas_receber: true,
+            patio_liberado_financeiro: true,
+            ...receivableObservacoesPatchFields(r, {
+              financeiro_aprovado_contas_receber: true,
+              patio_liberado_financeiro: true,
+              origem_modulo: receivableObservacoesMeta(r).origem_modulo || "CONTROLE_RECEITAS",
+            }),
+          };
+          if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) patch.status = "EM_ABERTO";
+          const runUpd = () =>
+            supabase.from("receivables").update(patch).eq("id", r.id).eq("user_id", uid);
+          let { error } =
+            typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runUpd) : await runUpd();
+          if (error && supabaseSchemaColumnError(error)) {
+            const lean = { ...receivableObservacoesPatchFields(r, patch) };
+            if (patch.status) lean.status = patch.status;
+            const runLean = () =>
+              supabase.from("receivables").update(lean).eq("id", r.id).eq("user_id", uid);
+            ({ error } =
+              typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runLean) : await runLean());
+          }
+          if (!error) fixed += 1;
+        }
+        return fixed;
+      }
+
       /**
        * Sincroniza integridade dos recebíveis com o Supabase (migração local → DB, reparos, VRP).
        * Deve rodar ANTES de renderizar o financeiro para evitar race conditions.
@@ -9474,25 +9515,28 @@
         let vrp = 0;
         let dismissed = 0;
         let bloqueado = 0;
+        let manual = 0;
         try {
           bloqueado = await migratePatioBloqueadoIdsToDatabase();
           dismissed = await migrateLocalAguardandoDismissedToVehicles();
           if (dismissed > 0 && typeof loadVehicles === "function") await loadVehicles();
           if (bloqueado > 0 && typeof loadReceivables === "function") await loadReceivables();
           migrated = await migrateLocalTriagemIdsToDatabase();
+          manual = await repairManualReceivablesAprovacao();
+          if (manual > 0 && typeof loadReceivables === "function") await loadReceivables();
           repaired = await repairReceivablesQuitadosComStatusAberto();
           lost = await syncLostReceivablesToContasReceber();
           vrp = await syncVrpVehiclesMissingAguardandoFaturamento();
         } catch (e) {
           console.warn("financeSyncReceivablesIntegrity", e?.message || e);
         }
-        if (migrated || repaired || lost || vrp || bloqueado || opts.alwaysReload) {
+        if (migrated || repaired || lost || vrp || bloqueado || manual || opts.alwaysReload) {
           if (typeof loadReceivables === "function") await loadReceivables();
           if ((vrp || dismissed > 0) && typeof loadVehicles === "function") await loadVehicles();
           if (vrp > 0 && typeof loadCycleClosures === "function") await loadCycleClosures();
           if ((repaired || vrp) && typeof loadCash === "function") await loadCash();
         }
-        return { migrated, repaired, lost, vrp, dismissed, bloqueado };
+        return { migrated, repaired, lost, vrp, dismissed, bloqueado, manual };
       }
       window.financeSyncReceivablesIntegrity = financeSyncReceivablesIntegrity;
 
@@ -10399,6 +10443,7 @@
       function receivableNaFilaAguardandoTriagem(r) {
         if (FINANCE_MANUAL_ONLY) return false;
         if (!r) return false;
+        if (isManualFinanceLancamento(r)) return false;
         if (receivableSemCobrancaFinanceira(r)) return false;
         if (receivableAprovadoParaContasReceber(r)) return false;
         if (!receivablePatioLiberadoParaFinanceiro(r)) return false;
@@ -10435,14 +10480,15 @@
 
       /**
        * Registros exibidos em «Contas a receber» (Receber).
-       * Só entra aqui após OK na aba Triagem (`financeiro_aprovado_contas_receber`).
+       * Pátio/VRP: após OK na triagem (`financeiro_aprovado_contas_receber`).
+       * Lançamentos manuais (+ Nova receita): entram direto em Contas a receber.
        */
       function receivableIsContaReceberFinanceiro(r) {
         if (!r || r.status === "PAGO") return false;
         if (receivableFluxoFinanceiroQuitado(r)) return false;
         if (receivableSemCobrancaFinanceira(r)) return false;
         if (isManualFinanceLancamento(r)) {
-          return r.status === "EM_ABERTO" && receivableAprovadoParaContasReceber(r);
+          return r.status === "EM_ABERTO" || r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO;
         }
         if (FINANCE_MANUAL_ONLY) {
           return isManualFinanceLancamento(r) && r.status === "EM_ABERTO";
