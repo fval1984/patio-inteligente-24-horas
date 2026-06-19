@@ -6907,7 +6907,7 @@
 
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
-    <script src="/finance-module.js?v=20260605fluxo"></script>
+    <script src="/finance-module.js?v=20260605persist"></script>
     <script src="/finance-dashboard.js?v=202604fin"></script>
     <script src="/patio-dashboard.js?v=202604from"></script>
     <script>
@@ -7208,6 +7208,8 @@
             observacoes_texto: extraObs,
             gerou_compromisso: !markPago,
             forma_pagamento: formaPagamento,
+            patio_liberado_financeiro: true,
+            ...(markPago ? {} : { financeiro_aprovado_contas_receber: true }),
             ...(markPago && dataCaixa ? { data_pagamento: dataCaixa } : {}),
             ...(modoUp === "PARCELADA" ? { parcela: i + 1, parcelas_total: count, grupo_id: grupoId } : {}),
             ...(modoUp === "RECORRENTE"
@@ -7258,7 +7260,6 @@
           if (error) return { error };
           const receivableId = inserted?.id;
           if (receivableId) insertedIds.push(receivableId);
-          if (receivableId && !markPago && !FINANCE_MANUAL_ONLY) addReceberTriagemId(receivableId);
           if (markPago && receivableId) {
             await supabase.from("cash_movements").insert({
               user_id: effectiveUserId(),
@@ -8092,6 +8093,18 @@
         }
       }
       window.financeMetaUnpack = financeMetaUnpack;
+
+      function receivablePackObservacoesMeta(r, metaExtra = {}) {
+        const raw = r?.observacoes || r?.responsavel_pagamento || "";
+        const { meta, text } = financeMetaUnpack(raw);
+        return financeMetaPack({ ...meta, ...metaExtra }, text);
+      }
+      window.receivablePackObservacoesMeta = receivablePackObservacoesMeta;
+
+      function receivableObservacoesMeta(r) {
+        const raw = r?.observacoes || r?.responsavel_pagamento || "";
+        return financeMetaUnpack(raw).meta || {};
+      }
 
       /** Data civil do pagamento/recebimento (meta retroativa ou updated_at). */
       function financeReceivablePaidDateYmd(receivable) {
@@ -8961,17 +8974,35 @@
         }
       }
 
-      /** Marca título como aprovado para «Contas a receber» (Supabase + fallback local). */
+      /** Aprovado para «Contas a receber»: somente dados do Supabase (coluna ou meta em observações). */
+      function receivableAprovadoParaContasReceber(r) {
+        if (!r) return false;
+        if (r.financeiro_aprovado_contas_receber === true) return true;
+        const meta = receivableObservacoesMeta(r);
+        return meta.financeiro_aprovado_contas_receber === true;
+      }
+      window.receivableAprovadoParaContasReceber = receivableAprovadoParaContasReceber;
+
+      /** Marca título como aprovado para «Contas a receber» (persistência obrigatória no Supabase). */
       async function ensureReceivablePromotedToContasReceber(receivableId, opts = {}) {
         if (!receivableId || FINANCE_MANUAL_ONLY) return false;
+        if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) {
+          return false;
+        }
         const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
         if (!r || r.status === "PAGO" || receivableSemCobrancaFinanceira(r)) return false;
         if (receivableIsContaReceberFinanceiro(r)) return true;
 
-        addReceberTriagemId(receivableId);
+        const promovidoEm = new Date().toISOString();
+        const metaExtra = {
+          financeiro_aprovado_contas_receber: true,
+          patio_liberado_financeiro: true,
+          promovido_contas_receber_em: promovidoEm,
+        };
         const patch = {
           financeiro_aprovado_contas_receber: true,
           patio_liberado_financeiro: true,
+          observacoes: receivablePackObservacoesMeta(r, metaExtra),
         };
         if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) patch.status = "EM_ABERTO";
 
@@ -8980,29 +9011,54 @@
         let { error } =
           typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runUpdate) : await runUpdate();
         if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
-          removePatioFinanceiroBloqueadoReceivableId(receivableId);
-          const idx = (state.receivables || []).findIndex((x) => String(x.id) === String(receivableId));
-          if (idx >= 0) state.receivables[idx] = { ...state.receivables[idx], ...patch };
-          return true;
+          const lean = { observacoes: patch.observacoes };
+          if (patch.status) lean.status = patch.status;
+          const runLean = () =>
+            supabase.from("receivables").update(lean).eq("id", receivableId).eq("user_id", effectiveUserId());
+          ({ error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runLean) : await runLean());
         }
         if (error) {
-          if (!opts.silent) console.warn("ensureReceivablePromotedToContasReceber", error.message || error);
+          if (!opts.silent) {
+            alertSupabaseError(error, "Não foi possível enviar para Contas a receber. Os dados não foram salvos no servidor.");
+          }
           return false;
         }
+
         removePatioFinanceiroBloqueadoReceivableId(receivableId);
-        const idx = (state.receivables || []).findIndex((x) => String(x.id) === String(receivableId));
-        if (idx >= 0) state.receivables[idx] = { ...state.receivables[idx], ...patch };
+        removeReceberTriagemId(receivableId);
+        financeAuditAppend(receivableId, "Enviado para Contas a Receber", { valor: r.valor, persisted: true });
+        if (typeof loadReceivables === "function") await loadReceivables();
         return true;
       }
 
+      /** Migra aprovações antigas só no localStorage para o Supabase (outros terminais passam a ver). */
+      async function migrateLocalTriagemIdsToDatabase() {
+        if (FINANCE_MANUAL_ONLY) return 0;
+        const ids = [...receberTriagemIdSet()];
+        if (!ids.length) return 0;
+        let fixed = 0;
+        for (const id of ids) {
+          const r = (state.receivables || []).find((x) => String(x.id) === String(id));
+          if (!r || r.status === "PAGO") {
+            removeReceberTriagemId(id);
+            continue;
+          }
+          if (receivableAprovadoParaContasReceber(r)) {
+            removeReceberTriagemId(id);
+            continue;
+          }
+          if (await ensureReceivablePromotedToContasReceber(id, { silent: true })) fixed += 1;
+        }
+        return fixed;
+      }
+      window.migrateLocalTriagemIdsToDatabase = migrateLocalTriagemIdsToDatabase;
+
       function receivableMarcadoEnvioContasReceber(r) {
         if (!r) return false;
-        const auditRows = (financeAuditReadAll()[String(r.id)] || []).some(
-          (row) => row?.action === "Enviado para Contas a Receber"
-        );
-        if (auditRows) return true;
-        const { meta } = financeMetaUnpack(r.observacoes);
-        return meta?.origem_modulo === "PATIO_VRP" && Number(r.valor || 0) > 0;
+        const meta = receivableObservacoesMeta(r);
+        if (meta?.origem_modulo === "PATIO_VRP" && Number(r.valor || 0) > 0) return true;
+        if (meta?.enviado_aguardando_faturamento === true) return true;
+        return false;
       }
 
       /** Título que saiu de «Aguardando» mas não aparece em «Contas a receber». */
@@ -9554,6 +9610,9 @@
         const v = r.patio_liberado_financeiro;
         if (v === true) return true;
         if (v === false) return false;
+        const meta = receivableObservacoesMeta(r);
+        if (meta.patio_liberado_financeiro === true) return true;
+        if (meta.patio_liberado_financeiro === false) return false;
         return !patioFinanceiroBloqueadoReceivableIdSet().has(String(r.id));
       }
 
@@ -9772,13 +9831,6 @@
           merged[key] = Array.isArray(saved[key]) ? cadastroBaseNormalizeList(saved[key]) : defaults[key] || [];
         });
         return merged;
-      }
-
-      /** Aprovado para «Contas a receber»: coluna Supabase (sincroniza entre PCs) ou lista local (fallback). */
-      function receivableAprovadoParaContasReceber(r) {
-        if (!r) return false;
-        if (r.financeiro_aprovado_contas_receber === true) return true;
-        return receberTriagemIdSet().has(String(r.id));
       }
 
       /** Título já quitado no fluxo (PAGO ou entrada aprovada no caixa operacional). */
@@ -13194,10 +13246,29 @@
           loadSettings(),
           loadMonthlyClosures(),
         ]);
+        if (typeof migrateLocalTriagemIdsToDatabase === "function") {
+          try {
+            const migrated = await migrateLocalTriagemIdsToDatabase();
+            if (migrated > 0) await loadReceivables();
+          } catch (e) {
+            console.warn("migrateLocalTriagemIdsToDatabase", e?.message || e);
+          }
+        }
+        if (typeof repairReceivablesQuitadosComStatusAberto === "function") {
+          try {
+            const repaired = await repairReceivablesQuitadosComStatusAberto();
+            if (repaired > 0) await loadReceivables();
+          } catch (e) {
+            console.warn("repairReceivablesQuitadosComStatusAberto", e?.message || e);
+          }
+        }
         if (typeof syncLostReceivablesToContasReceber === "function") {
-          syncLostReceivablesToContasReceber().catch((e) => {
+          try {
+            await syncLostReceivablesToContasReceber();
+            await loadReceivables();
+          } catch (e) {
             console.warn("syncLostReceivablesToContasReceber", e?.message || e);
-          });
+          }
         }
         if (typeof syncVrpVehiclesMissingAguardandoFaturamento === "function") {
           try {
@@ -18234,6 +18305,7 @@
           alert("Registro não encontrado.");
           return;
         }
+        if (!(await requireSupabaseSessionForWrite())) return;
         const vehicle = (state.vehicles || []).find((v) => v.id === r.vehicle_id);
         const closure = (state.cycleClosures || []).find((c) => String(c.receivable_id) === String(receivableId));
         const novoRpf = prompt(
@@ -18281,28 +18353,28 @@
           period_end: isoFim,
           valor: valorNovo,
         };
-        const { error: recErr } = await supabase
-          .from("receivables")
-          .update(recPatch)
-          .eq("id", receivableId)
-          .eq("user_id", effectiveUserId());
+        const { error: recErr } = await runSupabaseWrite(() =>
+          supabase.from("receivables").update(recPatch).eq("id", receivableId).eq("user_id", effectiveUserId())
+        );
         if (recErr) {
-          alert(recErr.message);
+          alertSupabaseError(recErr, "Não foi possível salvar as alterações.");
           return;
         }
         if (closure) {
-          await supabase
-            .from("patio_cycle_closures")
-            .update({
-              responsavel_financeiro: String(novoRpf || "").trim() || null,
-              period_start: isoInicio,
-              period_end: isoFim,
-              diarias: diariasCalc,
-              valor: valorNovo,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", closure.id)
-            .eq("user_id", effectiveUserId());
+          await runSupabaseWrite(() =>
+            supabase
+              .from("patio_cycle_closures")
+              .update({
+                responsavel_financeiro: String(novoRpf || "").trim() || null,
+                period_start: isoInicio,
+                period_end: isoFim,
+                diarias: diariasCalc,
+                valor: valorNovo,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", closure.id)
+              .eq("user_id", effectiveUserId())
+          );
         }
         if (typeof refreshFinanceData === "function") await refreshFinanceData();
         else {
@@ -18319,20 +18391,27 @@
           return;
         }
         if (!confirm("Apagar este registro de aguardando faturamento? Esta ação não pode ser desfeita.")) return;
+        if (!(await requireSupabaseSessionForWrite())) return;
         const userId = effectiveUserId();
-        await supabase
-          .from("cash_movements")
-          .delete()
-          .eq("conta_id", receivableId)
-          .eq("tipo_conta", "RECEBER")
-          .eq("user_id", userId);
+        await runSupabaseWrite(() =>
+          supabase
+            .from("cash_movements")
+            .delete()
+            .eq("conta_id", receivableId)
+            .eq("tipo_conta", "RECEBER")
+            .eq("user_id", userId)
+        );
         const closure = (state.cycleClosures || []).find((c) => String(c.receivable_id) === String(receivableId));
         if (closure) {
-          await supabase.from("patio_cycle_closures").delete().eq("id", closure.id).eq("user_id", userId);
+          await runSupabaseWrite(() =>
+            supabase.from("patio_cycle_closures").delete().eq("id", closure.id).eq("user_id", userId)
+          );
         }
-        const { error } = await supabase.from("receivables").delete().eq("id", receivableId).eq("user_id", userId);
+        const { error } = await runSupabaseWrite(() =>
+          supabase.from("receivables").delete().eq("id", receivableId).eq("user_id", userId)
+        );
         if (error) {
-          alert(error.message);
+          alertSupabaseError(error, "Não foi possível apagar o registro.");
           return;
         }
         if (r.vehicle_id) {
