@@ -777,11 +777,19 @@
   }
 
   async function financeReloadAfterAction() {
+    if (typeof window.financeSyncReceivablesIntegrity === "function") {
+      try {
+        await window.financeSyncReceivablesIntegrity({ alwaysReload: false });
+      } catch (e) {
+        console.warn("financeSyncReceivablesIntegrity after action", e?.message || e);
+      }
+    }
     await Promise.all([
       typeof loadReceivables === "function" ? loadReceivables() : Promise.resolve(),
       typeof loadPayables === "function" ? loadPayables() : Promise.resolve(),
       typeof loadCash === "function" ? loadCash() : Promise.resolve(),
       typeof loadVehicles === "function" ? loadVehicles() : Promise.resolve(),
+      typeof loadCycleClosures === "function" ? loadCycleClosures() : Promise.resolve(),
     ]);
     if (typeof updateDashboard === "function") updateDashboard();
     if (typeof renderFinance === "function") renderFinance();
@@ -4466,38 +4474,23 @@
         if (typeof financeRunCaixaRepairIfNeeded === "function") {
           await financeRunCaixaRepairIfNeeded();
         }
-        if (typeof window.repairReceivablesQuitadosComStatusAberto === "function") {
-          const repaired = await window.repairReceivablesQuitadosComStatusAberto();
-          if (repaired > 0 && typeof loadReceivables === "function") await loadReceivables();
-        }
-        if (typeof window.migrateLocalTriagemIdsToDatabase === "function") {
-          const migrated = await window.migrateLocalTriagemIdsToDatabase();
-          if (migrated > 0 && typeof loadReceivables === "function") await loadReceivables();
+        if (typeof window.financeSyncReceivablesIntegrity === "function") {
+          await window.financeSyncReceivablesIntegrity({ alwaysReload: false });
         }
         if (
           !financeOperationalModeActive() &&
           typeof window.syncPaidReceivablesCashMovements === "function"
         ) {
           await window.syncPaidReceivablesCashMovements();
+          if (typeof loadCash === "function") await loadCash();
         }
+        if (typeof loadReceivables === "function") await loadReceivables();
         if (preserveView) {
           financeActivateSubview(preserveView);
         } else {
           renderFinance();
         }
         updateDashboard?.();
-        if (typeof window.syncLostReceivablesToContasReceber === "function") {
-          window.syncLostReceivablesToContasReceber().catch((e) => {
-            console.warn("syncLostReceivablesToContasReceber", e?.message || e);
-          });
-        }
-        if (typeof window.syncVrpVehiclesMissingAguardandoFaturamento === "function") {
-          try {
-            await window.syncVrpVehiclesMissingAguardandoFaturamento();
-          } catch (e) {
-            console.warn("syncVrpVehiclesMissingAguardandoFaturamento", e?.message || e);
-          }
-        }
       } catch (e) {
         console.error("refreshFinanceData", e?.message || e);
         if (preserveView) {
