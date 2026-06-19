@@ -920,7 +920,29 @@
     });
   }
 
+  function partnersDashboardGetMetrics(data, opts = {}) {
+    const saved = {
+      period: _filterPeriod,
+      partner: _filterPartnerId,
+      de: _filterCustomDe,
+      ate: _filterCustomAte,
+    };
+    if (opts.period !== undefined) _filterPeriod = opts.period;
+    if (opts.partnerId !== undefined) _filterPartnerId = opts.partnerId || "";
+    if (opts.customDe !== undefined) _filterCustomDe = opts.customDe || "";
+    if (opts.customAte !== undefined) _filterCustomAte = opts.customAte || "";
+    _cache = null;
+    const result = computeMetrics(data);
+    _filterPeriod = saved.period;
+    _filterPartnerId = saved.partner;
+    _filterCustomDe = saved.de;
+    _filterCustomAte = saved.ate;
+    _cache = null;
+    return result;
+  }
+
   global.partnersDashboardRender = partnersDashboardRender;
+  global.partnersDashboardGetMetrics = partnersDashboardGetMetrics;
   global.partnersDashboardInvalidateCache = partnersDashboardInvalidateCache;
   global.partnersDashboardInit = partnersDashboardInit;
 })(typeof window !== "undefined" ? window : globalThis);
