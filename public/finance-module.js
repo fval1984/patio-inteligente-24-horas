@@ -2088,20 +2088,49 @@
     sel.dataset.filled = "1";
   }
 
+  function financePopulateDashPartnerSelect() {
+    const sel = document.getElementById("finDashPeriodPartner");
+    if (!sel) return;
+    const current = sel.value || "";
+    const parceiros = [...(state.partners || [])].sort((a, b) =>
+      String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR")
+    );
+    sel.innerHTML =
+      `<option value="">Todos os parceiros</option>` +
+      parceiros
+        .map((p) => `<option value="${escapeHtml(String(p.id))}">${escapeHtml(p.nome || "-")}</option>`)
+        .join("");
+    if (current && parceiros.some((p) => String(p.id) === String(current))) sel.value = current;
+  }
+
+  function financeDashFiltersFromDom() {
+    const monthEl = document.getElementById("finDashPeriodMonth");
+    let ym = (monthEl?.value || "").trim();
+    if (!ym) {
+      ym = yearMonthFromYmd(financeTodayYmd()) || "";
+      if (monthEl && ym) monthEl.value = ym;
+    }
+    return {
+      ym,
+      partnerId: (document.getElementById("finDashPeriodPartner")?.value || "").trim(),
+    };
+  }
+
   function financeRenderDashboard() {
+    financePopulateDashPartnerSelect();
     const el = document.getElementById("finDashCards");
     if (!el) return;
+    const dashData = {
+      receivables: state.receivables || [],
+      payables: state.payables || [],
+      cash: state.cash || [],
+      vehicles: state.vehicles || [],
+      settings: state.settings || {},
+      partners: state.partners || [],
+    };
+    const ctx = { formatCurrency, escapeHtml, filters: financeDashFiltersFromDom() };
     if (typeof window.financeDashboardRender === "function") {
-      window.financeDashboardRender(
-        {
-          receivables: state.receivables || [],
-          payables: state.payables || [],
-          cash: state.cash || [],
-          vehicles: state.vehicles || [],
-          settings: state.settings || {},
-        },
-        { formatCurrency, escapeHtml }
-      );
+      window.financeDashboardRender(dashData, ctx);
       return;
     }
     const m = financeMetrics();
@@ -5136,6 +5165,15 @@
     document.getElementById("finBtnExcel")?.addEventListener("click", financeExportCurrentView);
     document.getElementById("finBtnRefresh")?.addEventListener("click", () => refreshFinanceData());
 
+    document.getElementById("finDashPeriodMonth")?.addEventListener("change", () => {
+      if (typeof window.financeDashboardInvalidateCache === "function") window.financeDashboardInvalidateCache();
+      financeRenderDashboard();
+    });
+    document.getElementById("finDashPeriodPartner")?.addEventListener("change", () => {
+      if (typeof window.financeDashboardInvalidateCache === "function") window.financeDashboardInvalidateCache();
+      financeRenderDashboard();
+    });
+
     document.getElementById("viewFinanceiro")?.addEventListener("click", async (e) => {
       const btnReceber = e.target.closest("[data-fin-aguardando-receber]");
       if (btnReceber) {
@@ -5313,6 +5351,8 @@
   window.financeParseDateRangeText = financeParseDateRangeText;
   window.financeYmdInRange = financeYmdInRange;
   window.financeReceivableSaidaYmd = financeReceivableSaidaYmd;
+  window.financeReceivableMatchesRppFilter = financeReceivableMatchesRppFilter;
+  window.financePartnerNomeById = financePartnerNomeById;
   window.financeMetricsSnapshot = financeMetrics;
   window.financeContasAguardandoList = financeContasAguardandoList;
   window.financeContasReceberList = financeContasReceberList;
