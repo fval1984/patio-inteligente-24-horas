@@ -552,7 +552,186 @@
     </article>`;
   }
 
+  function receivableSaidaYmd(r, vmap) {
+    const v = r?.vehicle_id ? vmap.get(String(r.vehicle_id)) : null;
+    if (typeof global.financeReceivableSaidaYmd === "function") {
+      return global.financeReceivableSaidaYmd(r, v) || null;
+    }
+    return toLocalYmd(v?.data_saida || r?.period_end) || null;
+  }
+
+  function receivableMatchesPartner(r, vmap, partnerId) {
+    if (!partnerId) return true;
+    const v = r?.vehicle_id ? vmap.get(String(r.vehicle_id)) : null;
+    if (typeof global.financeReceivableMatchesRppFilter === "function") {
+      return global.financeReceivableMatchesRppFilter(r, v, partnerId);
+    }
+    return true;
+  }
+
+  function recebimentoValor(r, cashByContaId) {
+    if (!r) return 0;
+    const mov = cashByContaId.get(String(r.id));
+    if (mov) return cashMovValor(mov);
+    if (String(r.status || "").toUpperCase() === "PAGO") return receivableValor(r);
+    return 0;
+  }
+
+  function formatMonthLabel(ym) {
+    if (!ym || ym.length < 7) return ym || "—";
+    const [y, m] = ym.split("-").map(Number);
+    const names = [
+      "janeiro",
+      "fevereiro",
+      "março",
+      "abril",
+      "maio",
+      "junho",
+      "julho",
+      "agosto",
+      "setembro",
+      "outubro",
+      "novembro",
+      "dezembro",
+    ];
+    const name = names[m - 1] || ym;
+    return `${name}/${y}`;
+  }
+
+  function prevYearMonth(ym) {
+    if (!ym || ym.length < 7) return null;
+    const [y, m] = ym.split("-").map(Number);
+    if (m === 1) return `${y - 1}-12`;
+    return `${y}-${String(m - 1).padStart(2, "0")}`;
+  }
+
+  /** Receita operacional (saída no mês) vs recebimentos efetivos (data do pagamento). */
+  function computePeriodComparison(data, filters = {}) {
+    const ym = filters.ym || yearMonthFromYmd(todayYmd());
+    const partnerId = filters.partnerId || "";
+    const receivables = dedupeReceivables(data.receivables || []);
+    const vmap = vehicleById(data.vehicles || []);
+    const cashByConta = buildCashByContaId(data.cash || []);
+    const monthStart = monthStartYm(ym);
+    const monthEnd = monthEndYm(ym);
+
+    let receitaGerada = 0;
+    let receitaGeradaUnidades = 0;
+    let pagamentosRecebidos = 0;
+    let pagamentosUnidades = 0;
+
+    for (const r of receivables) {
+      if (!receivableMatchesPartner(r, vmap, partnerId)) continue;
+      const val = receivableValor(r);
+      const saidaYmd = receivableSaidaYmd(r, vmap);
+      if (r.vehicle_id && saidaYmd && saidaYmd >= monthStart && saidaYmd <= monthEnd && val > 0) {
+        receitaGerada += val;
+        receitaGeradaUnidades += 1;
+      }
+      const recYmd = recebimentoYmd(r, cashByConta);
+      if (recYmd && recYmd >= monthStart && recYmd <= monthEnd) {
+        const pago = recebimentoValor(r, cashByConta);
+        if (pago > 0) {
+          pagamentosRecebidos += pago;
+          pagamentosUnidades += 1;
+        }
+      }
+    }
+
+    const prevYm = prevYearMonth(ym);
+    let prevReceitaGerada = 0;
+    let prevPagamentos = 0;
+    if (prevYm) {
+      const prevStart = monthStartYm(prevYm);
+      const prevEnd = monthEndYm(prevYm);
+      for (const r of receivables) {
+        if (!receivableMatchesPartner(r, vmap, partnerId)) continue;
+        const val = receivableValor(r);
+        const saidaYmd = receivableSaidaYmd(r, vmap);
+        if (r.vehicle_id && saidaYmd && saidaYmd >= prevStart && saidaYmd <= prevEnd && val > 0) {
+          prevReceitaGerada += val;
+        }
+        const recYmd = recebimentoYmd(r, cashByConta);
+        if (recYmd && recYmd >= prevStart && recYmd <= prevEnd) {
+          prevPagamentos += recebimentoValor(r, cashByConta);
+        }
+      }
+    }
+
+    const partnerLabel =
+      partnerId && typeof global.financePartnerNomeById === "function"
+        ? global.financePartnerNomeById(partnerId)
+        : partnerId
+          ? String(
+              (data.partners || []).find((p) => String(p.id) === String(partnerId))?.nome || ""
+            ).trim()
+          : "";
+
+    return {
+      ym,
+      monthLabel: formatMonthLabel(ym),
+      partnerId,
+      partnerLabel,
+      receitaGerada,
+      receitaGeradaUnidades,
+      receitaGeradaTrend: pctChange(receitaGerada, prevReceitaGerada),
+      pagamentosRecebidos,
+      pagamentosUnidades,
+      pagamentosTrend: pctChange(pagamentosRecebidos, prevPagamentos),
+      diferenca: receitaGerada - pagamentosRecebidos,
+    };
+  }
+
+  function renderCompareCard(opts) {
+    const trend = formatTrend(opts.trend, opts.invertTrend);
+    const fmt = opts.formatCurrency || ((n) => String(n));
+    return `<article class="fin-ops-card fin-ops-card--${escapeHtml(opts.theme)}">
+      <div class="fin-ops-card-top">
+        <div class="fin-ops-card-icon">${iconSvg(opts.icon)}</div>
+        <div class="fin-ops-card-trend ${trend.cls}" title="vs. mês anterior">
+          <span>${trend.arrow}</span><span>${escapeHtml(trend.text)}</span>
+        </div>
+      </div>
+      <span class="fin-ops-card-label">${escapeHtml(opts.label)}</span>
+      <strong class="fin-ops-card-value">${escapeHtml(fmt(opts.value))}</strong>
+      <small class="fin-ops-card-meta">${escapeHtml(opts.meta || "")}</small>
+      <small class="fin-ops-card-compare">${escapeHtml(opts.compare || "")}</small>
+    </article>`;
+  }
+
+  function financeDashboardRenderPeriodCards(data, ctx) {
+    const el = document.getElementById("finDashCompareCards");
+    if (!el) return;
+    const formatCurrency = ctx?.formatCurrency || ((n) => `R$ ${Number(n || 0).toFixed(2)}`);
+    const filters = ctx?.filters || {};
+    const p = computePeriodComparison(data, filters);
+    const partnerNote = p.partnerLabel ? ` · ${p.partnerLabel}` : "";
+    el.innerHTML = [
+      renderCompareCard({
+        theme: "receita-gerada",
+        icon: "billing",
+        label: "Receita gerada no mês",
+        value: p.receitaGerada,
+        formatCurrency,
+        meta: `${p.receitaGeradaUnidades} saída(s) em ${p.monthLabel}${partnerNote}`,
+        compare: "Competência operacional — data de saída do veículo (pago ou não)",
+        trend: p.receitaGeradaTrend,
+      }),
+      renderCompareCard({
+        theme: "pagamentos-recebidos",
+        icon: "paid",
+        label: "Pagamentos recebidos no mês",
+        value: p.pagamentosRecebidos,
+        formatCurrency,
+        meta: `${p.pagamentosUnidades} recebimento(s) em ${p.monthLabel}${partnerNote}`,
+        compare: "Caixa — data efetiva do recebimento",
+        trend: p.pagamentosTrend,
+      }),
+    ].join("");
+  }
+
   function financeDashboardRender(data, ctx) {
+    financeDashboardRenderPeriodCards(data, ctx);
     const el = document.getElementById("finDashCards");
     if (!el) return;
     const formatCurrency = ctx?.formatCurrency || ((n) => `R$ ${Number(n || 0).toFixed(2)}`);
@@ -718,6 +897,8 @@
   }
 
   global.financeDashboardRender = financeDashboardRender;
+  global.financeDashboardRenderPeriodCards = financeDashboardRenderPeriodCards;
+  global.financeDashboardComputePeriodComparison = computePeriodComparison;
   global.financeDashboardInvalidateCache = financeDashboardInvalidateCache;
   global.financeDashboardGetMetrics = getMetrics;
 })(typeof window !== "undefined" ? window : globalThis);
