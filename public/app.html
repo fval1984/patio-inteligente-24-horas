@@ -4355,6 +4355,54 @@
       .fin-ops-card--bill-month::before { background: linear-gradient(90deg, #38bdf8, #0ea5e9); }
       .fin-ops-card--default::before { background: linear-gradient(90deg, #f87171, #ef4444); }
       .fin-ops-card--flow::before { background: linear-gradient(90deg, #22d3ee, #06b6d4); }
+      .fin-ops-card--receita-gerada::before { background: linear-gradient(90deg, #818cf8, #6366f1); }
+      .fin-ops-card--pagamentos-recebidos::before { background: linear-gradient(90deg, #2dd4bf, #14b8a6); }
+      .fin-dash-period-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 20px;
+        align-items: flex-end;
+        margin-bottom: 14px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--card);
+      }
+      .fin-dash-period-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: min(100%, 200px);
+      }
+      .fin-dash-period-field label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .fin-dash-period-field input,
+      .fin-dash-period-field select {
+        min-height: 38px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: inherit;
+        font: inherit;
+      }
+      .fin-dash-compare-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+      .fin-dash-compare-cards .fin-ops-card {
+        min-height: 188px;
+      }
+      .fin-dash-compare-cards .fin-ops-card-value {
+        font-size: 1.65rem;
+      }
       .fin-ops-card-top {
         display: flex;
         align-items: flex-start;
@@ -6049,6 +6097,19 @@
           <p id="finRecebidosRecoverHint" class="notice hidden" style="margin: 0 0 10px"></p>
 
           <div class="finance-subview" data-finance-subview="dashboard">
+            <div class="fin-dash-period-toolbar" id="finDashPeriodToolbar">
+              <div class="fin-dash-period-field">
+                <label for="finDashPeriodMonth">Período (mês)</label>
+                <input type="month" id="finDashPeriodMonth" title="Selecione o mês de referência" />
+              </div>
+              <div class="fin-dash-period-field">
+                <label for="finDashPeriodPartner">Parceiro (RPP)</label>
+                <select id="finDashPeriodPartner" title="Filtrar por responsável financeiro / parceiro">
+                  <option value="">Todos os parceiros</option>
+                </select>
+              </div>
+            </div>
+            <div class="fin-dash-compare-cards" id="finDashCompareCards" aria-label="Receita gerada vs pagamentos recebidos"></div>
             <div class="fin-cards" id="finDashCards"></div>
           </div>
 
@@ -7202,7 +7263,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-module.js?v=20260605persist"></script>
-    <script src="/finance-dashboard.js?v=202604fin"></script>
+    <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/patio-dashboard.js?v=202604from"></script>
     <script src="/partners-dashboard.js?v=20260605partners601"></script>
     <script src="/amplipatio-dashboard.js?v=20260605hub"></script>
