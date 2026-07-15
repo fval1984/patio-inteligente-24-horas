@@ -3451,32 +3451,41 @@
       }
       @media (max-width: 900px) {
         main {
-          padding: 24px 20px 48px;
+          padding: 16px 12px 40px;
         }
         header {
-          padding: 8px 14px;
-          flex-direction: column;
+          padding: 8px 12px;
+          flex-direction: row;
+          flex-wrap: wrap;
           align-items: center;
-          gap: 8px;
+          justify-content: space-between;
+          gap: 8px 10px;
         }
         .header-actions {
-          width: 100%;
-          justify-content: center;
+          width: auto;
+          flex: 1 1 auto;
+          justify-content: flex-end;
           flex-wrap: wrap;
           gap: 6px;
+          min-width: 0;
         }
         #themeToggle {
           display: none;
         }
+        .brand {
+          flex: 0 1 auto;
+          min-width: 0;
+        }
         .brand-logo {
-          height: 220px;
+          height: 56px;
         }
         .brand-stack {
-          gap: 2px;
+          gap: 0;
         }
         .brand-subtitle {
-          font-size: 12px;
-          letter-spacing: 0.08em;
+          font-size: 9px;
+          letter-spacing: 0.06em;
+          margin-top: -4px;
         }
         #userInfo {
           display: none;
@@ -3489,7 +3498,7 @@
         }
         .toolbar {
           flex-direction: column;
-          align-items: flex-start;
+          align-items: stretch;
         }
         .subnav {
           gap: 6px;
@@ -3503,24 +3512,35 @@
       }
       @media (max-width: 600px) {
         main {
-          padding: 18px 14px 40px;
+          padding: 12px 10px 32px;
         }
         .brand-logo {
-          height: 140px;
+          height: 48px;
         }
         .brand-subtitle {
-          font-size: 12px;
-          letter-spacing: 0.06em;
-          margin-top: -18px;
+          font-size: 8px;
+          letter-spacing: 0.05em;
+          margin-top: -2px;
+        }
+        .panel {
+          padding: 14px 12px;
+          margin-bottom: 14px;
+          border-radius: 12px;
         }
         .card-value {
           font-size: 18px;
         }
         .filter-bar {
           gap: 6px;
+          align-items: stretch;
         }
-        .filter-bar input {
+        .filter-bar label {
           width: 100%;
+        }
+        .filter-bar input,
+        .filter-bar select {
+          width: 100%;
+          min-width: 0;
         }
         .table.stacked thead {
           display: none;
@@ -3539,11 +3559,20 @@
           gap: 12px;
           padding: 6px 0;
           border-bottom: none;
+          white-space: normal !important;
         }
         .table.stacked tbody td::before {
           content: attr(data-label);
           color: var(--muted);
           font-size: 12px;
+          flex: 0 0 42%;
+        }
+        .table.stacked tbody td.actions {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .table.stacked tbody td.actions::before {
+          margin-bottom: 4px;
         }
       }
       /* Lista «Receber»: leitura em folha (área de captura branca) */
@@ -5469,6 +5498,179 @@
         overflow: visible;
         z-index: auto;
       }
+
+      /* ===== Layout mobile (Amplipatio) ===== */
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      html,
+      body {
+        overflow-x: hidden;
+        max-width: 100%;
+      }
+      .header-menu-trigger {
+        display: none;
+      }
+      @media (max-width: 900px) {
+        #appHeaderMenuWrap:not(.hidden) .header-menu-trigger {
+          display: inline-flex;
+          flex-shrink: 0;
+        }
+        #appHeaderMenuWrap:not(.hidden) #dashboardSystemEntry {
+          display: none !important;
+        }
+        .header-app-menu-wrap {
+          width: 100%;
+          flex: 1 1 100%;
+          align-items: stretch;
+          order: 3;
+        }
+        .header-menu-tray {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 8px;
+          width: 100%;
+        }
+        .header-plate-search {
+          flex: 1 1 auto;
+          min-width: 0;
+          max-width: none;
+          width: auto;
+          justify-content: flex-start;
+        }
+        .header-plate-search input#plateFilter {
+          flex: 1 1 72px;
+          width: auto;
+          min-width: 0;
+          min-height: 36px;
+          font-size: 14px;
+        }
+        .header-plate-search button {
+          min-height: 36px;
+          padding: 6px 10px;
+        }
+        .header-menu-dropdown {
+          position: fixed;
+          top: auto;
+          left: 10px;
+          right: 10px;
+          bottom: max(12px, env(safe-area-inset-bottom));
+          max-height: min(70vh, 480px);
+          z-index: 200;
+        }
+        .header-menu-backdrop {
+          z-index: 199;
+        }
+        .gestor-pista-welcome {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .gestor-pista-welcome .secondary {
+          width: 100%;
+        }
+        #viewPatio .patio-nav-inline {
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: thin;
+          padding-bottom: 4px;
+          margin-right: -4px;
+        }
+        #viewPatio .patio-nav-inline button {
+          flex: 0 0 auto;
+        }
+        #viewPatio .patio-toolbar .actions {
+          align-self: flex-end;
+        }
+        .patio-inicio-panel {
+          padding: 14px 12px 16px;
+        }
+        .patio-inicio-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+        .patio-ops-cards,
+        .hub-ops-cards,
+        .fin-ops-cards {
+          grid-template-columns: 1fr;
+        }
+        .hub-dash-filters,
+        .hub-dash-charts,
+        .hub-dash-rankings {
+          gap: 12px;
+        }
+        .hub-dash-filters {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .hub-dash-filters label,
+        .hub-dash-filters select,
+        .hub-dash-filters input {
+          width: 100%;
+          min-width: 0;
+        }
+        .dashboard-toolbar {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+        }
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+        form {
+          max-width: none;
+        }
+        .modal-backdrop {
+          padding: 10px;
+          align-items: flex-end;
+        }
+        .modal {
+          width: 100%;
+          max-width: none;
+          max-height: calc(100vh - 20px);
+          border-radius: 16px 16px 0 0;
+        }
+        #patioContent [data-subview="no_patio"] .table,
+        #patioContent [data-subview="vlp"] .table,
+        #patioContent [data-subview="removidos"] .table,
+        #patioContent [data-subview="fechando_ciclo"] .table {
+          min-width: 0 !important;
+          width: 100%;
+        }
+        #patioContent [data-subview="no_patio"] .table-wrap,
+        #patioContent [data-subview="vlp"] .table-wrap,
+        #patioContent [data-subview="removidos"] .table-wrap,
+        #patioContent [data-subview="fechando_ciclo"] .table-wrap {
+          overflow-x: visible;
+        }
+        .lista-toolbar-actions {
+          flex-wrap: wrap;
+        }
+        .actions {
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .actions button {
+          min-height: 36px;
+        }
+      }
+      @media (max-width: 480px) {
+        .header-plate-search #clearPlateFilter,
+        .header-plate-search #goDashboardFromPlate {
+          display: none;
+        }
+        .patio-inicio-grid {
+          grid-template-columns: 1fr;
+        }
+        .patio-inicio-stat .value {
+          font-size: 1.25rem;
+        }
+        .subnav button {
+          font-size: 11px;
+          padding: 8px 10px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -5495,6 +5697,18 @@
         <div id="appHeaderMenuWrap" class="header-app-menu-wrap hidden">
           <div id="appHeaderMenuBackdrop" class="header-menu-backdrop hidden" aria-hidden="true"></div>
           <div class="header-menu-tray">
+            <button
+              type="button"
+              id="appHeaderMenuBtn"
+              class="header-menu-trigger"
+              aria-expanded="false"
+              aria-controls="appHeaderMenu"
+              aria-label="Abrir menu"
+            >
+              <span class="header-menu-bar" aria-hidden="true"></span>
+              <span class="header-menu-bar" aria-hidden="true"></span>
+              <span class="header-menu-bar" aria-hidden="true"></span>
+            </button>
             <div id="appHeaderMenu" class="header-menu-dropdown hidden" aria-label="Menu principal">
               <button type="button" class="header-menu-top" data-view="dashboard">AMPLIPATIO</button>
 
