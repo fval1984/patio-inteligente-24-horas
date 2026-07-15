@@ -7268,9 +7268,9 @@
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-module.js?v=20260605persist"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
-    <script src="/patio-dashboard.js?v=202604from"></script>
+    <script src="/patio-dashboard.js?v=20260715gestor"></script>
     <script src="/partners-dashboard.js?v=20260605partners601"></script>
-    <script src="/amplipatio-dashboard.js?v=20260605hub"></script>
+    <script src="/amplipatio-dashboard.js?v=20260715gestor"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -13592,6 +13592,9 @@
           document.getElementById("dashboardSystemEntry")?.classList.remove("dashboard-system-entry--single");
           document.getElementById("dashboardOpenFinance")?.classList.remove("hidden");
           document.getElementById("headerDetailsFinance")?.classList.remove("hidden");
+          window.isGestorPista = false;
+          const patioOpsHead = document.querySelector("#patioInicioPanel .patio-inicio-ops-section h4");
+          if (patioOpsHead) patioOpsHead.textContent = "Indicadores operacionais";
           if (!opts.skipDefaultView) showMainView("dashboard");
           return;
         }
@@ -13655,6 +13658,9 @@
         document.head.appendChild(style);
 
         document.getElementById("gestorPistaWelcomeBanner")?.classList.remove("hidden");
+        window.isGestorPista = true;
+        const patioOpsHead = document.querySelector("#patioInicioPanel .patio-inicio-ops-section h4");
+        if (patioOpsHead) patioOpsHead.textContent = "Indicadores do pátio";
       }
 
       async function bootstrap() {
@@ -14392,7 +14398,7 @@
               cash: state.cash,
               settings: state.settings,
             },
-            { formatCurrency }
+            { formatCurrency, isGestorPista }
           );
         }
 
@@ -14414,7 +14420,7 @@
         if (pdSM) pdSM.textContent = String(saidasMes);
 
         if (typeof window.patioDashboardRender === "function") {
-          window.patioDashboardRender(state.vehicles, { formatCurrency });
+          window.patioDashboardRender(state.vehicles, { formatCurrency, isGestorPista });
         }
 
         if (
@@ -14425,13 +14431,15 @@
           window.renderPartnersDashboard();
         }
 
-        const chartPeriodEl = document.getElementById("dashboardChartPeriod");
-        if (chartPeriodEl || document.getElementById("dashboardCashFlowSvg")) {
-        const selectedPeriod = chartPeriodEl?.value || "mes";
-        renderDashboardFinanceCharts(selectedPeriod);
-        if (chartPeriodEl && !chartPeriodEl.dataset.bound) {
-          chartPeriodEl.addEventListener("change", () => renderDashboardFinanceCharts(chartPeriodEl.value || "mes"));
-          chartPeriodEl.dataset.bound = "1";
+        if (!isGestorPista) {
+          const chartPeriodEl = document.getElementById("dashboardChartPeriod");
+          if (chartPeriodEl || document.getElementById("dashboardCashFlowSvg")) {
+            const selectedPeriod = chartPeriodEl?.value || "mes";
+            renderDashboardFinanceCharts(selectedPeriod);
+            if (chartPeriodEl && !chartPeriodEl.dataset.bound) {
+              chartPeriodEl.addEventListener("change", () => renderDashboardFinanceCharts(chartPeriodEl.value || "mes"));
+              chartPeriodEl.dataset.bound = "1";
+            }
           }
         }
       }
@@ -14785,17 +14793,25 @@
         const patioCardMeta2 = document.getElementById("patioCardMeta2");
         const patioCardMeta3 = document.getElementById("patioCardMeta3");
         if (currentPatioView === "removidos") {
+          const curYm = new Date().toISOString().slice(0, 7);
+          const saidasMes = byStatus.REMOVIDO.filter(
+            (v) => v.data_saida && String(v.data_saida).slice(0, 7) === curYm
+          ).length;
           if (patioCardTitle1) patioCardTitle1.textContent = "VRP";
-          if (patioCardTitle2) patioCardTitle2.textContent = "Valor total estimado";
+          if (patioCardTitle2)
+            patioCardTitle2.textContent = isGestorPista ? "Saídas no mês" : "Valor total estimado";
           if (patioCardTitle3) patioCardTitle3.textContent = "Saídas registradas";
           if (patioCardValue1) patioCardValue1.textContent = String(byStatus.REMOVIDO.length);
           if (patioCardValue2)
-            patioCardValue2.textContent = formatCurrency(
-              byStatus.REMOVIDO.reduce((s, v) => s + (isGestorPista ? 0 : Number(calcTotal(v) || 0)), 0)
-            );
+            patioCardValue2.textContent = isGestorPista
+              ? String(saidasMes)
+              : formatCurrency(
+                  byStatus.REMOVIDO.reduce((s, v) => s + Number(calcTotal(v) || 0), 0)
+                );
           if (patioCardValue3) patioCardValue3.textContent = String(byStatus.REMOVIDO.filter((v) => !!v.data_saida).length);
           if (patioCardMeta1) patioCardMeta1.textContent = "veículos removidos";
-          if (patioCardMeta2) patioCardMeta2.textContent = isGestorPista ? "valores ocultos" : "soma dos removidos";
+          if (patioCardMeta2)
+            patioCardMeta2.textContent = isGestorPista ? "mês atual" : "soma dos removidos";
           if (patioCardMeta3) patioCardMeta3.textContent = "com data de saída";
         } else if (currentPatioView === "fechando_ciclo") {
           if (patioCardTitle1) patioCardTitle1.textContent = "Fechando ciclo";
