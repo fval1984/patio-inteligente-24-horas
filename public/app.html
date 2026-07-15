@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<!-- amplipatio-static build=finance-layout-patio-par -->
+<!-- amplipatio-static build=users-delete-v1 -->
 <html lang="pt-BR">
   <head>
     <script>
@@ -3032,7 +3032,8 @@
         transform: translateY(-1px);
         box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
       }
-      .table td.actions button[data-action*="apagar"] {
+      .table td.actions button[data-action*="apagar"],
+      .table td.actions button[data-action="apagar-track-manager"] {
         border-color: rgba(239, 68, 68, 0.45);
         background: rgba(239, 68, 68, 0.14);
         color: #fecaca;
@@ -3061,7 +3062,8 @@
         border-color: rgba(148, 163, 184, 0.38);
         background: rgba(148, 163, 184, 0.12);
       }
-      [data-theme="light"] .table td.actions button[data-action*="apagar"] {
+      [data-theme="light"] .table td.actions button[data-action*="apagar"],
+      [data-theme="light"] .table td.actions button[data-action="apagar-track-manager"] {
         background: rgba(239, 68, 68, 0.12);
         color: #b91c1c;
       }
@@ -6467,16 +6469,17 @@
             </div>
             <div class="section-card" style="margin-top: 18px; box-shadow: none; border: 1px dashed var(--border, #ccc); padding: 14px">
               <p class="notice" style="margin: 0 0 8px">Utilizadores ligados a esta conta</p>
-              <table class="table stacked">
+              <table class="table stacked" id="tableTrackManagers">
                 <thead>
                   <tr>
                     <th>Nome</th>
                     <th>Perfil</th>
-                    <th>Ações</th>
+                    <th style="min-width: 100px">Ações</th>
                   </tr>
                 </thead>
                 <tbody id="tableTrackManagersBody"></tbody>
               </table>
+              <p class="notice" style="margin: 10px 0 0; font-size: 0.72rem">Painel usuários v20260715</p>
             </div>
           </div>
         </div>
@@ -19431,6 +19434,7 @@
         }
         if (view === "configuracoes") {
           setConfigSubview("dados");
+          refreshConfigUsuariosPanel();
         }
         if (view === "financeiro") {
           if (effectiveUserId() && typeof refreshFinanceData === "function") {
@@ -19499,16 +19503,32 @@
           .map((r) => {
             const perfil = "Gestor de pista";
             const rotulo = escapeHtml(displayManagerIdentity((r.email || "—").trim()));
-            const uid = escapeHtml(String(r.user_id || ""));
+            const uid = String(r.user_id || "").trim();
+            if (!uid) {
+              return `<tr>
+                <td data-label="Nome">${rotulo}</td>
+                <td data-label="Perfil">${escapeHtml(perfil)}</td>
+                <td data-label="Ações" class="actions"><em>—</em></td>
+              </tr>`;
+            }
             return `<tr>
               <td data-label="Nome">${rotulo}</td>
               <td data-label="Perfil">${escapeHtml(perfil)}</td>
               <td data-label="Ações" class="actions">
-                <button type="button" class="secondary" data-track-manager-delete="${uid}">Apagar</button>
+                <button type="button" class="secondary" data-action="apagar-track-manager" data-track-manager-delete="${escapeHtml(uid)}" title="Remover acesso deste utilizador">Apagar</button>
               </td>
             </tr>`;
           })
           .join("");
+      }
+
+      async function deleteTrackManagerViaSupabase(delegateUserId) {
+        const { error } = await supabase
+          .from("track_managers")
+          .delete()
+          .eq("owner_user_id", state.user.id)
+          .eq("user_id", delegateUserId);
+        return { ok: !error, error };
       }
 
       async function deleteTrackManagerUser(delegateUserId, displayName) {
@@ -19516,46 +19536,55 @@
         const nome = (displayName || "este utilizador").trim();
         if (!confirm(`Apagar ${nome}?\n\nO acesso de login será removido e não poderá entrar na app.`)) return;
         if (!(await requireSupabaseSessionForWrite())) return;
-        const session = await ensureValidSupabaseSession();
-        const accessToken = session?.access_token;
-        if (!accessToken) {
-          alert("Sessão expirada. Saia e entre novamente na conta principal.");
-          return;
-        }
         if (trackManagerStatus) trackManagerStatus.textContent = "A remover utilizador…";
+        let apiOk = false;
+        let apiMessage = "";
         try {
-          const resp = await fetch(new URL("/api/delete-track-manager", window.location.origin).href, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Accept: "application/json" },
-            body: JSON.stringify({ user_id: delegateUserId, access_token: accessToken }),
-          });
-          const raw = await resp.text();
-          let json = {};
-          try {
-            json = raw ? JSON.parse(raw) : {};
-          } catch (_) {
-            if (trackManagerStatus)
-              trackManagerStatus.textContent =
-                "Resposta inválida do servidor. Confirme deploy Next.js com /api/delete-track-manager.";
-            return;
+          const session = await ensureValidSupabaseSession();
+          const accessToken = session?.access_token;
+          if (accessToken) {
+            const resp = await fetch(new URL("/api/delete-track-manager", window.location.origin).href, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Accept: "application/json" },
+              body: JSON.stringify({ user_id: delegateUserId, access_token: accessToken }),
+            });
+            const raw = await resp.text();
+            let json = {};
+            try {
+              json = raw ? JSON.parse(raw) : {};
+            } catch (_) {
+              /* HTML/404 — tentar fallback Supabase */
+            }
+            if (resp.ok) {
+              apiOk = true;
+              apiMessage = json.message || "Utilizador removido.";
+            } else if (resp.status !== 404) {
+              apiMessage = json.error || json.message || `Erro ${resp.status}`;
+            }
           }
-          if (!resp.ok) {
-            const msg = json.error || json.message || `Erro ${resp.status}`;
+        } catch (e) {
+          console.warn("delete-track-manager API", e?.message || e);
+        }
+        if (!apiOk) {
+          const fb = await deleteTrackManagerViaSupabase(delegateUserId);
+          if (!fb.ok) {
+            const msg =
+              apiMessage ||
+              fb.error?.message ||
+              "Não foi possível apagar. Confirme deploy com /api/delete-track-manager ou RLS em track_managers.";
             if (trackManagerStatus) trackManagerStatus.textContent = msg;
             alert(msg);
             return;
           }
-          if (trackManagerStatus) trackManagerStatus.textContent = json.message || "Utilizador removido.";
-          hideTrackManagerAccessBox();
-          await loadTrackManagersList();
-        } catch (e) {
-          const msg = e?.message || "Não foi possível apagar o utilizador.";
-          if (trackManagerStatus) trackManagerStatus.textContent = msg;
-          alert(msg);
+          apiMessage =
+            "Utilizador desligado desta conta. Se o login ainda funcionar, faça redeploy com a API delete-track-manager ou apague em Supabase → Authentication.";
         }
+        if (trackManagerStatus) trackManagerStatus.textContent = apiMessage;
+        hideTrackManagerAccessBox();
+        await loadTrackManagersList();
       }
 
-      tableTrackManagersBody?.addEventListener("click", async (e) => {
+      document.getElementById("tableTrackManagers")?.addEventListener("click", async (e) => {
         const btn = e.target.closest("[data-track-manager-delete]");
         if (!btn) return;
         const uid = btn.getAttribute("data-track-manager-delete");
