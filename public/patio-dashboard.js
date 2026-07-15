@@ -462,6 +462,7 @@
   function patioDashboardRender(vehicles, ctx) {
     const el = document.getElementById("patioDashOpsCards");
     if (!el) return;
+    const isGestorPista = !!(ctx?.isGestorPista || global.isGestorPista);
     const formatCurrency = ctx?.formatCurrency || ((n) => `R$ ${Number(n || 0).toFixed(2)}`);
     const m = getMetrics(vehicles);
     const footnote = m.hasData
@@ -476,7 +477,35 @@
     const fmtDays = (n) => `${Number(n).toFixed(1).replace(".", ",")} dias`;
     const fmtVehicles = (n) => `${Number(n).toFixed(1).replace(".", ",")} veíc.`;
 
-    el.innerHTML = [
+    const gestorCards = [
+      renderCard({
+        theme: "occupancy",
+        icon: "occupancy",
+        label: "Média de ocupação do pátio",
+        value: fmtVehicles(m.avgOccupancy),
+        meta: `último dia fechado: ${m.occupancyLastClosed} veículo(s)`,
+        trend: m.occupancyTrend,
+        trendLabel: "vs. 30 dias anteriores",
+        compare: "Veículos no pátio por dia fechado (desde abr/2026)",
+        spark: m.occupancySpark,
+        sparkColor: "#22d3ee",
+      }),
+      renderCard({
+        theme: "stay",
+        icon: "stay",
+        label: "Tempo médio de permanência",
+        value: fmtDays(m.avgStayDays),
+        meta: `${m.vehicleCount} veículo(s) desde abr/2026`,
+        trend: m.stayTrend,
+        invertTrend: true,
+        trendLabel: "vs. saídas anteriores",
+        compare: "Permanência contada a partir de abr/2026",
+        spark: [],
+        sparkColor: "#fbbf24",
+      }),
+    ];
+
+    const fullCards = [
       renderCard({
         theme: "daily",
         icon: "daily",
@@ -519,31 +548,7 @@
         spark: m.monthlySpark,
         sparkColor: "#a78bfa",
       }),
-      renderCard({
-        theme: "occupancy",
-        icon: "occupancy",
-        label: "Média de ocupação do pátio",
-        value: fmtVehicles(m.avgOccupancy),
-        meta: `último dia fechado: ${m.occupancyLastClosed} veículo(s)`,
-        trend: m.occupancyTrend,
-        trendLabel: "vs. 30 dias anteriores",
-        compare: "Veículos no pátio por dia fechado (desde abr/2026)",
-        spark: m.occupancySpark,
-        sparkColor: "#22d3ee",
-      }),
-      renderCard({
-        theme: "stay",
-        icon: "stay",
-        label: "Tempo médio de permanência",
-        value: fmtDays(m.avgStayDays),
-        meta: `${m.vehicleCount} veículo(s) desde abr/2026`,
-        trend: m.stayTrend,
-        invertTrend: true,
-        trendLabel: "vs. saídas anteriores",
-        compare: "Permanência contada a partir de abr/2026",
-        spark: [],
-        sparkColor: "#fbbf24",
-      }),
+      ...gestorCards,
       renderCard({
         theme: "vehicle",
         icon: "vehicle",
@@ -558,6 +563,10 @@
         spark: [],
         sparkColor: "#f472b6",
       }),
+    ];
+
+    el.innerHTML = [
+      ...(isGestorPista ? gestorCards : fullCards),
       `<p class="patio-ops-footnote">${escapeHtml(footnote)} · ${m.vehicleCount} veículo(s)</p>`,
     ].join("");
   }
