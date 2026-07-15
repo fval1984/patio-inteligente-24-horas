@@ -5662,7 +5662,7 @@
         </div>
         <div id="gestorPistaWelcomeBanner" class="gestor-pista-welcome hidden" role="status">
           <p class="notice gestor-pista-welcome-text">
-            <strong>Gestor de pista.</strong> Entrou com o acesso que o gestor geral criou. Fica na <strong>Gestão de pátio</strong> (cadastro e consultas permitidas; sem valores completos, financeiro nem definições do dono). No <strong>menu</strong> (canto superior direito), use <strong>AMPLIPATIO</strong> para o resumo.
+            <strong>Gestor de pista.</strong> Entrou com o acesso que o gestor geral criou. Use a <strong>Gestão de pátio</strong> para cadastro e consultas operacionais (sem valores financeiros nem definições do dono).
           </p>
           <button type="button" class="secondary" id="gestorPistaWelcomeDismiss">Entendi</button>
         </div>
@@ -13588,6 +13588,7 @@
         if (vehicleDailyReset) vehicleDailyReset.required = true;
 
         document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
+        goDashboardFromPlate?.classList.remove("hidden");
         if (!isGestorPista) {
           document.getElementById("dashboardSystemEntry")?.classList.remove("dashboard-system-entry--single");
           document.getElementById("dashboardOpenFinance")?.classList.remove("hidden");
@@ -13605,12 +13606,10 @@
           console.warn("navStack", e);
         }
 
-        const hideGestorMainNavItem = (btn) => {
-          const view = btn.getAttribute("data-view");
-          if (!view) return;
-          btn.style.display = view === "dashboard" ? "" : "none";
-        };
-        document.querySelectorAll("#appHeaderMenu button[data-view]").forEach(hideGestorMainNavItem);
+        document.querySelectorAll("#appHeaderMenu button[data-view]").forEach((btn) => {
+          btn.style.display = "none";
+        });
+        goDashboardFromPlate?.classList.add("hidden");
         document.getElementById("headerDetailsConfig")?.classList.add("hidden");
         document.getElementById("headerDetailsFinance")?.classList.add("hidden");
         document.getElementById("headerDetailsParceiros")?.classList.add("hidden");
@@ -14386,6 +14385,7 @@
         if (elNfse) elNfse.textContent = String(saidasHoje);
 
         if (
+          !isGestorPista &&
           !document.getElementById("viewDashboard")?.classList.contains("hidden") &&
           typeof window.amplipatioDashboardRender === "function"
         ) {
@@ -19416,6 +19416,12 @@
       }
 
       function showMainView(view) {
+        if (isGestorPista && view === "dashboard") {
+          navStack.splice(0, navStack.length, "patio", "patio:inicio");
+          showMainView("patio");
+          setPatioView("inicio");
+          return;
+        }
         if (view !== "patio") {
           patioSubnav?.classList.remove("open");
           patioFlyoutBackdrop?.classList.add("hidden");
@@ -19795,6 +19801,11 @@
         });
       }
       goDashboardFromPlate?.addEventListener("click", () => {
+        if (isGestorPista) {
+          openMainView("patio");
+          closeAppHeaderMenu();
+          return;
+        }
         showMainView("dashboard");
         closeAppHeaderMenu();
       });
@@ -19854,6 +19865,10 @@
 
       function navigateMainViewFromNav(view) {
         if (!view) return;
+        if (isGestorPista && view === "dashboard") {
+          openMainView("patio");
+          return;
+        }
         if (view === "dashboard") {
           navStack.splice(0, navStack.length, "dashboard");
           showMainView("dashboard");
