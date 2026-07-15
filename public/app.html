@@ -6512,9 +6512,12 @@
                 <label>Valor da diária</label>
                 <input id="vehicleDaily" type="number" step="0.01" placeholder="150.00" required />
               </div>
-              <div>
+              <div class="field-operador-hide">
                 <label>Data e hora de entrada</label>
                 <input id="vehicleEntry" type="datetime-local" required />
+              </div>
+              <div class="full gestor-entry-auto-note">
+                <p class="notice" style="margin: 0">Data e hora de entrada serão registradas automaticamente ao salvar.</p>
               </div>
               <div class="field-operador-hide">
                 <label>Data e hora de saída (opcional)</label>
@@ -13652,6 +13655,8 @@
         `;
         css += `
           #vehicleForm.operador-simplified .field-operador-hide { display: none !important; }
+          #vehicleForm .gestor-entry-auto-note { display: none; }
+          #vehicleForm.operador-simplified .gestor-entry-auto-note { display: block; }
         `;
         style.textContent = css;
         document.head.appendChild(style);
@@ -15614,9 +15619,7 @@
           fichaResumo.innerHTML = `
             <strong>${vehicle.placa || "-"}</strong> • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-"}<br />
             RPV: ${escapeHtml(locNome)}<br />
-            Entrada: ${formatDateTime(vehicle.data_entrada)}${
-            vehicle.data_saida ? ` • Saída: ${formatDateTime(vehicle.data_saida)}` : ""
-          }<br />
+            Entrada: ${formatDateTime(vehicle.data_entrada)}<br />
             <span class="notice">Tempo no pátio: ${dias} dia(s) • ${horas} h (referência operacional, sem valores).</span>
           `;
           if (fichaSectionSnf) {
@@ -15851,8 +15854,10 @@
         vehicleModalSubtitle.textContent =
           mode === "edit"
             ? "Atualize os dados do veículo"
-            : "Cadastro de entrada no pátio";
-        vehicleForm.classList.remove("operador-simplified");
+            : isGestorPista
+              ? "Cadastro simplificado — entrada registrada automaticamente"
+              : "Cadastro de entrada no pátio";
+        vehicleForm.classList.toggle("operador-simplified", !!(isGestorPista && mode === "create"));
         vehicleForm.reset();
         vehicleExit.value = "";
         if (mode === "edit" && vehicle) {
@@ -15887,14 +15892,16 @@
           if (inspectionDamageEl) inspectionDamageEl.value = vehicle.vistoria_observacoes || "";
         } else {
           const entryInput = document.getElementById("vehicleEntry");
-          if (!entryInput.value) {
-            entryInput.value = toLocalInput(new Date());
-          }
+          const nowLocal = toLocalInput(new Date());
+          if (entryInput) entryInput.value = nowLocal;
           if (vehicleFinancialResponsible) vehicleFinancialResponsible.value = "";
           if (vehicleAuctioneer) vehicleAuctioneer.value = "";
         }
         const vd = document.getElementById("vehicleDaily");
-        if (vd) vd.required = true;
+        const entryInput = document.getElementById("vehicleEntry");
+        const gestorCreate = isGestorPista && mode === "create";
+        if (vd) vd.required = !gestorCreate;
+        if (entryInput) entryInput.required = !gestorCreate;
         vehicleModal.classList.remove("hidden");
       }
 
@@ -17639,16 +17646,30 @@
           alert("O gestor de pista não pode editar veículos.");
           return;
         }
+        const gestorCreate = isGestorPista && !editingVehicleId;
         const vehicleDailyEl = document.getElementById("vehicleDaily");
-        const vehicleDailyRaw = (vehicleDailyEl?.value || "").toString().trim();
-        if (!vehicleDailyRaw) {
-          alert("Informe o valor da diária.");
-          return;
-        }
-        const vehicleDailyValue = vehicleDailyRaw ? Number(vehicleDailyRaw.replace(",", ".")) : 0;
-        if (!Number.isFinite(vehicleDailyValue) || vehicleDailyValue < 0) {
-          alert("Valor da diária inválido.");
-          return;
+        const vehicleEntryEl = document.getElementById("vehicleEntry");
+        let vehicleDailyValue = 0;
+        let dataEntradaIso = new Date().toISOString();
+        if (gestorCreate) {
+          vehicleDailyValue = 0;
+          dataEntradaIso = new Date().toISOString();
+        } else {
+          const vehicleDailyRaw = (vehicleDailyEl?.value || "").toString().trim();
+          if (!vehicleDailyRaw) {
+            alert("Informe o valor da diária.");
+            return;
+          }
+          vehicleDailyValue = vehicleDailyRaw ? Number(vehicleDailyRaw.replace(",", ".")) : 0;
+          if (!Number.isFinite(vehicleDailyValue) || vehicleDailyValue < 0) {
+            alert("Valor da diária inválido.");
+            return;
+          }
+          if (!vehicleEntryEl?.value) {
+            alert("Informe a data e hora de entrada.");
+            return;
+          }
+          dataEntradaIso = new Date(vehicleEntryEl.value).toISOString();
         }
         const inspectionDateEl = document.getElementById("vehicleInspectionDate");
         const inspectionResponsibleEl = document.getElementById("vehicleInspectionResponsible");
@@ -17673,17 +17694,17 @@
         const payload = {
           user_id: effectiveUserId(),
           placa: document.getElementById("vehiclePlate").value.trim(),
-          marca: document.getElementById("vehicleBrand").value.trim(),
+          marca: gestorCreate ? "" : document.getElementById("vehicleBrand").value.trim(),
           modelo: document.getElementById("vehicleModel").value.trim(),
           valor_diaria: vehicleDailyValue,
-          data_entrada: new Date(document.getElementById("vehicleEntry").value).toISOString(),
-          data_saida: vehicleExit.value ? new Date(vehicleExit.value).toISOString() : null,
+          data_entrada: dataEntradaIso,
+          data_saida: gestorCreate ? null : vehicleExit.value ? new Date(vehicleExit.value).toISOString() : null,
           localizador_id: vehicleLocator.value || null,
-          responsavel_financeiro_id: rpfFields.responsavel_financeiro_id,
-          responsavel_financeiro_nome: rpfFields.responsavel_financeiro_nome,
+          responsavel_financeiro_id: gestorCreate ? null : rpfFields.responsavel_financeiro_id,
+          responsavel_financeiro_nome: gestorCreate ? null : rpfFields.responsavel_financeiro_nome,
           assessoria_id: null,
-          leiloeiro_id: vehicleAuctioneer?.value || null,
-          observacoes: document.getElementById("vehicleNotes").value.trim(),
+          leiloeiro_id: gestorCreate ? null : vehicleAuctioneer?.value || null,
+          observacoes: gestorCreate ? "" : document.getElementById("vehicleNotes").value.trim(),
           status: editingVehicleData?.status || "NO_PATIO",
           payment_status: editingVehicleData?.payment_status || "EM_ABERTO",
           nfse_status: editingVehicleData?.nfse_status || "NAO_SOLICITADA",
