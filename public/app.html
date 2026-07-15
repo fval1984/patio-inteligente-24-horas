@@ -6500,7 +6500,7 @@
                 <label>Placa</label>
                 <input id="vehiclePlate" type="text" placeholder="ABC1D23" required />
               </div>
-              <div class="field-operador-hide">
+              <div>
                 <label>Marca</label>
                 <input id="vehicleBrand" type="text" placeholder="Fiat" />
               </div>
@@ -17694,7 +17694,7 @@
         const payload = {
           user_id: effectiveUserId(),
           placa: document.getElementById("vehiclePlate").value.trim(),
-          marca: gestorCreate ? "" : document.getElementById("vehicleBrand").value.trim(),
+          marca: document.getElementById("vehicleBrand").value.trim(),
           modelo: document.getElementById("vehicleModel").value.trim(),
           valor_diaria: vehicleDailyValue,
           data_entrada: dataEntradaIso,
