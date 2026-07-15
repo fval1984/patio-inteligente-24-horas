@@ -5672,9 +5672,9 @@
               <p class="dashboard-kicker">AmpliPátio</p>
               <h2>Central inteligente</h2>
               <p class="dashboard-subtitle">Visão executiva unificada — Financeiro, Pátio e Parceiros em tempo real.</p>
-            </div>
-            <span class="pill pill--premium">Dashboard geral</span>
           </div>
+            <span class="pill pill--premium">Dashboard geral</span>
+              </div>
           <div class="filter-bar hub-dash-filters">
             <label for="hubDashFilterPeriod">Período</label>
             <select id="hubDashFilterPeriod" title="Período global">
@@ -5683,7 +5683,7 @@
               <option value="30d" selected>Últimos 30 dias</option>
               <option value="month">Mês atual</option>
               <option value="year">Ano atual</option>
-            </select>
+                  </select>
             <label for="hubDashFilterPartner">Parceiro</label>
             <select id="hubDashFilterPartner"><option value="">Todos</option></select>
             <label for="hubDashFilterStatus">Status veículo</label>
@@ -5695,7 +5695,7 @@
             </select>
             <label for="hubDashFilterSearch">Busca rápida</label>
             <input type="search" id="hubDashFilterSearch" placeholder="Placa, parceiro, valor…" autocomplete="off" />
-          </div>
+              </div>
           <div id="hubDashAlerts" class="hub-dash-alerts" aria-live="polite"></div>
           <div id="hubDashRoot"></div>
           <div class="hub-dash-legacy-hidden" aria-hidden="true" hidden>
@@ -5912,7 +5912,7 @@
             </div>
             <div class="section-card patio-subview hidden" data-subview="no_patio">
               <div class="pill">VNP</div>
-              <div class="table-wrap">
+                <div class="table-wrap">
                 <table class="table stacked">
                 <thead>
                   <tr>
@@ -6020,7 +6020,7 @@
           <div id="partnerSubnav" class="subnav">
             <button type="button" data-subview="dashboard" class="active">Dashboard</button>
             <button type="button" data-subview="parceiros">Cadastro</button>
-          </div>
+            </div>
 
           <div class="partner-subview" data-subview="dashboard">
             <div class="filter-bar partner-dash-toolbar">
@@ -6050,7 +6050,7 @@
               <section id="partnerDashRankRevenue"></section>
               <section id="partnerDashRankVehicles"></section>
               <section id="partnerDashRankConversion"></section>
-            </div>
+          </div>
             <section id="partnerDashEvolution" aria-label="Evolução mensal"></section>
             <div id="partnerDashDetail" class="hidden" aria-live="polite"></div>
           </div>
@@ -6422,14 +6422,14 @@
               </p>
             </div>
             <div class="section-card" style="margin-top: 18px">
-              <h3 style="margin: 0 0 10px; font-size: 1.1rem">Gestor de pista</h3>
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px">
+                <h3 style="margin: 0; font-size: 1.1rem">Gestores de pista</h3>
+                <button type="button" id="trackManagerBtnNovo">+ Adicionar utilizador</button>
+              </div>
               <p class="notice" style="margin: 0 0 12px">
                 Cria um utilizador só para a pista: <strong>Nome</strong> e <strong>senha</strong>. O funcionário abre a <strong>mesma app</strong> (este site) →
                 <strong>Entrar</strong> → escreve o <strong>mesmo nome</strong> e a <strong>senha</strong> (se o nome não tiver @, não precisa de e-mail).
               </p>
-              <div class="form-actions" style="margin-top: 0; margin-bottom: 10px">
-                <button type="button" class="secondary" id="trackManagerBtnNovo">Novo utilizador</button>
-              </div>
               <div id="trackManagerFormWrap" class="hidden">
                 <div class="form-grid">
                   <div class="full">
@@ -6466,12 +6466,13 @@
               </div>
             </div>
             <div class="section-card" style="margin-top: 18px; box-shadow: none; border: 1px dashed var(--border, #ccc); padding: 14px">
-              <p class="notice" style="margin: 0 0 8px">Gestores de pista ligados a esta conta</p>
+              <p class="notice" style="margin: 0 0 8px">Utilizadores ligados a esta conta</p>
               <table class="table stacked">
                 <thead>
                   <tr>
                     <th>Nome</th>
                     <th>Perfil</th>
+                    <th>Ações</th>
                   </tr>
                 </thead>
                 <tbody id="tableTrackManagersBody"></tbody>
@@ -8408,7 +8409,7 @@
 
         restoreTabModalDom();
 
-        bindPatioVehicleTableActions();
+          bindPatioVehicleTableActions();
       }
 
 
@@ -11558,7 +11559,7 @@
           alert(
             filterLocId || filterRpfId || listaFilterBanco
               ? "Nenhuma conta em aberto com os filtros escolhidos."
-              : "Não há títulos em aberto para receber."
+                : "Não há títulos em aberto para receber."
           );
           return;
         }
@@ -11680,8 +11681,8 @@
             typeof window.financeCaixaMovsForPeriod === "function"
               ? window.financeCaixaMovsForPeriod("", { useDomFilters: false, de: listaFilterDataDe, ate: listaFilterDataAte })
               : typeof window.financeDedupeCaixaMovs === "function"
-                ? window.financeDedupeCaixaMovs(state.cash || [])
-                : state.cash || []
+            ? window.financeDedupeCaixaMovs(state.cash || [])
+            : state.cash || []
           ).filter(listaCashMatches);
           const label = "Soma dos valores (movimentos filtrados)";
           const amount = list.reduce(
@@ -11917,7 +11918,7 @@
                     : Number(mov.valor || 0)
                 )
               )}</td>
-            </tr>`;
+              </tr>`;
             })
             .join("");
           return;
@@ -13966,8 +13967,8 @@
             : typeof window.financeCaixaMovsMerged === "function"
               ? window.financeCaixaMovsMerged()
               : typeof window.financeDedupeCaixaMovs === "function"
-                ? window.financeDedupeCaixaMovs(state.cash || [])
-                : state.cash || [];
+          ? window.financeDedupeCaixaMovs(state.cash || [])
+          : state.cash || [];
         const movCompetenciaYmd =
           typeof window.financeCaixaMovCompetenciaYmd === "function"
             ? window.financeCaixaMovCompetenciaYmd
@@ -14124,8 +14125,8 @@
           typeof window.financeCaixaMovsMerged === "function"
             ? window.financeCaixaMovsMerged()
             : typeof window.financeDedupeCaixaMovs === "function"
-              ? window.financeDedupeCaixaMovs(state.cash || [])
-              : state.cash || [];
+          ? window.financeDedupeCaixaMovs(state.cash || [])
+          : state.cash || [];
         const movCompetenciaYmd =
           typeof window.financeCaixaMovCompetenciaYmd === "function"
             ? window.financeCaixaMovCompetenciaYmd
@@ -14423,11 +14424,11 @@
 
         const chartPeriodEl = document.getElementById("dashboardChartPeriod");
         if (chartPeriodEl || document.getElementById("dashboardCashFlowSvg")) {
-          const selectedPeriod = chartPeriodEl?.value || "mes";
-          renderDashboardFinanceCharts(selectedPeriod);
-          if (chartPeriodEl && !chartPeriodEl.dataset.bound) {
-            chartPeriodEl.addEventListener("change", () => renderDashboardFinanceCharts(chartPeriodEl.value || "mes"));
-            chartPeriodEl.dataset.bound = "1";
+        const selectedPeriod = chartPeriodEl?.value || "mes";
+        renderDashboardFinanceCharts(selectedPeriod);
+        if (chartPeriodEl && !chartPeriodEl.dataset.bound) {
+          chartPeriodEl.addEventListener("change", () => renderDashboardFinanceCharts(chartPeriodEl.value || "mes"));
+          chartPeriodEl.dataset.bound = "1";
           }
         }
       }
@@ -16546,13 +16547,13 @@
         let result = null;
         try {
           result = await finalizeReceivablePayment(pending.receivableId, valorRecebido, {
-            dataMovimento: dataMov,
-            formaPagamento,
-            anexo,
+          dataMovimento: dataMov,
+          formaPagamento,
+          anexo,
             observacao: obsFinal,
-            desconto,
-            valorOriginal,
-          });
+          desconto,
+          valorOriginal,
+        });
         } catch (e) {
           console.error("executeReceberBaixa", e);
           const msg = e?.message || String(e);
@@ -17221,7 +17222,7 @@
           if (verifiedApi) return { data: verifiedApi, error: null };
         }
 
-        return {
+          return {
           data: null,
           error:
             lastError ||
@@ -17356,8 +17357,8 @@
         }
         if (String(payable.status || "").toUpperCase() !== "PAGO") {
           alert("Marque a conta como paga antes de registrar no caixa.");
-          return false;
-        }
+            return false;
+          }
         if (payableCashMovementExists(payableId)) {
           alert("Esta conta já possui saída registrada no caixa.");
           return false;
@@ -17370,20 +17371,20 @@
           toLocalYmd(payable.data_vencimento || new Date().toISOString());
         const formaPagamento = opts.formaPagamento || payable.forma_pagamento || "PIX";
         const cashResult = await registerPayableCashMovement(payable, {
-          dataMovimento: dataMov,
-          formaPagamento,
-          descricao: payable.descricao,
+            dataMovimento: dataMov,
+            formaPagamento,
+            descricao: payable.descricao,
           aprovadoCaixa: true,
-        });
+          });
         if (cashResult.error) {
           alertSupabaseError(cashResult.error, "Não foi possível registrar a saída no caixa.");
-          return false;
-        }
+            return false;
+          }
         if (opts.anexo) await financeAttachmentSave("payable", payableId, opts.anexo);
         await Promise.all([loadPayables(), loadCash()]);
-        updateDashboard();
-        if (typeof renderFinance === "function") renderFinance();
-        return true;
+          updateDashboard();
+          if (typeof renderFinance === "function") renderFinance();
+          return true;
       }
       window.registerPayableInCaixaManual = registerPayableInCaixaManual;
 
@@ -19208,16 +19209,16 @@
         if (closure) {
           await runSupabaseWrite(() =>
             supabase
-              .from("patio_cycle_closures")
-              .update({
-                responsavel_financeiro: String(novoRpf || "").trim() || null,
-                period_start: isoInicio,
-                period_end: isoFim,
-                diarias: diariasCalc,
-                valor: valorNovo,
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", closure.id)
+            .from("patio_cycle_closures")
+            .update({
+              responsavel_financeiro: String(novoRpf || "").trim() || null,
+              period_start: isoInicio,
+              period_end: isoFim,
+              diarias: diariasCalc,
+              valor: valorNovo,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", closure.id)
               .eq("user_id", effectiveUserId())
           );
         }
@@ -19240,10 +19241,10 @@
         const userId = effectiveUserId();
         await runSupabaseWrite(() =>
           supabase
-            .from("cash_movements")
-            .delete()
-            .eq("conta_id", receivableId)
-            .eq("tipo_conta", "RECEBER")
+          .from("cash_movements")
+          .delete()
+          .eq("conta_id", receivableId)
+          .eq("tipo_conta", "RECEBER")
             .eq("user_id", userId)
         );
         const closure = (state.cycleClosures || []).find((c) => String(c.receivable_id) === String(receivableId));
@@ -19472,36 +19473,96 @@
         if (!tableTrackManagersBody || !supabase || !state.user?.id || isGestorPista) return;
         let { data, error } = await supabase
           .from("track_managers")
-          .select("email, role")
+          .select("user_id, email, role")
           .eq("owner_user_id", state.user.id)
           .order("email", { ascending: true });
         if (error && /role|column|schema cache|PGRST204/i.test(error.message || "")) {
           const r2 = await supabase
             .from("track_managers")
-            .select("email")
+            .select("user_id, email")
             .eq("owner_user_id", state.user.id)
             .order("email", { ascending: true });
           data = (r2.data || []).map((row) => ({ ...row, role: "GESTOR_PISTA" }));
           error = r2.error;
         }
         if (error) {
-          tableTrackManagersBody.innerHTML = `<tr><td colspan="2"><em>Erro ao carregar lista.</em></td></tr>`;
+          tableTrackManagersBody.innerHTML = `<tr><td colspan="3"><em>Erro ao carregar lista.</em></td></tr>`;
           console.warn(error);
           return;
         }
         const rows = data || [];
         if (!rows.length) {
-          tableTrackManagersBody.innerHTML = `<tr><td colspan="2"><em>Nenhum gestor de pista. Cria um acima.</em></td></tr>`;
+          tableTrackManagersBody.innerHTML = `<tr><td colspan="3"><em>Nenhum utilizador. Clique em «+ Adicionar utilizador».</em></td></tr>`;
           return;
         }
         tableTrackManagersBody.innerHTML = rows
           .map((r) => {
             const perfil = "Gestor de pista";
             const rotulo = escapeHtml(displayManagerIdentity((r.email || "—").trim()));
-            return `<tr><td data-label="Nome / login">${rotulo}</td><td data-label="Perfil">${escapeHtml(perfil)}</td></tr>`;
+            const uid = escapeHtml(String(r.user_id || ""));
+            return `<tr>
+              <td data-label="Nome">${rotulo}</td>
+              <td data-label="Perfil">${escapeHtml(perfil)}</td>
+              <td data-label="Ações" class="actions">
+                <button type="button" class="secondary" data-track-manager-delete="${uid}">Apagar</button>
+              </td>
+            </tr>`;
           })
           .join("");
       }
+
+      async function deleteTrackManagerUser(delegateUserId, displayName) {
+        if (!delegateUserId || isGestorPista) return;
+        const nome = (displayName || "este utilizador").trim();
+        if (!confirm(`Apagar ${nome}?\n\nO acesso de login será removido e não poderá entrar na app.`)) return;
+        if (!(await requireSupabaseSessionForWrite())) return;
+        const session = await ensureValidSupabaseSession();
+        const accessToken = session?.access_token;
+        if (!accessToken) {
+          alert("Sessão expirada. Saia e entre novamente na conta principal.");
+          return;
+        }
+        if (trackManagerStatus) trackManagerStatus.textContent = "A remover utilizador…";
+        try {
+          const resp = await fetch(new URL("/api/delete-track-manager", window.location.origin).href, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({ user_id: delegateUserId, access_token: accessToken }),
+          });
+          const raw = await resp.text();
+          let json = {};
+          try {
+            json = raw ? JSON.parse(raw) : {};
+          } catch (_) {
+            if (trackManagerStatus)
+              trackManagerStatus.textContent =
+                "Resposta inválida do servidor. Confirme deploy Next.js com /api/delete-track-manager.";
+            return;
+          }
+          if (!resp.ok) {
+            const msg = json.error || json.message || `Erro ${resp.status}`;
+            if (trackManagerStatus) trackManagerStatus.textContent = msg;
+            alert(msg);
+            return;
+          }
+          if (trackManagerStatus) trackManagerStatus.textContent = json.message || "Utilizador removido.";
+          hideTrackManagerAccessBox();
+          await loadTrackManagersList();
+        } catch (e) {
+          const msg = e?.message || "Não foi possível apagar o utilizador.";
+          if (trackManagerStatus) trackManagerStatus.textContent = msg;
+          alert(msg);
+        }
+      }
+
+      tableTrackManagersBody?.addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-track-manager-delete]");
+        if (!btn) return;
+        const uid = btn.getAttribute("data-track-manager-delete");
+        const row = btn.closest("tr");
+        const nome = row?.querySelector("td[data-label='Nome']")?.textContent?.trim() || "";
+        await deleteTrackManagerUser(uid, nome);
+      });
 
       configSubnav?.addEventListener("click", (event) => {
         const btn = event.target.closest("button[data-config-subview]");
