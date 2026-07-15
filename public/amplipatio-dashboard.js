@@ -608,18 +608,87 @@
     }
   }
 
+  function filterAlertsForGestor(alerts) {
+    return (alerts || []).filter((a) => {
+      const nav = String(a.nav || "");
+      if (nav.startsWith("financeiro")) return false;
+      if (nav.startsWith("parceiros")) return false;
+      return nav.startsWith("patio");
+    });
+  }
+
   function amplipatioDashboardRender(data, ctx) {
     const root = document.getElementById("hubDashRoot");
     if (!root) return;
     syncFiltersFromDom();
     populatePartnerFilter(data.partners);
+    const isGestorPista = !!(ctx?.isGestorPista || global.isGestorPista);
     const formatCurrency = ctx?.formatCurrency || ((n) => `R$ ${Number(n || 0).toFixed(2)}`);
     const m = getMetrics(data);
     const fin = m.finSnap || {};
     const pd = m.partnersDash;
     const fd = m.finDash;
 
-    renderAlerts(m.alerts);
+    const dashShell = document.getElementById("viewDashboard");
+    dashShell?.classList.toggle("hub-dash--gestor-pista", isGestorPista);
+    const dashSubtitle = dashShell?.querySelector(".dashboard-subtitle");
+    if (dashSubtitle) {
+      dashSubtitle.textContent = isGestorPista
+        ? "Resumo operacional — veículos no pátio em tempo real."
+        : "Visão executiva unificada — Financeiro, Pátio e Parceiros em tempo real.";
+    }
+    const dashSearch = document.getElementById("hubDashFilterSearch");
+    if (dashSearch) dashSearch.placeholder = isGestorPista ? "Placa ou parceiro…" : "Placa, parceiro, valor…";
+
+    renderAlerts(isGestorPista ? filterAlertsForGestor(m.alerts) : m.alerts);
+
+    if (isGestorPista) {
+      root.innerHTML = `
+      <section class="hub-dash-section">
+        <h3 class="hub-dash-section-title">Gestão de Pátio</h3>
+        <div class="hub-ops-cards">
+          ${renderCard({ theme: "vnp", icon: "vehicle", label: "Veículos no pátio", value: m.onPatioCount, meta: `VLP: ${m.vlpCount}`, trend: m.patioDash?.occupancyTrend, spark: m.patioDash?.occupancySpark, sparkColor: "#22d3ee", nav: "patio:no_patio" })}
+          ${renderCard({ theme: "in", icon: "vehicle", label: "Entradas do dia", value: m.entradasDia, meta: `${m.periodEntradas} no período`, trend: m.entradasTrend, nav: "patio:no_patio" })}
+          ${renderCard({ theme: "out", icon: "vehicle", label: "Saídas do dia", value: m.saidasDia, meta: `${m.periodSaidas} no período`, trend: m.saidasTrend, nav: "patio:no_patio" })}
+          ${renderCard({ theme: "stay", icon: "stay", label: "Tempo médio permanência", value: `${Number(m.avgStay).toFixed(1).replace(".", ",")} dias`, meta: "média operacional", trend: m.patioDash?.stayTrend, invertTrend: true, sparkColor: "#fbbf24", nav: "patio:no_patio" })}
+          ${renderCard({ theme: "status", icon: "vehicle", label: "Veículos por status", value: `VNP ${m.statusCounts.no_patio}`, meta: `VLP ${m.statusCounts.vlp} · VRP ${m.statusCounts.removido}`, nav: "patio:no_patio" })}
+          ${renderCard({ theme: "occupancy", icon: "occupancy", label: "Ocupação do pátio", value: m.ocupacaoPct, valueType: "pct", meta: `${m.onPatioCount} / ${m.capacity} vagas`, trend: m.patioDash?.occupancyTrend, spark: m.patioDash?.occupancySpark, sparkColor: "#06b6d4", nav: "patio:no_patio" })}
+          ${renderCard({ theme: "vlp", icon: "vehicle", label: "Aguardando liberação", value: m.vlpCount, meta: "status VLP", nav: "patio:no_patio" })}
+          ${renderCard({ theme: "done", icon: "vehicle", label: "Finalizados no mês", value: m.finalizadosMes, meta: "veículos removidos", nav: "patio:no_patio" })}
+        </div>
+      </section>
+
+      <section class="hub-dash-charts hub-dash-charts--gestor">
+        <div class="hub-chart-panel section-card">
+          <h4>Entradas × saídas de veículos</h4>
+          ${barChartSvg(m.months.map((ym) => ym.slice(5)), [{ name: "Entradas", values: m.entradasByMonth }, { name: "Saídas", values: m.saidasByMonth }], ["#34d399", "#f87171"], 200)}
+        </div>
+        <div class="hub-chart-panel section-card">
+          <h4>Veículos por status</h4>
+          ${barChartSvg(["VNP", "VLP", "VRP"], [{ name: "Qtd", values: [m.statusCounts.no_patio, m.statusCounts.vlp, m.statusCounts.removido] }], ["#22d3ee", "#fbbf24", "#94a3b8"], 160)}
+        </div>
+      </section>
+
+      <section class="hub-dash-rankings hub-dash-rankings--gestor">
+        <div class="hub-rank-panel section-card">
+          <h4>Maior tempo no pátio</h4>
+          <ol class="hub-rank-list">
+            ${m.longStay.length ? m.longStay.map((x, i) => `<li class="hub-rank-item"><span class="hub-rank-pos">${i + 1}</span><span class="hub-rank-name">${escapeHtml(x.v.placa || "—")}</span><span class="hub-rank-val">${x.days} dias</span></li>`).join("") : `<p class="hub-rank-empty">Nenhum veículo com permanência elevada.</p>`}
+          </ol>
+        </div>
+        <div class="hub-rank-panel section-card hub-growth-panel">
+          <h4>Movimentação no período</h4>
+          <ul class="hub-growth-list">
+            <li><span>Entradas (${m.range.label})</span><strong class="${formatTrend(m.entradasTrend).cls}">${formatTrend(m.entradasTrend).arrow} ${formatTrend(m.entradasTrend).text}</strong></li>
+            <li><span>Saídas (${m.range.label})</span><strong class="${formatTrend(m.saidasTrend).cls}">${formatTrend(m.saidasTrend).arrow} ${formatTrend(m.saidasTrend).text}</strong></li>
+            <li><span>Ocupação média</span><strong>${Number(m.avgStay).toFixed(1).replace(".", ",")} dias</strong></li>
+          </ul>
+          <p class="hub-ops-footnote">${escapeHtml(m.range.label)} · perfil gestor de pista</p>
+        </div>
+      </section>
+    `;
+      return;
+    }
 
     const monthLabels = m.months.map((ym) => ym.slice(5));
     const topRev = (pd?.rankedRevenue || []).slice(0, 5).map((r) => ({
