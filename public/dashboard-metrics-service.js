@@ -183,11 +183,33 @@
     });
   }
 
+  function receivableMetaAprovado(r) {
+    const raw = String(r?.observacoes || r?.responsavel_pagamento || "");
+    if (!raw.includes("financeiro_aprovado_contas_receber")) return false;
+    try {
+      const prefix = "[[finmeta:";
+      const i = raw.indexOf(prefix);
+      if (i < 0) return false;
+      const end = raw.indexOf("]]", i);
+      if (end < 0) return false;
+      const json = raw.slice(i + prefix.length, end);
+      const meta = JSON.parse(json);
+      return meta && meta.financeiro_aprovado_contas_receber === true;
+    } catch (e) {
+      return /"financeiro_aprovado_contas_receber"\s*:\s*true/.test(raw);
+    }
+  }
+
+  /** Mesma regra do Financeiro «Contas a receber» — não basta status EM_ABERTO. */
   function isOpenReceivable(r) {
-    const st = String(r?.status || "").toUpperCase();
-    if (!st) return false;
+    if (!r) return false;
+    const st = String(r.status || "").toUpperCase();
     if (st === "PAGO" || st === "CANCELADO" || st === "CANCELADA") return false;
-    return st === "EM_ABERTO";
+    if (!(Number(r.valor || 0) > 0)) return false;
+    if (r.financeiro_aprovado_contas_receber === true) return true;
+    if (receivableMetaAprovado(r)) return true;
+    if (!r.vehicle_id && st === "EM_ABERTO") return true;
+    return false;
   }
 
   function resolveCapacity(settings) {
