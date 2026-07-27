@@ -201,12 +201,39 @@ export function filterVehicles(
   });
 }
 
-/** CARD 5 — somente EM_ABERTO; exclui PAGO e CANCELADO. */
+/** CARD 5 — mesma regra do Financeiro «Contas a receber» (não basta EM_ABERTO). */
 export function isOpenReceivable(r: DashboardReceivable): boolean {
+  if (!r) return false;
   const st = String(r.status || "").toUpperCase();
-  if (!st) return false;
   if (st === "PAGO" || st === "CANCELADO" || st === "CANCELADA") return false;
-  return st === "EM_ABERTO";
+  if (!(Number(r.valor || 0) > 0)) return false;
+
+  // Aprovado na triagem (coluna ou meta em observações) — entra em Contas a receber.
+  if (r.financeiro_aprovado_contas_receber === true) return true;
+  if (receivableMetaAprovado(r)) return true;
+
+  // Lançamento manual (sem veículo): EM_ABERTO conta como Contas a receber.
+  if (!r.vehicle_id && st === "EM_ABERTO") return true;
+
+  return false;
+}
+
+/** Lê flag de aprovação embutida em observações ([[finmeta:...]]). */
+function receivableMetaAprovado(r: DashboardReceivable): boolean {
+  const raw = String(r.observacoes || r.responsavel_pagamento || "");
+  if (!raw.includes("financeiro_aprovado_contas_receber")) return false;
+  try {
+    const prefix = "[[finmeta:";
+    const i = raw.indexOf(prefix);
+    if (i < 0) return false;
+    const end = raw.indexOf("]]", i);
+    if (end < 0) return false;
+    const json = raw.slice(i + prefix.length, end);
+    const meta = JSON.parse(json);
+    return meta?.financeiro_aprovado_contas_receber === true;
+  } catch {
+    return /"financeiro_aprovado_contas_receber"\s*:\s*true/.test(raw);
+  }
 }
 
 function resolveCapacity(settings: DashboardDataSnapshot["settings"]): number {
@@ -260,7 +287,7 @@ export class DashboardMetrics {
       label: `${veiculosNoPatio} de ${capacity} vagas`,
     };
 
-    // CARD 5 — títulos EM_ABERTO no universo filtrado
+    // CARD 5 — títulos em Contas a receber (aprovados / manuais), não todo EM_ABERTO
     const finId = financeiraFilterId(filters);
     const openReceivables = (snapshot.receivables || []).filter((r) => {
       if (!isOpenReceivable(r)) return false;
