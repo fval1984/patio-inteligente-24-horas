@@ -1,174 +1,25 @@
 /**
- * Dashboard Executivo AmpliPátio — visão limpa focada em decisão.
- * UI only: não altera banco, APIs ou regras de negócio.
+ * Dashboard Executivo AmpliPátio — UI.
+ * Indicadores vêm exclusivamente de DashboardMetricsService (sem SQL próprio por card).
  */
 (function amplipatioDashboardModule(global) {
   "use strict";
 
   let _cache = null;
   let _bound = false;
-  const HUB_PATIO_CAPACITY = 100;
-  const LONG_STAY_TOP = 10;
-  const STALE_AGUARDANDO_DAYS = 14;
   const CAPACITY_WARN_PCT = 85;
-  const ENTRADAS_SAIDAS_DAYS = 30;
-  const VEH_BY_FINANCE_TOP = 8;
-  const TOP_RECV_PARTNERS = 8;
 
   let _filterPeriod = "30d";
   let _filterPartnerId = "";
   let _filterStatus = "";
   let _filterSearch = "";
 
-  function isCalendarYmd(v) {
-    return /^\d{4}-\d{2}-\d{2}$/.test(String(v || "").trim());
-  }
-
-  function toLocalYmd(value) {
-    if (!value) return null;
-    const s = String(value).trim();
-    if (isCalendarYmd(s)) return s;
-    const d = new Date(s.includes("T") ? s : `${s.slice(0, 10)}T12:00:00`);
-    if (Number.isNaN(d.getTime())) return null;
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  }
-
-  function todayYmd() {
-    return toLocalYmd(new Date());
-  }
-
-  function ymdToDate(ymd) {
-    return new Date(`${ymd}T12:00:00`);
-  }
-
-  function addDaysYmd(ymd, days) {
-    const d = ymdToDate(ymd);
-    d.setDate(d.getDate() + days);
-    return toLocalYmd(d);
-  }
-
-  function yearMonthFromYmd(ymd) {
-    if (!ymd || ymd.length < 7) return null;
-    return ymd.slice(0, 7);
-  }
-
-  function monthStartYm(ym) {
-    return `${ym}-01`;
-  }
-
-  function monthEndYm(ym) {
-    const [y, m] = ym.split("-").map(Number);
-    const last = new Date(y, m, 0).getDate();
-    return `${y}-${String(m).padStart(2, "0")}-${String(last).padStart(2, "0")}`;
-  }
-
-  function inRange(ymd, fromYmd, toYmd) {
-    if (!ymd) return false;
-    if (fromYmd && ymd < fromYmd) return false;
-    if (toYmd && ymd > toYmd) return false;
-    return true;
-  }
-
-  function resolvePeriodRange(period) {
-    const today = todayYmd();
-    const curYm = yearMonthFromYmd(today);
-    switch (period) {
-      case "today":
-        return { from: today, to: today, label: "Hoje" };
-      case "7d":
-        return { from: addDaysYmd(today, -6), to: today, label: "Últimos 7 dias" };
-      case "30d":
-        return { from: addDaysYmd(today, -29), to: today, label: "Últimos 30 dias" };
-      case "month":
-        return { from: monthStartYm(curYm), to: today, label: "Mês atual" };
-      case "year":
-        return { from: `${today.slice(0, 4)}-01-01`, to: today, label: "Ano atual" };
-      default:
-        return { from: addDaysYmd(today, -29), to: today, label: "Últimos 30 dias" };
-    }
-  }
-
-  function prevPeriodRange(range) {
-    if (!range.from || !range.to) return { from: null, to: null };
-    const days =
-      Math.round((ymdToDate(range.to).getTime() - ymdToDate(range.from).getTime()) / 86400000) + 1;
-    const prevTo = addDaysYmd(range.from, -1);
-    const prevFrom = addDaysYmd(prevTo, -(days - 1));
-    return { from: prevFrom, to: prevTo };
-  }
-
-  function pctChange(current, previous) {
-    if (!previous || previous === 0) return current > 0 ? 100 : 0;
-    return ((current - previous) / previous) * 100;
-  }
-
-  function isVehicleOnPatio(v) {
-    return !!v && String(v.status || "").toUpperCase() !== "REMOVIDO";
-  }
-
-  function isVlpStatus(status) {
-    const s = String(status || "");
-    return s === "LIBERACAO_SOLICITADA" || s === "LIBERACAO_CONFIRMADA" || s === "REMocao_CONFIRMADA" || s.toUpperCase() === "REMOCAO_CONFIRMADA";
-  }
-
-  function statusUpper(v) {
-    return String(v?.status || "").toUpperCase();
-  }
-
-  function partnerById(partners) {
-    return new Map((partners || []).map((p) => [String(p.id), p]));
-  }
-
-  function vehicleMaps(vehicles) {
-    return new Map((vehicles || []).map((v) => [String(v.id), v]));
-  }
-
-  function partnerFinanceiraNome(v, pmap) {
-    const id = String(v?.localizador_id || v?.responsavel_financeiro_id || "");
-    if (!id) return "—";
-    const p = pmap.get(id);
-    return p?.nome || v?.responsavel_financeiro_nome || "—";
-  }
-
-  function vehicleHasVistoria(v) {
-    const checklist = v?.vistoria_checklist || {};
-    return !!(
-      v?.vistoria_data ||
-      v?.vistoria_responsavel ||
-      v?.vistoria_km ||
-      v?.vistoria_combustivel ||
-      v?.vistoria_observacoes ||
-      checklist.documento ||
-      checklist.chave ||
-      checklist.estepe ||
-      checklist.triangulo_macaco
-    );
-  }
-
-  function vehicleSemValor(v) {
-    return !v?.valor_diaria || Number(v.valor_diaria) <= 0;
-  }
-
-  function isRemocaoSolicitadaFlag(v) {
-    if (!v) return false;
-    const flag = v.remocao_solicitada;
-    if (
-      flag === true ||
-      flag === 1 ||
-      flag === "1" ||
-      flag === "t" ||
-      flag === "true" ||
-      flag === "TRUE"
-    ) {
-      return true;
-    }
-    const s = String(v.status || "");
-    return s === "REMocao_CONFIRMADA" || s.toUpperCase() === "REMOCAO_CONFIRMADA";
-  }
-
-  function isLiberadoAguardandoRetirada(v) {
-    const s = String(v?.status || "");
-    return s === "LIBERACAO_CONFIRMADA" || s === "REMocao_CONFIRMADA" || s.toUpperCase() === "REMOCAO_CONFIRMADA";
+  function escapeHtml(str) {
+    return String(str ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
   function syncFiltersFromDom() {
@@ -186,39 +37,13 @@
     const sel = document.getElementById("hubDashFilterPartner");
     if (!sel) return;
     const cur = _filterPartnerId || sel.value || "";
-    const list = (partners || []).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR"));
+    const list = (partners || [])
+      .slice()
+      .sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR"));
     sel.innerHTML =
       `<option value="">Todos</option>` +
       list.map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.nome || "-")}</option>`).join("");
     if (cur) sel.value = cur;
-  }
-
-  function filterVehicles(vehicles, partners) {
-    const pmap = partnerById(partners);
-    const q = _filterSearch.replace(/[^a-z0-9]/g, "");
-    return (vehicles || []).filter((v) => {
-      if (_filterPartnerId && String(v.localizador_id || "") !== String(_filterPartnerId)) return false;
-      if (_filterStatus === "no_patio" && !isVehicleOnPatio(v)) return false;
-      if (_filterStatus === "vlp" && !isVlpStatus(v.status)) return false;
-      if (_filterStatus === "removido" && String(v.status || "").toUpperCase() !== "REMOVIDO") return false;
-      if (_filterSearch) {
-        const plate = String(v.placa || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-        const partner = pmap.get(String(v.localizador_id));
-        const pName = String(partner?.nome || "").toLowerCase();
-        const hay = `${plate} ${pName}`;
-        const normHay = hay.replace(/[^a-z0-9]/g, "");
-        if (!hay.includes(_filterSearch) && !(q && normHay.includes(q))) return false;
-      }
-      return true;
-    });
-  }
-
-  function vehicleStayDays(v, endYmd) {
-    const ent = toLocalYmd(v?.data_entrada);
-    if (!ent) return 0;
-    const end = v.data_saida ? toLocalYmd(v.data_saida) : endYmd || todayYmd();
-    if (!end || end < ent) return 0;
-    return Math.max(1, Math.ceil((ymdToDate(end).getTime() - ymdToDate(ent).getTime()) / 86400000));
   }
 
   function dataSignature(data) {
@@ -230,194 +55,49 @@
     return `${v}:${p}:${r}:${c}:${pay}:${_filterPeriod}:${_filterPartnerId}:${_filterStatus}:${_filterSearch}`;
   }
 
-  function buildDailySeries(vehicles, days, partnerId) {
-    const today = todayYmd();
-    const labels = [];
-    const entradas = [];
-    const saidas = [];
-    for (let i = days - 1; i >= 0; i--) {
-      const ymd = addDaysYmd(today, -i);
-      labels.push(`${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`);
-      let e = 0;
-      let s = 0;
-      for (const v of vehicles) {
-        if (partnerId && String(v.localizador_id || "") !== String(partnerId)) continue;
-        if (toLocalYmd(v.data_entrada) === ymd) e++;
-        if (toLocalYmd(v.data_saida) === ymd) s++;
-      }
-      entradas.push(e);
-      saidas.push(s);
-    }
-    return { labels, entradas, saidas };
+  function getMetricsService() {
+    return global.dashboardService || global.DashboardMetricsService || null;
   }
 
-  function computeOperationalStatus(onPatio) {
-    let aguardandoConferencia = 0;
-    let aguardandoVistoria = 0;
-    let aguardandoAutorizacao = 0;
-    let liberadosAguardandoRetirada = 0;
-    let comPendencias = 0;
-
-    for (const v of onPatio) {
-      const st = statusUpper(v);
-      if (st === "NO_PATIO" && vehicleSemValor(v)) aguardandoConferencia++;
-      if (st === "NO_PATIO" && !vehicleHasVistoria(v)) aguardandoVistoria++;
-      if (String(v.status || "") === "LIBERACAO_SOLICITADA") aguardandoAutorizacao++;
-      if (isLiberadoAguardandoRetirada(v)) liberadosAguardandoRetirada++;
-      if (
-        isRemocaoSolicitadaFlag(v) ||
-        String(v.nfse_status || "").toUpperCase() === "PENDENTE" ||
-        vehicleSemValor(v)
-      ) {
-        comPendencias++;
-      }
-    }
-
-    return {
-      aguardandoConferencia,
-      aguardandoVistoria,
-      aguardandoAutorizacao,
-      liberadosAguardandoRetirada,
-      comPendencias,
-    };
-  }
-
+  /**
+   * Todos os indicadores do hub passam por esta função.
+   * Fonte única: DashboardService.getMetricsFromSnapshot.
+   */
   function computeHubMetrics(data) {
-    const range = resolvePeriodRange(_filterPeriod);
-    const prev = prevPeriodRange(range);
-    const vehicles = filterVehicles(data.vehicles, data.partners);
-    const allVehicles = data.vehicles || [];
-    const today = todayYmd();
-    const pmap = partnerById(data.partners);
-    const vmapAll = vehicleMaps(data.vehicles);
-
-    const onPatio = vehicles.filter(isVehicleOnPatio);
-    const vlp = vehicles.filter((v) => isVlpStatus(v.status));
-    const entradasDia = vehicles.filter((v) => toLocalYmd(v.data_entrada) === today).length;
-    const saidasDia = vehicles.filter((v) => toLocalYmd(v.data_saida) === today).length;
-
-    const capacity = Number(data.settings?.capacidade_patio) > 0 ? Number(data.settings.capacidade_patio) : HUB_PATIO_CAPACITY;
-    const ocupacaoPct = capacity > 0 ? (onPatio.length / capacity) * 100 : 0;
-
-    const financeirasIds = new Set();
-    for (const v of onPatio) {
-      const id = String(v.localizador_id || "").trim();
-      if (id) financeirasIds.add(id);
-    }
-    const financeirasAtivas = financeirasIds.size;
-
-    const ops = computeOperationalStatus(onPatio);
-
-    const finSnapRaw = typeof global.financeMetricsSnapshot === "function" ? global.financeMetricsSnapshot() : {};
-    let aguardandoList =
-      typeof global.financeContasAguardandoList === "function" ? global.financeContasAguardandoList() : [];
-    let contasRec =
-      typeof global.financeContasReceberList === "function" ? global.financeContasReceberList() : [];
-
-    if (_filterPartnerId) {
-      const matchPartner = (r) => {
-        const v = vmapAll.get(String(r?.vehicle_id));
-        return v && String(v.localizador_id || "") === String(_filterPartnerId);
-      };
-      aguardandoList = aguardandoList.filter(matchPartner);
-      contasRec = contasRec.filter(matchPartner);
+    const service = getMetricsService();
+    if (!service || typeof service.getMetricsFromSnapshot !== "function") {
+      console.error(
+        "[amplipatio-dashboard] DashboardMetricsService indisponível. Inclua dashboard-metrics-service.js antes deste script."
+      );
+      return emptyHubMetrics();
     }
 
-    const finSnap = _filterPartnerId
-      ? {
-          ...finSnapRaw,
-          totalReceber: contasRec.reduce((s, r) => s + Number(r.valor || 0), 0),
-          pendentes: contasRec.filter((r) => String(r.status || "").toUpperCase() !== "PAGO").length,
-          aguardandoFaturamento: aguardandoList.length,
-        }
-      : finSnapRaw;
+    if (typeof service.invalidateCache === "function") service.invalidateCache();
 
-    const finDash =
-      typeof global.financeDashboardGetMetrics === "function"
-        ? global.financeDashboardGetMetrics({
-            receivables: data.receivables || [],
-            payables: data.payables || [],
-            cash: data.cash || [],
-            vehicles: data.vehicles || [],
-            settings: data.settings || {},
-          })
-        : null;
-
-    const patioDash =
-      typeof global.patioDashboardGetMetrics === "function"
-        ? global.patioDashboardGetMetrics(data.vehicles || [])
-        : null;
-
-    const months = [];
-    const billingByMonth = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      months.push(ym);
-      billingByMonth.push(0);
-    }
-    if (finDash) {
-      const spark = finDash.faturadoMesSpark || finDash.billingMonthlySpark || [];
-      for (let i = 0; i < months.length && i < spark.length; i++) {
-        billingByMonth[billingByMonth.length - spark.length + i] = spark[i] || 0;
+    const result = service.getMetricsFromSnapshot(
+      {
+        vehicles: data.vehicles || [],
+        partners: data.partners || [],
+        receivables: data.receivables || [],
+        settings: data.settings || {},
+      },
+      {
+        period: _filterPeriod,
+        financeiraId: _filterPartnerId,
+        parceiroId: _filterPartnerId,
+        status: _filterStatus || "",
+        search: _filterSearch || "",
       }
-      if (spark.length === 0 && finDash.faturadoMes != null) {
-        billingByMonth[billingByMonth.length - 1] = finDash.faturadoMes || 0;
-      }
-    }
+    );
 
-    const daily = buildDailySeries(allVehicles, ENTRADAS_SAIDAS_DAYS, _filterPartnerId || null);
-
-    const vehByFinanceMap = new Map();
-    for (const v of onPatio) {
-      const id = String(v.localizador_id || "").trim() || "__sem__";
-      const nome = id === "__sem__" ? "Sem financeira" : pmap.get(id)?.nome || "—";
-      const cur = vehByFinanceMap.get(id) || { id, nome, count: 0 };
-      cur.count += 1;
-      vehByFinanceMap.set(id, cur);
-    }
-    const vehiclesByFinanceira = [...vehByFinanceMap.values()]
-      .sort((a, b) => b.count - a.count)
-      .slice(0, VEH_BY_FINANCE_TOP);
-
-    const longStay = onPatio
-      .map((v) => ({
-        placa: v.placa || "—",
-        financeira: partnerFinanceiraNome(v, pmap),
-        days: vehicleStayDays(v, today),
-        id: v.id,
-      }))
-      .filter((x) => x.days > 0)
-      .sort((a, b) => b.days - a.days)
-      .slice(0, LONG_STAY_TOP);
-
-    const recvByPartner = new Map();
-    for (const r of contasRec) {
-      if (String(r.status || "").toUpperCase() === "PAGO") continue;
-      const veh = vmapAll.get(String(r.vehicle_id));
-      const pid = String(veh?.localizador_id || "").trim() || "__sem__";
-      const nome =
-        pid === "__sem__"
-          ? "Sem financeira"
-          : pmap.get(pid)?.nome || veh?.responsavel_financeiro_nome || "—";
-      const cur = recvByPartner.get(pid) || { financeira: nome, veiculos: new Set(), valor: 0 };
-      if (r.vehicle_id) cur.veiculos.add(String(r.vehicle_id));
-      cur.valor += Number(r.valor || 0);
-      recvByPartner.set(pid, cur);
-    }
-    const topPendingByFinanceira = [...recvByPartner.values()]
-      .map((x) => ({
-        financeira: x.financeira,
-        veiculos: x.veiculos.size,
-        valor: x.valor,
-      }))
-      .sort((a, b) => b.valor - a.valor)
-      .slice(0, TOP_RECV_PARTNERS);
+    const k = result.kpis;
+    const ops = result.operacional;
+    // VLP = autorização + liberados (mesma classificação operacional)
+    const vlpCount = ops.aguardandoAutorizacao + ops.liberadosAguardandoRetirada;
 
     const alerts = [];
-    if (longStay.length && longStay[0].days >= 30) {
-      const elevated = longStay.filter((x) => x.days >= 30).length;
+    if (result.longStay.length && result.longStay[0].days >= 30) {
+      const elevated = result.longStay.filter((x) => x.days >= 30).length;
       alerts.push({
         level: "warn",
         icon: "stay",
@@ -426,89 +106,107 @@
         nav: "patio:no_patio",
       });
     }
-    if (Number(finSnap.vencidas || 0) > 0) {
-      alerts.push({
-        level: "danger",
-        icon: "late",
-        title: `${finSnap.vencidas} conta(s) vencida(s)`,
-        detail: `Total ${Number(finSnap.totalVencidas || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`,
-        nav: "financeiro",
-      });
-    }
-    const staleAguardando = aguardandoList.filter((r) => {
-      const veh = vmapAll.get(String(r.vehicle_id));
-      const sai = toLocalYmd(veh?.data_saida || r.updated_at);
-      if (!sai) return false;
-      const days = Math.ceil((ymdToDate(today).getTime() - ymdToDate(sai).getTime()) / 86400000);
-      return days >= STALE_AGUARDANDO_DAYS;
-    });
-    if (staleAguardando.length) {
-      alerts.push({
-        level: "warn",
-        icon: "billing",
-        title: `${staleAguardando.length} aguardando faturamento parado(s)`,
-        detail: `Há mais de ${STALE_AGUARDANDO_DAYS} dias desde a saída`,
-        nav: "financeiro",
-      });
-    }
-    if (ocupacaoPct >= CAPACITY_WARN_PCT) {
+    if (k.ocupacao.percent >= CAPACITY_WARN_PCT) {
       alerts.push({
         level: "danger",
         icon: "occupancy",
-        title: `Pátio em ${ocupacaoPct.toFixed(0)}% da capacidade`,
-        detail: `${onPatio.length} de ${capacity} vagas`,
+        title: `Pátio em ${k.ocupacao.percent.toFixed(0)}% da capacidade`,
+        detail: k.ocupacao.label,
         nav: "patio:no_patio",
       });
     }
-    if (ops.comPendencias > 0) {
+    if (ops.pendenciasDocumentais > 0) {
       alerts.push({
         level: "info",
         icon: "idle",
-        title: `${ops.comPendencias} veículo(s) com pendências`,
-        detail: "Remoção, NF-e ou valor diária",
+        title: `${ops.pendenciasDocumentais} veículo(s) com pendências documentais`,
+        detail: "NF-e pendente ou remoção solicitada",
+        nav: "patio:no_patio",
+      });
+    }
+    if (!result.auditOk) {
+      alerts.push({
+        level: "danger",
+        icon: "idle",
+        title: "Inconsistência nas métricas operacionais",
+        detail: "A soma dos grupos não fecha com veículos no pátio",
         nav: "patio:no_patio",
       });
     }
 
-    const periodEntradas = (data.vehicles || []).filter((v) => {
-      if (_filterPartnerId && String(v.localizador_id || "") !== String(_filterPartnerId)) return false;
-      return inRange(toLocalYmd(v.data_entrada), range.from, range.to);
-    }).length;
-    const periodSaidas = (data.vehicles || []).filter((v) => {
-      if (_filterPartnerId && String(v.localizador_id || "") !== String(_filterPartnerId)) return false;
-      return inRange(toLocalYmd(v.data_saida), range.from, range.to);
-    }).length;
-    const prevEntradas = allVehicles.filter((v) =>
-      inRange(toLocalYmd(v.data_entrada), prev.from, prev.to)
-    ).length;
-    const prevSaidas = allVehicles.filter((v) => inRange(toLocalYmd(v.data_saida), prev.from, prev.to)).length;
-
     return {
-      range,
-      finSnap,
-      finDash,
-      patioDash,
-      onPatioCount: onPatio.length,
-      vlpCount: vlp.length,
-      entradasDia,
-      saidasDia,
-      ocupacaoPct,
-      capacity,
-      financeirasAtivas,
-      ops,
-      months,
-      billingByMonth,
-      dailyLabels: daily.labels,
-      dailyEntradas: daily.entradas,
-      dailySaidas: daily.saidas,
-      vehiclesByFinanceira,
-      longStay,
-      topPendingByFinanceira,
+      range: result.range,
+      metricsResult: result,
+      finSnap: {
+        totalReceber: k.contasAReceber,
+        pendentes: k.contasAReceberPendentes,
+      },
+      onPatioCount: k.veiculosNoPatio,
+      vlpCount,
+      entradasDia: k.entradasHoje,
+      saidasDia: k.saidasHoje,
+      ocupacaoPct: k.ocupacao.percent,
+      capacity: k.ocupacao.capacity,
+      financeirasAtivas: k.financeirasAtivas,
+      ops: {
+        aguardandoConferencia: ops.aguardandoConferencia,
+        aguardandoVistoria: ops.aguardandoVistoria,
+        aguardandoAutorizacao: ops.aguardandoAutorizacao,
+        liberadosAguardandoRetirada: ops.liberadosAguardandoRetirada,
+        comPendencias: ops.pendenciasDocumentais,
+      },
+      months: result.receitaMensal.months,
+      billingByMonth: result.receitaMensal.values,
+      dailyLabels: result.dailyFlow30d.labels,
+      dailyEntradas: result.dailyFlow30d.entradas,
+      dailySaidas: result.dailyFlow30d.saidas,
+      vehiclesByFinanceira: result.vehiclesByFinanceira,
+      longStay: result.longStay.map((x) => ({
+        placa: x.placa,
+        financeira: x.financeira,
+        days: x.days,
+        id: x.vehicleId,
+      })),
+      topPendingByFinanceira: result.topReceivablesByFinanceira.map((x) => ({
+        financeira: x.financeira,
+        veiculos: x.veiculos,
+        valor: x.valor,
+      })),
       alerts,
-      entradasTrend: pctChange(periodEntradas, prevEntradas),
-      saidasTrend: pctChange(periodSaidas, prevSaidas),
-      periodEntradas,
-      periodSaidas,
+      periodEntradas: result.dailyFlow30d.entradas.reduce((a, b) => a + b, 0),
+      periodSaidas: result.dailyFlow30d.saidas.reduce((a, b) => a + b, 0),
+    };
+  }
+
+  function emptyHubMetrics() {
+    return {
+      range: { from: null, to: null, label: "—" },
+      finSnap: { totalReceber: 0, pendentes: 0 },
+      onPatioCount: 0,
+      vlpCount: 0,
+      entradasDia: 0,
+      saidasDia: 0,
+      ocupacaoPct: 0,
+      capacity: 100,
+      financeirasAtivas: 0,
+      ops: {
+        aguardandoConferencia: 0,
+        aguardandoVistoria: 0,
+        aguardandoAutorizacao: 0,
+        liberadosAguardandoRetirada: 0,
+        comPendencias: 0,
+      },
+      months: [],
+      billingByMonth: [],
+      dailyLabels: [],
+      dailyEntradas: [],
+      dailySaidas: [],
+      vehiclesByFinanceira: [],
+      longStay: [],
+      topPendingByFinanceira: [],
+      alerts: [],
+      periodEntradas: 0,
+      periodSaidas: 0,
     };
   }
 
@@ -522,27 +220,8 @@
 
   function hubInvalidateCache() {
     _cache = null;
-  }
-
-  function escapeHtml(str) {
-    return String(str ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
-
-  function formatTrend(pct, invert) {
-    if (!Number.isFinite(pct) || Math.abs(pct) < 0.05) {
-      return { text: "estável", cls: "hub-ops-trend--flat", arrow: "→" };
-    }
-    const up = pct > 0;
-    const positive = invert ? !up : up;
-    return {
-      text: `${up ? "+" : ""}${pct.toFixed(1).replace(".", ",")}%`,
-      cls: positive ? "hub-ops-trend--up" : "hub-ops-trend--down",
-      arrow: up ? "↑" : "↓",
-    };
+    const service = getMetricsService();
+    if (service && typeof service.invalidateCache === "function") service.invalidateCache();
   }
 
   function barChartSvg(labels, datasets, colors, height) {
@@ -593,10 +272,7 @@
   function iconSvg(name) {
     const icons = {
       recv: '<path d="M12 3v18M7 8l5-5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-      pay: '<path d="M12 21V3M7 16l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
       billing: '<path d="M4 20V10M12 20V4M20 20v-8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-      ticket: '<path d="M4 8h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4V8z" stroke="currentColor" stroke-width="2" fill="none"/>',
-      profit: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="2" fill="none"/>',
       vehicle: '<path d="M4 16l2-6h12l2 6M6 16h12M8 20h2M14 20h2" stroke="currentColor" stroke-width="2" fill="none"/>',
       partners: '<path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8" stroke="currentColor" stroke-width="2" fill="none"/>',
       occupancy: '<rect x="3" y="4" width="7" height="16" rx="1.5" stroke="currentColor" stroke-width="2" fill="none"/><rect x="14" y="4" width="7" height="16" rx="1.5" stroke="currentColor" stroke-width="2" fill="none"/>',
@@ -802,11 +478,12 @@
 
     renderAlerts(isGestorPista ? filterAlertsForGestor(m.alerts) : m.alerts);
 
+    const ocupacaoMeta = `${m.onPatioCount} de ${m.capacity} vagas`;
     const kpiPatio = `
       ${renderKpiCard({ theme: "vnp", icon: "vehicle", label: "Veículos no Pátio", value: m.onPatioCount, meta: `VLP: ${m.vlpCount}`, nav: "patio:no_patio" })}
-      ${renderKpiCard({ theme: "in", icon: "vehicle", label: "Entradas Hoje", value: m.entradasDia, meta: `${m.periodEntradas} no período`, nav: "patio:no_patio" })}
-      ${renderKpiCard({ theme: "out", icon: "vehicle", label: "Saídas Hoje", value: m.saidasDia, meta: `${m.periodSaidas} no período`, nav: "patio:removidos" })}
-      ${renderKpiCard({ theme: "occupancy", icon: "occupancy", label: "Ocupação do Pátio", value: m.ocupacaoPct, valueType: "pct", meta: `${m.onPatioCount} / ${m.capacity} vagas`, nav: "patio:no_patio" })}
+      ${renderKpiCard({ theme: "in", icon: "vehicle", label: "Entradas Hoje", value: m.entradasDia, meta: "data de entrada", nav: "patio:no_patio" })}
+      ${renderKpiCard({ theme: "out", icon: "vehicle", label: "Saídas Hoje", value: m.saidasDia, meta: "data de saída", nav: "patio:removidos" })}
+      ${renderKpiCard({ theme: "occupancy", icon: "occupancy", label: "Ocupação do Pátio", value: m.ocupacaoPct, valueType: "pct", meta: ocupacaoMeta, nav: "patio:no_patio" })}
     `;
 
     if (isGestorPista) {
@@ -851,9 +528,6 @@
     };
     const refresh = debounce(() => {
       hubInvalidateCache();
-      if (typeof global.partnersDashboardInvalidateCache === "function") global.partnersDashboardInvalidateCache();
-      if (typeof global.financeDashboardInvalidateCache === "function") global.financeDashboardInvalidateCache();
-      if (typeof global.patioDashboardInvalidateCache === "function") global.patioDashboardInvalidateCache();
       if (typeof global.updateDashboard === "function") global.updateDashboard();
     }, 280);
 
