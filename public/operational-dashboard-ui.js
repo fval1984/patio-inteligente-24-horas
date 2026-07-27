@@ -80,12 +80,7 @@
   }
 
   function injectStylesOnce() {
-    if (_stylesInjected) return;
-    _stylesInjected = true;
-    if (document.getElementById("opsDashUiStyles")) return;
-    const style = document.createElement("style");
-    style.id = "opsDashUiStyles";
-    style.textContent = `
+    const css = `
       .ops-dash-legacy-hidden { display: none !important; }
       .ops-exec-root { min-height: 120px; }
       .ops-exec-dashboard { display: flex; flex-direction: column; gap: 0; }
@@ -96,23 +91,53 @@
         border: 1px solid rgba(148, 163, 184, 0.12);
       }
       .ops-exec-alerts { margin-bottom: 18px; }
+      .ops-exec-alerts-title {
+        margin: 0 0 10px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
       .ops-exec-alerts-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 10px;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 12px;
+        align-items: stretch;
       }
       .ops-exec-alert {
-        display: flex; align-items: flex-start; gap: 10px;
-        padding: 12px 14px; border-radius: 12px;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 12px;
         border: 1px solid rgba(148,163,184,0.18);
-        background: rgba(15,23,42,0.4);
-        text-align: left; width: 100%;
+        background: rgba(15,23,42,0.45);
+        text-align: left;
+        width: 100%;
+        min-width: 0;
+        min-height: 72px;
+        box-sizing: border-box;
+        position: relative;
+        z-index: 1;
+        transform: none !important;
+        box-shadow: none !important;
+        cursor: default;
       }
-      .ops-exec-alert strong { font-size: 0.82rem; display: block; }
-      .ops-exec-alert small { font-size: 0.75rem; color: var(--muted); }
+      .ops-exec-alert .hub-alert-icon { flex: 0 0 auto; margin-top: 2px; line-height: 1; }
+      .ops-exec-alert .hub-alert-body {
+        flex: 1 1 auto; min-width: 0;
+        display: flex; flex-direction: column; gap: 4px;
+      }
+      .ops-exec-alert strong { font-size: 0.84rem; display: block; line-height: 1.35; }
+      .ops-exec-alert small { font-size: 0.75rem; color: var(--muted); line-height: 1.4; }
       .ops-exec-alert--green { border-color: rgba(52,211,153,0.4); color: #34d399; }
       .ops-exec-alert--yellow { border-color: rgba(251,191,36,0.45); background: rgba(251,191,36,0.06); }
       .ops-exec-alert--red { border-color: rgba(248,113,113,0.45); background: rgba(248,113,113,0.08); }
+      @media (max-width: 640px) {
+        .ops-exec-alerts-grid { grid-template-columns: 1fr; }
+      }
       .ops-exec-fila {
         display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch;
       }
@@ -188,7 +213,14 @@
         .ops-exec-mapa-node:not(:last-child)::after { content: none; }
       }
     `;
-    document.head.appendChild(style);
+    let style = document.getElementById("opsDashUiStyles");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "opsDashUiStyles";
+      document.head.appendChild(style);
+    }
+    style.textContent = css;
+    _stylesInjected = true;
   }
 
   function resolveMountRoot() {
@@ -285,14 +317,21 @@
   function renderAlerts(alerts, ctx) {
     const rows = alerts || [];
     if (!rows.length) {
-      return `<section class="hub-dash-section ops-exec-alerts">
-        <div class="hub-alert hub-alert--ok ops-exec-alert ops-exec-alert--green">
-          <span class="hub-alert-icon">✓</span>
-          <span>Operação estável — nenhum alerta crítico.</span>
+      return `<section class="hub-dash-section ops-exec-alerts" aria-label="Alertas operacionais">
+        <h4 class="ops-exec-alerts-title">Alertas operacionais</h4>
+        <div class="ops-exec-alerts-grid">
+          <div class="hub-alert hub-alert--ok ops-exec-alert ops-exec-alert--green">
+            <span class="hub-alert-icon">✓</span>
+            <span class="hub-alert-body">
+              <strong>Operação estável</strong>
+              <small>Nenhum alerta crítico no momento.</small>
+            </span>
+          </div>
         </div>
       </section>`;
     }
-    return `<section class="hub-dash-section ops-exec-alerts">
+    return `<section class="hub-dash-section ops-exec-alerts" aria-label="Alertas operacionais">
+      <h4 class="ops-exec-alerts-title">Alertas operacionais</h4>
       <div class="ops-exec-alerts-grid">
         ${rows
           .map((a) => {
