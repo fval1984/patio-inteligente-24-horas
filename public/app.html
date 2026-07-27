@@ -3997,6 +3997,92 @@
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 14px;
       }
+      /* Dashboard Operacional */
+      .ops-exec-root { min-height: 120px; }
+      .ops-exec-alerts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .ops-exec-alert {
+        display: inline-flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        min-width: min(100%, 180px);
+        flex: 1 1 160px;
+      }
+      .ops-exec-alert strong { font-size: 0.84rem; }
+      .ops-exec-alert span { font-size: 0.76rem; color: var(--muted); }
+      .ops-exec-alert--green { border-color: rgba(52,211,153,0.4); color: #34d399; }
+      .ops-exec-alert--yellow { border-color: rgba(251,191,36,0.45); background: rgba(251,191,36,0.06); }
+      .ops-exec-alert--red { border-color: rgba(248,113,113,0.45); background: rgba(248,113,113,0.08); }
+      .ops-exec-fila {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 10px;
+        padding: 18px;
+      }
+      .ops-exec-fila-step {
+        position: relative;
+        padding: 14px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(148,163,184,0.16);
+        background: rgba(148,163,184,0.04);
+        min-height: 96px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .ops-exec-fila-step span { font-size: 0.74rem; color: var(--muted); line-height: 1.3; }
+      .ops-exec-fila-step strong { font-size: 1.35rem; font-weight: 800; margin-top: auto; }
+      .ops-exec-fila-step--gray { border-top: 3px solid #94a3b8; }
+      .ops-exec-fila-step--blue { border-top: 3px solid #60a5fa; }
+      .ops-exec-fila-step--yellow { border-top: 3px solid #fbbf24; }
+      .ops-exec-fila-step--green { border-top: 3px solid #34d399; }
+      .ops-exec-mapa {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 8px;
+        padding: 18px;
+      }
+      .ops-exec-mapa-box {
+        flex: 1 1 120px;
+        min-width: 110px;
+        padding: 14px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        text-align: center;
+      }
+      .ops-exec-mapa-box span {
+        display: block;
+        font-size: 0.72rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .ops-exec-mapa-box strong { font-size: 1.4rem; font-weight: 800; }
+      .ops-exec-mapa-arrow {
+        align-self: center;
+        color: var(--muted);
+        font-size: 1.1rem;
+        opacity: 0.65;
+      }
+      @media (max-width: 1100px) {
+        .ops-exec-fila { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      }
+      @media (max-width: 640px) {
+        .ops-exec-fila { grid-template-columns: 1fr; }
+        .ops-exec-mapa-arrow { display: none; }
+      }
       .patio-ops-card {
         border-radius: 16px;
         padding: 16px 16px 14px;
@@ -6303,9 +6389,11 @@
           <div id="patioFlyoutBackdrop" class="patio-flyout-backdrop hidden"></div>
           <div id="patioInicioPanel" class="patio-inicio-panel hidden">
             <div class="patio-inicio-head">
-              <h3>Dashboard</h3>
+              <h3>Dashboard Operacional</h3>
+              <p class="patio-inicio-lede">Visão do pátio em tempo real — recebimento, guarda, liberação e entrega.</p>
             </div>
-            <div class="patio-inicio-grid" aria-label="Dashboard do pátio">
+            <div id="patioOpsDashRoot" class="ops-exec-root"></div>
+            <div class="patio-inicio-grid hub-dash-legacy-hidden" aria-hidden="true" hidden aria-label="Dashboard do pátio (legado)">
               <div class="patio-inicio-stat">
                 <span class="label">VNP</span>
                 <span class="value" id="patioDashVnp">0</span>
@@ -6341,7 +6429,7 @@
                 <span class="value" id="patioDashSaidasMes">0</span>
               </div>
             </div>
-            <section class="patio-inicio-ops-section" aria-label="Indicadores operacionais históricos">
+            <section class="patio-inicio-ops-section hub-dash-legacy-hidden" hidden aria-hidden="true" aria-label="Indicadores operacionais históricos">
               <h4>Indicadores operacionais</h4>
               <div id="patioDashOpsCards" class="patio-ops-cards"></div>
             </section>
@@ -7826,6 +7914,8 @@
     <script src="/financial-metrics-service.js?v=20260727findash"></script>
     <script src="/financial-dashboard-ui.js?v=20260727findash"></script>
     <script src="/patio-dashboard.js?v=20260715gestor"></script>
+    <script src="/operational-metrics-service.js?v=20260727opsdash"></script>
+    <script src="/operational-dashboard-ui.js?v=20260727opsdash"></script>
     <script src="/partners-dashboard.js?v=20260605partners601"></script>
     <script src="/dashboard-metrics-service.js?v=20260727metrics"></script>
     <script src="/amplipatio-dashboard.js?v=20260727metrics"></script>
@@ -8588,6 +8678,7 @@
         settings: null,
         monthlyClosures: [],
         monthlyClosureLoadError: null,
+        opsVehicleEvents: [],
       };
 
       function effectiveUserId() {
@@ -14891,6 +14982,45 @@
         }
       }
 
+      async function loadOperationalVehicleEvents() {
+        if (window.__opsEventsLoading) return;
+        const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+        if (!uid || typeof supabase === "undefined" || !supabase) return;
+        window.__opsEventsLoading = true;
+        try {
+          const vehicleIds = (state.vehicles || []).map((v) => v.id).filter(Boolean).slice(0, 400);
+          if (!vehicleIds.length) {
+            state.opsVehicleEvents = [];
+            return;
+          }
+          const { data, error } = await supabase
+            .from("vehicle_events")
+            .select("id,vehicle_id,tipo,responsavel,descricao,data_evento,created_at")
+            .in("vehicle_id", vehicleIds)
+            .order("created_at", { ascending: false })
+            .limit(40);
+          if (error) {
+            console.warn("[ops-dashboard] vehicle_events", error.message || error);
+            return;
+          }
+          state.opsVehicleEvents = data || [];
+          if (typeof window.operationalDashboardRender === "function") {
+            window.operationalDashboardRender(
+              {
+                vehicles: state.vehicles || [],
+                partners: state.partners || [],
+                events: state.opsVehicleEvents,
+              },
+              { formatCurrency, escapeHtml, isGestorPista }
+            );
+          }
+        } catch (err) {
+          console.warn("[ops-dashboard] events load failed", err);
+        } finally {
+          window.__opsEventsLoading = false;
+        }
+      }
+
       function updateDashboard() {
         const onPatio = state.vehicles.filter(isVehicleOnPatio);
         const vls = state.vehicles.filter((v) => isVlpStatus(v.status));
@@ -14981,6 +15111,19 @@
 
         if (typeof window.patioDashboardRender === "function") {
           window.patioDashboardRender(state.vehicles, { formatCurrency, isGestorPista });
+        }
+
+        if (typeof window.operationalDashboardRender === "function") {
+          const opsCtx = { formatCurrency, escapeHtml, isGestorPista };
+          const opsData = {
+            vehicles: state.vehicles || [],
+            partners: state.partners || [],
+            events: state.opsVehicleEvents || [],
+          };
+          window.operationalDashboardRender(opsData, opsCtx);
+          if (!window.__opsEventsLoading && typeof loadOperationalVehicleEvents === "function") {
+            loadOperationalVehicleEvents();
+          }
         }
 
         if (
