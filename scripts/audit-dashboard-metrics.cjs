@@ -30,9 +30,10 @@ const snapshot = {
     { id: "f2", nome: "Financeira B" },
   ],
   receivables: [
-    { id: "r1", vehicle_id: "6", valor: 1000, status: "EM_ABERTO" },
+    { id: "r1", vehicle_id: "6", valor: 1000, status: "EM_ABERTO", financeiro_aprovado_contas_receber: true },
     { id: "r2", vehicle_id: "6", valor: 500, status: "PAGO" },
     { id: "r3", vehicle_id: "6", valor: 200, status: "CANCELADO" },
+    { id: "r4", vehicle_id: "6", valor: 999, status: "EM_ABERTO" }, // aguardando faturamento — NÃO conta
   ],
   settings: { capacidade_patio: 100 },
   asOfYmd: "2026-07-27",
@@ -50,6 +51,7 @@ assert("entradasHoje = 0", m.kpis.entradasHoje === 0, m.kpis.entradasHoje);
 assert("saidasHoje = 1", m.kpis.saidasHoje === 1, m.kpis.saidasHoje);
 assert("financeirasAtivas = 2", m.kpis.financeirasAtivas === 2, m.kpis.financeirasAtivas);
 assert("contasAReceber = 1000", m.kpis.contasAReceber === 1000, m.kpis.contasAReceber);
+assert("contasAReceberPendentes = 1", m.kpis.contasAReceberPendentes === 1, m.kpis.contasAReceberPendentes);
 assert("auditOk", m.auditOk === true, m.operacional);
 assert(
   "soma operacional",
