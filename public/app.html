@@ -4700,6 +4700,15 @@
         gap: 14px;
         margin-bottom: 18px;
       }
+      .fp-exec-root { min-height: 140px; }
+      .fp-exec-empty {
+        padding: 28px 22px;
+        border-radius: 16px;
+        border: 1px dashed rgba(148,163,184,0.35);
+        background: rgba(148,163,184,0.04);
+        text-align: center;
+        color: var(--muted);
+      }
       .partner-ops-card {
         border-radius: 16px;
         padding: 16px 16px 14px;
@@ -6566,7 +6575,7 @@
         <div id="viewParceiros" class="panel hidden partners-module-shell">
           <div class="toolbar">
             <div>
-              <h2>Rede de parceiros</h2>
+              <h2>Financeiras</h2>
             </div>
             <div class="actions">
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
@@ -6574,12 +6583,17 @@
             </div>
           </div>
           <div id="partnerSubnav" class="subnav">
-            <button type="button" data-subview="dashboard" class="active">Dashboard</button>
+            <button type="button" data-subview="dashboard" class="active">Dashboard Financeiras</button>
             <button type="button" data-subview="parceiros">Cadastro</button>
             </div>
 
           <div class="partner-subview" data-subview="dashboard">
-            <div class="filter-bar partner-dash-toolbar">
+            <div class="partner-dash-head" style="margin-bottom: 12px">
+              <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800">Dashboard de Financeiras</h3>
+              <p class="notice" style="margin: 6px 0 0">Acompanhe operação, permanência e receita por financeira (cliente do pátio).</p>
+            </div>
+            <div id="partnerFinDashRoot" class="fp-exec-root"></div>
+            <div class="filter-bar partner-dash-toolbar hub-dash-legacy-hidden" hidden aria-hidden="true">
               <label for="partnerDashFilterPeriod">Período</label>
               <select id="partnerDashFilterPeriod" title="Período de análise">
                 <option value="today">Hoje</option>
@@ -6601,14 +6615,14 @@
                 <option value="">Todos os parceiros</option>
               </select>
             </div>
-            <div id="partnerDashCards" class="partner-ops-cards"></div>
-            <div class="partner-dash-grid">
+            <div id="partnerDashCards" class="partner-ops-cards hub-dash-legacy-hidden" hidden aria-hidden="true"></div>
+            <div class="partner-dash-grid hub-dash-legacy-hidden" hidden aria-hidden="true">
               <section id="partnerDashRankRevenue"></section>
               <section id="partnerDashRankVehicles"></section>
               <section id="partnerDashRankConversion"></section>
-          </div>
-            <section id="partnerDashEvolution" aria-label="Evolução mensal"></section>
-            <div id="partnerDashDetail" class="hidden" aria-live="polite"></div>
+            </div>
+            <section id="partnerDashEvolution" class="hub-dash-legacy-hidden" hidden aria-hidden="true" aria-label="Evolução mensal"></section>
+            <div id="partnerDashDetail" class="hidden hub-dash-legacy-hidden" aria-hidden="true" aria-live="polite"></div>
           </div>
 
           <div class="section-card partner-subview hidden" data-subview="parceiros">
@@ -7917,6 +7931,8 @@
     <script src="/operational-metrics-service.js?v=20260727opsdash"></script>
     <script src="/operational-dashboard-ui.js?v=20260727opsdash"></script>
     <script src="/partners-dashboard.js?v=20260605partners601"></script>
+    <script src="/financial-partner-metrics-service.js?v=20260727fpdash"></script>
+    <script src="/financial-partner-dashboard-ui.js?v=20260727fpdash"></script>
     <script src="/dashboard-metrics-service.js?v=20260727metrics"></script>
     <script src="/amplipatio-dashboard.js?v=20260727metrics"></script>
     <script>
@@ -15751,16 +15767,20 @@
       }
 
       function renderPartnersDashboard() {
-        if (typeof window.partnersDashboardRender !== "function") return;
-        window.partnersDashboardRender(
-          {
-            partners: state.partners || [],
-            vehicles: state.vehicles || [],
-            receivables: state.receivables || [],
-            cash: state.cash || [],
-          },
-          { formatCurrency, escapeHtml }
-        );
+        const dashData = {
+          partners: state.partners || [],
+          vehicles: state.vehicles || [],
+          receivables: state.receivables || [],
+          cash: state.cash || [],
+          events: state.opsVehicleEvents || [],
+        };
+        const ctx = { formatCurrency, escapeHtml };
+        if (typeof window.financialPartnerDashboardRender === "function") {
+          window.financialPartnerDashboardRender(dashData, ctx);
+        }
+        if (typeof window.partnersDashboardRender === "function") {
+          window.partnersDashboardRender(dashData, ctx);
+        }
       }
       window.renderPartnersDashboard = renderPartnersDashboard;
 
