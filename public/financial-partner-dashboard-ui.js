@@ -1,5 +1,5 @@
 /**
- * Dashboard exclusivo por Financeira — UI (browser runtime).
+ * Dashboard de Parceiros — UI (browser runtime).
  * Monta #partnerFinDashRoot na subview dashboard de parceiros.
  * Consome financialPartnerDashboardService.
  */
@@ -245,7 +245,7 @@
         return String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR");
       });
     sel.innerHTML =
-      `<option value="">Selecione uma financeira</option>` +
+      `<option value="">Selecione um parceiro</option>` +
       list
         .map(function (p) {
           return `<option value="${escapeHtmlDefault(p.id)}">${escapeHtmlDefault(p.nome || "-")}</option>`;
@@ -300,7 +300,7 @@
         </div>
       </section>`;
     }
-    return `<section class="hub-dash-section fp-exec-alerts" aria-label="Alertas da Financeira">
+    return `<section class="hub-dash-section fp-exec-alerts" aria-label="Alertas do Parceiro">
       <div class="fp-exec-alerts-grid">
         ${rows
           .map(function (a) {
@@ -329,9 +329,9 @@
         <option value="month"${_filters.period === "month" ? " selected" : ""}>Mês atual</option>
         <option value="year"${_filters.period === "year" ? " selected" : ""}>Ano atual</option>
       </select>
-      <label for="fpDashFilterFinanceira" class="fp-exec-fin-label">Financeira</label>
-      <select id="fpDashFilterFinanceira" class="fp-exec-fin-select" title="Selecione a financeira (filtro principal)">
-        <option value="">Selecione uma financeira</option>
+      <label for="fpDashFilterFinanceira" class="fp-exec-fin-label">Parceiro</label>
+      <select id="fpDashFilterFinanceira" class="fp-exec-fin-select" title="Selecione o parceiro (filtro principal)">
+        <option value="">Selecione um parceiro</option>
       </select>
       <label for="fpDashFilterStatus">Status</label>
       <select id="fpDashFilterStatus" title="Status operacional">
@@ -348,8 +348,8 @@
   function renderEmptyState(ctx) {
     return `<div class="fp-exec-empty section-card fp-exec-panel" role="status">
       <div class="fp-exec-empty-icon">${iconSvg("bank")}</div>
-      <strong>${esc("Selecione uma financeira", ctx)}</strong>
-      <p>${esc("Escolha a financeira no filtro acima para carregar indicadores, gráficos e a carteira.", ctx)}</p>
+      <strong>${esc("Selecione um parceiro", ctx)}</strong>
+      <p>${esc("Escolha o parceiro no filtro acima para carregar indicadores, gráficos e a carteira.", ctx)}</p>
     </div>`;
   }
 
@@ -567,7 +567,7 @@
 
     const m = computeMetrics(_lastData);
     if (!m) {
-      root.innerHTML = `<p class="fp-ops-footnote">Serviço de métricas da financeira indisponível.</p>`;
+      root.innerHTML = `<p class="fp-ops-footnote">Serviço de métricas do parceiro indisponível.</p>`;
       return;
     }
 
@@ -633,7 +633,7 @@
     root.innerHTML = `
       <div class="fp-exec-dashboard">
         ${renderFilterBar(ctx)}
-        <p class="fp-exec-nome">Financeira: <strong>${esc(m.financeiraNome || "—", ctx)}</strong></p>
+        <p class="fp-exec-nome">Parceiro: <strong>${esc(m.financeiraNome || "—", ctx)}</strong></p>
         ${renderAlerts(m.alerts, ctx)}
 
         <section class="hub-dash-section">
@@ -685,10 +685,10 @@
         ${renderIndicadores(m.indicadoresFinanceiros, ctx)}
 
         ${renderDataTable(
-          "Veículos da Financeira",
+          "Veículos do Parceiro",
           ["Placa", "Modelo", "Data de Entrada", "Dias no Pátio", "Status", "Valor Acumulado"],
           vehBody,
-          "Nenhum veículo no pátio para esta financeira.",
+          "Nenhum veículo no pátio para este parceiro.",
           ctx
         )}
 
