@@ -25,6 +25,7 @@ WHERE upper(trim(COALESCE(tipo, ''))) NOT IN (
   'LOCALIZADOR',
   'ASSESSORIA',
   'INSTITUICAO_FINANCEIRA',
+  'GUINCHEIRO',
   'REMOCAO'
 )
 ORDER BY user_id, nome;
