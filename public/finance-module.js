@@ -2089,37 +2089,52 @@
   }
 
   function financePopulateDashPartnerSelect() {
-    const sel = document.getElementById("finDashPeriodPartner");
-    if (!sel) return;
-    const current = sel.value || "";
+    const ids = ["finDashFilterPartner", "finDashFilterFinanceira", "finDashPeriodPartner"];
     const parceiros = [...(state.partners || [])].sort((a, b) =>
       String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR")
     );
-    sel.innerHTML =
-      `<option value="">Todos os parceiros</option>` +
-      parceiros
-        .map((p) => `<option value="${escapeHtml(String(p.id))}">${escapeHtml(p.nome || "-")}</option>`)
-        .join("");
-    if (current && parceiros.some((p) => String(p.id) === String(current))) sel.value = current;
+    for (const id of ids) {
+      const sel = document.getElementById(id);
+      if (!sel) continue;
+      const current = sel.value || "";
+      const emptyLabel =
+        id === "finDashFilterFinanceira" ? "Todas" : id === "finDashPeriodPartner" ? "Todos os parceiros" : "Todos";
+      sel.innerHTML =
+        `<option value="">${emptyLabel}</option>` +
+        parceiros
+          .map((p) => `<option value="${escapeHtml(String(p.id))}">${escapeHtml(p.nome || "-")}</option>`)
+          .join("");
+      if (current && parceiros.some((p) => String(p.id) === String(current))) sel.value = current;
+    }
   }
 
   function financeDashFiltersFromDom() {
+    const periodEl = document.getElementById("finDashFilterPeriod");
     const monthEl = document.getElementById("finDashPeriodMonth");
+    let period = (periodEl?.value || "").trim() || "month";
     let ym = (monthEl?.value || "").trim();
     if (!ym) {
       ym = yearMonthFromYmd(financeTodayYmd()) || "";
       if (monthEl && ym) monthEl.value = ym;
     }
     return {
+      period,
       ym,
-      partnerId: (document.getElementById("finDashPeriodPartner")?.value || "").trim(),
+      partnerId: (
+        document.getElementById("finDashFilterPartner")?.value ||
+        document.getElementById("finDashPeriodPartner")?.value ||
+        ""
+      ).trim(),
+      financeiraId: (document.getElementById("finDashFilterFinanceira")?.value || "").trim(),
+      status: (document.getElementById("finDashFilterStatus")?.value || "").trim(),
+      search: (document.getElementById("finDashFilterSearch")?.value || "").trim(),
     };
   }
 
   function financeRenderDashboard() {
     financePopulateDashPartnerSelect();
-    const el = document.getElementById("finDashCards");
-    if (!el) return;
+    const root = document.getElementById("finDashRoot") || document.getElementById("finDashCards");
+    if (!root && !document.getElementById("finDashCards")) return;
     const dashData = {
       receivables: state.receivables || [],
       payables: state.payables || [],
@@ -2133,6 +2148,8 @@
       window.financeDashboardRender(dashData, ctx);
       return;
     }
+    const el = document.getElementById("finDashCards");
+    if (!el) return;
     const m = financeMetrics();
     el.innerHTML = `
       <div class="fin-card fin-card--recv"><span class="fin-card-label">Total a receber</span><strong>${escapeHtml(formatCurrency(m.totalReceber))}</strong><small>${m.pendentes} pendente(s)</small></div>
@@ -5167,10 +5184,30 @@
 
     document.getElementById("finDashPeriodMonth")?.addEventListener("change", () => {
       if (typeof window.financeDashboardInvalidateCache === "function") window.financeDashboardInvalidateCache();
+      if (typeof window.financialDashboardService?.invalidateCache === "function") {
+        window.financialDashboardService.invalidateCache();
+      }
       financeRenderDashboard();
     });
     document.getElementById("finDashPeriodPartner")?.addEventListener("change", () => {
       if (typeof window.financeDashboardInvalidateCache === "function") window.financeDashboardInvalidateCache();
+      if (typeof window.financialDashboardService?.invalidateCache === "function") {
+        window.financialDashboardService.invalidateCache();
+      }
+      financeRenderDashboard();
+    });
+    ["finDashFilterPeriod", "finDashFilterFinanceira", "finDashFilterPartner", "finDashFilterStatus"].forEach((id) => {
+      document.getElementById(id)?.addEventListener("change", () => {
+        if (typeof window.financialDashboardService?.invalidateCache === "function") {
+          window.financialDashboardService.invalidateCache();
+        }
+        financeRenderDashboard();
+      });
+    });
+    document.getElementById("finDashFilterSearch")?.addEventListener("input", () => {
+      if (typeof window.financialDashboardService?.invalidateCache === "function") {
+        window.financialDashboardService.invalidateCache();
+      }
       financeRenderDashboard();
     });
 
@@ -5357,4 +5394,5 @@
   window.financeContasAguardandoList = financeContasAguardandoList;
   window.financeContasReceberList = financeContasReceberList;
   window.financePayablesAbertas = financePayablesAbertas;
+  window.financeRenderDashboard = financeRenderDashboard;
 })();
