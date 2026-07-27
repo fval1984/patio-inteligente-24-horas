@@ -4000,27 +4000,66 @@
       /* Dashboard Operacional */
       .ops-exec-root { min-height: 120px; }
       .ops-exec-alerts {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
         margin-bottom: 20px;
       }
+      .ops-exec-alerts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 12px;
+        align-items: stretch;
+      }
+      .ops-exec-alerts > .ops-exec-alert,
+      .ops-exec-alerts > .hub-alert {
+        width: 100%;
+      }
       .ops-exec-alert {
-        display: inline-flex;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(148,163,184,0.18);
+        background: rgba(15,23,42,0.45);
+        min-width: 0;
+        min-height: 72px;
+        width: 100%;
+        box-sizing: border-box;
+        position: relative;
+        z-index: 1;
+        transform: none !important;
+        box-shadow: none !important;
+        cursor: default;
+      }
+      .ops-exec-alert .hub-alert-icon {
+        flex: 0 0 auto;
+        margin-top: 2px;
+        line-height: 1;
+      }
+      .ops-exec-alert .hub-alert-body {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
         flex-direction: column;
         gap: 4px;
-        padding: 12px 14px;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        background: var(--card);
-        min-width: min(100%, 180px);
-        flex: 1 1 160px;
       }
-      .ops-exec-alert strong { font-size: 0.84rem; }
-      .ops-exec-alert span { font-size: 0.76rem; color: var(--muted); }
+      .ops-exec-alert strong {
+        font-size: 0.84rem;
+        display: block;
+        line-height: 1.35;
+        color: inherit;
+      }
+      .ops-exec-alert small {
+        font-size: 0.75rem;
+        color: var(--muted);
+        line-height: 1.4;
+      }
       .ops-exec-alert--green { border-color: rgba(52,211,153,0.4); color: #34d399; }
       .ops-exec-alert--yellow { border-color: rgba(251,191,36,0.45); background: rgba(251,191,36,0.06); }
       .ops-exec-alert--red { border-color: rgba(248,113,113,0.45); background: rgba(248,113,113,0.08); }
+      @media (max-width: 640px) {
+        .ops-exec-alerts-grid { grid-template-columns: 1fr; }
+      }
       .ops-exec-fila {
         display: grid;
         grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -7943,7 +7982,7 @@
     <script src="/financial-dashboard-ui.js?v=20260727findash"></script>
     <script src="/patio-dashboard.js?v=20260715gestor"></script>
     <script src="/operational-metrics-service.js?v=20260727opsdash"></script>
-    <script src="/operational-dashboard-ui.js?v=20260727opsdash"></script>
+    <script src="/operational-dashboard-ui.js?v=20260727opsalert"></script>
     <script src="/partners-dashboard.js?v=20260605partners601"></script>
     <script src="/financial-partner-metrics-service.js?v=20260727fpdash"></script>
     <script src="/financial-partner-dashboard-ui.js?v=20260727fpdash"></script>
