@@ -6646,6 +6646,19 @@
           </div>
         </div>
 
+        <div id="viewBiExecutivo" class="panel hidden bi-executivo-shell">
+          <div class="toolbar">
+            <div>
+              <h2 style="margin: 0">BI Executivo</h2>
+              <p class="subtitle" style="margin: 4px 0 0">Análise estratégica para diretoria e gerência</p>
+            </div>
+            <div class="actions">
+              <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
+            </div>
+          </div>
+          <div id="biExecRoot" class="bi-exec-root"></div>
+        </div>
+
         <div id="viewFinanceiro" class="panel hidden finance-module-shell">
           <div class="toolbar">
             <div>
@@ -7863,6 +7876,7 @@
           <button type="button" id="appHeaderMenuClose" class="secondary">Fechar</button>
         </div>
         <button type="button" class="header-menu-top" data-view="dashboard">AMPLIPATIO</button>
+        <button type="button" class="header-menu-top" data-view="biExecutivo">BI Executivo</button>
 
         <details class="header-menu-details" id="headerDetailsPatio">
           <summary>Gestão de pátio</summary>
@@ -7935,6 +7949,8 @@
     <script src="/financial-partner-dashboard-ui.js?v=20260727fpdash"></script>
     <script src="/dashboard-metrics-service.js?v=20260727metrics"></script>
     <script src="/amplipatio-dashboard.js?v=20260727metrics"></script>
+    <script src="/bi-metrics-service.js?v=20260727biexec"></script>
+    <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -8609,6 +8625,7 @@
         lista: document.getElementById("viewLista"),
         configuracoes: document.getElementById("viewConfiguracoes"),
         financeiro: document.getElementById("viewFinanceiro"),
+        biExecutivo: document.getElementById("viewBiExecutivo"),
       };
       const patioFlyoutClose = document.getElementById("patioFlyoutClose");
       const patioMenuNewVehicle = document.getElementById("patioMenuNewVehicle");
@@ -8889,7 +8906,7 @@
         fechando_ciclo: { title: "Fechando ciclo", subtitle: "Triagem antes do financeiro" },
       };
 
-      const MODULE_VIEWS = ["patio", "lista", "parceiros", "configuracoes", "financeiro"];
+      const MODULE_VIEWS = ["patio", "lista", "parceiros", "configuracoes", "financeiro", "biExecutivo"];
 
       const MODULE_VIEW_IDS = {
         patio: "viewPatio",
@@ -8897,6 +8914,7 @@
         parceiros: "viewParceiros",
         configuracoes: "viewConfiguracoes",
         financeiro: "viewFinanceiro",
+        biExecutivo: "viewBiExecutivo",
       };
 
       const MODULE_VIEW_LABELS = {
@@ -8905,6 +8923,7 @@
         parceiros: { title: "Rede de parceiros", subtitle: "Cadastro de parceiros" },
         configuracoes: { title: "Configurações", subtitle: "Parâmetros do sistema" },
         financeiro: { title: "Financeiro", subtitle: "Receitas, despesas, cobranças e caixa" },
+        biExecutivo: { title: "BI Executivo", subtitle: "Análise estratégica" },
       };
 
       let tabModalSystemReady = false;
@@ -15108,6 +15127,14 @@
           );
         }
 
+        if (
+          !isGestorPista &&
+          !document.getElementById("viewBiExecutivo")?.classList.contains("hidden") &&
+          typeof renderBiExecutivoDashboard === "function"
+        ) {
+          renderBiExecutivoDashboard();
+        }
+
         const pdVnp = document.getElementById("patioDashVnp");
         const pdVlp = document.getElementById("patioDashVlp");
         const pdED = document.getElementById("patioDashEntradasDia");
@@ -20141,12 +20168,33 @@
       const cardVrpLink = document.getElementById("cardVrpLink");
       const cardNfsePendenteLink = document.getElementById("cardNfsePendenteLink");
 
+
+      function renderBiExecutivoDashboard() {
+        if (isGestorPista) return;
+        if (typeof window.biExecutivoRender !== "function") return;
+        const asOf = toLocalYmd(new Date().toISOString());
+        window.biExecutivoRender(
+          {
+            vehicles: state.vehicles || [],
+            partners: state.partners || [],
+            receivables: state.receivables || [],
+            events: state.opsVehicleEvents || [],
+            settings: state.settings || {},
+            asOfYmd: asOf,
+          },
+          { formatCurrency, escapeHtml, isGestorPista }
+        );
+      }
+      window.renderBiExecutivoDashboard = renderBiExecutivoDashboard;
+
       function syncHeaderMenuModuleHighlight(view) {
         const menu = document.getElementById("appHeaderMenu");
         if (!menu) return;
         menu.querySelectorAll(".header-menu-details").forEach((d) => d.classList.remove("header-menu-details--current"));
-        const top = menu.querySelector(".header-menu-top");
-        if (top) top.classList.toggle("header-menu-top--current", view === "dashboard");
+        menu.querySelectorAll(".header-menu-top[data-view]").forEach((btn) => {
+          const v = btn.getAttribute("data-view");
+          btn.classList.toggle("header-menu-top--current", v === view && (v === "dashboard" || v === "biExecutivo"));
+        });
         if (view === "patio") menu.querySelector("#headerDetailsPatio")?.classList.add("header-menu-details--current");
         else if (view === "parceiros") menu.querySelector("#headerDetailsParceiros")?.classList.add("header-menu-details--current");
         else if (view === "lista") menu.querySelector("#headerDetailsLista")?.classList.add("header-menu-details--current");
@@ -20183,6 +20231,8 @@
           document.title = "Amplipatio · Financeiro";
         } else if (view === "dashboard") {
           document.title = "Amplipatio · AMPLIPATIO";
+        } else if (view === "biExecutivo") {
+          document.title = "Amplipatio · BI Executivo";
         } else {
           document.title = "Amplipatio";
         }
@@ -20206,7 +20256,10 @@
             refreshFinanceData({ preserveView: sub });
           }
         }
-        const headerModViews = ["dashboard", "patio", "parceiros", "lista", "configuracoes", "financeiro"];
+        if (view === "biExecutivo") {
+          renderBiExecutivoDashboard();
+        }
+        const headerModViews = ["dashboard", "patio", "parceiros", "lista", "configuracoes", "financeiro", "biExecutivo"];
         if (headerModViews.includes(view) && lastAppHeaderModuleView !== view) {
           document.querySelectorAll("#appHeaderMenu > .header-menu-details").forEach((d) => d.removeAttribute("open"));
           lastAppHeaderModuleView = view;
@@ -20390,6 +20443,14 @@
         if (view === "financeiro") {
           setFinanceView("dashboard");
         }
+        if (view === "biExecutivo") {
+          if (typeof window.biExecutivoInit === "function") window.biExecutivoInit();
+          if (typeof loadOperationalVehicleEvents === "function" && !window.__opsEventsLoading) {
+            loadOperationalVehicleEvents().finally(() => renderBiExecutivoDashboard());
+          } else {
+            renderBiExecutivoDashboard();
+          }
+        }
       }
 
       function goToPatioForPlateSearch() {
@@ -20490,6 +20551,9 @@
         if (top === "financeiro") {
           showMainView("financeiro");
           return setFinanceView("dashboard");
+        }
+        if (top === "biExecutivo") {
+          return showMainView("biExecutivo");
         }
 
         if (top === "lista") {
@@ -20623,11 +20687,25 @@
           setFinanceView("none");
           return;
         }
+        if (view === "biExecutivo") {
+          if (isGestorPista) {
+            openMainView("patio");
+            return;
+          }
+          navStack.splice(0, navStack.length, "biExecutivo");
+          showMainView("biExecutivo");
+          if (typeof loadOperationalVehicleEvents === "function" && !window.__opsEventsLoading) {
+            loadOperationalVehicleEvents().finally(() => {
+              if (typeof renderBiExecutivoDashboard === "function") renderBiExecutivoDashboard();
+            });
+          }
+          return;
+        }
         openMainView(view);
       }
 
       function syncHeaderMenuHighlightFromDom() {
-        const order = ["dashboard", "patio", "financeiro", "parceiros", "lista", "configuracoes"];
+        const order = ["dashboard", "biExecutivo", "patio", "financeiro", "parceiros", "lista", "configuracoes"];
         for (const name of order) {
           const el = views[name];
           if (el && !el.classList.contains("hidden")) {
