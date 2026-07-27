@@ -124,6 +124,9 @@
   const PARTNER_META_RE = /\[\[partnermeta:([\s\S]*?)\]\]/;
   const JSONB_KEYS = ["perfil", "contatos", "documentos", "historico"];
   const ADDRESS_KEYS = ["cep", "endereco", "numero", "complemento", "bairro", "cidade", "estado", "whatsapp", "telefone"];
+  /** Colunas novas — podem não existir até rodar partners_cadastro_inteligente.sql */
+  const EXTENDED_KEYS = ADDRESS_KEYS.concat(JSONB_KEYS).concat(["status", "observacoes"]);
+  const CORE_KEYS = ["user_id", "nome", "cpf", "email", "contato", "tipo"];
 
   function digits(v) {
     return String(v || "").replace(/\D/g, "");
@@ -246,16 +249,26 @@
     const contatos = asArray(parseJsonField(raw.contatos, []));
     const documentos = asArray(parseJsonField(raw.documentos, []));
     const historico = asArray(parseJsonField(raw.historico, []));
+    const statusRaw = raw.status != null && raw.status !== "" ? raw.status : meta.status;
+    const status = String(statusRaw || "ATIVO").toUpperCase() === "INATIVO" ? "INATIVO" : "ATIVO";
 
     return Object.assign({}, raw, {
       tipo: normalizePartnerTipo(raw.tipo),
-      status: String(raw.status || "ATIVO").toUpperCase() === "INATIVO" ? "INATIVO" : "ATIVO",
+      status: status,
       observacoes: extracted.cleanObs || null,
       perfil: Object.keys(perfil).length ? perfil : meta.perfil || {},
       contatos: contatos.length ? contatos : asArray(meta.contatos),
       documentos: documentos.length ? documentos : asArray(meta.documentos),
       historico: historico.length ? historico : asArray(meta.historico),
-      telefone: raw.telefone || raw.contato || "",
+      telefone: raw.telefone || meta.telefone || raw.contato || "",
+      whatsapp: raw.whatsapp || meta.whatsapp || "",
+      cep: raw.cep || meta.cep || "",
+      endereco: raw.endereco || meta.endereco || "",
+      numero: raw.numero || meta.numero || "",
+      complemento: raw.complemento || meta.complemento || "",
+      bairro: raw.bairro || meta.bairro || "",
+      cidade: raw.cidade || meta.cidade || "",
+      estado: raw.estado || meta.estado || "",
     });
   }
 
@@ -429,28 +442,54 @@
       contatos: fullPayload.contatos || [],
       documentos: fullPayload.documentos || [],
       historico: fullPayload.historico || [],
+      status: fullPayload.status || "ATIVO",
+      telefone: fullPayload.telefone || null,
+      whatsapp: fullPayload.whatsapp || null,
+      cep: fullPayload.cep || null,
+      endereco: fullPayload.endereco || null,
+      numero: fullPayload.numero || null,
+      complemento: fullPayload.complemento || null,
+      bairro: fullPayload.bairro || null,
+      cidade: fullPayload.cidade || null,
+      estado: fullPayload.estado || null,
     };
-    const lean = omitKeys(fullPayload, JSONB_KEYS);
+    const lean = omitKeys(fullPayload, EXTENDED_KEYS);
     return packPartnerMeta(lean, meta);
   }
 
   function buildMinimalPayload(payload) {
-    return {
-      user_id: payload.user_id,
-      nome: payload.nome,
-      cpf: payload.cpf,
-      email: payload.email,
-      contato: payload.contato,
-      tipo: payload.tipo,
-      status: payload.status || "ATIVO",
-    };
+    const out = {};
+    for (let i = 0; i < CORE_KEYS.length; i++) {
+      const k = CORE_KEYS[i];
+      if (payload[k] !== undefined) out[k] = payload[k];
+    }
+    return out;
   }
 
   function buildMinimalPayloadWithMeta(payload) {
-    const meta = extractPartnerMeta(payload.observacoes).meta;
-    if (!meta) return buildMinimalPayload(payload);
-    const packed = packPartnerMeta(buildMinimalPayload(payload), meta);
-    return omitKeys(packed, ["observacoes"]);
+    const extracted = extractPartnerMeta(payload.observacoes);
+    const meta = Object.assign({}, extracted.meta || {}, {
+      status: payload.status || (extracted.meta && extracted.meta.status) || "ATIVO",
+    });
+    return packPartnerMeta(buildMinimalPayload(payload), meta);
+  }
+
+  function stripMissingColumn(payload, err) {
+    const msg = String((err && err.message) || "");
+    const m =
+      msg.match(/Could not find the ['\"]([a-zA-Z0-9_]+)['\"] column/i) ||
+      msg.match(/['\"]([a-zA-Z0-9_]+)['\"]\s+column/i) ||
+      msg.match(/column\s+['\"]?([a-zA-Z0-9_]+)/i);
+    if (!m || !m[1]) {
+      // Se não identificou a coluna, remove todas as estendidas de uma vez
+      const next = omitKeys(payload, EXTENDED_KEYS);
+      if (Object.keys(next).length === Object.keys(payload).length) return null;
+      return next;
+    }
+    const col = m[1];
+    if (!Object.prototype.hasOwnProperty.call(payload, col)) return null;
+    if (CORE_KEYS.indexOf(col) >= 0) return null;
+    return omitKeys(payload, [col]);
   }
 
   async function tryWrite(supabase, mode, id, payload) {
@@ -461,43 +500,60 @@
   }
 
   async function persistPartner(supabase, mode, id, record, userId) {
-    const dbPayload = toDbPayload(record, userId);
-    let lean = false;
+    const full = toDbPayload(record, userId);
 
-    let result = await tryWrite(supabase, mode, id, dbPayload);
+    // 1) Tentativa completa (após SQL partners_cadastro_inteligente.sql)
+    let result = await tryWrite(supabase, mode, id, full);
     if (!result.error) {
-      return { ok: true, data: normalizePartnerRecord(result.data), lean: lean, error: null };
+      return { ok: true, data: normalizePartnerRecord(result.data), lean: false, error: null };
     }
     if (!isSchemaColumnError(result.error)) {
-      return { ok: false, data: null, lean: lean, error: result.error, errors: null };
+      return { ok: false, data: null, lean: false, error: result.error, errors: null };
     }
 
-    lean = true;
-    const leanMeta = buildLeanPayloadWithMeta(dbPayload);
-    result = await tryWrite(supabase, mode, id, leanMeta);
+    // 2) Remove colunas novas citadas no erro (status, telefone, perfil, …)
+    let payload = Object.assign({}, full);
+    for (let attempt = 0; attempt < 24 && result.error && isSchemaColumnError(result.error); attempt++) {
+      const stripped = stripMissingColumn(payload, result.error);
+      if (!stripped) break;
+      payload = stripped;
+      result = await tryWrite(supabase, mode, id, payload);
+      if (!result.error) {
+        return { ok: true, data: normalizePartnerRecord(result.data), lean: true, error: null };
+      }
+    }
+    if (result.error && !isSchemaColumnError(result.error)) {
+      return { ok: false, data: null, lean: true, error: result.error, errors: null };
+    }
+
+    // 3) Colunas clássicas + observações com metadados empacotados
+    const withMeta = buildMinimalPayloadWithMeta(full);
+    result = await tryWrite(supabase, mode, id, withMeta);
     if (!result.error) {
-      return { ok: true, data: normalizePartnerRecord(result.data), lean: lean, error: null };
-    }
-    if (!isSchemaColumnError(result.error)) {
-      return { ok: false, data: null, lean: lean, error: result.error, errors: null };
+      return { ok: true, data: normalizePartnerRecord(result.data), lean: true, error: null };
     }
 
-    const noAddress = omitKeys(leanMeta, ADDRESS_KEYS);
-    result = await tryWrite(supabase, mode, id, noAddress);
+    // 4) Sem observações — só nome/cpf/email/contato/tipo
+    const core = buildMinimalPayload(full);
+    result = await tryWrite(supabase, mode, id, core);
     if (!result.error) {
-      return { ok: true, data: normalizePartnerRecord(result.data), lean: lean, error: null };
-    }
-    if (!isSchemaColumnError(result.error)) {
-      return { ok: false, data: null, lean: lean, error: result.error, errors: null };
+      return {
+        ok: true,
+        data: normalizePartnerRecord(
+          Object.assign({}, result.data, {
+            status: full.status || "ATIVO",
+            perfil: full.perfil || {},
+            telefone: full.telefone || full.contato || "",
+            cidade: full.cidade || "",
+            estado: full.estado || "",
+          })
+        ),
+        lean: true,
+        error: null,
+      };
     }
 
-    const minimal = buildMinimalPayloadWithMeta(leanMeta);
-    result = await tryWrite(supabase, mode, id, minimal);
-    if (!result.error) {
-      return { ok: true, data: normalizePartnerRecord(result.data), lean: lean, error: null };
-    }
-
-    return { ok: false, data: null, lean: lean, error: result.error, errors: null };
+    return { ok: false, data: null, lean: true, error: result.error, errors: null };
   }
 
   async function CreatePartner(supabase, userId, payload, opts) {
