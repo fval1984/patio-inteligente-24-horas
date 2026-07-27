@@ -6666,13 +6666,16 @@
 
           <div class="section-card partner-subview hidden" data-subview="parceiros">
             <p class="notice" style="margin: 0 0 12px">
-              Lista única de parceiros. RPV, RPP, quem solicitou/confirmou/removeu e demais papéis no pátio são escolhidos apenas entre estes cadastros.
+              Cadastro inteligente de parceiros. O formulário adapta os campos conforme o Tipo de Parceiro.
+              RPV, RPP e demais papéis do pátio continuam sendo escolhidos nesta lista única.
             </p>
-            <div class="table-wrap">
+            <div id="partnerCadastroRoot"></div>
+            <div class="table-wrap hub-dash-legacy-hidden" hidden aria-hidden="true">
               <table class="table">
               <thead>
                 <tr>
                   <th>Nome</th>
+                  <th>Tipo</th>
                   <th>CNPJ / CPF</th>
                   <th>Contato</th>
                   <th>Status</th>
@@ -7215,31 +7218,14 @@
         </div>
       </div>
 
-      <div id="partnerModal" class="modal-backdrop hidden">
+      <div id="partnerModal" class="modal-backdrop hidden pc-modal-large">
         <div class="modal">
           <div class="modal-header">
             <h3 id="partnerModalTitle">Novo cadastro</h3>
-            <button class="modal-close" id="closePartnerModal">Fechar</button>
+            <button class="modal-close" id="closePartnerModal" type="button">Fechar</button>
           </div>
           <form id="partnerForm">
-            <div class="form-grid">
-              <div>
-                <label id="partnerNameLabel">Nome</label>
-                <input id="partnerName" type="text" required />
-              </div>
-              <div>
-                <label id="partnerDocLabel">CPF</label>
-                <input id="partnerCpf" type="text" placeholder="000.000.000-00" />
-              </div>
-              <div id="partnerEmailWrap">
-                <label>E-mail</label>
-                <input id="partnerEmail" type="email" />
-              </div>
-              <div>
-                <label id="partnerContactLabel">Contato</label>
-                <input id="partnerContact" type="text" />
-              </div>
-            </div>
+            <div id="partnerFormInner"></div>
             <div class="form-actions">
               <button type="submit">Salvar</button>
               <button type="button" class="secondary" id="cancelPartnerForm">Cancelar</button>
@@ -7986,6 +7972,8 @@
     <script src="/partners-dashboard.js?v=20260605partners601"></script>
     <script src="/financial-partner-metrics-service.js?v=20260727fpdash"></script>
     <script src="/financial-partner-dashboard-ui.js?v=20260727fpdash"></script>
+    <script src="/partners-cadastro-service.js?v=20260727pcad"></script>
+    <script src="/partners-cadastro-ui.js?v=20260727pcad"></script>
     <script src="/dashboard-metrics-service.js?v=20260727recvfix"></script>
     <script src="/amplipatio-dashboard.js?v=20260727recvfix"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
@@ -15385,8 +15373,10 @@
       }
 
       function normalizePartnerType(type) {
+        if (typeof window.normalizePartnerTipo === "function") return window.normalizePartnerTipo(type);
         const raw = (type || "PARCEIRO").toString().trim().toUpperCase();
-        if (raw === "PARCEIRO") return "LOCALIZADOR";
+        if (raw === "PARCEIRO" || !raw) return "LOCALIZADOR";
+        if (raw === "REMOCAO") return "GUINCHEIRO";
         return raw;
       }
 
@@ -15871,6 +15861,7 @@
         if (openPartnerForm) openPartnerForm.textContent = resolved === "parceiros" ? "Novo parceiro" : "Novo cadastro";
         syncPartnerFormForCurrentView();
         if (resolved === "dashboard") renderPartnersDashboard();
+        if (resolved === "parceiros") renderPartners();
       }
 
       window.setPartnerView = setPartnerView;
@@ -16582,27 +16573,51 @@
       }
 
       function renderPartners() {
-        const list = allPartnersSorted();
-        if (!tablePartners) return;
-        if (!list.length) {
-          setEmptyRow(tablePartners, "Nenhum parceiro cadastrado.", 5);
-        } else {
-          tablePartners.innerHTML = list
-            .map((p) => {
-              return `
-                <tr>
-                  <td>${escapeHtml(p.nome || "-")}</td>
-                  <td>${escapeHtml(formatCnpjForDisplay(p.cpf) || "-")}</td>
-                  <td>${escapeHtml(p.contato || "-")}</td>
-                  <td><span class="tag">Ativo</span></td>
-                  <td class="actions">
-                    <button class="secondary" data-action="editar-parceiro" data-id="${p.id}">Editar</button>
-                    <button class="secondary" data-action="apagar-parceiro" data-id="${p.id}">Apagar</button>
-                  </td>
-                </tr>
-              `;
-            })
-            .join("");
+        if (typeof window.partnersCadastroRender === "function") {
+          window.partnersCadastroRender(
+            {
+              partners: state.partners || [],
+              vehicles: state.vehicles || [],
+              receivables: state.receivables || [],
+            },
+            {
+              escapeHtml,
+              formatCurrency,
+              formatCnpjForDisplay,
+              effectiveUserId,
+              loadPartners,
+              supabase,
+              userEmail: state.user?.email || "",
+              runSupabaseWrite: typeof runSupabaseWrite === "function" ? runSupabaseWrite : null,
+              requireSupabaseSessionForWrite:
+                typeof requireSupabaseSessionForWrite === "function" ? requireSupabaseSessionForWrite : null,
+              findDuplicatePartner,
+              alertSupabaseError: typeof alertSupabaseError === "function" ? alertSupabaseError : null,
+            }
+          );
+        } else if (tablePartners) {
+          const list = allPartnersSorted();
+          if (!list.length) {
+            setEmptyRow(tablePartners, "Nenhum parceiro cadastrado.", 6);
+          } else {
+            tablePartners.innerHTML = list
+              .map((p) => {
+                return `
+                  <tr>
+                    <td>${escapeHtml(p.nome || "-")}</td>
+                    <td>${escapeHtml(p.tipo || "-")}</td>
+                    <td>${escapeHtml(formatCnpjForDisplay(p.cpf) || "-")}</td>
+                    <td>${escapeHtml(p.contato || p.telefone || "-")}</td>
+                    <td><span class="tag">${escapeHtml(p.status || "Ativo")}</span></td>
+                    <td class="actions">
+                      <button class="secondary" data-action="editar-parceiro" data-id="${p.id}">Editar</button>
+                      <button class="secondary" data-action="apagar-parceiro" data-id="${p.id}">Apagar</button>
+                    </td>
+                  </tr>
+                `;
+              })
+              .join("");
+          }
         }
         renderPartnerOptions();
         if (currentPartnerView === "dashboard" || !currentPartnerView) renderPartnersDashboard();
@@ -16621,10 +16636,14 @@
       function openPartnerRegistrationFlow() {
         openMainView("parceiros");
         openPartnerSubview("parceiros");
+        if (typeof window.partnersCadastroOpenCreate === "function") {
+          window.partnersCadastroOpenCreate();
+          return;
+        }
         if (partnerModalTitle) partnerModalTitle.textContent = "Novo parceiro";
         syncPartnerFormForCurrentView();
-        partnerForm.reset();
-        partnerModal.classList.remove("hidden");
+        partnerForm?.reset?.();
+        partnerModal?.classList.remove("hidden");
       }
 
       function openVehicleModal(mode, vehicle) {
@@ -16733,10 +16752,14 @@
       });
 
       openPartnerForm.addEventListener("click", () => {
+        if (typeof window.partnersCadastroOpenCreate === "function") {
+          window.partnersCadastroOpenCreate();
+          return;
+        }
         if (partnerModalTitle) partnerModalTitle.textContent = "Novo parceiro";
         syncPartnerFormForCurrentView();
-        partnerForm.reset();
-        partnerModal.classList.remove("hidden");
+        partnerForm?.reset?.();
+        partnerModal?.classList.remove("hidden");
       });
 
       cancelPartnerForm.addEventListener("click", () => {
@@ -18647,15 +18670,19 @@
         await refreshFichaIfOpen(vid);
       });
 
-      partnerForm.addEventListener("submit", async (event) => {
+      partnerForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (typeof window.partnersCadastroSubmit === "function") {
+          await window.partnersCadastroSubmit(event);
+          return;
+        }
         if (!(await requireSupabaseSessionForWrite())) return;
         const payload = {
           user_id: effectiveUserId(),
-          nome: document.getElementById("partnerName").value.trim(),
-          cpf: document.getElementById("partnerCpf").value.trim(),
-          email: document.getElementById("partnerEmail").value.trim(),
-          contato: document.getElementById("partnerContact").value.trim(),
+          nome: document.getElementById("partnerName")?.value?.trim() || "",
+          cpf: document.getElementById("partnerCpf")?.value?.trim() || "",
+          email: document.getElementById("partnerEmail")?.value?.trim() || "",
+          contato: document.getElementById("partnerContact")?.value?.trim() || "",
           tipo: "LOCALIZADOR",
         };
         const dupP = findDuplicatePartner({
@@ -20155,42 +20182,12 @@
           return;
         }
 
-        if (action === "editar-parceiro") {
-          const nome = prompt("Nome:", partner.nome || "");
-          const cpf = prompt("CPF/CNPJ:", partner.cpf || "");
-          const contato = prompt("Contato:", partner.contato || "");
-          const email = prompt("E-mail:", partner.email || "");
-          const nomeFinal = nome != null ? String(nome).trim() : "";
-          const cpfFinal = cpf != null ? String(cpf).trim() : "";
-          const dupE = findDuplicatePartner({
-            nome: nomeFinal,
-            cpf: cpfFinal,
-            tipo: partner.tipo,
-            excludePartnerId: id,
-          });
-          if (dupE) {
-            alert("Já existe outro cadastro com o mesmo nome ou documento nesta categoria.");
+        if (action === "editar-parceiro" || action === "detalhes-parceiro") {
+          if (typeof window.partnersCadastroOpenEdit === "function") {
+            window.partnersCadastroOpenEdit(partner, { tab: action === "detalhes-parceiro" ? "resumo" : "dados" });
             return;
           }
-          const { error } = await supabase
-            .from("partners")
-            .update({
-              nome: nomeFinal || null,
-              cpf: cpfFinal || null,
-              contato: contato || null,
-              email: email || null,
-            })
-            .eq("id", id)
-            .eq("user_id", effectiveUserId());
-          if (error) {
-            const msg = error.message || "";
-            if (/duplicate key|unique constraint|23505/i.test(msg)) {
-              alert("Não foi possível gravar: nome ou documento duplicado.");
-            } else {
-              alert(msg);
-            }
-          }
-          loadPartners();
+          alert("Módulo de cadastro inteligente indisponível.");
         }
       });
 
@@ -20474,6 +20471,7 @@
         if (view === "parceiros") {
           setPartnerView(currentPartnerView === "parceiros" ? "parceiros" : "dashboard");
           if (typeof window.partnersDashboardInit === "function") window.partnersDashboardInit();
+          if (typeof window.partnersCadastroUiInit === "function") window.partnersCadastroUiInit();
         }
         if (view === "lista") {
           syncListaFilterSelects();
