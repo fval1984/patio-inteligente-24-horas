@@ -77,6 +77,10 @@ export interface DashboardReceivable {
   status?: string | null;
   partner_id?: Uuid | null;
   localizador_id?: Uuid | null;
+  /** Coluna (ou espelho em observações) — título já promovido a Contas a receber. */
+  financeiro_aprovado_contas_receber?: boolean | null;
+  observacoes?: string | null;
+  responsavel_pagamento?: string | null;
 }
 
 export interface DashboardSettings {
