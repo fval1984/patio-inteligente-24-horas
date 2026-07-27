@@ -7930,7 +7930,8 @@
         <details class="header-menu-details" id="headerDetailsParceiros">
           <summary>Rede de parceiros</summary>
           <div class="header-menu-nested">
-            <button type="button" data-view="parceiros">Ver cadastro</button>
+            <button type="button" data-header-partner-sub="parceiros">Cadastro</button>
+            <button type="button" data-header-partner-sub="dashboard">Dashboard Financeiras</button>
           </div>
         </details>
 
@@ -20469,9 +20470,11 @@
           navStack.push("patio:inicio");
         }
         if (view === "parceiros") {
-          setPartnerView(currentPartnerView === "parceiros" ? "parceiros" : "dashboard");
+          setPartnerView("parceiros");
+          navStack.push("parceiros:parceiros");
           if (typeof window.partnersDashboardInit === "function") window.partnersDashboardInit();
           if (typeof window.partnersCadastroUiInit === "function") window.partnersCadastroUiInit();
+          renderPartners();
         }
         if (view === "lista") {
           syncListaFilterSelects();
@@ -20582,7 +20585,7 @@
         }
         if (top === "parceiros") {
           showMainView("parceiros");
-          return setPartnerView("dashboard");
+          return setPartnerView("parceiros");
         }
         if (top === "configuracoes") return showMainView("configuracoes");
         if (top === "financeiro") {
@@ -20622,7 +20625,7 @@
       document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
       document.getElementById("dashboardOpenLista")?.addEventListener("click", () => openMainView("lista"));
-      document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openMainView("parceiros"));
+      document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openPartnerSubview("parceiros"));
       document.getElementById("dashboardOpenConfiguracoes")?.addEventListener("click", () => openMainView("configuracoes"));
       document.getElementById("exitConfigToPatio")?.addEventListener("click", () => closeStackTop());
 
