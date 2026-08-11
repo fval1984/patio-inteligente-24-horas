@@ -1770,28 +1770,45 @@
         gap: 14px;
         min-width: 0;
       }
-      .brand-stack {
+      .brand-lockup {
         display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0;
-        height: 68px;
-        overflow: hidden;
-        justify-content: flex-start;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
       }
-      .brand-logo {
-        height: 210px;
+      .brand-shield {
+        height: 54px;
         width: auto;
-        max-width: min(240px, 42vw);
+        flex-shrink: 0;
         display: block;
-        object-fit: cover;
-        object-position: top center;
-        filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.35));
+        object-fit: contain;
+        filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.32));
       }
-      .brand-text {
+      .brand-wordmark {
+        height: 38px;
+        width: auto;
+        max-width: min(300px, 40vw);
+        flex-shrink: 1;
+        display: block;
+        object-fit: contain;
+        object-position: left center;
+        filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.28));
+      }
+      .brand-lockup--auth {
+        justify-content: center;
+        gap: 14px;
+      }
+      .brand-lockup--auth .brand-shield {
+        height: 92px;
+      }
+      .brand-lockup--auth .brand-wordmark {
+        height: 64px;
+        max-width: min(420px, 72vw);
+      }
+      .brand-stack {
         display: none;
       }
-      .brand-subtitle {
+      .brand-logo {
         display: none;
       }
       .brand-mark {
@@ -2185,11 +2202,7 @@
         margin: 0 0 18px;
       }
       .auth-brand-logo {
-        width: 100%;
-        max-width: 360px;
-        max-height: 220px;
-        object-fit: contain;
-        filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.35));
+        display: none;
       }
       .auth-brand-tagline {
         margin: 10px 0 0;
@@ -2480,18 +2493,29 @@
         gap: 12px;
         flex-shrink: 0;
       }
+      #viewLista .lista-toolbar-logo-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      #viewLista .lista-toolbar-logo-wrap .brand-shield {
+        height: 40px;
+      }
+      #viewLista .lista-toolbar-logo-wrap .brand-wordmark {
+        height: 28px;
+        max-width: 180px;
+      }
       #viewLista .lista-toolbar-logo {
-        height: 56px;
-        width: auto;
-        max-width: min(200px, 40vw);
-        object-fit: cover;
-        object-position: top center;
-        display: block;
+        display: none;
       }
       @media (max-width: 520px) {
-        #viewLista .lista-toolbar-logo {
-          height: 38px;
-          max-width: 160px;
+        #viewLista .lista-toolbar-logo-wrap .brand-shield {
+          height: 34px;
+        }
+        #viewLista .lista-toolbar-logo-wrap .brand-wordmark {
+          height: 24px;
+          max-width: 140px;
         }
       }
       #viewLista.lista-module-shell {
@@ -2532,11 +2556,14 @@
         line-height: 1.45;
       }
       .lista-capture-logo-mark {
-        height: 44px;
-        width: auto;
-        max-width: 180px;
-        object-fit: contain;
         flex-shrink: 0;
+      }
+      .lista-capture-logo-mark .brand-shield {
+        height: 40px;
+      }
+      .lista-capture-logo-mark .brand-wordmark {
+        height: 28px;
+        max-width: 160px;
       }
       .pill {
         display: inline-flex;
@@ -3555,12 +3582,18 @@
           flex: 0 1 auto;
           min-width: 0;
         }
+        .brand-shield {
+          height: 42px;
+        }
+        .brand-wordmark {
+          height: 30px;
+          max-width: min(210px, 46vw);
+        }
         .brand-stack {
-          height: 52px;
+          display: none;
         }
         .brand-logo {
-          height: 160px;
-          max-width: min(180px, 48vw);
+          display: none;
         }
         .brand-subtitle {
           display: none;
@@ -6174,8 +6207,9 @@
     </noscript>
     <header>
       <div class="brand">
-        <div class="brand-stack">
-          <img id="brandLogo" src="/assets/ampliguard-brand.png?v=ampliguard1" alt="AMPLIGUARD — Segurança, Confiança, Compromisso" class="brand-logo" />
+        <div class="brand-lockup">
+          <img src="/assets/ampliguard-shield.png?v=2" alt="" class="brand-shield" aria-hidden="true" />
+          <img id="brandLogo" src="/assets/ampliguard-wordmark.png?v=2" alt="AMPLIGUARD — Segurança, Confiança, Compromisso" class="brand-wordmark" />
         </div>
       </div>
       <div class="header-actions">
@@ -6261,7 +6295,10 @@
     <main>
       <section id="authPanel" class="panel auth">
         <div class="auth-brand">
-          <img src="/assets/ampliguard-brand.png?v=ampliguard1" alt="AMPLIGUARD" class="auth-brand-logo" />
+          <div class="brand-lockup brand-lockup--auth">
+            <img src="/assets/ampliguard-shield.png?v=2" alt="" class="brand-shield" aria-hidden="true" />
+            <img src="/assets/ampliguard-wordmark.png?v=2" alt="AMPLIGUARD" class="brand-wordmark" />
+          </div>
           <p class="auth-brand-tagline">Segurança • Confiança • Compromisso</p>
         </div>
         <h2>Bem-vindo</h2>
@@ -6306,7 +6343,10 @@
 
       <section id="authorizationPanel" class="panel auth auth-authorization hidden">
         <div class="auth-brand">
-          <img src="/assets/ampliguard-brand.png?v=ampliguard1" alt="AMPLIGUARD" class="auth-brand-logo" />
+          <div class="brand-lockup brand-lockup--auth">
+            <img src="/assets/ampliguard-shield.png?v=2" alt="" class="brand-shield" aria-hidden="true" />
+            <img src="/assets/ampliguard-wordmark.png?v=2" alt="AMPLIGUARD" class="brand-wordmark" />
+          </div>
         </div>
         <h2>Acesso exclusivo</h2>
         <p class="auth-authorization-message">
@@ -6390,14 +6430,10 @@
               <h2 style="margin: 0">Lista</h2>
             </div>
             <div class="actions lista-toolbar-actions">
-              <img
-                src="/assets/ampliguard-brand.png?v=ampliguard1"
-                alt="AMPLIGUARD — Segurança, Confiança, Compromisso"
-                class="lista-toolbar-logo"
-                width="220"
-                height="48"
-                decoding="async"
-              />
+              <div class="lista-toolbar-logo-wrap brand-lockup" aria-label="AMPLIGUARD">
+                <img src="/assets/ampliguard-shield.png?v=2" alt="" class="brand-shield" aria-hidden="true" />
+                <img src="/assets/ampliguard-wordmark.png?v=2" alt="AMPLIGUARD" class="brand-wordmark" decoding="async" />
+              </div>
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar">X</button>
             </div>
           </div>
@@ -6459,14 +6495,10 @@
           <div id="listaCaptureRoot" class="lista-capture-root" style="background: #fff; color: #111; padding: 16px; border-radius: 12px; border: 1px solid #ddd">
             <div class="lista-capture-heading-row">
               <div id="listaCaptureHeading"></div>
-              <img
-                src="/assets/ampliguard-brand.png?v=ampliguard1"
-                alt="AMPLIGUARD — Segurança, Confiança, Compromisso"
-                class="lista-capture-logo-mark"
-                width="180"
-                height="44"
-                decoding="async"
-              />
+              <div class="brand-lockup lista-capture-logo-mark" aria-label="AMPLIGUARD">
+                <img src="/assets/ampliguard-shield.png?v=2" alt="" class="brand-shield" aria-hidden="true" />
+                <img src="/assets/ampliguard-wordmark.png?v=2" alt="AMPLIGUARD" class="brand-wordmark" width="180" height="44" decoding="async" />
+              </div>
             </div>
             <div class="section-card" style="margin: 0; border: 0; box-shadow: none; padding: 0">
               <div class="table-wrap">
@@ -16286,7 +16318,7 @@
       }
 
       async function loadReciboLogoDataUrl() {
-        const paths = ["/assets/recibo-header-logo.png", "/assets/ampliguard-brand.png"];
+        const paths = ["/assets/ampliguard-shield.png", "/assets/ampliguard-wordmark.png", "/assets/recibo-header-logo.png"];
         for (const path of paths) {
           try {
             const r = await fetch(path, { cache: "force-cache" });
