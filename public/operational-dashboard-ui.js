@@ -163,6 +163,13 @@
       .ops-exec-fila-step--blue { border-color: rgba(96,165,250,0.4); color: #60a5fa; }
       .ops-exec-fila-step--yellow { border-color: rgba(251,191,36,0.4); color: #fbbf24; }
       .ops-exec-fila-step--green { border-color: rgba(52,211,153,0.4); color: #34d399; }
+      .ops-exec-fila-step--clickable { cursor: pointer; }
+      .ops-exec-fila-step--clickable:hover,
+      .ops-exec-fila-step--clickable:focus-visible {
+        outline: 2px solid rgba(96,165,250,0.45);
+        outline-offset: 2px;
+      }
+      .hub-ops-card--clickable { cursor: pointer; }
       .ops-exec-mapa {
         display: flex; flex-wrap: wrap; gap: 0; align-items: stretch; justify-content: space-between;
       }
@@ -298,7 +305,9 @@
 
   function renderKpiCard(opts, ctx) {
     const value = esc(String(opts.value ?? "—"), ctx);
-    return `<article class="hub-ops-card hub-kpi-card ops-exec-kpi hub-ops-card--${esc(opts.theme, ctx)}">
+    const nav = opts.nav ? ` data-hub-nav="${esc(opts.nav, ctx)}" tabindex="0" role="button"` : "";
+    const clickable = opts.nav ? " hub-ops-card--clickable" : "";
+    return `<article class="hub-ops-card hub-kpi-card ops-exec-kpi hub-ops-card--${esc(opts.theme, ctx)}${clickable}"${nav}>
       <div class="hub-ops-card-top">
         <div class="hub-ops-card-icon">${iconSvg(opts.icon)}</div>
       </div>
@@ -384,7 +393,7 @@
     const steps = [
       { key: "recebidosHoje", label: "Recebidos hoje", value: fila.recebidosHoje, tone: "gray" },
       { key: "aguardandoConferencia", label: "Aguardando conferência", value: fila.aguardandoConferencia, tone: "gray" },
-      { key: "aguardandoVistoria", label: "Aguardando vistoria", value: fila.aguardandoVistoria, tone: "blue" },
+      { key: "aguardandoVistoria", label: "Aguardando vistoria", value: fila.aguardandoVistoria, tone: "blue", nav: "patio:vistoria" },
       { key: "aguardandoAutorizacao", label: "Aguardando autorização", value: fila.aguardandoAutorizacao, tone: "yellow" },
       { key: "liberados", label: "Liberados", value: fila.liberados, tone: "green" },
       { key: "entregues", label: "Entregues", value: fila.entregues, tone: "green" },
@@ -394,10 +403,14 @@
       <div class="ops-exec-fila section-card ops-exec-panel" style="padding:14px">
         ${steps
           .map(
-            (s) => `<div class="ops-exec-fila-step ops-exec-fila-step--${s.tone}">
+            (s) => {
+              const nav = s.nav ? ` data-hub-nav="${esc(s.nav, ctx)}" tabindex="0" role="button"` : "";
+              const clickable = s.nav ? " ops-exec-fila-step--clickable" : "";
+              return `<div class="ops-exec-fila-step ops-exec-fila-step--${s.tone}${clickable}"${nav}>
               <span>${esc(s.label, ctx)}</span>
               <strong>${esc(String(s.value ?? 0), ctx)}</strong>
-            </div>`
+            </div>`;
+            }
           )
           .join("")}
       </div>
@@ -637,7 +650,7 @@
             ${renderKpiCard({ theme: "in", icon: "in", label: "Entradas Hoje", value: k.entradasHoje, meta: "recebidos no dia" }, ctx)}
             ${renderKpiCard({ theme: "out", icon: "out", label: "Saídas Hoje", value: k.saidasHoje, meta: "entregues no dia" }, ctx)}
             ${renderKpiCard({ theme: "stay", icon: "conf", label: "Aguardando Conferência", value: k.aguardandoConferencia, meta: "sem valor de diária" }, ctx)}
-            ${renderKpiCard({ theme: "status", icon: "vist", label: "Aguardando Vistoria", value: k.aguardandoVistoria, meta: "vistoria pendente" }, ctx)}
+            ${renderKpiCard({ theme: "status", icon: "vist", label: "Aguardando Vistoria", value: k.aguardandoVistoria, meta: "vistoria pendente", nav: "patio:vistoria" }, ctx)}
             ${renderKpiCard({ theme: "done", icon: "liber", label: "Prontos para Liberação", value: k.prontosParaLiberacao, meta: "liberados no pátio" }, ctx)}
           </div>
         </section>
@@ -718,6 +731,18 @@
     }
   }
 
+  function hubNavigatePatio(target) {
+    if (!target) return;
+    const [view, sub] = String(target).split(":");
+    const btn = document.querySelector(`#appHeaderMenu button[data-view="${view}"]`);
+    if (btn) btn.click();
+    if (view === "patio" && sub) {
+      setTimeout(() => {
+        document.querySelector(`#patioSubnav [data-subview="${sub}"]`)?.click();
+      }, 100);
+    }
+  }
+
   function bindFilterListeners() {
     if (_bound) return;
     _bound = true;
@@ -753,6 +778,17 @@
     panel.addEventListener("change", onChange);
     panel.addEventListener("input", (e) => {
       if (e.target && e.target.id === "opsDashFilterSearch") refresh();
+    });
+    panel.addEventListener("click", (e) => {
+      const nav = e.target.closest("[data-hub-nav]");
+      if (nav) hubNavigatePatio(nav.getAttribute("data-hub-nav"));
+    });
+    panel.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const nav = e.target.closest("[data-hub-nav]");
+      if (!nav) return;
+      e.preventDefault();
+      hubNavigatePatio(nav.getAttribute("data-hub-nav"));
     });
   }
 
