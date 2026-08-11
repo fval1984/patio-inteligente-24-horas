@@ -1767,17 +1767,18 @@
       .brand {
         display: flex;
         align-items: center;
-        gap: 14px;
         min-width: 0;
+        flex: 0 1 auto;
       }
       .brand-header-logo {
-        height: 58px;
-        width: auto;
-        max-width: min(340px, 54vw);
         display: block;
+        height: auto;
+        width: auto;
+        max-height: 52px;
+        max-width: min(320px, 48vw);
+        aspect-ratio: 1024 / 682;
         object-fit: contain;
         object-position: left center;
-        filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
       }
       .brand-lockup {
         display: flex;
@@ -3592,8 +3593,8 @@
           min-width: 0;
         }
         .brand-header-logo {
-          height: 44px;
-          max-width: min(260px, 58vw);
+          max-height: 40px;
+          max-width: min(240px, 62vw);
         }
         .brand-shield {
           height: 42px;
@@ -6222,7 +6223,7 @@
       <div class="brand">
         <img
           id="brandLogo"
-          src="/assets/ampliguard-header.png?v=1"
+          src="/assets/ampliguard-header.png?v=2"
           alt="AMPLIGUARD — Segurança, Confiança, Compromisso"
           class="brand-header-logo"
         />
