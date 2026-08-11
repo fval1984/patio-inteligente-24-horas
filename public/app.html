@@ -1772,11 +1772,9 @@
       }
       .brand-header-logo {
         display: block;
-        height: auto;
+        height: 120px;
         width: auto;
-        max-height: 52px;
-        max-width: min(320px, 48vw);
-        aspect-ratio: 1024 / 682;
+        max-width: min(420px, 55vw);
         object-fit: contain;
         object-position: left center;
       }
@@ -2212,6 +2210,15 @@
         margin: 0 0 18px;
       }
       .auth-brand-logo {
+        display: block;
+        width: 100%;
+        max-width: 360px;
+        height: auto;
+        max-height: 220px;
+        margin: 0 auto;
+        object-fit: contain;
+      }
+      .auth-brand .auth-brand-tagline {
         display: none;
       }
       .auth-brand-tagline {
@@ -3593,8 +3600,8 @@
           min-width: 0;
         }
         .brand-header-logo {
-          max-height: 40px;
-          max-width: min(240px, 62vw);
+          height: 56px;
+          max-width: min(280px, 58vw);
         }
         .brand-shield {
           height: 42px;
@@ -3638,6 +3645,10 @@
       @media (max-width: 600px) {
         main {
           padding: 12px 10px 32px;
+        }
+        .brand-header-logo {
+          height: 48px;
+          max-width: min(240px, 62vw);
         }
         .brand-logo {
           height: 48px;
@@ -6223,7 +6234,7 @@
       <div class="brand">
         <img
           id="brandLogo"
-          src="/assets/ampliguard-header.png?v=2"
+          src="/assets/ampliguard-header.png?v=3"
           alt="AMPLIGUARD — Segurança, Confiança, Compromisso"
           class="brand-header-logo"
         />
@@ -6311,11 +6322,7 @@
     <main>
       <section id="authPanel" class="panel auth">
         <div class="auth-brand">
-          <div class="brand-lockup brand-lockup--auth">
-            <img src="/assets/ampliguard-shield.png?v=2" alt="" class="brand-shield" aria-hidden="true" />
-            <img src="/assets/ampliguard-wordmark.png?v=2" alt="AMPLIGUARD" class="brand-wordmark" />
-          </div>
-          <p class="auth-brand-tagline">Segurança • Confiança • Compromisso</p>
+          <img src="/assets/ampliguard-header.png?v=3" alt="AMPLIGUARD — Segurança, Confiança, Compromisso" class="auth-brand-logo" />
         </div>
         <h2>Bem-vindo</h2>
         <div class="auth-tabs">
@@ -6359,10 +6366,7 @@
 
       <section id="authorizationPanel" class="panel auth auth-authorization hidden">
         <div class="auth-brand">
-          <div class="brand-lockup brand-lockup--auth">
-            <img src="/assets/ampliguard-shield.png?v=2" alt="" class="brand-shield" aria-hidden="true" />
-            <img src="/assets/ampliguard-wordmark.png?v=2" alt="AMPLIGUARD" class="brand-wordmark" />
-          </div>
+          <img src="/assets/ampliguard-header.png?v=3" alt="AMPLIGUARD — Segurança, Confiança, Compromisso" class="auth-brand-logo" />
         </div>
         <h2>Acesso exclusivo</h2>
         <p class="auth-authorization-message">
