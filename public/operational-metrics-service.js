@@ -122,6 +122,7 @@
    */
   function classifyStage(v) {
     if (statusUpper(v) === "REMOVIDO") return "entregues";
+    if (statusUpper(v) === "AGUARDANDO_VISTORIA") return "aguardando_vistoria";
     if (!isOnPatio(v)) return null;
     if (isLiberado(v)) return "liberados";
     if (isAutorizacao(v)) return "aguardando_autorizacao";
@@ -248,7 +249,7 @@
     stageCounts.entregues = saidasHoje;
 
     const kpis = {
-      veiculosNoPatio: onPatio.length,
+      veiculosNoPatio: onPatio.filter((v) => statusUpper(v) !== "AGUARDANDO_VISTORIA").length,
       entradasHoje,
       saidasHoje,
       aguardandoConferencia: stageCounts.aguardando_conferencia,
