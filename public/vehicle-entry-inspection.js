@@ -756,13 +756,18 @@
     doc.save(`Vistoria_${inspection.inspection_number}${placa ? "_Placa_" + placa : ""}.pdf`);
   }
 
-  function openEditModal(vehicle, ctx) {
+  function openEditModal(vehicle, ctx, opts) {
     ensureModal();
-    _session = { vehicle, mode: "edit", draft: emptyDraft() };
+    const retroactive = !!opts?.retroactive;
+    _session = { vehicle, mode: "edit", draft: emptyDraft(), retroactive };
     const modal = _modalEl;
     modal.classList.remove("hidden");
-    document.getElementById("veiModalTitle").textContent = "Vistoria de entrada";
-    document.getElementById("veiModalSubtitle").textContent = `Placa ${vehicle.placa || "—"} — preencha o checklist completo`;
+    document.getElementById("veiModalTitle").textContent = retroactive
+      ? "Vistoria de entrada (retroativa)"
+      : "Vistoria de entrada";
+    document.getElementById("veiModalSubtitle").textContent = retroactive
+      ? `Placa ${vehicle.placa || "—"} — vistoria retroativa; data/hora registradas ao finalizar`
+      : `Placa ${vehicle.placa || "—"} — preencha o checklist completo`;
     const body = document.getElementById("veiModalBody");
     body.innerHTML = buildEditHtml(vehicle, ctx, _session.draft);
     bindEditEvents(body, _session.draft, ctx);
@@ -788,6 +793,16 @@
     body.querySelector("#veiPdfBtn")?.addEventListener("click", () => downloadPdf(ctx, vehicle, detail.inspection, detail));
   }
 
+  function canStartInspection(vehicle, ctx) {
+    if (!vehicle) return false;
+    const s = String(vehicle.status || "").toUpperCase();
+    if (s === "REMOVIDO") return false;
+    if (vehicleHasCompletedInspection(ctx, vehicle.id)) return false;
+    if (s === "AGUARDANDO_VISTORIA") return true;
+    if (typeof ctx.isVehicleOnPatio === "function") return ctx.isVehicleOnPatio(vehicle);
+    return s !== "REMOVIDO" && s !== "AGUARDANDO_VISTORIA";
+  }
+
   async function openForVehicle(vehicle, ctx, opts) {
     if (!(await probeSchema(ctx))) {
       alert(
@@ -804,11 +819,16 @@
       await openViewModal(vehicle, ctx, insp.id);
       return;
     }
-    if (vehicle.status !== "AGUARDANDO_VISTORIA") {
-      alert("Este veículo não está aguardando vistoria.");
+    if (!canStartInspection(vehicle, ctx)) {
+      if (vehicleHasCompletedInspection(ctx, vehicle.id)) {
+        alert("Este veículo já possui vistoria de entrada concluída.");
+      } else {
+        alert("Este veículo não está disponível para vistoria.");
+      }
       return;
     }
-    openEditModal(vehicle, ctx);
+    const retroactive = String(vehicle.status || "").toUpperCase() !== "AGUARDANDO_VISTORIA";
+    openEditModal(vehicle, ctx, { retroactive });
   }
 
   function renderAwaitingTable(tbody, vehicles, ctx) {
@@ -858,6 +878,7 @@
     renderAwaitingTable,
     findCompletedInspectionForVehicle,
     loadInspectionDetail,
+    canStartInspection,
     vehicleHasCompletedInspection,
   };
 })(typeof window !== "undefined" ? window : globalThis);
