@@ -6582,8 +6582,8 @@
               <h2>Gestão de Pátio</h2>
               <nav id="patioSubnav" class="subnav patio-nav-inline" aria-label="Secções do pátio">
                 <button type="button" class="secondary" data-subview="inicio">Dashboard</button>
-                <button type="button" class="secondary" data-subview="vistoria">Vistoria</button>
                 <button type="button" class="secondary" id="patioMenuNewVehicle">Registrar veículo</button>
+                <button type="button" class="secondary" data-subview="vistoria">Vistoria</button>
                 <button type="button" class="secondary" data-subview="no_patio">VNP</button>
                 <button type="button" class="secondary" data-subview="vlp">VLP</button>
                 <button type="button" class="secondary" data-subview="removidos">VRP</button>
@@ -8100,8 +8100,8 @@
           <summary>Gestão de pátio</summary>
           <div class="header-menu-nested">
             <button type="button" data-header-patio-sub="inicio">Dashboard</button>
-            <button type="button" data-header-patio-sub="vistoria">Vistoria</button>
             <button type="button" data-header-patio="new-vehicle">Registrar veículo</button>
+            <button type="button" data-header-patio-sub="vistoria">Vistoria</button>
             <button type="button" data-header-patio-sub="no_patio">VNP</button>
             <button type="button" data-header-patio-sub="vlp">VLP</button>
             <button type="button" data-header-patio-sub="removidos">VRP</button>
@@ -8171,7 +8171,7 @@
     <script src="/partners-cadastro-ui.js?v=20260727pcad3"></script>
     <script src="/dashboard-metrics-service.js?v=20260727recvfix"></script>
     <script src="/amplipatio-dashboard.js?v=20260727recvfix"></script>
-    <script src="/vehicle-entry-inspection.js?v=20260811vei1"></script>
+    <script src="/vehicle-entry-inspection.js?v=20260811vei2"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script>
@@ -15102,6 +15102,7 @@
           supabase,
           effectiveUserId,
           isGestorPista,
+          isVehicleOnPatio,
           partners: state.partners || [],
           inspectionIndex: state.inspectionIndex || {},
           formatDateTime,
@@ -16103,9 +16104,16 @@
           } else if (canEfetivarRemocaoVrp(v)) {
             fluxoBtn = `<button class="secondary" data-action="confirmar" data-id="${v.id}">VRP</button>`;
           }
-          const veiBtn =
-            state.inspectionIndex?.[v.id] && v.entry_inspection_flow
-              ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
+          const hasVei = !!state.inspectionIndex?.[v.id];
+          const canVei =
+            !hasVei &&
+            (window.vehicleEntryInspection?.canStartInspection
+              ? window.vehicleEntryInspection.canStartInspection(v, buildVehicleInspectionCtx())
+              : isVehicleOnPatio(v));
+          const veiBtn = hasVei
+            ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
+            : canVei
+              ? `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`
               : "";
           actionsCell = `
               ${fluxoBtn}
