@@ -147,6 +147,7 @@
    */
   function classifyOperationalGroup(v) {
     if (!isVehicleOnPatio(v)) return null;
+    if (statusUpper(v) === "AGUARDANDO_VISTORIA") return "aguardando_vistoria";
     if (isLiberadoAguardandoRetirada(v)) return "liberados_aguardando_retirada";
     if (String(v.status || "") === "LIBERACAO_SOLICITADA") return "aguardando_autorizacao";
     if (hasPendenciaDocumental(v)) return "pendencias_documentais";
