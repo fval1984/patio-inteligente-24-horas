@@ -58,8 +58,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>AMPLIGUARD</title>
-    <link rel="icon" type="image/png" href="/assets/ampliguard-brand.png" />
-    <link rel="apple-touch-icon" href="/assets/ampliguard-brand.png" />
+    <link rel="icon" type="image/png" href="/assets/ampliguard-shield.png?v=3" />
+    <link rel="apple-touch-icon" href="/assets/ampliguard-shield.png?v=3" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#0A2A2A" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -2540,31 +2540,6 @@
         gap: 12px;
         flex-shrink: 0;
       }
-      #viewLista .lista-toolbar-logo-wrap {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-shrink: 0;
-      }
-      #viewLista .lista-toolbar-logo-wrap .brand-shield {
-        height: 40px;
-      }
-      #viewLista .lista-toolbar-logo-wrap .brand-wordmark {
-        height: 28px;
-        max-width: 180px;
-      }
-      #viewLista .lista-toolbar-logo {
-        display: none;
-      }
-      @media (max-width: 520px) {
-        #viewLista .lista-toolbar-logo-wrap .brand-shield {
-          height: 34px;
-        }
-        #viewLista .lista-toolbar-logo-wrap .brand-wordmark {
-          height: 24px;
-          max-width: 140px;
-        }
-      }
       #viewLista.lista-module-shell {
         width: 100%;
         margin: 0 auto;
@@ -2603,6 +2578,12 @@
       }
       .lista-capture-logo-mark {
         flex-shrink: 0;
+        display: none;
+        align-items: center;
+        gap: 8px;
+      }
+      #listaCaptureRoot.lista-export-mode .lista-capture-logo-mark {
+        display: flex;
       }
       .lista-capture-logo-mark .brand-shield {
         height: 40px;
@@ -6483,10 +6464,6 @@
               <h2 style="margin: 0">Lista</h2>
             </div>
             <div class="actions lista-toolbar-actions">
-              <div class="lista-toolbar-logo-wrap brand-lockup" aria-label="AMPLIGUARD">
-                <img src="/assets/ampliguard-shield.png?v=2" alt="" class="brand-shield" aria-hidden="true" />
-                <img src="/assets/ampliguard-wordmark.png?v=2" alt="AMPLIGUARD" class="brand-wordmark" decoding="async" />
-              </div>
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar">X</button>
             </div>
           </div>
@@ -6549,8 +6526,8 @@
             <div class="lista-capture-heading-row">
               <div id="listaCaptureHeading"></div>
               <div class="brand-lockup lista-capture-logo-mark" aria-label="AMPLIGUARD">
-                <img src="/assets/ampliguard-shield.png?v=2" alt="" class="brand-shield" aria-hidden="true" />
-                <img src="/assets/ampliguard-wordmark.png?v=2" alt="AMPLIGUARD" class="brand-wordmark" width="180" height="44" decoding="async" />
+                <img src="/assets/ampliguard-shield.png?v=3" alt="" class="brand-shield" aria-hidden="true" />
+                <img src="/assets/ampliguard-wordmark.png?v=3" alt="AMPLIGUARD" class="brand-wordmark" width="180" height="44" decoding="async" />
               </div>
             </div>
             <div class="section-card" style="margin: 0; border: 0; box-shadow: none; padding: 0">
@@ -12426,6 +12403,7 @@
         return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(
           docTitle
         )}</title><style>${OPEN_RECEIVABLES_GROUPED_PRINT_CSS}</style></head><body>
+  ${listaExportBrandHtml()}
   <h1>${escapeHtml(headingTitle)}</h1>
   <div class="meta">${escapeHtml(metaLine)}</div>
   ${blocks.join("")}
@@ -12894,6 +12872,13 @@
         return () => restoreFns.forEach((fn) => fn());
       }
 
+      function listaExportBrandHtml() {
+        return `<div class="lista-export-brand" style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+    <img src="/assets/ampliguard-shield.png?v=3" alt="" style="height:44px;width:auto" />
+    <img src="/assets/ampliguard-wordmark.png?v=3" alt="AMPLIGUARD" style="height:30px;width:auto;max-width:200px" />
+  </div>`;
+      }
+
       async function downloadListaCaptureAsPdf() {
         const root = document.getElementById("listaCaptureRoot");
         if (!root) {
@@ -12914,6 +12899,7 @@
           if (!jsPdfCtor) throw new Error("jsPDF indisponível");
           const html2canvas = await loadHtml2Canvas();
           const releaseExpand = expandListaCaptureScrollContainersForExport(root);
+          root.classList.add("lista-export-mode");
           await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
           const w = Math.max(1, Math.ceil(root.scrollWidth));
           const h = Math.max(1, Math.ceil(root.scrollHeight));
@@ -12935,10 +12921,13 @@
               scrollX: 0,
               scrollY: 0,
               onclone(clonedDoc) {
-                listaCaptureOnCloneExpandTables(clonedDoc.getElementById("listaCaptureRoot"));
+                const clonedRoot = clonedDoc.getElementById("listaCaptureRoot");
+                clonedRoot?.classList.add("lista-export-mode");
+                listaCaptureOnCloneExpandTables(clonedRoot);
               },
             });
           } finally {
+            root.classList.remove("lista-export-mode");
             releaseExpand();
           }
           const doc = new jsPdfCtor({ unit: "pt", format: "a4", orientation: "portrait" });
@@ -13034,6 +13023,7 @@
         const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(
           nomePatio
         )} — Lista</title><style>${printCss}</style></head><body>
+  ${listaExportBrandHtml()}
   <h1>${escapeHtml(nomePatio)} — Lista · ${escapeHtml(viewLabel)}</h1>
   <div class="meta">${escapeHtml(meta)}</div>
   <table><thead>${headHtml}</thead><tbody>${bodyHtml}</tbody></table>
