@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { randomBytes } from "node:crypto";
+import { activateTrackManagerAccount } from "@/lib/user-authorization";
 
 /** Só para diagnóstico: lê `role` do JWT sem verificar assinatura. */
 function jwtRoleClaimUnsafe(jwt: string): string | null {
@@ -203,6 +204,10 @@ export async function runCreateTrackManager(
     return { status: 400, body: { error: "A senha deve ter pelo menos 6 caracteres (regra do Supabase)." } };
   }
 
+  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
   /**
    * Sempre email_confirm: true — o utilizador fica confirmado na hora e o Supabase NÃO envia
    * e-mail de confirmação (evita «email rate limit exceeded» no plano gratuito).
@@ -267,6 +272,15 @@ export async function runCreateTrackManager(
     }
   } catch (e: any) {
     return { status: 500, body: { error: e?.message || "Failed to create user" } };
+  }
+
+  try {
+    const activated = await activateTrackManagerAccount(adminClient, newUserId);
+    if (activated.error) {
+      console.warn("create-track-manager: user_accounts", activated.error);
+    }
+  } catch (e) {
+    console.warn("create-track-manager: user_accounts skip", e);
   }
 
   const baseRow = {

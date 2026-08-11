@@ -2172,6 +2172,28 @@
         max-width: 520px;
         margin: 0 auto 24px;
       }
+      .panel.auth-authorization {
+        max-width: 560px;
+        margin: 0 auto 24px;
+      }
+      .auth-authorization-message {
+        margin: 0 0 16px;
+        line-height: 1.55;
+        font-size: 0.95rem;
+      }
+      .auth-authorization-message strong {
+        color: var(--text);
+      }
+      .auth-authorization-email {
+        font-weight: 600;
+        color: var(--primary);
+        word-break: break-all;
+      }
+      .auth-authorization-user {
+        margin: 0 0 18px;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
       .panel h2 {
         margin-top: 0;
       }
@@ -6254,6 +6276,26 @@
         <button type="button" class="secondary" id="authClearSession" style="margin-top: 14px">Limpar sessão e entrar de novo</button>
       </section>
 
+      <section id="authorizationPanel" class="panel auth auth-authorization hidden">
+        <h2>Acesso exclusivo</h2>
+        <p class="auth-authorization-message">
+          <strong>Este sistema é de uso exclusivo da empresa.</strong>
+        </p>
+        <p class="auth-authorization-message">
+          Seu cadastro foi criado, mas o acesso ainda não foi liberado. Informe o <strong>código de acesso da empresa</strong> abaixo para continuar.
+        </p>
+        <p id="authorizationUserInfo" class="auth-authorization-user"></p>
+        <form id="authorizationForm">
+          <div>
+            <label for="authorizationCode">Código de acesso</label>
+            <input id="authorizationCode" type="password" autocomplete="off" placeholder="Código fornecido pela empresa" required />
+          </div>
+          <button type="submit">LIBERAR ACESSO</button>
+        </form>
+        <div id="authorizationStatus" class="status"></div>
+        <button type="button" class="secondary" id="authorizationLogout" style="margin-top: 14px">Sair da conta</button>
+      </section>
+
       <section id="appPanel" class="hidden">
         <div id="appSessionBanner" class="app-session-banner hidden" role="alert">
           <p id="appSessionBannerText">Não foi possível carregar os dados. Sua sessão pode ter expirado.</p>
@@ -8056,8 +8098,11 @@
       }
 
       const authPanel = document.getElementById("authPanel");
+      const authorizationPanel = document.getElementById("authorizationPanel");
       const appPanel = document.getElementById("appPanel");
       const authStatus = document.getElementById("authStatus");
+      const authorizationStatus = document.getElementById("authorizationStatus");
+      const authorizationForm = document.getElementById("authorizationForm");
       const userInfo = document.getElementById("userInfo");
 
       const tabLogin = document.getElementById("tabLogin");
@@ -13805,6 +13850,118 @@
         authStatus.className = "status " + (type || "");
       }
 
+      function setAuthorizationStatus(message, type) {
+        if (!authorizationStatus) return;
+        authorizationStatus.textContent = message || "";
+        authorizationStatus.className = "status " + (type || "");
+      }
+
+      async function getAccessTokenForApi() {
+        const session = await ensureValidSupabaseSession();
+        return session?.access_token || null;
+      }
+
+      async function fetchAuthorizationStatus() {
+        const token = await getAccessTokenForApi();
+        if (!token) {
+          return { authorized: false, authorization_status: "AGUARDANDO_AUTORIZACAO", error: "Sessão em falta." };
+        }
+        try {
+          const resp = await fetch(new URL("/api/authorization-status", window.location.origin).href, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ access_token: token }),
+          });
+          const json = await resp.json().catch(() => ({}));
+          if (!resp.ok) {
+            return {
+              authorized: false,
+              authorization_status: "AGUARDANDO_AUTORIZACAO",
+              error: json?.error || `Erro ${resp.status}`,
+            };
+          }
+          return {
+            authorized: json.authorized === true,
+            authorization_status: json.authorization_status || "AGUARDANDO_AUTORIZACAO",
+            table_missing: json.table_missing === true,
+            error: null,
+          };
+        } catch (e) {
+          console.warn("authorization-status", e);
+          return {
+            authorized: true,
+            authorization_status: "ATIVO",
+            table_missing: true,
+            error: null,
+          };
+        }
+      }
+
+      function showAuthorizationPanel(user) {
+        authPanel.classList.add("hidden");
+        authorizationPanel?.classList.remove("hidden");
+        appPanel.classList.add("hidden");
+        setHeaderLoggedInUI(false);
+        userInfo.textContent = user ? `Aguardando autorização — ${displayManagerIdentity(user.email || "")}` : "Aguardando autorização";
+        const info = document.getElementById("authorizationUserInfo");
+        if (info && user) {
+          info.textContent = `Conta: ${displayManagerIdentity(user.email || "")}`;
+        }
+        setAuthorizationStatus("", "");
+        const codeInput = document.getElementById("authorizationCode");
+        if (codeInput) codeInput.value = "";
+      }
+
+      function hideAuthorizationPanel() {
+        authorizationPanel?.classList.add("hidden");
+      }
+
+      authorizationForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!supabase) {
+          setAuthorizationStatus("Não foi possível contactar o servidor. Recarregue a página.", "error");
+          return;
+        }
+        const code = document.getElementById("authorizationCode")?.value?.trim() || "";
+        if (!code) {
+          setAuthorizationStatus("Informe o código de autorização.", "error");
+          return;
+        }
+        const token = await getAccessTokenForApi();
+        if (!token) {
+          setAuthorizationStatus("Sessão expirada. Saia e entre novamente.", "error");
+          return;
+        }
+        setAuthorizationStatus("Validando código...", "");
+        try {
+          const resp = await fetch(new URL("/api/authorize", window.location.origin).href, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code, access_token: token }),
+          });
+          const json = await resp.json().catch(() => ({}));
+          if (!resp.ok) {
+            setAuthorizationStatus(
+              json?.error || "Código de acesso inválido. Verifique e tente novamente.",
+              "error"
+            );
+            return;
+          }
+          setAuthorizationStatus("Acesso autorizado com sucesso. A entrar no sistema...", "success");
+          const session = await ensureValidSupabaseSession();
+          if (session?.user) {
+            await showApp(session.user, { skipAuthorizationCheck: true });
+          }
+        } catch (e) {
+          console.error("authorize", e);
+          setAuthorizationStatus("Erro ao validar o código. Tente novamente.", "error");
+        }
+      });
+
+      document.getElementById("authorizationLogout")?.addEventListener("click", () => {
+        forceSignOutAndLogin("Sessão encerrada.");
+      });
+
       function stylizeLogo() {
         return;
       }
@@ -13988,7 +14145,7 @@
         ensureValidSupabaseSession().catch((e) => console.warn("refresh on focus", e));
       });
 
-      async function showApp(user) {
+      async function showApp(user, opts = {}) {
         if (showAppBootstrapping) return;
         showAppBootstrapping = true;
         try {
@@ -13998,6 +14155,20 @@
             return;
           }
           user = session.user;
+
+          if (!opts.skipAuthorizationCheck) {
+            const authz = await fetchAuthorizationStatus();
+            if (!authz.authorized) {
+              showAuthorizationPanel(user);
+              state.user = user;
+              if (authz.error && !authz.table_missing) {
+                setAuthorizationStatus(authz.error, "error");
+              }
+              return;
+            }
+          }
+
+          hideAuthorizationPanel();
           const alreadyInApp = !!appInitUserId && appInitUserId === user.id;
           hideAppSessionBanner();
           authPanel.classList.add("hidden");
@@ -14222,6 +14393,7 @@
 
       function showAuth() {
         authPanel.classList.remove("hidden");
+        authorizationPanel?.classList.add("hidden");
         appPanel.classList.add("hidden");
         setHeaderLoggedInUI(false);
         document.body.classList.remove("menus-no-modulo");

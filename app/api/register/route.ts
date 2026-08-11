@@ -3,6 +3,8 @@ import {
   isValidManagerLogin,
   resolveManagerIdentityToEmail,
 } from "@/lib/manager-identity";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { createPendingUserAccount } from "@/lib/user-authorization";
 
 /**
  * Cria conta no Auth com service role e e-mail já confirmado — não dispara o fluxo de
@@ -83,7 +85,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Conta criada mas o servidor não devolveu o ID do utilizador." }, { status: 500 });
   }
 
-  return NextResponse.json({ user_id: userId, email });
+  try {
+    const admin = getSupabaseAdmin();
+    const pending = await createPendingUserAccount(admin, userId);
+    if (pending.error) {
+      console.warn("register: user_accounts", pending.error);
+    }
+  } catch (e) {
+    console.warn("register: user_accounts skip", e);
+  }
+
+  return NextResponse.json({
+    user_id: userId,
+    email,
+    authorization_status: "AGUARDANDO_AUTORIZACAO",
+  });
 }
 
 export async function GET() {
