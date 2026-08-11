@@ -196,12 +196,28 @@ BEGIN
     RAISE EXCEPTION 'Veículo não encontrado.';
   END IF;
 
-  IF v_vehicle.status IS DISTINCT FROM 'AGUARDANDO_VISTORIA' THEN
-    RAISE EXCEPTION 'Veículo não está aguardando vistoria.';
+  IF v_vehicle.status = 'REMOVIDO' THEN
+    RAISE EXCEPTION 'Veículo removido do pátio.';
   END IF;
 
-  IF COALESCE(v_vehicle.entry_inspection_flow, false) IS NOT TRUE THEN
-    RAISE EXCEPTION 'Veículo não pertence ao fluxo de vistoria eletrônica.';
+  IF EXISTS (
+    SELECT 1 FROM vehicle_entry_inspections
+    WHERE vehicle_id = p_vehicle_id
+      AND inspection_type = 'ENTRADA'
+      AND status = 'CONCLUIDA'
+  ) THEN
+    RAISE EXCEPTION 'Este veículo já possui vistoria de entrada concluída.';
+  END IF;
+
+  IF v_vehicle.status = 'AGUARDANDO_VISTORIA' THEN
+    IF COALESCE(v_vehicle.entry_inspection_flow, false) IS NOT TRUE THEN
+      RAISE EXCEPTION 'Veículo não pertence ao fluxo de vistoria eletrônica.';
+    END IF;
+  ELSIF v_vehicle.status NOT IN (
+    'NO_PATIO', 'LIBERACAO_SOLICITADA', 'LIBERACAO_CONFIRMADA',
+    'REMocao_CONFIRMADA', 'REMOCAO_CONFIRMADA'
+  ) THEN
+    RAISE EXCEPTION 'Veículo não está no pátio para vistoria.';
   END IF;
 
   v_number := nextval('vehicle_entry_inspection_number_seq');
@@ -249,9 +265,7 @@ BEGIN
   SET status = 'NO_PATIO', updated_at = now()
   WHERE id = p_vehicle_id AND user_id = p_user_id AND status = 'AGUARDANDO_VISTORIA';
 
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Não foi possível atualizar o status do veículo.';
-  END IF;
+  -- Retroativa: veículo já no pátio — não altera status nem demais campos
 
   RETURN jsonb_build_object(
     'inspection_id', v_inspection_id,
