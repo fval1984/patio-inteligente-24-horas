@@ -6214,6 +6214,7 @@
           border-radius: 16px 16px 0 0;
         }
         #patioContent [data-subview="no_patio"] .table,
+        #patioContent [data-subview="vistoria"] .table,
         #patioContent [data-subview="vlp"] .table,
         #patioContent [data-subview="removidos"] .table,
         #patioContent [data-subview="fechando_ciclo"] .table {
@@ -6221,6 +6222,7 @@
           width: 100%;
         }
         #patioContent [data-subview="no_patio"] .table-wrap,
+        #patioContent [data-subview="vistoria"] .table-wrap,
         #patioContent [data-subview="vlp"] .table-wrap,
         #patioContent [data-subview="removidos"] .table-wrap,
         #patioContent [data-subview="fechando_ciclo"] .table-wrap {
@@ -6580,8 +6582,8 @@
               <h2>Gestão de Pátio</h2>
               <nav id="patioSubnav" class="subnav patio-nav-inline" aria-label="Secções do pátio">
                 <button type="button" class="secondary" data-subview="inicio">Dashboard</button>
-                <button type="button" class="secondary" id="patioMenuNewVehicle">Registrar veículo</button>
                 <button type="button" class="secondary" data-subview="vistoria">Vistoria</button>
+                <button type="button" class="secondary" id="patioMenuNewVehicle">Registrar veículo</button>
                 <button type="button" class="secondary" data-subview="no_patio">VNP</button>
                 <button type="button" class="secondary" data-subview="vlp">VLP</button>
                 <button type="button" class="secondary" data-subview="removidos">VRP</button>
@@ -8098,6 +8100,7 @@
           <summary>Gestão de pátio</summary>
           <div class="header-menu-nested">
             <button type="button" data-header-patio-sub="inicio">Dashboard</button>
+            <button type="button" data-header-patio-sub="vistoria">Vistoria</button>
             <button type="button" data-header-patio="new-vehicle">Registrar veículo</button>
             <button type="button" data-header-patio-sub="no_patio">VNP</button>
             <button type="button" data-header-patio-sub="vlp">VLP</button>
@@ -15670,6 +15673,7 @@
 
       function resolvePlateSearchSubview(v) {
         if (!v) return "no_patio";
+        if (v.status === "AGUARDANDO_VISTORIA") return "vistoria";
         if (v.status === "REMOVIDO") {
           const r = latestReceivableForVehicle(v.id);
           if (r && receivableNaFilaFechamentoCicloPatio(r)) return "removidos";
@@ -16015,13 +16019,15 @@
             : mergeVlsItems(byStatus).length;
         const nFech = typeof fechandoCicloCount === "number" ? fechandoCicloCount : 0;
         const onPatioCount = byStatus.NO_PATIO.length + mergeVlsItems(byStatus).length;
+        const vistoriaCount = (byStatus.AGUARDANDO_VISTORIA || []).length;
         const counts = {
+          vistoria: vistoriaCount,
           no_patio: onPatioCount,
           vlp: vlsCount,
           removidos: byStatus.REMOVIDO.length,
           fechando_ciclo: nFech,
         };
-        const total = onPatioCount + counts.removidos + counts.fechando_ciclo;
+        const total = vistoriaCount + onPatioCount + counts.removidos + counts.fechando_ciclo;
 
         setPlateSearchHints(total === 0 ? "Nenhum veículo com esta placa." : "", total === 0);
 
