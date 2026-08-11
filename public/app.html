@@ -6581,6 +6581,7 @@
               <nav id="patioSubnav" class="subnav patio-nav-inline" aria-label="Secções do pátio">
                 <button type="button" class="secondary" data-subview="inicio">Dashboard</button>
                 <button type="button" class="secondary" id="patioMenuNewVehicle">Registrar veículo</button>
+                <button type="button" class="secondary" data-subview="vistoria">Vistoria</button>
                 <button type="button" class="secondary" data-subview="no_patio">VNP</button>
                 <button type="button" class="secondary" data-subview="vlp">VLP</button>
                 <button type="button" class="secondary" data-subview="removidos">VRP</button>
@@ -6669,6 +6670,28 @@
               <div class="card"><div class="card-title" id="patioCardTitle1">VNP</div><div class="card-value" id="patioCardValue1">0</div><span class="tag warning" id="patioCardMeta1">-</span></div>
               <div class="card"><div class="card-title" id="patioCardTitle2">VRP</div><div class="card-value" id="patioCardValue2">0</div><span class="tag" id="patioCardMeta2">-</span></div>
               <div class="card"><div class="card-title" id="patioCardTitle3">Remoção solicitada</div><div class="card-value" id="patioCardValue3">0</div><span class="tag success" id="patioCardMeta3">-</span></div>
+            </div>
+            <div class="section-card patio-subview hidden" data-subview="vistoria">
+              <div class="pill">Vistoria</div>
+              <p class="notice" style="margin: 0 0 12px">Novos veículos aguardando vistoria de entrada. Veículos cadastrados antes desta funcionalidade não aparecem aqui.</p>
+              <div class="table-wrap">
+                <table class="table stacked">
+                  <thead>
+                    <tr>
+                      <th>Placa</th>
+                      <th>Marca</th>
+                      <th>Modelo</th>
+                      <th>Ano</th>
+                      <th>Cor</th>
+                      <th>Entrada</th>
+                      <th>RPV</th>
+                      <th>Status</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tableVistoria"></tbody>
+                </table>
+              </div>
             </div>
             <div class="section-card patio-subview hidden" data-subview="no_patio">
               <div class="pill">VNP</div>
@@ -7307,6 +7330,18 @@
               <div>
                 <label>Modelo</label>
                 <input id="vehicleModel" type="text" placeholder="Argo" />
+              </div>
+              <div>
+                <label>Ano</label>
+                <input id="vehicleYear" type="text" placeholder="2020" maxlength="4" inputmode="numeric" />
+              </div>
+              <div>
+                <label>Cor</label>
+                <input id="vehicleColor" type="text" placeholder="Prata" />
+              </div>
+              <div>
+                <label>Chassi</label>
+                <input id="vehicleChassis" type="text" placeholder="Opcional" />
               </div>
               <div class="field-operador-hide">
                 <label>Valor da diária</label>
@@ -8133,6 +8168,7 @@
     <script src="/partners-cadastro-ui.js?v=20260727pcad3"></script>
     <script src="/dashboard-metrics-service.js?v=20260727recvfix"></script>
     <script src="/amplipatio-dashboard.js?v=20260727recvfix"></script>
+    <script src="/vehicle-entry-inspection.js?v=20260811vei1"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script>
@@ -8747,6 +8783,7 @@
       const reciboDestinatarioDoc = document.getElementById("reciboDestinatarioDoc");
 
       const tableNoPatio = document.getElementById("tableNoPatio");
+      const tableVistoria = document.getElementById("tableVistoria");
       const tableVlp = document.getElementById("tableVlp");
       const tableConfirmada = document.getElementById("tableConfirmada");
       const tableRemocaoConfirmada = document.getElementById("tableRemocaoConfirmada");
@@ -8899,6 +8936,7 @@
         monthlyClosures: [],
         monthlyClosureLoadError: null,
         opsVehicleEvents: [],
+        inspectionIndex: {},
       };
 
       function effectiveUserId() {
@@ -9087,6 +9125,7 @@
       const FINANCE_MANUAL_ONLY = false;
 
       const PATIO_TAB_LABELS = {
+        vistoria: { title: "Vistoria", subtitle: "Aguardando vistoria de entrada" },
         no_patio: { title: "VNP", subtitle: "Veículos no pátio" },
         vlp: { title: "VLP", subtitle: "Veículos em liberação" },
         removidos: { title: "VRP", subtitle: "Veículos removidos do pátio" },
@@ -11891,7 +11930,10 @@
       }
 
       function isVehicleOnPatio(v) {
-        return !!v && v.status !== "REMOVIDO";
+        if (!v) return false;
+        const s = String(v.status || "").toUpperCase();
+        if (s === "REMOVIDO" || s === "AGUARDANDO_VISTORIA") return false;
+        return true;
       }
 
       /** VNP: liberação solicitada no topo; demais veículos por entrada mais recente. */
@@ -11975,6 +12017,7 @@
         "REMOVIDO",
       ];
       const REMOVAL_FLOW_LABELS = {
+        AGUARDANDO_VISTORIA: "Aguardando vistoria",
         NO_PATIO: "No pátio (VNP)",
         LIBERACAO_SOLICITADA: "Liberação solicitada",
         LIBERACAO_CONFIRMADA: "Liberação confirmada",
@@ -15027,9 +15070,49 @@
       }
 
 
+      async function loadVehicleInspections() {
+        const uid = supabaseOwnerUserId();
+        if (!uid) {
+          state.inspectionIndex = {};
+          return;
+        }
+        const { data, error } = await supabase
+          .from("vehicle_entry_inspections")
+          .select("id, vehicle_id, inspection_number, status, completed_at, completed_by_name, inspection_type")
+          .eq("user_id", uid)
+          .eq("status", "CONCLUIDA");
+        if (error) {
+          if (!isMissingRelationError(error)) logSupabaseLoadError("loadVehicleInspections", error);
+          state.inspectionIndex = {};
+          return;
+        }
+        const idx = {};
+        (data || []).forEach((row) => {
+          if (row.vehicle_id) idx[row.vehicle_id] = row;
+        });
+        state.inspectionIndex = idx;
+      }
+      window.loadVehicleInspections = loadVehicleInspections;
+
+      function buildVehicleInspectionCtx() {
+        return {
+          supabase,
+          effectiveUserId,
+          isGestorPista,
+          partners: state.partners || [],
+          inspectionIndex: state.inspectionIndex || {},
+          formatDateTime,
+          getAccessToken: getAccessTokenForApi,
+          loadJsPdf,
+          loadVehicles,
+          renderVehicles,
+          loadVehicleInspections,
+        };
+      }
+
       async function loadAll() {
         if (isGestorPista) {
-          await Promise.all([loadPartners(), loadVehicles()]);
+          await Promise.all([loadPartners(), loadVehicles(), loadVehicleInspections()]);
           probeVehiclesRpfColumns().catch(() => {});
           return;
         }
@@ -15037,6 +15120,7 @@
           loadPartners(),
           loadFinanceContacts(),
           loadVehicles(),
+          loadVehicleInspections(),
           loadReceivables(),
           loadCycleClosures(),
           loadPayables(),
@@ -15817,6 +15901,7 @@
           ? state.vehicles.filter((v) => normalizePlateSearch(v.placa) === qNorm)
           : state.vehicles;
         const byStatus = {
+          AGUARDANDO_VISTORIA: [],
           NO_PATIO: [],
           LIBERACAO_SOLICITADA: [],
           LIBERACAO_CONFIRMADA: [],
@@ -15843,7 +15928,9 @@
           }
         }
 
-        const vnpOnPatio = sortVnpOnPatioForDisplay(filteredVehicles.filter(isVehicleOnPatio));
+        const vnpOnPatio = sortVnpOnPatioForDisplay(
+          filteredVehicles.filter((v) => isVehicleOnPatio(v) && v.status !== "AGUARDANDO_VISTORIA")
+        );
         const vlpItems = sortVnpUnifiedForDisplay(vlsForTable);
         const patioCardTitle1 = document.getElementById("patioCardTitle1");
         const patioCardTitle2 = document.getElementById("patioCardTitle2");
@@ -15905,6 +15992,9 @@
           registoKind: "vnp",
           emptyText: "Nenhum veículo no pátio.",
         });
+        if (window.vehicleEntryInspection?.renderAwaitingTable) {
+          window.vehicleEntryInspection.renderAwaitingTable(tableVistoria, state.vehicles, buildVehicleInspectionCtx());
+        }
         renderVnpUnifiedTable(tableVlp, vlpItems, { registoKind: "vlp", emptyText: "Nenhum veículo em liberação." });
         renderRemovedVehicles(tableRemovidos, byStatus.REMOVIDO);
         renderFechamentoCicloTable(tableFechamentoCiclo, fechamentoCicloReceivables);
@@ -16007,8 +16097,13 @@
           } else if (canEfetivarRemocaoVrp(v)) {
             fluxoBtn = `<button class="secondary" data-action="confirmar" data-id="${v.id}">VRP</button>`;
           }
+          const veiBtn =
+            state.inspectionIndex?.[v.id] && v.entry_inspection_flow
+              ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
+              : "";
           actionsCell = `
               ${fluxoBtn}
+              ${veiBtn}
               <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
               ${nfseActionButtonHtml(v)}
               <button class="secondary" data-action="voltar" data-id="${v.id}" title="Volta um passo no fluxo">Voltar</button>
@@ -16954,6 +17049,9 @@
           document.getElementById("vehiclePlate").value = vehicle.placa || "";
           document.getElementById("vehicleBrand").value = vehicle.marca || "";
           document.getElementById("vehicleModel").value = vehicle.modelo || "";
+          document.getElementById("vehicleYear") && (document.getElementById("vehicleYear").value = vehicle.ano || "");
+          document.getElementById("vehicleColor") && (document.getElementById("vehicleColor").value = vehicle.cor || "");
+          document.getElementById("vehicleChassis") && (document.getElementById("vehicleChassis").value = vehicle.chassi || "");
           document.getElementById("vehicleDaily").value = vehicle.valor_diaria || "";
           document.getElementById("vehicleEntry").value = toLocalInput(vehicle.data_entrada);
           vehicleExit.value = toLocalInput(vehicle.data_saida);
@@ -18790,6 +18888,9 @@
           placa: document.getElementById("vehiclePlate").value.trim(),
           marca: document.getElementById("vehicleBrand").value.trim(),
           modelo: document.getElementById("vehicleModel").value.trim(),
+          ano: document.getElementById("vehicleYear")?.value?.trim() || null,
+          cor: document.getElementById("vehicleColor")?.value?.trim() || null,
+          chassi: document.getElementById("vehicleChassis")?.value?.trim() || null,
           valor_diaria: vehicleDailyValue,
           data_entrada: dataEntradaIso,
           data_saida: gestorCreate ? null : vehicleExit.value ? new Date(vehicleExit.value).toISOString() : null,
@@ -18837,7 +18938,8 @@
           return;
         }
         if (!editingVehicleId) {
-          payload.status = "NO_PATIO";
+          payload.status = "AGUARDANDO_VISTORIA";
+          payload.entry_inspection_flow = true;
           payload.data_saida = null;
           payload.payment_status = "EM_ABERTO";
           payload.nfse_status = "NAO_SOLICITADA";
@@ -18874,12 +18976,22 @@
           delete o.responsavel_financeiro_nome;
           return o;
         };
+        const stripEntryFlowFrom = (p) => {
+          const o = { ...p };
+          delete o.entry_inspection_flow;
+          delete o.ano;
+          delete o.cor;
+          delete o.chassi;
+          return o;
+        };
         const advancedKindsFromError = (msg) => {
           const m = msg || "";
           const kinds = [];
           if (/vistoria_/i.test(m)) kinds.push("vistoria");
           if (/leiloeiro_id/i.test(m)) kinds.push("leiloeiro");
           if (/responsavel_financeiro_/i.test(m)) kinds.push("rpf");
+          if (/entry_inspection_flow|(\bano\b)|(\bcor\b)|(\bchassi\b)/i.test(m)) kinds.push("entryflow");
+          if (/AGUARDANDO_VISTORIA|check constraint|vehicles_status/i.test(m)) kinds.push("status");
           return kinds;
         };
         for (let guard = 0; error && guard < 8; guard++) {
@@ -18897,6 +19009,11 @@
             if (k === "vistoria") tryPayload = stripVistoriaFrom(tryPayload);
             else if (k === "leiloeiro") tryPayload = stripLeiloeiroFrom(tryPayload);
             else if (k === "rpf") tryPayload = stripRpfFrom(tryPayload);
+            else if (k === "entryflow") tryPayload = stripEntryFlowFrom(tryPayload);
+            else if (k === "status" && !editingVehicleId) {
+              tryPayload.status = "NO_PATIO";
+              delete tryPayload.entry_inspection_flow;
+            }
             if (!degradedGroups.includes(k)) degradedGroups.push(k);
           }
           if (JSON.stringify(tryPayload) === before) break;
@@ -18926,12 +19043,17 @@
           return;
         }
         const savedEditId = editingVehicleId;
+        const wasNewVehicle = !savedEditId;
         vehicleForm.reset();
         editingVehicleId = null;
         editingVehicleData = null;
         vehicleModal.classList.add("hidden");
         await loadVehicles();
         await refreshFichaIfOpen(savedEditId);
+        if (wasNewVehicle && tryPayload.status === "AGUARDANDO_VISTORIA") {
+          openMainView("patio");
+          openPatioSubview("vistoria");
+        }
       });
 
       confirmNfse.addEventListener("click", async () => {
@@ -19547,6 +19669,24 @@
 
         if (action === "ficha") {
           await openFicha(vehicle);
+          return;
+        }
+
+        if (action === "vistoria") {
+          if (window.vehicleEntryInspection?.openForVehicle) {
+            await window.vehicleEntryInspection.openForVehicle(vehicle, buildVehicleInspectionCtx(), { mode: "edit" });
+          }
+          return;
+        }
+
+        if (action === "ver_vistoria") {
+          if (window.vehicleEntryInspection?.openForVehicle) {
+            const insp = state.inspectionIndex?.[vehicle.id] || null;
+            await window.vehicleEntryInspection.openForVehicle(vehicle, buildVehicleInspectionCtx(), {
+              mode: "view",
+              inspection: insp,
+            });
+          }
           return;
         }
 
