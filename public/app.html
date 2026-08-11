@@ -1770,6 +1770,15 @@
         gap: 14px;
         min-width: 0;
       }
+      .brand-header-logo {
+        height: 58px;
+        width: auto;
+        max-width: min(340px, 54vw);
+        display: block;
+        object-fit: contain;
+        object-position: left center;
+        filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+      }
       .brand-lockup {
         display: flex;
         align-items: center;
@@ -3581,6 +3590,10 @@
         .brand {
           flex: 0 1 auto;
           min-width: 0;
+        }
+        .brand-header-logo {
+          height: 44px;
+          max-width: min(260px, 58vw);
         }
         .brand-shield {
           height: 42px;
@@ -6207,10 +6220,12 @@
     </noscript>
     <header>
       <div class="brand">
-        <div class="brand-lockup">
-          <img src="/assets/ampliguard-shield.png?v=2" alt="" class="brand-shield" aria-hidden="true" />
-          <img id="brandLogo" src="/assets/ampliguard-wordmark.png?v=2" alt="AMPLIGUARD — Segurança, Confiança, Compromisso" class="brand-wordmark" />
-        </div>
+        <img
+          id="brandLogo"
+          src="/assets/ampliguard-header.png?v=1"
+          alt="AMPLIGUARD — Segurança, Confiança, Compromisso"
+          class="brand-header-logo"
+        />
       </div>
       <div class="header-actions">
         <button id="themeToggle" class="toggle hidden" type="button" aria-hidden="true" tabindex="-1">
