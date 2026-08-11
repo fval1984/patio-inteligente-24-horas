@@ -304,7 +304,7 @@
   function renderOpsSituation(ops) {
     const rows = [
       { key: "conferencia", label: "Veículos aguardando conferência", value: ops.aguardandoConferencia, nav: "patio:no_patio" },
-      { key: "vistoria", label: "Veículos aguardando vistoria", value: ops.aguardandoVistoria, nav: "patio:no_patio" },
+      { key: "vistoria", label: "Veículos aguardando vistoria", value: ops.aguardandoVistoria, nav: "patio:vistoria" },
       { key: "autorizacao", label: "Veículos aguardando autorização", value: ops.aguardandoAutorizacao, nav: "patio:vlp" },
       { key: "retirada", label: "Veículos liberados aguardando retirada", value: ops.liberadosAguardandoRetirada, nav: "patio:vlp" },
       { key: "pendencias", label: "Veículos com pendências", value: ops.comPendencias, nav: "patio:no_patio" },
@@ -364,7 +364,7 @@
     if (btn) btn.click();
     if (view === "patio" && sub) {
       setTimeout(() => {
-        document.querySelector(`[data-subview="${sub}"]`)?.click();
+        document.querySelector(`#patioSubnav [data-subview="${sub}"]`)?.click();
       }, 100);
     }
   }
