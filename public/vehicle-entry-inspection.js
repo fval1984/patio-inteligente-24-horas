@@ -727,44 +727,23 @@
 
   function buildReadonlyHtml(vehicle, ctx, inspection, detail) {
     const draft = detailToDraft(detail);
-    const titleNum = inspection.inspection_number ? ` nº ${inspection.inspection_number}` : "";
-    let tableHtml = '<table class="vei-readonly-table"><thead><tr><th>Item</th>';
-    CLASSIFICATIONS.forEach((c) => {
-      tableHtml += `<th>${esc(c.label)}</th>`;
-    });
-    tableHtml += "</tr></thead><tbody>";
-    CHECKLIST.forEach((it) => {
-      const sel = draft.classifications[it.key];
-      tableHtml += `<tr><td>${esc(it.label)}</td>`;
-      CLASSIFICATIONS.forEach((c) => {
-        tableHtml += `<td class="${sel === c.id ? "on" : ""}">${sel === c.id ? "☑" : "☐"}</td>`;
-      });
-      tableHtml += "</tr>";
-    });
-    tableHtml += "</tbody></table>";
-
-    const photos =
-      (detail.photos || [])
-        .map((p) => `<figure><img src="${esc(p.url || "")}" alt="Foto"/><figcaption class="notice">${esc(p.file_name || "")}</figcaption></figure>`)
-        .join("") || "";
+    const docMod = global.vehicleEntryInspectionDocument;
+    const documentHtml = docMod
+      ? docMod.buildPrintHtml({
+          vehicle,
+          ctx: { ...ctx, partnerName: (c, id) => partnerName(c, id) },
+          inspection,
+          detail,
+          draft,
+          helpers: { CHECKLIST, CLASSIFICATIONS, fmtDateTime, renderDiagram },
+        })
+      : `<div class="vei-print-root"><p>Documento indisponível.</p></div>`;
 
     return (
-      '<div class="vei-print-root">' +
-      `<h2 style="margin:0 0 6px">Vistoria de entrada${titleNum}</h2>` +
-      `<p class="notice" style="margin:0 0 14px">AMPLIGUARD — Segurança, Confiança, Compromisso</p>` +
-      renderVehicleMeta(vehicle, ctx, inspection) +
-      '<div class="vei-section"><h4>Checklist</h4>' +
-      tableHtml +
-      "</div>" +
-      '<div class="vei-section"><h4>Avarias</h4>' +
-      renderDamageList(draft, true) +
-      "</div>" +
-      (photos ? '<div class="vei-section"><h4>Fotos</h4><div class="vei-photo-grid">' + photos + "</div></div>" : "") +
-      (draft.generalNotes ? `<div class="vei-section"><h4>Observações</h4><p>${esc(draft.generalNotes)}</p></div>` : "") +
-      "</div>" +
+      documentHtml +
       '<div class="vei-actions vei-no-print">' +
-      '<button type="button" class="secondary" id="veiPrintBtn">Imprimir</button>' +
-      '<button type="button" id="veiPdfBtn">Baixar PDF</button>' +
+      '<button type="button" class="secondary" id="veiPrintBtn">🖨️ Imprimir vistoria</button>' +
+      '<button type="button" id="veiPdfBtn">⬇️ Baixar vistoria</button>' +
       '<button type="button" class="secondary" id="veiModalCloseInner">Fechar</button>' +
       "</div>"
     );
@@ -778,6 +757,7 @@
       draft.classifications[it.item_key] = it.classification;
     });
     draft.damages = (detail.damages || []).map((d) => ({
+      id: d.id,
       item_key: d.item_key,
       area_label: d.area_label,
       damage_type: d.damage_type,
@@ -962,35 +942,11 @@
   }
 
   async function downloadPdf(ctx, vehicle, inspection, detail) {
-    await ctx.loadJsPdf?.();
-    const draft = detailToDraft(detail);
-    const doc = new global.jspdf.jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    let y = 14;
-    doc.setFontSize(16);
-    doc.text(`Vistoria de entrada nº ${inspection.inspection_number}`, 14, y);
-    y += 8;
-    doc.setFontSize(10);
-    doc.text("AMPLIGUARD", 14, y);
-    y += 6;
-    doc.text(`Placa: ${vehicle.placa || "—"}`, 14, y);
-    y += 5;
-    doc.text(`Veículo: ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ")}`, 14, y);
-    y += 5;
-    doc.text(`Responsável: ${inspection.completed_by_name || "—"}`, 14, y);
-    y += 5;
-    doc.text(`Data: ${fmtDateTime(inspection.completed_at)}`, 14, y);
-    y += 8;
-    CHECKLIST.forEach((it) => {
-      if (y > 270) {
-        doc.addPage();
-        y = 14;
-      }
-      const cls = draft.classifications[it.key] || "—";
-      doc.text(`${it.label}: ${cls}`, 14, y);
-      y += 5;
-    });
-    const placa = (vehicle.placa || "").replace(/\W+/g, "");
-    doc.save(`Vistoria_${inspection.inspection_number}${placa ? "_Placa_" + placa : ""}.pdf`);
+    if (global.vehicleEntryInspectionDocument?.downloadPdf) {
+      await global.vehicleEntryInspectionDocument.downloadPdf(ctx, vehicle, inspection, detail);
+      return;
+    }
+    alert("Módulo de PDF indisponível. Atualize a página.");
   }
 
   function openEditModal(vehicle, ctx, opts) {
