@@ -3085,6 +3085,9 @@
         background: rgba(56, 189, 248, 0.14);
         box-shadow: inset 4px 0 0 0 rgba(14, 165, 233, 0.95);
       }
+      body.adm-desktop-pc-restricted [data-adm-pc-hide="1"] {
+        display: none !important;
+      }
       [data-theme="light"] #viewPatio tr.vnp-row-pending-adm-review,
       [data-theme="light"] #viewLista tr.vnp-row-pending-adm-review {
         background: rgba(186, 230, 253, 0.65);
@@ -6569,8 +6572,8 @@
               <h2>Gestão de Pátio</h2>
               <nav id="patioSubnav" class="subnav patio-nav-inline" aria-label="Secções do pátio">
                 <button type="button" class="secondary" data-subview="inicio">Dashboard</button>
-                <button type="button" class="secondary" id="patioMenuNewVehicle">Registrar veículo</button>
-                <button type="button" class="secondary" data-subview="vistoria">Vistoria</button>
+                <button type="button" class="secondary" id="patioMenuNewVehicle" data-adm-pc-hide="1">Registrar veículo</button>
+                <button type="button" class="secondary" data-subview="vistoria" data-adm-pc-hide="1">Vistoria</button>
                 <button type="button" class="secondary" data-subview="no_patio">VNP</button>
                 <button type="button" class="secondary" data-subview="vlp">VLP</button>
                 <button type="button" class="secondary" data-subview="removidos">VRP</button>
@@ -8079,8 +8082,8 @@
           <summary>Gestão de pátio</summary>
           <div class="header-menu-nested">
             <button type="button" data-header-patio-sub="inicio">Dashboard</button>
-            <button type="button" data-header-patio="new-vehicle">Registrar veículo</button>
-            <button type="button" data-header-patio-sub="vistoria">Vistoria</button>
+            <button type="button" data-header-patio="new-vehicle" data-adm-pc-hide="1">Registrar veículo</button>
+            <button type="button" data-header-patio-sub="vistoria" data-adm-pc-hide="1">Vistoria</button>
             <button type="button" data-header-patio-sub="no_patio">VNP</button>
             <button type="button" data-header-patio-sub="vlp">VLP</button>
             <button type="button" data-header-patio-sub="removidos">VRP</button>
@@ -8149,10 +8152,10 @@
     <script src="/partners-cadastro-service.js?v=20260727pcad3"></script>
     <script src="/partners-cadastro-ui.js?v=20260727pcad3"></script>
     <script src="/dashboard-metrics-service.js?v=20260727recvfix"></script>
-    <script src="/amplipatio-dashboard.js?v=20260727recvfix"></script>
+    <script src="/amplipatio-dashboard.js?v=20260812admpc1"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260812veiph1"></script>
     <script src="/vehicle-entry-inspection-document.js?v=20260812veidoc3"></script>
-    <script src="/vehicle-entry-inspection.js?v=20260812veidoc2"></script>
+    <script src="/vehicle-entry-inspection.js?v=20260812admpc1"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script>
@@ -9104,6 +9107,17 @@
       }
 
       let isGestorPista = false;
+      const ADM_PC_MIN_WIDTH_PX = 901;
+
+      function isAdmDesktopPc() {
+        if (isGestorPista) return false;
+        try {
+          return window.matchMedia(`(min-width: ${ADM_PC_MIN_WIDTH_PX}px)`).matches;
+        } catch (e) {
+          return (window.innerWidth || 0) >= ADM_PC_MIN_WIDTH_PX;
+        }
+      }
+      window.isAdmDesktopPc = isAdmDesktopPc;
 
       /** Com false, saída do veículo (VRP) alimenta automaticamente o financeiro. */
       const FINANCE_MANUAL_ONLY = false;
@@ -14618,6 +14632,19 @@
         }
       }
 
+      function applyAdmDesktopPcRestrictions() {
+        const restricted = isAdmDesktopPc();
+        document.body.classList.toggle("adm-desktop-pc-restricted", restricted);
+        document.querySelectorAll('[data-adm-pc-hide="1"]').forEach((el) => {
+          el.classList.toggle("hidden", restricted);
+          if (restricted) el.setAttribute("aria-hidden", "true");
+          else el.removeAttribute("aria-hidden");
+        });
+        if (restricted && currentPatioView === "vistoria") {
+          setPatioView("no_patio");
+        }
+      }
+
       function navigateDefaultViewForRole() {
         if (!isGestorPista) {
           showMainView("dashboard");
@@ -14654,6 +14681,7 @@
           window.isGestorPista = false;
           const patioOpsHead = document.querySelector("#patioInicioPanel .patio-inicio-ops-section h4");
           if (patioOpsHead) patioOpsHead.textContent = "Indicadores operacionais";
+          applyAdmDesktopPcRestrictions();
           if (!opts.skipDefaultView) showMainView("dashboard");
           return;
         }
@@ -15116,6 +15144,7 @@
           supabase,
           effectiveUserId,
           isGestorPista,
+          isAdmDesktopPc: isAdmDesktopPc(),
           isVehicleOnPatio,
           partners: state.partners || [],
           inspectionIndex: state.inspectionIndex || {},
@@ -15543,7 +15572,7 @@
               cash: state.cash,
               settings: state.settings,
             },
-            { formatCurrency, isGestorPista }
+            { formatCurrency, isGestorPista, isAdmDesktopPc: isAdmDesktopPc() }
           );
         }
 
@@ -15692,7 +15721,7 @@
 
       function resolvePlateSearchSubview(v) {
         if (!v) return "no_patio";
-        if (v.status === "AGUARDANDO_VISTORIA") return "vistoria";
+        if (v.status === "AGUARDANDO_VISTORIA") return isAdmDesktopPc() ? "no_patio" : "vistoria";
         if (v.status === "REMOVIDO") {
           const r = latestReceivableForVehicle(v.id);
           if (r && receivableNaFilaFechamentoCicloPatio(r)) return "removidos";
@@ -16163,15 +16192,18 @@
           }
           const hasVei = !!state.inspectionIndex?.[v.id];
           const canVei =
+            !isAdmDesktopPc() &&
             !hasVei &&
             (window.vehicleEntryInspection?.canStartInspection
               ? window.vehicleEntryInspection.canStartInspection(v, buildVehicleInspectionCtx())
               : isVehicleOnPatio(v));
-          const veiBtn = hasVei
-            ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
-            : canVei
-              ? `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`
-              : "";
+          const veiBtn = isAdmDesktopPc()
+            ? ""
+            : hasVei
+              ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
+              : canVei
+                ? `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`
+                : "";
           actionsCell = `
               ${fluxoBtn}
               ${veiBtn}
@@ -16240,6 +16272,7 @@
       }
 
       function setPatioView(view, opts = {}) {
+        if (isAdmDesktopPc() && view === "vistoria") view = "no_patio";
         const silent = opts.silent === true;
         if (view === "liberacao_solicitada") view = "vlp";
         if (view === "nfse_pendente") view = "no_patio";
@@ -17128,6 +17161,12 @@
       function openVehicleModal(mode, vehicle) {
         if (isGestorPista && mode === "edit") {
           alert("O gestor de pista não pode editar veículos.");
+          return;
+        }
+        if (isAdmDesktopPc() && mode === "create") {
+          alert(
+            "No acesso pelo PC, o administrador não registra veículos. Cadastros e vistorias são feitos pelo gestor de pista no mobile. Revise os registros pendentes na VNP."
+          );
           return;
         }
         editingVehicleId = mode === "edit" ? vehicle.id : null;
@@ -18933,6 +18972,12 @@
           alert("O gestor de pista não pode editar veículos.");
           return;
         }
+        if (isAdmDesktopPc() && !editingVehicleId) {
+          alert(
+            "No acesso pelo PC, o administrador não registra veículos. Cadastros e vistorias são feitos pelo gestor de pista no mobile."
+          );
+          return;
+        }
         const gestorCreate = isGestorPista && !editingVehicleId;
         const vehicleDailyEl = document.getElementById("vehicleDaily");
         const vehicleEntryEl = document.getElementById("vehicleEntry");
@@ -19831,6 +19876,13 @@
             alert("A baixa só pode ser feita em veículos com status «Aguardando remoção» (liberação confirmada e remoção solicitada).");
             return;
           }
+        }
+
+        if (isAdmDesktopPc() && (action === "vistoria" || action === "ver_vistoria")) {
+          alert(
+            "No acesso pelo PC, o administrador não realiza vistorias. Revise e valide os cadastros do gestor de pista na VNP."
+          );
+          return;
         }
 
         if (action === "validar_adm_review") {
@@ -21157,6 +21209,9 @@
         if (sub === "liberacao_solicitada") sub = "vlp";
         if (sub === "nfse_pendente") sub = "no_patio";
         if (sub === "fechando_ciclo") sub = "removidos";
+        if (isAdmDesktopPc() && sub === "vistoria") {
+          sub = "no_patio";
+        }
         const top = navStack[navStack.length - 1];
         if (!sub) return;
         if (top === `patio:${sub}`) return;
@@ -21539,6 +21594,10 @@
       if (typeof window.partnersDashboardInit === "function") window.partnersDashboardInit();
       if (typeof window.amplipatioDashboardInit === "function") window.amplipatioDashboardInit();
       syncHeaderMenuHighlightFromDom();
+      window.addEventListener("resize", () => {
+        clearTimeout(window.__admPcResizeT);
+        window.__admPcResizeT = setTimeout(applyAdmDesktopPcRestrictions, 180);
+      });
     </script>
   </body>
 </html>
