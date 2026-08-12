@@ -420,7 +420,11 @@
       };
       ({ error } = await ctx.supabase.from("vehicle_entry_inspection_photos").insert(basic));
     }
-    if (error) throw error;
+    if (error) {
+      console.warn("vei insertPhotoRow", error.message || error);
+      return error;
+    }
+    return null;
   }
 
   async function uploadAll(ctx, inspectionId, vehicleId, draft, meta) {
