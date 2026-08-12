@@ -792,8 +792,15 @@
       if (typeof ctx.loadVehicles === "function") await ctx.loadVehicles();
       if (typeof ctx.loadVehicleInspections === "function") await ctx.loadVehicleInspections();
       if (typeof ctx.renderVehicles === "function") ctx.renderVehicles();
+      const wasEntryFlow = !_session.retroactive;
       alert(`Vistoria nº ${json.inspection_number} concluída.\nResponsável: ${json.inspector_name}\nData: ${fmtDateTime(json.completed_at)}`);
       closeModal();
+      if (wasEntryFlow && typeof ctx.onInspectionCompleted === "function") {
+        ctx.onInspectionCompleted(_session.vehicle, {
+          inspectionId: json.inspection_id,
+          inspectionNumber: json.inspection_number,
+        });
+      }
     } catch (e) {
       console.error(e);
       alert("Erro ao finalizar vistoria.");
