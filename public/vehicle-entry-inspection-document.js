@@ -154,6 +154,9 @@
       .vei-doc-damage strong { display: block; margin-bottom: 4px; }
       .vei-doc-notes { white-space: pre-wrap; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; }
       .vei-doc-diagram { text-align: center; margin: 8px 0; break-inside: avoid; page-break-inside: avoid; }
+      .vei-doc-diagram-stack { position: relative; width: 100%; max-width: 800px; margin: 0 auto; }
+      .vei-doc-diagram-stack img.vei-doc-diagram-img { width: 100%; height: auto; display: block; }
+      .vei-doc-diagram-stack svg.vei-doc-diagram-markers { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
       .vei-doc-diagram svg { max-width: 100%; height: auto; }
       .vei-doc-photo-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 10px; margin-top: 8px; }
       .vei-doc-photo-cell { break-inside: avoid; page-break-inside: avoid; text-align: center; }
@@ -364,10 +367,18 @@
     const { vehicle, ctx, inspection, detail, draft, helpers } = options;
     const h = helpers || {};
     const fmt = h.fmtDateTime || fmtDateTime;
-    const rDiagram = h.renderDiagram;
+    const rDiagram = h.renderDiagramForPrint || h.renderDiagram;
 
     const titleNum = inspection?.inspection_number ? ` nº ${inspection.inspection_number}` : "";
     const { standard, extraDamage, other, photosByDamage } = organizePhotos(detail?.photos, detail?.damages);
+
+    const normalizedDraft = {
+      ...draft,
+      diagramMarkers:
+        global.vehicleEntryInspection?.normalizeDiagramMarkers?.(draft.diagramMarkers) ||
+        draft.diagramMarkers ||
+        [],
+    };
 
     const rpfNome =
       vehicle?.responsavel_financeiro_nome || partnerName(ctx, vehicle?.responsavel_financeiro_id);
@@ -397,12 +408,12 @@
       metaField("Tipo", inspection?.inspection_type || "ENTRADA") +
       metaField("Status", "CONCLUÍDA");
 
-    const checklistHtml = buildChecklistSection(h, draft);
-    const damagesHtml = buildDamagesSection(draft, photosByDamage);
+    const checklistHtml = buildChecklistSection(h, normalizedDraft);
+    const damagesHtml = buildDamagesSection(normalizedDraft, photosByDamage);
 
     const diagramHtml =
-      draft.diagramMarkers?.length && typeof rDiagram === "function"
-        ? `<div class="vei-doc-diagram">${rDiagram(draft, true)}</div>`
+      typeof rDiagram === "function"
+        ? `<div class="vei-doc-diagram">${rDiagram(normalizedDraft, true)}</div>`
         : "";
 
     const standardPhotosHtml = standard.length ? buildPhotoGrid(standard) : "";
@@ -419,12 +430,12 @@
       `<section class="vei-doc-section"><h3>Identificação da vistoria</h3><div class="vei-doc-grid">${inspGrid}</div></section>` +
       `<section class="vei-doc-section"><h3>Identificação do veículo</h3><div class="vei-doc-grid">${vehicleGrid}</div></section>` +
       `<section class="vei-doc-section vei-doc-section-checklist"><h3>Itens da vistoria</h3>${checklistHtml}</section>` +
-      (diagramHtml
+      (typeof rDiagram === "function"
         ? `<section class="vei-doc-section"><h3>Diagrama de avarias — 4 vistas</h3>${diagramHtml}</section>`
         : "") +
       `<section class="vei-doc-section"><h3>Avarias registradas</h3>${damagesHtml}</section>` +
-      (draft.generalNotes
-        ? `<section class="vei-doc-section"><h3>Observações gerais da vistoria</h3><div class="vei-doc-notes">${esc(draft.generalNotes)}</div></section>`
+      (normalizedDraft.generalNotes
+        ? `<section class="vei-doc-section"><h3>Observações gerais da vistoria</h3><div class="vei-doc-notes">${esc(normalizedDraft.generalNotes)}</div></section>`
         : "") +
       (standardPhotosHtml || extraPhotosHtml || otherPhotosHtml
         ? `<section class="vei-doc-section"><h3>Registro fotográfico</h3>${standardPhotosHtml}${otherPhotosHtml ? `<h4 style="margin-top:12px">Outras fotografias</h4>${otherPhotosHtml}` : ""}</section>`
