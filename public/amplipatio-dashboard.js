@@ -301,10 +301,16 @@
     </article>`;
   }
 
-  function renderOpsSituation(ops) {
+  function renderOpsSituation(ops, opts = {}) {
+    const admPc = !!opts.isAdmDesktopPc;
     const rows = [
       { key: "conferencia", label: "Veículos aguardando conferência", value: ops.aguardandoConferencia, nav: "patio:no_patio" },
-      { key: "vistoria", label: "Veículos aguardando vistoria", value: ops.aguardandoVistoria, nav: "patio:vistoria" },
+      {
+        key: "vistoria",
+        label: "Veículos aguardando vistoria",
+        value: ops.aguardandoVistoria,
+        nav: admPc ? "patio:no_patio" : "patio:vistoria",
+      },
       { key: "autorizacao", label: "Veículos aguardando autorização", value: ops.aguardandoAutorizacao, nav: "patio:vlp" },
       { key: "retirada", label: "Veículos liberados aguardando retirada", value: ops.liberadosAguardandoRetirada, nav: "patio:vlp" },
       { key: "pendencias", label: "Veículos com pendências", value: ops.comPendencias, nav: "patio:no_patio" },
@@ -359,7 +365,11 @@
 
   function hubNavigate(target) {
     if (!target) return;
-    const [view, sub] = String(target).split(":");
+    let route = String(target);
+    if (route === "patio:vistoria" && (global.isAdmDesktopPc?.() || false)) {
+      route = "patio:no_patio";
+    }
+    const [view, sub] = route.split(":");
     const btn = document.querySelector(`#appHeaderMenu button[data-view="${view}"]`);
     if (btn) btn.click();
     if (view === "patio" && sub) {
@@ -456,6 +466,7 @@
     syncFiltersFromDom();
     populatePartnerFilter(data.partners);
     const isGestorPista = !!(ctx?.isGestorPista || global.isGestorPista);
+    const isAdmDesktopPc = !!(ctx?.isAdmDesktopPc || global.isAdmDesktopPc?.());
     const formatCurrency = ctx?.formatCurrency || ((n) => `R$ ${Number(n || 0).toFixed(2)}`);
     const m = getMetrics(data);
     const fin = m.finSnap || {};
@@ -494,7 +505,7 @@
             ${renderKpiCard({ theme: "active", icon: "partners", label: "Financeiras Ativas", value: m.financeirasAtivas, meta: "com veículos no pátio", nav: "patio:no_patio" })}
           </div>
         </section>
-        ${renderOpsSituation(m.ops)}
+        ${renderOpsSituation(m.ops, { isAdmDesktopPc })}
         ${renderChartsSection(m, formatCurrency, { includeFinance: false })}
       `;
       return;
@@ -508,7 +519,7 @@
           ${renderKpiCard({ theme: "active", icon: "partners", label: "Financeiras Ativas", value: m.financeirasAtivas, meta: "com veículos no pátio", nav: "parceiros" })}
         </div>
       </section>
-      ${renderOpsSituation(m.ops)}
+      ${renderOpsSituation(m.ops, { isAdmDesktopPc })}
       ${renderChartsSection(m, formatCurrency, { includeFinance: true })}
       ${renderLongStayTable(m)}
       ${renderTopRecvTable(m, formatCurrency)}
