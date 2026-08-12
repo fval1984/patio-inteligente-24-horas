@@ -205,10 +205,7 @@
         padding: 14px; background: rgba(15,23,42,0.35);
       }
       .vei-diagram-wrap { text-align: center; margin-bottom: 12px; }
-      .vei-diagram {
-        width: 100%; max-width: 480px; height: auto; display: block; margin: 0 auto;
-        background: #fff; border-radius: 8px; cursor: crosshair; touch-action: manipulation;
-      }
+      .vei-diagram { width: 100%; max-width: 280px; height: auto; cursor: crosshair; touch-action: manipulation; }
       .vei-diagram .vei-diagram-img { pointer-events: none; }
       .vei-diagram .vei-marker { fill: #ef4444; stroke: #fff; stroke-width: 2; pointer-events: none; }
       .vei-damage-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
@@ -290,15 +287,11 @@
       .join("");
     return (
       '<div class="vei-diagram-wrap">' +
-      `<svg class="vei-diagram" viewBox="0 0 ${DIAGRAM_W} ${DIAGRAM_H}" aria-label="Diagrama do veículo — 4 vistas"` +
-      (readOnly ? "" : ' role="button" tabindex="0"') +
-      ">" +
+      `<svg class="vei-diagram" viewBox="0 0 ${DIAGRAM_W} ${DIAGRAM_H}" aria-label="Diagrama do veículo — 4 vistas">` +
       `<image class="vei-diagram-img" href="${DIAGRAM_SRC}" x="0" y="0" width="${DIAGRAM_W}" height="${DIAGRAM_H}" preserveAspectRatio="xMidYMid meet"/>` +
       `<rect class="vei-diagram-hit" x="0" y="0" width="${DIAGRAM_W}" height="${DIAGRAM_H}" fill="transparent"/>` +
       marks +
-      "</svg>" +
-      (readOnly ? "" : '<p class="notice" style="margin:8px 0 0;font-size:0.72rem">Clique no diagrama para marcar um ponto vermelho.</p>') +
-      "</div>"
+      "</svg></div>"
     );
   }
 
