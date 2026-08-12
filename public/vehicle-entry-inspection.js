@@ -1160,7 +1160,9 @@
 
   function vehicleHasCompletedInspection(ctx, vehicleId) {
     const map = ctx.inspectionIndex || {};
-    return !!map[vehicleId];
+    if (vehicleId == null || vehicleId === "") return false;
+    const key = String(vehicleId);
+    return !!(map[key] || map[vehicleId]);
   }
 
   global.vehicleEntryInspection = {
