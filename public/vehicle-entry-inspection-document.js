@@ -10,6 +10,37 @@
   const A4_WIDTH_PX = 794;
   const CANVAS_MAX_SIDE = 16384;
 
+  /** Descrições padronizadas em português para o registro fotográfico (impressão/PDF). */
+  const PHOTO_LABEL_PT = {
+    front: "Frente",
+    diag_front_left: "Diagonal dianteira esquerda",
+    diag_front_right: "Diagonal dianteira direita",
+    side_left: "Lateral esquerda",
+    side_right: "Lateral direita",
+    rear: "Traseira",
+    diag_rear_left: "Diagonal traseira esquerda",
+    diag_rear_right: "Diagonal traseira direita",
+    roof: "Teto",
+    plate: "Placa",
+    odometer: "Odômetro",
+    dashboard: "Painel",
+    chassis: "Chassi",
+    engine: "Motor",
+    wheel_fl: "Roda dianteira esquerda",
+    wheel_fr: "Roda dianteira direita",
+    wheel_rl: "Roda traseira esquerda",
+    wheel_rr: "Roda traseira direita",
+    interior_front: "Interior dianteiro",
+    interior_rear: "Interior traseiro",
+    trunk: "Porta-malas",
+  };
+
+  const PHOTO_LABEL_ALIASES = {
+    Dianteira: "Frente",
+    "Odômetro / Quilometragem": "Odômetro",
+    "Chassi / Número do chassi": "Chassi",
+  };
+
   let _stylesInjected = false;
 
   function esc(str) {
@@ -27,6 +58,51 @@
     } catch (e) {
       return String(iso);
     }
+  }
+
+  function photoLabelFromType(type) {
+    if (!type) return null;
+    return PHOTO_LABEL_PT[type] || null;
+  }
+
+  function isTechnicalPhotoLabel(str) {
+    if (str == null) return true;
+    const s = String(str).trim();
+    if (!s) return true;
+    if (/\.(jpe?g|png|webp|gif|heic|bmp)$/i.test(s)) return true;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) return true;
+    if (PHOTO_LABEL_PT[s]) return true;
+    if (/^[a-z]+(_[a-z0-9]+)+$/i.test(s)) return true;
+    if (/^foto adicional de avaria\s*\d*$/i.test(s)) return true;
+    return false;
+  }
+
+  function resolveStandardPhotoLabel(type, fallbackLabel) {
+    const fromType = photoLabelFromType(type);
+    if (fromType) return fromType;
+    const fb = String(fallbackLabel || "").trim();
+    if (fb && PHOTO_LABEL_ALIASES[fb]) return PHOTO_LABEL_ALIASES[fb];
+    if (fb && !isTechnicalPhotoLabel(fb)) return fb;
+    return "Foto";
+  }
+
+  function formatDamagePhotoLabel(photo, damage) {
+    const rawLabel = String(photo?.photo_label || photo?.label || "").trim();
+    let desc = "";
+    if (rawLabel && !isTechnicalPhotoLabel(rawLabel)) {
+      desc = rawLabel;
+    } else if (damage?.area_label && !isTechnicalPhotoLabel(damage.area_label)) {
+      desc = String(damage.area_label).trim();
+    } else if (damage?.description) {
+      desc = String(damage.description).trim();
+    }
+    if (desc) {
+      if (/^avaria(\s*[—\-:]|$)/i.test(desc)) {
+        return desc.charAt(0).toUpperCase() + desc.slice(1);
+      }
+      return `Avaria — ${desc}`;
+    }
+    return "Avaria";
   }
 
   function classificationLabel(id) {
@@ -58,7 +134,7 @@
     return `
       .vei-doc { color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.35; }
       .vei-doc-header { text-align: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #1e293b; break-inside: avoid; page-break-inside: avoid; }
-      .vei-doc-header img.vei-doc-logo { max-width: 280px; max-height: 72px; width: auto; height: auto; object-fit: contain; margin: 0 auto 8px; display: block; }
+      .vei-doc-header img.vei-doc-logo { max-width: 480px; max-height: 120px; width: auto; height: auto; object-fit: contain; margin: 0 auto 10px; display: block; }
       .vei-doc-title { margin: 0; font-size: 16pt; letter-spacing: 0.06em; text-transform: uppercase; color: #0f172a; }
       .vei-doc-subtitle { margin: 4px 0 0; font-size: 10pt; color: #475569; }
       .vei-doc-section { margin: 16px 0 18px; break-inside: auto; page-break-inside: auto; }
@@ -195,9 +271,9 @@
       .map((d, idx) => {
         const linked = photosByDamage[d.id] || photosByDamage[idx] || [];
         const photoHtml = linked.length
-          ? `<div class="vei-doc-photo-grid">${linked.map((p) => renderPhotoCell(p.label, p.url)).join("")}</div>`
+          ? `<div class="vei-doc-photo-grid">${linked.map((p) => renderPhotoCell(formatDamagePhotoLabel(p, d), p.url)).join("")}</div>`
           : d.photoPreview
-            ? `<div class="vei-doc-photo-grid">${renderPhotoCell(d.area_label || "Avaria", d.photoPreview)}</div>`
+            ? `<div class="vei-doc-photo-grid">${renderPhotoCell(formatDamagePhotoLabel({ label: d.area_label }, d), d.photoPreview)}</div>`
             : "";
         return (
           `<div class="vei-doc-damage">` +
@@ -226,11 +302,7 @@
 
   function organizePhotos(photos, damages) {
     const standardOrder = global.vehicleEntryInspectionPhotosMobile?.STANDARD_SLOTS || [];
-    const standardKeys = new Set(standardOrder.map((s) => s.key));
-    const labelByKey = {};
-    standardOrder.forEach((s) => {
-      labelByKey[s.key] = s.label;
-    });
+    const standardKeys = new Set([...Object.keys(PHOTO_LABEL_PT), ...standardOrder.map((s) => s.key)]);
 
     const standard = [];
     const extraDamage = [];
@@ -240,28 +312,23 @@
     (photos || []).forEach((p) => {
       const entry = {
         url: p.url || "",
-        label: p.photo_label || p.file_name || "Foto",
+        label: p.photo_label || p.file_name || "",
         type: p.photo_type || "",
         damage_id: p.damage_id || null,
+        photo_label: p.photo_label || "",
       };
       if (entry.type === "avaria_extra") {
-        extraDamage.push(entry);
+        extraDamage.push({ ...entry, label: formatDamagePhotoLabel(entry) });
       } else if (entry.damage_id) {
         checklistDamage.push(entry);
       } else if (entry.type && standardKeys.has(entry.type)) {
         standard.push({
           ...entry,
-          label: labelByKey[entry.type] || entry.label,
-          order: standardOrder.findIndex((s) => s.key === entry.type),
-        });
-      } else if (entry.type && labelByKey[entry.type]) {
-        standard.push({
-          ...entry,
-          label: labelByKey[entry.type],
+          label: resolveStandardPhotoLabel(entry.type, entry.label),
           order: standardOrder.findIndex((s) => s.key === entry.type),
         });
       } else {
-        other.push(entry);
+        other.push({ ...entry, label: resolveStandardPhotoLabel(entry.type, entry.label) });
       }
     });
 
@@ -270,13 +337,17 @@
     const photosByDamage = {};
     checklistDamage.forEach((p) => {
       const key = p.damage_id;
+      const damage = (damages || []).find((d) => d.id === p.damage_id);
+      const labeled = { ...p, label: formatDamagePhotoLabel(p, damage) };
       if (!photosByDamage[key]) photosByDamage[key] = [];
-      photosByDamage[key].push(p);
+      photosByDamage[key].push(labeled);
     });
 
     (damages || []).forEach((d, idx) => {
       if (!photosByDamage[d.id] && d.photoPreview) {
-        photosByDamage[d.id || idx] = [{ url: d.photoPreview, label: d.area_label || "Avaria" }];
+        photosByDamage[d.id || idx] = [
+          { url: d.photoPreview, label: formatDamagePhotoLabel({ label: d.area_label }, d) },
+        ];
       }
     });
 
@@ -335,9 +406,7 @@
         : "";
 
     const standardPhotosHtml = standard.length ? buildPhotoGrid(standard) : "";
-    const extraPhotosHtml = extraDamage.length
-      ? buildPhotoGrid(extraDamage.map((p, i) => ({ ...p, label: p.label || `Avaria ${i + 1}` })))
-      : "";
+    const extraPhotosHtml = extraDamage.length ? buildPhotoGrid(extraDamage) : "";
     const otherPhotosHtml = other.length ? buildPhotoGrid(other) : "";
 
     return (
