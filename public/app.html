@@ -6652,7 +6652,7 @@
             </div>
             <div class="section-card patio-subview hidden" data-subview="vistoria">
               <div class="pill">Vistoria</div>
-              <p class="notice" style="margin: 0 0 12px">Novos veículos aguardando vistoria de entrada. Veículos cadastrados antes desta funcionalidade não aparecem aqui.</p>
+              <p class="notice" style="margin: 0 0 12px">Novos cadastros entram aqui até a vistoria ser concluída — só depois aparecem no VNP. Veículos que já estavam no VNP podem fazer vistoria retroativa pela ação Vistoria na lista VNP.</p>
               <div class="table-wrap">
                 <table class="table stacked">
                   <thead>
@@ -19015,8 +19015,12 @@
             else if (k === "rpf") tryPayload = stripRpfFrom(tryPayload);
             else if (k === "entryflow") tryPayload = stripEntryFlowFrom(tryPayload);
             else if (k === "status" && !editingVehicleId) {
-              tryPayload.status = "NO_PATIO";
-              delete tryPayload.entry_inspection_flow;
+              alert(
+                "Não foi possível cadastrar o veículo no fluxo de vistoria (status Aguardando vistoria).\n\n" +
+                  "O veículo não foi salvo no VNP. Peça ao suporte para validar o status AGUARDANDO_VISTORIA no Supabase.\n\n" +
+                  (error.message || "")
+              );
+              return;
             }
             if (!degradedGroups.includes(k)) degradedGroups.push(k);
           }
@@ -19057,6 +19061,8 @@
         if (wasNewVehicle && tryPayload.status === "AGUARDANDO_VISTORIA") {
           openMainView("patio");
           openPatioSubview("vistoria");
+        } else if (wasNewVehicle) {
+          alert("Veículo cadastrado. Conclua a vistoria de entrada antes de utilizá-lo no VNP.");
         }
       });
 
