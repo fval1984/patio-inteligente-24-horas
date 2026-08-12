@@ -27,13 +27,16 @@ function loadEnvLocal() {
 
 async function main() {
   loadEnvLocal();
-  const url = process.env.SUPABASE_DB_URL || "";
+  const url = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL || "";
   if (!url) {
-    console.error("Defina SUPABASE_DB_URL em .env.local");
+    console.error("Defina SUPABASE_DB_URL (ou DATABASE_URL) em .env.local");
     process.exit(1);
   }
   const sqlPath = path.join(__dirname, "..", "supabase", "vehicle_entry_inspections.sql");
-  const sql = fs.readFileSync(sqlPath, "utf8");
+  let sql = fs.readFileSync(sqlPath, "utf8");
+  if (!/NOTIFY pgrst, 'reload schema'/i.test(sql)) {
+    sql += "\n\nNOTIFY pgrst, 'reload schema';\n";
+  }
   const { Client } = require("pg");
   const isLocal = /localhost|127\.0\.0\.1/.test(url);
   const client = new Client({
@@ -43,7 +46,19 @@ async function main() {
   await client.connect();
   try {
     await client.query(sql);
+    const { rows } = await client.query(`
+      SELECT table_name FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name LIKE 'vehicle_entry_inspection%'
+      ORDER BY table_name
+    `);
+    const counts = await client.query(`
+      SELECT
+        (SELECT COUNT(*)::int FROM vehicles) AS vehicles,
+        (SELECT COUNT(*)::int FROM vehicle_entry_inspections) AS inspections
+    `);
     console.log("OK — vehicle_entry_inspections aplicado.");
+    console.log("Tabelas:", rows.map((r) => r.table_name).join(", "));
+    console.log("Contagens (veículos / vistorias):", counts.rows[0]);
   } finally {
     await client.end();
   }
