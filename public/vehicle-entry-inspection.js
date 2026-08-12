@@ -72,81 +72,9 @@
     { category: "PARTE INTERNA", key: "outros_equipamentos", label: "Outros equipamentos" },
   ];
 
-  const DIAGRAM_ZONES = [
-    { key: "capo", label: "Capô", cx: 74, cy: 24 },
-    { key: "teto", label: "Teto", cx: 27, cy: 17 },
-    { key: "para_choque_d", label: "Para-choque dianteiro", cx: 74, cy: 35 },
-    { key: "para_choque_t", label: "Para-choque traseiro", cx: 74, cy: 77 },
-    { key: "porta_de", label: "Porta D.E.", cx: 24, cy: 27 },
-    { key: "porta_dd", label: "Porta D.D.", cx: 24, cy: 58 },
-    { key: "porta_te", label: "Porta T.E.", cx: 36, cy: 27 },
-    { key: "porta_td", label: "Porta T.D.", cx: 36, cy: 58 },
-    { key: "farol_e", label: "Farol esq.", cx: 58, cy: 26 },
-    { key: "farol_d", label: "Farol dir.", cx: 90, cy: 26 },
-  ];
-
-  /** Desenho técnico 4 vistas — somente arte SVG (lateral esq., frente, lateral dir., traseira). */
-  function diagramCarArtSvg() {
-    const sideProfile =
-      '<path d="M40 18 L38 12 Q35 8 29 6 L19 5 Q11 5 7 8 L4 12 L3 16 L3 20 L5 22 L38 22 Q40 21 40 18 Z"/>' +
-      '<path d="M9 8 L15 4 L27 3 L34 6 L35 13 L9 13 Z" fill="#fff"/>' +
-      '<path d="M27 6 L34 8 L34 13 L27 13 Z" fill="#fff"/>' +
-      '<line x1="21" y1="13" x2="21" y2="22"/>' +
-      '<line x1="16" y1="16" x2="18" y2="16"/>' +
-      '<line x1="25" y1="16" x2="27" y2="16"/>' +
-      '<circle cx="12" cy="22" r="3.4" fill="#fff"/>' +
-      '<circle cx="12" cy="22" r="1.9" fill="none" stroke-width="0.22"/>' +
-      '<circle cx="30" cy="22" r="3.4" fill="#fff"/>' +
-      '<circle cx="30" cy="22" r="1.9" fill="none" stroke-width="0.22"/>' +
-      '<line x1="5" y1="9" x2="7" y2="7"/>';
-    const frontView =
-      '<path d="M54 34 L54 30 Q55 24 58 20 L62 17 L72 17 L76 20 Q79 24 80 30 L80 34 Z"/>' +
-      '<path d="M60 18 L68 18 L70 22 L58 22 Z" fill="#fff"/>' +
-      '<ellipse cx="62" cy="28" rx="2.5" ry="1.7" fill="#fff"/>' +
-      '<ellipse cx="72" cy="28" rx="2.5" ry="1.7" fill="#fff"/>' +
-      '<rect x="63" y="24" width="8" height="5" rx="0.6" fill="#fff"/>' +
-      '<line x1="64" y1="26" x2="70" y2="26"/>' +
-      '<line x1="64" y1="27.5" x2="70" y2="27.5"/>' +
-      '<circle cx="67" cy="25.5" r="0.75" fill="#fff"/>' +
-      '<path d="M58 31 Q67 33 76 31" fill="none"/>' +
-      '<rect x="63.5" y="31.5" width="7" height="1.8" rx="0.3" fill="#fff"/>' +
-      '<line x1="56" y1="22" x2="54" y2="20"/>' +
-      '<line x1="78" y1="22" x2="80" y2="20"/>' +
-      '<rect x="57" y="33" width="3.6" height="1.2" rx="0.2" fill="#334155" stroke="none"/>' +
-      '<rect x="73.4" y="33" width="3.6" height="1.2" rx="0.2" fill="#334155" stroke="none"/>';
-    const rearView =
-      '<path d="M54 67 L54 63 Q55 57 58 53 L62 50 L72 50 L76 53 Q79 57 80 63 L80 67 Z"/>' +
-      '<path d="M60 51 L68 51 L70 55 L58 55 Z" fill="#fff"/>' +
-      '<rect x="63" y="57" width="8" height="5" rx="0.5" fill="#fff"/>' +
-      '<circle cx="67" cy="59" r="0.75" fill="#fff"/>' +
-      '<path d="M58 60 Q67 58 76 60" fill="none"/>' +
-      '<rect x="63.5" y="60.5" width="7" height="2.2" rx="0.3" fill="#fff"/>' +
-      '<ellipse cx="59.5" cy="62.5" rx="2.1" ry="2.3" fill="#fff"/>' +
-      '<ellipse cx="74.5" cy="62.5" rx="2.1" ry="2.3" fill="#fff"/>' +
-      '<ellipse cx="57" cy="65.5" rx="0.95" ry="0.6" fill="#fff"/>' +
-      '<line x1="56" y1="54" x2="54" y2="52"/>' +
-      '<line x1="78" y1="54" x2="80" y2="52"/>' +
-      '<rect x="57" y="65" width="3.6" height="1.2" rx="0.2" fill="#334155" stroke="none"/>' +
-      '<rect x="73.4" y="65" width="3.6" height="1.2" rx="0.2" fill="#334155" stroke="none"/>';
-    return (
-      '<rect x="0" y="0" width="100" height="86" fill="#fff"/>' +
-      '<g class="vei-car-line" fill="#fff" stroke="#334155" stroke-width="0.32" stroke-linecap="round" stroke-linejoin="round">' +
-      '<g transform="translate(4, 10)">' +
-      sideProfile +
-      "</g>" +
-      frontView +
-      '<g transform="translate(47, 74) scale(-1, 1)">' +
-      sideProfile +
-      "</g>" +
-      '<circle cx="41" cy="58" r="0.55" fill="#fff" stroke="#334155" stroke-width="0.25"/>' +
-      rearView +
-      "</g>" +
-      '<g stroke="#cbd5e1" stroke-width="0.2" opacity="0.85">' +
-      '<line x1="50" y1="2" x2="50" y2="84"/>' +
-      '<line x1="2" y1="43" x2="98" y2="43"/>' +
-      "</g>"
-    );
-  }
+  const DIAGRAM_W = 800;
+  const DIAGRAM_H = 566;
+  const DIAGRAM_SRC = "/vehicle-inspection-diagram-4v.webp";
 
   let _stylesInjected = false;
   let _modalEl = null;
@@ -277,11 +205,12 @@
         padding: 14px; background: rgba(15,23,42,0.35);
       }
       .vei-diagram-wrap { text-align: center; margin-bottom: 12px; }
-      .vei-diagram { width: 100%; max-width: 320px; height: auto; background: #fff; border-radius: 8px; }
-      .vei-diagram .vei-car-line { pointer-events: none; }
-      .vei-diagram .vei-zone { cursor: pointer; fill: rgba(148,163,184,0.12); stroke: rgba(148,163,184,0.35); stroke-width: 1; }
-      .vei-diagram .vei-zone:hover, .vei-diagram .vei-zone.active { fill: rgba(212,175,55,0.25); stroke: rgba(212,175,55,0.65); }
-      .vei-diagram .vei-marker { fill: #f87171; stroke: #fff; stroke-width: 1; }
+      .vei-diagram {
+        width: 100%; max-width: 480px; height: auto; display: block; margin: 0 auto;
+        background: #fff; border-radius: 8px; cursor: crosshair; touch-action: manipulation;
+      }
+      .vei-diagram .vei-diagram-img { pointer-events: none; }
+      .vei-diagram .vei-marker { fill: #ef4444; stroke: #fff; stroke-width: 2; pointer-events: none; }
       .vei-damage-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
       .vei-damage-card {
         border: 1px solid rgba(248,113,113,0.28); border-radius: 10px;
@@ -340,23 +269,65 @@
     _session = null;
   }
 
+  function diagramMarkerCoords(m) {
+    const cx = Number(m?.cx);
+    const cy = Number(m?.cy);
+    if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null;
+    if (cx <= 100 && cy <= 100) {
+      return { cx: (cx / 100) * DIAGRAM_W, cy: (cy / 100) * DIAGRAM_H };
+    }
+    return { cx, cy };
+  }
+
   function renderDiagram(draft, readOnly) {
     const markers = draft.diagramMarkers || [];
-    const zones = DIAGRAM_ZONES.map(
-      (z) =>
-        `<circle class="vei-zone" data-zone-key="${esc(z.key)}" cx="${z.cx}" cy="${z.cy}" r="4.2" tabindex="0"><title>${esc(z.label)}</title></circle>`
-    ).join("");
     const marks = markers
-      .map((m) => `<circle class="vei-marker" cx="${m.cx}" cy="${m.cy}" r="3.5"></circle>`)
+      .map((m) => {
+        const p = diagramMarkerCoords(m);
+        if (!p) return "";
+        return `<circle class="vei-marker" cx="${p.cx}" cy="${p.cy}" r="9"></circle>`;
+      })
       .join("");
     return (
       '<div class="vei-diagram-wrap">' +
-      '<svg class="vei-diagram" viewBox="0 0 100 86" aria-label="Diagrama do veículo — 4 vistas">' +
-      diagramCarArtSvg() +
-      zones +
+      `<svg class="vei-diagram" viewBox="0 0 ${DIAGRAM_W} ${DIAGRAM_H}" aria-label="Diagrama do veículo — 4 vistas"` +
+      (readOnly ? "" : ' role="button" tabindex="0"') +
+      ">" +
+      `<image class="vei-diagram-img" href="${DIAGRAM_SRC}" x="0" y="0" width="${DIAGRAM_W}" height="${DIAGRAM_H}" preserveAspectRatio="xMidYMid meet"/>` +
       marks +
-      "</svg></div>"
+      "</svg>" +
+      (readOnly ? "" : '<p class="notice" style="margin:8px 0 0;font-size:0.72rem">Clique no diagrama para marcar um ponto vermelho.</p>') +
+      "</div>"
     );
+  }
+
+  function svgPointFromEvent(svg, evt) {
+    if (!svg || !evt) return null;
+    const ctm = svg.getScreenCTM?.();
+    if (!ctm) return null;
+    const pt = svg.createSVGPoint();
+    if (evt.touches && evt.touches[0]) {
+      pt.x = evt.touches[0].clientX;
+      pt.y = evt.touches[0].clientY;
+    } else {
+      pt.x = evt.clientX;
+      pt.y = evt.clientY;
+    }
+    const loc = pt.matrixTransform(ctm.inverse());
+    if (loc.x < 0 || loc.y < 0 || loc.x > DIAGRAM_W || loc.y > DIAGRAM_H) return null;
+    return { cx: Math.round(loc.x * 10) / 10, cy: Math.round(loc.y * 10) / 10 };
+  }
+
+  function bindDiagramClick(root, draft, ctx) {
+    const svg = root.querySelector("svg.vei-diagram");
+    if (!svg) return;
+    svg.addEventListener("click", (evt) => {
+      if (evt.target?.classList?.contains("vei-marker")) return;
+      const pt = svgPointFromEvent(svg, evt);
+      if (!pt) return;
+      draft.diagramMarkers.push(pt);
+      refreshEditUI(root, draft, ctx);
+    });
   }
 
   function renderChecklistRows(draft, readOnly) {
@@ -447,15 +418,7 @@
         refreshEditUI(root, draft, ctx);
       });
     });
-    root.querySelectorAll(".vei-zone").forEach((zone) => {
-      zone.addEventListener("click", () => {
-        const key = zone.getAttribute("data-zone-key");
-        const z = DIAGRAM_ZONES.find((x) => x.key === key);
-        if (!z) return;
-        draft.diagramMarkers.push({ key, cx: z.cx, cy: z.cy, label: z.label });
-        openDamageForm(root, draft, ctx, key, z.label);
-      });
-    });
+    bindDiagramClick(root, draft, ctx);
     const notesEl = root.querySelector("#veiGeneralNotes");
     if (notesEl) {
       notesEl.addEventListener("input", () => {
