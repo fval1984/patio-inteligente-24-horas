@@ -211,7 +211,7 @@ BEGIN
     RAISE EXCEPTION 'Veículo não encontrado.';
   END IF;
 
-  IF v_vehicle.status = 'REMOVIDO' THEN
+  IF v_vehicle.status::text = 'REMOVIDO' THEN
     RAISE EXCEPTION 'Veículo removido do pátio.';
   END IF;
 
@@ -224,11 +224,11 @@ BEGIN
     RAISE EXCEPTION 'Este veículo já possui vistoria de entrada concluída.';
   END IF;
 
-  IF v_vehicle.status = 'AGUARDANDO_VISTORIA' THEN
+  IF v_vehicle.status::text = 'AGUARDANDO_VISTORIA' THEN
     IF COALESCE(v_vehicle.entry_inspection_flow, false) IS NOT TRUE THEN
       RAISE EXCEPTION 'Veículo não pertence ao fluxo de vistoria eletrônica.';
     END IF;
-  ELSIF v_vehicle.status NOT IN (
+  ELSIF v_vehicle.status::text NOT IN (
     'NO_PATIO', 'LIBERACAO_SOLICITADA', 'LIBERACAO_CONFIRMADA',
     'REMocao_CONFIRMADA', 'REMOCAO_CONFIRMADA'
   ) THEN
@@ -278,7 +278,7 @@ BEGIN
 
   UPDATE vehicles
   SET status = 'NO_PATIO', updated_at = now()
-  WHERE id = p_vehicle_id AND user_id = p_user_id AND status = 'AGUARDANDO_VISTORIA';
+  WHERE id = p_vehicle_id AND user_id = p_user_id AND status::text = 'AGUARDANDO_VISTORIA';
 
   -- Retroativa: veículo já no pátio — não altera status nem demais campos
 
