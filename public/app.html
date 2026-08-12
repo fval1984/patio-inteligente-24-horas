@@ -19009,6 +19009,15 @@
             );
             return;
           }
+          if (kinds.includes("entryflow") && !editingVehicleId) {
+            alert(
+              "Não foi possível cadastrar o veículo no fluxo de vistoria eletrônica.\n\n" +
+                "A base ainda não tem as colunas ano, cor, chassi e/ou entry_inspection_flow na tabela vehicles.\n\n" +
+                "No Supabase → SQL Editor, execute supabase/vehicle_entry_inspections.sql (início do ficheiro, linhas 1–9) e tente salvar de novo.\n\n" +
+                (error.message || "")
+            );
+            return;
+          }
           const before = JSON.stringify(tryPayload);
           for (const k of kinds) {
             if (k === "vistoria") tryPayload = stripVistoriaFrom(tryPayload);
@@ -19033,10 +19042,28 @@
           if (degradedGroups.includes("vistoria")) partes.push("laudo de vistoria");
           if (degradedGroups.includes("leiloeiro")) partes.push("leiloeiro");
           if (degradedGroups.includes("rpf")) partes.push("RPF (responsável financeiro)");
+          if (degradedGroups.includes("entryflow")) {
+            partes.push("ano, cor, chassi e fluxo de vistoria eletrônica (entry_inspection_flow)");
+          }
+          const sqlHints = [];
+          if (degradedGroups.some((k) => ["vistoria", "leiloeiro", "rpf"].includes(k))) {
+            sqlHints.push("supabase/vehicles_recursos_avancados.sql");
+          }
+          if (degradedGroups.includes("entryflow")) {
+            sqlHints.push("supabase/vehicle_entry_inspections.sql (início do ficheiro)");
+          }
+          const sqlText =
+            sqlHints.length === 1
+              ? sqlHints[0]
+              : sqlHints.length > 1
+                ? sqlHints.join(" e ")
+                : "supabase/vehicles_recursos_avancados.sql";
           alert(
             "Veículo salvo, mas a base ainda não tem coluna(s) para: " +
-              partes.join(", ") +
-              ". No Supabase (SQL Editor), execute supabase/vehicles_recursos_avancados.sql — ou o início de finance_competency_schema.sql (inclui o mesmo bloco) — e grave o veículo de novo."
+              (partes.length ? partes.join(", ") : "recursos avançados") +
+              ". No Supabase (SQL Editor), execute " +
+              sqlText +
+              " e grave o veículo de novo."
           );
         }
         if (error) {
