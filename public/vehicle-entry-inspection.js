@@ -196,8 +196,8 @@
         cursor: pointer; text-align: center; line-height: 1.2; min-height: 34px;
       }
       .vei-class-btn.active {
-        border-color: rgba(212,175,55,0.55); color: #fef3c7;
-        background: rgba(212,175,55,0.18); box-shadow: inset 0 0 0 1px rgba(212,175,55,0.35);
+        border-color: rgba(212,175,55,0.75); color: #fff;
+        background: rgba(212,175,55,0.35); box-shadow: inset 0 0 0 2px rgba(212,175,55,0.55);
       }
       .vei-class-btn[data-class="DANIFICADO"].active { border-color: rgba(248,113,113,0.55); background: rgba(248,113,113,0.12); color: #fecaca; }
       .vei-side-panel {
@@ -294,6 +294,7 @@
       (readOnly ? "" : ' role="button" tabindex="0"') +
       ">" +
       `<image class="vei-diagram-img" href="${DIAGRAM_SRC}" x="0" y="0" width="${DIAGRAM_W}" height="${DIAGRAM_H}" preserveAspectRatio="xMidYMid meet"/>` +
+      `<rect class="vei-diagram-hit" x="0" y="0" width="${DIAGRAM_W}" height="${DIAGRAM_H}" fill="transparent"/>` +
       marks +
       "</svg>" +
       (readOnly ? "" : '<p class="notice" style="margin:8px 0 0;font-size:0.72rem">Clique no diagrama para marcar um ponto vermelho.</p>') +
@@ -303,30 +304,77 @@
 
   function svgPointFromEvent(svg, evt) {
     if (!svg || !evt) return null;
-    const ctm = svg.getScreenCTM?.();
-    if (!ctm) return null;
-    const pt = svg.createSVGPoint();
+    const rect = svg.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    const vb = svg.viewBox.baseVal;
+    const vw = vb.width || DIAGRAM_W;
+    const vh = vb.height || DIAGRAM_H;
+    const vx = vb.x || 0;
+    const vy = vb.y || 0;
+    let clientX = evt.clientX;
+    let clientY = evt.clientY;
     if (evt.touches && evt.touches[0]) {
-      pt.x = evt.touches[0].clientX;
-      pt.y = evt.touches[0].clientY;
-    } else {
-      pt.x = evt.clientX;
-      pt.y = evt.clientY;
+      clientX = evt.touches[0].clientX;
+      clientY = evt.touches[0].clientY;
     }
-    const loc = pt.matrixTransform(ctm.inverse());
-    if (loc.x < 0 || loc.y < 0 || loc.x > DIAGRAM_W || loc.y > DIAGRAM_H) return null;
-    return { cx: Math.round(loc.x * 10) / 10, cy: Math.round(loc.y * 10) / 10 };
+    const x = ((clientX - rect.left) / rect.width) * vw + vx;
+    const y = ((clientY - rect.top) / rect.height) * vh + vy;
+    if (x < 0 || y < 0 || x > vx + vw || y > vy + vh) return null;
+    return { cx: Math.round(x * 10) / 10, cy: Math.round(y * 10) / 10 };
   }
 
-  function bindDiagramClick(root, draft, ctx) {
-    const svg = root.querySelector("svg.vei-diagram");
-    if (!svg) return;
-    svg.addEventListener("click", (evt) => {
-      if (evt.target?.classList?.contains("vei-marker")) return;
-      const pt = svgPointFromEvent(svg, evt);
-      if (!pt) return;
-      draft.diagramMarkers.push(pt);
-      refreshEditUI(root, draft, ctx);
+  function ensureEditModalEvents(root, ctx) {
+    if (!root || root.dataset.veiEditBound === "1") return;
+    root.dataset.veiEditBound = "1";
+    root.addEventListener("click", (evt) => {
+      const draft = _session?.draft;
+      if (!draft || _session.mode !== "edit") return;
+
+      const classBtn = evt.target.closest?.(".vei-class-btn[data-class]");
+      if (classBtn && root.contains(classBtn)) {
+        evt.preventDefault();
+        draft.classifications[classBtn.getAttribute("data-item")] = classBtn.getAttribute("data-class");
+        refreshEditUI(root, draft, ctx);
+        return;
+      }
+
+      const diagramSvg = evt.target.closest?.("svg.vei-diagram");
+      if (diagramSvg && root.contains(diagramSvg) && !evt.target.classList?.contains("vei-marker")) {
+        const pt = svgPointFromEvent(diagramSvg, evt);
+        if (pt) {
+          draft.diagramMarkers.push(pt);
+          refreshEditUI(root, draft, ctx);
+        }
+        return;
+      }
+
+      const addDmgBtn = evt.target.closest?.(".vei-add-damage-btn");
+      if (addDmgBtn && root.contains(addDmgBtn)) {
+        openDamageForm(root, draft, ctx, addDmgBtn.getAttribute("data-damage-item"));
+        return;
+      }
+
+      const rmDmgBtn = evt.target.closest?.(".vei-remove-damage");
+      if (rmDmgBtn && root.contains(rmDmgBtn)) {
+        draft.damages.splice(Number(rmDmgBtn.getAttribute("data-damage-idx")), 1);
+        refreshEditUI(root, draft, ctx);
+        return;
+      }
+
+      if (evt.target.closest?.("#veiFinalizeBtn")) {
+        finalizeInspection(root, draft, ctx);
+        return;
+      }
+
+      if (evt.target.closest?.("#veiModalCloseInner")) {
+        closeModal();
+      }
+    });
+
+    root.addEventListener("input", (evt) => {
+      if (evt.target?.id === "veiGeneralNotes" && _session?.draft) {
+        _session.draft.generalNotes = evt.target.value;
+      }
     });
   }
 
@@ -335,6 +383,7 @@
     let html = "";
     CHECKLIST.forEach((it) => {
       if (it.category !== lastCat) {
+        if (lastCat) html += "</div>";
         lastCat = it.category;
         html += `<div class="vei-section"><h4>${esc(it.category)}</h4>`;
       }
@@ -354,7 +403,7 @@
       });
       html += `</div>`;
     });
-    html += `</div>`;
+    if (lastCat) html += "</div>";
     return html;
   }
 
@@ -400,32 +449,7 @@
   }
 
   function bindEditEvents(root, draft, ctx) {
-    root.querySelectorAll(".vei-class-btn[data-class]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const key = btn.getAttribute("data-item");
-        const cls = btn.getAttribute("data-class");
-        draft.classifications[key] = cls;
-        refreshEditUI(root, draft, ctx);
-      });
-    });
-    root.querySelectorAll(".vei-add-damage-btn").forEach((btn) => {
-      btn.addEventListener("click", () => openDamageForm(root, draft, ctx, btn.getAttribute("data-damage-item")));
-    });
-    root.querySelectorAll(".vei-remove-damage").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const idx = Number(btn.getAttribute("data-damage-idx"));
-        draft.damages.splice(idx, 1);
-        refreshEditUI(root, draft, ctx);
-      });
-    });
-    bindDiagramClick(root, draft, ctx);
-    const notesEl = root.querySelector("#veiGeneralNotes");
-    if (notesEl) {
-      notesEl.addEventListener("input", () => {
-        draft.generalNotes = notesEl.value;
-      });
-    }
-    root.querySelector("#veiFinalizeBtn")?.addEventListener("click", () => finalizeInspection(root, draft, ctx));
+    ensureEditModalEvents(root, ctx);
   }
 
   function openDamageForm(root, draft, ctx, itemKey, areaLabel) {
@@ -484,17 +508,21 @@
   function refreshEditUI(root, draft, ctx) {
     const pct = progressPct(draft);
     const miss = missingItems(draft);
-    root.querySelector("#veiProgressText").textContent = `Vistoria: ${pct}% concluída`;
-    root.querySelector("#veiProgressBar i").style.width = `${pct}%`;
-    root.querySelector("#veiChecklistHost").innerHTML = renderChecklistRows(draft, false);
-    root.querySelector("#veiDiagramHost").innerHTML = renderDiagram(draft, false);
-    root.querySelector("#veiDamageListHost").innerHTML = renderDamageList(draft, false);
+    const progressText = root.querySelector("#veiProgressText");
+    const progressBar = root.querySelector("#veiProgressBar i");
+    const checklistHost = root.querySelector("#veiChecklistHost");
+    const diagramHost = root.querySelector("#veiDiagramHost");
+    const damageListHost = root.querySelector("#veiDamageListHost");
+    if (progressText) progressText.textContent = `Vistoria: ${pct}% concluída`;
+    if (progressBar) progressBar.style.width = `${pct}%`;
+    if (checklistHost) checklistHost.innerHTML = renderChecklistRows(draft, false);
+    if (diagramHost) diagramHost.innerHTML = renderDiagram(draft, false);
+    if (damageListHost) damageListHost.innerHTML = renderDamageList(draft, false);
     const warn = root.querySelector("#veiMissingWarn");
     if (warn) {
       warn.textContent = miss.length ? `Itens pendentes: ${miss.slice(0, 6).join(", ")}${miss.length > 6 ? "…" : ""}` : "";
       warn.classList.toggle("hidden", !miss.length);
     }
-    bindEditEvents(root, draft, ctx);
   }
 
   function buildEditHtml(vehicle, ctx, draft) {
@@ -502,7 +530,7 @@
     return (
       renderVehicleMeta(vehicle, ctx, null) +
       `<div class="vei-progress"><span id="veiProgressText">Vistoria: ${pct}% concluída</span>` +
-      `<div class="vei-progress-bar"><i style="width:${pct}%"></i></div></div>` +
+      `<div class="vei-progress-bar" id="veiProgressBar"><i style="width:${pct}%"></i></div></div>` +
       `<p id="veiMissingWarn" class="notice hidden" style="color:#fbbf24;margin:0 0 12px"></p>` +
       '<div class="vei-layout">' +
       '<div><div id="veiChecklistHost">' +
@@ -793,8 +821,7 @@
       : `Placa ${vehicle.placa || "—"} — preencha o checklist completo`;
     const body = document.getElementById("veiModalBody");
     body.innerHTML = buildEditHtml(vehicle, ctx, _session.draft);
-    bindEditEvents(body, _session.draft, ctx);
-    body.querySelector("#veiModalCloseInner")?.addEventListener("click", closeModal);
+    ensureEditModalEvents(body, ctx);
   }
 
   async function openViewModal(vehicle, ctx, inspectionId) {
