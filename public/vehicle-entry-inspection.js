@@ -120,17 +120,44 @@
     };
   }
 
-  function progressPct(draft) {
-    const total = CHECKLIST.length;
+  function classifiedCount(draft) {
     let done = 0;
     CHECKLIST.forEach((it) => {
       if (draft.classifications[it.key]) done++;
     });
-    return Math.round((done / total) * 100);
+    return done;
+  }
+
+  function progressPct(draft) {
+    const total = CHECKLIST.length;
+    return Math.round((classifiedCount(draft) / total) * 100);
   }
 
   function missingItems(draft) {
     return CHECKLIST.filter((it) => !draft.classifications[it.key]).map((it) => it.label);
+  }
+
+  function scrollToFirstMissingItem(root, draft) {
+    const first = CHECKLIST.find((it) => !draft.classifications[it.key]);
+    if (!first || !root) return;
+    const el = root.querySelector(`.vei-item[data-item-key="${first.key}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("vei-item-highlight");
+    window.setTimeout(() => el.classList.remove("vei-item-highlight"), 2800);
+  }
+
+  function formatMissingAlert(miss) {
+    if (!miss.length) return "";
+    if (miss.length <= 14) {
+      return miss.map((label) => `• ${label}`).join("\n");
+    }
+    return (
+      miss
+        .slice(0, 12)
+        .map((label) => `• ${label}`)
+        .join("\n") + `\n… e mais ${miss.length - 12} item(ns).`
+    );
   }
 
   function injectStylesOnce() {
@@ -184,19 +211,71 @@
         text-transform: uppercase; color: var(--muted);
       }
       .vei-item {
-        display: grid; grid-template-columns: minmax(140px, 1.2fr) repeat(5, minmax(0, 1fr));
-        gap: 6px; align-items: center;
-        padding: 8px 0; border-bottom: 1px solid rgba(148,163,184,0.1);
+        display: block;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(148,163,184,0.1);
       }
-      @media (max-width: 900px) {
-        .vei-item { grid-template-columns: 1fr; gap: 8px; padding: 12px 0; }
+      .vei-item.vei-item-pending {
+        background: rgba(251, 191, 36, 0.06);
+        border-left: 3px solid #fbbf24;
+        padding: 6px 0 6px 8px;
+        margin-left: -4px;
+        border-radius: 0 8px 8px 0;
       }
-      .vei-item-label { font-size: 0.86rem; font-weight: 600; }
+      .vei-item.vei-item-highlight {
+        animation: veiItemPulse 0.85s ease-in-out 3;
+      }
+      @keyframes veiItemPulse {
+        0%, 100% { background: rgba(251, 191, 36, 0.06); }
+        50% { background: rgba(251, 191, 36, 0.22); }
+      }
+      .vei-item-label {
+        font-size: 0.82rem;
+        font-weight: 600;
+        margin-bottom: 5px;
+        line-height: 1.25;
+      }
+      .vei-class-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+      }
       .vei-class-btn {
-        appearance: none; border: 1px solid rgba(148,163,184,0.22);
-        background: rgba(15,23,42,0.35); color: var(--muted);
-        border-radius: 8px; padding: 7px 4px; font-size: 0.68rem; font-weight: 700;
-        cursor: pointer; text-align: center; line-height: 1.2; min-height: 34px;
+        appearance: none;
+        flex: 0 0 auto;
+        width: auto;
+        min-height: 0;
+        border: 1px solid rgba(148,163,184,0.22);
+        background: rgba(15,23,42,0.35);
+        color: var(--muted);
+        border-radius: 6px;
+        padding: 4px 7px;
+        font-size: 0.62rem;
+        font-weight: 700;
+        cursor: pointer;
+        text-align: center;
+        line-height: 1.15;
+        white-space: nowrap;
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .vei-class-btn .vei-class-btn-label { pointer-events: none; display: inline; }
+      @media (max-width: 900px) {
+        .vei-item { padding: 7px 0; }
+        .vei-class-row {
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          gap: 3px;
+          padding-bottom: 1px;
+        }
+        .vei-class-btn {
+          padding: 5px 6px;
+          font-size: 0.6rem;
+          min-height: 30px;
+        }
       }
       .vei-class-btn.active {
         border-color: rgba(212,175,55,0.75); color: #fff;
@@ -348,59 +427,110 @@
     return { cx: Math.round(x * 10) / 10, cy: Math.round(y * 10) / 10 };
   }
 
-  function ensureEditModalEvents(root, ctx) {
-    if (!root || root.dataset.veiEditBound === "1") return;
-    root.dataset.veiEditBound = "1";
-    root.addEventListener("click", (evt) => {
-      const draft = _session?.draft;
-      if (!draft || _session.mode !== "edit") return;
+  function eventTargetElement(evt) {
+    const t = evt?.target;
+    if (!t) return null;
+    if (t.nodeType === 1) return t;
+    return t.parentElement || null;
+  }
 
-      const classBtn = evt.target.closest?.(".vei-class-btn[data-class]");
-      if (classBtn && root.contains(classBtn)) {
-        evt.preventDefault();
-        draft.classifications[classBtn.getAttribute("data-item")] = classBtn.getAttribute("data-class");
-        refreshEditUI(root, draft, ctx);
-        return;
-      }
-
-      const diagramSvg = evt.target.closest?.("svg.vei-diagram");
-      if (diagramSvg && root.contains(diagramSvg) && !evt.target.classList?.contains("vei-marker")) {
-        const pt = svgPointFromEvent(diagramSvg, evt);
-        if (pt) {
-          draft.diagramMarkers.push(pt);
-          refreshEditUI(root, draft, ctx);
-        }
-        return;
-      }
-
-      const addDmgBtn = evt.target.closest?.(".vei-add-damage-btn");
-      if (addDmgBtn && root.contains(addDmgBtn)) {
-        openDamageForm(root, draft, ctx, addDmgBtn.getAttribute("data-damage-item"));
-        return;
-      }
-
-      const rmDmgBtn = evt.target.closest?.(".vei-remove-damage");
-      if (rmDmgBtn && root.contains(rmDmgBtn)) {
-        draft.damages.splice(Number(rmDmgBtn.getAttribute("data-damage-idx")), 1);
-        refreshEditUI(root, draft, ctx);
-        return;
-      }
-
-      if (evt.target.closest?.("#veiFinalizeBtn")) {
-        finalizeInspection(root, draft, ctx);
-        return;
-      }
-
-      if (evt.target.closest?.("#veiModalCloseInner")) {
-        closeModal();
+  function syncClassificationsFromDom(root, draft) {
+    if (!root || !draft?.classifications) return;
+    root.querySelectorAll(".vei-item[data-item-key]").forEach((row) => {
+      const key = row.getAttribute("data-item-key");
+      if (!key) return;
+      const activeBtn = row.querySelector(".vei-class-btn.active[data-class]");
+      if (activeBtn) {
+        const cls = activeBtn.getAttribute("data-class");
+        if (cls) draft.classifications[key] = cls;
       }
     });
+  }
 
-    root.addEventListener("input", (evt) => {
+  function buildInspectionItemsPayload(draft) {
+    return CHECKLIST.map((it) => ({
+      category: it.category,
+      item_key: it.key,
+      item_label: it.label,
+      classification: draft.classifications[it.key] || "",
+    }));
+  }
+
+  function handleEditModalInteraction(evt) {
+    const draft = _session?.draft;
+    const ctx = _session?.ctx;
+    if (!draft || _session.mode !== "edit" || !ctx) return;
+
+    const root = document.getElementById("veiModalBody");
+    if (!root) return;
+
+    const hit = eventTargetElement(evt);
+    if (!hit) return;
+
+    const classBtn = hit.closest?.(".vei-class-btn[data-class]");
+    if (classBtn && root.contains(classBtn)) {
+      evt.preventDefault();
+      const itemKey = classBtn.getAttribute("data-item");
+      const cls = classBtn.getAttribute("data-class");
+      if (itemKey && cls) {
+        draft.classifications[itemKey] = cls;
+        refreshEditUI(root, draft, ctx);
+      }
+      return;
+    }
+
+    const diagramSvg = hit.closest?.("svg.vei-diagram");
+    if (diagramSvg && root.contains(diagramSvg) && !hit.classList?.contains("vei-marker")) {
+      const pt = svgPointFromEvent(diagramSvg, evt);
+      if (pt) {
+        draft.diagramMarkers.push(pt);
+        refreshEditUI(root, draft, ctx);
+      }
+      return;
+    }
+
+    const addDmgBtn = hit.closest?.(".vei-add-damage-btn");
+    if (addDmgBtn && root.contains(addDmgBtn)) {
+      openDamageForm(root, draft, ctx, addDmgBtn.getAttribute("data-damage-item"));
+      return;
+    }
+
+    const rmDmgBtn = hit.closest?.(".vei-remove-damage");
+    if (rmDmgBtn && root.contains(rmDmgBtn)) {
+      draft.damages.splice(Number(rmDmgBtn.getAttribute("data-damage-idx")), 1);
+      refreshEditUI(root, draft, ctx);
+      return;
+    }
+
+    if (hit.closest?.("#veiFinalizeBtn")) {
+      evt.preventDefault();
+      syncClassificationsFromDom(root, draft);
+      finalizeInspection(root, draft, ctx);
+      return;
+    }
+
+    if (hit.closest?.("#veiModalCloseInner")) {
+      closeModal();
+    }
+  }
+
+  function ensureModalInteraction() {
+    const backdrop = ensureModal();
+    if (backdrop.dataset.veiInteractionBound === "1") return;
+    backdrop.dataset.veiInteractionBound = "1";
+    backdrop.addEventListener("click", handleEditModalInteraction);
+    backdrop.addEventListener("input", (evt) => {
       if (evt.target?.id === "veiGeneralNotes" && _session?.draft) {
         _session.draft.generalNotes = evt.target.value;
       }
     });
+  }
+
+  function ensureEditModalEvents(root, ctx) {
+    ensureModalInteraction();
+    if (root && ctx) {
+      _session.ctx = ctx;
+    }
   }
 
   function renderChecklistRows(draft, readOnly) {
@@ -413,20 +543,20 @@
         html += `<div class="vei-section"><h4>${esc(it.category)}</h4>`;
       }
       const sel = draft.classifications[it.key];
-      html += `<div class="vei-item" data-item-key="${esc(it.key)}">`;
+      html += `<div class="vei-item${!readOnly && !sel ? " vei-item-pending" : ""}" data-item-key="${esc(it.key)}">`;
       html += `<div class="vei-item-label">${esc(it.label)}`;
       if (!readOnly && sel === "DANIFICADO") {
         html += ` <button type="button" class="secondary vei-add-damage-btn" data-damage-item="${esc(it.key)}" style="font-size:0.72rem;padding:4px 8px;margin-left:6px">+ Avaria</button>`;
       }
-      html += `</div>`;
+      html += `</div><div class="vei-class-row">`;
       CLASSIFICATIONS.forEach((c) => {
         if (readOnly) {
           html += `<div class="vei-class-btn${sel === c.id ? " active" : ""}" style="pointer-events:none;opacity:${sel === c.id ? 1 : 0.35}">${esc(c.label)}</div>`;
         } else {
-          html += `<button type="button" class="vei-class-btn${sel === c.id ? " active" : ""}" data-class="${c.id}" data-item="${esc(it.key)}">${esc(c.label)}</button>`;
+          html += `<button type="button" class="vei-class-btn${sel === c.id ? " active" : ""}" data-class="${c.id}" data-item="${esc(it.key)}"><span class="vei-class-btn-label">${esc(c.label)}</span></button>`;
         }
       });
-      html += `</div>`;
+      html += `</div></div>`;
     });
     if (lastCat) html += "</div>";
     return html;
@@ -532,30 +662,44 @@
 
   function refreshEditUI(root, draft, ctx) {
     const pct = progressPct(draft);
+    const done = classifiedCount(draft);
+    const total = CHECKLIST.length;
     const miss = missingItems(draft);
     const progressText = root.querySelector("#veiProgressText");
     const progressBar = root.querySelector("#veiProgressBar i");
     const checklistHost = root.querySelector("#veiChecklistHost");
     const diagramHost = root.querySelector("#veiDiagramHost");
-    if (progressText) progressText.textContent = `Vistoria: ${pct}% concluída`;
+    if (progressText) {
+      progressText.textContent = `Checklist: ${done}/${total} itens · ${pct}% concluída`;
+    }
     if (progressBar) progressBar.style.width = `${pct}%`;
     if (checklistHost) checklistHost.innerHTML = renderChecklistRows(draft, false);
     if (diagramHost) diagramHost.innerHTML = renderDiagram(draft, false);
     refreshMobilePhotosUI(root, draft);
     const warn = root.querySelector("#veiMissingWarn");
     if (warn) {
-      warn.textContent = miss.length ? `Itens pendentes: ${miss.slice(0, 6).join(", ")}${miss.length > 6 ? "…" : ""}` : "";
-      warn.classList.toggle("hidden", !miss.length);
+      warn.textContent = miss.length
+        ? `Itens pendentes (${miss.length}): role o checklist e toque em BOM, REGULAR, DANIFICADO, SEM TESTE ou INEXISTENTE em cada linha amarela.`
+        : "Checklist completo — pode finalizar a vistoria.";
+      warn.classList.toggle("hidden", false);
+      warn.style.color = miss.length ? "#fbbf24" : "#34d399";
     }
   }
 
   function buildEditHtml(vehicle, ctx, draft) {
     const pct = progressPct(draft);
+    const done = classifiedCount(draft);
+    const total = CHECKLIST.length;
+    const miss = missingItems(draft);
     return (
       renderVehicleMeta(vehicle, ctx, null) +
-      `<div class="vei-progress"><span id="veiProgressText">Vistoria: ${pct}% concluída</span>` +
+      `<div class="vei-progress"><span id="veiProgressText">Checklist: ${done}/${total} itens · ${pct}% concluída</span>` +
       `<div class="vei-progress-bar" id="veiProgressBar"><i style="width:${pct}%"></i></div></div>` +
-      `<p id="veiMissingWarn" class="notice hidden" style="color:#fbbf24;margin:0 0 12px"></p>` +
+      `<p id="veiMissingWarn" class="notice" style="margin:0 0 12px;color:${miss.length ? "#fbbf24" : "#34d399"}">${
+        miss.length
+          ? `Itens pendentes (${miss.length}): role o checklist e classifique cada linha em amarelo.`
+          : "Checklist completo — pode finalizar a vistoria."
+      }</p>` +
       '<div class="vei-layout">' +
       '<div id="veiChecklistHost">' +
       renderChecklistRows(draft, false) +
@@ -735,9 +879,15 @@
   }
 
   async function finalizeInspection(root, draft, ctx) {
+    syncClassificationsFromDom(root, draft);
     const miss = missingItems(draft);
     if (miss.length) {
-      alert(`Classifique todos os itens antes de finalizar.\n\nPendentes (${miss.length}): ${miss.slice(0, 12).join(", ")}${miss.length > 12 ? "…" : ""}`);
+      scrollToFirstMissingItem(root, draft);
+      alert(
+        `Classifique todos os ${CHECKLIST.length} itens do checklist antes de finalizar.\n\n` +
+          `Pendentes (${miss.length}):\n${formatMissingAlert(miss)}\n\n` +
+          `Dica: toque no botão (BOM, REGULAR, etc.) até a linha deixar de ficar amarela.`
+      );
       return;
     }
     const btn = root.querySelector("#veiFinalizeBtn");
@@ -751,12 +901,7 @@
         alert("Sessão expirada. Entre novamente.");
         return;
       }
-      const items = CHECKLIST.map((it) => ({
-        category: it.category,
-        item_key: it.key,
-        item_label: it.label,
-        classification: draft.classifications[it.key],
-      }));
+      const items = buildInspectionItemsPayload(draft);
       const damages = draft.damages.map((d) => ({
         item_key: d.item_key,
         area_label: d.area_label,
@@ -779,7 +924,11 @@
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
-        alert(json.error || "Não foi possível finalizar a vistoria.");
+        const errMsg = json.error || "Não foi possível finalizar a vistoria.";
+        if (/checklist|classificad|item\(ns\)|pendente/i.test(errMsg)) {
+          scrollToFirstMissingItem(root, draft);
+        }
+        alert(errMsg);
         return;
       }
       await uploadPhotos(ctx, json.inspection_id, draft.damages);
@@ -847,7 +996,7 @@
   function openEditModal(vehicle, ctx, opts) {
     ensureModal();
     const retroactive = !!opts?.retroactive;
-    _session = { vehicle, mode: "edit", draft: emptyDraft(), retroactive };
+    _session = { vehicle, mode: "edit", draft: emptyDraft(), retroactive, ctx };
     const modal = _modalEl;
     modal.classList.remove("hidden");
     document.getElementById("veiModalTitle").textContent = retroactive
