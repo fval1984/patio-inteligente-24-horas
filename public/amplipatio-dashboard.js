@@ -496,7 +496,6 @@
         </section>
         ${renderOpsSituation(m.ops)}
         ${renderChartsSection(m, formatCurrency, { includeFinance: false })}
-        ${renderLongStayTable(m)}
       `;
       return;
     }
