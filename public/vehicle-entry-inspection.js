@@ -173,8 +173,9 @@
         background: rgba(148,163,184,0.18); overflow: hidden;
       }
       .vei-progress-bar i { display: block; height: 100%; background: linear-gradient(90deg, #d4af37, #34d399); transition: width 0.25s; }
-      .vei-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 320px); gap: 18px; }
+      .vei-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 320px); gap: 18px; align-items: start; }
       @media (max-width: 980px) { .vei-layout { grid-template-columns: 1fr; } }
+      .vei-layout > * { min-width: 0; }
       .vei-section { margin-bottom: 20px; }
       .vei-section h4 {
         margin: 0 0 10px; font-size: 0.78rem; letter-spacing: 0.08em;
@@ -203,9 +204,10 @@
       .vei-side-panel {
         border: 1px solid rgba(148,163,184,0.16); border-radius: 14px;
         padding: 14px; background: rgba(15,23,42,0.35);
+        min-width: 0; max-width: 100%; overflow: hidden;
       }
-      .vei-diagram-wrap { text-align: center; margin-bottom: 12px; }
-      .vei-diagram { width: 100%; max-width: 280px; height: auto; cursor: crosshair; touch-action: manipulation; }
+      .vei-diagram-wrap { text-align: center; margin-bottom: 12px; width: 100%; max-width: 280px; margin-left: auto; margin-right: auto; }
+      .vei-diagram { width: 100%; max-width: 280px; height: auto; display: block; margin: 0 auto; cursor: crosshair; touch-action: manipulation; }
       .vei-diagram .vei-diagram-img { pointer-events: none; }
       .vei-diagram .vei-marker { fill: #ef4444; stroke: #fff; stroke-width: 2; pointer-events: none; }
       .vei-damage-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
@@ -287,7 +289,7 @@
       .join("");
     return (
       '<div class="vei-diagram-wrap">' +
-      `<svg class="vei-diagram" viewBox="0 0 ${DIAGRAM_W} ${DIAGRAM_H}" aria-label="Diagrama do veículo — 4 vistas">` +
+      `<svg class="vei-diagram" viewBox="0 0 ${DIAGRAM_W} ${DIAGRAM_H}" style="max-width:100%;height:auto" aria-label="Diagrama do veículo — 4 vistas">` +
       `<image class="vei-diagram-img" href="${DIAGRAM_SRC}" x="0" y="0" width="${DIAGRAM_W}" height="${DIAGRAM_H}" preserveAspectRatio="xMidYMid meet"/>` +
       `<rect class="vei-diagram-hit" x="0" y="0" width="${DIAGRAM_W}" height="${DIAGRAM_H}" fill="transparent"/>` +
       marks +
