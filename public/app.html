@@ -8141,7 +8141,7 @@
     <script src="/dashboard-metrics-service.js?v=20260727recvfix"></script>
     <script src="/amplipatio-dashboard.js?v=20260727recvfix"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260812veiph1"></script>
-    <script src="/vehicle-entry-inspection.js?v=20260812veiflow1"></script>
+    <script src="/vehicle-entry-inspection.js?v=20260812veicomp1"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script>
@@ -19019,7 +19019,8 @@
             else if (k === "status" && !editingVehicleId) {
               alert(
                 "Não foi possível cadastrar o veículo no fluxo de vistoria (status Aguardando vistoria).\n\n" +
-                  "O veículo não foi salvo no VNP. Peça ao suporte para validar o status AGUARDANDO_VISTORIA no Supabase.\n\n" +
+                  "No Supabase → SQL Editor, execute supabase/vehicles_status_aguardando_vistoria.sql " +
+                  "(ou o ficheiro completo supabase/vehicle_entry_inspections.sql).\n\n" +
                   (error.message || "")
               );
               return;
