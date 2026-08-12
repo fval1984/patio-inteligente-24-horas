@@ -7311,16 +7311,8 @@
                 <input id="vehicleModel" type="text" placeholder="Argo" />
               </div>
               <div>
-                <label>Ano</label>
-                <input id="vehicleYear" type="text" placeholder="2020" maxlength="4" inputmode="numeric" />
-              </div>
-              <div>
                 <label>Cor</label>
                 <input id="vehicleColor" type="text" placeholder="Prata" />
-              </div>
-              <div>
-                <label>Chassi</label>
-                <input id="vehicleChassis" type="text" placeholder="Opcional" />
               </div>
               <div class="field-operador-hide">
                 <label>Valor da diária</label>
@@ -17054,9 +17046,7 @@
           document.getElementById("vehiclePlate").value = vehicle.placa || "";
           document.getElementById("vehicleBrand").value = vehicle.marca || "";
           document.getElementById("vehicleModel").value = vehicle.modelo || "";
-          document.getElementById("vehicleYear") && (document.getElementById("vehicleYear").value = vehicle.ano || "");
           document.getElementById("vehicleColor") && (document.getElementById("vehicleColor").value = vehicle.cor || "");
-          document.getElementById("vehicleChassis") && (document.getElementById("vehicleChassis").value = vehicle.chassi || "");
           document.getElementById("vehicleDaily").value = vehicle.valor_diaria || "";
           document.getElementById("vehicleEntry").value = toLocalInput(vehicle.data_entrada);
           vehicleExit.value = toLocalInput(vehicle.data_saida);
@@ -18893,9 +18883,7 @@
           placa: document.getElementById("vehiclePlate").value.trim(),
           marca: document.getElementById("vehicleBrand").value.trim(),
           modelo: document.getElementById("vehicleModel").value.trim(),
-          ano: document.getElementById("vehicleYear")?.value?.trim() || null,
           cor: document.getElementById("vehicleColor")?.value?.trim() || null,
-          chassi: document.getElementById("vehicleChassis")?.value?.trim() || null,
           valor_diaria: vehicleDailyValue,
           data_entrada: dataEntradaIso,
           data_saida: gestorCreate ? null : vehicleExit.value ? new Date(vehicleExit.value).toISOString() : null,
@@ -18984,9 +18972,7 @@
         const stripEntryFlowFrom = (p) => {
           const o = { ...p };
           delete o.entry_inspection_flow;
-          delete o.ano;
           delete o.cor;
-          delete o.chassi;
           return o;
         };
         const advancedKindsFromError = (msg) => {
@@ -18995,7 +18981,7 @@
           if (/vistoria_/i.test(m)) kinds.push("vistoria");
           if (/leiloeiro_id/i.test(m)) kinds.push("leiloeiro");
           if (/responsavel_financeiro_/i.test(m)) kinds.push("rpf");
-          if (/entry_inspection_flow|(\bano\b)|(\bcor\b)|(\bchassi\b)/i.test(m)) kinds.push("entryflow");
+          if (/entry_inspection_flow|(\bcor\b)/i.test(m)) kinds.push("entryflow");
           if (/AGUARDANDO_VISTORIA|check constraint|vehicles_status/i.test(m)) kinds.push("status");
           return kinds;
         };
@@ -19012,8 +18998,8 @@
           if (kinds.includes("entryflow") && !editingVehicleId) {
             alert(
               "Não foi possível cadastrar o veículo no fluxo de vistoria eletrônica.\n\n" +
-                "A base ainda não tem as colunas ano, cor, chassi e/ou entry_inspection_flow na tabela vehicles.\n\n" +
-                "No Supabase → SQL Editor, execute supabase/vehicle_entry_inspections.sql (início do ficheiro, linhas 1–9) e tente salvar de novo.\n\n" +
+                "A base ainda não tem as colunas cor e/ou entry_inspection_flow na tabela vehicles.\n\n" +
+                "No Supabase → SQL Editor, execute supabase/vehicle_entry_inspections.sql (início do ficheiro, colunas cor e entry_inspection_flow) e tente salvar de novo.\n\n" +
                 (error.message || "")
             );
             return;
@@ -19043,7 +19029,7 @@
           if (degradedGroups.includes("leiloeiro")) partes.push("leiloeiro");
           if (degradedGroups.includes("rpf")) partes.push("RPF (responsável financeiro)");
           if (degradedGroups.includes("entryflow")) {
-            partes.push("ano, cor, chassi e fluxo de vistoria eletrônica (entry_inspection_flow)");
+            partes.push("cor e fluxo de vistoria eletrônica (entry_inspection_flow)");
           }
           const sqlHints = [];
           if (degradedGroups.some((k) => ["vistoria", "leiloeiro", "rpf"].includes(k))) {
