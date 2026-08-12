@@ -82,16 +82,90 @@ export async function resolveInspectorDisplayName(
 
 export const INSPECTION_ITEM_COUNT = 44;
 
-export function validateInspectionItems(items: InspectionItemPayload[], expectedCount = INSPECTION_ITEM_COUNT): string | null {
-  if (!Array.isArray(items) || items.length !== expectedCount) {
-    return `Todos os ${expectedCount} itens devem ser classificados.`;
+/** Chaves obrigatórias do checklist (espelho de public/vehicle-entry-inspection.js). */
+export const INSPECTION_CHECKLIST_KEYS = [
+  "placa",
+  "chassi",
+  "hodometro",
+  "combustivel",
+  "documento",
+  "chave_principal",
+  "segunda_chave",
+  "manual",
+  "outros_acessorios",
+  "capo",
+  "teto",
+  "para_lama_de",
+  "para_lama_dd",
+  "porta_de",
+  "porta_dd",
+  "porta_te",
+  "porta_td",
+  "tampa_traseira",
+  "para_choque_d",
+  "para_choque_t",
+  "retrovisor_e",
+  "retrovisor_d",
+  "farol_e",
+  "farol_d",
+  "lanternas",
+  "vidros",
+  "pneus",
+  "rodas",
+  "banco_motorista",
+  "banco_passageiro",
+  "bancos_traseiros",
+  "painel",
+  "volante",
+  "cambio",
+  "console",
+  "forracao",
+  "tapetes",
+  "teto_interno",
+  "portas_internas",
+  "vidros_eletricos",
+  "ar_condicionado",
+  "radio_multimidia",
+  "outros_equipamentos",
+] as const;
+
+const VALID_CLASSIFICATIONS = new Set([
+  "BOM",
+  "REGULAR",
+  "DANIFICADO",
+  "SEM_TESTE",
+  "INEXISTENTE",
+]);
+
+export function validateInspectionItems(items: InspectionItemPayload[]): string | null {
+  if (!Array.isArray(items) || !items.length) {
+    return `Todos os ${INSPECTION_ITEM_COUNT} itens do checklist devem ser classificados.`;
   }
-  const valid = new Set(["BOM", "REGULAR", "DANIFICADO", "SEM_TESTE", "INEXISTENTE"]);
+
+  const byKey = new Map<string, InspectionItemPayload>();
   for (const it of items) {
-    if (!it.item_key || !it.classification || !valid.has(it.classification)) {
-      return `Item «${it.item_label || it.item_key}» sem classificação válida.`;
+    if (it?.item_key) byKey.set(it.item_key, it);
+  }
+
+  const missing: string[] = [];
+
+  for (const key of INSPECTION_CHECKLIST_KEYS) {
+    const it = byKey.get(key);
+    const cls = it?.classification;
+    if (!cls || !VALID_CLASSIFICATIONS.has(cls)) {
+      missing.push(it?.item_label || key);
     }
   }
+
+  if (missing.length) {
+    if (missing.length >= INSPECTION_ITEM_COUNT) {
+      return `Todos os ${INSPECTION_ITEM_COUNT} itens do checklist devem ser classificados (BOM, REGULAR, DANIFICADO, SEM TESTE ou INEXISTENTE).`;
+    }
+    const preview = missing.slice(0, 10).join(", ");
+    const suffix = missing.length > 10 ? `… (+${missing.length - 10})` : "";
+    return `Faltam ${missing.length} item(ns) no checklist: ${preview}${suffix}`;
+  }
+
   return null;
 }
 
@@ -99,7 +173,7 @@ export async function completeVehicleEntryInspection(
   admin: SupabaseClient,
   input: CompleteEntryInspectionInput
 ): Promise<{ data: CompleteEntryInspectionResult | null; error: string | null }> {
-  const itemErr = validateInspectionItems(input.items, input.items.length);
+  const itemErr = validateInspectionItems(input.items);
   if (itemErr) return { data: null, error: itemErr };
 
   const { data, error } = await admin.rpc("complete_vehicle_entry_inspection", {
