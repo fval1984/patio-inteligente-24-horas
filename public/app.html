@@ -8141,7 +8141,7 @@
     <script src="/dashboard-metrics-service.js?v=20260727recvfix"></script>
     <script src="/amplipatio-dashboard.js?v=20260727recvfix"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260812veiph1"></script>
-    <script src="/vehicle-entry-inspection.js?v=20260812veiph1"></script>
+    <script src="/vehicle-entry-inspection.js?v=20260812veiflow1"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script>
@@ -15094,6 +15094,10 @@
           loadVehicles,
           renderVehicles,
           loadVehicleInspections,
+          onInspectionCompleted() {
+            openMainView("patio");
+            openPatioSubview("no_patio");
+          },
         };
       }
 
@@ -18942,10 +18946,12 @@
         const runVehicleSave = (p) =>
           editingVehicleId
             ? supabase.from("vehicles").update(p).eq("id", editingVehicleId).eq("user_id", effectiveUserId())
-            : supabase.from("vehicles").insert(p);
+            : supabase.from("vehicles").insert(p).select("*").single();
 
         let tryPayload = { ...payload };
-        let { error } = await runSupabaseWrite(() => runVehicleSave(tryPayload));
+        let savedNewVehicle = null;
+        let { data: saveData, error } = await runSupabaseWrite(() => runVehicleSave(tryPayload));
+        if (!error && saveData && !editingVehicleId) savedNewVehicle = saveData;
         /** @type {string[]} */
         const degradedGroups = [];
         const stripVistoriaFrom = (p) => {
@@ -19021,7 +19027,8 @@
             if (!degradedGroups.includes(k)) degradedGroups.push(k);
           }
           if (JSON.stringify(tryPayload) === before) break;
-          ({ error } = await runSupabaseWrite(() => runVehicleSave(tryPayload)));
+          ({ data: saveData, error } = await runSupabaseWrite(() => runVehicleSave(tryPayload)));
+          if (!error && saveData && !editingVehicleId) savedNewVehicle = saveData;
         }
         if (!error && degradedGroups.length) {
           const partes = [];
@@ -19075,6 +19082,16 @@
         if (wasNewVehicle && tryPayload.status === "AGUARDANDO_VISTORIA") {
           openMainView("patio");
           openPatioSubview("vistoria");
+          const vehicle =
+            savedNewVehicle ||
+            state.vehicles.find(
+              (v) => normalizePlateSearch(v.placa) === normalizePlateSearch(tryPayload.placa)
+            );
+          if (vehicle && window.vehicleEntryInspection?.openForVehicle) {
+            await window.vehicleEntryInspection.openForVehicle(vehicle, buildVehicleInspectionCtx(), {
+              mode: "edit",
+            });
+          }
         } else if (wasNewVehicle) {
           alert("Veículo cadastrado. Conclua a vistoria de entrada antes de utilizá-lo no VNP.");
         }
