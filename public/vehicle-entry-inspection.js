@@ -114,6 +114,9 @@
       damages: [],
       diagramMarkers: [],
       pendingPhotos: [],
+      standardPhotos: {},
+      extraDamagePhotos: [],
+      currentPhotoStep: 0,
     };
   }
 
@@ -284,6 +287,25 @@
       return { cx: (cx / 100) * DIAGRAM_W, cy: (cy / 100) * DIAGRAM_H };
     }
     return { cx, cy };
+  }
+
+  function renderMobilePhotosSection(draft) {
+    const mod = global.vehicleEntryInspectionPhotosMobile;
+    if (!mod || !mod.isCaptureDevice()) return "";
+    return mod.renderSection(draft);
+  }
+
+  function refreshMobilePhotosUI(root, draft) {
+    const mod = global.vehicleEntryInspectionPhotosMobile;
+    if (!mod || !mod.isCaptureDevice()) return;
+    const host = root.querySelector("#veiMobilePhotosHost");
+    if (!host) return;
+    host.innerHTML = mod.renderSection(draft);
+    mod.bindEvents(root, draft, () => refreshMobilePhotosUI(root, draft));
+  }
+
+  function bindMobilePhotosIfNeeded(root, draft) {
+    refreshMobilePhotosUI(root, draft);
   }
 
   function renderDiagram(draft, readOnly) {
@@ -519,6 +541,7 @@
     if (progressBar) progressBar.style.width = `${pct}%`;
     if (checklistHost) checklistHost.innerHTML = renderChecklistRows(draft, false);
     if (diagramHost) diagramHost.innerHTML = renderDiagram(draft, false);
+    refreshMobilePhotosUI(root, draft);
     const warn = root.querySelector("#veiMissingWarn");
     if (warn) {
       warn.textContent = miss.length ? `Itens pendentes: ${miss.slice(0, 6).join(", ")}${miss.length > 6 ? "…" : ""}` : "";
@@ -542,6 +565,9 @@
       '<div id="veiDiagramHost">' +
       renderDiagram(draft, false) +
       "</div></div>" +
+      '<div id="veiMobilePhotosHost">' +
+      renderMobilePhotosSection(draft) +
+      "</div>" +
       '<div id="veiDamageFormHost"></div>' +
       '<div id="veiDamageListHost" class="vei-damage-host-hidden" aria-hidden="true"></div>' +
       '<div class="vei-notes-block">' +
@@ -757,6 +783,12 @@
         return;
       }
       await uploadPhotos(ctx, json.inspection_id, draft.damages);
+      if (global.vehicleEntryInspectionPhotosMobile?.uploadAll) {
+        await global.vehicleEntryInspectionPhotosMobile.uploadAll(ctx, json.inspection_id, _session.vehicle.id, draft, {
+          inspectorName: json.inspector_name,
+          inspectorUserId: ctx.effectiveUserId(),
+        });
+      }
       if (typeof ctx.loadVehicles === "function") await ctx.loadVehicles();
       if (typeof ctx.loadVehicleInspections === "function") await ctx.loadVehicleInspections();
       if (typeof ctx.renderVehicles === "function") ctx.renderVehicles();
@@ -820,6 +852,7 @@
     const body = document.getElementById("veiModalBody");
     body.innerHTML = buildEditHtml(vehicle, ctx, _session.draft);
     ensureEditModalEvents(body, ctx);
+    bindMobilePhotosIfNeeded(body, _session.draft);
   }
 
   async function openViewModal(vehicle, ctx, inspectionId) {
