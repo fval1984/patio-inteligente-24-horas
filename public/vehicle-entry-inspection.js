@@ -381,7 +381,17 @@
     refreshMobilePhotosUI(root, draft);
   }
 
+  function diagramAbsUrl() {
+    try {
+      return new URL(DIAGRAM_SRC, global.location?.origin || "").href;
+    } catch (e) {
+      return DIAGRAM_SRC;
+    }
+  }
+
   function renderDiagram(draft, readOnly) {
+    const forPrint = readOnly === true || readOnly === "print";
+    if (forPrint) return renderDiagramForPrint(draft);
     const markers = draft.diagramMarkers || [];
     const marks = markers
       .map((m) => {
@@ -390,14 +400,48 @@
         return `<circle class="vei-marker" cx="${p.cx}" cy="${p.cy}" r="9"></circle>`;
       })
       .join("");
+    const src = esc(diagramAbsUrl());
     return (
       '<div class="vei-diagram-wrap">' +
       `<svg class="vei-diagram" viewBox="0 0 ${DIAGRAM_W} ${DIAGRAM_H}" style="max-width:100%;height:auto" aria-label="Diagrama do veículo — 4 vistas">` +
-      `<image class="vei-diagram-img" href="${DIAGRAM_SRC}" x="0" y="0" width="${DIAGRAM_W}" height="${DIAGRAM_H}" preserveAspectRatio="xMidYMid meet"/>` +
+      `<image class="vei-diagram-img" href="${src}" xlink:href="${src}" x="0" y="0" width="${DIAGRAM_W}" height="${DIAGRAM_H}" preserveAspectRatio="xMidYMid meet"/>` +
       `<rect class="vei-diagram-hit" x="0" y="0" width="${DIAGRAM_W}" height="${DIAGRAM_H}" fill="transparent"/>` +
       marks +
       "</svg></div>"
     );
+  }
+
+  /** Diagrama para impressão/PDF — img + SVG overlay (html2canvas imprime melhor que SVG &lt;image&gt;). */
+  function renderDiagramForPrint(draft) {
+    const markers = draft.diagramMarkers || [];
+    const marks = markers
+      .map((m) => {
+        const p = diagramMarkerCoords(m);
+        if (!p) return "";
+        return `<circle fill="#dc2626" stroke="#fff" stroke-width="2" cx="${p.cx}" cy="${p.cy}" r="9"></circle>`;
+      })
+      .join("");
+    const src = esc(diagramAbsUrl());
+    return (
+      '<div class="vei-doc-diagram-stack" style="position:relative;width:100%;max-width:800px;margin:0 auto;">' +
+      `<img class="vei-doc-diagram-img" src="${src}" alt="Diagrama do veículo — 4 vistas" crossorigin="anonymous" loading="eager" style="width:100%;height:auto;display:block;"/>` +
+      `<svg class="vei-doc-diagram-markers" viewBox="0 0 ${DIAGRAM_W} ${DIAGRAM_H}" aria-hidden="true" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;">` +
+      marks +
+      "</svg></div>"
+    );
+  }
+
+  function normalizeDiagramMarkers(raw) {
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === "string") {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
   }
 
   function svgPointFromEvent(svg, evt) {
@@ -729,7 +773,13 @@
           inspection,
           detail,
           draft,
-          helpers: { CHECKLIST, CLASSIFICATIONS, fmtDateTime, renderDiagram },
+          helpers: {
+            CHECKLIST,
+            CLASSIFICATIONS,
+            fmtDateTime,
+            renderDiagram,
+            renderDiagramForPrint,
+          },
         })
       : `<div class="vei-print-root"><p>Documento indisponível.</p></div>`;
 
@@ -746,7 +796,7 @@
   function detailToDraft(detail) {
     const draft = emptyDraft();
     draft.generalNotes = detail.inspection?.general_notes || "";
-    draft.diagramMarkers = detail.inspection?.diagram_markers || [];
+    draft.diagramMarkers = normalizeDiagramMarkers(detail.inspection?.diagram_markers);
     (detail.items || []).forEach((it) => {
       draft.classifications[it.item_key] = it.classification;
     });
@@ -891,12 +941,23 @@
           access_token: session,
           vehicle_id: _session.vehicle.id,
           general_notes: draft.generalNotes,
-          diagram_markers: draft.diagramMarkers,
+          diagram_markers: normalizeDiagramMarkers(draft.diagramMarkers),
           items,
           damages,
         }),
       });
-      const json = await res.json();
+      let json = {};
+      try {
+        json = await res.json();
+      } catch (parseErr) {
+        console.error("vei finalize parse", parseErr);
+        alert(
+          res.ok
+            ? "Vistoria pode ter sido gravada, mas a resposta do servidor foi inválida. Atualize a página e verifique o VNP."
+            : "Não foi possível finalizar a vistoria (resposta inválida do servidor)."
+        );
+        return;
+      }
       if (!res.ok || !json.ok) {
         const errMsg = json.error || "Não foi possível finalizar a vistoria.";
         if (/checklist|classificad|item\(ns\)|pendente/i.test(errMsg)) {
@@ -905,28 +966,58 @@
         alert(errMsg);
         return;
       }
-      await uploadPhotos(ctx, json.inspection_id, draft.damages);
-      if (global.vehicleEntryInspectionPhotosMobile?.uploadAll) {
-        await global.vehicleEntryInspectionPhotosMobile.uploadAll(ctx, json.inspection_id, _session.vehicle.id, draft, {
-          inspectorName: json.inspector_name,
-          inspectorUserId: ctx.effectiveUserId(),
-        });
+
+      let postWarn = "";
+      try {
+        await uploadPhotos(ctx, json.inspection_id, draft.damages);
+      } catch (photoErr) {
+        console.warn("vei damage photos", photoErr);
+        postWarn += "\n\nAviso: algumas fotos de avaria podem não ter sido enviadas.";
       }
-      if (typeof ctx.loadVehicles === "function") await ctx.loadVehicles();
-      if (typeof ctx.loadVehicleInspections === "function") await ctx.loadVehicleInspections();
-      if (typeof ctx.renderVehicles === "function") ctx.renderVehicles();
+      try {
+        if (global.vehicleEntryInspectionPhotosMobile?.uploadAll) {
+          await global.vehicleEntryInspectionPhotosMobile.uploadAll(
+            ctx,
+            json.inspection_id,
+            _session.vehicle.id,
+            draft,
+            {
+              inspectorName: json.inspector_name,
+              inspectorUserId: ctx.effectiveUserId(),
+            }
+          );
+        }
+      } catch (mobilePhotoErr) {
+        console.warn("vei mobile photos", mobilePhotoErr);
+        postWarn += "\n\nAviso: algumas fotos do registro mobile podem não ter sido enviadas.";
+      }
+      try {
+        if (typeof ctx.loadVehicles === "function") await ctx.loadVehicles();
+        if (typeof ctx.loadVehicleInspections === "function") await ctx.loadVehicleInspections();
+        if (typeof ctx.renderVehicles === "function") ctx.renderVehicles();
+      } catch (reloadErr) {
+        console.warn("vei reload after finalize", reloadErr);
+      }
+
       const wasEntryFlow = !_session.retroactive;
-      alert(`Vistoria nº ${json.inspection_number} concluída.\nResponsável: ${json.inspector_name}\nData: ${fmtDateTime(json.completed_at)}`);
+      const completedVehicle = _session.vehicle;
+      alert(
+        `Vistoria nº ${json.inspection_number} concluída.\nResponsável: ${json.inspector_name || "—"}\nData: ${fmtDateTime(json.completed_at)}${postWarn}`
+      );
       closeModal();
-      if (wasEntryFlow && typeof ctx.onInspectionCompleted === "function") {
-        ctx.onInspectionCompleted(_session.vehicle, {
-          inspectionId: json.inspection_id,
-          inspectionNumber: json.inspection_number,
-        });
+      try {
+        if (wasEntryFlow && typeof ctx.onInspectionCompleted === "function") {
+          ctx.onInspectionCompleted(completedVehicle, {
+            inspectionId: json.inspection_id,
+            inspectionNumber: json.inspection_number,
+          });
+        }
+      } catch (navErr) {
+        console.warn("vei onInspectionCompleted", navErr);
       }
     } catch (e) {
       console.error(e);
-      alert("Erro ao finalizar vistoria.");
+      alert("Erro ao finalizar vistoria. Verifique se a vistoria foi gravada e atualize a página.");
     } finally {
       if (btn) {
         btn.disabled = false;
@@ -1083,5 +1174,9 @@
     loadInspectionDetail,
     canStartInspection,
     vehicleHasCompletedInspection,
+    renderDiagram,
+    renderDiagramForPrint,
+    normalizeDiagramMarkers,
+    DIAGRAM_SRC,
   };
 })(typeof window !== "undefined" ? window : globalThis);
