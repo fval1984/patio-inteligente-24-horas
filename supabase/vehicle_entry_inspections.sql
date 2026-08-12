@@ -1,6 +1,21 @@
 -- Vistoria de entrada (novos veículos) — executar uma vez no SQL Editor do Supabase.
 -- NÃO altera registros existentes. Colunas novas aceitam NULL para veículos antigos.
 
+-- Status AGUARDANDO_VISTORIA (cadastro → vistoria → VNP). Ver também vehicles_status_aguardando_vistoria.sql.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'vehicle_status') THEN
+    IF NOT EXISTS (
+      SELECT 1
+      FROM pg_enum e
+      JOIN pg_type t ON e.enumtypid = t.oid
+      WHERE t.typname = 'vehicle_status' AND e.enumlabel = 'AGUARDANDO_VISTORIA'
+    ) THEN
+      ALTER TYPE vehicle_status ADD VALUE 'AGUARDANDO_VISTORIA';
+    END IF;
+  END IF;
+END $$;
+
 -- Campos opcionais no cadastro (somente preenchidos em novos registros)
 ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS ano text;
 ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS cor text;
