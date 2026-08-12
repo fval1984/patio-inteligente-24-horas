@@ -320,12 +320,6 @@
       .vei-readonly-table .on { background: rgba(212,175,55,0.2); font-weight: 800; }
       .vei-photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
       .vei-photo-grid img { width: 100%; border-radius: 8px; border: 1px solid var(--border); object-fit: cover; aspect-ratio: 4/3; }
-      @media print {
-        body * { visibility: hidden !important; }
-        .vei-print-root, .vei-print-root * { visibility: visible !important; }
-        .vei-print-root { position: absolute; left: 0; top: 0; width: 100%; padding: 12mm; background: #fff; color: #111; }
-        .vei-no-print { display: none !important; }
-      }
     `;
     document.head.appendChild(style);
   }
@@ -982,7 +976,14 @@
     const body = document.getElementById("veiModalBody");
     body.innerHTML = buildReadonlyHtml(vehicle, ctx, detail.inspection, detail);
     body.querySelector("#veiModalCloseInner")?.addEventListener("click", closeModal);
-    body.querySelector("#veiPrintBtn")?.addEventListener("click", () => window.print());
+    body.querySelector("#veiPrintBtn")?.addEventListener("click", () => {
+      const root = body.querySelector("#veiPrintDocument") || body.querySelector(".vei-print-root");
+      if (global.vehicleEntryInspectionDocument?.printDocument) {
+        global.vehicleEntryInspectionDocument.printDocument(root, detail.inspection);
+      } else {
+        alert("Impressão indisponível. Atualize a página e tente novamente.");
+      }
+    });
     body.querySelector("#veiPdfBtn")?.addEventListener("click", () => downloadPdf(ctx, vehicle, detail.inspection, detail));
   }
 
