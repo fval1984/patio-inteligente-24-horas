@@ -8153,9 +8153,9 @@
     <script src="/partners-cadastro-ui.js?v=20260727pcad3"></script>
     <script src="/dashboard-metrics-service.js?v=20260727recvfix"></script>
     <script src="/amplipatio-dashboard.js?v=20260812admpc1"></script>
-    <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260812veifix1"></script>
-    <script src="/vehicle-entry-inspection-document.js?v=20260812veifix1"></script>
-    <script src="/vehicle-entry-inspection.js?v=20260812veifix1"></script>
+    <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260812veifix2"></script>
+    <script src="/vehicle-entry-inspection-document.js?v=20260812veifix2"></script>
+    <script src="/vehicle-entry-inspection.js?v=20260812veifix2"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script>
@@ -15133,11 +15133,34 @@
         }
         const idx = {};
         (data || []).forEach((row) => {
-          if (row.vehicle_id) idx[row.vehicle_id] = row;
+          if (row.vehicle_id) idx[String(row.vehicle_id)] = row;
         });
         state.inspectionIndex = idx;
       }
       window.loadVehicleInspections = loadVehicleInspections;
+
+      function getInspectionIndexEntry(vehicleId) {
+        const idx = state.inspectionIndex || {};
+        if (vehicleId == null || vehicleId === "") return null;
+        const key = String(vehicleId);
+        return idx[key] || idx[vehicleId] || null;
+      }
+
+      /** Consultar vistoria concluída na VNP/VLP (ADM no PC sempre vê o botão). */
+      function vnpShouldShowVistoriaViewButton(v) {
+        if (!v) return false;
+        if (getInspectionIndexEntry(v.id)) return true;
+        if (isAdmDesktopPc() && isVehicleOnPatio(v)) return true;
+        return false;
+      }
+
+      function vnpShouldShowVistoriaStartButton(v) {
+        if (!v || isAdmDesktopPc()) return false;
+        if (getInspectionIndexEntry(v.id)) return false;
+        return window.vehicleEntryInspection?.canStartInspection
+          ? window.vehicleEntryInspection.canStartInspection(v, buildVehicleInspectionCtx())
+          : isVehicleOnPatio(v);
+      }
 
       function buildVehicleInspectionCtx() {
         return {
@@ -16109,17 +16132,11 @@
           return `<span class="notice">Aguardando revisão do ADM</span>`;
         }
         const parts = [];
-        const hasVei = !!state.inspectionIndex?.[v.id];
-        const canVei =
-          !hasVei &&
-          (window.vehicleEntryInspection?.canStartInspection
-            ? window.vehicleEntryInspection.canStartInspection(v, buildVehicleInspectionCtx())
-            : isVehicleOnPatio(v));
-        if (hasVei) {
+        if (vnpShouldShowVistoriaViewButton(v)) {
           parts.push(
             `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
           );
-        } else if (canVei) {
+        } else if (vnpShouldShowVistoriaStartButton(v)) {
           parts.push(`<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`);
         }
         parts.push(`<button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>`);
@@ -16190,16 +16207,9 @@
           } else if (canEfetivarRemocaoVrp(v)) {
             fluxoBtn = `<button class="secondary" data-action="confirmar" data-id="${v.id}">VRP</button>`;
           }
-          const hasVei = !!state.inspectionIndex?.[v.id];
-          const canVei =
-            !hasVei &&
-            !isAdmDesktopPc() &&
-            (window.vehicleEntryInspection?.canStartInspection
-              ? window.vehicleEntryInspection.canStartInspection(v, buildVehicleInspectionCtx())
-              : isVehicleOnPatio(v));
-          const veiBtn = hasVei
+          const veiBtn = vnpShouldShowVistoriaViewButton(v)
             ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
-            : canVei
+            : vnpShouldShowVistoriaStartButton(v)
               ? `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`
               : "";
           actionsCell = `
@@ -19955,7 +19965,7 @@
 
         if (action === "ver_vistoria") {
           if (window.vehicleEntryInspection?.openForVehicle) {
-            const insp = state.inspectionIndex?.[vehicle.id] || null;
+            const insp = getInspectionIndexEntry(vehicle.id);
             await window.vehicleEntryInspection.openForVehicle(vehicle, buildVehicleInspectionCtx(), {
               mode: "view",
               inspection: insp,
