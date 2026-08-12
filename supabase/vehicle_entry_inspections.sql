@@ -277,3 +277,5 @@ $$;
 
 REVOKE ALL ON FUNCTION complete_vehicle_entry_inspection FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION complete_vehicle_entry_inspection TO service_role;
+
+NOTIFY pgrst, 'reload schema';
