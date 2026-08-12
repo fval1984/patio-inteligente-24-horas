@@ -3080,6 +3080,16 @@
       #viewPatio .vnp-situacao {
         margin-top: 6px;
       }
+      #viewPatio tr.vnp-row-pending-adm-review,
+      #viewLista tr.vnp-row-pending-adm-review {
+        background: rgba(56, 189, 248, 0.14);
+        box-shadow: inset 4px 0 0 0 rgba(14, 165, 233, 0.95);
+      }
+      [data-theme="light"] #viewPatio tr.vnp-row-pending-adm-review,
+      [data-theme="light"] #viewLista tr.vnp-row-pending-adm-review {
+        background: rgba(186, 230, 253, 0.65);
+        box-shadow: inset 4px 0 0 0 rgba(2, 132, 199, 0.95);
+      }
       #viewPatio tr.vnp-row-liberacao,
       #viewLista tr.vnp-row-liberacao {
         background: rgba(245, 158, 11, 0.1);
@@ -6409,7 +6419,7 @@
         </div>
         <div id="gestorPistaWelcomeBanner" class="gestor-pista-welcome hidden" role="status">
           <p class="notice gestor-pista-welcome-text">
-            <strong>Gestor de pista.</strong> Entrou com o acesso que o gestor geral criou. Use a <strong>Gestão de pátio</strong> para cadastro e consultas operacionais (sem valores financeiros nem definições do dono).
+            <strong>Gestor de pista.</strong> Cadastre veículos, faça vistorias e consulte o pátio. Novos cadastros ficam <strong>aguardando revisão do ADM</strong>. Valores, diárias e dias no pátio não são exibidos neste perfil.
           </p>
           <button type="button" class="secondary" id="gestorPistaWelcomeDismiss">Entendi</button>
         </div>
@@ -11767,6 +11777,24 @@
         return false;
       }
 
+      function isPendingAdmReview(v) {
+        if (!v) return false;
+        const flag = v.pending_adm_review;
+        return (
+          flag === true ||
+          flag === 1 ||
+          flag === "1" ||
+          flag === "t" ||
+          flag === "true" ||
+          flag === "TRUE"
+        );
+      }
+
+      /** Veículo liberado com remoção solicitada — gestor de pista pode efetivar baixa/saída. */
+      function isGestorAguardandoRemocao(vehicle) {
+        return !!vehicle && canEfetivarRemocaoVrp(vehicle) && isRemocaoSolicitada(vehicle);
+      }
+
       async function getVehicleWorkflowActors(vehicleId) {
         const actors = {
           solicitante: "",
@@ -11910,19 +11938,21 @@
         return true;
       }
 
-      /** VNP: liberação solicitada no topo; demais veículos por entrada mais recente. */
+      /** VNP: revisão ADM pendente no topo; liberação solicitada em seguida; demais por entrada. */
       function patioVehicleDisplayRank(v) {
         if (!v) return 10;
+        if (isPendingAdmReview(v)) return -1;
         if (v.status === "LIBERACAO_SOLICITADA") return 0;
         return 10;
       }
 
       function isVehiclePatioDestaque(v) {
-        return !!v && v.status === "LIBERACAO_SOLICITADA";
+        return !!v && (isPendingAdmReview(v) || v.status === "LIBERACAO_SOLICITADA");
       }
 
       function patioVehicleDestaqueRowClass(v) {
-        return isVehiclePatioDestaque(v) ? "vnp-row-liberacao-solicitada" : "";
+        if (isPendingAdmReview(v)) return "vnp-row-pending-adm-review";
+        return v.status === "LIBERACAO_SOLICITADA" ? "vnp-row-liberacao-solicitada" : "";
       }
 
       function sortVnpOnPatioForDisplay(list) {
@@ -16045,6 +16075,37 @@
         });
       }
 
+      function buildGestorPistaVnpActions(v) {
+        if (isPendingAdmReview(v)) {
+          return `<span class="notice">Aguardando revisão do ADM</span>`;
+        }
+        const parts = [];
+        const hasVei = !!state.inspectionIndex?.[v.id];
+        const canVei =
+          !hasVei &&
+          (window.vehicleEntryInspection?.canStartInspection
+            ? window.vehicleEntryInspection.canStartInspection(v, buildVehicleInspectionCtx())
+            : isVehicleOnPatio(v));
+        if (hasVei) {
+          parts.push(
+            `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
+          );
+        } else if (canVei) {
+          parts.push(`<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`);
+        }
+        parts.push(`<button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>`);
+        if (v.status === "LIBERACAO_SOLICITADA") {
+          parts.push(
+            `<button class="secondary" data-action="confirmar_liberacao" data-id="${v.id}">Liberação confirmada</button>`
+          );
+        } else if (isGestorAguardandoRemocao(v)) {
+          parts.push(
+            `<button class="secondary" data-action="confirmar" data-id="${v.id}">Baixa / Remoção</button>`
+          );
+        }
+        return parts.join(" ");
+      }
+
       function buildVnpUnifiedRowHtml(v, opts = {}) {
         const registoKind = opts.registoKind || "vnp";
         const total = calcTotal(v);
@@ -16060,32 +16121,40 @@
         const rowClasses = [];
         const destaqueCls = patioVehicleDestaqueRowClass(v);
         if (destaqueCls) rowClasses.push(destaqueCls);
-        if (semValorDiaria) rowClasses.push("vnp-row-sem-valor");
+        if (semValorDiaria && !isPendingAdmReview(v)) rowClasses.push("vnp-row-sem-valor");
         const rowClass = rowClasses.join(" ");
         const situacaoTags = [];
-        if (emPipeline) {
+        if (isPendingAdmReview(v)) {
+          situacaoTags.push(
+            `<span class="tag warning">Aguardando revisão do ADM</span>` +
+              `<span class="tag notice">Cadastro gestor de pista</span>`
+          );
+        }
+        if (emPipeline && !isPendingAdmReview(v)) {
           situacaoTags.push(
             `<span class="tag warning">${escapeHtml(VLS_STATUS_LABELS[v.status] || v.status || "-")}</span>`
           );
         }
-        if (semValorDiaria) {
+        if (semValorDiaria && !isPendingAdmReview(v)) {
           situacaoTags.push(`<span class="tag danger">Sem valor</span>`);
         }
         if (v.status !== "REMocao_CONFIRMADA" && isRemocaoSolicitada(v)) {
-          situacaoTags.push(`<span class="tag notice">Remoção solicitada</span>`);
+          situacaoTags.push(
+            `<span class="tag notice">${isGestorAguardandoRemocao(v) ? "Aguardando remoção" : "Remoção solicitada"}</span>`
+          );
         }
         const situacaoHtml = situacaoTags.length > 0 ? `<div class="vnp-situacao">${situacaoTags.join("")}</div>` : "";
 
         let actionsCell = "";
         if (isGestorPista) {
-          if (v.status === "LIBERACAO_SOLICITADA") {
-            actionsCell = `<button class="secondary" data-action="confirmar_liberacao" data-id="${v.id}">Liberação confirmada</button>`;
-          } else {
-            actionsCell = `<span class="notice">Sem permissão de ação</span>`;
-          }
+          actionsCell = buildGestorPistaVnpActions(v);
         } else {
           let fluxoBtn = "";
-          if (v.status === "NO_PATIO") {
+          if (isPendingAdmReview(v)) {
+            fluxoBtn =
+              `<button class="secondary" data-action="editar" data-id="${v.id}">Revisar registro</button>` +
+              `<button class="secondary" data-action="validar_adm_review" data-id="${v.id}">Validar registro</button>`;
+          } else if (v.status === "NO_PATIO") {
             fluxoBtn = `<button class="secondary" data-action="solicitar" data-id="${v.id}">Liberação solicitada</button>`;
           } else if (v.status === "LIBERACAO_SOLICITADA") {
             fluxoBtn = `<button class="secondary" data-action="confirmar_liberacao" data-id="${v.id}">Confirmar liberação</button>`;
@@ -16143,18 +16212,23 @@
       }
 
       function buildListaVnpRowHtml(v, ocultarValorColuna, locLabel) {
-        const sit =
+        let sit =
           v.status === "NO_PATIO"
             ? isRemocaoSolicitada(v)
-              ? "No pátio · remoção solicitada"
+              ? "No pátio · aguardando remoção"
               : "No pátio"
             : VLS_STATUS_LABELS[v.status] || v.status || "-";
+        if (isPendingAdmReview(v)) sit = "Aguardando revisão do ADM";
+        else if (isGestorAguardandoRemocao(v)) sit = "Aguardando remoção";
+        const pendingTag = isPendingAdmReview(v)
+          ? `<div class="vnp-situacao"><span class="tag warning">Aguardando revisão do ADM</span><span class="tag notice">Gestor de pista</span></div>`
+          : "";
         const val = ocultarValorColuna
           ? ""
           : `<td data-label="Valor">${escapeHtml(formatCurrency(calcTotal(v)))}</td>`;
         const rowCls = patioVehicleDestaqueRowClass(v);
         return `<tr${rowCls ? ` class="${rowCls}"` : ""} data-vehicle-row="${v.id}">
-          <td data-label="Placa">${escapeHtml(v.placa || "-")}</td>
+          <td data-label="Placa">${escapeHtml(v.placa || "-")}${pendingTag}</td>
           <td data-label="Registo">${patioRegistoBadgeHtml(isVlpStatus(v.status) ? "vlp" : "vnp")}</td>
           <td data-label="Veículo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</td>
           <td data-label="RPV">${escapeHtml(locLabel(v.localizador_id))}</td>
@@ -16773,25 +16847,38 @@
 
         if (isGestorPista) {
           const locNome = state.partners.find((p) => p.id === vehicle.localizador_id)?.nome || "-";
-          const dias = calcDays(vehicle);
-          const horas = calcHours(vehicle);
           fichaResumo.innerHTML = `
             <strong>${vehicle.placa || "-"}</strong> • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-"}<br />
             RPV: ${escapeHtml(locNome)}<br />
             Entrada: ${formatDateTime(vehicle.data_entrada)}<br />
-            <span class="notice">Tempo no pátio: ${dias} dia(s) • ${horas} h (referência operacional, sem valores).</span>
           `;
           if (fichaSectionSnf) {
-            fichaSectionSnf.innerHTML = `<p class="notice" style="margin:0">Nota fiscal e valores não estão disponíveis para o gestor de pista.</p>`;
+            fichaSectionSnf.innerHTML = `<p class="notice" style="margin:0">Valores, diárias e informações financeiras não estão disponíveis para o gestor de pista.</p>`;
           }
           if (fichaSectionSlv) {
-            const sit = VLS_STATUS_LABELS[vehicle.status] || vehicle.status || "-";
-            const remG = isRemocaoSolicitada(vehicle)
-              ? " • Remoção solicitada (registada)"
-              : "";
-            fichaSectionSlv.innerHTML = `<p class="notice" style="margin:0">Situação: <strong>${escapeHtml(
-              sit
-            )}</strong>${escapeHtml(remG)}. Liberação e alterações só pelo administrador.</p>`;
+            let sit = VLS_STATUS_LABELS[vehicle.status] || vehicle.status || "-";
+            if (isPendingAdmReview(vehicle)) sit = "Aguardando revisão do ADM";
+            else if (isGestorAguardandoRemocao(vehicle)) sit = "Aguardando remoção";
+            else if (isRemocaoSolicitada(vehicle)) sit += " · remoção solicitada";
+            const botoes = [];
+            if (!isPendingAdmReview(vehicle)) {
+              if (vehicle.status === "LIBERACAO_SOLICITADA") {
+                botoes.push(
+                  `<button type="button" class="secondary" data-action="confirmar_liberacao" data-id="${vehicle.id}">Liberação confirmada</button>`
+                );
+              } else if (isGestorAguardandoRemocao(vehicle)) {
+                botoes.push(
+                  `<button type="button" class="secondary" data-action="confirmar" data-id="${vehicle.id}">Baixa / Remoção</button>`
+                );
+              }
+            }
+            fichaSectionSlv.innerHTML =
+              `<p class="notice" style="margin:0">Situação: <strong>${escapeHtml(sit)}</strong>.` +
+              (isPendingAdmReview(vehicle)
+                ? " Cadastro aguardando revisão do ADM."
+                : " Edição e exclusão só pelo administrador.") +
+              `</p>` +
+              (botoes.length ? `<div class="ficha-inline-actions">${botoes.join("")}</div>` : "");
           }
         } else {
           const { data: ciclos, error: ciclosError } = await supabase
@@ -16846,7 +16933,10 @@
         if (fichaSectionSlv && !isGestorPista) {
             const rem = isRemocaoSolicitada(vehicle);
             let situacao = "";
-            if (vehicle.status === "NO_PATIO") {
+            if (isPendingAdmReview(vehicle)) {
+              situacao =
+                '<p class="notice" style="margin:0"><strong>Aguardando revisão do ADM</strong> — cadastro feito pelo gestor de pista. Revise os dados, complemente valores se necessário e valide o registro.</p>';
+            } else if (vehicle.status === "NO_PATIO") {
               situacao =
                 '<p class="notice" style="margin:0">Veículo <strong>no pátio</strong>. Pode registar <strong>liberação solicitada</strong>.</p>';
             } else if (vehicle.status === "LIBERACAO_SOLICITADA") {
@@ -16864,7 +16954,12 @@
               )}</p>`;
             }
             const botoes = [];
-            if (vehicle.status === "NO_PATIO") {
+            if (isPendingAdmReview(vehicle)) {
+              botoes.push(
+                `<button type="button" class="secondary" data-action="editar" data-id="${vehicle.id}">Revisar registro</button>`,
+                `<button type="button" class="secondary" data-action="validar_adm_review" data-id="${vehicle.id}">Validar registro</button>`
+              );
+            } else if (vehicle.status === "NO_PATIO") {
               botoes.push(
                 `<button type="button" class="secondary" data-action="solicitar" data-id="${vehicle.id}">Liberação solicitada</button>`
               );
@@ -18943,6 +19038,11 @@
           payload.nfse_status = "NAO_SOLICITADA";
           payload.nfse_requested_at = null;
           payload.nfse_issued_at = null;
+          if (gestorCreate) {
+            payload.pending_adm_review = true;
+            payload.registered_by_gestor = true;
+            payload.adm_reviewed_at = null;
+          }
         }
         const runVehicleSave = (p) =>
           editingVehicleId
@@ -18982,6 +19082,13 @@
           delete o.cor;
           return o;
         };
+        const stripAdmReviewFrom = (p) => {
+          const o = { ...p };
+          delete o.pending_adm_review;
+          delete o.registered_by_gestor;
+          delete o.adm_reviewed_at;
+          return o;
+        };
         const advancedKindsFromError = (msg) => {
           const m = msg || "";
           const kinds = [];
@@ -18989,6 +19096,7 @@
           if (/leiloeiro_id/i.test(m)) kinds.push("leiloeiro");
           if (/responsavel_financeiro_/i.test(m)) kinds.push("rpf");
           if (/entry_inspection_flow|(\bcor\b)/i.test(m)) kinds.push("entryflow");
+          if (/pending_adm_review|registered_by_gestor|adm_reviewed_at/i.test(m)) kinds.push("admreview");
           if (/AGUARDANDO_VISTORIA|check constraint|vehicles_status/i.test(m)) kinds.push("status");
           return kinds;
         };
@@ -19017,6 +19125,7 @@
             else if (k === "leiloeiro") tryPayload = stripLeiloeiroFrom(tryPayload);
             else if (k === "rpf") tryPayload = stripRpfFrom(tryPayload);
             else if (k === "entryflow") tryPayload = stripEntryFlowFrom(tryPayload);
+            else if (k === "admreview") tryPayload = stripAdmReviewFrom(tryPayload);
             else if (k === "status" && !editingVehicleId) {
               alert(
                 "Não foi possível cadastrar o veículo no fluxo de vistoria (status Aguardando vistoria).\n\n" +
@@ -19040,12 +19149,18 @@
           if (degradedGroups.includes("entryflow")) {
             partes.push("cor e fluxo de vistoria eletrônica (entry_inspection_flow)");
           }
+          if (degradedGroups.includes("admreview")) {
+            partes.push("revisão ADM do gestor de pista (pending_adm_review)");
+          }
           const sqlHints = [];
           if (degradedGroups.some((k) => ["vistoria", "leiloeiro", "rpf"].includes(k))) {
             sqlHints.push("supabase/vehicles_recursos_avancados.sql");
           }
           if (degradedGroups.includes("entryflow")) {
             sqlHints.push("supabase/vehicle_entry_inspections.sql (início do ficheiro)");
+          }
+          if (degradedGroups.includes("admreview")) {
+            sqlHints.push("supabase/vehicles_gestor_adm_review.sql");
           }
           const sqlText =
             sqlHints.length === 1
@@ -19095,7 +19210,11 @@
             });
           }
         } else if (wasNewVehicle) {
-          alert("Veículo cadastrado. Conclua a vistoria de entrada antes de utilizá-lo no VNP.");
+          alert(
+            gestorCreate
+              ? "Veículo cadastrado pelo gestor de pista. O registro ficará marcado como «Aguardando revisão do ADM» até validação. Conclua a vistoria de entrada."
+              : "Veículo cadastrado. Conclua a vistoria de entrada antes de utilizá-lo no VNP."
+          );
         }
       });
 
@@ -19692,8 +19811,70 @@
         const vehicle = state.vehicles.find((v) => v.id === id);
         if (!vehicle) return;
 
-        if (isGestorPista && action !== "confirmar_liberacao") {
-          alert("O gestor de pista não pode executar esta ação.");
+        if (isGestorPista) {
+          const gestorAllowed = new Set([
+            "confirmar_liberacao",
+            "confirmar",
+            "ficha",
+            "vistoria",
+            "ver_vistoria",
+          ]);
+          if (!gestorAllowed.has(action)) {
+            alert("O gestor de pista não pode executar esta ação.");
+            return;
+          }
+          if (isPendingAdmReview(vehicle) && (action === "confirmar_liberacao" || action === "confirmar")) {
+            alert("Este veículo aguarda revisão do ADM antes de seguir no fluxo operacional.");
+            return;
+          }
+          if (action === "confirmar" && !isGestorAguardandoRemocao(vehicle)) {
+            alert("A baixa só pode ser feita em veículos com status «Aguardando remoção» (liberação confirmada e remoção solicitada).");
+            return;
+          }
+        }
+
+        if (action === "validar_adm_review") {
+          if (isGestorPista) {
+            alert("Somente o administrador pode validar este registro.");
+            return;
+          }
+          if (!isPendingAdmReview(vehicle)) {
+            alert("Este veículo não está aguardando revisão do ADM.");
+            return;
+          }
+          if (
+            !confirm(
+              "Validar o registro deste veículo? O destaque «Aguardando revisão do ADM» será removido."
+            )
+          )
+            return;
+          const { error: valErr } = await supabase
+            .from("vehicles")
+            .update({
+              pending_adm_review: false,
+              adm_reviewed_at: new Date().toISOString(),
+            })
+            .eq("id", id)
+            .eq("user_id", effectiveUserId());
+          if (valErr) {
+            alert(
+              valErr.message +
+                (/pending_adm_review|column|schema cache|PGRST204/i.test(valErr.message || "")
+                  ? " Execute no Supabase o ficheiro supabase/vehicles_gestor_adm_review.sql."
+                  : "")
+            );
+            return;
+          }
+          await supabase.from("vehicle_events").insert({
+            vehicle_id: id,
+            tipo: "ADM_REVIEW_VALIDADO",
+            responsavel: state.user?.email || "Administrador",
+            descricao: "Cadastro do gestor de pista revisado e validado pelo ADM.",
+          });
+          await loadVehicles();
+          renderVehicles();
+          updateDashboard();
+          await refreshFichaIfOpen(id);
           return;
         }
 
