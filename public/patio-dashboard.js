@@ -566,7 +566,22 @@
     ];
 
     el.innerHTML = [
-      ...(isGestorPista ? gestorCards : fullCards),
+      ...(isGestorPista
+        ? [
+            renderCard({
+              theme: "occupancy",
+              icon: "occupancy",
+              label: "Média de ocupação do pátio",
+              value: fmtVehicles(m.avgOccupancy),
+              meta: `último dia fechado: ${m.occupancyLastClosed} veículo(s)`,
+              trend: m.occupancyTrend,
+              trendLabel: "vs. 30 dias anteriores",
+              compare: "Veículos no pátio por dia fechado (desde abr/2026)",
+              spark: m.occupancySpark,
+              sparkColor: "#22d3ee",
+            }),
+          ]
+        : fullCards),
       `<p class="patio-ops-footnote">${escapeHtml(footnote)} · ${m.vehicleCount} veículo(s)</p>`,
     ].join("");
   }
