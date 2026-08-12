@@ -173,8 +173,7 @@
         background: rgba(148,163,184,0.18); overflow: hidden;
       }
       .vei-progress-bar i { display: block; height: 100%; background: linear-gradient(90deg, #d4af37, #34d399); transition: width 0.25s; }
-      .vei-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 320px); gap: 18px; align-items: start; }
-      @media (max-width: 980px) { .vei-layout { grid-template-columns: 1fr; } }
+      .vei-layout { display: block; }
       .vei-layout > * { min-width: 0; }
       .vei-section { margin-bottom: 20px; }
       .vei-section h4 {
@@ -229,6 +228,9 @@
         background: var(--bg); color: inherit; padding: 8px 10px; font: inherit;
       }
       .vei-notes { width: 100%; min-height: 88px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: inherit; padding: 10px 12px; font: inherit; }
+      .vei-notes-block { margin-top: 20px; }
+      .vei-notes-block label { display: block; font-weight: 600; margin-bottom: 8px; }
+      .vei-damage-host-hidden { display: none !important; }
       .vei-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; justify-content: flex-end; }
       .vei-readonly-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
       .vei-readonly-table th, .vei-readonly-table td { border: 1px solid rgba(148,163,184,0.18); padding: 6px 8px; text-align: center; }
@@ -513,12 +515,10 @@
     const progressBar = root.querySelector("#veiProgressBar i");
     const checklistHost = root.querySelector("#veiChecklistHost");
     const diagramHost = root.querySelector("#veiDiagramHost");
-    const damageListHost = root.querySelector("#veiDamageListHost");
     if (progressText) progressText.textContent = `Vistoria: ${pct}% concluída`;
     if (progressBar) progressBar.style.width = `${pct}%`;
     if (checklistHost) checklistHost.innerHTML = renderChecklistRows(draft, false);
     if (diagramHost) diagramHost.innerHTML = renderDiagram(draft, false);
-    if (damageListHost) damageListHost.innerHTML = renderDamageList(draft, false);
     const warn = root.querySelector("#veiMissingWarn");
     if (warn) {
       warn.textContent = miss.length ? `Itens pendentes: ${miss.slice(0, 6).join(", ")}${miss.length > 6 ? "…" : ""}` : "";
@@ -534,24 +534,20 @@
       `<div class="vei-progress-bar" id="veiProgressBar"><i style="width:${pct}%"></i></div></div>` +
       `<p id="veiMissingWarn" class="notice hidden" style="color:#fbbf24;margin:0 0 12px"></p>` +
       '<div class="vei-layout">' +
-      '<div><div id="veiChecklistHost">' +
+      '<div id="veiChecklistHost">' +
       renderChecklistRows(draft, false) +
-      "</div>" +
-      '<label style="display:block;margin-top:14px;font-weight:600">Observações gerais da vistoria</label>' +
-      `<textarea class="vei-notes" id="veiGeneralNotes" placeholder="Informações adicionais…">${esc(draft.generalNotes)}</textarea>` +
-      "</div>" +
-      '<div class="vei-side-panel">' +
-      '<h4 style="margin:0 0 8px;font-size:0.85rem">Avarias</h4>' +
-      '<div id="veiDamageFormHost"></div>' +
-      '<div id="veiDamageListHost">' +
-      renderDamageList(draft, false) +
-      "</div>" +
       "</div></div>" +
       '<div class="vei-diagram-footer">' +
       '<h4>Diagrama de avarias — 4 vistas</h4>' +
       '<div id="veiDiagramHost">' +
       renderDiagram(draft, false) +
       "</div></div>" +
+      '<div id="veiDamageFormHost"></div>' +
+      '<div id="veiDamageListHost" class="vei-damage-host-hidden" aria-hidden="true"></div>' +
+      '<div class="vei-notes-block">' +
+      '<label for="veiGeneralNotes">Observações gerais da vistoria</label>' +
+      `<textarea class="vei-notes" id="veiGeneralNotes" placeholder="Informações adicionais…">${esc(draft.generalNotes)}</textarea>` +
+      "</div>" +
       '<div class="vei-actions vei-no-print">' +
       '<button type="button" class="secondary" id="veiModalCloseInner">Cancelar</button>' +
       '<button type="button" id="veiFinalizeBtn">Finalizar vistoria</button>' +
