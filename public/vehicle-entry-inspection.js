@@ -206,8 +206,14 @@
         padding: 14px; background: rgba(15,23,42,0.35);
         min-width: 0; max-width: 100%; overflow: hidden;
       }
-      .vei-diagram-wrap { text-align: center; margin-bottom: 12px; width: 100%; max-width: 280px; margin-left: auto; margin-right: auto; }
-      .vei-diagram { width: 100%; max-width: 280px; height: auto; display: block; margin: 0 auto; cursor: crosshair; touch-action: manipulation; }
+      .vei-diagram-footer {
+        width: 100%; margin: 24px 0 8px; text-align: center; clear: both;
+      }
+      .vei-diagram-footer > h4 {
+        margin: 0 0 12px; font-size: 0.85rem; letter-spacing: 0.04em;
+      }
+      .vei-diagram-wrap { text-align: center; margin-bottom: 0; width: 100%; max-width: min(640px, 100%); margin-left: auto; margin-right: auto; }
+      .vei-diagram { width: 100%; max-width: min(640px, 100%); height: auto; display: block; margin: 0 auto; cursor: crosshair; touch-action: manipulation; }
       .vei-diagram .vei-diagram-img { pointer-events: none; }
       .vei-diagram .vei-marker { fill: #ef4444; stroke: #fff; stroke-width: 2; pointer-events: none; }
       .vei-damage-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
@@ -535,15 +541,16 @@
       `<textarea class="vei-notes" id="veiGeneralNotes" placeholder="Informações adicionais…">${esc(draft.generalNotes)}</textarea>` +
       "</div>" +
       '<div class="vei-side-panel">' +
-      '<h4 style="margin:0 0 8px;font-size:0.85rem">Diagrama do veículo</h4>' +
-      '<div id="veiDiagramHost">' +
-      renderDiagram(draft, false) +
-      "</div>" +
-      '<h4 style="margin:14px 0 8px;font-size:0.85rem">Avarias</h4>' +
+      '<h4 style="margin:0 0 8px;font-size:0.85rem">Avarias</h4>' +
       '<div id="veiDamageFormHost"></div>' +
       '<div id="veiDamageListHost">' +
       renderDamageList(draft, false) +
       "</div>" +
+      "</div></div>" +
+      '<div class="vei-diagram-footer">' +
+      '<h4>Diagrama de avarias — 4 vistas</h4>' +
+      '<div id="veiDiagramHost">' +
+      renderDiagram(draft, false) +
       "</div></div>" +
       '<div class="vei-actions vei-no-print">' +
       '<button type="button" class="secondary" id="veiModalCloseInner">Cancelar</button>' +
