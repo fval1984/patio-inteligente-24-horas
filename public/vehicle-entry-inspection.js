@@ -1036,11 +1036,20 @@
       .map((v) => {
         const loc = partnerName(ctx, v.localizador_id);
         const isGp = !!ctx.isGestorPista;
-        const actions = isGp
-          ? `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`
-          : `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>` +
+        const isAdmPc = !!ctx.isAdmDesktopPc;
+        let actions = "";
+        if (isGp) {
+          actions = `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`;
+        } else if (isAdmPc) {
+          actions =
             `<button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>` +
             `<button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>`;
+        } else {
+          actions =
+            `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>` +
+            `<button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>` +
+            `<button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>`;
+        }
         return (
           `<tr data-vehicle-row="${v.id}">` +
           `<td data-label="Placa">${esc(v.placa || "—")}</td>` +
