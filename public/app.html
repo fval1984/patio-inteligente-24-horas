@@ -6376,6 +6376,7 @@
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme7" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260813vistui1" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile6" />
+    <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate1" />
   </head>
   <body>
     <noscript>
@@ -7480,9 +7481,12 @@
           </div>
           <form id="vehicleForm">
             <div class="form-grid">
-              <div>
-                <label>Placa</label>
-                <input id="vehiclePlate" type="text" placeholder="ABC1D23" required />
+              <div class="vp-field-wrap">
+                <label for="vehiclePlate">Placa</label>
+                <div class="vp-input-row">
+                  <input id="vehiclePlate" type="text" placeholder="ABC1D23" required data-vp-live autocapitalize="characters" spellcheck="false" />
+                  <div class="vp-preview-slot" id="vehiclePlatePreview" aria-live="polite"></div>
+                </div>
               </div>
               <div>
                 <label>Marca</label>
@@ -8340,6 +8344,7 @@
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260813avaria1"></script>
     <script src="/vehicle-entry-inspection-document.js?v=20260813avaria1"></script>
     <script src="/vehicle-entry-inspection.js?v=20260813vistui1"></script>
+    <script src="/vehicle-plate-ui.js?v=20260813plate1"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script>
@@ -11980,6 +11985,23 @@
           .replace(/"/g, "&quot;");
       }
 
+      function plateVisualHtml(placa, size = "sm", showText = false) {
+        if (typeof window.vehiclePlateUI?.renderHtml === "function") {
+          return window.vehiclePlateUI.renderHtml(placa, {
+            size,
+            showText,
+            showEmpty: true,
+            placeholder: "—",
+          });
+        }
+        return escapeHtml(placa || "—");
+      }
+
+      function refreshVehiclePlatePreviewInput() {
+        const el = document.getElementById("vehiclePlate");
+        if (el) el.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+
       const VLS_PRINT_STATUSES = ["LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA"];
       const VLS_STATUS_LABELS = {
         LIBERACAO_SOLICITADA: "Liberação solicitada",
@@ -12227,7 +12249,7 @@
       function patioPrintVehicleLine(v) {
         const vehicleLine = [v.marca, v.modelo].filter(Boolean).join(" ").trim() || "-";
         const placa = v.placa || "-";
-        return `${escapeHtml(placa)} — ${escapeHtml(vehicleLine)}`;
+        return `${plateVisualHtml(placa, "sm", true)} — ${escapeHtml(vehicleLine)}`;
       }
 
       function patioPrintPartnerNames(v) {
@@ -12580,7 +12602,7 @@
         };
         const veiculoCell = (v) =>
           v
-            ? `${escapeHtml(v.placa || "-")} — ${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}`
+            ? `${plateVisualHtml(v.placa, "sm")} — ${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}`
             : escapeHtml("Veículo não encontrado");
         const locNome = (v) => (v?.localizador_id ? partnerByIdMap.get(v.localizador_id) || "-" : "-");
         const diariasPatioCell = (v) => {
@@ -12924,7 +12946,7 @@
             .map((v) => {
               const val = semVal ? "" : `<td data-label="Valor">${escapeHtml(formatCurrency(calcTotal(v)))}</td>`;
               return `<tr>
-                <td data-label="Placa">${escapeHtml(v.placa || "-")}</td>
+                <td data-label="Placa">${plateVisualHtml(v.placa, "sm")}</td>
                 <td data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td data-label="Veículo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</td>
                 <td data-label="RPV">${escapeHtml(locLabel(v.localizador_id))}</td>
@@ -12950,7 +12972,7 @@
               const v = vehicleById.get(r.vehicle_id);
               const saida = v?.data_saida || r.period_end;
               return `<tr>
-                <td data-label="Placa">${escapeHtml(v?.placa || "—")}</td>
+                <td data-label="Placa">${plateVisualHtml(v?.placa, "sm")}</td>
                 <td data-label="Veículo">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</td>
                 <td data-label="RPV">${escapeHtml(locLabel(v?.localizador_id))}</td>
                 <td data-label="RPP">${escapeHtml(vehicleRpfNome(v))}</td>
@@ -12989,7 +13011,7 @@
               const saiLabel = saiRaw ? formatDate(saiRaw) : "—";
               const st = r.status === "EM_ABERTO" ? "Em aberto" : r.status || "—";
               return `<tr>
-              <td data-label="Veículo / responsável"><span class="lista-receber-placa">${escapeHtml(placa)}</span> · ${escapeHtml(vm)}<br /><span class="notice" style="font-size:0.86rem">${escapeHtml(financeReceivableDisplayText(r))}</span></td>
+              <td data-label="Veículo / responsável">${plateVisualHtml(placa, "xs")} · ${escapeHtml(vm)}<br /><span class="notice" style="font-size:0.86rem">${escapeHtml(financeReceivableDisplayText(r))}</span></td>
               <td data-label="Entrada (pátio)">${escapeHtml(entLabel)}</td>
               <td data-label="Saída">${escapeHtml(saiLabel)}</td>
               <td data-label="Diárias">${listaReceberDiariasCellHtml(r, vehicle)}</td>
@@ -13077,6 +13099,9 @@
         body.innerHTML = `<tr><td class="notice">Vista de lista não reconhecida.</td></tr>`;
         } finally {
           updateListaCaptureSummary();
+          if (typeof window.vehiclePlateUI?.hydrate === "function") {
+            window.vehiclePlateUI.hydrate(document.getElementById("listaCaptureRoot"));
+          }
         }
       }
 
@@ -16370,6 +16395,10 @@
           setPlateSearchHints("", false);
           setPatioView(currentPatioView, { silent: true });
         }
+        if (typeof window.vehiclePlateUI?.hydrate === "function") {
+          window.vehiclePlateUI.hydrate(document.getElementById("patioContent"));
+          window.vehiclePlateUI.hydrate(document.getElementById("listaCaptureRoot"));
+        }
       }
 
       function applyGlobalPlateSearchLayout(byStatus, vlsFilteredCount, fechandoCicloCount) {
@@ -16442,11 +16471,11 @@
       }
 
       function buildPatioMobileCompactLine(v) {
-        const placa = escapeHtml(v.placa || "-");
+        const plate = plateVisualHtml(v.placa, "xs");
         const marca = escapeHtml(v.marca || "-");
         const modelo = escapeHtml(v.modelo || "-");
         const dias = calcDays(v);
-        return `${placa} - ${marca} - ${modelo} - ${dias}`;
+        return `<span class="patio-mob-compact-line">${plate}<span class="patio-mob-compact-meta">${marca} - ${modelo} - ${dias}</span></span>`;
       }
 
       function buildPatioMobileListCellsHtml(v, colspan) {
@@ -16567,7 +16596,7 @@
         return `
           <tr class="${rowClass}" data-vehicle-row="${v.id}">
             ${buildPatioMobileListCellsHtml(v, 8)}
-            <td class="patio-desk-only" data-label="Placa">${v.placa || "-"}${situacaoHtml}</td>
+            <td class="patio-desk-only" data-label="Placa">${plateVisualHtml(v.placa, "sm")}${situacaoHtml}</td>
             <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml(registoKind === "vnp" ? (isVlpStatus(v.status) ? "vlp" : "vnp") : registoKind)}</td>
             <td class="patio-desk-only" data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
             <td class="patio-desk-only" data-label="RPV">${localizador}</td>
@@ -16610,7 +16639,7 @@
           : `<td data-label="Valor">${escapeHtml(formatCurrency(calcTotal(v)))}</td>`;
         const rowCls = patioVehicleDestaqueRowClass(v);
         return `<tr${rowCls ? ` class="${rowCls}"` : ""} data-vehicle-row="${v.id}">
-          <td data-label="Placa">${escapeHtml(v.placa || "-")}${pendingTag}</td>
+          <td data-label="Placa">${plateVisualHtml(v.placa, "sm")}${pendingTag}</td>
           <td data-label="Registo">${patioRegistoBadgeHtml(isVlpStatus(v.status) ? "vlp" : "vnp")}</td>
           <td data-label="Veículo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</td>
           <td data-label="RPV">${escapeHtml(locLabel(v.localizador_id))}</td>
@@ -16750,7 +16779,7 @@
             const diarias = Number(c.diarias || 0);
             return `
               <tr data-closure-row="${c.id}" data-vehicle-row="${vehicle.id}">
-                <td data-label="Placa">${escapeHtml(vehicle.placa || "-")}</td>
+                <td data-label="Placa">${plateVisualHtml(vehicle.placa, "sm")}</td>
                 <td data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td data-label="Veículo">${escapeHtml([vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-")}</td>
                 <td data-label="RPF">${escapeHtml(rpfNome)}</td>
@@ -16794,7 +16823,7 @@
             return `
               <tr data-vehicle-row="${v.id}">
                 ${buildPatioMobileListCellsHtml(v, 9)}
-                <td class="patio-desk-only" data-label="Placa">${v.placa || "-"}</td>
+                <td class="patio-desk-only" data-label="Placa">${plateVisualHtml(v.placa, "sm")}</td>
                 <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td class="patio-desk-only" data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
                 <td class="patio-desk-only" data-label="RPV">${localizador}</td>
@@ -17225,7 +17254,8 @@
         if (isGestorPista) {
           const locNome = state.partners.find((p) => p.id === vehicle.localizador_id)?.nome || "-";
           fichaResumo.innerHTML = `
-            <strong>${vehicle.placa || "-"}</strong> • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-"}<br />
+            <div class="ficha-placa-visual" style="margin-bottom:10px">${plateVisualHtml(vehicle.placa, "md", true)}</div>
+            ${escapeHtml([vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-")}<br />
             RPV: ${escapeHtml(locNome)}<br />
             Entrada: ${formatDateTime(vehicle.data_entrada)}<br />
           `;
@@ -17280,7 +17310,8 @@
                   .join("<br />");
 
           fichaResumo.innerHTML = `
-          <strong>${vehicle.placa || "-"}</strong> • ${[vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-"}<br />
+          <div class="ficha-placa-visual" style="margin-bottom:10px">${plateVisualHtml(vehicle.placa, "md", true)}</div>
+          ${escapeHtml([vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-")}<br />
           Entrada: ${formatDateTime(vehicle.data_entrada)} • Saída: ${formatDateTime(vehicle.data_saida)}<br />
           Valor de referência (diárias): ${formatCurrency(calcTotal(vehicle))}<br />
           <span class="notice">Cobrança e pagamento: módulo Financeiro (após encerrar o ciclo no pátio).</span><br />
@@ -17568,6 +17599,7 @@
         const gestorCreate = isGestorPista && mode === "create";
         if (vd) vd.required = !gestorCreate;
         if (entryInput) entryInput.required = !gestorCreate;
+        refreshVehiclePlatePreviewInput();
         vehicleModal.classList.remove("hidden");
       }
 
@@ -21964,6 +21996,9 @@
       }
 
       bootstrap();
+      if (typeof window.vehiclePlateUI?.initLiveInputs === "function") {
+        window.vehiclePlateUI.initLiveInputs();
+      }
       setPatioView("inicio");
       setFinanceView("none");
       setPartnerView("none");
