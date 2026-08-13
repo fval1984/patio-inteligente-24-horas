@@ -28,6 +28,7 @@
   user-select: none;
 }
 
+/* ---- Mercosul ---- */
 .vp-plate__merco {
   display: flex;
   flex-direction: column;
@@ -78,21 +79,58 @@
   border-top: 1px solid #cbd5e1;
 }
 
-.vp-plate__body--old {
-  border: 2px solid #111827;
-  border-radius: 5px;
-  background: linear-gradient(180deg, #fefefe 0%, #eceff3 100%);
+/* ---- Placa antiga (padrão AAA-0000) ---- */
+.vp-plate__old {
+  display: flex;
+  flex-direction: column;
+  border: 3px solid #1f2937;
+  border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #e5e7eb 0%, #d1d5db 48%, #e5e7eb 100%);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.9) inset,
-    0 2px 6px rgba(15, 23, 42, 0.16);
+    0 1px 0 rgba(255, 255, 255, 0.75) inset,
+    0 2px 6px rgba(15, 23, 42, 0.2);
+}
+
+.vp-plate__body--old {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 4px 6px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .vp-plate__text {
-  font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  font-family: "Arial Narrow", "Helvetica Neue Condensed", "Arial Black", Arial, sans-serif;
   font-weight: 800;
   letter-spacing: 0.1em;
   color: #0f172a;
   white-space: nowrap;
+}
+
+.vp-plate__text--old {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.vp-plate__old-letters,
+.vp-plate__old-digits {
+  font-weight: 900;
+}
+
+.vp-plate__old-sep {
+  font-weight: 900;
+  margin: 0 1px;
+  opacity: 0.95;
 }
 
 .vp-plate--partial .vp-plate__text {
@@ -104,10 +142,10 @@
   font-weight: 700;
 }
 
-.vp-plate--empty .vp-plate__body--old {
+.vp-plate--empty .vp-plate__old {
   border-style: dashed;
   border-color: #94a3b8;
-  background: #f8fafc;
+  background: #f3f4f6;
 }
 
 .vp-plate--empty .vp-plate__text {
@@ -126,7 +164,7 @@
 
 /* Tamanhos */
 .vp-plate--xs .vp-plate__merco,
-.vp-plate--xs .vp-plate__body--old {
+.vp-plate--xs .vp-plate__old {
   width: 92px;
 }
 
@@ -143,18 +181,26 @@
   height: 7px;
 }
 
-.vp-plate--xs .vp-plate__body--merco,
+.vp-plate--xs .vp-plate__body--merco {
+  min-height: 22px;
+  padding: 2px 4px;
+}
+
 .vp-plate--xs .vp-plate__body--old {
   min-height: 22px;
   padding: 2px 4px;
 }
 
-.vp-plate--xs .vp-plate__text {
+.vp-plate--xs .vp-plate__text--old {
+  font-size: 11px;
+}
+
+.vp-plate--xs .vp-plate__text:not(.vp-plate__text--old) {
   font-size: 10px;
 }
 
 .vp-plate--sm .vp-plate__merco,
-.vp-plate--sm .vp-plate__body--old {
+.vp-plate--sm .vp-plate__old {
   width: 112px;
 }
 
@@ -171,18 +217,26 @@
   height: 8px;
 }
 
-.vp-plate--sm .vp-plate__body--merco,
+.vp-plate--sm .vp-plate__body--merco {
+  min-height: 26px;
+  padding: 3px 6px;
+}
+
 .vp-plate--sm .vp-plate__body--old {
   min-height: 26px;
   padding: 3px 6px;
 }
 
-.vp-plate--sm .vp-plate__text {
+.vp-plate--sm .vp-plate__text--old {
+  font-size: 13px;
+}
+
+.vp-plate--sm .vp-plate__text:not(.vp-plate__text--old) {
   font-size: 12px;
 }
 
 .vp-plate--md .vp-plate__merco,
-.vp-plate--md .vp-plate__body--old {
+.vp-plate--md .vp-plate__old {
   width: 132px;
 }
 
@@ -199,18 +253,26 @@
   height: 9px;
 }
 
-.vp-plate--md .vp-plate__body--merco,
+.vp-plate--md .vp-plate__body--merco {
+  min-height: 30px;
+  padding: 4px 8px;
+}
+
 .vp-plate--md .vp-plate__body--old {
   min-height: 30px;
   padding: 4px 8px;
 }
 
-.vp-plate--md .vp-plate__text {
+.vp-plate--md .vp-plate__text--old {
+  font-size: 15px;
+}
+
+.vp-plate--md .vp-plate__text:not(.vp-plate__text--old) {
   font-size: 14px;
 }
 
 .vp-plate--lg .vp-plate__merco,
-.vp-plate--lg .vp-plate__body--old {
+.vp-plate--lg .vp-plate__old {
   width: 156px;
 }
 
@@ -227,13 +289,21 @@
   height: 10px;
 }
 
-.vp-plate--lg .vp-plate__body--merco,
+.vp-plate--lg .vp-plate__body--merco {
+  min-height: 36px;
+  padding: 5px 10px;
+}
+
 .vp-plate--lg .vp-plate__body--old {
   min-height: 36px;
   padding: 5px 10px;
 }
 
-.vp-plate--lg .vp-plate__text {
+.vp-plate--lg .vp-plate__text--old {
+  font-size: 18px;
+}
+
+.vp-plate--lg .vp-plate__text:not(.vp-plate__text--old) {
   font-size: 16px;
 }
 
