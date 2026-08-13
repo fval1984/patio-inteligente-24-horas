@@ -289,16 +289,6 @@
       );
     }).join("");
 
-    const extraHtml = (draft.extraDamagePhotos || [])
-      .map(
-        (ex, idx) =>
-          `<figure>` +
-          `<img src="${esc(ex.preview || "")}" alt="Avaria extra"/>` +
-          `<button type="button" class="vei-extra-remove" data-extra-remove="${idx}" aria-label="Remover">×</button>` +
-          `</figure>`
-      )
-      .join("");
-
     return (
       '<section class="vei-mobile-photos" id="veiMobilePhotos">' +
       "<h4>Registro fotográfico</h4>" +
@@ -321,13 +311,7 @@
       '<div class="vei-photo-checklist">' +
       checklist +
       "</div>" +
-      '<div class="vei-extra-damage">' +
-      "<h4 style=\"margin:0 0 8px;font-size:0.82rem\">Fotos adicionais de avarias</h4>" +
-      '<button type="button" class="vei-photo-btn vei-photo-btn-secondary" id="veiPhotoExtraBtn">+ Adicionar foto de avaria</button>' +
-      (extraHtml ? `<div class="vei-extra-grid">${extraHtml}</div>` : "") +
-      "</div>" +
       '<input type="file" class="vei-photo-capture-input" id="veiPhotoCaptureInput" accept="image/*" capture="environment"/>' +
-      '<input type="file" class="vei-photo-capture-input" id="veiPhotoExtraInput" accept="image/*" capture="environment"/>' +
       "</section>"
     );
   }
@@ -348,7 +332,6 @@
     initDraftPhotos(draft);
 
     const captureInput = section.querySelector("#veiPhotoCaptureInput");
-    const extraInput = section.querySelector("#veiPhotoExtraInput");
 
     section.querySelector("#veiPhotoTakeBtn")?.addEventListener("click", () => {
       captureInput?.click();
@@ -392,32 +375,6 @@
           draft.currentPhotoStep = idx;
           onRefresh();
         }
-      });
-    });
-
-    section.querySelector("#veiPhotoExtraBtn")?.addEventListener("click", () => {
-      extraInput?.click();
-    });
-
-    extraInput?.addEventListener("change", async () => {
-      const file = extraInput.files?.[0];
-      extraInput.value = "";
-      if (!file) return;
-      const preview = await readFileAsDataUrl(file);
-      draft.extraDamagePhotos.push({
-        id: `ex_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        file,
-        preview,
-        capturedAt: new Date().toISOString(),
-      });
-      onRefresh();
-    });
-
-    section.querySelectorAll("[data-extra-remove]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const idx = Number(btn.getAttribute("data-extra-remove"));
-        draft.extraDamagePhotos.splice(idx, 1);
-        onRefresh();
       });
     });
   }
