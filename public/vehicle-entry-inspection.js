@@ -301,12 +301,14 @@
   function scrollToFirstMissingItem(root, draft) {
     const first = draftCfg(draft).checklist.find((it) => it.kind === "classify" && !draft.classifications[it.key]);
     if (!first || !root) return;
-    const cardIdx = findCardIndexForItemKey(draft, first.key);
-    if (draft.currentCardIndex !== cardIdx) {
-      draft.currentCardIndex = cardIdx;
-      if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
-      refreshEditUI(root, draft, _session?.ctx);
-      return;
+    if (_session?.editLayout !== "document") {
+      const cardIdx = findCardIndexForItemKey(draft, first.key);
+      if (draft.currentCardIndex !== cardIdx) {
+        draft.currentCardIndex = cardIdx;
+        if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+        refreshCurrentEditUI(root, draft, _session?.ctx);
+        return;
+      }
     }
     const el = root.querySelector(`.vei-item[data-item-key="${first.key}"]`);
     if (!el) return;
@@ -869,7 +871,7 @@
         }
         pruneItemDamagePhotos(draft);
         if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
-        refreshEditUI(root, draft, ctx);
+        refreshCurrentEditUI(root, draft, ctx);
       }
       return;
     }
@@ -880,7 +882,7 @@
       if (pt) {
         draft.diagramMarkers.push(pt);
         if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
-        refreshEditUI(root, draft, ctx);
+        refreshCurrentEditUI(root, draft, ctx);
       }
       return;
     }
@@ -894,7 +896,7 @@
     const rmDmgBtn = hit.closest?.(".vei-remove-damage");
     if (rmDmgBtn && root.contains(rmDmgBtn)) {
       draft.damages.splice(Number(rmDmgBtn.getAttribute("data-damage-idx")), 1);
-      refreshEditUI(root, draft, ctx);
+      refreshCurrentEditUI(root, draft, ctx);
       return;
     }
 
@@ -905,7 +907,7 @@
         draft.currentCardIndex = (draft.currentCardIndex || 0) - 1;
         draft.closingStep = "card";
         if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
-        refreshEditUI(root, draft, ctx);
+        refreshCurrentEditUI(root, draft, ctx);
       }
       return;
     }
@@ -1368,7 +1370,7 @@
       }
       draft.damages.push(damage);
       host.innerHTML = "";
-      refreshEditUI(root, draft, ctx);
+      refreshCurrentEditUI(root, draft, ctx);
     });
   }
 
@@ -1472,6 +1474,74 @@
       '<div id="veiDamageFormHost"></div>' +
       '<div id="veiDamageListHost" class="vei-damage-host-hidden" aria-hidden="true"></div>'
     );
+  }
+
+  function buildEditDocumentHtml(vehicle, ctx, inspection, detail, draft) {
+    const docMod = global.vehicleEntryInspectionDocument;
+    if (!docMod?.buildEditablePrintHtml) {
+      return buildEditHtml(vehicle, ctx, draft);
+    }
+    return docMod.buildEditablePrintHtml({
+      vehicle,
+      ctx: { ...ctx, partnerName: (c, id) => partnerName(c, id) },
+      inspection,
+      detail,
+      draft,
+      helpers: {
+        getVariantConfig,
+        draftCfg,
+        CLASSIFICATIONS,
+        CLASS_SHORT,
+        INSPECTION_CARDS: checklistMod.INSPECTION_CARDS || [],
+        CHECKLIST: checklistMod.CHECKLIST || [],
+        fmtDateTime,
+        renderDiagram,
+        renderDiagramForPrint,
+        diagramSrcForDraft,
+      },
+      diagramHtml: renderDiagram(draft, false),
+      mobilePhotosHtml: renderMobilePhotosSection(draft),
+      itemDamagePhotosHtml: renderItemDamagePhotosSection(draft, false),
+      finalizeLabel: finalizeButtonLabel(),
+    });
+  }
+
+  function refreshEditDocumentUI(root, draft, ctx) {
+    if (!root || !draft) return;
+    const docMod = global.vehicleEntryInspectionDocument;
+    const checklistHost = root.querySelector("#veiDocChecklistHost");
+    if (checklistHost && docMod?.buildChecklistSectionEditable) {
+      checklistHost.innerHTML = docMod.buildChecklistSectionEditable(
+        {
+          getVariantConfig,
+          draftCfg,
+          CLASSIFICATIONS,
+          CLASS_SHORT,
+          INSPECTION_CARDS: checklistMod.INSPECTION_CARDS || [],
+          CHECKLIST: checklistMod.CHECKLIST || [],
+        },
+        draft
+      );
+    }
+    const diagramHost = root.querySelector("#veiDocDiagramHost");
+    if (diagramHost) diagramHost.innerHTML = renderDiagram(draft, false);
+    const itemPhotosHost = root.querySelector("#veiDocItemDamagePhotosHost");
+    if (itemPhotosHost) {
+      itemPhotosHost.innerHTML = renderItemDamagePhotosSection(draft, false);
+      bindItemDamagePhotoEvents(itemPhotosHost, draft, () => refreshEditDocumentUI(root, draft, ctx));
+    }
+    const mobileHost = root.querySelector("#veiDocMobilePhotosHost");
+    if (mobileHost) {
+      mobileHost.innerHTML = renderMobilePhotosSection(draft);
+      bindMobilePhotosIfNeeded(mobileHost, draft);
+    }
+    const finBtn = root.querySelector("#veiFinalizeBtn");
+    if (finBtn) finBtn.textContent = finalizeButtonLabel();
+  }
+
+  function refreshCurrentEditUI(root, draft, ctx) {
+    if (_session?.editLayout === "document") refreshEditDocumentUI(root, draft, ctx);
+    else refreshEditUI(root, draft, ctx);
   }
 
   function buildReadonlyHtml(vehicle, ctx, inspection, detail) {
@@ -1905,7 +1975,9 @@
     _session = {
       vehicle,
       mode: "edit",
+      editLayout: "document",
       draft,
+      detail,
       retroactive: true,
       ctx,
       editingInspectionId: inspectionId,
@@ -1915,14 +1987,12 @@
     modal.classList.remove("hidden");
     const cfg = draftCfg(draft);
     document.getElementById("veiModalTitle").textContent = `Editar vistoria nº ${detail.inspection.inspection_number}`;
-    document.getElementById("veiModalSubtitle").textContent = `${cfg.label} · placa ${vehicle.placa || "—"}`;
+    document.getElementById("veiModalSubtitle").textContent = `${cfg.label} · placa ${vehicle.placa || "—"} — mesmo layout da consulta`;
     const body = document.getElementById("veiModalBody");
-    body.innerHTML = buildEditHtml(vehicle, ctx, draft);
+    body.innerHTML = buildEditDocumentHtml(vehicle, ctx, detail.inspection, detail, draft);
     ensureEditModalEvents(body, ctx);
     bindMobilePhotosIfNeeded(body, draft);
-    if ((draft.currentCardIndex || 0) === cfg.cardCount - 1) {
-      bindItemDamagePhotoEvents(body, draft, () => refreshEditUI(body, draft, ctx));
-    }
+    bindItemDamagePhotoEvents(body, draft, () => refreshEditDocumentUI(body, draft, ctx));
   }
 
   async function openViewModal(vehicle, ctx, inspectionId) {
