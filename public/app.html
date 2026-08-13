@@ -1943,19 +1943,28 @@
         margin: 0;
         padding: 0 2px 0 0;
       }
-      .header-plate-search input#plateFilter {
-        width: 92px;
-        min-width: 0;
-        min-height: 26px;
-        padding: 3px 6px;
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        border-radius: 6px;
-        border: 1px solid var(--border);
-        background: var(--card);
-        color: var(--text);
+      .header-plate-search .vp-plate-editor {
+        flex: 0 0 auto;
+        vertical-align: middle;
+      }
+      .header-plate-search .vp-plate-editor__input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+        opacity: 0;
+      }
+      .header-plate-search-hint {
+        margin: 0;
+        max-width: min(100vw - 48px, 420px);
+        font-size: 10px;
+        text-align: right;
+        line-height: 1.25;
       }
       .header-plate-search button {
         min-height: 26px;
@@ -6512,7 +6521,7 @@
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme8" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260813vistui1" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile14" />
-    <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate6" />
+    <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate7" />
   </head>
   <body class="auth-screen-active">
     <noscript>
@@ -6594,13 +6603,14 @@
                     name="plate"
                     type="text"
                     inputmode="text"
-                    placeholder="Digite a placa"
-                    maxlength="20"
+                    maxlength="8"
                     autocomplete="off"
                     autocorrect="off"
                     autocapitalize="characters"
                     spellcheck="false"
-                    data-vp-live
+                    data-vp-editor-input
+                    data-vp-size="sm"
+                    aria-label="Placa do veículo"
                   />
                   <button type="submit" id="plateSearchOk">OK</button>
                 </div>
@@ -6899,12 +6909,14 @@
               name="plate"
               type="text"
               inputmode="text"
-              placeholder="Ex.: ABC1D23"
-              maxlength="20"
+              maxlength="8"
               autocomplete="off"
               autocorrect="off"
               autocapitalize="characters"
               spellcheck="false"
+              data-vp-editor-input
+              data-vp-size="md"
+              aria-label="Placa do veículo"
             />
             <button type="submit" id="plateSearchOkPatio">OK</button>
             <button type="button" class="secondary" id="clearPlateFilterPatio">Limpar</button>
@@ -8458,7 +8470,7 @@
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260813avaria1"></script>
     <script src="/vehicle-entry-inspection-document.js?v=20260813avaria1"></script>
     <script src="/vehicle-entry-inspection.js?v=20260813vistui1"></script>
-    <script src="/vehicle-plate-ui.js?v=20260813plate4"></script>
+    <script src="/vehicle-plate-ui.js?v=20260813plate5"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script>
@@ -16109,7 +16121,9 @@
       }
 
       function syncPatioPlateInputFromHeader() {
-        if (plateFilter && plateFilterPatio) plateFilterPatio.value = plateFilter.value;
+        if (!plateFilter || !plateFilterPatio) return;
+        plateFilterPatio.value = plateFilter.value;
+        plateFilterPatio.dispatchEvent(new Event("input", { bubbles: true }));
       }
 
       function scrollPlateSearchVehicleIntoView(vehicleId) {
@@ -21865,8 +21879,14 @@
 
       if (clearPlateFilterPatio) {
         clearPlateFilterPatio.addEventListener("click", () => {
-          if (plateFilter) plateFilter.value = "";
-          if (plateFilterPatio) plateFilterPatio.value = "";
+          if (plateFilter) {
+            plateFilter.value = "";
+            plateFilter.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+          if (plateFilterPatio) {
+            plateFilterPatio.value = "";
+            plateFilterPatio.dispatchEvent(new Event("input", { bubbles: true }));
+          }
           plateQuery = "";
           setPlateSearchHints("", false);
           renderVehicles();
@@ -22076,6 +22096,9 @@
       }
 
       bootstrap();
+      if (typeof window.vehiclePlateUI?.initPlateEditors === "function") {
+        window.vehiclePlateUI.initPlateEditors();
+      }
       if (typeof window.vehiclePlateUI?.initLiveInputs === "function") {
         window.vehiclePlateUI.initLiveInputs();
       }
