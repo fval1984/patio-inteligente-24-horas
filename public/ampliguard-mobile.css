@@ -49,43 +49,87 @@
     --mob-gap: 6px;
   }
 
-  /* Busca de placa — compacta, alinhada aos módulos */
+  /* Busca de placa — placa visual + OK / Limpar / Sair */
   .app-subheader {
     padding: 8px 10px !important;
     padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
   }
 
+  .app-subheader-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  #patioPlateSearchBar {
+    display: none !important;
+  }
+
+  #appSubheader:not(.hidden) .header-mobile-module-nav {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: var(--mob-gap) !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-top: none !important;
+    order: 1;
+  }
+
+  .app-subheader-right {
+    width: 100% !important;
+    order: 2;
+  }
+
   .header-plate-search {
     display: flex !important;
     flex-wrap: wrap !important;
-    align-items: center !important;
-    gap: var(--mob-gap) !important;
+    align-items: stretch !important;
+    gap: 8px !important;
     width: 100% !important;
-    padding: 0 !important;
+    padding: 8px 10px !important;
   }
 
-  .header-plate-search .header-plate-label {
-    flex: 1 1 100%;
+  .header-plate-search .vp-input-row {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .header-plate-search .vp-preview-slot {
     width: 100%;
-    font-size: 11px !important;
-    margin-bottom: 0;
+    justify-content: center;
+    min-height: 36px;
+    order: -1;
   }
 
   .header-plate-search input#plateFilter {
-    flex: 1 1 auto !important;
+    order: 0;
+    flex: 1 1 100% !important;
+    width: 100% !important;
     min-width: 0 !important;
     min-height: var(--mob-btn-h) !important;
-    font-size: 14px !important;
-    letter-spacing: 0.06em;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: center;
     padding: 6px 10px !important;
     border-radius: var(--mob-btn-radius) !important;
   }
 
-  .header-plate-search #plateSearchOk,
-  .header-plate-search #goDashboardFromPlate,
-  .header-plate-search #clearPlateFilter,
-  .header-plate-search #headerLogoutBtn {
-    flex: 0 0 auto !important;
+  .header-plate-search-actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: var(--mob-gap) !important;
+    width: 100% !important;
+  }
+
+  .header-plate-search-actions button {
+    flex: 1 1 calc(33.333% - 4px) !important;
+    min-width: 0 !important;
     min-height: var(--mob-btn-h) !important;
     padding: var(--mob-btn-pad-y) var(--mob-btn-pad-x) !important;
     font-size: var(--mob-btn-font) !important;
@@ -93,16 +137,11 @@
     border-radius: var(--mob-btn-radius) !important;
   }
 
-  /* Módulos — flex wrap como no cabeçalho */
-  #appSubheader:not(.hidden) .header-mobile-module-nav {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: var(--mob-gap) !important;
-    width: 100% !important;
-    margin-top: 8px !important;
-    padding-top: 8px !important;
+  .header-plate-inicio-desk {
+    display: none !important;
   }
 
+  /* Módulos — uma única faixa acima da placa */
   .header-mobile-module-btn {
     flex: 1 1 calc(33.333% - 4px) !important;
     min-width: calc(50% - 4px) !important;
