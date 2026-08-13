@@ -99,7 +99,44 @@
       extraDamagePhotos: [],
       currentPhotoStep: 0,
       currentCardIndex: 0,
+      closingStep: "card",
     };
+  }
+
+  function getClosingStep(draft) {
+    return draft?.closingStep || "card";
+  }
+
+  function nextClosingStep(draft, current) {
+    const order = ["card", "photos", "damage_photos", "diagram", "finalize"];
+    let idx = order.indexOf(current);
+    while (idx < order.length - 1) {
+      idx += 1;
+      const step = order[idx];
+      if (step === "damage_photos" && !getDamagedClassifyItems(draft).length) continue;
+      return step;
+    }
+    return "finalize";
+  }
+
+  function prevClosingStep(draft, current) {
+    const order = ["card", "photos", "damage_photos", "diagram", "finalize"];
+    let idx = order.indexOf(current);
+    while (idx > 0) {
+      idx -= 1;
+      const step = order[idx];
+      if (step === "damage_photos" && !getDamagedClassifyItems(draft).length) continue;
+      return step;
+    }
+    return "card";
+  }
+
+  function pruneItemDamagePhotos(draft) {
+    if (!draft?.itemDamagePhotos) return;
+    const damagedKeys = new Set(getDamagedClassifyItems(draft).map((it) => it.key));
+    Object.keys(draft.itemDamagePhotos).forEach((key) => {
+      if (!damagedKeys.has(key)) delete draft.itemDamagePhotos[key];
+    });
   }
 
   function emptyDraft(variant) {
@@ -137,6 +174,7 @@
         standardPhotos: draft.standardPhotos || {},
         currentPhotoStep: draft.currentPhotoStep || 0,
         currentCardIndex: draft.currentCardIndex || 0,
+        closingStep: draft.closingStep || "card",
         savedAt: new Date().toISOString(),
       };
       localStorage.setItem(draftStorageKey(vehicleId), JSON.stringify(payload));
@@ -169,6 +207,7 @@
       draft.damages = Array.isArray(parsed.damages) ? parsed.damages : [];
       draft.standardPhotos = parsed.standardPhotos || {};
       draft.currentPhotoStep = Number(parsed.currentPhotoStep) || 0;
+      draft.closingStep = parsed.closingStep || "card";
       const maxCard = draftCfg(draft).cardCount - 1;
       draft.currentCardIndex = Math.max(0, Math.min(maxCard, Number(parsed.currentCardIndex) || 0));
       return draft;
@@ -754,6 +793,10 @@
       const cls = classBtn.getAttribute("data-class");
       if (itemKey && cls) {
         draft.classifications[itemKey] = cls;
+        if (cls !== "DANIFICADO" && draft.itemDamagePhotos?.[itemKey]) {
+          delete draft.itemDamagePhotos[itemKey];
+        }
+        pruneItemDamagePhotos(draft);
         if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
         refreshEditUI(root, draft, ctx);
       }
@@ -789,6 +832,7 @@
       syncClassificationsFromDom(root, draft);
       if ((draft.currentCardIndex || 0) > 0) {
         draft.currentCardIndex = (draft.currentCardIndex || 0) - 1;
+        draft.closingStep = "card";
         if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
         refreshEditUI(root, draft, ctx);
       }
@@ -806,7 +850,35 @@
         );
         return;
       }
-      draft.currentCardIndex = Math.min(draftCfg(draft).cardCount - 1, cardIdx + 1);
+      const lastIdx = draftCfg(draft).cardCount - 1;
+      if (cardIdx >= lastIdx) {
+        draft.closingStep = "photos";
+      } else {
+        draft.currentCardIndex = cardIdx + 1;
+        draft.closingStep = "card";
+      }
+      if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+      refreshEditUI(root, draft, ctx);
+      root.scrollTop = 0;
+      return;
+    }
+
+    if (hit.closest?.("#veiClosingNext")) {
+      evt.preventDefault();
+      syncClassificationsFromDom(root, draft);
+      pruneItemDamagePhotos(draft);
+      const step = getClosingStep(draft);
+      draft.closingStep = nextClosingStep(draft, step);
+      if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+      refreshEditUI(root, draft, ctx);
+      root.scrollTop = 0;
+      return;
+    }
+
+    if (hit.closest?.("#veiClosingPrev")) {
+      evt.preventDefault();
+      syncClassificationsFromDom(root, draft);
+      draft.closingStep = prevClosingStep(draft, getClosingStep(draft));
       if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
       refreshEditUI(root, draft, ctx);
       root.scrollTop = 0;
@@ -935,7 +1007,7 @@
       html += "</tbody></table>";
     });
 
-    if (!readOnly && !isLast) {
+    if (!readOnly && (!isLast || getClosingStep(draft) === "card")) {
       html += '<div class="vei-card-nav">';
       html += `<button type="button" class="secondary vei-card-prev" id="veiCardPrev"${cardIndex === 0 ? " disabled" : ""}>Anterior</button>`;
       html += `<span class="vei-card-progress" id="veiCardProgress">${cardIndex + 1} / ${cardCount}</span>`;
@@ -948,40 +1020,81 @@
 
   function renderItemDamagePhotosSection(draft, readOnly) {
     const damaged = getDamagedClassifyItems(draft);
-    if (!damaged.length) {
-      return '<div class="vei-damage-photos-section"><h4>Fotos de avarias</h4><p class="notice" style="margin:0">Marque itens como <strong>D — Danificado</strong> para registrar fotos aqui.</p></div>';
-    }
+    if (!damaged.length) return "";
     if (!draft.itemDamagePhotos) draft.itemDamagePhotos = {};
-    let html = '<div class="vei-damage-photos-section" id="veiDamagePhotosSection"><h4>Fotos de avarias</h4>';
+    let html =
+      '<div class="vei-damage-photos-section" id="veiDamagePhotosSection">' +
+      "<h4>Fotos adicionais de avarias</h4>";
     damaged.forEach((it) => {
       const photo = draft.itemDamagePhotos[it.key];
       html += '<div class="vei-damage-photo-item" data-damage-photo-key="' + esc(it.key) + '">';
-      html += `<strong>${esc(it.label)} — Avaria</strong>`;
+      html += `<strong>${esc(it.label)} — Danificado</strong>`;
       if (photo?.preview) {
         html += `<img class="vei-damage-photo-preview" src="${esc(photo.preview)}" alt="${esc(it.label)}"/>`;
       }
       if (!readOnly) {
-        html += `<button type="button" class="secondary vei-damage-photo-btn" data-damage-photo-btn="${esc(it.key)}">${photo?.preview ? "Refazer foto" : "Tirar foto"}</button>`;
+        html +=
+          `<button type="button" class="secondary vei-damage-photo-btn" data-damage-photo-capture="${esc(it.key)}">${photo?.preview ? "Refazer foto" : "Tirar foto"}</button>` +
+          `<button type="button" class="secondary vei-damage-photo-btn" data-damage-photo-add="${esc(it.key)}">Adicionar foto</button>`;
         if (photo?.preview) {
           html += `<button type="button" class="secondary vei-damage-photo-clear" data-damage-photo-clear="${esc(it.key)}">Remover</button>`;
         }
       }
       html += "</div>";
     });
-    html += '<input type="file" class="vei-photo-capture-input hidden" id="veiDamagePhotoInput" accept="image/*" capture="environment"/>';
+    html +=
+      '<input type="file" class="vei-photo-capture-input hidden" id="veiDamagePhotoCaptureInput" accept="image/*" capture="environment"/>' +
+      '<input type="file" class="vei-photo-capture-input hidden" id="veiDamagePhotoGalleryInput" accept="image/*"/>';
     html += "</div>";
     return html;
+  }
+
+  function renderClosingNav(draft, step) {
+    const labels = {
+      photos: "Registro fotográfico",
+      damage_photos: "Fotos adicionais de avarias",
+      diagram: "Diagrama do veículo",
+      finalize: "Finalização",
+    };
+    const isFinalize = step === "finalize";
+    return (
+      '<div class="vei-card-nav">' +
+      `<button type="button" class="secondary" id="veiClosingPrev">Anterior</button>` +
+      `<span class="vei-card-progress">${esc(labels[step] || step)}</span>` +
+      (isFinalize
+        ? '<button type="button" id="veiFinalizeBtn">Finalizar vistoria</button>'
+        : '<button type="button" id="veiClosingNext">OK, próximo</button>') +
+      "</div>"
+    );
   }
 
   function bindItemDamagePhotoEvents(root, draft, onRefresh) {
     const section = root.querySelector("#veiDamagePhotosSection");
     if (!section || !draft) return;
-    const input = section.querySelector("#veiDamagePhotoInput");
+    const captureInput = section.querySelector("#veiDamagePhotoCaptureInput");
+    const galleryInput = section.querySelector("#veiDamagePhotoGalleryInput");
     let activeKey = null;
-    section.querySelectorAll("[data-damage-photo-btn]").forEach((btn) => {
+
+    async function applyPhoto(file) {
+      if (!file || !activeKey) return;
+      const preview = await readFileAsDataUrl(file);
+      if (!draft.itemDamagePhotos) draft.itemDamagePhotos = {};
+      draft.itemDamagePhotos[activeKey] = { file, preview, capturedAt: new Date().toISOString() };
+      if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+      activeKey = null;
+      onRefresh();
+    }
+
+    section.querySelectorAll("[data-damage-photo-capture]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        activeKey = btn.getAttribute("data-damage-photo-btn");
-        input?.click();
+        activeKey = btn.getAttribute("data-damage-photo-capture");
+        captureInput?.click();
+      });
+    });
+    section.querySelectorAll("[data-damage-photo-add]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeKey = btn.getAttribute("data-damage-photo-add");
+        galleryInput?.click();
       });
     });
     section.querySelectorAll("[data-damage-photo-clear]").forEach((btn) => {
@@ -992,46 +1105,53 @@
         onRefresh();
       });
     });
-    input?.addEventListener("change", async () => {
-      const file = input.files?.[0];
-      input.value = "";
-      if (!file || !activeKey) return;
-      const preview = await readFileAsDataUrl(file);
-      if (!draft.itemDamagePhotos) draft.itemDamagePhotos = {};
-      draft.itemDamagePhotos[activeKey] = { file, preview, capturedAt: new Date().toISOString() };
-      if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
-      activeKey = null;
-      onRefresh();
+    captureInput?.addEventListener("change", async () => {
+      const file = captureInput.files?.[0];
+      captureInput.value = "";
+      await applyPhoto(file);
+    });
+    galleryInput?.addEventListener("change", async () => {
+      const file = galleryInput.files?.[0];
+      galleryInput.value = "";
+      await applyPhoto(file);
     });
   }
 
   function renderLastCardExtras(draft) {
-    const cardIdx = draftCfg(draft).cardCount - 1;
+    const step = getClosingStep(draft);
+    if (step === "card") return "";
+
     const cfg = draftCfg(draft);
-    return (
-      '<div class="vei-last-card-extras">' +
-      renderItemDamagePhotosSection(draft, false) +
-      '<div class="vei-diagram-footer">' +
-      `<h4>Diagrama de avarias — ${esc(cfg.shortLabel || cfg.label || "veículo")}</h4>` +
-      '<div id="veiDiagramHost">' +
-      renderDiagram(draft, false) +
-      "</div></div>" +
-      '<div id="veiMobilePhotosHost">' +
-      renderMobilePhotosSection(draft) +
-      "</div>" +
-      '<div class="vei-notes-block">' +
-      '<label for="veiGeneralNotes">Observações gerais da vistoria</label>' +
-      `<textarea class="vei-notes" id="veiGeneralNotes" placeholder="Informações adicionais…">${esc(draft.generalNotes)}</textarea>` +
-      "</div>" +
-      '<div class="vei-card-nav">' +
-      `<button type="button" class="secondary vei-card-prev" id="veiCardPrev"${cardIdx === 0 ? " disabled" : ""}>Anterior</button>` +
-      `<span class="vei-card-progress" id="veiCardProgress">${cardIdx + 1} / ${cfg.cardCount}</span>` +
-      '<button type="button" id="veiFinalizeBtn">Finalizar vistoria</button>' +
-      "</div>" +
+    let html = '<div class="vei-last-card-extras">';
+
+    if (step === "photos") {
+      html += '<div id="veiMobilePhotosHost">' + renderMobilePhotosSection(draft) + "</div>";
+      html += renderClosingNav(draft, "photos");
+    } else if (step === "damage_photos") {
+      html += renderItemDamagePhotosSection(draft, false);
+      html += renderClosingNav(draft, "damage_photos");
+    } else if (step === "diagram") {
+      html +=
+        '<div class="vei-diagram-footer">' +
+        `<h4>Diagrama de avarias — ${esc(cfg.shortLabel || cfg.label || "veículo")}</h4>` +
+        '<div id="veiDiagramHost">' +
+        renderDiagram(draft, false) +
+        "</div></div>";
+      html += renderClosingNav(draft, "diagram");
+    } else if (step === "finalize") {
+      html +=
+        '<div class="vei-notes-block">' +
+        '<label for="veiGeneralNotes">Observações gerais da vistoria</label>' +
+        `<textarea class="vei-notes" id="veiGeneralNotes" placeholder="Informações adicionais…">${esc(draft.generalNotes)}</textarea>` +
+        "</div>";
+      html += renderClosingNav(draft, "finalize");
+    }
+
+    html +=
       '<div class="vei-actions vei-no-print">' +
       '<button type="button" class="secondary" id="veiModalCloseInner">Cancelar</button>' +
-      "</div></div>"
-    );
+      "</div></div>";
+    return html;
   }
 
   /** Todas as seções (consulta interna / legado). */
@@ -1148,6 +1268,14 @@
     const cfg = draftCfg(draft);
     const cardIdx = Math.max(0, Math.min(cfg.cardCount - 1, draft.currentCardIndex || 0));
     draft.currentCardIndex = cardIdx;
+    const isLast = cardIdx === cfg.cardCount - 1;
+    let closingStep = isLast ? getClosingStep(draft) : "card";
+    if (!isLast) draft.closingStep = "card";
+    else if (closingStep === "damage_photos" && !getDamagedClassifyItems(draft).length) {
+      draft.closingStep = "diagram";
+      closingStep = "diagram";
+    }
+
     const done = classifiedCount(draft);
     const total = cfg.checklist.filter((it) => it.kind === "classify").length;
     const pct = progressPct(draft);
@@ -1156,15 +1284,29 @@
     const extrasHost = root.querySelector("#veiLastCardExtrasHost");
     const progressText = root.querySelector("#veiProgressText");
     const progressBar = root.querySelector("#veiProgressBar i");
+
+    const stepLabels = {
+      card: `card ${cardIdx + 1}/${cfg.cardCount}`,
+      photos: "registro fotográfico",
+      damage_photos: "fotos adicionais de avarias",
+      diagram: "diagrama",
+      finalize: "finalização",
+    };
+    const progressLabel = isLast && closingStep !== "card" ? stepLabels[closingStep] : stepLabels.card;
+
     if (progressText) {
-      progressText.textContent = `${cfg.label}: card ${cardIdx + 1}/${cfg.cardCount} · ${done}/${total} itens (${pct}%)`;
+      progressText.textContent = `${cfg.label}: ${progressLabel} · ${done}/${total} itens (${pct}%)`;
     }
     if (progressBar) progressBar.style.width = `${pct}%`;
-    if (cardHost) cardHost.innerHTML = renderCardStep(cardIdx, draft, false);
+    if (cardHost) {
+      cardHost.innerHTML = isLast && closingStep !== "card" ? "" : renderCardStep(cardIdx, draft, false);
+    }
     if (extrasHost) {
-      extrasHost.innerHTML = cardIdx === cfg.cardCount - 1 ? renderLastCardExtras(draft) : "";
-      if (cardIdx === cfg.cardCount - 1) {
+      extrasHost.innerHTML = isLast ? renderLastCardExtras(draft) : "";
+      if (isLast && closingStep === "photos") {
         bindMobilePhotosIfNeeded(extrasHost, draft);
+      }
+      if (isLast && closingStep === "damage_photos") {
         bindItemDamagePhotoEvents(extrasHost, draft, () => refreshEditUI(root, draft, ctx));
       }
     }
@@ -1172,7 +1314,9 @@
     if (warn) {
       warn.textContent = miss.length
         ? `Itens pendentes no total (${miss.length}). Use «OK, próximo» em cada card.`
-        : "Checklist completo — pode finalizar a vistoria no último card.";
+        : isLast && closingStep === "card"
+          ? "Checklist completo — avance para o registro fotográfico."
+          : "Checklist completo — conclua as etapas finais.";
       warn.style.color = miss.length ? "#fbbf24" : "#34d399";
     }
   }
@@ -1296,7 +1440,7 @@
           storage_path: path,
           file_name: `${itemKey}.jpg`,
           photo_type: `avaria_item_${itemKey}`,
-          photo_label: `Avaria — ${label}`,
+          photo_label: `${label} — Danificado`,
         });
         if (insErr) {
           await ctx.supabase.from("vehicle_entry_inspection_photos").insert({
