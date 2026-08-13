@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html>
 <!-- amplipatio-static build=users-delete-v1 -->
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
   <head>
     <script>
       (function () {
@@ -61,7 +61,7 @@
     <link rel="icon" type="image/png" href="/assets/ampliguard-shield.png?v=3" />
     <link rel="apple-touch-icon" href="/assets/ampliguard-shield.png?v=3" />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#0A2A2A" />
+    <meta name="theme-color" content="#0f2744" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -70,24 +70,24 @@
     />
     <style>
       :root {
-        color-scheme: dark;
-        --bg: #0a2a2a;
-        --card: #0f3232;
-        --text: #f8fafc;
-        --muted: #94b8b8;
-        --gold: #d4af37;
-        --gold-strong: #b8941f;
-        --gold-light: #e8c547;
-        --silver: #c0c0c0;
-        --primary: #d4af37;
-        --primary-strong: #b8941f;
-        --primary-weak: rgba(212, 175, 55, 0.16);
-        --border: rgba(192, 192, 192, 0.14);
-        --shadow: 0 16px 28px rgba(0, 0, 0, 0.32);
-        --shadow-soft: 0 8px 16px rgba(0, 0, 0, 0.2);
-        --success: #22c55e;
-        --error: #ef4444;
-        --radius: 16px;
+        color-scheme: light;
+        --bg: #f1f5f9;
+        --card: #ffffff;
+        --text: #0f2744;
+        --muted: #64748b;
+        --gold: #2563eb;
+        --gold-strong: #1d4ed8;
+        --gold-light: #60a5fa;
+        --silver: #94a3b8;
+        --primary: #2563eb;
+        --primary-strong: #1d4ed8;
+        --primary-weak: rgba(37, 99, 235, 0.1);
+        --border: #e2e8f0;
+        --shadow: 0 4px 24px rgba(15, 39, 68, 0.08);
+        --shadow-soft: 0 1px 3px rgba(15, 39, 68, 0.06);
+        --success: #16a34a;
+        --error: #dc2626;
+        --radius: 12px;
         /* Margens globais: lateral alinhada ao espaço cabeçalho ↔ conteúdo */
         --app-gutter-x: 28px;
         --app-gutter-y: 28px;
@@ -95,20 +95,33 @@
       }
       [data-theme="light"] {
         color-scheme: light;
-        --bg: #eef5f5;
+        --bg: #f1f5f9;
         --card: #ffffff;
-        --text: #0a2a2a;
-        --muted: #4a6363;
-        --gold: #b8941f;
-        --gold-strong: #967612;
-        --gold-light: #d4af37;
-        --silver: #6b7280;
-        --primary: #b8941f;
-        --primary-strong: #967612;
-        --primary-weak: rgba(184, 148, 31, 0.12);
-        --border: #d1e0e0;
-        --shadow: 0 20px 50px rgba(10, 42, 42, 0.08);
-        --shadow-soft: 0 12px 30px rgba(10, 42, 42, 0.06);
+        --text: #0f2744;
+        --muted: #64748b;
+        --gold: #2563eb;
+        --gold-strong: #1d4ed8;
+        --gold-light: #60a5fa;
+        --silver: #94a3b8;
+        --primary: #2563eb;
+        --primary-strong: #1d4ed8;
+        --primary-weak: rgba(37, 99, 235, 0.1);
+        --border: #e2e8f0;
+        --shadow: 0 4px 24px rgba(15, 39, 68, 0.08);
+        --shadow-soft: 0 1px 3px rgba(15, 39, 68, 0.06);
+      }
+      [data-theme="dark"] {
+        color-scheme: dark;
+        --bg: #0f172a;
+        --card: #1e293b;
+        --text: #f1f5f9;
+        --muted: #94a3b8;
+        --primary: #3b82f6;
+        --primary-strong: #2563eb;
+        --primary-weak: rgba(59, 130, 246, 0.15);
+        --border: rgba(148, 163, 184, 0.2);
+        --shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
+        --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.2);
       }
       * {
         box-sizing: border-box;
@@ -6286,6 +6299,7 @@
         }
       }
     </style>
+    <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme1" />
   </head>
   <body>
     <noscript>
@@ -6352,7 +6366,7 @@
           <div class="dashboard-system-entry header-module-nav" id="dashboardSystemEntry">
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenPatio">
               <span class="dashboard-system-btn__kicker">Operação</span>
-              <span class="dashboard-system-btn__title">Pátio</span>
+              <span class="dashboard-system-btn__title">PATIO</span>
               <span class="dashboard-system-btn__desc">Acompanhe veículos, entradas, saídas e fluxo operacional.</span>
               <span class="dashboard-system-btn__go">Abrir pátio →</span>
             </button>
