@@ -1,39 +1,49 @@
 /**
- * Checklist da vistoria — 12 cards sequenciais (somente dados).
+ * Checklist da vistoria — 4 modalidades independentes (somente dados).
  */
 (function vehicleEntryInspectionChecklistModule(global) {
   "use strict";
 
-  function item(key, label) {
-    return { key, label };
+  function cls(key, label, opts) {
+    return { key, label, kind: "classify", ...(opts || {}) };
+  }
+  function txt(key, label, placeholder) {
+    return { key, label, kind: "text", placeholder: placeholder || "" };
   }
 
-  const INSPECTION_CARDS = [
+  const DIAGRAMS = {
+    LEVE: "/vehicle-inspection-diagram-4v.webp",
+    PESADOS: "/vehicle-inspection-diagram-pesados.webp",
+    TRATORES: "/vehicle-inspection-diagram-tratores.webp",
+    MOTOS: "/vehicle-inspection-diagram-motos.webp",
+  };
+
+  const LEVE_CARDS = [
     {
       id: "interno",
       title: "INTERNO",
       blocks: [
         {
           items: [
-            item("interno_painel", "Painel"),
-            item("interno_console", "Console"),
-            item("interno_relogio", "Relógio"),
-            item("interno_air_bag", "Air Bag"),
-            item("interno_macaneta", "Maçaneta"),
-            item("interno_tapetes", "Tapetes"),
-            item("interno_bancos_altos", "Bancos — Altos"),
-            item("interno_bancos_baixos", "Bancos — Baixos"),
-            item("interno_revestimentos", "Revestimentos (Teto/Laterais)"),
-            item("interno_cinto_seguranca", "Cinto de Segurança"),
-            item("interno_macaco", "Macaco"),
-            item("interno_chave_roda", "Chave de Roda"),
-            item("interno_triangulo", "Triângulo"),
-            item("interno_extintor", "Extintor"),
-            item("interno_assoalho", "Assoalho"),
-            item("interno_acendedor", "Acendedor"),
-            item("interno_retrovisor", "Retrovisor"),
-            item("interno_teto_solar", "Teto Solar"),
-            item("interno_encosto_cabeca", "Encosto de Cabeça"),
+            cls("interno_painel", "Painel"),
+            cls("interno_console", "Console"),
+            cls("interno_relogio", "Relógio"),
+            cls("interno_air_bag", "Air Bag"),
+            cls("interno_macaneta", "Maçaneta"),
+            cls("interno_tapetes", "Tapetes"),
+            cls("interno_bancos_altos", "Bancos — Altos"),
+            cls("interno_bancos_baixos", "Bancos — Baixos"),
+            cls("interno_revestimentos", "Revestimentos (Teto/Laterais)"),
+            cls("interno_cinto_seguranca", "Cinto de Segurança"),
+            cls("interno_macaco", "Macaco"),
+            cls("interno_chave_roda", "Chave de Roda"),
+            cls("interno_triangulo", "Triângulo"),
+            cls("interno_extintor", "Extintor"),
+            cls("interno_assoalho", "Assoalho"),
+            cls("interno_acendedor", "Acendedor"),
+            cls("interno_retrovisor", "Retrovisor"),
+            cls("interno_teto_solar", "Teto Solar"),
+            cls("interno_encosto_cabeca", "Encosto de Cabeça"),
           ],
         },
       ],
@@ -44,23 +54,23 @@
       blocks: [
         {
           items: [
-            item("mec_motor", "Motor"),
-            item("mec_ignicao_eletronica", "Ignição Eletrônica"),
-            item("mec_injecao_eletronica", "Injeção Eletrônica"),
-            item("mec_carburador", "Carburador"),
-            item("mec_bateria", "Bateria"),
-            item("mec_bomba_injetora", "Bomba Injetora"),
-            item("mec_radiador", "Radiador"),
-            item("mec_motor_arranque", "Motor de Arranque"),
-            item("mec_freios_pe_mao", "Freios (Pé/Mão)"),
-            item("mec_bomba_ar_condicionado", "Bomba — Ar Condicionado"),
-            item("mec_bomba_dir_hidraulica", "Bomba — Dir. Hidráulica"),
-            item("mec_bomba_comb_eletronica", "Bomba — Comb. Eletrônica"),
-            item("mec_bobina", "Bobina"),
-            item("mec_embreagem", "Embreagem"),
-            item("mec_cambio_4m", "Câmbio — 4M"),
-            item("mec_cambio_5m", "Câmbio — 5M"),
-            item("mec_cambio_aut", "Câmbio — Aut"),
+            cls("mec_motor", "Motor"),
+            cls("mec_ignicao_eletronica", "Ignição Eletrônica"),
+            cls("mec_injecao_eletronica", "Injeção Eletrônica"),
+            cls("mec_carburador", "Carburador"),
+            cls("mec_bateria", "Bateria"),
+            cls("mec_bomba_injetora", "Bomba Injetora"),
+            cls("mec_radiador", "Radiador"),
+            cls("mec_motor_arranque", "Motor de Arranque"),
+            cls("mec_freios_pe_mao", "Freios (Pé/Mão)"),
+            cls("mec_bomba_ar_condicionado", "Bomba — Ar Condicionado"),
+            cls("mec_bomba_dir_hidraulica", "Bomba — Dir. Hidráulica"),
+            cls("mec_bomba_comb_eletronica", "Bomba — Comb. Eletrônica"),
+            cls("mec_bobina", "Bobina"),
+            cls("mec_embreagem", "Embreagem"),
+            cls("mec_cambio_4m", "Câmbio — 4M"),
+            cls("mec_cambio_5m", "Câmbio — 5M"),
+            cls("mec_cambio_aut", "Câmbio — Aut"),
           ],
         },
       ],
@@ -71,15 +81,15 @@
       blocks: [
         {
           items: [
-            item("tras_tampa_traseira", "Tampa Traseira"),
-            item("tras_macaneta", "Maçaneta"),
-            item("tras_para_choque", "Para-Choque"),
-            item("tras_limpador", "Limpador Tras."),
-            item("tras_lanternas", "Lanternas"),
-            item("tras_vidros", "Vidros"),
-            item("tras_escapamento", "Escapamento"),
-            item("tras_sala", "Sala"),
-            item("tras_engate", "Engate"),
+            cls("tras_tampa_traseira", "Tampa Traseira"),
+            cls("tras_macaneta", "Maçaneta"),
+            cls("tras_para_choque", "Para-Choque"),
+            cls("tras_limpador", "Limpador Tras."),
+            cls("tras_lanternas", "Lanternas"),
+            cls("tras_vidros", "Vidros"),
+            cls("tras_escapamento", "Escapamento"),
+            cls("tras_sala", "Sala"),
+            cls("tras_engate", "Engate"),
           ],
         },
       ],
@@ -90,28 +100,23 @@
       blocks: [
         {
           items: [
-            item("eq_radio", "Rádio"),
-            item("eq_marca", "Marca"),
-            item("eq_modelo", "Modelo"),
-            item("eq_alto_falantes", "Alto Falantes"),
-            item("eq_antena", "Antena"),
-            item("eq_chave_veiculo", "Chave do Veículo"),
-            item("eq_modulo_som", "Módulo de Som"),
-            item("eq_kit_gas", "Kit Gás"),
-            item("eq_buzina", "Buzina"),
-            item("eq_alarme", "Alarme"),
-            item("eq_banco_couro", "Banco de Couro"),
-            item("eq_bagageiro_teto", "Bagageiro de Teto"),
-            item("eq_para_sol", "Para-Sol"),
-            item("eq_tacografo", "Tacógrafo"),
-            item("eq_toca_fitas", "Toca Fitas"),
-            item("eq_cd", "CD"),
-            item("eq_qt", "QT"),
-            item("eq_d", "D"),
-            item("eq_t", "T"),
-            item("eq_ext", "Ext."),
-            item("eq_int", "Int."),
-            item("eq_tampao", "Tampão"),
+            cls("eq_radio", "Rádio"),
+            txt("eq_marca", "Marca"),
+            txt("eq_modelo", "Modelo"),
+            cls("eq_alto_falantes", "Alto Falantes", { numberKey: "eq_alto_falantes_qtd", numberLabel: "Quantidade" }),
+            cls("eq_antena", "Antena"),
+            cls("eq_chave_veiculo", "Chave do Veículo"),
+            cls("eq_modulo_som", "Módulo de Som"),
+            cls("eq_kit_gas", "Kit Gás"),
+            cls("eq_buzina", "Buzina"),
+            cls("eq_alarme", "Alarme"),
+            cls("eq_banco_couro", "Banco de Couro"),
+            cls("eq_bagageiro_teto", "Bagageiro de Teto"),
+            cls("eq_para_sol", "Para-Sol"),
+            cls("eq_tacografo", "Tacógrafo"),
+            cls("eq_toca_fitas", "Toca Fitas"),
+            cls("eq_cd", "CD"),
+            cls("eq_tampao", "Tampão"),
           ],
         },
       ],
@@ -122,16 +127,16 @@
       blocks: [
         {
           items: [
-            item("dian_capo", "Capô"),
-            item("dian_para_choque", "Para-Choque"),
-            item("dian_limpadores", "Limpadores Para-Brisa"),
-            item("dian_para_brisa", "Para-Brisa"),
-            item("dian_farois", "Faróis"),
-            item("dian_farois_aux", "Faróis Auxiliares"),
-            item("dian_lanternas", "Lanternas"),
-            item("dian_teto", "Teto"),
-            item("dian_sala", "Sala"),
-            item("dian_grade", "Grade"),
+            cls("dian_capo", "Capô"),
+            cls("dian_para_choque", "Para-Choque"),
+            cls("dian_limpadores", "Limpadores Para-Brisa"),
+            cls("dian_para_brisa", "Para-Brisa"),
+            cls("dian_farois", "Faróis"),
+            cls("dian_farois_aux", "Faróis Auxiliares"),
+            cls("dian_lanternas", "Lanternas"),
+            cls("dian_teto", "Teto"),
+            cls("dian_sala", "Sala"),
+            cls("dian_grade", "Grade"),
           ],
         },
       ],
@@ -142,16 +147,14 @@
       blocks: [
         {
           items: [
-            item("lesq_para_lama_diant", "Para-Lama Dianteiro"),
-            item("lesq_para_lama_tras", "Para-Lama Traseiro"),
-            item("lesq_porta_diant", "Porta Dianteira"),
-            item("lesq_porta_tras", "Porta Traseira"),
-            item("lesq_macanetas", "Maçanetas"),
-            item("lesq_macanetas_m", "Maçanetas — M"),
-            item("lesq_macanetas_e", "Maçanetas — E"),
-            item("lesq_retrovisor", "Retrovisor"),
-            item("lesq_vidros", "Vidros"),
-            item("lesq_friso", "Friso"),
+            cls("lesq_para_lama_diant", "Para-Lama Dianteiro"),
+            cls("lesq_para_lama_tras", "Para-Lama Traseiro"),
+            cls("lesq_porta_diant", "Porta Dianteira"),
+            cls("lesq_porta_tras", "Porta Traseira"),
+            cls("lesq_macaneta", "Maçaneta"),
+            cls("lesq_retrovisor", "Retrovisor"),
+            cls("lesq_vidros", "Vidros"),
+            cls("lesq_friso", "Friso"),
           ],
         },
       ],
@@ -162,45 +165,14 @@
       blocks: [
         {
           items: [
-            item("ldir_para_lama_diant", "Para-Lama Dianteiro"),
-            item("ldir_para_lama_tras", "Para-Lama Traseiro"),
-            item("ldir_porta_diant", "Porta Dianteira"),
-            item("ldir_porta_tras", "Porta Traseira"),
-            item("ldir_macanetas", "Maçanetas"),
-            item("ldir_macanetas_m", "Maçanetas — M"),
-            item("ldir_macanetas_e", "Maçanetas — E"),
-            item("ldir_retrovisor", "Retrovisor"),
-            item("ldir_vidros", "Vidros"),
-            item("ldir_friso", "Friso"),
-          ],
-        },
-      ],
-    },
-    {
-      id: "eixo",
-      title: "QUANTIDADE DE EIXO",
-      blocks: [
-        {
-          items: [
-            item("eixo_toco", "Toco"),
-            item("eixo_trucado", "Trucado"),
-            item("eixo_3_trucado", "3º eixo Trucado"),
-            item("eixo_outros", "Outros"),
-          ],
-        },
-      ],
-    },
-    {
-      id: "carroceria",
-      title: "TIPO DE CARROCERIA",
-      blocks: [
-        {
-          items: [
-            item("car_bau_isotermico", "Baú Isotérmico"),
-            item("car_graneleira", "Graneleira"),
-            item("car_aberta", "Aberta"),
-            item("car_cacamba", "Caçamba"),
-            item("car_tanque", "Tanque"),
+            cls("ldir_para_lama_diant", "Para-Lama Dianteiro"),
+            cls("ldir_para_lama_tras", "Para-Lama Traseiro"),
+            cls("ldir_porta_diant", "Porta Dianteira"),
+            cls("ldir_porta_tras", "Porta Traseira"),
+            cls("ldir_macaneta", "Maçaneta"),
+            cls("ldir_retrovisor", "Retrovisor"),
+            cls("ldir_vidros", "Vidros"),
+            cls("ldir_friso", "Friso"),
           ],
         },
       ],
@@ -210,111 +182,279 @@
       title: "RODAS",
       blocks: [
         {
-          items: [
-            item("rod_pneu_dd", "Pneu D/Dir."),
-            item("rod_pneu_de", "Pneu D/Esq."),
-            item("rod_pneu_td", "Pneu T/Dir."),
-            item("rod_pneu_te", "Pneu T/Esq."),
-            item("rod_estepe_marca", "Estepe (Marca)"),
-            item("rod_calotas", "Calotas"),
-            item("rod_liga_leve_qtde", "Liga Leve — Qtde"),
+          textFields: [
+            txt("rod_pneu_referencia", "Referência do pneu", "175/70 R13"),
+            txt("rod_pneu_marca", "Marca"),
           ],
-        },
-      ],
-    },
-    {
-      id: "motos",
-      title: "MOTOS",
-      blocks: [
-        {
           items: [
-            item("moto_carenagem", "Carenagem"),
-            item("moto_guidao", "Guidão"),
-            item("moto_tanque", "Tanque"),
-            item("moto_lateral", "Lateral"),
-          ],
-        },
-        {
-          items: [
-            item("moto_setas", "Setas"),
-            item("moto_pedaleira", "Pedaleira"),
-            item("moto_freio_manete", "Freio Manete/Pedaleira"),
-            item("moto_suporte_descanso", "Suporte de Descanso"),
-          ],
-        },
-        {
-          items: [
-            item("moto_corrente", "Corrente"),
-            item("moto_escapamento", "Escapamento"),
-            item("moto_lanterna_traseira", "Lanterna Traseira"),
-            item("moto_farol", "Farol"),
-          ],
-        },
-      ],
-    },
-    {
-      id: "tratores",
-      title: "TRATORES E MÁQUINAS AGRÍCOLAS",
-      blocks: [
-        {
-          items: [
-            item("trat_pneus", "Pneus"),
-            item("trat_eixo_diant_4x2", "Eixo Dianteiro 4X2"),
-            item("trat_eixo_diant_4x4", "Eixo Dianteiro 4X4"),
-            item("trat_embreagem", "Embreagem"),
-            item("trat_cambio", "Câmbio"),
-            item("trat_motor", "Motor"),
-          ],
-        },
-        {
-          title: "TIPO",
-          items: [
-            item("trat_dir_mecanica", "Direção Mecânica"),
-            item("trat_dir_hidraulica", "Direção Hidráulica/Hidrostática"),
-            item("trat_freios", "Freios"),
-            item("trat_freios_umido", "Freios — Úmido"),
-            item("trat_freios_seco", "Freios — Seco"),
-            item("trat_eixo_traseiro", "Eixo Traseiro — Diferencial"),
-            item("trat_lataria", "Lataria"),
-            item("trat_pintura", "Pintura"),
-          ],
-        },
-        {
-          items: [
-            item("trat_eletrica", "Elétrica"),
-            item("trat_barra_tracao", "Barra de Tração"),
-            item("trat_assento_operador", "Assento Operador"),
-            item("trat_cabine", "Cabine"),
-            item("trat_para_choque", "Para-Choque"),
-            item("trat_bracos_hidraulicos", "Braços Hidráulicos"),
+            cls("rod_pneu_dd", "Pneu D/Dir."),
+            cls("rod_pneu_de", "Pneu D/Esq."),
+            cls("rod_pneu_td", "Pneu T/Dir."),
+            cls("rod_pneu_te", "Pneu T/Esq."),
+            cls("rod_estepe", "Estepe"),
+            cls("rod_calotas", "Calotas"),
+            cls("rod_liga_leve", "Liga Leve"),
           ],
         },
       ],
     },
   ];
 
-  const CHECKLIST = [];
-  INSPECTION_CARDS.forEach((card) => {
-    card.blocks.forEach((block) => {
-      block.items.forEach((it) => {
-        CHECKLIST.push({
-          category: card.title,
-          cardId: card.id,
-          key: it.key,
-          label: it.label,
-          blockTitle: block.title || null,
+  const EIXO_CARD = {
+    id: "eixo",
+    title: "QUANTIDADE DE EIXO",
+    blocks: [
+      {
+        items: [
+          cls("eixo_toco", "Toco"),
+          cls("eixo_trucado", "Trucado"),
+          cls("eixo_3_trucado", "3º eixo Trucado"),
+          cls("eixo_outros", "Outros"),
+        ],
+      },
+    ],
+  };
+
+  const CARROCERIA_CARD = {
+    id: "carroceria",
+    title: "TIPO DE CARROCERIA",
+    blocks: [
+      {
+        items: [
+          cls("car_bau_isotermico", "Baú Isotérmico"),
+          cls("car_graneleira", "Graneleira"),
+          cls("car_aberta", "Aberta"),
+          cls("car_cacamba", "Caçamba"),
+          cls("car_tanque", "Tanque"),
+        ],
+      },
+    ],
+  };
+
+  const MOTOS_CARDS = [
+    {
+      id: "motos",
+      title: "MOTOS",
+      blocks: [
+        {
+          items: [
+            cls("moto_carenagem", "Carenagem"),
+            cls("moto_guidao", "Guidão"),
+            cls("moto_tanque", "Tanque"),
+            cls("moto_lateral", "Lateral"),
+          ],
+        },
+        {
+          items: [
+            cls("moto_setas", "Setas"),
+            cls("moto_pedaleira", "Pedaleira"),
+            cls("moto_freio_manete", "Freio Manete/Pedaleira"),
+            cls("moto_suporte_descanso", "Suporte de Descanso"),
+          ],
+        },
+        {
+          items: [
+            cls("moto_corrente", "Corrente"),
+            cls("moto_escapamento", "Escapamento"),
+            cls("moto_lanterna_traseira", "Lanterna Traseira"),
+            cls("moto_farol", "Farol"),
+          ],
+        },
+      ],
+    },
+  ];
+
+  const TRATORES_CARDS = [
+    {
+      id: "tratores",
+      title: "TRATORES E MÁQUINAS AGRÍCOLAS",
+      blocks: [
+        {
+          items: [
+            cls("trat_pneus", "Pneus"),
+            cls("trat_eixo_diant_4x2", "Eixo Dianteiro 4X2"),
+            cls("trat_eixo_diant_4x4", "Eixo Dianteiro 4X4"),
+            cls("trat_embreagem", "Embreagem"),
+            cls("trat_cambio", "Câmbio"),
+            cls("trat_motor", "Motor"),
+          ],
+        },
+        {
+          title: "TIPO",
+          items: [
+            cls("trat_dir_mecanica", "Direção Mecânica"),
+            cls("trat_dir_hidraulica", "Direção Hidráulica/Hidrostática"),
+            cls("trat_freios", "Freios"),
+            cls("trat_freios_umido", "Freios — Úmido"),
+            cls("trat_freios_seco", "Freios — Seco"),
+            cls("trat_eixo_traseiro", "Eixo Traseiro — Diferencial"),
+            cls("trat_lataria", "Lataria"),
+            cls("trat_pintura", "Pintura"),
+          ],
+        },
+        {
+          items: [
+            cls("trat_eletrica", "Elétrica"),
+            cls("trat_barra_tracao", "Barra de Tração"),
+            cls("trat_assento_operador", "Assento Operador"),
+            cls("trat_cabine", "Cabine"),
+            cls("trat_para_choque", "Para-Choque"),
+            cls("trat_bracos_hidraulicos", "Braços Hidráulicos"),
+          ],
+        },
+      ],
+    },
+  ];
+
+  const PESADOS_CARDS = [...LEVE_CARDS, EIXO_CARD, CARROCERIA_CARD];
+
+  const VARIANT_META = {
+    LEVE: {
+      id: "LEVE",
+      label: "Vistoria Leve",
+      shortLabel: "Leve",
+      description: "Carros de passeio, veículos leves e pequenas vans.",
+      diagram: DIAGRAMS.LEVE,
+      photoProfile: "LEVE",
+      ready: true,
+    },
+    PESADOS: {
+      id: "PESADOS",
+      label: "Vistoria Pesados",
+      shortLabel: "Pesados",
+      description: "Vans maiores, ônibus, caminhões, carretas e veículos pesados.",
+      diagram: DIAGRAMS.PESADOS,
+      photoProfile: "PESADOS",
+      ready: true,
+    },
+    TRATORES: {
+      id: "TRATORES",
+      label: "Tratores e Máquinas Agrícolas",
+      shortLabel: "Tratores / Máquinas",
+      description: "Tratores, máquinas e equipamentos agrícolas.",
+      diagram: DIAGRAMS.TRATORES,
+      photoProfile: "TRATORES",
+      ready: true,
+    },
+    MOTOS: {
+      id: "MOTOS",
+      label: "Vistoria Motos",
+      shortLabel: "Motos",
+      description: "Motocicletas e motos.",
+      diagram: DIAGRAMS.MOTOS,
+      photoProfile: "MOTOS",
+      ready: true,
+    },
+  };
+
+  const VARIANT_CARDS = {
+    LEVE: LEVE_CARDS,
+    PESADOS: PESADOS_CARDS,
+    TRATORES: TRATORES_CARDS,
+    MOTOS: MOTOS_CARDS,
+  };
+
+  function flattenCards(cards) {
+    const checklist = [];
+    cards.forEach((card) => {
+      card.blocks.forEach((block) => {
+        (block.textFields || []).forEach((it) => {
+          checklist.push({
+            category: card.title,
+            cardId: card.id,
+            key: it.key,
+            label: it.label,
+            kind: it.kind,
+            blockTitle: block.title || null,
+          });
+        });
+        block.items.forEach((it) => {
+          checklist.push({
+            category: card.title,
+            cardId: card.id,
+            key: it.key,
+            label: it.label,
+            kind: it.kind || "classify",
+            numberKey: it.numberKey || null,
+            numberLabel: it.numberLabel || null,
+            blockTitle: block.title || null,
+          });
+          if (it.numberKey) {
+            checklist.push({
+              category: card.title,
+              cardId: card.id,
+              key: it.numberKey,
+              label: it.numberLabel || "Quantidade",
+              kind: "number",
+              parentKey: it.key,
+              blockTitle: block.title || null,
+            });
+          }
         });
       });
     });
-  });
+    return checklist;
+  }
 
-  const INSPECTION_CHECKLIST_KEYS = CHECKLIST.map((it) => it.key);
+  function classifyKeysFromCards(cards) {
+    return flattenCards(cards)
+      .filter((it) => it.kind === "classify")
+      .map((it) => it.key);
+  }
+
+  function getVariantConfig(variantId) {
+    const id = String(variantId || "LEVE").toUpperCase();
+    const meta = VARIANT_META[id] || VARIANT_META.LEVE;
+    const cards = VARIANT_CARDS[id] || VARIANT_CARDS.LEVE;
+    const checklist = flattenCards(cards);
+    return {
+      ...meta,
+      cards,
+      checklist,
+      classifyKeys: classifyKeysFromCards(cards),
+      cardCount: cards.length,
+      itemCount: checklist.filter((it) => it.kind === "classify").length,
+    };
+  }
+
+  const LEVE_CONFIG = getVariantConfig("LEVE");
 
   global.vehicleEntryInspectionChecklist = {
-    INSPECTION_CARDS,
-    CHECKLIST,
-    INSPECTION_CHECKLIST_KEYS,
-    CARD_COUNT: INSPECTION_CARDS.length,
-    ITEM_COUNT: CHECKLIST.length,
+    INSPECTION_VARIANTS: Object.values(VARIANT_META),
+    VARIANT_META,
+    getVariantConfig,
+    getDiagramSrc(variantId) {
+      return getVariantConfig(variantId).diagram;
+    },
+    getVariantLabel(variantId) {
+      return getVariantConfig(variantId).label;
+    },
+    /** Legado — espelha Vistoria Leve */
+    INSPECTION_CARDS: LEVE_CONFIG.cards,
+    CHECKLIST: LEVE_CONFIG.checklist,
+    INSPECTION_CHECKLIST_KEYS: LEVE_CONFIG.classifyKeys,
+    CARD_COUNT: LEVE_CONFIG.cardCount,
+    ITEM_COUNT: LEVE_CONFIG.itemCount,
+    LEVE_PHOTO_SLOTS: [
+      { key: "diag_front_left", category: "EXTERIOR", label: "Dianteira diagonal esquerda" },
+      { key: "diag_front_right", category: "EXTERIOR", label: "Dianteira diagonal direita" },
+      { key: "side_left", category: "EXTERIOR", label: "Lateral esquerda" },
+      { key: "side_right", category: "EXTERIOR", label: "Lateral direita" },
+      { key: "diag_rear_right", category: "EXTERIOR", label: "Diagonal traseira direita" },
+      { key: "diag_rear_left", category: "EXTERIOR", label: "Diagonal traseira esquerda" },
+      { key: "roof", category: "EXTERIOR", label: "Teto" },
+      { key: "dashboard_on", category: "INTERIOR", label: "Painel de instrumentos com o veículo ligado" },
+      { key: "engine", category: "MECANICA", label: "Motor" },
+      { key: "chassis", category: "IDENTIFICACAO", label: "Chassi" },
+      { key: "battery", category: "MECANICA", label: "Bateria" },
+      { key: "spare", category: "RODAS", label: "Estepe" },
+      { key: "jack_tools", category: "ACESSORIOS", label: "Chave de rodas e triângulo juntos em uma única foto" },
+      { key: "wheel_fr", category: "RODAS", label: "Roda dianteira direita" },
+      { key: "wheel_fl", category: "RODAS", label: "Roda dianteira esquerda" },
+      { key: "wheel_rr", category: "RODAS", label: "Roda traseira direita" },
+      { key: "wheel_rl", category: "RODAS", label: "Roda traseira esquerda" },
+      { key: "seats_front", category: "INTERIOR", label: "Bancos dianteiros" },
+      { key: "seats_rear", category: "INTERIOR", label: "Bancos traseiros" },
+    ],
   };
 })(typeof window !== "undefined" ? window : globalThis);
