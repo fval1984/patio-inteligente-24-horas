@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import checklistKeys from "./vehicle-entry-inspection-checklist-keys.json";
+import checklistKeysByVariant from "./vehicle-entry-inspection-checklist-keys.json";
 
 export type InspectionClassification =
   | "BOM"
@@ -7,6 +7,8 @@ export type InspectionClassification =
   | "DANIFICADO"
   | "SEM_TESTE"
   | "INEXISTENTE";
+
+export type InspectionVariant = "LEVE" | "PESADOS" | "TRATORES" | "MOTOS";
 
 export type InspectionItemPayload = {
   category: string;
@@ -30,6 +32,8 @@ export type CompleteEntryInspectionInput = {
   vehicleId: string;
   inspectorUserId: string;
   inspectorName: string;
+  inspectionVariant?: InspectionVariant | string;
+  formExtras?: Record<string, unknown>;
   generalNotes?: string;
   diagramMarkers?: unknown[];
   items: InspectionItemPayload[];
@@ -41,6 +45,13 @@ export type CompleteEntryInspectionResult = {
   inspection_number: number;
   vehicle_id: string;
 };
+
+const KEYS_BY_VARIANT = checklistKeysByVariant as Record<string, string[]>;
+
+export function getChecklistKeysForVariant(variant?: string): readonly string[] {
+  const v = String(variant || "LEVE").toUpperCase();
+  return KEYS_BY_VARIANT[v]?.length ? KEYS_BY_VARIANT[v] : KEYS_BY_VARIANT.LEVE;
+}
 
 export function isMissingInspectionSchemaError(message: string): boolean {
   return /vehicle_entry_inspection|complete_vehicle_entry_inspection|relation|schema cache|does not exist|PGRST/i.test(
@@ -81,10 +92,9 @@ export async function resolveInspectorDisplayName(
   return "Utilizador";
 }
 
-export const INSPECTION_ITEM_COUNT = checklistKeys.length;
-
-/** Chaves obrigatórias do checklist (espelho de public/vehicle-entry-inspection-checklist.js). */
-export const INSPECTION_CHECKLIST_KEYS = checklistKeys as readonly string[];
+/** @deprecated Use getChecklistKeysForVariant */
+export const INSPECTION_CHECKLIST_KEYS = KEYS_BY_VARIANT.LEVE;
+export const INSPECTION_ITEM_COUNT = KEYS_BY_VARIANT.LEVE.length;
 
 const VALID_CLASSIFICATIONS = new Set([
   "BOM",
@@ -94,9 +104,13 @@ const VALID_CLASSIFICATIONS = new Set([
   "INEXISTENTE",
 ]);
 
-export function validateInspectionItems(items: InspectionItemPayload[]): string | null {
+export function validateInspectionItems(
+  items: InspectionItemPayload[],
+  variant?: string
+): string | null {
+  const requiredKeys = getChecklistKeysForVariant(variant);
   if (!Array.isArray(items) || !items.length) {
-    return `Todos os ${INSPECTION_ITEM_COUNT} itens do checklist devem ser classificados.`;
+    return `Todos os ${requiredKeys.length} itens do checklist devem ser classificados.`;
   }
 
   const byKey = new Map<string, InspectionItemPayload>();
@@ -106,7 +120,7 @@ export function validateInspectionItems(items: InspectionItemPayload[]): string 
 
   const missing: string[] = [];
 
-  for (const key of INSPECTION_CHECKLIST_KEYS) {
+  for (const key of requiredKeys) {
     const it = byKey.get(key);
     const cls = it?.classification;
     if (!cls || !VALID_CLASSIFICATIONS.has(cls)) {
@@ -115,8 +129,8 @@ export function validateInspectionItems(items: InspectionItemPayload[]): string 
   }
 
   if (missing.length) {
-    if (missing.length >= INSPECTION_ITEM_COUNT) {
-      return `Todos os ${INSPECTION_ITEM_COUNT} itens do checklist devem ser classificados (BOM, REGULAR, DANIFICADO, SEM TESTE ou INEXISTENTE).`;
+    if (missing.length >= requiredKeys.length) {
+      return `Todos os ${requiredKeys.length} itens do checklist devem ser classificados (BOM, REGULAR, DANIFICADO, SEM TESTE ou INEXISTENTE).`;
     }
     const preview = missing.slice(0, 10).join(", ");
     const suffix = missing.length > 10 ? `… (+${missing.length - 10})` : "";
@@ -130,7 +144,8 @@ export async function completeVehicleEntryInspection(
   admin: SupabaseClient,
   input: CompleteEntryInspectionInput
 ): Promise<{ data: CompleteEntryInspectionResult | null; error: string | null }> {
-  const itemErr = validateInspectionItems(input.items);
+  const variant = String(input.inspectionVariant || "LEVE").toUpperCase();
+  const itemErr = validateInspectionItems(input.items, variant);
   if (itemErr) return { data: null, error: itemErr };
 
   const { data, error } = await admin.rpc("complete_vehicle_entry_inspection", {
@@ -142,6 +157,8 @@ export async function completeVehicleEntryInspection(
     p_diagram_markers: input.diagramMarkers || [],
     p_items: input.items,
     p_damages: input.damages.map(({ client_key, ...rest }) => rest),
+    p_inspection_variant: variant,
+    p_form_extras: input.formExtras || {},
   });
 
   if (error) {
