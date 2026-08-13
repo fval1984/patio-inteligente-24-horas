@@ -6545,7 +6545,7 @@
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme7" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260813vistui1" />
-    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile8" />
+    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile9" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate3" />
   </head>
   <body class="auth-screen-active">
@@ -7838,6 +7838,7 @@
             <h3 id="patioVehicleActionsTitle">Veículo</h3>
             <button type="button" class="modal-close" id="closePatioVehicleActionsModal" aria-label="Fechar">Fechar</button>
           </div>
+          <div id="patioVehicleActionsInfo" class="patio-vehicle-actions-info"></div>
           <div id="patioVehicleActionsBody" class="patio-vehicle-actions-body"></div>
         </div>
       </div>
@@ -9072,6 +9073,7 @@
       const patioVehicleActionsModal = document.getElementById("patioVehicleActionsModal");
       const closePatioVehicleActionsModal = document.getElementById("closePatioVehicleActionsModal");
       const patioVehicleActionsTitle = document.getElementById("patioVehicleActionsTitle");
+      const patioVehicleActionsInfo = document.getElementById("patioVehicleActionsInfo");
       const patioVehicleActionsBody = document.getElementById("patioVehicleActionsBody");
       const closeFichaModal = document.getElementById("closeFichaModal");
       const printFicha = document.getElementById("printFicha");
@@ -16564,12 +16566,48 @@
         return parts.join(" ");
       }
 
+      function patioMobilePlainTitle(v) {
+        const placa = String(v?.placa || "").trim() || "—";
+        const modelo = String(v?.modelo || "").trim() || String(v?.marca || "").trim() || "—";
+        return `${placa} — ${modelo}`;
+      }
+
+      function buildPatioMobileVehicleInfoHtml(v) {
+        if (!v) return "";
+        const rpv = state.partners.find((p) => p.id === v.localizador_id)?.nome || "—";
+        const rpp = vehicleRpfNome(v);
+        const dias = calcDays(v);
+        const vd = Number(v.valor_diaria);
+        const valorDiariaTxt =
+          Number.isFinite(vd) && vd > 0 ? formatCurrency(vd) : "—";
+        const valorAcumTxt = formatCurrency(calcTotal(v));
+
+        const row = (label, value) =>
+          `<div class="patio-mob-info-row"><span class="patio-mob-info-label">${escapeHtml(label)}</span><span class="patio-mob-info-value">${value}</span></div>`;
+
+        let html = `<div class="patio-mob-info-card">`;
+        html += row("Placa", plateVisualHtml(v.placa, "sm"));
+        html += row("Marca", escapeHtml(v.marca || "—"));
+        html += row("Modelo", escapeHtml(v.modelo || "—"));
+        html += row("Cor", escapeHtml(v.cor || "—"));
+        html += row("RPV", escapeHtml(rpv));
+        html += row("RPP", escapeHtml(rpp));
+        html += row("Entrada", escapeHtml(formatDateTime(v.data_entrada)));
+        html += row("Dias no pátio", escapeHtml(String(dias)));
+        if (isGestorPista) {
+          html += `<p class="notice patio-mob-info-notice">Valores não exibidos neste perfil.</p>`;
+        } else {
+          html += row("Valor da diária", escapeHtml(valorDiariaTxt));
+          html += row("Valor acumulado", escapeHtml(valorAcumTxt));
+        }
+        html += `</div>`;
+        return html;
+      }
+
       function buildPatioMobileCompactLine(v) {
         const plate = plateVisualHtml(v.placa, "xs");
-        const marca = escapeHtml(v.marca || "-");
-        const modelo = escapeHtml(v.modelo || "-");
-        const dias = calcDays(v);
-        return `<span class="patio-mob-compact-line">${plate}<span class="patio-mob-compact-meta">${marca} - ${modelo} - ${dias}</span></span>`;
+        const modelo = escapeHtml(String(v.modelo || v.marca || "-").trim() || "-");
+        return `<span class="patio-mob-compact-line">${plate}<span class="patio-mob-compact-meta">${modelo}</span></span>`;
       }
 
       function buildPatioMobileListCellsHtml(v, colspan) {
@@ -16586,14 +16624,18 @@
         if (!patioVehicleActionsModal) return;
         patioVehicleActionsModal.classList.add("hidden");
         delete patioVehicleActionsModal.dataset.openVehicleId;
+        if (patioVehicleActionsInfo) patioVehicleActionsInfo.innerHTML = "";
       }
 
       function openPatioVehicleActionsModal(vehicle, listContext) {
         if (!patioVehicleActionsModal || !vehicle) return;
         if (patioVehicleActionsTitle) {
-          patioVehicleActionsTitle.textContent = buildPatioMobileCompactLine(vehicle);
+          patioVehicleActionsTitle.textContent = patioMobilePlainTitle(vehicle);
         }
         patioVehicleActionsModal.dataset.openVehicleId = vehicle.id;
+        if (patioVehicleActionsInfo) {
+          patioVehicleActionsInfo.innerHTML = buildPatioMobileVehicleInfoHtml(vehicle);
+        }
         if (patioVehicleActionsBody) {
           patioVehicleActionsBody.innerHTML = buildPatioVehicleActionsHtml(vehicle, { listContext });
         }
