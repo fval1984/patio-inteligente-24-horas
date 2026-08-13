@@ -17,9 +17,23 @@
   const CLASS_SHORT = { BOM: "B", REGULAR: "R", DANIFICADO: "D", SEM_TESTE: "S", INEXISTENTE: "I" };
 
   const checklistMod = global.vehicleEntryInspectionChecklist || {};
-  const INSPECTION_CARDS = checklistMod.INSPECTION_CARDS || [];
-  const CHECKLIST = checklistMod.CHECKLIST || [];
-  const CARD_COUNT = checklistMod.CARD_COUNT || INSPECTION_CARDS.length || 1;
+
+  function getVariantConfig(variant) {
+    if (checklistMod.getVariantConfig) return checklistMod.getVariantConfig(variant || "LEVE");
+    return {
+      id: "LEVE",
+      label: "Vistoria Leve",
+      cards: checklistMod.INSPECTION_CARDS || [],
+      checklist: checklistMod.CHECKLIST || [],
+      classifyKeys: checklistMod.INSPECTION_CHECKLIST_KEYS || [],
+      cardCount: checklistMod.CARD_COUNT || 1,
+      diagram: "/vehicle-inspection-diagram-leve.webp",
+    };
+  }
+
+  function draftCfg(draft) {
+    return getVariantConfig(draft?.inspectionVariant || "LEVE");
+  }
 
   const DAMAGE_TYPES = [
     "Arranhão",
@@ -35,7 +49,7 @@
 
   const DIAGRAM_W = 800;
   const DIAGRAM_H = 566;
-  const DIAGRAM_SRC = "/vehicle-inspection-diagram-4v.webp";
+  const DEFAULT_DIAGRAM_SRC = "/vehicle-inspection-diagram-leve.webp";
 
   let _stylesInjected = false;
   let _modalEl = null;
@@ -64,14 +78,20 @@
     return p?.nome || "—";
   }
 
-  function emptyDraft() {
+  function emptyDraftForVariant(variant) {
+    const cfg = getVariantConfig(variant || "LEVE");
     const classifications = {};
-    CHECKLIST.forEach((it) => {
-      classifications[it.key] = null;
+    const formExtras = {};
+    cfg.checklist.forEach((it) => {
+      if (it.kind === "classify") classifications[it.key] = null;
+      else if (it.kind === "text" || it.kind === "number") formExtras[it.key] = "";
     });
     return {
+      inspectionVariant: cfg.id || variant || "LEVE",
       generalNotes: "",
       classifications,
+      formExtras,
+      itemDamagePhotos: {},
       damages: [],
       diagramMarkers: [],
       pendingPhotos: [],
@@ -82,15 +102,27 @@
     };
   }
 
+  function emptyDraft(variant) {
+    return emptyDraftForVariant(variant || "LEVE");
+  }
+
   function draftStorageKey(vehicleId) {
-    return `vei_draft_v2_${String(vehicleId || "")}`;
+    return `vei_draft_v3_${String(vehicleId || "")}`;
   }
 
   function persistDraftToStorage(vehicleId, draft) {
     if (!vehicleId || !draft) return;
     try {
       const payload = {
+        inspectionVariant: draft.inspectionVariant || "LEVE",
         classifications: draft.classifications,
+        formExtras: draft.formExtras || {},
+        itemDamagePhotos: Object.fromEntries(
+          Object.entries(draft.itemDamagePhotos || {}).map(([k, v]) => [
+            k,
+            { preview: v?.preview || null, capturedAt: v?.capturedAt || null },
+          ])
+        ),
         generalNotes: draft.generalNotes,
         diagramMarkers: draft.diagramMarkers,
         damages: (draft.damages || []).map((d) => ({
@@ -102,6 +134,8 @@
           notes: d.notes,
           photoPreview: d.photoPreview || null,
         })),
+        standardPhotos: draft.standardPhotos || {},
+        currentPhotoStep: draft.currentPhotoStep || 0,
         currentCardIndex: draft.currentCardIndex || 0,
         savedAt: new Date().toISOString(),
       };
@@ -114,20 +148,29 @@
   function loadDraftFromStorage(vehicleId) {
     if (!vehicleId) return null;
     try {
-      const raw = localStorage.getItem(draftStorageKey(vehicleId));
+      const raw = localStorage.getItem(draftStorageKey(vehicleId)) || localStorage.getItem(`vei_draft_v2_${vehicleId}`);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== "object") return null;
-      const draft = emptyDraft();
+      const draft = emptyDraftForVariant(parsed.inspectionVariant || "LEVE");
       if (parsed.classifications && typeof parsed.classifications === "object") {
         Object.keys(parsed.classifications).forEach((k) => {
-          if (k in draft.classifications) draft.classifications[k] = parsed.classifications[k];
+          draft.classifications[k] = parsed.classifications[k];
         });
+      }
+      if (parsed.formExtras && typeof parsed.formExtras === "object") {
+        Object.assign(draft.formExtras, parsed.formExtras);
+      }
+      if (parsed.itemDamagePhotos && typeof parsed.itemDamagePhotos === "object") {
+        draft.itemDamagePhotos = parsed.itemDamagePhotos;
       }
       draft.generalNotes = parsed.generalNotes || "";
       draft.diagramMarkers = normalizeDiagramMarkers(parsed.diagramMarkers);
       draft.damages = Array.isArray(parsed.damages) ? parsed.damages : [];
-      draft.currentCardIndex = Math.max(0, Math.min(CARD_COUNT - 1, Number(parsed.currentCardIndex) || 0));
+      draft.standardPhotos = parsed.standardPhotos || {};
+      draft.currentPhotoStep = Number(parsed.currentPhotoStep) || 0;
+      const maxCard = draftCfg(draft).cardCount - 1;
+      draft.currentCardIndex = Math.max(0, Math.min(maxCard, Number(parsed.currentCardIndex) || 0));
       return draft;
     } catch (e) {
       return null;
@@ -142,66 +185,83 @@
     }
   }
 
-  function cardItemKeys(cardIndex) {
-    const card = INSPECTION_CARDS[cardIndex];
+  function cardClassifyKeys(draft, cardIndex) {
+    const card = draftCfg(draft).cards[cardIndex];
     if (!card) return [];
     const keys = [];
     card.blocks.forEach((block) => {
-      block.items.forEach((it) => keys.push(it.key));
+      block.items.forEach((it) => {
+        if ((it.kind || "classify") === "classify") keys.push(it.key);
+      });
     });
     return keys;
   }
 
-  function cardItemLabels(cardIndex) {
-    const card = INSPECTION_CARDS[cardIndex];
-    if (!card) return [];
+  function cardClassifyLabels(draft, cardIndex) {
+    const card = draftCfg(draft).cards[cardIndex];
     const labels = new Map();
+    if (!card) return labels;
     card.blocks.forEach((block) => {
-      block.items.forEach((it) => labels.set(it.key, it.label));
+      block.items.forEach((it) => {
+        if ((it.kind || "classify") === "classify") labels.set(it.key, it.label);
+      });
     });
     return labels;
   }
 
   function missingItemsInCard(draft, cardIndex) {
-    const labels = cardItemLabels(cardIndex);
-    return cardItemKeys(cardIndex)
+    const labels = cardClassifyLabels(draft, cardIndex);
+    return cardClassifyKeys(draft, cardIndex)
       .filter((key) => !draft.classifications[key])
       .map((key) => labels.get(key) || key);
   }
 
-  function findCardIndexForItemKey(itemKey) {
-    for (let i = 0; i < INSPECTION_CARDS.length; i++) {
-      if (cardItemKeys(i).includes(itemKey)) return i;
+  function findCardIndexForItemKey(draft, itemKey) {
+    const cards = draftCfg(draft).cards;
+    for (let i = 0; i < cards.length; i++) {
+      if (cardClassifyKeys(draft, i).includes(itemKey)) return i;
     }
     return 0;
   }
 
   function classifiedCount(draft) {
     let done = 0;
-    CHECKLIST.forEach((it) => {
-      if (draft.classifications[it.key]) done++;
+    draftCfg(draft).checklist.forEach((it) => {
+      if (it.kind === "classify" && draft.classifications[it.key]) done++;
     });
     return done;
   }
 
   function progressPct(draft) {
-    const total = CHECKLIST.length;
+    const total = draftCfg(draft).checklist.filter((it) => it.kind === "classify").length;
+    if (!total) return 0;
     return Math.round((classifiedCount(draft) / total) * 100);
   }
 
   function missingItems(draft) {
-    return CHECKLIST.filter((it) => !draft.classifications[it.key]).map((it) => it.label);
+    return draftCfg(draft).checklist
+      .filter((it) => it.kind === "classify" && !draft.classifications[it.key])
+      .map((it) => it.label);
+  }
+
+  function getDamagedClassifyItems(draft) {
+    return draftCfg(draft).checklist.filter(
+      (it) => it.kind === "classify" && draft.classifications[it.key] === "DANIFICADO"
+    );
+  }
+
+  function labelForItemKey(draft, itemKey) {
+    const it = draftCfg(draft).checklist.find((x) => x.key === itemKey);
+    return it?.label || itemKey;
   }
 
   function scrollToFirstMissingItem(root, draft) {
-    const first = CHECKLIST.find((it) => !draft.classifications[it.key]);
+    const first = draftCfg(draft).checklist.find((it) => it.kind === "classify" && !draft.classifications[it.key]);
     if (!first || !root) return;
-    const cardIdx = findCardIndexForItemKey(first.key);
+    const cardIdx = findCardIndexForItemKey(draft, first.key);
     if (draft.currentCardIndex !== cardIdx) {
       draft.currentCardIndex = cardIdx;
-      if (_session?.ctx && _session?.vehicle?.id) {
-        persistDraftToStorage(_session.vehicle.id, draft);
-      }
+      if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
       refreshEditUI(root, draft, _session?.ctx);
       return;
     }
@@ -405,6 +465,30 @@
         padding: 6px 12px; border: 1px solid rgba(148,163,184,0.25);
         background: rgba(15,23,42,0.35);
       }
+      .vei-text-row td { padding: 8px 10px !important; }
+      .vei-text-row label { display: block; font-size: 0.72rem; font-weight: 700; margin-bottom: 4px; color: var(--muted); text-transform: uppercase; }
+      .vei-text-field, .vei-number-field {
+        width: 100%; border: 1px solid rgba(148,163,184,0.35); border-radius: 2px;
+        background: rgba(15,23,42,0.35); color: inherit; padding: 6px 8px; font: inherit; font-size: 0.82rem;
+      }
+      .vei-qty-row td { padding: 4px 10px 8px !important; border-bottom: 1px solid rgba(148,163,184,0.12); }
+      .vei-damage-photos-section {
+        margin: 18px 0; padding: 14px; border: 2px solid rgba(248,113,113,0.35);
+        background: rgba(248,113,113,0.06);
+      }
+      .vei-damage-photos-section h4 { margin: 0 0 10px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: #fecaca; }
+      .vei-damage-photo-item { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid rgba(248,113,113,0.2); }
+      .vei-damage-photo-item:last-child { border-bottom: none; }
+      .vei-damage-photo-item strong { flex: 1 1 180px; font-size: 0.82rem; }
+      .vei-damage-photo-preview { width: 88px; height: 66px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
+      .vei-variant-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
+      .vei-variant-btn {
+        text-align: left; padding: 16px; border: 2px solid rgba(148,163,184,0.35); border-radius: 2px;
+        background: rgba(15,23,42,0.35); cursor: pointer; min-height: 88px;
+      }
+      .vei-variant-btn:hover { border-color: rgba(212,175,55,0.55); background: rgba(212,175,55,0.08); }
+      .vei-variant-btn strong { display: block; font-size: 0.88rem; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 6px; }
+      .vei-variant-btn span { font-size: 0.78rem; color: var(--muted); line-height: 1.35; }
       #veiCardNext, #veiFinalizeBtn { min-width: 140px; }
       .vei-last-card-extras { margin-top: 4px; }
       .vei-side-panel {
@@ -489,28 +573,33 @@
 
   function renderMobilePhotosSection(draft) {
     const mod = global.vehicleEntryInspectionPhotosMobile;
-    if (!mod || !mod.isCaptureDevice()) return "";
+    if (!mod?.renderSection) return "";
     return mod.renderSection(draft);
   }
 
   function refreshMobilePhotosUI(root, draft) {
     const mod = global.vehicleEntryInspectionPhotosMobile;
-    if (!mod || !mod.isCaptureDevice()) return;
+    if (!mod?.renderSection) return;
     const host = root.querySelector("#veiMobilePhotosHost");
     if (!host) return;
     host.innerHTML = mod.renderSection(draft);
-    mod.bindEvents(root, draft, () => refreshMobilePhotosUI(root, draft));
+    mod.bindEvents(host, draft, () => refreshMobilePhotosUI(root, draft));
   }
 
   function bindMobilePhotosIfNeeded(root, draft) {
     refreshMobilePhotosUI(root, draft);
   }
 
-  function diagramAbsUrl() {
+  function diagramSrcForDraft(draft) {
+    return draftCfg(draft).diagram || DEFAULT_DIAGRAM_SRC;
+  }
+
+  function diagramAbsUrl(draft) {
+    const src = diagramSrcForDraft(draft);
     try {
-      return new URL(DIAGRAM_SRC, global.location?.origin || "").href;
+      return new URL(src, global.location?.origin || "").href;
     } catch (e) {
-      return DIAGRAM_SRC;
+      return src;
     }
   }
 
@@ -525,7 +614,7 @@
         return `<circle class="vei-marker" cx="${p.cx}" cy="${p.cy}" r="9"></circle>`;
       })
       .join("");
-    const src = esc(diagramAbsUrl());
+    const src = esc(diagramAbsUrl(draft));
     return (
       '<div class="vei-diagram-wrap">' +
       `<svg class="vei-diagram" viewBox="0 0 ${DIAGRAM_W} ${DIAGRAM_H}" style="max-width:100%;height:auto" aria-label="Diagrama do veículo — 4 vistas">` +
@@ -546,7 +635,7 @@
         return `<circle fill="#dc2626" stroke="#fff" stroke-width="2" cx="${p.cx}" cy="${p.cy}" r="9"></circle>`;
       })
       .join("");
-    const src = esc(diagramAbsUrl());
+    const src = esc(diagramAbsUrl(draft));
     return (
       '<div class="vei-doc-diagram-stack" style="position:relative;width:100%;max-width:800px;margin:0 auto;">' +
       `<img class="vei-doc-diagram-img" src="${src}" alt="Diagrama do veículo — 4 vistas" crossorigin="anonymous" loading="eager" style="width:100%;height:auto;display:block;"/>` +
@@ -608,21 +697,49 @@
         if (cls) draft.classifications[key] = cls;
       }
     });
+    if (!draft.formExtras) draft.formExtras = {};
+    root.querySelectorAll(".vei-text-field[data-extra-key]").forEach((el) => {
+      const key = el.getAttribute("data-extra-key");
+      if (key) draft.formExtras[key] = el.value || "";
+    });
+    root.querySelectorAll(".vei-number-field[data-extra-key]").forEach((el) => {
+      const key = el.getAttribute("data-extra-key");
+      if (key) draft.formExtras[key] = el.value || "";
+    });
   }
 
   function buildInspectionItemsPayload(draft) {
-    return CHECKLIST.map((it) => ({
-      category: it.category,
+    return draftCfg(draft).checklist
+      .filter((it) => it.kind === "classify")
+      .map((it) => ({
+        category: it.category,
+        item_key: it.key,
+        item_label: it.label,
+        classification: draft.classifications[it.key] || "",
+      }));
+  }
+
+  function buildDamagesPayload(draft) {
+    const damaged = getDamagedClassifyItems(draft);
+    const list = damaged.map((it) => ({
       item_key: it.key,
-      item_label: it.label,
-      classification: draft.classifications[it.key] || "",
+      area_label: it.label,
+      damage_type: "Danificado",
+      severity: "",
+      description: "Item marcado como danificado no checklist",
+      notes: "",
+      client_key: it.key,
     }));
+    (draft.damages || []).forEach((d) => {
+      if (!list.some((x) => x.item_key === d.item_key)) list.push({ ...d, client_key: d.item_key || d.area_label });
+    });
+    return list;
   }
 
   function handleEditModalInteraction(evt) {
     const draft = _session?.draft;
     const ctx = _session?.ctx;
-    if (!draft || _session.mode !== "edit" || !ctx) return;
+    if (_session.mode !== "edit" || !draft || !ctx) return;
 
     const root = document.getElementById("veiModalBody");
     if (!root) return;
@@ -689,7 +806,7 @@
         );
         return;
       }
-      draft.currentCardIndex = Math.min(CARD_COUNT - 1, cardIdx + 1);
+      draft.currentCardIndex = Math.min(draftCfg(draft).cardCount - 1, cardIdx + 1);
       if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
       refreshEditUI(root, draft, ctx);
       root.scrollTop = 0;
@@ -714,10 +831,18 @@
     backdrop.dataset.veiInteractionBound = "1";
     backdrop.addEventListener("click", handleEditModalInteraction);
     backdrop.addEventListener("input", (evt) => {
-      if (evt.target?.id === "veiGeneralNotes" && _session?.draft) {
-        _session.draft.generalNotes = evt.target.value;
-        if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, _session.draft);
+      const t = evt.target;
+      if (!t || !_session?.draft) return;
+      if (t.id === "veiGeneralNotes") {
+        _session.draft.generalNotes = t.value;
+      } else if (t.classList?.contains("vei-text-field") || t.classList?.contains("vei-number-field")) {
+        const key = t.getAttribute("data-extra-key");
+        if (key) {
+          if (!_session.draft.formExtras) _session.draft.formExtras = {};
+          _session.draft.formExtras[key] = t.value;
+        }
       }
+      if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, _session.draft);
     });
   }
 
@@ -739,9 +864,12 @@
   }
 
   function renderCardStep(cardIndex, draft, readOnly) {
-    const card = INSPECTION_CARDS[cardIndex];
+    const cfg = draftCfg(draft);
+    const card = cfg.cards[cardIndex];
     if (!card) return "";
-    const isLast = cardIndex === CARD_COUNT - 1;
+    const cardCount = cfg.cardCount;
+    const isLast = cardIndex === cardCount - 1;
+    const colSpan = CLASSIFICATIONS.length + 1;
     let html = '<div class="vei-card-form">';
     html += `<div class="vei-card-title"><span class="vei-card-num">${cardIndex + 1}.</span> ${esc(card.title)}</div>`;
 
@@ -751,19 +879,41 @@
       } else if (blockIdx > 0 && card.blocks.length > 1) {
         html += `<div class="vei-block-title">Bloco ${blockIdx + 1}</div>`;
       }
+      if (block.textFields?.length) {
+        html += '<table class="vei-form-table"><tbody>';
+        block.textFields.forEach((tf) => {
+          const val = draft.formExtras?.[tf.key] || "";
+          html += `<tr class="vei-text-row"><td colspan="${colSpan}">`;
+          html += `<label>${esc(tf.label)}</label>`;
+          if (readOnly) {
+            html += `<div>${esc(val || "—")}</div>`;
+          } else {
+            html += `<input type="text" class="vei-text-field" data-extra-key="${esc(tf.key)}" value="${esc(val)}" placeholder="${esc(tf.placeholder || "")}"/>`;
+          }
+          html += "</td></tr>";
+        });
+        html += "</tbody></table>";
+      }
       html += '<table class="vei-form-table"><thead><tr><th class="vei-th-item">Item</th>';
       CLASSIFICATIONS.forEach((c) => {
         html += `<th class="vei-th-cls">${esc(CLASS_SHORT[c.id] || c.label.charAt(0))}</th>`;
       });
       html += "</tr></thead><tbody>";
       block.items.forEach((it) => {
+        const kind = it.kind || "classify";
+        if (kind === "text") {
+          const val = draft.formExtras?.[it.key] || "";
+          html += `<tr class="vei-text-row"><td colspan="${colSpan}">`;
+          html += `<label>${esc(it.label)}</label>`;
+          if (readOnly) html += `<div>${esc(val || "—")}</div>`;
+          else html += `<input type="text" class="vei-text-field" data-extra-key="${esc(it.key)}" value="${esc(val)}" placeholder="${esc(it.placeholder || "")}"/>`;
+          html += "</td></tr>";
+          return;
+        }
+        if (kind !== "classify") return;
         const sel = draft.classifications[it.key];
         html += `<tr class="vei-item${!readOnly && !sel ? " vei-item-pending" : ""}" data-item-key="${esc(it.key)}">`;
-        html += `<td class="vei-td-label">${esc(it.label)}`;
-        if (!readOnly && sel === "DANIFICADO") {
-          html += ` <button type="button" class="secondary vei-add-damage-btn" data-damage-item="${esc(it.key)}" style="font-size:0.68rem;padding:2px 6px;margin-left:4px">+ Avaria</button>`;
-        }
-        html += "</td>";
+        html += `<td class="vei-td-label">${esc(it.label)}</td>`;
         CLASSIFICATIONS.forEach((c) => {
           const short = CLASS_SHORT[c.id] || c.label.charAt(0);
           if (readOnly) {
@@ -773,6 +923,14 @@
           }
         });
         html += "</tr>";
+        if (it.numberKey) {
+          const qVal = draft.formExtras?.[it.numberKey] || "";
+          html += `<tr class="vei-qty-row"><td colspan="${colSpan}">`;
+          html += `<label>${esc(it.numberLabel || "Quantidade")}</label> `;
+          if (readOnly) html += esc(qVal || "—");
+          else html += `<input type="number" min="0" step="1" class="vei-number-field" data-extra-key="${esc(it.numberKey)}" value="${esc(qVal)}" style="max-width:120px"/>`;
+          html += "</td></tr>";
+        }
       });
       html += "</tbody></table>";
     });
@@ -780,7 +938,7 @@
     if (!readOnly && !isLast) {
       html += '<div class="vei-card-nav">';
       html += `<button type="button" class="secondary vei-card-prev" id="veiCardPrev"${cardIndex === 0 ? " disabled" : ""}>Anterior</button>`;
-      html += `<span class="vei-card-progress" id="veiCardProgress">${cardIndex + 1} / ${CARD_COUNT}</span>`;
+      html += `<span class="vei-card-progress" id="veiCardProgress">${cardIndex + 1} / ${cardCount}</span>`;
       html += '<button type="button" id="veiCardNext">OK, próximo</button>';
       html += "</div>";
     }
@@ -788,12 +946,73 @@
     return html;
   }
 
+  function renderItemDamagePhotosSection(draft, readOnly) {
+    const damaged = getDamagedClassifyItems(draft);
+    if (!damaged.length) {
+      return '<div class="vei-damage-photos-section"><h4>Fotos de avarias</h4><p class="notice" style="margin:0">Marque itens como <strong>D — Danificado</strong> para registrar fotos aqui.</p></div>';
+    }
+    if (!draft.itemDamagePhotos) draft.itemDamagePhotos = {};
+    let html = '<div class="vei-damage-photos-section" id="veiDamagePhotosSection"><h4>Fotos de avarias</h4>';
+    damaged.forEach((it) => {
+      const photo = draft.itemDamagePhotos[it.key];
+      html += '<div class="vei-damage-photo-item" data-damage-photo-key="' + esc(it.key) + '">';
+      html += `<strong>${esc(it.label)} — Avaria</strong>`;
+      if (photo?.preview) {
+        html += `<img class="vei-damage-photo-preview" src="${esc(photo.preview)}" alt="${esc(it.label)}"/>`;
+      }
+      if (!readOnly) {
+        html += `<button type="button" class="secondary vei-damage-photo-btn" data-damage-photo-btn="${esc(it.key)}">${photo?.preview ? "Refazer foto" : "Tirar foto"}</button>`;
+        if (photo?.preview) {
+          html += `<button type="button" class="secondary vei-damage-photo-clear" data-damage-photo-clear="${esc(it.key)}">Remover</button>`;
+        }
+      }
+      html += "</div>";
+    });
+    html += '<input type="file" class="vei-photo-capture-input hidden" id="veiDamagePhotoInput" accept="image/*" capture="environment"/>';
+    html += "</div>";
+    return html;
+  }
+
+  function bindItemDamagePhotoEvents(root, draft, onRefresh) {
+    const section = root.querySelector("#veiDamagePhotosSection");
+    if (!section || !draft) return;
+    const input = section.querySelector("#veiDamagePhotoInput");
+    let activeKey = null;
+    section.querySelectorAll("[data-damage-photo-btn]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeKey = btn.getAttribute("data-damage-photo-btn");
+        input?.click();
+      });
+    });
+    section.querySelectorAll("[data-damage-photo-clear]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const key = btn.getAttribute("data-damage-photo-clear");
+        if (key && draft.itemDamagePhotos) delete draft.itemDamagePhotos[key];
+        if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+        onRefresh();
+      });
+    });
+    input?.addEventListener("change", async () => {
+      const file = input.files?.[0];
+      input.value = "";
+      if (!file || !activeKey) return;
+      const preview = await readFileAsDataUrl(file);
+      if (!draft.itemDamagePhotos) draft.itemDamagePhotos = {};
+      draft.itemDamagePhotos[activeKey] = { file, preview, capturedAt: new Date().toISOString() };
+      if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+      activeKey = null;
+      onRefresh();
+    });
+  }
+
   function renderLastCardExtras(draft) {
-    const cardIdx = CARD_COUNT - 1;
+    const cardIdx = draftCfg(draft).cardCount - 1;
+    const cfg = draftCfg(draft);
     return (
       '<div class="vei-last-card-extras">' +
+      renderItemDamagePhotosSection(draft, false) +
       '<div class="vei-diagram-footer">' +
-      "<h4>Diagrama de avarias — 4 vistas</h4>" +
+      `<h4>Diagrama de avarias — ${esc(cfg.shortLabel || cfg.label || "veículo")}</h4>` +
       '<div id="veiDiagramHost">' +
       renderDiagram(draft, false) +
       "</div></div>" +
@@ -806,7 +1025,7 @@
       "</div>" +
       '<div class="vei-card-nav">' +
       `<button type="button" class="secondary vei-card-prev" id="veiCardPrev"${cardIdx === 0 ? " disabled" : ""}>Anterior</button>` +
-      `<span class="vei-card-progress" id="veiCardProgress">${cardIdx + 1} / ${CARD_COUNT}</span>` +
+      `<span class="vei-card-progress" id="veiCardProgress">${cardIdx + 1} / ${cfg.cardCount}</span>` +
       '<button type="button" id="veiFinalizeBtn">Finalizar vistoria</button>' +
       "</div>" +
       '<div class="vei-actions vei-no-print">' +
@@ -815,10 +1034,10 @@
     );
   }
 
-  /** Legado: todas as seções (somente consulta interna). */
+  /** Todas as seções (consulta interna / legado). */
   function renderChecklistRows(draft, readOnly) {
     let html = "";
-    INSPECTION_CARDS.forEach((card, idx) => {
+    draftCfg(draft).cards.forEach((card, idx) => {
       html += renderCardStep(idx, draft, readOnly);
     });
     return html;
@@ -844,13 +1063,16 @@
     );
   }
 
-  function renderVehicleMeta(vehicle, ctx, inspection) {
+  function renderVehicleMeta(vehicle, ctx, inspection, draft) {
+    const variantLabel = draft ? draftCfg(draft).label : inspection?.inspection_variant ? getVariantConfig(inspection.inspection_variant).label : "";
     const inspLine = inspection
       ? `<div><span>Nº vistoria</span><strong>${esc(inspection.inspection_number)}</strong></div>` +
+        `<div><span>Tipo</span><strong>${esc(variantLabel || inspection.inspection_variant || "—")}</strong></div>` +
         `<div><span>Data/hora</span><strong>${esc(fmtDateTime(inspection.completed_at))}</strong></div>` +
         `<div><span>Responsável</span><strong>${esc(inspection.completed_by_name || "—")}</strong></div>` +
         `<div><span>Status</span><strong>CONCLUÍDA</strong></div>`
-      : `<div><span>Data/hora vistoria</span><strong>${esc(fmtDateTime(new Date().toISOString()))}</strong></div>`;
+      : `<div><span>Tipo de vistoria</span><strong>${esc(variantLabel || "—")}</strong></div>` +
+        `<div><span>Data/hora vistoria</span><strong>${esc(fmtDateTime(new Date().toISOString()))}</strong></div>`;
     return (
       '<div class="vei-meta-grid">' +
       `<div><span>Placa</span><strong>${esc(vehicle.placa || "—")}</strong></div>` +
@@ -870,7 +1092,7 @@
   }
 
   function openDamageForm(root, draft, ctx, itemKey, areaLabel) {
-    const item = CHECKLIST.find((x) => x.key === itemKey);
+    const item = draftCfg(draft).checklist.find((x) => x.key === itemKey);
     const label = areaLabel || item?.label || itemKey;
     const formHtml =
       '<div class="vei-damage-form" id="veiDamageForm">' +
@@ -923,10 +1145,11 @@
   }
 
   function refreshEditUI(root, draft, ctx) {
-    const cardIdx = Math.max(0, Math.min(CARD_COUNT - 1, draft.currentCardIndex || 0));
+    const cfg = draftCfg(draft);
+    const cardIdx = Math.max(0, Math.min(cfg.cardCount - 1, draft.currentCardIndex || 0));
     draft.currentCardIndex = cardIdx;
     const done = classifiedCount(draft);
-    const total = CHECKLIST.length;
+    const total = cfg.checklist.filter((it) => it.kind === "classify").length;
     const pct = progressPct(draft);
     const miss = missingItems(draft);
     const cardHost = root.querySelector("#veiCardHost");
@@ -934,51 +1157,47 @@
     const progressText = root.querySelector("#veiProgressText");
     const progressBar = root.querySelector("#veiProgressBar i");
     if (progressText) {
-      progressText.textContent = `Vistoria: card ${cardIdx + 1}/${CARD_COUNT} · ${done}/${total} itens (${pct}%)`;
+      progressText.textContent = `${cfg.label}: card ${cardIdx + 1}/${cfg.cardCount} · ${done}/${total} itens (${pct}%)`;
     }
     if (progressBar) progressBar.style.width = `${pct}%`;
     if (cardHost) cardHost.innerHTML = renderCardStep(cardIdx, draft, false);
     if (extrasHost) {
-      extrasHost.innerHTML = cardIdx === CARD_COUNT - 1 ? renderLastCardExtras(draft) : "";
-      if (cardIdx === CARD_COUNT - 1) {
+      extrasHost.innerHTML = cardIdx === cfg.cardCount - 1 ? renderLastCardExtras(draft) : "";
+      if (cardIdx === cfg.cardCount - 1) {
         bindMobilePhotosIfNeeded(extrasHost, draft);
+        bindItemDamagePhotoEvents(extrasHost, draft, () => refreshEditUI(root, draft, ctx));
       }
-    } else if (cardIdx === CARD_COUNT - 1) {
-      const diagramHost = root.querySelector("#veiDiagramHost");
-      if (diagramHost) diagramHost.innerHTML = renderDiagram(draft, false);
-      refreshMobilePhotosUI(root, draft);
     }
     const warn = root.querySelector("#veiMissingWarn");
     if (warn) {
       warn.textContent = miss.length
-        ? `Itens pendentes no total (${miss.length}). Use «OK, próximo» em cada card — o sistema indica o que falta.`
+        ? `Itens pendentes no total (${miss.length}). Use «OK, próximo» em cada card.`
         : "Checklist completo — pode finalizar a vistoria no último card.";
       warn.style.color = miss.length ? "#fbbf24" : "#34d399";
     }
   }
 
   function buildEditHtml(vehicle, ctx, draft) {
-    const cardIdx = Math.max(0, Math.min(CARD_COUNT - 1, draft.currentCardIndex || 0));
+    const cfg = draftCfg(draft);
+    const cardIdx = Math.max(0, Math.min(cfg.cardCount - 1, draft.currentCardIndex || 0));
     draft.currentCardIndex = cardIdx;
     const done = classifiedCount(draft);
-    const total = CHECKLIST.length;
+    const total = cfg.checklist.filter((it) => it.kind === "classify").length;
     const pct = progressPct(draft);
     const miss = missingItems(draft);
     return (
-      renderVehicleMeta(vehicle, ctx, null) +
-      `<div class="vei-progress"><span id="veiProgressText">Vistoria: card ${cardIdx + 1}/${CARD_COUNT} · ${done}/${total} itens (${pct}%)</span>` +
+      renderVehicleMeta(vehicle, ctx, null, draft) +
+      `<div class="vei-progress"><span id="veiProgressText">${esc(cfg.label)}: card ${cardIdx + 1}/${cfg.cardCount} · ${done}/${total} itens (${pct}%)</span>` +
       `<div class="vei-progress-bar" id="veiProgressBar"><i style="width:${pct}%"></i></div></div>` +
       `<p id="veiMissingWarn" class="notice" style="margin:0 0 12px;color:${miss.length ? "#fbbf24" : "#34d399"}">${
-        miss.length
-          ? `Itens pendentes no total (${miss.length}). Preencha um card por vez.`
-          : "Checklist completo — finalize no último card."
+        miss.length ? `Itens pendentes no total (${miss.length}). Preencha um card por vez.` : "Checklist completo — finalize no último card."
       }</p>` +
       renderFormLegend() +
       '<div id="veiCardHost">' +
       renderCardStep(cardIdx, draft, false) +
       "</div>" +
       '<div id="veiLastCardExtrasHost">' +
-      (cardIdx === CARD_COUNT - 1 ? renderLastCardExtras(draft) : "") +
+      (cardIdx === cfg.cardCount - 1 ? renderLastCardExtras(draft) : "") +
       "</div>" +
       '<div id="veiDamageFormHost"></div>' +
       '<div id="veiDamageListHost" class="vei-damage-host-hidden" aria-hidden="true"></div>'
@@ -996,13 +1215,14 @@
           detail,
           draft,
           helpers: {
-            CHECKLIST,
-            INSPECTION_CARDS,
+            getVariantConfig,
+            draftCfg,
             CLASSIFICATIONS,
             CLASS_SHORT,
             fmtDateTime,
             renderDiagram,
             renderDiagramForPrint,
+            diagramSrcForDraft,
           },
         })
       : `<div class="vei-print-root"><p>Documento indisponível.</p></div>`;
@@ -1018,11 +1238,16 @@
   }
 
   function detailToDraft(detail) {
-    const draft = emptyDraft();
+    const variant = detail.inspection?.inspection_variant || "LEVE";
+    const draft = emptyDraftForVariant(variant);
+    draft.inspectionVariant = variant;
     draft.generalNotes = detail.inspection?.general_notes || "";
     draft.diagramMarkers = normalizeDiagramMarkers(detail.inspection?.diagram_markers);
+    if (detail.inspection?.form_extras && typeof detail.inspection.form_extras === "object") {
+      Object.assign(draft.formExtras, detail.inspection.form_extras);
+    }
     (detail.items || []).forEach((it) => {
-      draft.classifications[it.item_key] = it.classification;
+      if (it.item_key) draft.classifications[it.item_key] = it.classification;
     });
     draft.damages = (detail.damages || []).map((d) => ({
       id: d.id,
@@ -1034,7 +1259,56 @@
       notes: d.notes,
       photoPreview: (detail.photos || []).find((p) => p.damage_id === d.id)?.url || null,
     }));
+    (detail.photos || []).forEach((p) => {
+      if (p.item_key && p.photo_type?.startsWith("avaria_item_")) {
+        const key = p.item_key || p.photo_type.replace("avaria_item_", "");
+        draft.itemDamagePhotos[key] = { preview: p.url, capturedAt: p.captured_at };
+      }
+    });
     return draft;
+  }
+
+  async function uploadItemDamagePhotos(ctx, inspectionId, draft, damageRows) {
+    const uid = ctx.effectiveUserId();
+    if (!ctx.supabase || !uid || !inspectionId) return;
+    const photos = draft.itemDamagePhotos || {};
+    const damageByKey = new Map((damageRows || []).map((d) => [d.item_key, d]));
+    for (const [itemKey, photo] of Object.entries(photos)) {
+      if (!photo?.file && !photo?.preview) continue;
+      try {
+        let blob;
+        if (photo.file) blob = photo.file;
+        else {
+          const res = await fetch(photo.preview);
+          blob = await res.blob();
+        }
+        const label = labelForItemKey(draft, itemKey);
+        const path = `${uid}/inspections/${inspectionId}/avaria/${Date.now()}_${itemKey}.jpg`;
+        const { error: upErr } = await ctx.supabase.storage.from(STORAGE_BUCKET).upload(path, blob, {
+          upsert: true,
+          contentType: blob.type || "image/jpeg",
+        });
+        if (upErr) continue;
+        const damageId = damageByKey.get(itemKey)?.id || null;
+        const { error: insErr } = await ctx.supabase.from("vehicle_entry_inspection_photos").insert({
+          inspection_id: inspectionId,
+          damage_id: damageId,
+          storage_path: path,
+          file_name: `${itemKey}.jpg`,
+          photo_type: `avaria_item_${itemKey}`,
+          photo_label: `Avaria — ${label}`,
+        });
+        if (insErr) {
+          await ctx.supabase.from("vehicle_entry_inspection_photos").insert({
+            inspection_id: inspectionId,
+            storage_path: path,
+            file_name: `${itemKey}.jpg`,
+          });
+        }
+      } catch (e) {
+        console.warn("vei item damage photo", itemKey, e);
+      }
+    }
   }
 
   async function probeSchema(ctx) {
@@ -1131,10 +1405,10 @@
     const miss = missingItems(draft);
     if (miss.length) {
       scrollToFirstMissingItem(root, draft);
+      const total = draftCfg(draft).checklist.filter((it) => it.kind === "classify").length;
       alert(
-        `Classifique todos os ${CHECKLIST.length} itens do checklist antes de finalizar.\n\n` +
-          `Pendentes (${miss.length}):\n${formatMissingAlert(miss)}\n\n` +
-          `Dica: toque no botão (BOM, REGULAR, etc.) até a linha deixar de ficar amarela.`
+        `Classifique todos os ${total} itens do checklist antes de finalizar.\n\n` +
+          `Pendentes (${miss.length}):\n${formatMissingAlert(miss)}`
       );
       return;
     }
@@ -1150,20 +1424,15 @@
         return;
       }
       const items = buildInspectionItemsPayload(draft);
-      const damages = draft.damages.map((d) => ({
-        item_key: d.item_key,
-        area_label: d.area_label,
-        damage_type: d.damage_type,
-        severity: d.severity,
-        description: d.description,
-        notes: d.notes,
-      }));
+      const damages = buildDamagesPayload(draft).map(({ client_key, ...d }) => d);
       const res = await fetch("/api/vehicles/complete-entry-inspection", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session}` },
         body: JSON.stringify({
           access_token: session,
           vehicle_id: _session.vehicle.id,
+          inspection_variant: draft.inspectionVariant || "LEVE",
+          form_extras: draft.formExtras || {},
           general_notes: draft.generalNotes,
           diagram_markers: normalizeDiagramMarkers(draft.diagramMarkers),
           items,
@@ -1192,6 +1461,12 @@
       }
 
       let postWarn = "";
+      try {
+        await uploadItemDamagePhotos(ctx, json.inspection_id, draft, json.damage_rows || []);
+      } catch (itemPhotoErr) {
+        console.warn("vei item damage photos", itemPhotoErr);
+        postWarn += "\n\nAviso: algumas fotos de avarias por item podem não ter sido enviadas.";
+      }
       try {
         await uploadPhotos(ctx, json.inspection_id, draft.damages);
       } catch (photoErr) {
@@ -1259,22 +1534,72 @@
     alert("Módulo de PDF indisponível. Atualize a página.");
   }
 
+  function buildVariantPickerHtml(vehicle) {
+    const variants = checklistMod.INSPECTION_VARIANTS || Object.values(checklistMod.VARIANT_META || {});
+    const btns = variants
+      .map(
+        (v) =>
+          `<button type="button" class="vei-variant-btn" data-vei-variant="${esc(v.id)}">` +
+          `<strong>${esc(v.label)}</strong>` +
+          `<span>${esc(v.description || "")}</span>` +
+          `</button>`
+      )
+      .join("");
+    return (
+      renderVehicleMeta(vehicle, _session?.ctx || {}, null, null) +
+      '<div class="vei-form-legend">Selecione o tipo de vistoria para este veículo</div>' +
+      `<div class="vei-variant-picker">${btns}</div>` +
+      '<div class="vei-actions vei-no-print">' +
+      '<button type="button" class="secondary" id="veiModalCloseInner">Cancelar</button>' +
+      "</div>"
+    );
+  }
+
+  function openVariantPicker(vehicle, ctx, opts) {
+    ensureModal();
+    _session = { vehicle, mode: "pick_variant", retroactive: !!opts?.retroactive, ctx };
+    const modal = _modalEl;
+    modal.classList.remove("hidden");
+    document.getElementById("veiModalTitle").textContent = "Nova vistoria — tipo de veículo";
+    document.getElementById("veiModalSubtitle").textContent = `Placa ${vehicle.placa || "—"} — escolha a modalidade`;
+    const body = document.getElementById("veiModalBody");
+    body.innerHTML = buildVariantPickerHtml(vehicle);
+    ensureEditModalEvents(body, ctx);
+    body.querySelectorAll("[data-vei-variant]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const variant = btn.getAttribute("data-vei-variant");
+        if (!variant) return;
+        openEditModal(vehicle, ctx, { ...opts, variant });
+      });
+    });
+    body.querySelector("#veiModalCloseInner")?.addEventListener("click", closeModal);
+  }
+
   function openEditModal(vehicle, ctx, opts) {
     ensureModal();
     const retroactive = !!opts?.retroactive;
+    const variant = opts?.variant || "LEVE";
     const saved = loadDraftFromStorage(vehicle.id);
-    const draft = saved || emptyDraft();
+    const draft =
+      saved && (saved.inspectionVariant || "LEVE") === variant
+        ? saved
+        : emptyDraftForVariant(variant);
+    draft.inspectionVariant = variant;
     _session = { vehicle, mode: "edit", draft, retroactive, ctx };
     const modal = _modalEl;
     modal.classList.remove("hidden");
-    document.getElementById("veiModalTitle").textContent = "Vistoria do veículo";
+    const cfg = draftCfg(draft);
+    document.getElementById("veiModalTitle").textContent = cfg.label;
     document.getElementById("veiModalSubtitle").textContent = retroactive
-      ? `Placa ${vehicle.placa || "—"} — vistoria retroativa · preencha card a card`
-      : `Placa ${vehicle.placa || "—"} — um card por vez (${CARD_COUNT} etapas)`;
+      ? `Placa ${vehicle.placa || "—"} — vistoria retroativa · ${cfg.cardCount} cards`
+      : `Placa ${vehicle.placa || "—"} — um card por vez (${cfg.cardCount} etapas)`;
     const body = document.getElementById("veiModalBody");
-    body.innerHTML = buildEditHtml(vehicle, ctx, _session.draft);
+    body.innerHTML = buildEditHtml(vehicle, ctx, draft);
     ensureEditModalEvents(body, ctx);
-    bindMobilePhotosIfNeeded(body, _session.draft);
+    bindMobilePhotosIfNeeded(body, draft);
+    if ((draft.currentCardIndex || 0) === cfg.cardCount - 1) {
+      bindItemDamagePhotoEvents(body, draft, () => refreshEditUI(body, draft, ctx));
+    }
   }
 
   async function openViewModal(vehicle, ctx, inspectionId) {
@@ -1338,7 +1663,7 @@
       return;
     }
     const retroactive = String(vehicle.status || "").toUpperCase() !== "AGUARDANDO_VISTORIA";
-    openEditModal(vehicle, ctx, { retroactive });
+    openVariantPicker(vehicle, ctx, { retroactive });
   }
 
   function renderAwaitingTable(tbody, vehicles, ctx) {
@@ -1391,12 +1716,13 @@
   }
 
   global.vehicleEntryInspection = {
-    CHECKLIST,
-    INSPECTION_CARDS,
-    CARD_COUNT,
+    getVariantConfig,
+    CHECKLIST: checklistMod.CHECKLIST || [],
+    INSPECTION_CARDS: checklistMod.INSPECTION_CARDS || [],
+    CARD_COUNT: checklistMod.CARD_COUNT || 8,
     CLASSIFICATIONS,
     CLASS_SHORT,
-    INSPECTION_ITEM_COUNT: CHECKLIST.length,
+    INSPECTION_ITEM_COUNT: checklistMod.ITEM_COUNT || 0,
     probeSchema,
     openForVehicle,
     renderAwaitingTable,
@@ -1407,6 +1733,6 @@
     renderDiagram,
     renderDiagramForPrint,
     normalizeDiagramMarkers,
-    DIAGRAM_SRC,
+    getDiagramSrc: diagramSrcForDraft,
   };
 })(typeof window !== "undefined" ? window : globalThis);
