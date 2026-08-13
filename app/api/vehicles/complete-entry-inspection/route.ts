@@ -11,6 +11,8 @@ import {
 type Body = {
   access_token?: string;
   vehicle_id?: string;
+  inspection_variant?: string;
+  form_extras?: Record<string, unknown>;
   general_notes?: string;
   diagram_markers?: unknown[];
   items?: {
@@ -78,7 +80,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Checklist vazio." }, { status: 400 });
   }
 
-  const validationErr = validateInspectionItems(items);
+  const variant = String(body.inspection_variant || "LEVE").toUpperCase();
+
+  const validationErr = validateInspectionItems(items, variant);
   if (validationErr) {
     return NextResponse.json({ error: validationErr }, { status: 400 });
   }
@@ -92,6 +96,8 @@ export async function POST(request: NextRequest) {
     vehicleId,
     inspectorUserId,
     inspectorName,
+    inspectionVariant: variant,
+    formExtras: body.form_extras || {},
     generalNotes: body.general_notes || "",
     diagramMarkers: body.diagram_markers || [],
     items,
