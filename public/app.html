@@ -1987,9 +1987,6 @@
         text-align: right;
         line-height: 1.25;
       }
-      .header-mobile-module-nav {
-        display: none;
-      }
       .header-module-nav.dashboard-system-entry,
       .app-subheader #dashboardSystemEntry.dashboard-system-entry {
         display: flex !important;
@@ -2023,7 +2020,8 @@
         font-size: 10px;
         font-weight: 600;
       }
-      .header-module-nav.dashboard-system-entry--single .dashboard-system-btn:not(#dashboardOpenPatio) {
+      .header-module-nav.dashboard-system-entry--single
+        .dashboard-system-btn:not(#dashboardOpenPatio):not(#dashboardOpenLista) {
         display: none;
       }
       .header-menu-trigger {
@@ -6308,30 +6306,6 @@
         #appHeaderMenuWrap:not(.hidden) .header-menu-tray {
           display: none !important;
         }
-        #appSubheader:not(.hidden) .header-mobile-module-nav {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          width: 100%;
-          margin-top: 0;
-        }
-        .header-mobile-module-btn {
-          flex: 1 1 calc(33.333% - 6px);
-          min-width: calc(50% - 6px);
-          min-height: 36px;
-          padding: 6px 8px;
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-          border-radius: 8px;
-          cursor: pointer;
-        }
-        .header-mobile-module-btn[data-mobile-module="patio"] {
-          flex: 1 1 100%;
-          min-width: 100%;
-          min-height: 38px;
-        }
         .header-plate-search input#plateFilter {
           flex: 1 1 72px;
           width: auto;
@@ -6345,9 +6319,6 @@
           font-size: 11px;
           font-weight: 700;
           border-radius: 8px;
-        }
-        #dashboardSystemEntry {
-          display: none !important;
         }
         .app-subheader-row {
           flex-wrap: wrap;
@@ -6550,7 +6521,7 @@
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme7" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260813vistui1" />
-    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile10" />
+    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile11" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate3" />
   </head>
   <body class="auth-screen-active">
@@ -6607,13 +6578,6 @@
               <span class="dashboard-system-btn__desc">Ajuste dados, usuários e parâmetros operacionais.</span>
               <span class="dashboard-system-btn__go">Abrir configurações →</span>
             </button>
-          </nav>
-          <nav id="headerMobileModuleNav" class="header-mobile-module-nav" aria-label="Módulos principais">
-            <button type="button" class="header-mobile-module-btn" data-mobile-module="patio">PATIO</button>
-            <button type="button" class="header-mobile-module-btn" data-mobile-module="financeiro" data-mobile-module-adm-only="1">Financeiro</button>
-            <button type="button" class="header-mobile-module-btn" data-mobile-module="parceiros" data-mobile-module-adm-only="1">Parceiros</button>
-            <button type="button" class="header-mobile-module-btn" data-mobile-module="lista">Lista</button>
-            <button type="button" class="header-mobile-module-btn" data-mobile-module="configuracoes" data-mobile-module-adm-only="1">Configurações</button>
           </nav>
           <div class="app-subheader-right">
             <div class="user" id="userInfo">Não autenticado</div>
@@ -15007,52 +14971,36 @@
       }
 
       function applyMobileModuleNavRestrictions() {
-        const nav = document.getElementById("headerMobileModuleNav");
-        if (!nav) return;
-        nav.querySelectorAll("[data-mobile-module]").forEach((btn) => {
-          const admOnly = btn.hasAttribute("data-mobile-module-adm-only");
-          const show = !admOnly || !isGestorPista;
+        const gestorVisible = new Set(["dashboardOpenPatio", "dashboardOpenLista"]);
+        [
+          "dashboardOpenPatio",
+          "dashboardOpenFinance",
+          "dashboardOpenParceiros",
+          "dashboardOpenLista",
+          "dashboardOpenConfiguracoes",
+        ].forEach((id) => {
+          const btn = document.getElementById(id);
+          if (!btn) return;
+          const show = !isGestorPista || gestorVisible.has(id);
           btn.classList.toggle("hidden", !show);
           btn.style.display = show ? "" : "none";
         });
       }
 
       function syncMobileModuleNavHighlight(view) {
-        const nav = document.getElementById("headerMobileModuleNav");
-        if (!nav || !isMobileLayout()) return;
-        nav.querySelectorAll("[data-mobile-module]").forEach((btn) => {
-          btn.classList.toggle("active", btn.getAttribute("data-mobile-module") === view);
+        if (!isMobileLayout()) return;
+        const viewToId = {
+          patio: "dashboardOpenPatio",
+          financeiro: "dashboardOpenFinance",
+          parceiros: "dashboardOpenParceiros",
+          lista: "dashboardOpenLista",
+          configuracoes: "dashboardOpenConfiguracoes",
+        };
+        document.querySelectorAll("#dashboardSystemEntry .dashboard-system-btn").forEach((btn) => {
+          btn.classList.remove("active");
         });
-      }
-
-      function navigateMobileModule(module) {
-        if (!module) return;
-        closeAppHeaderMenu();
-        if (isGestorPista && module !== "patio" && module !== "lista") {
-          openMainView("patio");
-          setPatioView("inicio");
-          return;
-        }
-        if (module === "patio") {
-          openMainView("patio");
-          return;
-        }
-        if (module === "parceiros") {
-          openPartnerSubview("parceiros");
-          return;
-        }
-        if (module === "financeiro") {
-          openMainView("financeiro");
-          return;
-        }
-        if (module === "lista") {
-          openMainView("lista");
-          if (isGestorPista) openListaSubview("vnp");
-          return;
-        }
-        if (module === "configuracoes") {
-          openMainView("configuracoes");
-        }
+        const activeId = viewToId[view];
+        if (activeId) document.getElementById(activeId)?.classList.add("active");
       }
 
       function openDefaultHomeView() {
@@ -15074,10 +15022,6 @@
         });
         document.querySelectorAll("#headerDetailsPatio [data-header-patio-sub]").forEach((el) => el.classList.remove("hidden"));
         document.querySelectorAll("#appHeaderMenu button[data-view]").forEach((btn) => {
-          btn.style.display = "";
-        });
-        document.querySelectorAll("#headerMobileModuleNav [data-mobile-module-adm-only]").forEach((btn) => {
-          btn.classList.remove("hidden");
           btn.style.display = "";
         });
         patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.remove("hidden");
@@ -22019,12 +21963,6 @@
       });
 
       document.getElementById("appHeaderMenuBtn")?.addEventListener("click", toggleAppHeaderMenu);
-      document.getElementById("headerMobileModuleNav")?.addEventListener("click", (e) => {
-        const btn = e.target.closest("[data-mobile-module]");
-        if (!btn || btn.classList.contains("hidden")) return;
-        e.preventDefault();
-        navigateMobileModule(btn.getAttribute("data-mobile-module"));
-      });
       document.getElementById("appHeaderMenuClose")?.addEventListener("click", closeAppHeaderMenu);
       document.getElementById("appHeaderMenuBackdrop")?.addEventListener("click", closeAppHeaderMenu);
       document.querySelectorAll("#appHeaderMenu > .header-menu-details").forEach((det) => {
