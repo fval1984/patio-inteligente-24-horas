@@ -1974,11 +1974,9 @@
         padding: 2px 6px;
         font-size: 10px;
       }
-      .header-plate-search-actions {
+      .header-plate-search-primary,
+      .header-plate-search-secondary {
         display: contents;
-      }
-      .header-plate-inicio-desk {
-        display: inline-flex;
       }
       .header-plate-search-hint {
         margin: 0;
@@ -2458,22 +2456,37 @@
         body.auth-screen-active main {
           align-items: flex-end;
           justify-content: center;
-          padding: 10px 12px max(16px, env(safe-area-inset-bottom));
+          padding: 0 14px max(14px, env(safe-area-inset-bottom));
+        }
+        .auth-backdrop {
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          padding: max(6px, env(safe-area-inset-top)) 12px 0;
         }
         .auth-backdrop__img {
-          object-position: center 22%;
+          position: relative;
+          width: 100%;
+          height: auto;
+          max-height: min(62vh, calc(100vh - 190px));
+          object-fit: contain;
+          object-position: center top;
         }
         .auth-backdrop__shade {
           background: linear-gradient(
             180deg,
-            rgba(0, 0, 0, 0.02) 0%,
-            rgba(0, 0, 0, 0.22) 62%,
-            rgba(0, 0, 0, 0.5) 100%
+            rgba(0, 0, 0, 0) 0%,
+            rgba(0, 0, 0, 0.06) 42%,
+            rgba(0, 0, 0, 0.38) 72%,
+            rgba(0, 0, 0, 0.68) 100%
           );
         }
         .auth-screen {
-          width: min(100%, 220px);
+          width: min(100%, 280px);
           margin: 0 auto;
+        }
+        .auth-screen__card {
+          padding: 14px 14px 12px;
         }
       }
       @media (min-width: 1200px) {
@@ -6313,15 +6326,15 @@
         .app-subheader-right {
           width: 100%;
           margin-left: 0;
-          flex-direction: row;
-          align-items: center;
-          justify-content: flex-end;
+          flex-direction: column;
+          align-items: stretch;
+          justify-content: flex-start;
           gap: 6px;
         }
         .header-app-menu-wrap {
-          width: auto;
-          flex-direction: row;
-          align-items: center;
+          width: 100%;
+          flex-direction: column;
+          align-items: stretch;
         }
         .header-menu-tray {
           display: none !important;
@@ -6497,8 +6510,8 @@
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme8" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260813vistui1" />
-    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile12" />
-    <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate4" />
+    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile13" />
+    <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate5" />
   </head>
   <body class="auth-screen-active">
     <noscript>
@@ -6573,26 +6586,28 @@
                 </button>
               </div>
               <form id="plateSearchForm" class="header-plate-search" action="#" novalidate>
-                <label for="plateFilter" class="header-plate-label sr-only">Placa</label>
-                <input
-                  id="plateFilter"
-                  name="plate"
-                  type="text"
-                  inputmode="text"
-                  placeholder="Digite a placa"
-                  maxlength="20"
-                  autocomplete="off"
-                  autocorrect="off"
-                  autocapitalize="characters"
-                  spellcheck="false"
-                  data-vp-live
-                />
-                <div class="header-plate-search-actions">
+                <div class="header-plate-search-primary">
+                  <label for="plateFilter" class="header-plate-label sr-only">Placa</label>
+                  <input
+                    id="plateFilter"
+                    name="plate"
+                    type="text"
+                    inputmode="text"
+                    placeholder="Digite a placa"
+                    maxlength="20"
+                    autocomplete="off"
+                    autocorrect="off"
+                    autocapitalize="characters"
+                    spellcheck="false"
+                    data-vp-live
+                  />
                   <button type="submit" id="plateSearchOk">OK</button>
+                </div>
+                <div class="header-plate-search-secondary">
+                  <button type="button" class="secondary" id="goDashboardFromPlate">Início</button>
                   <button type="button" class="secondary" id="clearPlateFilter">Limpar</button>
                   <button type="button" id="headerLogoutBtn" class="secondary header-logout-btn hidden" title="Sair da conta">Sair</button>
                 </div>
-                <button type="button" class="secondary header-plate-inicio-desk" id="goDashboardFromPlate">Início</button>
               </form>
             </div>
           </div>
