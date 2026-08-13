@@ -46,6 +46,25 @@ export type CompleteEntryInspectionResult = {
   vehicle_id: string;
 };
 
+export type UpdateEntryInspectionInput = {
+  ownerUserId: string;
+  inspectionId: string;
+  vehicleId: string;
+  inspectionVariant?: InspectionVariant | string;
+  formExtras?: Record<string, unknown>;
+  generalNotes?: string;
+  diagramMarkers?: unknown[];
+  items: InspectionItemPayload[];
+  damages: InspectionDamagePayload[];
+};
+
+export type UpdateEntryInspectionResult = {
+  inspection_id: string;
+  inspection_number: number;
+  vehicle_id: string;
+  damage_rows: { id: string; item_key?: string | null }[];
+};
+
 const KEYS_BY_VARIANT = checklistKeysByVariant as Record<string, string[]>;
 
 export function getChecklistKeysForVariant(variant?: string): readonly string[] {
@@ -175,6 +194,107 @@ export async function completeVehicleEntryInspection(
       inspection_id: String(row.inspection_id),
       inspection_number: Number(row.inspection_number),
       vehicle_id: String(row.vehicle_id),
+    },
+    error: null,
+  };
+}
+
+export async function updateVehicleEntryInspection(
+  admin: SupabaseClient,
+  input: UpdateEntryInspectionInput
+): Promise<{ data: UpdateEntryInspectionResult | null; error: string | null }> {
+  const variant = String(input.inspectionVariant || "LEVE").toUpperCase();
+  const itemErr = validateInspectionItems(input.items, variant);
+  if (itemErr) return { data: null, error: itemErr };
+
+  const { data: insp, error: fetchErr } = await admin
+    .from("vehicle_entry_inspections")
+    .select("id, vehicle_id, inspection_number, status, user_id")
+    .eq("id", input.inspectionId)
+    .eq("user_id", input.ownerUserId)
+    .maybeSingle();
+
+  if (fetchErr || !insp) {
+    return { data: null, error: fetchErr?.message || "Vistoria não encontrada." };
+  }
+  if (String(insp.vehicle_id) !== String(input.vehicleId)) {
+    return { data: null, error: "Veículo não corresponde à vistoria." };
+  }
+  if (String(insp.status || "").toUpperCase() !== "CONCLUIDA") {
+    return { data: null, error: "Somente vistorias concluídas podem ser editadas." };
+  }
+
+  const now = new Date().toISOString();
+  const { error: updErr } = await admin
+    .from("vehicle_entry_inspections")
+    .update({
+      general_notes: input.generalNotes || "",
+      diagram_markers: input.diagramMarkers || [],
+      form_extras: input.formExtras || {},
+      inspection_variant: variant,
+      updated_at: now,
+    })
+    .eq("id", input.inspectionId);
+
+  if (updErr) {
+    return { data: null, error: updErr.message || "Erro ao atualizar vistoria." };
+  }
+
+  const { error: delItemsErr } = await admin
+    .from("vehicle_entry_inspection_items")
+    .delete()
+    .eq("inspection_id", input.inspectionId);
+  if (delItemsErr) {
+    return { data: null, error: delItemsErr.message || "Erro ao atualizar itens da vistoria." };
+  }
+
+  const itemsPayload = input.items.map((it) => ({
+    inspection_id: input.inspectionId,
+    category: it.category,
+    item_key: it.item_key,
+    item_label: it.item_label,
+    classification: it.classification,
+  }));
+  const { error: itemsErr } = await admin.from("vehicle_entry_inspection_items").insert(itemsPayload);
+  if (itemsErr) {
+    return { data: null, error: itemsErr.message || "Erro ao gravar itens da vistoria." };
+  }
+
+  const { error: delDmgErr } = await admin
+    .from("vehicle_entry_inspection_damages")
+    .delete()
+    .eq("inspection_id", input.inspectionId);
+  if (delDmgErr) {
+    return { data: null, error: delDmgErr.message || "Erro ao atualizar avarias da vistoria." };
+  }
+
+  let damageRows: { id: string; item_key?: string | null }[] = [];
+  const damagesPayload = input.damages.map(({ client_key, ...d }) => ({
+    inspection_id: input.inspectionId,
+    item_key: d.item_key || null,
+    area_label: d.area_label,
+    damage_type: d.damage_type,
+    severity: d.severity || null,
+    description: d.description || null,
+    notes: d.notes || null,
+  }));
+  if (damagesPayload.length) {
+    const { data: dmgData, error: dmgErr } = await admin
+      .from("vehicle_entry_inspection_damages")
+      .insert(damagesPayload)
+      .select("id, item_key");
+    if (dmgErr) {
+      return { data: null, error: dmgErr.message || "Erro ao gravar avarias da vistoria." };
+    }
+    damageRows = (dmgData || []) as { id: string; item_key?: string | null }[];
+  }
+
+  return {
+    data: {
+      inspection_id: input.inspectionId,
+      inspection_number: Number(insp.inspection_number),
+      vehicle_id: String(insp.vehicle_id),
+      damage_rows: damageRows,
     },
     error: null,
   };
