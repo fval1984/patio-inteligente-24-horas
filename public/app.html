@@ -6508,7 +6508,7 @@
       }
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme9" />
-    <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260813vistui2" />
+    <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260813vistui3" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile17" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
   </head>
@@ -8458,7 +8458,7 @@
     <script src="/vehicle-entry-inspection-checklist.js?v=20260813avaria1"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260813avaria1"></script>
     <script src="/vehicle-entry-inspection-document.js?v=20260813avaria1"></script>
-    <script src="/vehicle-entry-inspection.js?v=20260813veigrid1"></script>
+    <script src="/vehicle-entry-inspection.js?v=20260813veiedit1"></script>
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
@@ -15501,6 +15501,11 @@
         return idx[key] || idx[vehicleId] || null;
       }
 
+      function inspectionDoneIndicatorHtml(vehicleId) {
+        if (!getInspectionIndexEntry(vehicleId)) return "";
+        return `<span class="vei-done-dot" title="Vistoria concluída" aria-label="Vistoria concluída"></span>`;
+      }
+
       /** Consultar vistoria concluída na VNP/VLP (ADM no PC sempre vê o botão). */
       function vnpShouldShowVistoriaViewButton(v) {
         if (!v) return false;
@@ -15515,6 +15520,11 @@
         return window.vehicleEntryInspection?.canStartInspection
           ? window.vehicleEntryInspection.canStartInspection(v, buildVehicleInspectionCtx())
           : isVehicleOnPatio(v);
+      }
+
+      function vnpShouldShowVistoriaEditButton(v) {
+        if (!v || isAdmDesktopPc()) return false;
+        return !!getInspectionIndexEntry(v.id);
       }
 
       function buildVehicleInspectionCtx() {
@@ -16497,6 +16507,11 @@
           parts.push(
             `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
           );
+          if (vnpShouldShowVistoriaEditButton(v)) {
+            parts.push(
+              `<button class="secondary" data-action="editar_vistoria" data-id="${v.id}">Editar vistoria</button>`
+            );
+          }
         } else if (vnpShouldShowVistoriaStartButton(v)) {
           parts.push(`<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`);
         }
@@ -16533,7 +16548,7 @@
           `<div class="patio-mob-info-row"><span class="patio-mob-info-label">${escapeHtml(label)}</span><span class="patio-mob-info-value">${value}</span></div>`;
 
         let html = `<div class="patio-mob-info-card">`;
-        html += row("Placa", plateVisualHtml(v.placa, "sm"));
+        html += row("Placa", `<span class="vei-plate-with-status">${inspectionDoneIndicatorHtml(v.id)}${plateVisualHtml(v.placa, "sm")}</span>`);
         html += row("Marca", escapeHtml(v.marca || "—"));
         html += row("Modelo", escapeHtml(v.modelo || "—"));
         html += row("Cor", escapeHtml(v.cor || "—"));
@@ -16552,9 +16567,10 @@
       }
 
       function buildPatioMobileCompactLine(v) {
+        const dot = inspectionDoneIndicatorHtml(v.id);
         const plate = plateVisualHtml(v.placa, "xs");
         const modelo = escapeHtml(String(v.modelo || v.marca || "-").trim() || "-");
-        return `<span class="patio-mob-compact-line">${plate}<span class="patio-mob-compact-meta">${modelo}</span></span>`;
+        return `<span class="patio-mob-compact-line">${dot}<span class="vei-plate-with-status">${plate}</span><span class="patio-mob-compact-meta">${modelo}</span></span>`;
       }
 
       function buildPatioMobileListCellsHtml(v, colspan) {
@@ -16620,7 +16636,10 @@
           fluxoBtn = `<button class="secondary" data-action="confirmar" data-id="${v.id}">VRP</button>`;
         }
         const veiBtn = vnpShouldShowVistoriaViewButton(v)
-          ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
+          ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>` +
+            (vnpShouldShowVistoriaEditButton(v)
+              ? `<button class="secondary" data-action="editar_vistoria" data-id="${v.id}">Editar vistoria</button>`
+              : "")
           : vnpShouldShowVistoriaStartButton(v)
             ? `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`
             : "";
@@ -16679,7 +16698,7 @@
         return `
           <tr class="${rowClass}" data-vehicle-row="${v.id}">
             ${buildPatioMobileListCellsHtml(v, 8)}
-            <td class="patio-desk-only" data-label="Placa">${plateVisualHtml(v.placa, "sm")}${situacaoHtml}</td>
+            <td class="patio-desk-only" data-label="Placa"><span class="vei-plate-with-status">${inspectionDoneIndicatorHtml(v.id)}${plateVisualHtml(v.placa, "sm")}</span>${situacaoHtml}</td>
             <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml(registoKind === "vnp" ? (isVlpStatus(v.status) ? "vlp" : "vnp") : registoKind)}</td>
             <td class="patio-desk-only" data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
             <td class="patio-desk-only" data-label="RPV">${localizador}</td>
@@ -20343,6 +20362,7 @@
             "ficha",
             "vistoria",
             "ver_vistoria",
+            "editar_vistoria",
           ]);
           if (!gestorAllowed.has(action)) {
             alert("O gestor de pista não pode executar esta ação.");
@@ -20441,6 +20461,21 @@
             const insp = getInspectionIndexEntry(vehicle.id);
             await window.vehicleEntryInspection.openForVehicle(vehicle, buildVehicleInspectionCtx(), {
               mode: "view",
+              inspection: insp,
+            });
+          }
+          return;
+        }
+
+        if (action === "editar_vistoria") {
+          if (isAdmDesktopPc()) {
+            alert("No acesso pelo PC, use o botão Vistoria para consultar. A edição é feita pelo gestor de pista.");
+            return;
+          }
+          if (window.vehicleEntryInspection?.openForVehicle) {
+            const insp = getInspectionIndexEntry(vehicle.id);
+            await window.vehicleEntryInspection.openForVehicle(vehicle, buildVehicleInspectionCtx(), {
+              mode: "edit_existing",
               inspection: insp,
             });
           }
