@@ -613,11 +613,62 @@
     max-height: min(88dvh, calc(100dvh - env(safe-area-inset-top))) !important;
   }
 
+  #patioVehicleActionsModal .patio-vehicle-actions-info {
+    margin-bottom: 10px;
+  }
+
+  #patioVehicleActionsModal .patio-mob-info-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    border-radius: var(--mob-btn-radius, 8px);
+    background: var(--ag-neutral-bg, #f5f5f5);
+    border: 1px solid var(--ag-border, #dee2e6);
+  }
+
+  #patioVehicleActionsModal .patio-mob-info-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  #patioVehicleActionsModal .patio-mob-info-label {
+    flex: 0 0 auto;
+    min-width: 92px;
+    font-weight: 600;
+    color: var(--ag-muted, #64748b);
+  }
+
+  #patioVehicleActionsModal .patio-mob-info-value {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: right;
+    font-weight: 600;
+    color: var(--ag-text, #001529);
+    word-break: break-word;
+  }
+
+  #patioVehicleActionsModal .patio-mob-info-value .vp-plate-wrap {
+    justify-content: flex-end;
+  }
+
+  #patioVehicleActionsModal .patio-mob-info-notice {
+    margin: 4px 0 0;
+    font-size: 11px;
+  }
+
   #patioVehicleActionsModal .patio-vehicle-actions-body {
     display: flex;
     flex-direction: column;
     gap: var(--mob-gap, 6px);
     padding: 4px 0 8px;
+    border-top: 1px solid var(--ag-border, #dee2e6);
+    margin-top: 4px;
+    padding-top: 10px;
   }
 
   #patioVehicleActionsModal .patio-vehicle-actions-body button.secondary,
