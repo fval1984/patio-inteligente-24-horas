@@ -23,7 +23,12 @@
     roof: "Teto",
     plate: "Placa",
     odometer: "Odômetro",
-    dashboard: "Painel",
+    dashboard_on: "Painel de instrumentos com o veículo ligado",
+    battery: "Bateria",
+    spare: "Estepe",
+    jack_tools: "Chave de rodas e triângulo",
+    seats_front: "Bancos dianteiros",
+    seats_rear: "Bancos traseiros",
     chassis: "Chassi",
     engine: "Motor",
     wheel_fl: "Roda dianteira esquerda",
@@ -273,17 +278,11 @@
   }
 
   function buildChecklistSection(helpers, draft, detailItems) {
-    const CHECKLIST = helpers.CHECKLIST || [];
-    const INSPECTION_CARDS = helpers.INSPECTION_CARDS || [];
-    const cards =
-      INSPECTION_CARDS.length > 0
-        ? INSPECTION_CARDS
-        : [
-            {
-              title: "Itens",
-              blocks: [{ items: CHECKLIST.map((it) => ({ key: it.key, label: it.label })) }],
-            },
-          ];
+    const variant = draft?.inspectionVariant || "LEVE";
+    const cfg = helpers.getVariantConfig ? helpers.getVariantConfig(variant) : null;
+    const cards = cfg?.cards || helpers.INSPECTION_CARDS || [];
+    const checklist = cfg?.checklist || helpers.CHECKLIST || [];
+    const formExtras = draft.formExtras || {};
 
     let html =
       '<p class="vei-doc-legend" style="margin:0 0 10px;font-size:8.5pt;text-align:center;border:1px solid #cbd5e1;padding:6px;background:#f8fafc">' +
@@ -298,12 +297,25 @@
         } else if (blockIdx > 0 && card.blocks.length > 1) {
           html += `<h5 class="vei-doc-block-title">Bloco ${blockIdx + 1}</h5>`;
         }
+        if (block.textFields?.length) {
+          html += '<table class="vei-doc-table"><tbody>';
+          block.textFields.forEach((tf) => {
+            html += `<tr><td><strong>${esc(tf.label)}</strong></td><td>${esc(formExtras[tf.key] || "—")}</td></tr>`;
+          });
+          html += "</tbody></table>";
+        }
         html += '<table class="vei-doc-table vei-doc-check-table"><thead><tr><th>Item</th>';
         ["B", "R", "D", "S", "I"].forEach((h) => {
           html += `<th class="vei-doc-cls-h">${h}</th>`;
         });
         html += "</tr></thead><tbody>";
         block.items.forEach((it) => {
+          const kind = it.kind || "classify";
+          if (kind === "text") {
+            html += `<tr><td colspan="6"><strong>${esc(it.label)}:</strong> ${esc(formExtras[it.key] || "—")}</td></tr>`;
+            return;
+          }
+          if (kind !== "classify") return;
           const sel = draft.classifications[it.key];
           html += `<tr><td>${esc(it.label)}</td>`;
           ["BOM", "REGULAR", "DANIFICADO", "SEM_TESTE", "INEXISTENTE"].forEach((clsId) => {
@@ -311,13 +323,16 @@
             html += `<td class="vei-doc-cls-cell${on ? " on" : ""}">${on ? esc(classificationShort(clsId)) : ""}</td>`;
           });
           html += "</tr>";
+          if (it.numberKey) {
+            html += `<tr><td colspan="6"><em>${esc(it.numberLabel || "Quantidade")}:</em> ${esc(formExtras[it.numberKey] || "—")}</td></tr>`;
+          }
         });
         html += "</tbody></table>";
       });
       html += "</div>";
     });
 
-    const knownKeys = new Set(CHECKLIST.map((it) => it.key));
+    const knownKeys = new Set(checklist.filter((it) => it.kind === "classify").map((it) => it.key));
     const legacy = (detailItems || []).filter((it) => it.item_key && !knownKeys.has(it.item_key));
     if (legacy.length) {
       html += `<div class="vei-doc-card"><h4 class="vei-doc-card-title">Itens (registro anterior)</h4>`;
@@ -329,6 +344,23 @@
     }
 
     return html;
+  }
+
+  function buildItemDamagePhotosSection(detail) {
+    const photos = (detail?.photos || []).filter(
+      (p) => p.photo_type?.startsWith("avaria_item_") || (p.item_key && p.photo_label?.toLowerCase().includes("avaria"))
+    );
+    if (!photos.length) return "";
+    return (
+      `<section class="vei-doc-section"><h3>Fotos de avarias (por item)</h3>` +
+      `<div class="vei-doc-photo-grid">${photos
+        .map((p) => {
+          const label = p.photo_label || p.item_key || "Avaria";
+          const upper = String(label).toUpperCase().startsWith("AVARIA") ? label : `AVARIA — ${label}`;
+          return renderPhotoCell(upper.replace(/^avaria\s*[—\-]\s*/i, "AVARIA — "), p.url);
+        })
+        .join("")}</div></section>`
+    );
   }
 
   function buildDamagesSection(draft, photosByDamage) {
@@ -345,7 +377,7 @@
             : "";
         return (
           `<div class="vei-doc-damage">` +
-          `<strong>${esc(d.area_label || d.item_key || "Área")} — ${esc(d.damage_type || "—")}</strong>` +
+          `<strong>AVARIA — ${esc(String(d.area_label || d.item_key || "Área").replace(/^avaria\s*[—\-]\s*/i, ""))}</strong>` +
           (d.severity ? `<div><em>Gravidade:</em> ${esc(d.severity)}</div>` : "") +
           (d.description ? `<div><em>Descrição:</em> ${esc(d.description)}</div>` : "") +
           (d.notes ? `<div><em>Observação:</em> ${esc(d.notes)}</div>` : "") +
@@ -439,6 +471,8 @@
 
     const normalizedDraft = {
       ...draft,
+      inspectionVariant: draft.inspectionVariant || inspection?.inspection_variant || "LEVE",
+      formExtras: draft.formExtras || inspection?.form_extras || {},
       diagramMarkers:
         global.vehicleEntryInspection?.normalizeDiagramMarkers?.(draft.diagramMarkers) ||
         draft.diagramMarkers ||
@@ -465,8 +499,13 @@
     if (vehicle?.vistoria_km) vehicleGrid += metaField("Quilometragem (cadastro LV)", vehicle.vistoria_km);
     if (vehicle?.observacoes) vehicleGrid += metaField("Observações do veículo", vehicle.observacoes);
 
+    const variantLabel = h.getVariantConfig
+      ? h.getVariantConfig(normalizedDraft.inspectionVariant).label
+      : normalizedDraft.inspectionVariant || "Leve";
+
     const inspGrid =
       metaField("Nº da vistoria", inspection?.inspection_number) +
+      metaField("Tipo de vistoria", variantLabel) +
       metaField("ID da vistoria", inspection?.id) +
       metaField("Data da vistoria", fmt(inspection?.completed_at)) +
       metaField("Responsável pela vistoria", inspection?.completed_by_name) +
@@ -508,6 +547,7 @@
       (extraPhotosHtml
         ? `<section class="vei-doc-section"><h3>Avarias — registro fotográfico</h3>${extraPhotosHtml}</section>`
         : "") +
+      buildItemDamagePhotosSection(detail) +
       `<section class="vei-doc-section vei-doc-withdrawal">` +
       `<h3>Termo de retirada do veículo</h3>` +
       `<p>Declaro, para os devidos fins, que estou retirando o veículo identificado nesta vistoria, responsabilizando-me pelo recebimento do veículo na data abaixo indicada.</p>` +
