@@ -85,6 +85,25 @@
   font-size: 13px !important;
 }
 
+.vei-modal-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.vei-modal-head-actions .secondary {
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  white-space: nowrap;
+}
+
+.vei-modal-head-actions .hidden {
+  display: none !important;
+}
+
 .vei-modal-body {
   padding: 12px 12px 24px !important;
   max-width: 100%;
@@ -312,6 +331,46 @@
 .vei-checklist-view .vei-edit-extras .vei-section-body {
   padding: 12px 14px;
   background: #fff;
+}
+
+.vei-checklist-view .vei-doc-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.vei-checklist-view .vei-doc-photo-frame {
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 140px;
+  margin: 0 auto;
+}
+
+.vei-checklist-view .vei-doc-photo-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+@media (min-width: 640px) {
+  .vei-checklist-view .vei-doc-photo-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.vei-checklist-view .vei-doc-diagram-stack {
+  width: 100%;
+  max-width: 100%;
+}
+
+.vei-checklist-view .vei-view-actions {
+  justify-content: stretch;
+}
+
+.vei-checklist-view .vei-view-actions button {
+  flex: 1 1 45%;
+  min-height: 44px;
 }
 
 .vei-checklist-view .vei-actions {
