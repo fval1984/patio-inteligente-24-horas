@@ -98,52 +98,61 @@ header .user {
   font-weight: 500;
 }
 
-/* ---- Menu superior (desktop: dashboardSystemEntry) ---- */
+/* ---- Barra de navegação (abaixo do cabeçalho com logo) ---- */
+.app-top-shell {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--ag-surface);
+}
+
+.app-subheader {
+  background: var(--ag-surface) !important;
+  border-bottom: 1px solid var(--ag-border) !important;
+}
+
 @media (min-width: 901px) {
   header {
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px 16px;
     margin-left: 0 !important;
     width: 100% !important;
-    min-height: 64px;
-    padding-top: 8px;
-    padding-bottom: 8px;
-  }
-
-  .header-top-left {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  header .brand {
-    display: flex !important;
-    flex-shrink: 0;
+    justify-content: center;
+    border-bottom: none !important;
+    padding-top: 12px;
+    padding-bottom: 12px;
   }
 
   header .brand-header-logo {
-    height: 52px;
-    max-width: min(280px, 32vw);
+    height: 80px;
+    max-width: min(520px, 70vw);
   }
 
-  #dashboardSystemEntry:not(.hidden) {
+  .app-subheader-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: nowrap;
+  }
+
+  #dashboardSystemEntry {
     display: flex !important;
+    grid-template-columns: none !important;
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     gap: 4px;
     position: static;
     width: auto;
     max-width: none;
     padding: 0;
-    margin: 0;
+    margin: 0 !important;
     background: transparent;
     border: none;
     box-shadow: none;
-    overflow: visible;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   #dashboardSystemEntry .dashboard-system-btn {
@@ -152,7 +161,6 @@ header .user {
     padding: 6px 12px;
     border-radius: 6px;
     border: 1px solid var(--ag-border);
-    border-left: 1px solid var(--ag-border);
     background: var(--ag-surface);
     color: var(--ag-text);
     box-shadow: none;
@@ -161,7 +169,8 @@ header .user {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0;
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 
   #dashboardSystemEntry .dashboard-system-btn:hover {
@@ -191,20 +200,18 @@ header .user {
     color: inherit;
   }
 
-  .header-actions {
+  .app-subheader-right {
     flex: 0 0 auto;
     margin-left: auto;
   }
 
-  .header-app-menu-wrap {
-    flex-direction: row;
-    align-items: center;
-    gap: 10px;
-  }
-
   .header-plate-search {
     justify-content: flex-end;
-    margin-left: 0;
+    max-width: min(480px, 40vw);
+  }
+
+  .header-mobile-module-nav {
+    display: none !important;
   }
 
   main {
