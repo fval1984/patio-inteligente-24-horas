@@ -193,6 +193,24 @@
       .vei-doc-field-line label { display: block; font-weight: 700; margin-bottom: 6px; }
       .vei-doc-line { border-bottom: 1px solid #334155; min-height: 28px; }
       .vei-doc-sign-line { border-bottom: 1px solid #334155; min-height: 48px; margin-top: 8px; }
+      .vei-doc-edit .vei-doc-cls-cell { padding: 2px; vertical-align: middle; }
+      .vei-doc-edit .vei-class-btn.vei-doc-class-btn {
+        width: 26px; height: 26px; min-width: 26px; padding: 0; margin: 0 auto; display: flex;
+        align-items: center; justify-content: center; border: 1px solid #cbd5e1; border-radius: 4px;
+        background: #fff; font-weight: 800; font-size: 9pt; cursor: pointer; line-height: 1;
+      }
+      .vei-doc-edit .vei-class-btn.vei-doc-class-btn.active {
+        background: #fef3c7; border-color: #f59e0b; box-shadow: inset 0 0 0 1px #f59e0b;
+      }
+      .vei-doc-edit .vei-doc-inline-field {
+        width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 4px;
+        padding: 4px 6px; font-size: 9pt;
+      }
+      .vei-doc-edit .vei-doc-notes-edit {
+        width: 100%; box-sizing: border-box; min-height: 88px; border: 1px solid #cbd5e1;
+        border-radius: 6px; padding: 8px 10px; font-family: inherit; font-size: 10pt; resize: vertical;
+      }
+      .vei-doc-edit .vei-item-pending td.vei-td-label { background: #fff7ed; }
       .vei-doc-export-mode {
         width: ${A4_WIDTH_PX}px !important;
         max-width: ${A4_WIDTH_PX}px !important;
@@ -342,6 +360,90 @@
       });
       html += "</tbody></table></div>";
     }
+
+    return html;
+  }
+
+  function buildChecklistSectionEditable(helpers, draft) {
+    const variant = draft?.inspectionVariant || "LEVE";
+    const cfg = helpers.getVariantConfig ? helpers.getVariantConfig(variant) : null;
+    const cards = cfg?.cards || helpers.INSPECTION_CARDS || [];
+    const formExtras = draft.formExtras || {};
+    const classifications = helpers.CLASSIFICATIONS || [
+      { id: "BOM", label: "Bom" },
+      { id: "REGULAR", label: "Regular" },
+      { id: "DANIFICADO", label: "Danificado" },
+      { id: "SEM_TESTE", label: "Sem teste" },
+      { id: "INEXISTENTE", label: "Inexistente" },
+    ];
+    const classShort = helpers.CLASS_SHORT || classificationShort;
+
+    let html =
+      '<p class="vei-doc-legend" style="margin:0 0 10px;font-size:8.5pt;text-align:center;border:1px solid #cbd5e1;padding:6px;background:#f8fafc">' +
+      "<strong>Legenda:</strong> B — Bom · R — Regular · D — Danificado · S — Sem Teste · I — Inexistente</p>";
+
+    cards.forEach((card, cardIdx) => {
+      html += `<div class="vei-doc-card">`;
+      html += `<h4 class="vei-doc-card-title">${esc(cardIdx + 1)}. ${esc(card.title)}</h4>`;
+      card.blocks.forEach((block, blockIdx) => {
+        if (block.title) {
+          html += `<h5 class="vei-doc-block-title">${esc(block.title)}</h5>`;
+        } else if (blockIdx > 0 && card.blocks.length > 1) {
+          html += `<h5 class="vei-doc-block-title">Bloco ${blockIdx + 1}</h5>`;
+        }
+        if (block.textFields?.length) {
+          html += '<table class="vei-doc-table"><tbody>';
+          block.textFields.forEach((tf) => {
+            const val = formExtras[tf.key] || "";
+            html +=
+              `<tr><td><strong>${esc(tf.label)}</strong></td><td>` +
+              `<input type="text" class="vei-text-field vei-doc-inline-field" data-extra-key="${esc(tf.key)}" value="${esc(val)}" placeholder="${esc(tf.placeholder || "")}"/>` +
+              `</td></tr>`;
+          });
+          html += "</tbody></table>";
+        }
+        html += '<table class="vei-doc-table vei-doc-check-table"><thead><tr><th>Item</th>';
+        ["B", "R", "D", "S", "I"].forEach((h) => {
+          html += `<th class="vei-doc-cls-h">${h}</th>`;
+        });
+        html += "</tr></thead><tbody>";
+        block.items.forEach((it) => {
+          const kind = it.kind || "classify";
+          if (kind === "text") {
+            const val = formExtras[it.key] || "";
+            html += `<tr class="vei-text-row"><td colspan="6">`;
+            html += `<strong>${esc(it.label)}:</strong> `;
+            html += `<input type="text" class="vei-text-field vei-doc-inline-field" data-extra-key="${esc(it.key)}" value="${esc(val)}" placeholder="${esc(it.placeholder || "")}" style="max-width:280px"/>`;
+            html += `</td></tr>`;
+            return;
+          }
+          if (kind !== "classify") return;
+          const sel = draft.classifications?.[it.key];
+          html += `<tr class="vei-item vei-doc-item${!sel ? " vei-item-pending" : ""}" data-item-key="${esc(it.key)}">`;
+          html += `<td class="vei-td-label">${esc(it.label)}</td>`;
+          classifications.forEach((c) => {
+            const clsId = c.id || c;
+            const short = typeof classShort === "function" ? classShort(clsId) : classShort[clsId] || classificationShort(clsId);
+            const active = sel === clsId;
+            html +=
+              `<td class="vei-doc-cls-cell${active ? " on" : ""}">` +
+              `<button type="button" class="vei-class-btn vei-doc-class-btn${active ? " active" : ""}" data-class="${esc(clsId)}" data-item="${esc(it.key)}" aria-label="${esc(c.label || clsId)}" title="${esc(c.label || clsId)}">` +
+              `<span class="vei-class-btn-label" aria-hidden="true">${esc(short)}</span>` +
+              `</button></td>`;
+          });
+          html += "</tr>";
+          if (it.numberKey) {
+            const qVal = formExtras[it.numberKey] || "";
+            html += `<tr class="vei-qty-row"><td colspan="6">`;
+            html += `<em>${esc(it.numberLabel || "Quantidade")}:</em> `;
+            html += `<input type="number" min="0" step="1" class="vei-number-field vei-doc-inline-field" data-extra-key="${esc(it.numberKey)}" value="${esc(qVal)}" style="max-width:120px;display:inline-block"/>`;
+            html += `</td></tr>`;
+          }
+        });
+        html += "</tbody></table>";
+      });
+      html += "</div>";
+    });
 
     return html;
   }
@@ -560,6 +662,114 @@
       `<div class="vei-doc-field-line"><label>Assinatura do responsável:</label><div class="vei-doc-sign-line"></div></div>` +
       `</section>` +
       `</div>`
+    );
+  }
+
+  function buildEditablePrintHtml(options) {
+    injectStylesOnce();
+    const { vehicle, ctx, inspection, detail, draft, helpers, diagramHtml, mobilePhotosHtml, itemDamagePhotosHtml, finalizeLabel } =
+      options;
+    const h = helpers || {};
+    const fmt = h.fmtDateTime || fmtDateTime;
+
+    const titleNum = inspection?.inspection_number ? ` nº ${inspection.inspection_number}` : "";
+    const { standard, extraDamage, other, photosByDamage } = organizePhotos(detail?.photos, detail?.damages);
+
+    const normalizedDraft = {
+      ...draft,
+      inspectionVariant: draft.inspectionVariant || inspection?.inspection_variant || "LEVE",
+      formExtras: draft.formExtras || inspection?.form_extras || {},
+      diagramMarkers:
+        global.vehicleEntryInspection?.normalizeDiagramMarkers?.(draft.diagramMarkers) ||
+        draft.diagramMarkers ||
+        [],
+    };
+
+    const rpfNome =
+      vehicle?.responsavel_financeiro_nome || partnerName(ctx, vehicle?.responsavel_financeiro_id);
+    const leiloeiro = partnerName(ctx, vehicle?.leiloeiro_id);
+
+    let vehicleGrid =
+      metaField("Placa", vehicle?.placa) +
+      metaField("Marca", vehicle?.marca) +
+      metaField("Modelo", vehicle?.modelo) +
+      metaField("Ano", vehicle?.ano) +
+      metaField("Cor", vehicle?.cor) +
+      metaField("Chassi", vehicle?.chassi) +
+      metaField("Data de entrada", fmt(vehicle?.data_entrada)) +
+      metaField("Data de saída", vehicle?.data_saida ? fmt(vehicle?.data_saida) : "—") +
+      metaField("RPV (localizador)", partnerName(ctx, vehicle?.localizador_id)) +
+      metaField("RPF (responsável financeiro)", rpfNome) +
+      metaField("Leiloeiro", leiloeiro !== "—" ? leiloeiro : null);
+
+    if (vehicle?.vistoria_km) vehicleGrid += metaField("Quilometragem (cadastro LV)", vehicle.vistoria_km);
+    if (vehicle?.observacoes) vehicleGrid += metaField("Observações do veículo", vehicle.observacoes);
+
+    const variantLabel = h.getVariantConfig
+      ? h.getVariantConfig(normalizedDraft.inspectionVariant).label
+      : normalizedDraft.inspectionVariant || "Leve";
+
+    const inspGrid =
+      metaField("Nº da vistoria", inspection?.inspection_number) +
+      metaField("Tipo de vistoria", variantLabel) +
+      metaField("ID da vistoria", inspection?.id) +
+      metaField("Data da vistoria", fmt(inspection?.completed_at)) +
+      metaField("Responsável pela vistoria", inspection?.completed_by_name) +
+      metaField("Tipo", inspection?.inspection_type || "ENTRADA") +
+      metaField("Status", "CONCLUÍDA");
+
+    const checklistHtml = `<div id="veiDocChecklistHost">${buildChecklistSectionEditable(h, normalizedDraft)}</div>`;
+    const damagesHtml = buildDamagesSection(normalizedDraft, photosByDamage);
+
+    const diagramSection =
+      diagramHtml != null
+        ? `<section class="vei-doc-section"><h3>Diagrama de avarias — 4 vistas</h3><div class="vei-doc-diagram" id="veiDocDiagramHost">${diagramHtml}</div></section>`
+        : "";
+
+    const standardPhotosHtml = standard.length ? buildPhotoGrid(standard) : "";
+    const extraPhotosHtml = extraDamage.length ? buildPhotoGrid(extraDamage) : "";
+    const otherPhotosHtml = other.length ? buildPhotoGrid(other) : "";
+
+    const notesVal = normalizedDraft.generalNotes || "";
+
+    return (
+      `<div class="vei-doc vei-doc-edit vei-print-root" id="veiPrintDocument">` +
+      `<header class="vei-doc-header">` +
+      `<img class="vei-doc-logo" src="${LOGO_SRC}" alt="AMPLIGUARD"/>` +
+      `<h2 class="vei-doc-title">Vistoria Eletrônica</h2>` +
+      `<p class="vei-doc-subtitle">Editar vistoria de entrada${esc(titleNum)} · ${esc(fmt(inspection?.completed_at))}</p>` +
+      `</header>` +
+      `<section class="vei-doc-section"><h3>Identificação da vistoria</h3><div class="vei-doc-grid">${inspGrid}</div></section>` +
+      `<section class="vei-doc-section"><h3>Identificação do veículo</h3><div class="vei-doc-grid">${vehicleGrid}</div></section>` +
+      `<section class="vei-doc-section vei-doc-section-checklist"><h3>Itens da vistoria</h3>${checklistHtml}</section>` +
+      diagramSection +
+      `<section class="vei-doc-section"><h3>Avarias registradas</h3>${damagesHtml}</section>` +
+      `<section class="vei-doc-section"><h3>Observações gerais da vistoria</h3>` +
+      `<textarea class="vei-doc-notes-edit vei-notes" id="veiGeneralNotes" placeholder="Informações adicionais…">${esc(notesVal)}</textarea></section>` +
+      (mobilePhotosHtml
+        ? `<section class="vei-doc-section"><h3>Registro fotográfico</h3><div id="veiDocMobilePhotosHost">${mobilePhotosHtml}</div></section>`
+        : standardPhotosHtml || otherPhotosHtml
+          ? `<section class="vei-doc-section"><h3>Registro fotográfico</h3>${standardPhotosHtml}${otherPhotosHtml ? `<h4 style="margin-top:12px">Outras fotografias</h4>${otherPhotosHtml}` : ""}</section>`
+          : "") +
+      (itemDamagePhotosHtml
+        ? `<section class="vei-doc-section"><h3>Fotos adicionais de avarias</h3><div id="veiDocItemDamagePhotosHost">${itemDamagePhotosHtml}</div></section>`
+        : buildItemDamagePhotosSection(detail)) +
+      (extraPhotosHtml
+        ? `<section class="vei-doc-section"><h3>Avarias — registro fotográfico</h3>${extraPhotosHtml}</section>`
+        : "") +
+      `<section class="vei-doc-section vei-doc-withdrawal">` +
+      `<h3>Termo de retirada do veículo</h3>` +
+      `<p>Declaro, para os devidos fins, que estou retirando o veículo identificado nesta vistoria, responsabilizando-me pelo recebimento do veículo na data abaixo indicada.</p>` +
+      `<div class="vei-doc-field-line"><label>Nome completo:</label><div class="vei-doc-line"></div></div>` +
+      `<div class="vei-doc-field-line"><label>CPF:</label><div class="vei-doc-line"></div></div>` +
+      `<div class="vei-doc-field-line"><label>Data da retirada:</label><div class="vei-doc-line">____ / ____ / ______</div></div>` +
+      `<div class="vei-doc-field-line"><label>Assinatura do responsável:</label><div class="vei-doc-sign-line"></div></div>` +
+      `</section>` +
+      `</div>` +
+      '<div class="vei-actions vei-no-print">' +
+      `<button type="button" id="veiFinalizeBtn">${esc(finalizeLabel || "Salvar vistoria")}</button>` +
+      '<button type="button" class="secondary" id="veiModalCloseInner">Cancelar</button>' +
+      "</div>"
     );
   }
 
@@ -812,6 +1022,8 @@
   global.vehicleEntryInspectionDocument = {
     injectStylesOnce,
     buildPrintHtml,
+    buildEditablePrintHtml,
+    buildChecklistSectionEditable,
     printDocument,
     downloadPdf,
     pdfFileName,
