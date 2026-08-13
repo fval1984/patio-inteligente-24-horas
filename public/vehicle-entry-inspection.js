@@ -73,6 +73,10 @@
     }
   }
 
+  function finalizeButtonLabel() {
+    return _session?.editingInspectionId ? "Salvar vistoria" : "Finalizar vistoria";
+  }
+
   function partnerName(ctx, id) {
     const p = (ctx.partners || []).find((x) => x.id === id);
     return p?.nome || "—";
@@ -1175,7 +1179,7 @@
       `<button type="button" class="secondary" id="veiClosingPrev">Anterior</button>` +
       `<span class="vei-card-progress">${esc(labels[step] || step)}</span>` +
       (isFinalize
-        ? '<button type="button" id="veiFinalizeBtn">Finalizar vistoria</button>'
+        ? `<button type="button" id="veiFinalizeBtn">${esc(finalizeButtonLabel())}</button>`
         : '<button type="button" id="veiClosingNext">OK, próximo</button>') +
       "</div>"
     );
@@ -1681,7 +1685,7 @@
     const btn = root.querySelector("#veiFinalizeBtn");
     if (btn) {
       btn.disabled = true;
-      btn.textContent = "Finalizando…";
+      btn.textContent = _session?.editingInspectionId ? "Salvando…" : "Finalizando…";
     }
     try {
       const session = await ctx.getAccessToken();
@@ -1691,20 +1695,38 @@
       }
       const items = buildInspectionItemsPayload(draft);
       const damages = buildDamagesPayload(draft).map(({ client_key, ...d }) => d);
-      const res = await fetch("/api/vehicles/complete-entry-inspection", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session}` },
-        body: JSON.stringify({
-          access_token: session,
-          vehicle_id: _session.vehicle.id,
-          inspection_variant: draft.inspectionVariant || "LEVE",
-          form_extras: draft.formExtras || {},
-          general_notes: draft.generalNotes,
-          diagram_markers: normalizeDiagramMarkers(draft.diagramMarkers),
-          items,
-          damages,
-        }),
-      });
+      const isUpdate = !!_session?.editingInspectionId;
+      const res = await fetch(
+        isUpdate ? "/api/vehicles/update-entry-inspection" : "/api/vehicles/complete-entry-inspection",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session}` },
+          body: JSON.stringify(
+            isUpdate
+              ? {
+                  access_token: session,
+                  inspection_id: _session.editingInspectionId,
+                  vehicle_id: _session.vehicle.id,
+                  inspection_variant: draft.inspectionVariant || "LEVE",
+                  form_extras: draft.formExtras || {},
+                  general_notes: draft.generalNotes,
+                  diagram_markers: normalizeDiagramMarkers(draft.diagramMarkers),
+                  items,
+                  damages,
+                }
+              : {
+                  access_token: session,
+                  vehicle_id: _session.vehicle.id,
+                  inspection_variant: draft.inspectionVariant || "LEVE",
+                  form_extras: draft.formExtras || {},
+                  general_notes: draft.generalNotes,
+                  diagram_markers: normalizeDiagramMarkers(draft.diagramMarkers),
+                  items,
+                  damages,
+                }
+          ),
+        }
+      );
       let json = {};
       try {
         json = await res.json();
@@ -1718,7 +1740,9 @@
         return;
       }
       if (!res.ok || !json.ok) {
-        const errMsg = formatInspectionServerError(json.error || "Não foi possível finalizar a vistoria.");
+        const errMsg = formatInspectionServerError(
+          json.error || (isUpdate ? "Não foi possível salvar a vistoria." : "Não foi possível finalizar a vistoria.")
+        );
         if (/checklist|classificad|item\(ns\)|pendente/i.test(String(json.error || ""))) {
           scrollToFirstMissingItem(root, draft);
         }
@@ -1764,11 +1788,13 @@
         console.warn("vei reload after finalize", reloadErr);
       }
 
-      const wasEntryFlow = !_session.retroactive;
+      const wasEntryFlow = !_session.retroactive && !isUpdate;
       const completedVehicle = _session.vehicle;
       clearDraftStorage(completedVehicle?.id);
       alert(
-        `Vistoria nº ${json.inspection_number} concluída.\nResponsável: ${json.inspector_name || "—"}\nData: ${fmtDateTime(json.completed_at)}${postWarn}`
+        isUpdate
+          ? `Vistoria nº ${json.inspection_number} atualizada.${postWarn}`
+          : `Vistoria nº ${json.inspection_number} concluída.\nResponsável: ${json.inspector_name || "—"}\nData: ${fmtDateTime(json.completed_at)}${postWarn}`
       );
       closeModal();
       try {
@@ -1787,7 +1813,7 @@
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.textContent = "Finalizar vistoria";
+        btn.textContent = finalizeButtonLabel();
       }
     }
   }
@@ -1868,6 +1894,37 @@
     }
   }
 
+  async function openEditExistingModal(vehicle, ctx, inspectionId) {
+    ensureModal();
+    const detail = await loadInspectionDetail(ctx, inspectionId);
+    if (!detail) {
+      alert("Vistoria não encontrada.");
+      return;
+    }
+    const draft = detailToDraft(detail);
+    _session = {
+      vehicle,
+      mode: "edit",
+      draft,
+      retroactive: true,
+      ctx,
+      editingInspectionId: inspectionId,
+      editingInspectionNumber: detail.inspection.inspection_number,
+    };
+    const modal = _modalEl;
+    modal.classList.remove("hidden");
+    const cfg = draftCfg(draft);
+    document.getElementById("veiModalTitle").textContent = `Editar vistoria nº ${detail.inspection.inspection_number}`;
+    document.getElementById("veiModalSubtitle").textContent = `${cfg.label} · placa ${vehicle.placa || "—"}`;
+    const body = document.getElementById("veiModalBody");
+    body.innerHTML = buildEditHtml(vehicle, ctx, draft);
+    ensureEditModalEvents(body, ctx);
+    bindMobilePhotosIfNeeded(body, draft);
+    if ((draft.currentCardIndex || 0) === cfg.cardCount - 1) {
+      bindItemDamagePhotoEvents(body, draft, () => refreshEditUI(body, draft, ctx));
+    }
+  }
+
   async function openViewModal(vehicle, ctx, inspectionId) {
     ensureModal();
     const detail = await loadInspectionDetail(ctx, inspectionId);
@@ -1918,6 +1975,15 @@
         return;
       }
       await openViewModal(vehicle, ctx, insp.id);
+      return;
+    }
+    if (opts?.mode === "edit_existing") {
+      const insp = opts.inspection || (await findCompletedInspectionForVehicle(ctx, vehicle.id));
+      if (!insp) {
+        alert("Este veículo não possui vistoria concluída para editar.");
+        return;
+      }
+      await openEditExistingModal(vehicle, ctx, insp.id);
       return;
     }
     if (!canStartInspection(vehicle, ctx)) {
