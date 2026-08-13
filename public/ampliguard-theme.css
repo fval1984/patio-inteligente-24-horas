@@ -667,8 +667,7 @@ label {
 }
 
 .hub-exec-table thead th,
-.ops-exec-table thead th,
-.vei-form-table thead th {
+.ops-exec-table thead th {
   background: var(--ag-navy) !important;
   color: #fff !important;
 }
@@ -880,7 +879,7 @@ label {
   background: linear-gradient(90deg, var(--ag-blue), #60a5fa) !important;
 }
 
-.vei-class-btn.active:not([data-class="DANIFICADO"]) {
+.vei-class-btn.active:not([data-class="DANIFICADO"]):not(.vei-cls-box) {
   border-color: var(--ag-blue) !important;
   background: var(--ag-blue-soft) !important;
   color: var(--ag-blue-strong) !important;
