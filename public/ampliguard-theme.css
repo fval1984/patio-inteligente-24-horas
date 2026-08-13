@@ -98,53 +98,82 @@ header .user {
   font-weight: 500;
 }
 
-/* ---- Menu lateral (desktop: dashboardSystemEntry) ---- */
+/* ---- Menu superior (desktop: dashboardSystemEntry) ---- */
 @media (min-width: 901px) {
-  #appHeaderMenuWrap:not(.hidden) #dashboardSystemEntry {
+  header {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    margin-left: 0 !important;
+    width: 100% !important;
+    min-height: 64px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .header-top-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  header .brand {
     display: flex !important;
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: var(--ag-sidebar-w);
+    flex-shrink: 0;
+  }
+
+  header .brand-header-logo {
+    height: 52px;
+    max-width: min(280px, 32vw);
+  }
+
+  #dashboardSystemEntry:not(.hidden) {
+    display: flex !important;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    position: static;
+    width: auto;
     max-width: none;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 2px;
-    padding: 16px 8px;
+    padding: 0;
     margin: 0;
-    z-index: 9;
-    background: var(--ag-navy);
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
-    overflow-y: auto;
+    background: transparent;
+    border: none;
     box-shadow: none;
+    overflow: visible;
   }
 
   #dashboardSystemEntry .dashboard-system-btn {
-    width: 100%;
-    min-height: 42px;
-    padding: 10px 12px;
+    width: auto;
+    min-height: 34px;
+    padding: 6px 12px;
     border-radius: 6px;
-    border: none;
-    border-left: 3px solid transparent;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.85);
+    border: 1px solid var(--ag-border);
+    border-left: 1px solid var(--ag-border);
+    background: var(--ag-surface);
+    color: var(--ag-text);
     box-shadow: none;
-    text-align: left;
+    text-align: center;
     transform: none !important;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    gap: 0;
   }
 
   #dashboardSystemEntry .dashboard-system-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--ag-neutral-bg);
+    border-color: var(--ag-border);
     transform: none !important;
   }
 
   #dashboardSystemEntry .dashboard-system-btn:active,
   #dashboardSystemEntry .dashboard-system-btn:focus-visible {
-    background: rgba(22, 119, 255, 0.2);
+    background: var(--ag-blue-soft);
+    border-color: var(--ag-blue);
     outline: none;
   }
 
@@ -155,25 +184,31 @@ header .user {
   }
 
   #dashboardSystemEntry .dashboard-system-btn__title {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: inherit;
   }
 
-  header {
-    margin-left: var(--ag-sidebar-w);
-    width: calc(100% - var(--ag-sidebar-w));
-    min-height: 64px;
+  .header-actions {
+    flex: 0 0 auto;
+    margin-left: auto;
   }
 
-  header .brand {
-    display: none;
+  .header-app-menu-wrap {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header-plate-search {
+    justify-content: flex-end;
+    margin-left: 0;
   }
 
   main {
-    margin-left: var(--ag-sidebar-w);
+    margin-left: 0 !important;
     padding-top: 8px;
   }
 }
@@ -644,16 +679,16 @@ label {
   color: var(--ag-danger) !important;
 }
 
-/* Sidebar: item ativo por módulo (usa classes já existentes no body) */
+/* Top nav: item ativo por módulo */
 @media (min-width: 901px) {
   body.app-module-patio #dashboardOpenPatio,
   body.app-module-finance #dashboardOpenFinance,
   body.app-module-lista #dashboardOpenLista,
   body:has(#viewParceiros:not(.hidden)) #dashboardOpenParceiros,
   body:has(#viewConfiguracoes:not(.hidden)) #dashboardOpenConfiguracoes {
-    background: rgba(22, 119, 255, 0.18) !important;
-    border-left-color: var(--ag-blue) !important;
-    color: #fff !important;
+    background: var(--ag-blue-soft) !important;
+    border-color: var(--ag-blue) !important;
+    color: var(--ag-blue-strong) !important;
   }
 }
 
