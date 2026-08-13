@@ -134,12 +134,6 @@
     flex: 0 0 auto !important;
   }
 
-  .header-plate-search .vp-plate-editor__input,
-  .header-plate-search-primary .vp-plate-editor__input {
-    position: absolute !important;
-    opacity: 0 !important;
-  }
-
   .header-plate-search button,
   .header-plate-search-primary #plateSearchOk,
   .header-plate-search-secondary button {
