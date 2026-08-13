@@ -324,6 +324,26 @@
     );
   }
 
+  function formatInspectionServerError(raw) {
+    const msg = String(raw || "").trim();
+    if (!msg) return "Não foi possível finalizar a vistoria.";
+    if (/AGUARDANDO_VISTORIA|invalid input value for enum vehicle_status/i.test(msg)) {
+      return (
+        "A base de dados ainda não foi atualizada para a vistoria eletrônica.\n\n" +
+        "Peça ao administrador para executar no Supabase → SQL Editor o arquivo:\n" +
+        "supabase/vehicle_entry_inspection_fix_status_enum.sql\n\n" +
+        "Depois aguarde alguns segundos, atualize a página e tente finalizar novamente."
+      );
+    }
+    if (/complete_vehicle_entry_inspection|schema cache|relation.*vehicle_entry_inspection/i.test(msg)) {
+      return (
+        "Estrutura da vistoria eletrônica não encontrada no Supabase.\n\n" +
+        "Execute supabase/vehicle_entry_inspections.sql no SQL Editor e tente novamente."
+      );
+    }
+    return msg;
+  }
+
   function injectStylesOnce() {
     if (_stylesInjected) return;
     _stylesInjected = true;
@@ -1643,8 +1663,8 @@
         return;
       }
       if (!res.ok || !json.ok) {
-        const errMsg = json.error || "Não foi possível finalizar a vistoria.";
-        if (/checklist|classificad|item\(ns\)|pendente/i.test(errMsg)) {
+        const errMsg = formatInspectionServerError(json.error || "Não foi possível finalizar a vistoria.");
+        if (/checklist|classificad|item\(ns\)|pendente/i.test(String(json.error || ""))) {
           scrollToFirstMissingItem(root, draft);
         }
         alert(errMsg);
