@@ -394,6 +394,15 @@
   cursor: text;
   outline: none;
   border-radius: 8px;
+  min-width: 0;
+}
+
+.vp-plate-editor__visual {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  pointer-events: none;
+  user-select: none;
 }
 
 .vp-plate-editor__input {
@@ -401,7 +410,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  opacity: 0;
+  opacity: 0.001;
   border: 0;
   padding: 0;
   margin: 0;
@@ -411,13 +420,7 @@
   font-size: 16px;
   z-index: 2;
   cursor: text;
-}
-
-.vp-plate-editor__visual {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  pointer-events: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .vp-plate-editor--focused .vp-plate__old,
