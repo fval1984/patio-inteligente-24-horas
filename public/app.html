@@ -1974,6 +1974,12 @@
         padding: 2px 6px;
         font-size: 10px;
       }
+      .header-plate-search-actions {
+        display: contents;
+      }
+      .header-plate-inicio-desk {
+        display: inline-flex;
+      }
       .header-plate-search-hint {
         margin: 0;
         max-width: min(100vw - 48px, 420px);
@@ -6525,8 +6531,7 @@
         }
       }
       @media (max-width: 480px) {
-        .header-plate-search #clearPlateFilter,
-        .header-plate-search #goDashboardFromPlate {
+        .header-plate-inicio-desk {
           display: none;
         }
         .patio-inicio-grid {
@@ -6545,7 +6550,7 @@
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme7" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260813vistui1" />
-    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile9" />
+    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile10" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate3" />
   </head>
   <body class="auth-screen-active">
@@ -6603,6 +6608,13 @@
               <span class="dashboard-system-btn__go">Abrir configurações →</span>
             </button>
           </nav>
+          <nav id="headerMobileModuleNav" class="header-mobile-module-nav" aria-label="Módulos principais">
+            <button type="button" class="header-mobile-module-btn" data-mobile-module="patio">PATIO</button>
+            <button type="button" class="header-mobile-module-btn" data-mobile-module="financeiro" data-mobile-module-adm-only="1">Financeiro</button>
+            <button type="button" class="header-mobile-module-btn" data-mobile-module="parceiros" data-mobile-module-adm-only="1">Parceiros</button>
+            <button type="button" class="header-mobile-module-btn" data-mobile-module="lista">Lista</button>
+            <button type="button" class="header-mobile-module-btn" data-mobile-module="configuracoes" data-mobile-module-adm-only="1">Configurações</button>
+          </nav>
           <div class="app-subheader-right">
             <div class="user" id="userInfo">Não autenticado</div>
             <div id="appHeaderMenuWrap" class="header-app-menu-wrap">
@@ -6621,34 +6633,30 @@
                 </button>
               </div>
               <form id="plateSearchForm" class="header-plate-search" action="#" novalidate>
-                <label for="plateFilter" class="header-plate-label">Placa</label>
+                <label for="plateFilter" class="header-plate-label sr-only">Placa</label>
                 <input
                   id="plateFilter"
                   name="plate"
                   type="text"
                   inputmode="text"
-                  placeholder="ABC1D23"
+                  placeholder="Digite a placa"
                   maxlength="20"
                   autocomplete="off"
                   autocorrect="off"
                   autocapitalize="characters"
                   spellcheck="false"
+                  data-vp-live
                 />
-                <button type="submit" id="plateSearchOk">OK</button>
-                <button type="button" class="secondary" id="goDashboardFromPlate">Início</button>
-                <button type="button" class="secondary" id="clearPlateFilter">Limpar</button>
-                <button type="button" id="headerLogoutBtn" class="secondary header-logout-btn hidden" title="Sair da conta">Sair</button>
+                <div class="header-plate-search-actions">
+                  <button type="submit" id="plateSearchOk">OK</button>
+                  <button type="button" class="secondary" id="clearPlateFilter">Limpar</button>
+                  <button type="button" id="headerLogoutBtn" class="secondary header-logout-btn hidden" title="Sair da conta">Sair</button>
+                </div>
+                <button type="button" class="secondary header-plate-inicio-desk" id="goDashboardFromPlate">Início</button>
               </form>
             </div>
           </div>
         </div>
-        <nav id="headerMobileModuleNav" class="header-mobile-module-nav" aria-label="Módulos principais">
-          <button type="button" class="header-mobile-module-btn" data-mobile-module="patio">PATIO</button>
-          <button type="button" class="header-mobile-module-btn" data-mobile-module="financeiro" data-mobile-module-adm-only="1">Financeiro</button>
-          <button type="button" class="header-mobile-module-btn" data-mobile-module="parceiros" data-mobile-module-adm-only="1">Parceiros</button>
-          <button type="button" class="header-mobile-module-btn" data-mobile-module="lista">Lista</button>
-          <button type="button" class="header-mobile-module-btn" data-mobile-module="configuracoes" data-mobile-module-adm-only="1">Configurações</button>
-        </nav>
         <p class="notice plate-search-hint header-plate-search-hint hidden" aria-live="polite"></p>
       </div>
     </div>
@@ -21912,6 +21920,7 @@
 
       clearPlateFilter?.addEventListener("click", () => {
         plateFilter.value = "";
+        plateFilter.dispatchEvent(new Event("input", { bubbles: true }));
         plateQuery = "";
         syncPatioPlateInputFromHeader();
         setPlateSearchHints("", false);
