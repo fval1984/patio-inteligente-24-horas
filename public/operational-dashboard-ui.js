@@ -247,49 +247,6 @@
     return root;
   }
 
-  function syncFiltersFromDom() {
-    const periodEl = document.getElementById("opsDashFilterPeriod");
-    const finEl = document.getElementById("opsDashFilterFinanceira");
-    const partnerEl = document.getElementById("opsDashFilterPartner");
-    const statusEl = document.getElementById("opsDashFilterStatus");
-    const searchEl = document.getElementById("opsDashFilterSearch");
-
-    if (periodEl) _filters.period = periodEl.value || "30d";
-    _filters.financeiraId = finEl ? finEl.value || "" : _filters.financeiraId;
-    _filters.parceiroId = partnerEl ? partnerEl.value || "" : _filters.parceiroId;
-    _filters.status = statusEl ? statusEl.value || "" : _filters.status;
-    _filters.search = searchEl ? String(searchEl.value || "").trim() : _filters.search;
-  }
-
-  function populateSelect(sel, partners, emptyLabel, current) {
-    if (!sel) return;
-    const cur = current || sel.value || "";
-    const list = (partners || [])
-      .slice()
-      .sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR"));
-    sel.innerHTML =
-      `<option value="">${escapeHtmlDefault(emptyLabel)}</option>` +
-      list
-        .map((p) => `<option value="${escapeHtmlDefault(p.id)}">${escapeHtmlDefault(p.nome || "-")}</option>`)
-        .join("");
-    if (cur && list.some((p) => String(p.id) === String(cur))) sel.value = cur;
-  }
-
-  function populatePartnerFilters(partners) {
-    populateSelect(
-      document.getElementById("opsDashFilterFinanceira"),
-      partners,
-      "Todas as financeiras",
-      _filters.financeiraId
-    );
-    populateSelect(
-      document.getElementById("opsDashFilterPartner"),
-      partners,
-      "Todos os parceiros",
-      _filters.parceiroId
-    );
-  }
-
   function iconSvg(name) {
     const icons = {
       vehicle: '<path d="M4 16l2-6h12l2 6M6 16h12M8 20h2M14 20h2" stroke="currentColor" stroke-width="2" fill="none"/>',
@@ -357,36 +314,6 @@
           .join("")}
       </div>
     </section>`;
-  }
-
-  function renderFilterBar(ctx) {
-    return `<div class="filter-bar hub-dash-filters ops-exec-filters" id="opsDashFilterBar">
-      <label for="opsDashFilterPeriod">Período</label>
-      <select id="opsDashFilterPeriod" title="Período de referência">
-        <option value="today"${_filters.period === "today" ? " selected" : ""}>Hoje</option>
-        <option value="7d"${_filters.period === "7d" ? " selected" : ""}>Últimos 7 dias</option>
-        <option value="30d"${_filters.period === "30d" || !_filters.period ? " selected" : ""}>Últimos 30 dias</option>
-        <option value="month"${_filters.period === "month" ? " selected" : ""}>Mês atual</option>
-        <option value="year"${_filters.period === "year" ? " selected" : ""}>Ano atual</option>
-      </select>
-      <label for="opsDashFilterFinanceira">Financeira</label>
-      <select id="opsDashFilterFinanceira" title="Filtrar por financeira (localizador)">
-        <option value="">Todas</option>
-      </select>
-      <label for="opsDashFilterPartner">Parceiro</label>
-      <select id="opsDashFilterPartner" title="Filtrar por responsável financeiro (RPP)">
-        <option value="">Todos</option>
-      </select>
-      <label for="opsDashFilterStatus">Status</label>
-      <select id="opsDashFilterStatus" title="Status operacional">
-        <option value=""${_filters.status === "" ? " selected" : ""}>Todos</option>
-        <option value="no_patio"${_filters.status === "no_patio" ? " selected" : ""}>No pátio</option>
-        <option value="vlp"${_filters.status === "vlp" ? " selected" : ""}>VLP</option>
-        <option value="removido"${_filters.status === "removido" ? " selected" : ""}>Removido</option>
-      </select>
-      <label for="opsDashFilterSearch">Busca</label>
-      <input type="search" id="opsDashFilterSearch" placeholder="Placa ou financeira…" autocomplete="off" value="${esc(_filters.search || "", ctx)}" />
-    </div>`;
   }
 
   function renderFila(fila, ctx) {
@@ -598,8 +525,6 @@
     const root = resolveMountRoot();
     if (!root) return;
 
-    syncFiltersFromDom();
-
     const m = computeMetrics(_lastData);
     if (!m) {
       root.innerHTML = `<p class="ops-ops-footnote">Serviço de métricas operacionais indisponível.</p>`;
@@ -641,7 +566,6 @@
 
     root.innerHTML = `
       <div class="ops-exec-dashboard">
-        ${renderFilterBar(ctx)}
         ${renderAlerts(m.alerts, ctx)}
 
         <section class="hub-dash-section">
@@ -698,20 +622,7 @@
       </div>
     `;
 
-    populatePartnerFilters(_lastData.partners || []);
-    // Restore filter values after re-render
-    const periodEl = document.getElementById("opsDashFilterPeriod");
-    const finEl = document.getElementById("opsDashFilterFinanceira");
-    const partnerEl = document.getElementById("opsDashFilterPartner");
-    const statusEl = document.getElementById("opsDashFilterStatus");
-    const searchEl = document.getElementById("opsDashFilterSearch");
-    if (periodEl) periodEl.value = _filters.period || "30d";
-    if (finEl && _filters.financeiraId) finEl.value = _filters.financeiraId;
-    if (partnerEl && _filters.parceiroId) partnerEl.value = _filters.parceiroId;
-    if (statusEl) statusEl.value = _filters.status || "";
-    if (searchEl) searchEl.value = _filters.search || "";
-
-    bindFilterListeners();
+    bindPanelListeners();
   }
 
   function invalidateAndRefresh() {
@@ -743,42 +654,11 @@
     }
   }
 
-  function bindFilterListeners() {
+  function bindPanelListeners() {
     if (_bound) return;
     _bound = true;
 
-    const debounce = (fn, ms) => {
-      let t;
-      return () => {
-        clearTimeout(t);
-        t = setTimeout(fn, ms);
-      };
-    };
-    const refresh = debounce(() => {
-      syncFiltersFromDom();
-      invalidateAndRefresh();
-    }, 280);
-
-    const onChange = (e) => {
-      const t = e.target;
-      if (!t || !t.id) return;
-      if (
-        t.id === "opsDashFilterPeriod" ||
-        t.id === "opsDashFilterFinanceira" ||
-        t.id === "opsDashFilterPartner" ||
-        t.id === "opsDashFilterStatus" ||
-        t.id === "opsDashFilterSearch"
-      ) {
-        refresh();
-      }
-    };
-
-    // Delegate on root / panel so listeners survive innerHTML re-renders
     const panel = document.getElementById("patioInicioPanel") || document;
-    panel.addEventListener("change", onChange);
-    panel.addEventListener("input", (e) => {
-      if (e.target && e.target.id === "opsDashFilterSearch") refresh();
-    });
     panel.addEventListener("click", (e) => {
       const nav = e.target.closest("[data-hub-nav]");
       if (nav) hubNavigatePatio(nav.getAttribute("data-hub-nav"));
@@ -795,7 +675,7 @@
   function init() {
     injectStylesOnce();
     hideLegacyInicio();
-    bindFilterListeners();
+    bindPanelListeners();
   }
 
   global.operationalDashboardRender = operationalDashboardRender;
