@@ -79,17 +79,41 @@
   border-top: 1px solid #cbd5e1;
 }
 
-/* ---- Placa antiga (padrão AAA-0000) ---- */
+/* ---- Placa antiga (padrão AAA-0000 — fiel ao modelo BR clássico) ---- */
 .vp-plate__old {
   display: flex;
   flex-direction: column;
-  border: 3px solid #1f2937;
-  border-radius: 10px;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  border: 4px solid #808285;
+  border-radius: 14px;
   overflow: hidden;
-  background: linear-gradient(180deg, #e5e7eb 0%, #d1d5db 48%, #e5e7eb 100%);
+  background: #d1d5d8;
+  padding: 5px 7px 7px;
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.75) inset,
-    0 2px 6px rgba(15, 23, 42, 0.2);
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 5px rgba(0, 0, 0, 0.14);
+}
+
+.vp-plate__old-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 78%;
+  margin: 0 auto 3px;
+  padding: 1px 6px;
+  border: 1px solid #808285;
+  border-radius: 2px;
+  background: #d1d5d8;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #000;
+  line-height: 1.15;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .vp-plate__body--old {
@@ -97,8 +121,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   min-height: 0;
-  padding: 4px 6px;
+  padding: 0 4px 2px;
   background: transparent;
   border: none;
   border-radius: 0;
@@ -106,7 +131,7 @@
 }
 
 .vp-plate__text {
-  font-family: "Arial Narrow", "Helvetica Neue Condensed", "Arial Black", Arial, sans-serif;
+  font-family: "Arial Narrow", "Roboto Condensed", "Helvetica Neue Condensed", "Arial Black", Arial, sans-serif;
   font-weight: 800;
   letter-spacing: 0.1em;
   color: #0f172a;
@@ -118,8 +143,9 @@
   align-items: baseline;
   justify-content: center;
   gap: 0;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   line-height: 1;
+  color: #000;
 }
 
 .vp-plate__old-letters,
@@ -130,26 +156,31 @@
 .vp-plate__old-sep {
   font-weight: 900;
   margin: 0 1px;
-  opacity: 0.95;
+  opacity: 1;
 }
 
 .vp-plate--partial .vp-plate__text {
-  opacity: 0.88;
+  opacity: 0.92;
 }
 
 .vp-plate--partial .vp-plate__ghost {
-  opacity: 0.28;
+  opacity: 0.3;
   font-weight: 700;
 }
 
 .vp-plate--empty .vp-plate__old {
-  border-style: dashed;
-  border-color: #94a3b8;
-  background: #f3f4f6;
+  border-color: #9ca3af;
+  background: #e5e7eb;
+}
+
+.vp-plate--empty .vp-plate__old-header {
+  border-color: #9ca3af;
+  background: #e5e7eb;
+  color: #6b7280;
 }
 
 .vp-plate--empty .vp-plate__text {
-  color: #94a3b8;
+  color: #9ca3af;
   letter-spacing: 0.06em;
 }
 
@@ -165,7 +196,13 @@
 /* Tamanhos */
 .vp-plate--xs .vp-plate__merco,
 .vp-plate--xs .vp-plate__old {
-  width: 92px;
+  width: 98px;
+}
+
+.vp-plate--xs .vp-plate__old-header {
+  font-size: 5px;
+  padding: 1px 4px;
+  margin-bottom: 2px;
 }
 
 .vp-plate--xs .vp-plate__merco-band {
@@ -187,12 +224,12 @@
 }
 
 .vp-plate--xs .vp-plate__body--old {
-  min-height: 22px;
-  padding: 2px 4px;
+  min-height: 18px;
+  padding: 0 3px 1px;
 }
 
 .vp-plate--xs .vp-plate__text--old {
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .vp-plate--xs .vp-plate__text:not(.vp-plate__text--old) {
@@ -201,7 +238,13 @@
 
 .vp-plate--sm .vp-plate__merco,
 .vp-plate--sm .vp-plate__old {
-  width: 112px;
+  width: 118px;
+}
+
+.vp-plate--sm .vp-plate__old-header {
+  font-size: 6px;
+  padding: 1px 5px;
+  margin-bottom: 2px;
 }
 
 .vp-plate--sm .vp-plate__merco-band {
@@ -223,12 +266,12 @@
 }
 
 .vp-plate--sm .vp-plate__body--old {
-  min-height: 26px;
-  padding: 3px 6px;
+  min-height: 22px;
+  padding: 0 4px 2px;
 }
 
 .vp-plate--sm .vp-plate__text--old {
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .vp-plate--sm .vp-plate__text:not(.vp-plate__text--old) {
@@ -237,7 +280,13 @@
 
 .vp-plate--md .vp-plate__merco,
 .vp-plate--md .vp-plate__old {
-  width: 132px;
+  width: 140px;
+}
+
+.vp-plate--md .vp-plate__old-header {
+  font-size: 7px;
+  padding: 1px 6px;
+  margin-bottom: 3px;
 }
 
 .vp-plate--md .vp-plate__merco-band {
@@ -259,12 +308,12 @@
 }
 
 .vp-plate--md .vp-plate__body--old {
-  min-height: 30px;
-  padding: 4px 8px;
+  min-height: 26px;
+  padding: 0 5px 2px;
 }
 
 .vp-plate--md .vp-plate__text--old {
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .vp-plate--md .vp-plate__text:not(.vp-plate__text--old) {
@@ -273,7 +322,13 @@
 
 .vp-plate--lg .vp-plate__merco,
 .vp-plate--lg .vp-plate__old {
-  width: 156px;
+  width: 168px;
+}
+
+.vp-plate--lg .vp-plate__old-header {
+  font-size: 8px;
+  padding: 2px 8px;
+  margin-bottom: 4px;
 }
 
 .vp-plate--lg .vp-plate__merco-band {
@@ -295,12 +350,12 @@
 }
 
 .vp-plate--lg .vp-plate__body--old {
-  min-height: 36px;
-  padding: 5px 10px;
+  min-height: 32px;
+  padding: 0 6px 3px;
 }
 
 .vp-plate--lg .vp-plate__text--old {
-  font-size: 18px;
+  font-size: 17px;
 }
 
 .vp-plate--lg .vp-plate__text:not(.vp-plate__text--old) {
