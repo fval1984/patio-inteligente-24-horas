@@ -26,6 +26,14 @@
   border-radius: 0 !important;
   box-shadow: none !important;
   background: #f0f2f5 !important;
+  color: #1e293b !important;
+  color-scheme: light;
+  --text: #1e293b;
+  --muted: #475569;
+  --bg: #ffffff;
+  --card: #ffffff;
+  --border: #cbd5e1;
+  --primary: #1677ff;
 }
 
 .vei-modal-head {
@@ -175,9 +183,13 @@
   padding-left: 12px !important;
   font-size: 10px !important;
   text-transform: uppercase;
-  color: #64748b !important;
+  color: #334155 !important;
   letter-spacing: 0.05em;
   font-weight: 700 !important;
+}
+
+.vei-checklist-view .vei-form-table thead.vei-thead-cols .vei-th-cls {
+  color: #001529 !important;
 }
 
 .vei-checklist-view .vei-form-table .vei-th-cls,
@@ -241,10 +253,15 @@
 
 .vei-checklist-view .vei-cls-box.vei-cls-on,
 .vei-checklist-view button.vei-cls-box.vei-cls-on,
-.vei-checklist-view button.vei-cls-box.active {
-  background: #fef9c3 !important;
-  border-color: #fde047 !important;
-  color: #001529 !important;
+.vei-checklist-view button.vei-cls-box.active,
+.vei-checklist-view button.vei-cls-box.active[data-class="BOM"],
+.vei-checklist-view button.vei-cls-box.active[data-class="REGULAR"],
+.vei-checklist-view button.vei-cls-box.active[data-class="DANIFICADO"],
+.vei-checklist-view button.vei-cls-box.active[data-class="SEM_TESTE"],
+.vei-checklist-view button.vei-cls-box.active[data-class="INEXISTENTE"] {
+  background: #fef08a !important;
+  border-color: #ca8a04 !important;
+  color: #1e293b !important;
   box-shadow: none !important;
 }
 
@@ -484,7 +501,131 @@
   }
 
   .vei-checklist-view .vei-form-table tbody td.vei-td-label {
-    font-size: 11px;
+    font-size: 12px;
     padding: 7px 8px !important;
   }
+}
+
+/* Legibilidade — modal sempre em paleta clara (mesmo com app em tema escuro) */
+.vei-modal-backdrop,
+.vei-modal-backdrop .vei-modal,
+.vei-modal-backdrop .vei-modal-body,
+.vei-modal-backdrop .vei-checklist-view,
+.vei-modal-backdrop .vei-edit-extras {
+  color: #1e293b !important;
+}
+
+.vei-modal-backdrop .vei-text-row label,
+.vei-modal-backdrop .vei-td-label,
+.vei-modal-backdrop .vei-card-header-bar,
+.vei-modal-backdrop .vei-section-head,
+.vei-modal-backdrop .vei-damage-photo-item strong,
+.vei-modal-backdrop .vei-damage-photos-section h4,
+.vei-modal-backdrop .vei-variant-btn strong,
+.vei-modal-backdrop .vei-notes-block label {
+  color: #1e293b !important;
+}
+
+.vei-modal-backdrop .subtitle,
+.vei-modal-backdrop .vei-block-title,
+.vei-modal-backdrop .vei-diagram-footer h4,
+.vei-modal-backdrop .vei-text-row label {
+  color: #475569 !important;
+}
+
+.vei-modal-backdrop button.secondary,
+.vei-modal-backdrop #veiModalClose,
+.vei-modal-backdrop .vei-damage-photo-btn,
+.vei-modal-backdrop .vei-damage-photo-clear {
+  background: #fff !important;
+  color: #001529 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.vei-modal-backdrop input,
+.vei-modal-backdrop textarea,
+.vei-modal-backdrop select,
+.vei-modal-backdrop .vei-text-field,
+.vei-modal-backdrop .vei-number-field,
+.vei-modal-backdrop .vei-notes {
+  background: #fff !important;
+  color: #1e293b !important;
+  border-color: #cbd5e1 !important;
+}
+
+.vei-modal-backdrop .vei-mobile-photos {
+  margin: 0;
+  padding: 14px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1 !important;
+  background: #f8fafc !important;
+  color: #1e293b !important;
+}
+
+.vei-modal-backdrop .vei-mobile-photos h4 {
+  color: #001529 !important;
+}
+
+.vei-modal-backdrop .vei-mobile-photos .vei-photo-progress,
+.vei-modal-backdrop .vei-mobile-photos .vei-photo-step-title {
+  color: #1e293b !important;
+}
+
+.vei-modal-backdrop .vei-mobile-photos .vei-photo-step-label,
+.vei-modal-backdrop .vei-mobile-photos .vei-photo-preview-empty,
+.vei-modal-backdrop .vei-mobile-photos .vei-photo-check-item.pending {
+  color: #475569 !important;
+}
+
+.vei-modal-backdrop .vei-mobile-photos .vei-photo-preview {
+  background: #fff !important;
+  border: 2px dashed #cbd5e1 !important;
+}
+
+.vei-modal-backdrop .vei-mobile-photos .vei-photo-done,
+.vei-modal-backdrop .vei-mobile-photos .vei-photo-check-item.done {
+  color: #166534 !important;
+}
+
+.vei-modal-backdrop .vei-mobile-photos .vei-photo-check-item {
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+.vei-modal-backdrop .vei-mobile-photos .vei-photo-check-item.done {
+  background: #f0fdf4 !important;
+  border-color: #86efac !important;
+}
+
+.vei-modal-backdrop .vei-mobile-photos .vei-photo-btn-primary {
+  background: #1677ff !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+.vei-modal-backdrop .vei-mobile-photos .vei-photo-btn-secondary {
+  background: #fff !important;
+  color: #1677ff !important;
+  border: 1px solid #1677ff !important;
+}
+
+.vei-modal-backdrop .vei-damage-photos-section {
+  color: #1e293b !important;
+}
+
+.vei-modal-backdrop .vei-variant-btn {
+  background: #fff !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+.vei-modal-backdrop .vei-variant-btn span {
+  color: #475569 !important;
+}
+
+.vei-modal-backdrop .vei-cls-box.vei-cls-on {
+  background: #fef08a !important;
+  border-color: #ca8a04 !important;
+  color: #1e293b !important;
 }
