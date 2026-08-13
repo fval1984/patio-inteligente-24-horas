@@ -261,17 +261,145 @@ header .user {
 
 /* Nav mobile abaixo da placa */
 @media (max-width: 900px) {
-  .header-mobile-module-btn {
+  .app-top-shell {
+    background: var(--ag-surface) !important;
+    box-shadow: 0 1px 4px rgba(0, 21, 41, 0.07);
+  }
+
+  header {
+    background: var(--ag-surface) !important;
+    border-bottom: 1px solid var(--ag-border) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  body.app-module-patio header,
+  body.app-module-finance header,
+  body.app-module-lista header {
+    border-bottom-color: var(--ag-border) !important;
+  }
+
+  header .brand-header-logo {
+    height: 56px !important;
+    max-width: min(360px, 88vw) !important;
+  }
+
+  .app-subheader {
+    background: var(--ag-bg) !important;
+    border-bottom: 1px solid var(--ag-border) !important;
+    padding: 10px 12px !important;
+    box-shadow: none !important;
+  }
+
+  .app-subheader .user {
+    display: none !important;
+  }
+
+  .header-app-menu-wrap {
+    align-items: stretch !important;
+  }
+
+  .header-plate-search {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    justify-content: stretch !important;
+    align-items: center;
+    background: var(--ag-surface) !important;
+    border: 1px solid var(--ag-border) !important;
+    border-radius: var(--ag-radius-sm) !important;
+    padding: 8px 10px !important;
+    gap: 6px !important;
+    box-shadow: var(--ag-shadow-soft);
+  }
+
+  .header-plate-search .header-plate-label {
+    color: var(--ag-navy) !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+  }
+
+  .header-plate-search input#plateFilter {
+    flex: 1 1 auto !important;
+    min-height: 40px !important;
+    padding: 8px 10px !important;
+    font-size: 14px !important;
+    border: 1px solid var(--ag-border) !important;
+    background: #fff !important;
+    color: var(--ag-text) !important;
+    border-radius: 6px !important;
+  }
+
+  .header-plate-search input#plateFilter:focus {
+    outline: none;
+    border-color: var(--ag-blue) !important;
+    box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.12) !important;
+  }
+
+  .header-plate-search button[type="submit"],
+  .header-plate-search #plateSearchOk {
+    background: var(--ag-blue) !important;
+    border: 1px solid var(--ag-blue-strong) !important;
+    color: #fff !important;
+    min-height: 40px !important;
+    padding: 8px 14px !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+  }
+
+  .header-plate-search button.secondary,
+  .header-plate-search #goDashboardFromPlate,
+  .header-plate-search #clearPlateFilter,
+  .header-plate-search #headerLogoutBtn {
     background: var(--ag-surface) !important;
     border: 1px solid var(--ag-border) !important;
     color: var(--ag-text) !important;
-    box-shadow: var(--ag-shadow-soft);
+    min-height: 40px !important;
+    padding: 8px 10px !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+  }
+
+  .header-plate-search #headerLogoutBtn {
+    color: var(--ag-danger) !important;
+    border-color: rgba(220, 38, 38, 0.25) !important;
+  }
+
+  .header-plate-search-hint {
+    color: var(--ag-muted) !important;
+    font-size: 11px !important;
+    text-align: left !important;
+    max-width: none !important;
+    margin-top: 6px !important;
+  }
+
+  #appSubheader:not(.hidden) .header-mobile-module-nav {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--ag-border);
+  }
+
+  .header-mobile-module-btn {
+    background: var(--ag-surface) !important;
+    border: 1px solid var(--ag-border) !important;
+    color: var(--ag-navy) !important;
+    box-shadow: none !important;
+    border-radius: 8px !important;
+    min-height: 42px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em !important;
+  }
+
+  .header-mobile-module-btn:active {
+    background: var(--ag-neutral-bg) !important;
   }
 
   .header-mobile-module-btn.active {
     background: var(--ag-blue) !important;
     border-color: var(--ag-blue-strong) !important;
     color: #fff !important;
+    box-shadow: 0 1px 3px rgba(22, 119, 255, 0.25) !important;
   }
 }
 
@@ -703,6 +831,7 @@ label {
 @media (max-width: 900px) {
   main {
     margin-left: 0 !important;
+    background: var(--ag-bg);
   }
 
   header {
@@ -712,6 +841,8 @@ label {
 
   header .brand {
     display: flex;
+    justify-content: center;
+    width: 100%;
   }
 
   .panel {
