@@ -352,12 +352,15 @@
     );
     if (!photos.length) return "";
     return (
-      `<section class="vei-doc-section"><h3>Fotos de avarias (por item)</h3>` +
+      `<section class="vei-doc-section"><h3>Fotos adicionais de avarias</h3>` +
       `<div class="vei-doc-photo-grid">${photos
         .map((p) => {
-          const label = p.photo_label || p.item_key || "Avaria";
-          const upper = String(label).toUpperCase().startsWith("AVARIA") ? label : `AVARIA — ${label}`;
-          return renderPhotoCell(upper.replace(/^avaria\s*[—\-]\s*/i, "AVARIA — "), p.url);
+          let label = p.photo_label || p.item_key || "Avaria";
+          if (!/danificado/i.test(label)) {
+            const base = String(label).replace(/^avaria\s*[—\-]\s*/i, "").trim();
+            label = base ? `${base} — Danificado` : "Danificado";
+          }
+          return renderPhotoCell(label, p.url);
         })
         .join("")}</div></section>`
     );
@@ -541,13 +544,13 @@
       (normalizedDraft.generalNotes
         ? `<section class="vei-doc-section"><h3>Observações gerais da vistoria</h3><div class="vei-doc-notes">${esc(normalizedDraft.generalNotes)}</div></section>`
         : "") +
-      (standardPhotosHtml || extraPhotosHtml || otherPhotosHtml
+      (standardPhotosHtml || otherPhotosHtml
         ? `<section class="vei-doc-section"><h3>Registro fotográfico</h3>${standardPhotosHtml}${otherPhotosHtml ? `<h4 style="margin-top:12px">Outras fotografias</h4>${otherPhotosHtml}` : ""}</section>`
         : "") +
+      buildItemDamagePhotosSection(detail) +
       (extraPhotosHtml
         ? `<section class="vei-doc-section"><h3>Avarias — registro fotográfico</h3>${extraPhotosHtml}</section>`
         : "") +
-      buildItemDamagePhotosSection(detail) +
       `<section class="vei-doc-section vei-doc-withdrawal">` +
       `<h3>Termo de retirada do veículo</h3>` +
       `<p>Declaro, para os devidos fins, que estou retirando o veículo identificado nesta vistoria, responsabilizando-me pelo recebimento do veículo na data abaixo indicada.</p>` +
