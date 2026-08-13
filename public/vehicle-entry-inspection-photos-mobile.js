@@ -7,7 +7,22 @@
 
   const STORAGE_BUCKET = "vehicle-inspection-photos";
 
-  const STANDARD_SLOTS = [
+  const PHOTO_PROFILES = {
+    LEVE: null,
+    PESADOS: null,
+    TRATORES: null,
+    MOTOS: null,
+  };
+
+  function getStandardSlots(draft) {
+    const variant = String(draft?.inspectionVariant || "LEVE").toUpperCase();
+    const fromChecklist = global.vehicleEntryInspectionChecklist?.LEVE_PHOTO_SLOTS;
+    if (variant === "LEVE" && fromChecklist?.length) return fromChecklist;
+    if (PHOTO_PROFILES[variant]?.length) return PHOTO_PROFILES[variant];
+    return LEGACY_STANDARD_SLOTS;
+  }
+
+  const LEGACY_STANDARD_SLOTS = [
     { key: "diag_front_left", category: "EXTERIOR", label: "Diagonal dianteira esquerda" },
     { key: "front", category: "EXTERIOR", label: "Dianteira" },
     { key: "diag_front_right", category: "EXTERIOR", label: "Diagonal dianteira direita" },
@@ -30,6 +45,10 @@
     { key: "interior_rear", category: "INTERIOR", label: "Interior traseiro" },
     { key: "trunk", category: "INTERIOR", label: "Porta-malas" },
   ];
+
+  function slotsForDraft(draft) {
+    return getStandardSlots(draft);
+  }
 
   let _stylesInjected = false;
 
@@ -57,8 +76,9 @@
   function initDraftPhotos(draft) {
     if (!draft.standardPhotos || typeof draft.standardPhotos !== "object") draft.standardPhotos = {};
     if (!Array.isArray(draft.extraDamagePhotos)) draft.extraDamagePhotos = [];
+    const slots = slotsForDraft(draft);
     if (draft.currentPhotoStep == null || draft.currentPhotoStep < 0) draft.currentPhotoStep = 0;
-    if (draft.currentPhotoStep >= STANDARD_SLOTS.length) draft.currentPhotoStep = STANDARD_SLOTS.length - 1;
+    if (draft.currentPhotoStep >= slots.length) draft.currentPhotoStep = Math.max(0, slots.length - 1);
   }
 
   function slotPhoto(draft, key) {
@@ -67,7 +87,7 @@
 
   function countStandardDone(draft) {
     let n = 0;
-    STANDARD_SLOTS.forEach((s) => {
+    slotsForDraft(draft).forEach((s) => {
       const p = slotPhoto(draft, s.key);
       if (p && (p.preview || p.file)) n++;
     });
@@ -247,18 +267,19 @@
   }
 
   function renderSection(draft) {
-    if (!isCaptureDevice()) return "";
     initDraftPhotos(draft);
     injectStylesOnce();
 
+    const slots = slotsForDraft(draft);
     const step = draft.currentPhotoStep;
-    const slot = STANDARD_SLOTS[step];
+    const slot = slots[step];
+    if (!slot) return "";
     const photo = slotPhoto(draft, slot.key);
     const hasPhoto = !!(photo && photo.preview);
     const done = countStandardDone(draft);
-    const total = STANDARD_SLOTS.length;
+    const total = slots.length;
 
-    const checklist = STANDARD_SLOTS.map((s, i) => {
+    const checklist = slots.map((s, i) => {
       const p = slotPhoto(draft, s.key);
       const ok = !!(p && p.preview);
       return (
@@ -279,7 +300,7 @@
       .join("");
 
     return (
-      '<section class="vei-mobile-photos vei-no-desktop-photos" id="veiMobilePhotos">' +
+      '<section class="vei-mobile-photos" id="veiMobilePhotos">' +
       "<h4>Registro fotográfico</h4>" +
       `<p class="vei-photo-progress">Fotos: ${done}/${total}</p>` +
       `<p class="vei-photo-step-label">${step + 1}/${total}</p>` +
@@ -321,9 +342,8 @@
   }
 
   function bindEvents(root, draft, onRefresh) {
-    if (!isCaptureDevice()) return;
-    const section = root.querySelector("#veiMobilePhotos");
-    if (!section) return;
+    const section = root.querySelector("#veiMobilePhotos") || root.closest?.("#veiMobilePhotos") || root;
+    if (!section || !section.querySelector) return;
 
     initDraftPhotos(draft);
 
@@ -338,7 +358,7 @@
       const file = captureInput.files?.[0];
       captureInput.value = "";
       if (!file) return;
-      const slot = STANDARD_SLOTS[draft.currentPhotoStep];
+      const slot = slotsForDraft(draft)[draft.currentPhotoStep];
       if (!slot) return;
       const preview = await readFileAsDataUrl(file);
       draft.standardPhotos[slot.key] = {
@@ -359,7 +379,7 @@
     });
 
     section.querySelector("#veiPhotoNextBtn")?.addEventListener("click", () => {
-      if (draft.currentPhotoStep < STANDARD_SLOTS.length - 1) {
+      if (draft.currentPhotoStep < slotsForDraft(draft).length - 1) {
         draft.currentPhotoStep++;
         onRefresh();
       }
@@ -368,7 +388,7 @@
     section.querySelectorAll("[data-photo-jump]").forEach((el) => {
       el.addEventListener("click", () => {
         const idx = Number(el.getAttribute("data-photo-jump"));
-        if (Number.isFinite(idx) && idx >= 0 && idx < STANDARD_SLOTS.length) {
+        if (Number.isFinite(idx) && idx >= 0 && idx < slotsForDraft(draft).length) {
           draft.currentPhotoStep = idx;
           onRefresh();
         }
@@ -428,7 +448,6 @@
   }
 
   async function uploadAll(ctx, inspectionId, vehicleId, draft, meta) {
-    if (!isCaptureDevice()) return;
     if (!ctx.supabase || !inspectionId) return;
     initDraftPhotos(draft);
 
@@ -439,7 +458,7 @@
     const inspectorUserId = meta?.inspectorUserId || uid;
     const now = Date.now();
 
-    for (const slot of STANDARD_SLOTS) {
+    for (const slot of slotsForDraft(draft)) {
       const p = slotPhoto(draft, slot.key);
       if (!p || !p.file) continue;
       try {
@@ -491,8 +510,10 @@
   }
 
   global.vehicleEntryInspectionPhotosMobile = {
-    STANDARD_SLOTS,
-    STANDARD_COUNT: STANDARD_SLOTS.length,
+    getStandardSlots,
+    LEGACY_STANDARD_SLOTS,
+    STANDARD_SLOTS: LEGACY_STANDARD_SLOTS,
+    STANDARD_COUNT: LEGACY_STANDARD_SLOTS.length,
     isCaptureDevice,
     renderSection,
     bindEvents,
@@ -501,13 +522,12 @@
     countStandardDone,
   };
 
-  if (typeof document !== "undefined" && !document.getElementById("veiMobilePhotoDesktopGuard")) {
+  if (typeof document !== "undefined" && !document.getElementById("veiMobilePhotoStylesDesktop")) {
     const guard = document.createElement("style");
-    guard.id = "veiMobilePhotoDesktopGuard";
+    guard.id = "veiMobilePhotoStylesDesktop";
     guard.textContent =
-      "@media (min-width:769px),(hover:hover) and (pointer:fine){" +
-      ".vei-no-desktop-photos,#veiMobilePhotosHost{display:none!important}" +
-      "}";
+      ".vei-mobile-photos .vei-photo-btn { cursor: pointer; }" +
+      "@media (min-width:769px){.vei-mobile-photos .vei-photo-preview{max-width:480px}}";
     document.head.appendChild(guard);
   }
 })(typeof window !== "undefined" ? window : globalThis);
