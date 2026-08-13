@@ -65,15 +65,32 @@
     display: none !important;
   }
 
-  #appSubheader:not(.hidden) .header-mobile-module-nav {
+  #dashboardSystemEntry {
     display: flex !important;
-    flex-wrap: wrap !important;
-    gap: var(--mob-gap) !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
     width: 100% !important;
+    order: 1;
+    gap: var(--mob-gap) !important;
     margin: 0 !important;
     padding: 0 !important;
-    border-top: none !important;
-    order: 1;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #dashboardSystemEntry .dashboard-system-btn {
+    flex: 0 0 auto !important;
+    min-height: var(--mob-btn-h) !important;
+    padding: var(--mob-btn-pad-y) var(--mob-btn-pad-x) !important;
+    font-size: var(--mob-btn-font) !important;
+    font-weight: 700 !important;
+    border-radius: var(--mob-btn-radius) !important;
+    touch-action: manipulation;
+  }
+
+  #dashboardSystemEntry .dashboard-system-btn.active {
+    background: var(--ag-blue, #1677ff) !important;
+    border-color: var(--ag-blue-strong, #0958d9) !important;
+    color: #fff !important;
   }
 
   .app-subheader-right {
@@ -141,25 +158,6 @@
     display: none !important;
   }
 
-  /* Módulos — uma única faixa acima da placa */
-  .header-mobile-module-btn {
-    flex: 1 1 calc(33.333% - 4px) !important;
-    min-width: calc(50% - 4px) !important;
-    width: auto !important;
-    min-height: var(--mob-btn-h) !important;
-    padding: var(--mob-btn-pad-y) 8px !important;
-    font-size: var(--mob-btn-font) !important;
-    font-weight: 700 !important;
-    border-radius: var(--mob-btn-radius) !important;
-    touch-action: manipulation;
-  }
-
-  .header-mobile-module-btn[data-mobile-module="patio"] {
-    flex: 1 1 100% !important;
-    min-width: 100% !important;
-    min-height: var(--mob-btn-h-lg) !important;
-  }
-
   /* Subnav / ações — mesmo chip dos módulos */
   :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button,
   .finance-subnav button,
@@ -198,8 +196,7 @@
   }
 
   button:not(.vei-class-btn):not(.vei-cell-btn):not(.header-menu-trigger):not(.patio-mob-info-btn),
-  .auth-tab,
-  .header-mobile-module-btn {
+  .auth-tab {
     min-height: var(--mob-btn-h);
   }
 
@@ -507,13 +504,9 @@
 
 /* Telas muito estreitas */
 @media (max-width: 360px) {
-  .header-mobile-module-btn {
+  #dashboardSystemEntry .dashboard-system-btn {
     font-size: 10px !important;
-    padding: 5px 4px !important;
-  }
-
-  .header-mobile-module-btn[data-mobile-module="patio"] {
-    font-size: 11px !important;
+    padding: 5px 6px !important;
   }
 }
 
