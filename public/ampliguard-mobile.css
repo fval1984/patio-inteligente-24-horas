@@ -96,66 +96,92 @@
   .app-subheader-right {
     width: 100% !important;
     order: 2;
+    flex-direction: row !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
   }
 
+  .header-app-menu-wrap {
+    flex-direction: row !important;
+    align-items: center !important;
+    width: auto !important;
+  }
+
+  /* Busca de placa — mesmo layout compacto do desktop */
   .header-plate-search {
     display: flex !important;
     flex-wrap: wrap !important;
-    align-items: stretch !important;
-    gap: 8px !important;
-    width: 100% !important;
-    padding: 8px 10px !important;
+    align-items: center !important;
+    gap: 4px 6px !important;
+    width: auto !important;
+    max-width: min(100vw - 24px, 480px) !important;
+    justify-content: flex-end !important;
+    margin-left: auto !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 
   .header-plate-search .vp-input-row {
-    flex: 1 1 100% !important;
-    width: 100% !important;
-    flex-direction: column !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 4px 6px !important;
   }
 
   .header-plate-search .vp-preview-slot {
-    width: 100%;
-    justify-content: center;
-    min-height: 36px;
-    order: -1;
+    width: auto !important;
+    min-height: 0 !important;
+    justify-content: flex-start !important;
+    order: unset !important;
   }
 
   .header-plate-search input#plateFilter {
-    order: 0;
-    flex: 1 1 100% !important;
-    width: 100% !important;
+    flex: 0 0 auto !important;
+    width: 92px !important;
     min-width: 0 !important;
-    min-height: var(--mob-btn-h) !important;
-    font-size: 15px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    text-align: center;
-    padding: 6px 10px !important;
-    border-radius: var(--mob-btn-radius) !important;
+    min-height: 26px !important;
+    padding: 3px 6px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+    text-align: left !important;
+    border-radius: 6px !important;
   }
 
   .header-plate-search-actions {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: var(--mob-gap) !important;
-    width: 100% !important;
+    display: contents !important;
   }
 
-  .header-plate-search-actions button {
-    flex: 1 1 calc(33.333% - 4px) !important;
-    min-width: 0 !important;
-    min-height: var(--mob-btn-h) !important;
-    padding: var(--mob-btn-pad-y) var(--mob-btn-pad-x) !important;
-    font-size: var(--mob-btn-font) !important;
-    font-weight: 700 !important;
-    border-radius: var(--mob-btn-radius) !important;
+  .header-plate-search button {
+    flex: 0 0 auto !important;
+    min-height: 26px !important;
+    padding: 2px 8px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+  }
+
+  .header-plate-search button.secondary {
+    padding: 2px 6px !important;
+    font-size: 10px !important;
   }
 
   .header-plate-inicio-desk {
-    display: none !important;
+    display: inline-flex !important;
+  }
+
+  .header-plate-search-hint {
+    font-size: 10px !important;
+    line-height: 1.25 !important;
+    padding: 0 !important;
+    text-align: right !important;
+    max-width: min(100vw - 24px, 420px) !important;
+    margin-left: auto !important;
   }
 
   /* Subnav / ações — mesmo chip dos módulos */
@@ -465,8 +491,7 @@
   }
 
   /* Notices legíveis */
-  .notice,
-  .header-plate-search-hint {
+  .notice:not(.header-plate-search-hint),
     font-size: 13px !important;
     line-height: 1.45 !important;
     padding: 10px 12px !important;
@@ -515,10 +540,6 @@
   :root {
     --mob-btn-h: 38px;
     --mob-btn-h-lg: 40px;
-  }
-
-  .header-plate-search input#plateFilter {
-    min-height: 38px !important;
   }
 }
 
