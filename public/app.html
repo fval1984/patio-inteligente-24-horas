@@ -6375,7 +6375,7 @@
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme7" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260813vistui1" />
-    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile1" />
+    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile2" />
   </head>
   <body>
     <noscript>
@@ -7661,6 +7661,10 @@
           </div>
           <div id="fichaCapture">
             <div id="fichaResumo" class="section-card" style="margin-bottom: 12px;"></div>
+            <div class="section-card ficha-acoes-card" style="margin-bottom: 12px">
+              <h4 class="ficha-section-title">Ações do registro</h4>
+              <div id="fichaSectionAcoes" class="ficha-inline-actions"></div>
+            </div>
             <div class="section-card" style="margin-bottom: 12px">
               <h4 class="ficha-section-title">HV · Histórico do veículo</h4>
               <div id="fichaTimeline" class="timeline"></div>
@@ -8881,6 +8885,7 @@
       const fichaTimeline = document.getElementById("fichaTimeline");
       const fichaSectionSnf = document.getElementById("fichaSectionSnf");
       const fichaSectionSlv = document.getElementById("fichaSectionSlv");
+      const fichaSectionAcoes = document.getElementById("fichaSectionAcoes");
       const fichaSectionVistoria = document.getElementById("fichaSectionVistoria");
       const fichaModalTitle = document.getElementById("fichaModalTitle");
       const nfseModal = document.getElementById("nfseModal");
@@ -16392,6 +16397,79 @@
         return parts.join(" ");
       }
 
+      function patioMobileDaysLabel(v) {
+        const d = calcDays(v);
+        return d === 1 ? "1 dia no pátio" : `${d} dias no pátio`;
+      }
+
+      function buildPatioMobileListCellHtml(v, colspan) {
+        const destaque = patioVehicleDestaqueRowClass(v);
+        let tags = "";
+        if (isPendingAdmReview(v)) {
+          tags += '<span class="patio-mobile-tag tag warning">Revisão ADM</span>';
+        } else if (isVehiclePatioDestaque(v)) {
+          tags += `<span class="patio-mobile-tag tag warning">${escapeHtml(VLS_STATUS_LABELS[v.status] || v.status || "")}</span>`;
+        }
+        return `
+          <td class="patio-mob-only" colspan="${colspan}">
+            <div class="patio-mobile-item${destaque ? ` ${destaque}` : ""}">
+              <div class="patio-mobile-item-text">
+                <div class="patio-mobile-placa">${escapeHtml(v.placa || "-")}</div>
+                <div class="patio-mobile-veiculo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</div>
+                <div class="patio-mobile-dias">${escapeHtml(patioMobileDaysLabel(v))}</div>
+                ${tags ? `<div class="patio-mobile-tags">${tags}</div>` : ""}
+              </div>
+              <button type="button" class="patio-mobile-ficha-btn secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
+            </div>
+          </td>`;
+      }
+
+      function buildPatioVehicleActionsHtml(v, opts = {}) {
+        const listContext = opts.listContext || "vnp";
+        if (isGestorPista) {
+          if (listContext === "vrp") {
+            return `<span class="notice">Sem permissão de ação</span><span class="tag success">Removido</span>`;
+          }
+          return buildGestorPistaVnpActions(v);
+        }
+        if (listContext === "vrp") {
+          return `
+              <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
+              <button class="secondary" data-action="voltar" data-id="${v.id}" title="Desfaz remoção feita por engano e volta para o passo anterior">Voltar</button>
+              ${nfseActionButtonHtml(v)}
+              <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
+              <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
+              <span class="tag success">Removido</span>
+            `;
+        }
+        let fluxoBtn = "";
+        if (isPendingAdmReview(v)) {
+          fluxoBtn =
+            `<button class="secondary" data-action="editar" data-id="${v.id}">Revisar registro</button>` +
+            `<button class="secondary" data-action="validar_adm_review" data-id="${v.id}">Validar registro</button>`;
+        } else if (v.status === "NO_PATIO") {
+          fluxoBtn = `<button class="secondary" data-action="solicitar" data-id="${v.id}">Liberação solicitada</button>`;
+        } else if (v.status === "LIBERACAO_SOLICITADA") {
+          fluxoBtn = `<button class="secondary" data-action="confirmar_liberacao" data-id="${v.id}">Confirmar liberação</button>`;
+        } else if (canEfetivarRemocaoVrp(v)) {
+          fluxoBtn = `<button class="secondary" data-action="confirmar" data-id="${v.id}">VRP</button>`;
+        }
+        const veiBtn = vnpShouldShowVistoriaViewButton(v)
+          ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
+          : vnpShouldShowVistoriaStartButton(v)
+            ? `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`
+            : "";
+        return `
+              ${fluxoBtn}
+              ${veiBtn}
+              <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
+              ${nfseActionButtonHtml(v)}
+              <button class="secondary" data-action="voltar" data-id="${v.id}" title="Volta um passo no fluxo">Voltar</button>
+              <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
+              <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
+            `;
+      }
+
       function buildVnpUnifiedRowHtml(v, opts = {}) {
         const registoKind = opts.registoKind || "vnp";
         const total = calcTotal(v);
@@ -16431,48 +16509,19 @@
         }
         const situacaoHtml = situacaoTags.length > 0 ? `<div class="vnp-situacao">${situacaoTags.join("")}</div>` : "";
 
-        let actionsCell = "";
-        if (isGestorPista) {
-          actionsCell = buildGestorPistaVnpActions(v);
-        } else {
-          let fluxoBtn = "";
-          if (isPendingAdmReview(v)) {
-            fluxoBtn =
-              `<button class="secondary" data-action="editar" data-id="${v.id}">Revisar registro</button>` +
-              `<button class="secondary" data-action="validar_adm_review" data-id="${v.id}">Validar registro</button>`;
-          } else if (v.status === "NO_PATIO") {
-            fluxoBtn = `<button class="secondary" data-action="solicitar" data-id="${v.id}">Liberação solicitada</button>`;
-          } else if (v.status === "LIBERACAO_SOLICITADA") {
-            fluxoBtn = `<button class="secondary" data-action="confirmar_liberacao" data-id="${v.id}">Confirmar liberação</button>`;
-          } else if (canEfetivarRemocaoVrp(v)) {
-            fluxoBtn = `<button class="secondary" data-action="confirmar" data-id="${v.id}">VRP</button>`;
-          }
-          const veiBtn = vnpShouldShowVistoriaViewButton(v)
-            ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
-            : vnpShouldShowVistoriaStartButton(v)
-              ? `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`
-              : "";
-          actionsCell = `
-              ${fluxoBtn}
-              ${veiBtn}
-              <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
-              ${nfseActionButtonHtml(v)}
-              <button class="secondary" data-action="voltar" data-id="${v.id}" title="Volta um passo no fluxo">Voltar</button>
-              <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
-              <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
-            `;
-        }
+        const actionsCell = buildPatioVehicleActionsHtml(v, { listContext: "vnp" });
 
         return `
           <tr class="${rowClass}" data-vehicle-row="${v.id}">
-            <td data-label="Placa">${v.placa || "-"}${situacaoHtml}</td>
-            <td data-label="Registo">${patioRegistoBadgeHtml(registoKind === "vnp" ? (isVlpStatus(v.status) ? "vlp" : "vnp") : registoKind)}</td>
-            <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
-            <td data-label="RPV">${localizador}</td>
-            <td data-label="RPF">${escapeHtml(rpfNome)}</td>
-            <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
-            <td data-label="Valor">${valorCell}</td>
-            <td class="actions" data-label="Ações">${actionsCell}</td>
+            ${buildPatioMobileListCellHtml(v, 8)}
+            <td class="patio-desk-only" data-label="Placa">${v.placa || "-"}${situacaoHtml}</td>
+            <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml(registoKind === "vnp" ? (isVlpStatus(v.status) ? "vlp" : "vnp") : registoKind)}</td>
+            <td class="patio-desk-only" data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
+            <td class="patio-desk-only" data-label="RPV">${localizador}</td>
+            <td class="patio-desk-only" data-label="RPF">${escapeHtml(rpfNome)}</td>
+            <td class="patio-desk-only" data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
+            <td class="patio-desk-only" data-label="Valor">${valorCell}</td>
+            <td class="patio-desk-only actions" data-label="Ações">${actionsCell}</td>
           </tr>
         `;
       }
@@ -16687,31 +16736,20 @@
               ? "-"
               : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
 
-            let actionsCell = "";
-            if (isGestorPista) {
-              actionsCell = `<span class="notice">Sem permissão de ação</span><span class="tag success">${status}</span>`;
-            } else {
-              actionsCell = `
-                  <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
-                  <button class="secondary" data-action="voltar" data-id="${v.id}" title="Desfaz remoção feita por engano e volta para o passo anterior">Voltar</button>
-                  ${nfseActionButtonHtml(v)}
-                  <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
-                  <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
-                  <span class="tag success">${status}</span>
-                `;
-            }
+            const actionsCell = buildPatioVehicleActionsHtml(v, { listContext: "vrp" });
 
             return `
               <tr data-vehicle-row="${v.id}">
-                <td data-label="Placa">${v.placa || "-"}</td>
-                <td data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
-                <td data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
-                <td data-label="RPV">${localizador}</td>
-                <td data-label="RPF">${escapeHtml(rpfNome)}</td>
-                <td data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
-                <td data-label="Saída">${formatDateTime(v.data_saida)}</td>
-                <td data-label="Valor">${valorCell}</td>
-                <td class="actions" data-label="Ações">${actionsCell}</td>
+                ${buildPatioMobileListCellHtml(v, 9)}
+                <td class="patio-desk-only" data-label="Placa">${v.placa || "-"}</td>
+                <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
+                <td class="patio-desk-only" data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
+                <td class="patio-desk-only" data-label="RPV">${localizador}</td>
+                <td class="patio-desk-only" data-label="RPF">${escapeHtml(rpfNome)}</td>
+                <td class="patio-desk-only" data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
+                <td class="patio-desk-only" data-label="Saída">${formatDateTime(v.data_saida)}</td>
+                <td class="patio-desk-only" data-label="Valor">${valorCell}</td>
+                <td class="patio-desk-only actions" data-label="Ações">${actionsCell}</td>
               </tr>
             `;
           })
@@ -17125,6 +17163,11 @@
           fichaModalTitle.textContent = `Ficha — ${vehicle.placa || "veículo"}`;
         }
         fichaModal.dataset.openVehicleId = vehicle.id;
+
+        const listContext = vehicle.status === "REMOVIDO" ? "vrp" : "vnp";
+        if (fichaSectionAcoes) {
+          fichaSectionAcoes.innerHTML = buildPatioVehicleActionsHtml(vehicle, { listContext });
+        }
 
         if (isGestorPista) {
           const locNome = state.partners.find((p) => p.id === vehicle.localizador_id)?.nome || "-";
