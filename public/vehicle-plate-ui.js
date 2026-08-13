@@ -134,6 +134,7 @@
   function renderOldPlate(info, size) {
     return `<span class="vp-plate vp-plate--old vp-plate--${size}${info.partial ? " vp-plate--partial" : ""}${info.complete ? " vp-plate--complete" : ""}" role="img" aria-label="Placa ${esc(info.display || info.clean || "veículo")}">
       <span class="vp-plate__old">
+        <span class="vp-plate__old-header" aria-hidden="true">UF - MUNICÍPIO</span>
         <span class="vp-plate__body vp-plate__body--old">${renderOldChars(info)}</span>
       </span>
     </span>`;
