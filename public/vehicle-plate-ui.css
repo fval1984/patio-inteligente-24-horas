@@ -88,7 +88,7 @@
   box-sizing: border-box;
   border: 4px solid #808285;
   border-radius: 14px;
-  overflow: hidden;
+  overflow: visible;
   background: #d1d5d8;
   padding: 5px 7px 7px;
   box-shadow:
@@ -100,20 +100,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 78%;
+  width: 88%;
+  max-width: 100%;
   margin: 0 auto 3px;
-  padding: 1px 6px;
+  padding: 1px 4px;
   border: 1px solid #808285;
   border-radius: 2px;
   background: #d1d5d8;
   font-family: Arial, Helvetica, sans-serif;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   color: #000;
   line-height: 1.15;
   white-space: nowrap;
   text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .vp-plate__body--old {
@@ -143,9 +146,10 @@
   align-items: baseline;
   justify-content: center;
   gap: 0;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
   line-height: 1;
   color: #000;
+  max-width: 100%;
 }
 
 .vp-plate__old-letters,
@@ -193,15 +197,19 @@
   text-transform: uppercase;
 }
 
-/* Tamanhos */
-.vp-plate--xs .vp-plate__merco,
-.vp-plate--xs .vp-plate__old {
+/* Tamanhos — placa antiga é mais larga que Mercosul no mesmo tier */
+.vp-plate--xs .vp-plate__merco {
   width: 98px;
+}
+
+.vp-plate--xs .vp-plate__old {
+  width: 138px;
+  min-width: 138px;
 }
 
 .vp-plate--xs .vp-plate__old-header {
   font-size: 5px;
-  padding: 1px 4px;
+  padding: 1px 3px;
   margin-bottom: 2px;
 }
 
@@ -224,26 +232,30 @@
 }
 
 .vp-plate--xs .vp-plate__body--old {
-  min-height: 18px;
-  padding: 0 3px 1px;
+  min-height: 20px;
+  padding: 0 2px 1px;
 }
 
 .vp-plate--xs .vp-plate__text--old {
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .vp-plate--xs .vp-plate__text:not(.vp-plate__text--old) {
   font-size: 10px;
 }
 
-.vp-plate--sm .vp-plate__merco,
-.vp-plate--sm .vp-plate__old {
+.vp-plate--sm .vp-plate__merco {
   width: 118px;
+}
+
+.vp-plate--sm .vp-plate__old {
+  width: 164px;
+  min-width: 164px;
 }
 
 .vp-plate--sm .vp-plate__old-header {
   font-size: 6px;
-  padding: 1px 5px;
+  padding: 1px 4px;
   margin-bottom: 2px;
 }
 
@@ -271,16 +283,20 @@
 }
 
 .vp-plate--sm .vp-plate__text--old {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .vp-plate--sm .vp-plate__text:not(.vp-plate__text--old) {
   font-size: 12px;
 }
 
-.vp-plate--md .vp-plate__merco,
-.vp-plate--md .vp-plate__old {
+.vp-plate--md .vp-plate__merco {
   width: 140px;
+}
+
+.vp-plate--md .vp-plate__old {
+  width: 194px;
+  min-width: 194px;
 }
 
 .vp-plate--md .vp-plate__old-header {
@@ -320,9 +336,13 @@
   font-size: 14px;
 }
 
-.vp-plate--lg .vp-plate__merco,
-.vp-plate--lg .vp-plate__old {
+.vp-plate--lg .vp-plate__merco {
   width: 168px;
+}
+
+.vp-plate--lg .vp-plate__old {
+  width: 232px;
+  min-width: 232px;
 }
 
 .vp-plate--lg .vp-plate__old-header {
@@ -372,7 +392,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
+  flex-shrink: 0;
+  min-width: min-content;
 }
 
 .patio-mob-compact-meta {
@@ -394,7 +415,11 @@
   cursor: text;
   outline: none;
   border-radius: 8px;
-  min-width: 0;
+  flex-shrink: 0;
+}
+
+.vp-plate-wrap {
+  flex-shrink: 0;
 }
 
 .vp-plate-editor__visual {
@@ -467,5 +492,34 @@
     flex-wrap: nowrap;
     align-items: center;
     gap: 4px 6px;
+  }
+
+  .vp-plate-wrap,
+  .vp-plate-editor,
+  .vp-plate-editor__visual,
+  .patio-mob-compact-line .vp-plate-wrap {
+    flex-shrink: 0 !important;
+  }
+
+  .patio-mob-compact-text {
+    overflow: visible !important;
+  }
+
+  .patio-mob-compact-line {
+    flex-shrink: 0;
+    min-width: min-content;
+  }
+
+  .patio-mob-compact-meta {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .table td .vp-plate-wrap,
+  .table.stacked tbody td .vp-plate-wrap {
+    flex-shrink: 0;
+    overflow: visible;
   }
 }
