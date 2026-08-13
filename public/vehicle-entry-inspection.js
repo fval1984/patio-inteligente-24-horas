@@ -301,7 +301,9 @@
   function scrollToFirstMissingItem(root, draft) {
     const first = draftCfg(draft).checklist.find((it) => it.kind === "classify" && !draft.classifications[it.key]);
     if (!first || !root) return;
-    if (_session?.editLayout !== "document") {
+    if (_session?.allCardsVisible || _session?.editLayout === "checklist") {
+      // scroll only — all cards visíveis
+    } else {
       const cardIdx = findCardIndexForItemKey(draft, first.key);
       if (draft.currentCardIndex !== cardIdx) {
         draft.currentCardIndex = cardIdx;
@@ -1043,7 +1045,8 @@
     return html;
   }
 
-  function renderCardStep(cardIndex, draft, readOnly) {
+  function renderCardStep(cardIndex, draft, readOnly, opts) {
+    opts = opts || {};
     const cfg = draftCfg(draft);
     const card = cfg.cards[cardIndex];
     if (!card) return "";
@@ -1109,6 +1112,8 @@
           const short = CLASS_SHORT[c.id] || c.label.charAt(0);
           if (readOnly) {
             html += `<td class="vei-td-cls${sel === c.id ? " vei-cls-on" : ""}">${sel === c.id ? esc(short) : ""}</td>`;
+          } else if (opts.docStyleCells) {
+            html += `<td class="vei-td-cls"><button type="button" class="vei-class-btn vei-cell-btn vei-letter-cell${sel === c.id ? " active" : ""}" data-class="${c.id}" data-item="${esc(it.key)}" aria-label="${esc(c.label)}" title="${esc(c.label)}"><span class="vei-class-btn-label" aria-hidden="false">${esc(short)}</span></button></td>`;
           } else {
             html += `<td class="vei-td-cls"><button type="button" class="vei-class-btn vei-cell-btn${sel === c.id ? " active" : ""}" data-class="${c.id}" data-item="${esc(it.key)}" aria-label="${esc(c.label)}" title="${esc(c.label)}"><span class="vei-class-btn-label" aria-hidden="true">${esc(short)}</span></button></td>`;
           }
@@ -1126,7 +1131,7 @@
       html += "</tbody></table>";
     });
 
-    if (!readOnly && (!isLast || getClosingStep(draft) === "card")) {
+    if (!readOnly && !opts.allCardsVisible && (!isLast || getClosingStep(draft) === "card")) {
       html += '<div class="vei-card-nav">';
       html += `<button type="button" class="secondary vei-card-prev" id="veiCardPrev"${cardIndex === 0 ? " disabled" : ""}>Anterior</button>`;
       html += `<span class="vei-card-progress" id="veiCardProgress">${cardIndex + 1} / ${cardCount}</span>`;
@@ -1273,13 +1278,116 @@
     return html;
   }
 
-  /** Todas as seções (consulta interna / legado). */
-  function renderChecklistRows(draft, readOnly) {
-    let html = "";
+  /** Todas as seções visíveis (consulta / edição em scroll). */
+  function renderChecklistRows(draft, readOnly, opts) {
+    opts = opts || {};
+    let html = '<div class="vei-cards-stack">';
     draftCfg(draft).cards.forEach((card, idx) => {
-      html += renderCardStep(idx, draft, readOnly);
+      html += '<div class="vei-card-panel">' + renderCardStep(idx, draft, readOnly, opts) + "</div>";
     });
+    html += "</div>";
     return html;
+  }
+
+  function buildChecklistViewHtml(draft, readOnly, options) {
+    options = options || {};
+    const rowOpts = {
+      allCardsVisible: options.allCardsVisible !== false,
+      docStyleCells: !!options.docStyleCells,
+    };
+    const cfg = draftCfg(draft);
+    let html = '<div class="vei-shell vei-checklist-view">';
+
+    if (options.showProgress && !readOnly) {
+      const done = classifiedCount(draft);
+      const total = cfg.checklist.filter((it) => it.kind === "classify").length;
+      const pct = progressPct(draft);
+      const miss = missingItems(draft);
+      html +=
+        `<div class="vei-progress"><span id="veiProgressText">${esc(cfg.label)}: ${done}/${total} itens (${pct}%)</span>` +
+        `<div class="vei-progress-bar" id="veiProgressBar"><i style="width:${pct}%"></i></div></div>` +
+        `<p id="veiMissingWarn" class="notice" style="margin:0;color:${miss.length ? "#d97706" : "#16a34a"}">${
+          miss.length ? `Itens pendentes (${miss.length}). Toque B, R, D, S ou I em cada linha.` : "Checklist completo — role até o final para salvar."
+        }</p>`;
+    }
+
+    if (options.showLegend !== false) html += renderFormLegend();
+    html += `<div id="veiChecklistHost">${renderChecklistRows(draft, readOnly, rowOpts)}</div>`;
+    if (options.extrasHtml) html += options.extrasHtml;
+    if (options.actionsHtml) html += options.actionsHtml;
+    html += "</div>";
+    return html;
+  }
+
+  function buildEditExtrasAllHtml(draft) {
+    const cfg = draftCfg(draft);
+    return (
+      '<div class="vei-edit-extras">' +
+      '<div class="vei-card-panel">' +
+      '<div class="vei-section-head">Registro fotográfico</div>' +
+      '<div class="vei-section-body"><div id="veiMobilePhotosHost">' +
+      renderMobilePhotosSection(draft) +
+      "</div></div></div>" +
+      '<div class="vei-card-panel">' +
+      '<div class="vei-section-head">Fotos adicionais de avarias</div>' +
+      '<div class="vei-section-body" id="veiDocItemDamagePhotosHost">' +
+      renderItemDamagePhotosSection(draft, false) +
+      "</div></div>" +
+      '<div class="vei-card-panel">' +
+      `<div class="vei-section-head">Diagrama de avarias — ${esc(cfg.shortLabel || cfg.label || "veículo")}</div>` +
+      '<div class="vei-section-body"><div id="veiDiagramHost">' +
+      renderDiagram(draft, false) +
+      "</div></div></div>" +
+      '<div class="vei-card-panel">' +
+      '<div class="vei-section-head">Observações gerais</div>' +
+      '<div class="vei-section-body">' +
+      '<label for="veiGeneralNotes">Observações gerais da vistoria</label>' +
+      `<textarea class="vei-notes" id="veiGeneralNotes" placeholder="Informações adicionais…">${esc(draft.generalNotes || "")}</textarea>` +
+      "</div></div></div>"
+    );
+  }
+
+  function buildReadonlyExtrasHtml(vehicle, ctx, inspection, detail, draft) {
+    const cfg = draftCfg(draft);
+    let html = '<div class="vei-edit-extras">';
+    if (draft.generalNotes) {
+      html +=
+        '<div class="vei-card-panel">' +
+        '<div class="vei-section-head">Observações gerais</div>' +
+        `<div class="vei-section-body vei-readonly-notes">${esc(draft.generalNotes)}</div></div>`;
+    }
+    html +=
+      '<div class="vei-card-panel">' +
+      `<div class="vei-section-head">Diagrama de avarias — ${esc(cfg.shortLabel || cfg.label || "veículo")}</div>` +
+      '<div class="vei-section-body vei-doc-diagram">' +
+      (typeof renderDiagramForPrint === "function" ? renderDiagramForPrint(draft, true) : renderDiagram(draft, true)) +
+      "</div></div></div>";
+    return html;
+  }
+
+  function buildPrintDocumentRoot(vehicle, ctx, inspection, detail) {
+    const draft = detailToDraft(detail);
+    const docMod = global.vehicleEntryInspectionDocument;
+    if (!docMod?.buildPrintHtml) return null;
+    const host = document.createElement("div");
+    host.innerHTML = docMod.buildPrintHtml({
+      vehicle,
+      ctx: { ...ctx, partnerName: (c, id) => partnerName(c, id) },
+      inspection,
+      detail,
+      draft,
+      helpers: {
+        getVariantConfig,
+        draftCfg,
+        CLASSIFICATIONS,
+        CLASS_SHORT,
+        fmtDateTime,
+        renderDiagram,
+        renderDiagramForPrint,
+        diagramSrcForDraft,
+      },
+    });
+    return host.querySelector("#veiPrintDocument") || host.querySelector(".vei-print-root") || host.firstElementChild;
   }
 
   function renderDamageList(draft, readOnly) {
@@ -1443,138 +1551,105 @@
   }
 
   function buildEditHtml(vehicle, ctx, draft) {
-    const cfg = draftCfg(draft);
-    const cardIdx = Math.max(0, Math.min(cfg.cardCount - 1, draft.currentCardIndex || 0));
-    draft.currentCardIndex = cardIdx;
-    const done = classifiedCount(draft);
-    const total = cfg.checklist.filter((it) => it.kind === "classify").length;
-    const pct = progressPct(draft);
-    const miss = missingItems(draft);
     return (
-      '<div class="vei-shell">' +
-      renderEditStatusBar(vehicle) +
-      `<div class="vei-progress"><span id="veiProgressText">${esc(cfg.label)}: card ${cardIdx + 1}/${cfg.cardCount} · ${done}/${total} itens (${pct}%)</span>` +
-      `<div class="vei-progress-bar" id="veiProgressBar"><i style="width:${pct}%"></i></div></div>` +
-      `<p id="veiMissingWarn" class="notice" style="margin:0;color:${miss.length ? "#d97706" : "#16a34a"}">${
-        miss.length ? `Itens pendentes no total (${miss.length}). Preencha um card por vez.` : "Checklist completo — finalize no último card."
-      }</p>` +
-      renderFormLegend() +
-      '<div class="vei-card-panel">' +
-      '<div id="veiCardHost">' +
-      renderCardStep(cardIdx, draft, false) +
-      "</div>" +
-      '<div id="veiLastCardExtrasHost">' +
-      (cardIdx === cfg.cardCount - 1 ? renderLastCardExtras(draft) : "") +
-      "</div>" +
-      "</div>" +
-      '<div id="veiStepperHost">' +
-      renderCardStepper(draft) +
-      "</div>" +
-      "</div>" +
+      buildChecklistViewHtml(draft, false, {
+        showLegend: false,
+        showProgress: true,
+        docStyleCells: true,
+        allCardsVisible: true,
+        extrasHtml: buildEditExtrasAllHtml(draft),
+        actionsHtml:
+          '<div class="vei-actions vei-no-print">' +
+          `<button type="button" id="veiFinalizeBtn">${esc(finalizeButtonLabel())}</button>` +
+          '<button type="button" class="secondary" id="veiModalCloseInner">Cancelar</button>' +
+          "</div>",
+      }) +
       '<div id="veiDamageFormHost"></div>' +
       '<div id="veiDamageListHost" class="vei-damage-host-hidden" aria-hidden="true"></div>'
     );
   }
 
   function buildEditDocumentHtml(vehicle, ctx, inspection, detail, draft) {
-    const docMod = global.vehicleEntryInspectionDocument;
-    if (!docMod?.buildEditablePrintHtml) {
-      return buildEditHtml(vehicle, ctx, draft);
-    }
-    return docMod.buildEditablePrintHtml({
-      vehicle,
-      ctx: { ...ctx, partnerName: (c, id) => partnerName(c, id) },
-      inspection,
-      detail,
-      draft,
-      helpers: {
-        getVariantConfig,
-        draftCfg,
-        CLASSIFICATIONS,
-        CLASS_SHORT,
-        INSPECTION_CARDS: checklistMod.INSPECTION_CARDS || [],
-        CHECKLIST: checklistMod.CHECKLIST || [],
-        fmtDateTime,
-        renderDiagram,
-        renderDiagramForPrint,
-        diagramSrcForDraft,
-      },
-      diagramHtml: renderDiagram(draft, false),
-      mobilePhotosHtml: renderMobilePhotosSection(draft),
-      itemDamagePhotosHtml: renderItemDamagePhotosSection(draft, false),
-      finalizeLabel: finalizeButtonLabel(),
-    });
+    return (
+      buildChecklistViewHtml(draft, false, {
+        showLegend: false,
+        showProgress: false,
+        docStyleCells: true,
+        allCardsVisible: true,
+        extrasHtml: buildEditExtrasAllHtml(draft),
+        actionsHtml:
+          '<div class="vei-actions vei-no-print">' +
+          `<button type="button" id="veiFinalizeBtn">${esc(finalizeButtonLabel())}</button>` +
+          '<button type="button" class="secondary" id="veiModalCloseInner">Cancelar</button>' +
+          "</div>",
+      }) +
+      '<div id="veiDamageFormHost"></div>'
+    );
   }
 
-  function refreshEditDocumentUI(root, draft, ctx) {
+  function refreshEditChecklistUI(root, draft, ctx) {
     if (!root || !draft) return;
-    const docMod = global.vehicleEntryInspectionDocument;
-    const checklistHost = root.querySelector("#veiDocChecklistHost");
-    if (checklistHost && docMod?.buildChecklistSectionEditable) {
-      checklistHost.innerHTML = docMod.buildChecklistSectionEditable(
-        {
-          getVariantConfig,
-          draftCfg,
-          CLASSIFICATIONS,
-          CLASS_SHORT,
-          INSPECTION_CARDS: checklistMod.INSPECTION_CARDS || [],
-          CHECKLIST: checklistMod.CHECKLIST || [],
-        },
-        draft
-      );
+    const checklistHost = root.querySelector("#veiChecklistHost");
+    if (checklistHost) {
+      checklistHost.innerHTML = renderChecklistRows(draft, false, {
+        allCardsVisible: true,
+        docStyleCells: true,
+      });
     }
-    const diagramHost = root.querySelector("#veiDocDiagramHost");
+    const diagramHost = root.querySelector("#veiDiagramHost");
     if (diagramHost) diagramHost.innerHTML = renderDiagram(draft, false);
     const itemPhotosHost = root.querySelector("#veiDocItemDamagePhotosHost");
     if (itemPhotosHost) {
       itemPhotosHost.innerHTML = renderItemDamagePhotosSection(draft, false);
-      bindItemDamagePhotoEvents(itemPhotosHost, draft, () => refreshEditDocumentUI(root, draft, ctx));
+      bindItemDamagePhotoEvents(itemPhotosHost, draft, () => refreshEditChecklistUI(root, draft, ctx));
     }
-    const mobileHost = root.querySelector("#veiDocMobilePhotosHost");
+    const mobileHost = root.querySelector("#veiMobilePhotosHost");
     if (mobileHost) {
       mobileHost.innerHTML = renderMobilePhotosSection(draft);
       bindMobilePhotosIfNeeded(mobileHost, draft);
+    }
+    const progressText = root.querySelector("#veiProgressText");
+    const progressBar = root.querySelector("#veiProgressBar i");
+    const warn = root.querySelector("#veiMissingWarn");
+    if (progressText || progressBar || warn) {
+      const cfg = draftCfg(draft);
+      const done = classifiedCount(draft);
+      const total = cfg.checklist.filter((it) => it.kind === "classify").length;
+      const pct = progressPct(draft);
+      const miss = missingItems(draft);
+      if (progressText) progressText.textContent = `${cfg.label}: ${done}/${total} itens (${pct}%)`;
+      if (progressBar) progressBar.style.width = `${pct}%`;
+      if (warn) {
+        warn.textContent = miss.length
+          ? `Itens pendentes (${miss.length}). Toque B, R, D, S ou I em cada linha.`
+          : "Checklist completo — role até o final para salvar.";
+        warn.style.color = miss.length ? "#d97706" : "#16a34a";
+      }
     }
     const finBtn = root.querySelector("#veiFinalizeBtn");
     if (finBtn) finBtn.textContent = finalizeButtonLabel();
   }
 
   function refreshCurrentEditUI(root, draft, ctx) {
-    if (_session?.editLayout === "document") refreshEditDocumentUI(root, draft, ctx);
-    else refreshEditUI(root, draft, ctx);
+    if (_session?.editLayout === "checklist" || _session?.allCardsVisible) {
+      refreshEditChecklistUI(root, draft, ctx);
+    } else {
+      refreshEditUI(root, draft, ctx);
+    }
   }
 
   function buildReadonlyHtml(vehicle, ctx, inspection, detail) {
     const draft = detailToDraft(detail);
-    const docMod = global.vehicleEntryInspectionDocument;
-    const documentHtml = docMod
-      ? docMod.buildPrintHtml({
-          vehicle,
-          ctx: { ...ctx, partnerName: (c, id) => partnerName(c, id) },
-          inspection,
-          detail,
-          draft,
-          helpers: {
-            getVariantConfig,
-            draftCfg,
-            CLASSIFICATIONS,
-            CLASS_SHORT,
-            fmtDateTime,
-            renderDiagram,
-            renderDiagramForPrint,
-            diagramSrcForDraft,
-          },
-        })
-      : `<div class="vei-print-root"><p>Documento indisponível.</p></div>`;
-
-    return (
-      documentHtml +
-      '<div class="vei-actions vei-no-print">' +
-      '<button type="button" class="secondary" id="veiPrintBtn">🖨️ Imprimir vistoria</button>' +
-      '<button type="button" id="veiPdfBtn">⬇️ Baixar vistoria</button>' +
-      '<button type="button" class="secondary" id="veiModalCloseInner">Fechar</button>' +
-      "</div>"
-    );
+    return buildChecklistViewHtml(draft, true, {
+      showLegend: false,
+      extrasHtml: "",
+      actionsHtml:
+        '<div class="vei-actions vei-no-print">' +
+        '<button type="button" class="secondary" id="veiPrintBtn">🖨️ Imprimir vistoria</button>' +
+        '<button type="button" id="veiPdfBtn">⬇️ Baixar vistoria</button>' +
+        '<button type="button" class="secondary" id="veiModalCloseInner">Fechar</button>' +
+        "</div>",
+    });
   }
 
   function detailToDraft(detail) {
@@ -1947,21 +2022,19 @@
         ? saved
         : emptyDraftForVariant(variant);
     draft.inspectionVariant = variant;
-    _session = { vehicle, mode: "edit", draft, retroactive, ctx };
+    _session = { vehicle, mode: "edit", draft, retroactive, ctx, allCardsVisible: true, editLayout: "checklist" };
     const modal = _modalEl;
     modal.classList.remove("hidden");
     const cfg = draftCfg(draft);
-    document.getElementById("veiModalTitle").textContent = "Vistoria do veículo";
+    document.getElementById("veiModalTitle").textContent = "VISTORIA DE ENTRADA";
     document.getElementById("veiModalSubtitle").textContent = retroactive
-      ? `${cfg.label} · placa ${vehicle.placa || "—"} · retroativa`
-      : `${cfg.label} · placa ${vehicle.placa || "—"}`;
+      ? `Placa ${vehicle.placa || "—"} · ${cfg.label} · retroativa`
+      : `Placa ${vehicle.placa || "—"} · ${cfg.label}`;
     const body = document.getElementById("veiModalBody");
     body.innerHTML = buildEditHtml(vehicle, ctx, draft);
     ensureEditModalEvents(body, ctx);
     bindMobilePhotosIfNeeded(body, draft);
-    if ((draft.currentCardIndex || 0) === cfg.cardCount - 1) {
-      bindItemDamagePhotoEvents(body, draft, () => refreshEditUI(body, draft, ctx));
-    }
+    bindItemDamagePhotoEvents(body, draft, () => refreshEditChecklistUI(body, draft, ctx));
   }
 
   async function openEditExistingModal(vehicle, ctx, inspectionId) {
@@ -1975,7 +2048,8 @@
     _session = {
       vehicle,
       mode: "edit",
-      editLayout: "document",
+      editLayout: "checklist",
+      allCardsVisible: true,
       draft,
       detail,
       retroactive: true,
@@ -1986,13 +2060,13 @@
     const modal = _modalEl;
     modal.classList.remove("hidden");
     const cfg = draftCfg(draft);
-    document.getElementById("veiModalTitle").textContent = `Editar vistoria nº ${detail.inspection.inspection_number}`;
-    document.getElementById("veiModalSubtitle").textContent = `${cfg.label} · placa ${vehicle.placa || "—"} — mesmo layout da consulta`;
+    document.getElementById("veiModalTitle").textContent = `VISTORIA DE ENTRADA Nº ${detail.inspection.inspection_number}`;
+    document.getElementById("veiModalSubtitle").textContent = `Placa ${vehicle.placa || "—"} · ${cfg.label} · edição`;
     const body = document.getElementById("veiModalBody");
     body.innerHTML = buildEditDocumentHtml(vehicle, ctx, detail.inspection, detail, draft);
     ensureEditModalEvents(body, ctx);
     bindMobilePhotosIfNeeded(body, draft);
-    bindItemDamagePhotoEvents(body, draft, () => refreshEditDocumentUI(body, draft, ctx));
+    bindItemDamagePhotoEvents(body, draft, () => refreshEditChecklistUI(body, draft, ctx));
   }
 
   async function openViewModal(vehicle, ctx, inspectionId) {
@@ -2005,14 +2079,14 @@
     _session = { vehicle, mode: "view", detail };
     const modal = _modalEl;
     modal.classList.remove("hidden");
-    document.getElementById("veiModalTitle").textContent = `Vistoria de entrada nº ${detail.inspection.inspection_number}`;
+    document.getElementById("veiModalTitle").textContent = `VISTORIA DE ENTRADA Nº ${detail.inspection.inspection_number}`;
     document.getElementById("veiModalSubtitle").textContent = `Placa ${vehicle.placa || "—"} — consulta`;
     const body = document.getElementById("veiModalBody");
     body.innerHTML = buildReadonlyHtml(vehicle, ctx, detail.inspection, detail);
     body.querySelector("#veiModalCloseInner")?.addEventListener("click", closeModal);
     body.querySelector("#veiPrintBtn")?.addEventListener("click", () => {
-      const root = body.querySelector("#veiPrintDocument") || body.querySelector(".vei-print-root");
-      if (global.vehicleEntryInspectionDocument?.printDocument) {
+      const root = buildPrintDocumentRoot(vehicle, ctx, detail.inspection, detail);
+      if (root && global.vehicleEntryInspectionDocument?.printDocument) {
         global.vehicleEntryInspectionDocument.printDocument(root, detail.inspection);
       } else {
         alert("Impressão indisponível. Atualize a página e tente novamente.");
