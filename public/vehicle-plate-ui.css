@@ -337,12 +337,19 @@
 }
 
 @media (max-width: 640px) {
-  .vp-input-row {
+  .vp-input-row:not(.header-plate-search .vp-input-row) {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .vp-preview-slot {
+  .vp-input-row:not(.header-plate-search .vp-input-row) .vp-preview-slot {
     justify-content: flex-start;
+  }
+
+  .header-plate-search .vp-input-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
   }
 }
