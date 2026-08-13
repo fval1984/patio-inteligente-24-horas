@@ -3196,34 +3196,26 @@
         box-shadow: inset 3px 0 0 0 rgba(217, 119, 6, 0.85);
       }
       #viewPatio tr.vnp-row-liberacao-solicitada,
-      #viewLista tr.vnp-row-liberacao-solicitada {
-        background: rgba(250, 204, 21, 0.18);
+      #viewLista tr.vnp-row-liberacao-solicitada,
+      #viewPatio tr.vnp-row-liberacao-confirmada,
+      #viewLista tr.vnp-row-liberacao-confirmada,
+      #viewPatio tr.vnp-row-vrp-pronto,
+      #viewLista tr.vnp-row-vrp-pronto,
+      #viewPatio tr.vnp-row-acao-prioritaria,
+      #viewLista tr.vnp-row-acao-prioritaria {
+        background: rgba(250, 204, 21, 0.22);
         box-shadow: inset 4px 0 0 0 rgba(234, 179, 8, 0.95);
       }
-      #viewPatio tr.vnp-row-liberacao-confirmada,
-      #viewLista tr.vnp-row-liberacao-confirmada {
-        background: rgba(234, 88, 12, 0.12);
-        box-shadow: inset 4px 0 0 0 rgba(234, 88, 12, 0.9);
-      }
-      #viewPatio tr.vnp-row-vrp-pronto,
-      #viewLista tr.vnp-row-vrp-pronto {
-        background: rgba(34, 197, 94, 0.1);
-        box-shadow: inset 4px 0 0 0 rgba(34, 197, 94, 0.85);
-      }
       [data-theme="light"] #viewPatio tr.vnp-row-liberacao-solicitada,
-      [data-theme="light"] #viewLista tr.vnp-row-liberacao-solicitada {
+      [data-theme="light"] #viewLista tr.vnp-row-liberacao-solicitada,
+      [data-theme="light"] #viewPatio tr.vnp-row-liberacao-confirmada,
+      [data-theme="light"] #viewLista tr.vnp-row-liberacao-confirmada,
+      [data-theme="light"] #viewPatio tr.vnp-row-vrp-pronto,
+      [data-theme="light"] #viewLista tr.vnp-row-vrp-pronto,
+      [data-theme="light"] #viewPatio tr.vnp-row-acao-prioritaria,
+      [data-theme="light"] #viewLista tr.vnp-row-acao-prioritaria {
         background: rgba(254, 240, 138, 0.55);
         box-shadow: inset 4px 0 0 0 rgba(202, 138, 4, 0.95);
-      }
-      [data-theme="light"] #viewPatio tr.vnp-row-liberacao-confirmada,
-      [data-theme="light"] #viewLista tr.vnp-row-liberacao-confirmada {
-        background: rgba(254, 215, 170, 0.45);
-        box-shadow: inset 4px 0 0 0 rgba(194, 65, 12, 0.9);
-      }
-      [data-theme="light"] #viewPatio tr.vnp-row-vrp-pronto,
-      [data-theme="light"] #viewLista tr.vnp-row-vrp-pronto {
-        background: rgba(187, 247, 208, 0.45);
-        box-shadow: inset 4px 0 0 0 rgba(21, 128, 61, 0.9);
       }
       #viewPatio tr.vnp-row-sem-valor {
         background: rgba(220, 38, 38, 0.12);
@@ -6375,7 +6367,7 @@
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme7" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260813vistui1" />
-    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile6" />
+    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile7" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate1" />
   </head>
   <body>
@@ -12187,21 +12179,48 @@
         return true;
       }
 
-      /** VNP: revisão ADM pendente no topo; liberação solicitada em seguida; demais por entrada. */
+      /** VNP: ações prioritárias (liberação / VRP) → sem valor → demais. */
+      function isVnpAcaoPrioritaria(v) {
+        if (!v) return false;
+        const st = String(v.status || "");
+        if (st === "LIBERACAO_SOLICITADA") return true;
+        if (st === "LIBERACAO_CONFIRMADA") return true;
+        if (st === "REMocao_CONFIRMADA") return true;
+        if (canEfetivarRemocaoVrp(v)) return true;
+        return false;
+      }
+
+      function vnpAcaoPrioritariaSubRank(v) {
+        const st = String(v?.status || "");
+        if (st === "LIBERACAO_SOLICITADA") return 0;
+        if (st === "LIBERACAO_CONFIRMADA") return 1;
+        if (st === "REMocao_CONFIRMADA" || canEfetivarRemocaoVrp(v)) return 2;
+        return 99;
+      }
+
+      function isVnpSemValorDiaria(v) {
+        return !!v && (!v.valor_diaria || Number(v.valor_diaria) <= 0) && !isPendingAdmReview(v);
+      }
+
       function patioVehicleDisplayRank(v) {
-        if (!v) return 10;
+        if (!v) return 100;
         if (isPendingAdmReview(v)) return -1;
-        if (v.status === "LIBERACAO_SOLICITADA") return 0;
-        return 10;
+        if (isVnpAcaoPrioritaria(v)) return 0;
+        if (isVnpSemValorDiaria(v)) return 1;
+        return 2;
       }
 
       function isVehiclePatioDestaque(v) {
-        return !!v && (isPendingAdmReview(v) || v.status === "LIBERACAO_SOLICITADA");
+        return !!v && (isPendingAdmReview(v) || isVnpAcaoPrioritaria(v));
       }
 
       function patioVehicleDestaqueRowClass(v) {
         if (isPendingAdmReview(v)) return "vnp-row-pending-adm-review";
-        return v.status === "LIBERACAO_SOLICITADA" ? "vnp-row-liberacao-solicitada" : "";
+        const st = String(v?.status || "");
+        if (st === "LIBERACAO_SOLICITADA") return "vnp-row-acao-prioritaria vnp-row-liberacao-solicitada";
+        if (st === "LIBERACAO_CONFIRMADA") return "vnp-row-acao-prioritaria vnp-row-liberacao-confirmada";
+        if (st === "REMocao_CONFIRMADA" || canEfetivarRemocaoVrp(v)) return "vnp-row-acao-prioritaria vnp-row-vrp-pronto";
+        return "";
       }
 
       function sortVnpOnPatioForDisplay(list) {
@@ -12209,6 +12228,11 @@
           const oa = patioVehicleDisplayRank(a);
           const ob = patioVehicleDisplayRank(b);
           if (oa !== ob) return oa - ob;
+          if (oa === 0) {
+            const sa = vnpAcaoPrioritariaSubRank(a);
+            const sb = vnpAcaoPrioritariaSubRank(b);
+            if (sa !== sb) return sa - sb;
+          }
           const ta = new Date(a.data_entrada || a.created_at || 0).getTime();
           const tb = new Date(b.data_entrada || b.created_at || 0).getTime();
           if (tb !== ta) return tb - ta;
@@ -16567,7 +16591,7 @@
         const rowClasses = [];
         const destaqueCls = patioVehicleDestaqueRowClass(v);
         if (destaqueCls) rowClasses.push(destaqueCls);
-        if (semValorDiaria && !isPendingAdmReview(v)) rowClasses.push("vnp-row-sem-valor");
+        if (semValorDiaria && !isPendingAdmReview(v) && !isVnpAcaoPrioritaria(v)) rowClasses.push("vnp-row-sem-valor");
         const rowClass = rowClasses.join(" ");
         const situacaoTags = [];
         if (isPendingAdmReview(v)) {
@@ -16637,7 +16661,13 @@
         const val = ocultarValorColuna
           ? ""
           : `<td data-label="Valor">${escapeHtml(formatCurrency(calcTotal(v)))}</td>`;
-        const rowCls = patioVehicleDestaqueRowClass(v);
+        const rowClsParts = [];
+        const destaque = patioVehicleDestaqueRowClass(v);
+        if (destaque) rowClsParts.push(destaque);
+        if ((!v.valor_diaria || Number(v.valor_diaria) <= 0) && !isPendingAdmReview(v) && !isVnpAcaoPrioritaria(v)) {
+          rowClsParts.push("vnp-row-sem-valor");
+        }
+        const rowCls = rowClsParts.join(" ");
         return `<tr${rowCls ? ` class="${rowCls}"` : ""} data-vehicle-row="${v.id}">
           <td data-label="Placa">${plateVisualHtml(v.placa, "sm")}${pendingTag}</td>
           <td data-label="Registo">${patioRegistoBadgeHtml(isVlpStatus(v.status) ? "vlp" : "vnp")}</td>
