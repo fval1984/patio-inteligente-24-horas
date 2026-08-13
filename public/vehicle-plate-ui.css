@@ -385,6 +385,62 @@
   text-overflow: ellipsis;
 }
 
+/* ---- Editor: digitar direto na placa ---- */
+.vp-plate-editor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  cursor: text;
+  outline: none;
+  border-radius: 8px;
+}
+
+.vp-plate-editor__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  font-size: 16px;
+  z-index: 2;
+  cursor: text;
+}
+
+.vp-plate-editor__visual {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  pointer-events: none;
+}
+
+.vp-plate-editor--focused .vp-plate__old,
+.vp-plate-editor--focused .vp-plate__merco {
+  box-shadow:
+    0 0 0 2px rgba(22, 119, 255, 0.45),
+    0 2px 5px rgba(0, 0, 0, 0.14);
+}
+
+.vp-plate-editor .vp-plate__ghost {
+  opacity: 0.32;
+  font-weight: 700;
+}
+
+.patio-plate-bar .vp-plate-editor {
+  flex: 0 0 auto;
+}
+
+.header-plate-search .vp-plate-editor,
+.header-plate-search-primary .vp-plate-editor {
+  flex: 0 0 auto;
+}
+
 .header-plate-search .vp-input-row,
 .header-plate-search-primary .vp-input-row,
 .patio-plate-bar .vp-input-row {
