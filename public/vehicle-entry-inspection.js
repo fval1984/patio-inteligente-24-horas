@@ -359,61 +359,6 @@
     const style = document.createElement("style");
     style.id = "veiInspectionStyles";
     style.textContent = `
-      .vei-modal-backdrop {
-        position: fixed; inset: 0; z-index: 1200;
-        background: rgba(2, 6, 23, 0.72); backdrop-filter: blur(8px);
-        display: flex; align-items: flex-start; justify-content: center;
-        padding: 16px; overflow: auto;
-      }
-      .vei-modal-backdrop.hidden { display: none !important; }
-      .vei-modal {
-        width: min(1280px, 100%); max-height: none;
-        background: var(--card); border: 1px solid var(--border);
-        border-radius: var(--radius); box-shadow: var(--shadow);
-        padding: 0; margin: 12px 0 32px;
-      }
-      .vei-modal-head {
-        display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-        padding: 18px 22px; border-bottom: 1px solid var(--border);
-        position: sticky; top: 0; z-index: 2;
-        background: inherit; border-radius: var(--radius) var(--radius) 0 0;
-      }
-      .vei-modal-body { padding: 18px 22px 24px; }
-      .vei-meta-grid {
-        display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 10px 16px; margin-bottom: 18px;
-        padding: 14px 16px; border-radius: 12px;
-        border: 1px solid rgba(148,163,184,0.16); background: rgba(148,163,184,0.05);
-      }
-      .vei-meta-grid span { display: block; font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
-      .vei-meta-grid strong { font-size: 0.95rem; }
-      .vei-progress {
-        display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
-      }
-      .vei-progress-bar {
-        flex: 1 1 200px; height: 8px; border-radius: 999px;
-        background: rgba(148,163,184,0.18); overflow: hidden;
-      }
-      .vei-progress-bar i { display: block; height: 100%; background: linear-gradient(90deg, #d4af37, #34d399); transition: width 0.25s; }
-      .vei-layout { display: block; }
-      .vei-layout > * { min-width: 0; }
-      .vei-section { margin-bottom: 20px; }
-      .vei-section h4 {
-        margin: 0 0 10px; font-size: 0.78rem; letter-spacing: 0.08em;
-        text-transform: uppercase; color: var(--muted);
-      }
-      .vei-item {
-        display: block;
-        padding: 6px 0;
-        border-bottom: 1px solid rgba(148,163,184,0.1);
-      }
-      .vei-item.vei-item-pending {
-        background: rgba(251, 191, 36, 0.06);
-        border-left: 3px solid #fbbf24;
-        padding: 6px 0 6px 8px;
-        margin-left: -4px;
-        border-radius: 0 8px 8px 0;
-      }
       .vei-item.vei-item-highlight {
         animation: veiItemPulse 0.85s ease-in-out 3;
       }
@@ -421,228 +366,8 @@
         0%, 100% { background: rgba(251, 191, 36, 0.06); }
         50% { background: rgba(251, 191, 36, 0.22); }
       }
-      .vei-item-label {
-        font-size: 0.82rem;
-        font-weight: 600;
-        margin-bottom: 5px;
-        line-height: 1.25;
-      }
-      .vei-class-row {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 4px;
-      }
-      .vei-class-btn {
-        appearance: none;
-        flex: 0 0 auto;
-        width: auto;
-        min-height: 0;
-        border: 1px solid rgba(148,163,184,0.22);
-        background: rgba(15,23,42,0.35);
-        color: var(--muted);
-        border-radius: 6px;
-        padding: 4px 7px;
-        font-size: 0.62rem;
-        font-weight: 700;
-        cursor: pointer;
-        text-align: center;
-        line-height: 1.15;
-        white-space: nowrap;
-        touch-action: manipulation;
-        user-select: none;
-        -webkit-user-select: none;
-      }
-      .vei-class-btn .vei-class-btn-label { pointer-events: none; display: inline; }
-      @media (max-width: 900px) {
-        .vei-form-table col.vei-col-cls { width: 32px; }
-        .vei-form-table .vei-th-cls,
-        .vei-form-table .vei-td-cls {
-          width: 32px;
-          min-width: 32px;
-          max-width: 32px;
-        }
-        .vei-cell-btn {
-          width: 28px;
-          height: 28px;
-          min-width: 28px;
-          max-width: 28px;
-          min-height: 28px;
-        }
-      }
-      .vei-class-btn.active {
-        border-color: rgba(212,175,55,0.75); color: #fff;
-        background: rgba(212,175,55,0.35); box-shadow: inset 0 0 0 2px rgba(212,175,55,0.55);
-      }
-      .vei-class-btn[data-class="DANIFICADO"].active { border-color: rgba(248,113,113,0.55); background: rgba(248,113,113,0.12); color: #fecaca; }
-      .vei-form-legend {
-        font-size: 0.78rem; color: var(--muted); margin: 0 0 14px;
-        padding: 8px 10px; border: 1px solid rgba(148,163,184,0.2);
-        background: rgba(148,163,184,0.06); text-align: center;
-      }
-      .vei-form-legend strong { color: inherit; font-weight: 800; letter-spacing: 0.04em; }
-      .vei-card-form {
-        border: 2px solid rgba(148,163,184,0.35); background: rgba(15,23,42,0.25);
-        margin-bottom: 16px;
-      }
-      .vei-card-title {
-        font-size: 0.95rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
-        padding: 10px 12px; border-bottom: 2px solid rgba(148,163,184,0.35);
-        background: rgba(148,163,184,0.08);
-      }
-      .vei-card-num { color: var(--muted); margin-right: 6px; }
-      .vei-block-title {
-        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-        padding: 8px 12px 4px; color: var(--muted); border-top: 1px solid rgba(148,163,184,0.15);
-      }
-      .vei-form-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.78rem;
-        table-layout: fixed;
-      }
-      .vei-form-table col.vei-col-item { width: auto; }
-      .vei-form-table col.vei-col-cls { width: 34px; }
-      .vei-form-table thead.vei-thead-cols th {
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        border-bottom: 2px solid rgba(148,163,184,0.35);
-        padding: 8px 4px;
-        font-size: 0.72rem;
-        font-weight: 800;
-        text-align: center;
-        background: rgba(148,163,184,0.12);
-        letter-spacing: 0.06em;
-      }
-      .vei-form-table thead.vei-thead-cols .vei-th-item {
-        text-align: left;
-        padding-left: 10px;
-        font-size: 0.68rem;
-        text-transform: uppercase;
-        color: var(--muted);
-      }
-      .vei-form-table thead th {
-        border-bottom: 2px solid rgba(148,163,184,0.35);
-        padding: 6px 4px; font-size: 0.68rem; font-weight: 800; text-align: center;
-        background: rgba(148,163,184,0.06);
-      }
-      .vei-form-table .vei-th-item { text-align: left; padding-left: 10px; }
-      .vei-form-table .vei-th-cls,
-      .vei-form-table .vei-td-cls {
-        width: 34px;
-        min-width: 34px;
-        max-width: 34px;
-        padding: 4px 2px;
-        text-align: center;
-        vertical-align: middle;
-      }
-      .vei-form-table tbody td {
-        border-bottom: 1px solid rgba(148,163,184,0.12);
-        padding: 4px 3px;
-        vertical-align: middle;
-      }
-      .vei-form-table .vei-td-label {
-        padding-left: 10px;
-        padding-right: 6px;
-        font-weight: 600;
-        line-height: 1.25;
-        word-break: break-word;
-      }
-      .vei-form-table tr.vei-item-pending { background: rgba(251, 191, 36, 0.08); }
-      .vei-form-table tr.vei-item-pending .vei-td-label { box-shadow: inset 3px 0 0 #fbbf24; }
-      .vei-cell-btn {
-        width: 30px;
-        height: 30px;
-        min-width: 30px;
-        max-width: 30px;
-        min-height: 30px;
-        padding: 0 !important;
-        margin: 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 4px !important;
-        font-size: 0 !important;
-        line-height: 1;
-      }
-      .vei-form-table .vei-cls-on {
-        font-weight: 900; background: rgba(212,175,55,0.25); color: inherit;
-      }
-      .vei-card-nav {
-        display: flex; align-items: center; justify-content: space-between; gap: 10px;
-        padding: 12px; border-top: 2px solid rgba(148,163,184,0.35);
-        background: rgba(148,163,184,0.04); flex-wrap: wrap;
-      }
-      .vei-card-progress {
-        font-weight: 800; font-size: 0.85rem; letter-spacing: 0.04em;
-        padding: 6px 12px; border: 1px solid rgba(148,163,184,0.25);
-        background: rgba(15,23,42,0.35);
-      }
-      .vei-text-row td { padding: 8px 10px !important; }
-      .vei-text-row label { display: block; font-size: 0.72rem; font-weight: 700; margin-bottom: 4px; color: var(--muted); text-transform: uppercase; }
-      .vei-text-field, .vei-number-field {
-        width: 100%; border: 1px solid rgba(148,163,184,0.35); border-radius: 2px;
-        background: rgba(15,23,42,0.35); color: inherit; padding: 6px 8px; font: inherit; font-size: 0.82rem;
-      }
-      .vei-qty-row td { padding: 4px 10px 8px !important; border-bottom: 1px solid rgba(148,163,184,0.12); }
-      .vei-damage-photos-section {
-        margin: 18px 0; padding: 14px; border: 2px solid rgba(248,113,113,0.35);
-        background: rgba(248,113,113,0.06);
-      }
-      .vei-damage-photos-section h4 { margin: 0 0 10px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: #fecaca; }
-      .vei-damage-photo-item { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid rgba(248,113,113,0.2); }
-      .vei-damage-photo-item:last-child { border-bottom: none; }
-      .vei-damage-photo-item strong { flex: 1 1 180px; font-size: 0.82rem; }
-      .vei-damage-photo-preview { width: 88px; height: 66px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
-      .vei-variant-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
-      .vei-variant-btn {
-        text-align: left; padding: 16px; border: 2px solid rgba(148,163,184,0.35); border-radius: 2px;
-        background: rgba(15,23,42,0.35); cursor: pointer; min-height: 88px;
-      }
-      .vei-variant-btn:hover { border-color: rgba(212,175,55,0.55); background: rgba(212,175,55,0.08); }
-      .vei-variant-btn strong { display: block; font-size: 0.88rem; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 6px; }
-      .vei-variant-btn span { font-size: 0.78rem; color: var(--muted); line-height: 1.35; }
-      #veiCardNext, #veiFinalizeBtn { min-width: 140px; }
-      .vei-last-card-extras { margin-top: 4px; }
-      .vei-side-panel {
-        border: 1px solid rgba(148,163,184,0.16); border-radius: 14px;
-        padding: 14px; background: rgba(15,23,42,0.35);
-        min-width: 0; max-width: 100%; overflow: hidden;
-      }
-      .vei-diagram-footer {
-        width: 100%; margin: 24px 0 8px; text-align: center; clear: both;
-      }
-      .vei-diagram-footer > h4 {
-        margin: 0 0 12px; font-size: 0.85rem; letter-spacing: 0.04em;
-      }
-      .vei-diagram-wrap { text-align: center; margin-bottom: 0; width: 100%; max-width: min(640px, 100%); margin-left: auto; margin-right: auto; }
-      .vei-diagram { width: 100%; max-width: min(640px, 100%); height: auto; display: block; margin: 0 auto; cursor: crosshair; touch-action: manipulation; }
-      .vei-diagram .vei-diagram-img { pointer-events: none; }
-      .vei-diagram .vei-marker { fill: #ef4444; stroke: #fff; stroke-width: 2; pointer-events: none; }
-      .vei-damage-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-      .vei-damage-card {
-        border: 1px solid rgba(248,113,113,0.28); border-radius: 10px;
-        padding: 10px; font-size: 0.82rem; background: rgba(248,113,113,0.06);
-      }
-      .vei-damage-form {
-        display: grid; gap: 8px; margin-top: 10px;
-      }
-      .vei-damage-form input, .vei-damage-form select, .vei-damage-form textarea {
-        width: 100%; border-radius: 8px; border: 1px solid var(--border);
-        background: var(--bg); color: inherit; padding: 8px 10px; font: inherit;
-      }
-      .vei-notes { width: 100%; min-height: 88px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: inherit; padding: 10px 12px; font: inherit; }
-      .vei-notes-block { margin-top: 20px; }
-      .vei-notes-block label { display: block; font-weight: 600; margin-bottom: 8px; }
       .vei-damage-host-hidden { display: none !important; }
-      .vei-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; justify-content: flex-end; }
-      .vei-readonly-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-      .vei-readonly-table th, .vei-readonly-table td { border: 1px solid rgba(148,163,184,0.18); padding: 6px 8px; text-align: center; }
-      .vei-readonly-table th:first-child, .vei-readonly-table td:first-child { text-align: left; min-width: 140px; }
-      .vei-readonly-table .on { background: rgba(212,175,55,0.2); font-weight: 800; }
-      .vei-photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
-      .vei-photo-grid img { width: 100%; border-radius: 8px; border: 1px solid var(--border); object-fit: cover; aspect-ratio: 4/3; }
+      @media print { .vei-no-print { display: none !important; } }
     `;
     document.head.appendChild(style);
   }
@@ -1082,7 +807,7 @@
         html += "</tbody></table>";
       }
       const hasClassify = block.items.some((it) => (it.kind || "classify") === "classify");
-      html += '<table class="vei-form-table">';
+      html += '<table class="vei-form-table vei-checklist-table">';
       html += '<colgroup><col class="vei-col-item"/><col class="vei-col-cls" span="5"/></colgroup>';
       if (hasClassify && !clsHeadRendered) {
         html += '<thead class="vei-thead-cols"><tr><th class="vei-th-item">Item</th>';
@@ -1111,9 +836,9 @@
         CLASSIFICATIONS.forEach((c) => {
           const short = CLASS_SHORT[c.id] || c.label.charAt(0);
           if (readOnly) {
-            html += `<td class="vei-td-cls${sel === c.id ? " vei-cls-on" : ""}">${sel === c.id ? esc(short) : ""}</td>`;
+            html += `<td class="vei-td-cls"><span class="vei-cls-box${sel === c.id ? " vei-cls-on" : ""}">${sel === c.id ? esc(short) : ""}</span></td>`;
           } else if (opts.docStyleCells) {
-            html += `<td class="vei-td-cls"><button type="button" class="vei-class-btn vei-cell-btn vei-letter-cell${sel === c.id ? " active" : ""}" data-class="${c.id}" data-item="${esc(it.key)}" aria-label="${esc(c.label)}" title="${esc(c.label)}"><span class="vei-class-btn-label" aria-hidden="false">${esc(short)}</span></button></td>`;
+            html += `<td class="vei-td-cls"><button type="button" class="vei-class-btn vei-cls-box${sel === c.id ? " vei-cls-on active" : ""}" data-class="${c.id}" data-item="${esc(it.key)}" aria-label="${esc(c.label)}" title="${esc(c.label)}">${sel === c.id ? esc(short) : ""}</button></td>`;
           } else {
             html += `<td class="vei-td-cls"><button type="button" class="vei-class-btn vei-cell-btn${sel === c.id ? " active" : ""}" data-class="${c.id}" data-item="${esc(it.key)}" aria-label="${esc(c.label)}" title="${esc(c.label)}"><span class="vei-class-btn-label" aria-hidden="true">${esc(short)}</span></button></td>`;
           }
@@ -1293,7 +1018,7 @@
     options = options || {};
     const rowOpts = {
       allCardsVisible: options.allCardsVisible !== false,
-      docStyleCells: !!options.docStyleCells,
+      docStyleCells: options.docStyleCells !== false,
     };
     const cfg = draftCfg(draft);
     let html = '<div class="vei-shell vei-checklist-view">';
@@ -1554,14 +1279,13 @@
     return (
       buildChecklistViewHtml(draft, false, {
         showLegend: false,
-        showProgress: true,
+        showProgress: false,
         docStyleCells: true,
         allCardsVisible: true,
         extrasHtml: buildEditExtrasAllHtml(draft),
         actionsHtml:
-          '<div class="vei-actions vei-no-print">' +
+          '<div class="vei-actions vei-actions-sticky vei-no-print">' +
           `<button type="button" id="veiFinalizeBtn">${esc(finalizeButtonLabel())}</button>` +
-          '<button type="button" class="secondary" id="veiModalCloseInner">Cancelar</button>' +
           "</div>",
       }) +
       '<div id="veiDamageFormHost"></div>' +
@@ -1578,9 +1302,8 @@
         allCardsVisible: true,
         extrasHtml: buildEditExtrasAllHtml(draft),
         actionsHtml:
-          '<div class="vei-actions vei-no-print">' +
+          '<div class="vei-actions vei-actions-sticky vei-no-print">' +
           `<button type="button" id="veiFinalizeBtn">${esc(finalizeButtonLabel())}</button>` +
-          '<button type="button" class="secondary" id="veiModalCloseInner">Cancelar</button>' +
           "</div>",
       }) +
       '<div id="veiDamageFormHost"></div>'
@@ -1643,12 +1366,7 @@
     return buildChecklistViewHtml(draft, true, {
       showLegend: false,
       extrasHtml: "",
-      actionsHtml:
-        '<div class="vei-actions vei-no-print">' +
-        '<button type="button" class="secondary" id="veiPrintBtn">🖨️ Imprimir vistoria</button>' +
-        '<button type="button" id="veiPdfBtn">⬇️ Baixar vistoria</button>' +
-        '<button type="button" class="secondary" id="veiModalCloseInner">Fechar</button>' +
-        "</div>",
+      actionsHtml: "",
     });
   }
 
@@ -2083,16 +1801,6 @@
     document.getElementById("veiModalSubtitle").textContent = `Placa ${vehicle.placa || "—"} — consulta`;
     const body = document.getElementById("veiModalBody");
     body.innerHTML = buildReadonlyHtml(vehicle, ctx, detail.inspection, detail);
-    body.querySelector("#veiModalCloseInner")?.addEventListener("click", closeModal);
-    body.querySelector("#veiPrintBtn")?.addEventListener("click", () => {
-      const root = buildPrintDocumentRoot(vehicle, ctx, detail.inspection, detail);
-      if (root && global.vehicleEntryInspectionDocument?.printDocument) {
-        global.vehicleEntryInspectionDocument.printDocument(root, detail.inspection);
-      } else {
-        alert("Impressão indisponível. Atualize a página e tente novamente.");
-      }
-    });
-    body.querySelector("#veiPdfBtn")?.addEventListener("click", () => downloadPdf(ctx, vehicle, detail.inspection, detail));
   }
 
   function canStartInspection(vehicle, ctx) {
