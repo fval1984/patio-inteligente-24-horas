@@ -6375,7 +6375,7 @@
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme7" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260813vistui1" />
-    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile5" />
+    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile6" />
   </head>
   <body>
     <noscript>
@@ -7679,6 +7679,16 @@
         </div>
       </div>
 
+      <div id="patioVehicleActionsModal" class="modal-backdrop hidden">
+        <div class="modal patio-vehicle-actions-modal">
+          <div class="modal-header">
+            <h3 id="patioVehicleActionsTitle">Veículo</h3>
+            <button type="button" class="modal-close" id="closePatioVehicleActionsModal" aria-label="Fechar">Fechar</button>
+          </div>
+          <div id="patioVehicleActionsBody" class="patio-vehicle-actions-body"></div>
+        </div>
+      </div>
+
       <div id="fichaModal" class="modal-backdrop hidden">
         <div class="modal">
           <div class="modal-header">
@@ -8907,6 +8917,10 @@
       }
 
       const fichaModal = document.getElementById("fichaModal");
+      const patioVehicleActionsModal = document.getElementById("patioVehicleActionsModal");
+      const closePatioVehicleActionsModal = document.getElementById("closePatioVehicleActionsModal");
+      const patioVehicleActionsTitle = document.getElementById("patioVehicleActionsTitle");
+      const patioVehicleActionsBody = document.getElementById("patioVehicleActionsBody");
       const closeFichaModal = document.getElementById("closeFichaModal");
       const printFicha = document.getElementById("printFicha");
       const downloadFicha = document.getElementById("downloadFicha");
@@ -16427,91 +16441,40 @@
         return parts.join(" ");
       }
 
-      function normalizeVehicleColorKey(cor) {
-        return String(cor || "")
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .toLowerCase()
-          .trim();
-      }
-
-      function vehicleColorToCss(cor) {
-        const raw = String(cor || "").trim();
-        if (!raw) return null;
-        if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw)) return raw;
-        const key = normalizeVehicleColorKey(raw);
-        const map = {
-          preto: "#1a1a1a",
-          black: "#1a1a1a",
-          negro: "#1a1a1a",
-          branco: "#f5f5f5",
-          white: "#f5f5f5",
-          prata: "#c0c0c0",
-          silver: "#c0c0c0",
-          cinza: "#808080",
-          gray: "#808080",
-          grey: "#808080",
-          grafite: "#4b5563",
-          vermelho: "#dc2626",
-          red: "#dc2626",
-          vinho: "#722f37",
-          bordo: "#7f1d1d",
-          bordeaux: "#7f1d1d",
-          azul: "#2563eb",
-          blue: "#2563eb",
-          verde: "#16a34a",
-          green: "#16a34a",
-          amarelo: "#eab308",
-          yellow: "#eab308",
-          bege: "#d4b896",
-          beige: "#d4b896",
-          marrom: "#78350f",
-          brown: "#78350f",
-          laranja: "#ea580c",
-          orange: "#ea580c",
-          roxo: "#7c3aed",
-          purple: "#7c3aed",
-          violeta: "#7c3aed",
-          rosa: "#ec4899",
-          pink: "#ec4899",
-          dourado: "#ca8a04",
-          gold: "#ca8a04",
-          bronze: "#a16207",
-          champanhe: "#e8dcc8",
-          champagne: "#e8dcc8",
-          perola: "#e8e8e8",
-          pearl: "#e8e8e8",
-          creme: "#fffdd0",
-          caramelo: "#c68e59",
-        };
-        if (map[key]) return map[key];
-        for (const [name, hex] of Object.entries(map)) {
-          if (key.includes(name)) return hex;
-        }
-        return null;
-      }
-
-      function buildPatioMobileColorDotHtml(cor) {
-        const label = String(cor || "").trim();
-        if (!label) {
-          return `<span class="patio-mob-color-dot patio-mob-color-dot--empty" title="Cor não informada" aria-label="Cor não informada"></span>`;
-        }
-        const css = vehicleColorToCss(label) || "#94a3b8";
-        const safeLabel = escapeHtml(label);
-        return `<span class="patio-mob-color-dot" style="background-color:${css}" title="${safeLabel}" aria-label="Cor: ${safeLabel}"></span>`;
-      }
-
-      function buildPatioMobileListCellsHtml(v) {
+      function buildPatioMobileCompactLine(v) {
+        const placa = escapeHtml(v.placa || "-");
+        const marca = escapeHtml(v.marca || "-");
+        const modelo = escapeHtml(v.modelo || "-");
         const dias = calcDays(v);
+        return `${placa} - ${marca} - ${modelo} - ${dias}`;
+      }
+
+      function buildPatioMobileListCellsHtml(v, colspan) {
         return `
-            <td class="patio-mob-only patio-mob-col-placa">${escapeHtml(v.placa || "-")}</td>
-            <td class="patio-mob-only patio-mob-col-text">${escapeHtml(v.marca || "-")}</td>
-            <td class="patio-mob-only patio-mob-col-text">${escapeHtml(v.modelo || "-")}</td>
-            <td class="patio-mob-only patio-mob-col-cor">${buildPatioMobileColorDotHtml(v.cor)}</td>
-            <td class="patio-mob-only patio-mob-col-dias">${escapeHtml(String(dias))}</td>
-            <td class="patio-mob-only patio-mob-col-ficha">
-              <button type="button" class="patio-mobile-ficha-btn secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
+            <td class="patio-mob-only patio-mob-compact-cell" colspan="${colspan}">
+              <div class="patio-mob-compact-row">
+                <span class="patio-mob-compact-text">${buildPatioMobileCompactLine(v)}</span>
+                <button type="button" class="patio-mob-info-btn secondary" data-action="patio_acoes" data-id="${v.id}" aria-label="Ações do veículo" title="Ações">Info</button>
+              </div>
             </td>`;
+      }
+
+      function closePatioVehicleActionsModalFn() {
+        if (!patioVehicleActionsModal) return;
+        patioVehicleActionsModal.classList.add("hidden");
+        delete patioVehicleActionsModal.dataset.openVehicleId;
+      }
+
+      function openPatioVehicleActionsModal(vehicle, listContext) {
+        if (!patioVehicleActionsModal || !vehicle) return;
+        if (patioVehicleActionsTitle) {
+          patioVehicleActionsTitle.textContent = buildPatioMobileCompactLine(vehicle);
+        }
+        patioVehicleActionsModal.dataset.openVehicleId = vehicle.id;
+        if (patioVehicleActionsBody) {
+          patioVehicleActionsBody.innerHTML = buildPatioVehicleActionsHtml(vehicle, { listContext });
+        }
+        patioVehicleActionsModal.classList.remove("hidden");
       }
 
       function buildPatioVehicleActionsHtml(v, opts = {}) {
@@ -16603,7 +16566,7 @@
 
         return `
           <tr class="${rowClass}" data-vehicle-row="${v.id}">
-            ${buildPatioMobileListCellsHtml(v)}
+            ${buildPatioMobileListCellsHtml(v, 8)}
             <td class="patio-desk-only" data-label="Placa">${v.placa || "-"}${situacaoHtml}</td>
             <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml(registoKind === "vnp" ? (isVlpStatus(v.status) ? "vlp" : "vnp") : registoKind)}</td>
             <td class="patio-desk-only" data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
@@ -16830,7 +16793,7 @@
 
             return `
               <tr data-vehicle-row="${v.id}">
-                ${buildPatioMobileListCellsHtml(v)}
+                ${buildPatioMobileListCellsHtml(v, 9)}
                 <td class="patio-desk-only" data-label="Placa">${v.placa || "-"}</td>
                 <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td class="patio-desk-only" data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
@@ -17808,6 +17771,9 @@
         fichaModal.classList.add("hidden");
         delete fichaModal.dataset.openVehicleId;
       });
+      closePatioVehicleActionsModal?.addEventListener("click", () => {
+        closePatioVehicleActionsModalFn();
+      });
       closeNfseModal.addEventListener("click", () => {
         void cancelNfseModal();
       });
@@ -17999,11 +17965,12 @@
         workflowModalConfig = null;
       });
 
-      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, lancamentoModal, fichaModal, nfseModal, textModal, reciboModal, receberBaixaModal, pagarBaixaModal].filter(Boolean).forEach((modal) => {
+      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, lancamentoModal, fichaModal, patioVehicleActionsModal, nfseModal, textModal, reciboModal, receberBaixaModal, pagarBaixaModal].filter(Boolean).forEach((modal) => {
         modal.addEventListener("click", (event) => {
           if (event.target === modal) {
             modal.classList.add("hidden");
             if (modal === fichaModal) delete fichaModal.dataset.openVehicleId;
+            if (modal === patioVehicleActionsModal) delete patioVehicleActionsModal.dataset.openVehicleId;
             if (modal === dateModal && dateModalResolver) {
               dateModalResolver(null);
               dateModalResolver = null;
@@ -20059,6 +20026,17 @@
       async function handleVnpVehicleAction(button) {
         const id = button.getAttribute("data-id");
         const action = button.getAttribute("data-action");
+
+        if (action === "patio_acoes") {
+          const vehicleInfo = state.vehicles.find((v) => v.id === id);
+          if (!vehicleInfo) return;
+          const listContext = vehicleInfo.status === "REMOVIDO" ? "vrp" : "vnp";
+          openPatioVehicleActionsModal(vehicleInfo, listContext);
+          return;
+        }
+
+        closePatioVehicleActionsModalFn();
+
         const patioWriteActions = new Set([
           "apagar",
           "voltar",
@@ -20320,6 +20298,7 @@
           }
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
+          closePatioVehicleActionsModalFn();
           await loadVehicles();
           return;
         }
@@ -21243,6 +21222,12 @@
       }
 
       bindPatioVehicleTableActions();
+
+      patioVehicleActionsModal?.addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-action]");
+        if (!button || !patioVehicleActionsModal.contains(button)) return;
+        await handleVnpVehicleAction(button);
+      });
 
       fichaModal?.addEventListener("click", async (event) => {
         const button = event.target.closest("button[data-action]");
