@@ -928,11 +928,46 @@
   function renderFormLegend() {
     return (
       '<div class="vei-form-legend">' +
-      "Legenda: " +
-      '<strong>B</strong> — Bom · <strong>R</strong> — Regular · <strong>D</strong> — Danificado · ' +
-      "<strong>S</strong> — Sem Teste · <strong>I</strong> — Inexistente" +
+      '<span class="vei-leg vei-leg--b"><i>B</i> Bom</span>' +
+      '<span class="vei-leg vei-leg--r"><i>R</i> Regular</span>' +
+      '<span class="vei-leg vei-leg--d"><i>D</i> Danificado</span>' +
+      '<span class="vei-leg vei-leg--s"><i>S</i> Sem teste</span>' +
+      '<span class="vei-leg vei-leg--i"><i>I</i> Inexistente</span>' +
       "</div>"
     );
+  }
+
+  function renderEditStatusBar(vehicle) {
+    const vehicleLine =
+      [vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") +
+      (vehicle.placa ? " · " + vehicle.placa : "") +
+      (vehicle.ano ? " · " + vehicle.ano : "");
+    return (
+      '<div class="vei-status-bar">' +
+      '<span class="vei-status-label">Vistoria em andamento</span>' +
+      `<span class="vei-status-vehicle">${esc(vehicleLine || "—")}</span>` +
+      "</div>"
+    );
+  }
+
+  function renderCardStepper(draft) {
+    const cfg = draftCfg(draft);
+    const current = Math.max(0, Math.min(cfg.cardCount - 1, draft.currentCardIndex || 0));
+    let html =
+      '<div class="vei-stepper" id="veiStepper" role="navigation" aria-label="Etapas da vistoria">';
+    cfg.cards.forEach((card, i) => {
+      const cls = i === current ? " active" : i < current ? " done" : "";
+      const label = String(card.title || "")
+        .split(/\s+/)
+        .slice(0, 2)
+        .join(" ");
+      html += `<div class="vei-step${cls}" data-step="${i}">`;
+      html += `<span class="vei-step-num">${i + 1}</span>`;
+      html += `<span class="vei-step-label">${esc(label || card.title || "")}</span>`;
+      html += "</div>";
+    });
+    html += "</div>";
+    return html;
   }
 
   function renderCardStep(cardIndex, draft, readOnly) {
@@ -943,7 +978,10 @@
     const isLast = cardIndex === cardCount - 1;
     const colSpan = CLASSIFICATIONS.length + 1;
     let html = '<div class="vei-card-form">';
-    html += `<div class="vei-card-title"><span class="vei-card-num">${cardIndex + 1}.</span> ${esc(card.title)}</div>`;
+    html += `<div class="vei-card-header-bar">`;
+    html += `<span class="vei-card-title-text">${cardIndex + 1}. ${esc(card.title)}</span>`;
+    html += `<span class="vei-card-cls-heads">${CLASSIFICATIONS.map((c) => `<span>${esc(CLASS_SHORT[c.id] || c.label.charAt(0))}</span>`).join("")}</span>`;
+    html += `</div>`;
 
     card.blocks.forEach((block, blockIdx) => {
       if (block.title) {
@@ -966,7 +1004,7 @@
         });
         html += "</tbody></table>";
       }
-      html += '<table class="vei-form-table"><thead><tr><th class="vei-th-item">Item</th>';
+      html += '<table class="vei-form-table"><thead class="vei-thead-accessible"><tr><th class="vei-th-item">Item</th>';
       CLASSIFICATIONS.forEach((c) => {
         html += `<th class="vei-th-cls">${esc(CLASS_SHORT[c.id] || c.label.charAt(0))}</th>`;
       });
@@ -1317,8 +1355,10 @@
         : isLast && closingStep === "card"
           ? "Checklist completo — avance para o registro fotográfico."
           : "Checklist completo — conclua as etapas finais.";
-      warn.style.color = miss.length ? "#fbbf24" : "#34d399";
+      warn.style.color = miss.length ? "#d97706" : "#16a34a";
     }
+    const stepperHost = root.querySelector("#veiStepperHost");
+    if (stepperHost) stepperHost.innerHTML = renderCardStepper(draft);
   }
 
   function buildEditHtml(vehicle, ctx, draft) {
@@ -1330,18 +1370,25 @@
     const pct = progressPct(draft);
     const miss = missingItems(draft);
     return (
-      renderVehicleMeta(vehicle, ctx, null, draft) +
+      '<div class="vei-shell">' +
+      renderEditStatusBar(vehicle) +
       `<div class="vei-progress"><span id="veiProgressText">${esc(cfg.label)}: card ${cardIdx + 1}/${cfg.cardCount} · ${done}/${total} itens (${pct}%)</span>` +
       `<div class="vei-progress-bar" id="veiProgressBar"><i style="width:${pct}%"></i></div></div>` +
-      `<p id="veiMissingWarn" class="notice" style="margin:0 0 12px;color:${miss.length ? "#fbbf24" : "#34d399"}">${
+      `<p id="veiMissingWarn" class="notice" style="margin:0;color:${miss.length ? "#d97706" : "#16a34a"}">${
         miss.length ? `Itens pendentes no total (${miss.length}). Preencha um card por vez.` : "Checklist completo — finalize no último card."
       }</p>` +
       renderFormLegend() +
+      '<div class="vei-card-panel">' +
       '<div id="veiCardHost">' +
       renderCardStep(cardIdx, draft, false) +
       "</div>" +
       '<div id="veiLastCardExtrasHost">' +
       (cardIdx === cfg.cardCount - 1 ? renderLastCardExtras(draft) : "") +
+      "</div>" +
+      "</div>" +
+      '<div id="veiStepperHost">' +
+      renderCardStepper(draft) +
+      "</div>" +
       "</div>" +
       '<div id="veiDamageFormHost"></div>' +
       '<div id="veiDamageListHost" class="vei-damage-host-hidden" aria-hidden="true"></div>'
@@ -1733,10 +1780,10 @@
     const modal = _modalEl;
     modal.classList.remove("hidden");
     const cfg = draftCfg(draft);
-    document.getElementById("veiModalTitle").textContent = cfg.label;
+    document.getElementById("veiModalTitle").textContent = "Vistoria do veículo";
     document.getElementById("veiModalSubtitle").textContent = retroactive
-      ? `Placa ${vehicle.placa || "—"} — vistoria retroativa · ${cfg.cardCount} cards`
-      : `Placa ${vehicle.placa || "—"} — um card por vez (${cfg.cardCount} etapas)`;
+      ? `${cfg.label} · placa ${vehicle.placa || "—"} · retroativa`
+      : `${cfg.label} · placa ${vehicle.placa || "—"}`;
     const body = document.getElementById("veiModalBody");
     body.innerHTML = buildEditHtml(vehicle, ctx, draft);
     ensureEditModalEvents(body, ctx);
