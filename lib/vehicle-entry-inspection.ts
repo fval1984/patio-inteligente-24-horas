@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import checklistKeys from "./vehicle-entry-inspection-checklist-keys.json";
 
 export type InspectionClassification =
   | "BOM"
@@ -80,54 +81,10 @@ export async function resolveInspectorDisplayName(
   return "Utilizador";
 }
 
-export const INSPECTION_ITEM_COUNT = 44;
+export const INSPECTION_ITEM_COUNT = checklistKeys.length;
 
-/** Chaves obrigatórias do checklist (espelho de public/vehicle-entry-inspection.js). */
-export const INSPECTION_CHECKLIST_KEYS = [
-  "placa",
-  "chassi",
-  "hodometro",
-  "combustivel",
-  "documento",
-  "chave_principal",
-  "segunda_chave",
-  "manual",
-  "outros_acessorios",
-  "capo",
-  "teto",
-  "para_lama_de",
-  "para_lama_dd",
-  "porta_de",
-  "porta_dd",
-  "porta_te",
-  "porta_td",
-  "tampa_traseira",
-  "para_choque_d",
-  "para_choque_t",
-  "retrovisor_e",
-  "retrovisor_d",
-  "farol_e",
-  "farol_d",
-  "lanternas",
-  "vidros",
-  "pneus",
-  "rodas",
-  "banco_motorista",
-  "banco_passageiro",
-  "bancos_traseiros",
-  "painel",
-  "volante",
-  "cambio",
-  "console",
-  "forracao",
-  "tapetes",
-  "teto_interno",
-  "portas_internas",
-  "vidros_eletricos",
-  "ar_condicionado",
-  "radio_multimidia",
-  "outros_equipamentos",
-] as const;
+/** Chaves obrigatórias do checklist (espelho de public/vehicle-entry-inspection-checklist.js). */
+export const INSPECTION_CHECKLIST_KEYS = checklistKeys as readonly string[];
 
 const VALID_CLASSIFICATIONS = new Set([
   "BOM",
