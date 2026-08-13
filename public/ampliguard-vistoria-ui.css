@@ -184,7 +184,7 @@
 .vei-card-header-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 12px;
   background: #001529;
   color: #fff;
@@ -196,24 +196,48 @@
 }
 
 .vei-card-cls-heads {
-  display: flex;
-  gap: 18px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  opacity: 0.95;
-}
-
-.vei-card-title {
   display: none !important;
 }
 
-.vei-block-title {
-  padding: 10px 16px 6px !important;
-  color: #64748b !important;
+.vei-form-table {
+  table-layout: fixed !important;
+}
+
+.vei-form-table col.vei-col-cls {
+  width: 34px;
+}
+
+.vei-form-table thead.vei-thead-cols th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #f1f5f9 !important;
+  color: #001529 !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+  padding: 8px 2px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.vei-form-table thead.vei-thead-cols .vei-th-item {
+  text-align: left !important;
+  padding-left: 16px !important;
   font-size: 11px !important;
-  border-top: 1px solid #eef2f6 !important;
-  background: #fafbfc;
+  text-transform: uppercase;
+  color: #64748b !important;
+  letter-spacing: 0.06em;
+}
+
+.vei-form-table .vei-th-cls,
+.vei-form-table .vei-td-cls {
+  width: 34px !important;
+  min-width: 34px !important;
+  max-width: 34px !important;
+  padding: 6px 2px !important;
+  text-align: center !important;
+  vertical-align: middle !important;
 }
 
 .vei-form-table thead.vei-thead-accessible {
@@ -226,6 +250,18 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+.vei-card-title {
+  display: none !important;
+}
+
+.vei-block-title {
+  padding: 10px 16px 6px !important;
+  color: #64748b !important;
+  font-size: 11px !important;
+  border-top: 1px solid #eef2f6 !important;
+  background: #fafbfc;
 }
 
 .vei-form-table tbody tr {
@@ -249,17 +285,26 @@
 }
 
 .vei-cell-btn {
-  width: 32px !important;
-  height: 32px !important;
-  min-height: 32px !important;
-  max-width: 32px !important;
+  width: 30px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  max-width: 30px !important;
+  min-width: 30px !important;
   border-radius: 6px !important;
   border: 2px solid #cbd5e1 !important;
   background: #fff !important;
   color: transparent !important;
   font-size: 0 !important;
   padding: 0 !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   position: relative;
+}
+
+.vei-cell-btn .vei-class-btn-label {
+  display: none !important;
 }
 
 .vei-cell-btn::after {
@@ -433,6 +478,25 @@
 @media (max-width: 900px) {
   .vei-modal-body {
     padding: 12px 12px 88px !important;
+  }
+
+  .vei-form-table col.vei-col-cls {
+    width: 32px;
+  }
+
+  .vei-form-table .vei-th-cls,
+  .vei-form-table .vei-td-cls {
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+  }
+
+  .vei-cell-btn {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    min-height: 28px !important;
   }
 
   .vei-stepper {
