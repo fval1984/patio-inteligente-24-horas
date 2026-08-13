@@ -9120,6 +9120,30 @@
       }
       window.isAdmDesktopPc = isAdmDesktopPc;
 
+      function isMobileLayout() {
+        try {
+          return window.matchMedia("(max-width: 900px)").matches;
+        } catch (e) {
+          return (window.innerWidth || 0) <= 900;
+        }
+      }
+      window.isMobileLayout = isMobileLayout;
+
+      function isExecutiveDashboardView(view) {
+        return view === "dashboard" || view === "biExecutivo";
+      }
+
+      /** Dashboard/BI Executivo: somente desktop. No mobile abre o pátio. */
+      function resolveViewForDevice(view) {
+        if (!isGestorPista && isMobileLayout() && isExecutiveDashboardView(view)) return "patio";
+        return view;
+      }
+
+      function defaultHomeViewForRole() {
+        if (isGestorPista || isMobileLayout()) return "patio";
+        return "dashboard";
+      }
+
       /** Com false, saída do veículo (VRP) alimenta automaticamente o financeiro. */
       const FINANCE_MANUAL_ONLY = false;
 
@@ -14374,7 +14398,7 @@
               console.error("applyRoleRestrictions", e);
               if (!pendingLaunch) {
                 try {
-                  showMainView("dashboard");
+                  openDefaultHomeView();
                 } catch (e2) {
                   console.error("showMainView fallback", e2);
                 }
@@ -14646,13 +14670,33 @@
         }
       }
 
-      function navigateDefaultViewForRole() {
-        if (!isGestorPista) {
-          showMainView("dashboard");
-          return;
+      function applyMobileExecutiveDashboardRestrictions() {
+        const hideExec = !isGestorPista && isMobileLayout();
+        document
+          .querySelectorAll('#appHeaderMenu button[data-view="dashboard"], #appHeaderMenu button[data-view="biExecutivo"]')
+          .forEach((el) => {
+            el.classList.toggle("hidden", hideExec);
+            if (hideExec) el.setAttribute("aria-hidden", "true");
+            else el.removeAttribute("aria-hidden");
+          });
+        if (!hideExec) return;
+        const onDashboard = !document.getElementById("viewDashboard")?.classList.contains("hidden");
+        const onBi = !document.getElementById("viewBiExecutivo")?.classList.contains("hidden");
+        if (onDashboard || onBi) {
+          navStack.splice(0, navStack.length, "patio", "patio:inicio");
+          showMainView("patio");
+          setPatioView("inicio");
         }
-        showMainView("patio");
-        setPatioView("inicio");
+      }
+
+      function openDefaultHomeView() {
+        const view = defaultHomeViewForRole();
+        showMainView(view);
+        if (view === "patio") setPatioView("inicio");
+      }
+
+      function navigateDefaultViewForRole() {
+        openDefaultHomeView();
       }
 
       function applyRoleRestrictions(opts = {}) {
@@ -14683,7 +14727,8 @@
           const patioOpsHead = document.querySelector("#patioInicioPanel .patio-inicio-ops-section h4");
           if (patioOpsHead) patioOpsHead.textContent = "Indicadores operacionais";
           applyAdmDesktopPcRestrictions();
-          if (!opts.skipDefaultView) showMainView("dashboard");
+          applyMobileExecutiveDashboardRestrictions();
+          if (!opts.skipDefaultView) openDefaultHomeView();
           return;
         }
 
@@ -20951,6 +20996,7 @@
       }
 
       function showMainView(view) {
+        view = resolveViewForDevice(view);
         if (isGestorPista && view === "dashboard") {
           navStack.splice(0, navStack.length, "patio", "patio:inicio");
           showMainView("patio");
@@ -21162,6 +21208,7 @@
       });
 
       function openMainView(view) {
+        view = resolveViewForDevice(view);
         if (isGestorPista && view !== "patio" && view !== "lista") {
           showMainView("patio");
           setPatioView("inicio");
@@ -21358,7 +21405,7 @@
         });
       }
       goDashboardFromPlate?.addEventListener("click", () => {
-        if (isGestorPista) {
+        if (isGestorPista || isMobileLayout()) {
           openMainView("patio");
           closeAppHeaderMenu();
           return;
@@ -21429,6 +21476,7 @@
 
       function navigateMainViewFromNav(view) {
         if (!view) return;
+        view = resolveViewForDevice(view);
         if (isGestorPista && view === "dashboard") {
           openMainView("patio");
           return;
@@ -21605,7 +21653,10 @@
       syncHeaderMenuHighlightFromDom();
       window.addEventListener("resize", () => {
         clearTimeout(window.__admPcResizeT);
-        window.__admPcResizeT = setTimeout(applyAdmDesktopPcRestrictions, 180);
+        window.__admPcResizeT = setTimeout(() => {
+          applyAdmDesktopPcRestrictions();
+          applyMobileExecutiveDashboardRestrictions();
+        }, 180);
       });
     </script>
   </body>
