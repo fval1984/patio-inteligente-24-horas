@@ -210,10 +210,6 @@ header .user {
     max-width: min(480px, 40vw);
   }
 
-  .header-mobile-module-nav {
-    display: none !important;
-  }
-
   main {
     margin-left: 0 !important;
     padding-top: 8px;
@@ -373,31 +369,13 @@ header .user {
     margin-top: 6px !important;
   }
 
-  #appSubheader:not(.hidden) .header-mobile-module-nav {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-    border-top: none !important;
+  #dashboardSystemEntry {
+    display: flex !important;
+    width: 100% !important;
     margin-bottom: 6px !important;
   }
 
-  .header-mobile-module-btn {
-    background: var(--ag-surface) !important;
-    border: 1px solid var(--ag-border) !important;
-    color: var(--ag-navy) !important;
-    box-shadow: none !important;
-    border-radius: 8px !important;
-    min-height: 36px !important;
-    padding: 6px 8px !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.04em !important;
-  }
-
-  .header-mobile-module-btn:active {
-    background: var(--ag-neutral-bg) !important;
-  }
-
-  .header-mobile-module-btn.active {
+  #dashboardSystemEntry .dashboard-system-btn.active {
     background: var(--ag-blue) !important;
     border-color: var(--ag-blue-strong) !important;
     color: #fff !important;
@@ -658,7 +636,7 @@ body.app-module-patio header {
 }
 
 /* ---- Botões ---- */
-button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.header-mobile-module-btn):not(.subnav button):not(.patio-nav-inline button):not(.lista-toolbar-actions button):not(.close-view):not([data-extra-remove]):not(.vei-damage-photo-clear):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn) {
+button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.subnav button):not(.patio-nav-inline button):not(.lista-toolbar-actions button):not(.close-view):not([data-extra-remove]):not(.vei-damage-photo-clear):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn) {
   background: var(--ag-blue) !important;
   color: #fff !important;
   border: 1px solid var(--ag-blue-strong) !important;
