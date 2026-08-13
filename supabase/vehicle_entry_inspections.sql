@@ -187,7 +187,9 @@ CREATE OR REPLACE FUNCTION complete_vehicle_entry_inspection(
   p_general_notes text,
   p_diagram_markers jsonb,
   p_items jsonb,
-  p_damages jsonb
+  p_damages jsonb,
+  p_inspection_variant text DEFAULT 'LEVE',
+  p_form_extras jsonb DEFAULT '{}'::jsonb
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -201,7 +203,10 @@ DECLARE
   v_item jsonb;
   v_damage jsonb;
   v_damage_id uuid;
+  v_variant text;
 BEGIN
+  v_variant := COALESCE(NULLIF(upper(trim(p_inspection_variant)), ''), 'LEVE');
+
   SELECT * INTO v_vehicle
   FROM vehicles
   WHERE id = p_vehicle_id AND user_id = p_user_id
@@ -238,11 +243,12 @@ BEGIN
   v_number := nextval('vehicle_entry_inspection_number_seq');
 
   INSERT INTO vehicle_entry_inspections (
-    user_id, vehicle_id, inspection_number, inspection_type, status,
-    general_notes, diagram_markers, completed_at, completed_by_user_id, completed_by_name, updated_at
+    user_id, vehicle_id, inspection_number, inspection_type, inspection_variant, status,
+    general_notes, diagram_markers, form_extras,
+    completed_at, completed_by_user_id, completed_by_name, updated_at
   ) VALUES (
-    p_user_id, p_vehicle_id, v_number, 'ENTRADA', 'CONCLUIDA',
-    NULLIF(trim(p_general_notes), ''), COALESCE(p_diagram_markers, '[]'::jsonb),
+    p_user_id, p_vehicle_id, v_number, 'ENTRADA', v_variant, 'CONCLUIDA',
+    NULLIF(trim(p_general_notes), ''), COALESCE(p_diagram_markers, '[]'::jsonb), COALESCE(p_form_extras, '{}'::jsonb),
     now(), p_inspector_user_id, NULLIF(trim(p_inspector_name), ''), now()
   )
   RETURNING id INTO v_inspection_id;
@@ -285,12 +291,13 @@ BEGIN
   RETURN jsonb_build_object(
     'inspection_id', v_inspection_id,
     'inspection_number', v_number,
-    'vehicle_id', p_vehicle_id
+    'vehicle_id', p_vehicle_id,
+    'inspection_variant', v_variant
   );
 END;
 $$;
 
-REVOKE ALL ON FUNCTION complete_vehicle_entry_inspection FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION complete_vehicle_entry_inspection TO service_role;
+REVOKE ALL ON FUNCTION complete_vehicle_entry_inspection(uuid, uuid, uuid, text, text, jsonb, jsonb, jsonb, text, jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION complete_vehicle_entry_inspection(uuid, uuid, uuid, text, text, jsonb, jsonb, jsonb, text, jsonb) TO service_role;
 
 NOTIFY pgrst, 'reload schema';
