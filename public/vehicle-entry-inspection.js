@@ -7,12 +7,19 @@
 
   const STORAGE_BUCKET = "vehicle-inspection-photos";
   const CLASSIFICATIONS = [
-    { id: "BOM", label: "BOM" },
-    { id: "REGULAR", label: "REGULAR" },
-    { id: "DANIFICADO", label: "DANIFICADO" },
-    { id: "SEM_TESTE", label: "SEM TESTE" },
-    { id: "INEXISTENTE", label: "INEXISTENTE" },
+    { id: "BOM", label: "BOM", short: "B" },
+    { id: "REGULAR", label: "REGULAR", short: "R" },
+    { id: "DANIFICADO", label: "DANIFICADO", short: "D" },
+    { id: "SEM_TESTE", label: "SEM TESTE", short: "S" },
+    { id: "INEXISTENTE", label: "INEXISTENTE", short: "I" },
   ];
+
+  const CLASS_SHORT = { BOM: "B", REGULAR: "R", DANIFICADO: "D", SEM_TESTE: "S", INEXISTENTE: "I" };
+
+  const checklistMod = global.vehicleEntryInspectionChecklist || {};
+  const INSPECTION_CARDS = checklistMod.INSPECTION_CARDS || [];
+  const CHECKLIST = checklistMod.CHECKLIST || [];
+  const CARD_COUNT = checklistMod.CARD_COUNT || INSPECTION_CARDS.length || 1;
 
   const DAMAGE_TYPES = [
     "Arranhão",
@@ -24,52 +31,6 @@
     "Falta de peça",
     "Oxidação",
     "Outro",
-  ];
-
-  const CHECKLIST = [
-    { category: "IDENTIFICAÇÃO", key: "placa", label: "Placa" },
-    { category: "IDENTIFICAÇÃO", key: "chassi", label: "Chassi" },
-    { category: "IDENTIFICAÇÃO", key: "hodometro", label: "Hodômetro" },
-    { category: "IDENTIFICAÇÃO", key: "combustivel", label: "Combustível" },
-    { category: "IDENTIFICAÇÃO", key: "documento", label: "Documento" },
-    { category: "IDENTIFICAÇÃO", key: "chave_principal", label: "Chave principal" },
-    { category: "IDENTIFICAÇÃO", key: "segunda_chave", label: "Segunda chave" },
-    { category: "IDENTIFICAÇÃO", key: "manual", label: "Manual" },
-    { category: "IDENTIFICAÇÃO", key: "outros_acessorios", label: "Outros acessórios/documentos" },
-    { category: "PARTE EXTERNA", key: "capo", label: "Capô" },
-    { category: "PARTE EXTERNA", key: "teto", label: "Teto" },
-    { category: "PARTE EXTERNA", key: "para_lama_de", label: "Para-lama dianteiro esquerdo" },
-    { category: "PARTE EXTERNA", key: "para_lama_dd", label: "Para-lama dianteiro direito" },
-    { category: "PARTE EXTERNA", key: "porta_de", label: "Porta dianteira esquerda" },
-    { category: "PARTE EXTERNA", key: "porta_dd", label: "Porta dianteira direita" },
-    { category: "PARTE EXTERNA", key: "porta_te", label: "Porta traseira esquerda" },
-    { category: "PARTE EXTERNA", key: "porta_td", label: "Porta traseira direita" },
-    { category: "PARTE EXTERNA", key: "tampa_traseira", label: "Tampa traseira/porta-malas" },
-    { category: "PARTE EXTERNA", key: "para_choque_d", label: "Para-choque dianteiro" },
-    { category: "PARTE EXTERNA", key: "para_choque_t", label: "Para-choque traseiro" },
-    { category: "PARTE EXTERNA", key: "retrovisor_e", label: "Retrovisor esquerdo" },
-    { category: "PARTE EXTERNA", key: "retrovisor_d", label: "Retrovisor direito" },
-    { category: "PARTE EXTERNA", key: "farol_e", label: "Farol esquerdo" },
-    { category: "PARTE EXTERNA", key: "farol_d", label: "Farol direito" },
-    { category: "PARTE EXTERNA", key: "lanternas", label: "Lanternas" },
-    { category: "PARTE EXTERNA", key: "vidros", label: "Vidros" },
-    { category: "PARTE EXTERNA", key: "pneus", label: "Pneus" },
-    { category: "PARTE EXTERNA", key: "rodas", label: "Rodas" },
-    { category: "PARTE INTERNA", key: "banco_motorista", label: "Banco do motorista" },
-    { category: "PARTE INTERNA", key: "banco_passageiro", label: "Banco do passageiro" },
-    { category: "PARTE INTERNA", key: "bancos_traseiros", label: "Bancos traseiros" },
-    { category: "PARTE INTERNA", key: "painel", label: "Painel" },
-    { category: "PARTE INTERNA", key: "volante", label: "Volante" },
-    { category: "PARTE INTERNA", key: "cambio", label: "Câmbio" },
-    { category: "PARTE INTERNA", key: "console", label: "Console" },
-    { category: "PARTE INTERNA", key: "forracao", label: "Forração" },
-    { category: "PARTE INTERNA", key: "tapetes", label: "Tapetes" },
-    { category: "PARTE INTERNA", key: "teto_interno", label: "Teto interno" },
-    { category: "PARTE INTERNA", key: "portas_internas", label: "Portas internas" },
-    { category: "PARTE INTERNA", key: "vidros_eletricos", label: "Vidros elétricos" },
-    { category: "PARTE INTERNA", key: "ar_condicionado", label: "Ar-condicionado" },
-    { category: "PARTE INTERNA", key: "radio_multimidia", label: "Rádio/multimídia" },
-    { category: "PARTE INTERNA", key: "outros_equipamentos", label: "Outros equipamentos" },
   ];
 
   const DIAGRAM_W = 800;
@@ -117,7 +78,102 @@
       standardPhotos: {},
       extraDamagePhotos: [],
       currentPhotoStep: 0,
+      currentCardIndex: 0,
     };
+  }
+
+  function draftStorageKey(vehicleId) {
+    return `vei_draft_v2_${String(vehicleId || "")}`;
+  }
+
+  function persistDraftToStorage(vehicleId, draft) {
+    if (!vehicleId || !draft) return;
+    try {
+      const payload = {
+        classifications: draft.classifications,
+        generalNotes: draft.generalNotes,
+        diagramMarkers: draft.diagramMarkers,
+        damages: (draft.damages || []).map((d) => ({
+          item_key: d.item_key,
+          area_label: d.area_label,
+          damage_type: d.damage_type,
+          severity: d.severity,
+          description: d.description,
+          notes: d.notes,
+          photoPreview: d.photoPreview || null,
+        })),
+        currentCardIndex: draft.currentCardIndex || 0,
+        savedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(draftStorageKey(vehicleId), JSON.stringify(payload));
+    } catch (e) {
+      console.warn("vei draft persist", e);
+    }
+  }
+
+  function loadDraftFromStorage(vehicleId) {
+    if (!vehicleId) return null;
+    try {
+      const raw = localStorage.getItem(draftStorageKey(vehicleId));
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return null;
+      const draft = emptyDraft();
+      if (parsed.classifications && typeof parsed.classifications === "object") {
+        Object.keys(parsed.classifications).forEach((k) => {
+          if (k in draft.classifications) draft.classifications[k] = parsed.classifications[k];
+        });
+      }
+      draft.generalNotes = parsed.generalNotes || "";
+      draft.diagramMarkers = normalizeDiagramMarkers(parsed.diagramMarkers);
+      draft.damages = Array.isArray(parsed.damages) ? parsed.damages : [];
+      draft.currentCardIndex = Math.max(0, Math.min(CARD_COUNT - 1, Number(parsed.currentCardIndex) || 0));
+      return draft;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function clearDraftStorage(vehicleId) {
+    try {
+      localStorage.removeItem(draftStorageKey(vehicleId));
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function cardItemKeys(cardIndex) {
+    const card = INSPECTION_CARDS[cardIndex];
+    if (!card) return [];
+    const keys = [];
+    card.blocks.forEach((block) => {
+      block.items.forEach((it) => keys.push(it.key));
+    });
+    return keys;
+  }
+
+  function cardItemLabels(cardIndex) {
+    const card = INSPECTION_CARDS[cardIndex];
+    if (!card) return [];
+    const labels = new Map();
+    card.blocks.forEach((block) => {
+      block.items.forEach((it) => labels.set(it.key, it.label));
+    });
+    return labels;
+  }
+
+  function missingItemsInCard(draft, cardIndex) {
+    const labels = cardItemLabels(cardIndex);
+    return cardItemKeys(cardIndex)
+      .filter((key) => !draft.classifications[key])
+      .map((key) => labels.get(key) || key);
+  }
+
+  function findCardIndexForItemKey(itemKey) {
+    for (let i = 0; i < INSPECTION_CARDS.length; i++) {
+      if (cardItemKeys(i).includes(itemKey)) return i;
+    }
+    return 0;
   }
 
   function classifiedCount(draft) {
@@ -140,6 +196,15 @@
   function scrollToFirstMissingItem(root, draft) {
     const first = CHECKLIST.find((it) => !draft.classifications[it.key]);
     if (!first || !root) return;
+    const cardIdx = findCardIndexForItemKey(first.key);
+    if (draft.currentCardIndex !== cardIdx) {
+      draft.currentCardIndex = cardIdx;
+      if (_session?.ctx && _session?.vehicle?.id) {
+        persistDraftToStorage(_session.vehicle.id, draft);
+      }
+      refreshEditUI(root, draft, _session?.ctx);
+      return;
+    }
     const el = root.querySelector(`.vei-item[data-item-key="${first.key}"]`);
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -282,6 +347,66 @@
         background: rgba(212,175,55,0.35); box-shadow: inset 0 0 0 2px rgba(212,175,55,0.55);
       }
       .vei-class-btn[data-class="DANIFICADO"].active { border-color: rgba(248,113,113,0.55); background: rgba(248,113,113,0.12); color: #fecaca; }
+      .vei-form-legend {
+        font-size: 0.78rem; color: var(--muted); margin: 0 0 14px;
+        padding: 8px 10px; border: 1px solid rgba(148,163,184,0.2);
+        background: rgba(148,163,184,0.06); text-align: center;
+      }
+      .vei-form-legend strong { color: inherit; font-weight: 800; letter-spacing: 0.04em; }
+      .vei-card-form {
+        border: 2px solid rgba(148,163,184,0.35); background: rgba(15,23,42,0.25);
+        margin-bottom: 16px;
+      }
+      .vei-card-title {
+        font-size: 0.95rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+        padding: 10px 12px; border-bottom: 2px solid rgba(148,163,184,0.35);
+        background: rgba(148,163,184,0.08);
+      }
+      .vei-card-num { color: var(--muted); margin-right: 6px; }
+      .vei-block-title {
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+        padding: 8px 12px 4px; color: var(--muted); border-top: 1px solid rgba(148,163,184,0.15);
+      }
+      .vei-form-table {
+        width: 100%; border-collapse: collapse; font-size: 0.78rem;
+      }
+      .vei-form-table thead th {
+        border-bottom: 2px solid rgba(148,163,184,0.35);
+        padding: 6px 4px; font-size: 0.68rem; font-weight: 800; text-align: center;
+        background: rgba(148,163,184,0.06);
+      }
+      .vei-form-table .vei-th-item { text-align: left; padding-left: 10px; width: 48%; }
+      .vei-form-table .vei-th-cls { width: 10.4%; }
+      .vei-form-table tbody td {
+        border-bottom: 1px solid rgba(148,163,184,0.12);
+        padding: 4px 3px; vertical-align: middle;
+      }
+      .vei-form-table .vei-td-label {
+        padding-left: 10px; font-weight: 600; line-height: 1.25;
+      }
+      .vei-form-table .vei-td-cls { text-align: center; padding: 3px 2px; }
+      .vei-form-table tr.vei-item-pending { background: rgba(251, 191, 36, 0.08); }
+      .vei-form-table tr.vei-item-pending .vei-td-label { box-shadow: inset 3px 0 0 #fbbf24; }
+      .vei-cell-btn {
+        width: 100%; min-width: 28px; max-width: 36px; min-height: 26px;
+        padding: 2px 0 !important; margin: 0 auto; display: block;
+        border-radius: 2px !important; font-size: 0.68rem !important;
+      }
+      .vei-form-table .vei-cls-on {
+        font-weight: 900; background: rgba(212,175,55,0.25); color: inherit;
+      }
+      .vei-card-nav {
+        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        padding: 12px; border-top: 2px solid rgba(148,163,184,0.35);
+        background: rgba(148,163,184,0.04); flex-wrap: wrap;
+      }
+      .vei-card-progress {
+        font-weight: 800; font-size: 0.85rem; letter-spacing: 0.04em;
+        padding: 6px 12px; border: 1px solid rgba(148,163,184,0.25);
+        background: rgba(15,23,42,0.35);
+      }
+      #veiCardNext, #veiFinalizeBtn { min-width: 140px; }
+      .vei-last-card-extras { margin-top: 4px; }
       .vei-side-panel {
         border: 1px solid rgba(148,163,184,0.16); border-radius: 14px;
         padding: 14px; background: rgba(15,23,42,0.35);
@@ -512,6 +637,7 @@
       const cls = classBtn.getAttribute("data-class");
       if (itemKey && cls) {
         draft.classifications[itemKey] = cls;
+        if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
         refreshEditUI(root, draft, ctx);
       }
       return;
@@ -522,6 +648,7 @@
       const pt = svgPointFromEvent(diagramSvg, evt);
       if (pt) {
         draft.diagramMarkers.push(pt);
+        if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
         refreshEditUI(root, draft, ctx);
       }
       return;
@@ -537,6 +664,35 @@
     if (rmDmgBtn && root.contains(rmDmgBtn)) {
       draft.damages.splice(Number(rmDmgBtn.getAttribute("data-damage-idx")), 1);
       refreshEditUI(root, draft, ctx);
+      return;
+    }
+
+    if (hit.closest?.("#veiCardPrev")) {
+      evt.preventDefault();
+      syncClassificationsFromDom(root, draft);
+      if ((draft.currentCardIndex || 0) > 0) {
+        draft.currentCardIndex = (draft.currentCardIndex || 0) - 1;
+        if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+        refreshEditUI(root, draft, ctx);
+      }
+      return;
+    }
+
+    if (hit.closest?.("#veiCardNext")) {
+      evt.preventDefault();
+      syncClassificationsFromDom(root, draft);
+      const cardIdx = draft.currentCardIndex || 0;
+      const missCard = missingItemsInCard(draft, cardIdx);
+      if (missCard.length) {
+        alert(
+          `Preencha todos os itens deste card antes de continuar.\n\nPendentes (${missCard.length}):\n${formatMissingAlert(missCard)}`
+        );
+        return;
+      }
+      draft.currentCardIndex = Math.min(CARD_COUNT - 1, cardIdx + 1);
+      if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+      refreshEditUI(root, draft, ctx);
+      root.scrollTop = 0;
       return;
     }
 
@@ -560,6 +716,7 @@
     backdrop.addEventListener("input", (evt) => {
       if (evt.target?.id === "veiGeneralNotes" && _session?.draft) {
         _session.draft.generalNotes = evt.target.value;
+        if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, _session.draft);
       }
     });
   }
@@ -571,32 +728,99 @@
     }
   }
 
-  function renderChecklistRows(draft, readOnly) {
-    let lastCat = "";
-    let html = "";
-    CHECKLIST.forEach((it) => {
-      if (it.category !== lastCat) {
-        if (lastCat) html += "</div>";
-        lastCat = it.category;
-        html += `<div class="vei-section"><h4>${esc(it.category)}</h4>`;
+  function renderFormLegend() {
+    return (
+      '<div class="vei-form-legend">' +
+      "Legenda: " +
+      '<strong>B</strong> — Bom · <strong>R</strong> — Regular · <strong>D</strong> — Danificado · ' +
+      "<strong>S</strong> — Sem Teste · <strong>I</strong> — Inexistente" +
+      "</div>"
+    );
+  }
+
+  function renderCardStep(cardIndex, draft, readOnly) {
+    const card = INSPECTION_CARDS[cardIndex];
+    if (!card) return "";
+    const isLast = cardIndex === CARD_COUNT - 1;
+    let html = '<div class="vei-card-form">';
+    html += `<div class="vei-card-title"><span class="vei-card-num">${cardIndex + 1}.</span> ${esc(card.title)}</div>`;
+
+    card.blocks.forEach((block, blockIdx) => {
+      if (block.title) {
+        html += `<div class="vei-block-title">${esc(block.title)}</div>`;
+      } else if (blockIdx > 0 && card.blocks.length > 1) {
+        html += `<div class="vei-block-title">Bloco ${blockIdx + 1}</div>`;
       }
-      const sel = draft.classifications[it.key];
-      html += `<div class="vei-item${!readOnly && !sel ? " vei-item-pending" : ""}" data-item-key="${esc(it.key)}">`;
-      html += `<div class="vei-item-label">${esc(it.label)}`;
-      if (!readOnly && sel === "DANIFICADO") {
-        html += ` <button type="button" class="secondary vei-add-damage-btn" data-damage-item="${esc(it.key)}" style="font-size:0.72rem;padding:4px 8px;margin-left:6px">+ Avaria</button>`;
-      }
-      html += `</div><div class="vei-class-row">`;
+      html += '<table class="vei-form-table"><thead><tr><th class="vei-th-item">Item</th>';
       CLASSIFICATIONS.forEach((c) => {
-        if (readOnly) {
-          html += `<div class="vei-class-btn${sel === c.id ? " active" : ""}" style="pointer-events:none;opacity:${sel === c.id ? 1 : 0.35}">${esc(c.label)}</div>`;
-        } else {
-          html += `<button type="button" class="vei-class-btn${sel === c.id ? " active" : ""}" data-class="${c.id}" data-item="${esc(it.key)}"><span class="vei-class-btn-label">${esc(c.label)}</span></button>`;
-        }
+        html += `<th class="vei-th-cls">${esc(CLASS_SHORT[c.id] || c.label.charAt(0))}</th>`;
       });
-      html += `</div></div>`;
+      html += "</tr></thead><tbody>";
+      block.items.forEach((it) => {
+        const sel = draft.classifications[it.key];
+        html += `<tr class="vei-item${!readOnly && !sel ? " vei-item-pending" : ""}" data-item-key="${esc(it.key)}">`;
+        html += `<td class="vei-td-label">${esc(it.label)}`;
+        if (!readOnly && sel === "DANIFICADO") {
+          html += ` <button type="button" class="secondary vei-add-damage-btn" data-damage-item="${esc(it.key)}" style="font-size:0.68rem;padding:2px 6px;margin-left:4px">+ Avaria</button>`;
+        }
+        html += "</td>";
+        CLASSIFICATIONS.forEach((c) => {
+          const short = CLASS_SHORT[c.id] || c.label.charAt(0);
+          if (readOnly) {
+            html += `<td class="vei-td-cls${sel === c.id ? " vei-cls-on" : ""}">${sel === c.id ? esc(short) : ""}</td>`;
+          } else {
+            html += `<td class="vei-td-cls"><button type="button" class="vei-class-btn vei-cell-btn${sel === c.id ? " active" : ""}" data-class="${c.id}" data-item="${esc(it.key)}" aria-label="${esc(c.label)}" title="${esc(c.label)}">${esc(short)}</button></td>`;
+          }
+        });
+        html += "</tr>";
+      });
+      html += "</tbody></table>";
     });
-    if (lastCat) html += "</div>";
+
+    if (!readOnly && !isLast) {
+      html += '<div class="vei-card-nav">';
+      html += `<button type="button" class="secondary vei-card-prev" id="veiCardPrev"${cardIndex === 0 ? " disabled" : ""}>Anterior</button>`;
+      html += `<span class="vei-card-progress" id="veiCardProgress">${cardIndex + 1} / ${CARD_COUNT}</span>`;
+      html += '<button type="button" id="veiCardNext">OK, próximo</button>';
+      html += "</div>";
+    }
+    html += "</div>";
+    return html;
+  }
+
+  function renderLastCardExtras(draft) {
+    const cardIdx = CARD_COUNT - 1;
+    return (
+      '<div class="vei-last-card-extras">' +
+      '<div class="vei-diagram-footer">' +
+      "<h4>Diagrama de avarias — 4 vistas</h4>" +
+      '<div id="veiDiagramHost">' +
+      renderDiagram(draft, false) +
+      "</div></div>" +
+      '<div id="veiMobilePhotosHost">' +
+      renderMobilePhotosSection(draft) +
+      "</div>" +
+      '<div class="vei-notes-block">' +
+      '<label for="veiGeneralNotes">Observações gerais da vistoria</label>' +
+      `<textarea class="vei-notes" id="veiGeneralNotes" placeholder="Informações adicionais…">${esc(draft.generalNotes)}</textarea>` +
+      "</div>" +
+      '<div class="vei-card-nav">' +
+      `<button type="button" class="secondary vei-card-prev" id="veiCardPrev"${cardIdx === 0 ? " disabled" : ""}>Anterior</button>` +
+      `<span class="vei-card-progress" id="veiCardProgress">${cardIdx + 1} / ${CARD_COUNT}</span>` +
+      '<button type="button" id="veiFinalizeBtn">Finalizar vistoria</button>' +
+      "</div>" +
+      '<div class="vei-actions vei-no-print">' +
+      '<button type="button" class="secondary" id="veiModalCloseInner">Cancelar</button>' +
+      "</div></div>"
+    );
+  }
+
+  /** Legado: todas as seções (somente consulta interna). */
+  function renderChecklistRows(draft, readOnly) {
+    let html = "";
+    INSPECTION_CARDS.forEach((card, idx) => {
+      html += renderCardStep(idx, draft, readOnly);
+    });
     return html;
   }
 
@@ -699,67 +923,65 @@
   }
 
   function refreshEditUI(root, draft, ctx) {
-    const pct = progressPct(draft);
+    const cardIdx = Math.max(0, Math.min(CARD_COUNT - 1, draft.currentCardIndex || 0));
+    draft.currentCardIndex = cardIdx;
     const done = classifiedCount(draft);
     const total = CHECKLIST.length;
+    const pct = progressPct(draft);
     const miss = missingItems(draft);
+    const cardHost = root.querySelector("#veiCardHost");
+    const extrasHost = root.querySelector("#veiLastCardExtrasHost");
     const progressText = root.querySelector("#veiProgressText");
     const progressBar = root.querySelector("#veiProgressBar i");
-    const checklistHost = root.querySelector("#veiChecklistHost");
-    const diagramHost = root.querySelector("#veiDiagramHost");
     if (progressText) {
-      progressText.textContent = `Checklist: ${done}/${total} itens · ${pct}% concluída`;
+      progressText.textContent = `Vistoria: card ${cardIdx + 1}/${CARD_COUNT} · ${done}/${total} itens (${pct}%)`;
     }
     if (progressBar) progressBar.style.width = `${pct}%`;
-    if (checklistHost) checklistHost.innerHTML = renderChecklistRows(draft, false);
-    if (diagramHost) diagramHost.innerHTML = renderDiagram(draft, false);
-    refreshMobilePhotosUI(root, draft);
+    if (cardHost) cardHost.innerHTML = renderCardStep(cardIdx, draft, false);
+    if (extrasHost) {
+      extrasHost.innerHTML = cardIdx === CARD_COUNT - 1 ? renderLastCardExtras(draft) : "";
+      if (cardIdx === CARD_COUNT - 1) {
+        bindMobilePhotosIfNeeded(extrasHost, draft);
+      }
+    } else if (cardIdx === CARD_COUNT - 1) {
+      const diagramHost = root.querySelector("#veiDiagramHost");
+      if (diagramHost) diagramHost.innerHTML = renderDiagram(draft, false);
+      refreshMobilePhotosUI(root, draft);
+    }
     const warn = root.querySelector("#veiMissingWarn");
     if (warn) {
       warn.textContent = miss.length
-        ? `Itens pendentes (${miss.length}): role o checklist e toque em BOM, REGULAR, DANIFICADO, SEM TESTE ou INEXISTENTE em cada linha amarela.`
-        : "Checklist completo — pode finalizar a vistoria.";
-      warn.classList.toggle("hidden", false);
+        ? `Itens pendentes no total (${miss.length}). Use «OK, próximo» em cada card — o sistema indica o que falta.`
+        : "Checklist completo — pode finalizar a vistoria no último card.";
       warn.style.color = miss.length ? "#fbbf24" : "#34d399";
     }
   }
 
   function buildEditHtml(vehicle, ctx, draft) {
-    const pct = progressPct(draft);
+    const cardIdx = Math.max(0, Math.min(CARD_COUNT - 1, draft.currentCardIndex || 0));
+    draft.currentCardIndex = cardIdx;
     const done = classifiedCount(draft);
     const total = CHECKLIST.length;
+    const pct = progressPct(draft);
     const miss = missingItems(draft);
     return (
       renderVehicleMeta(vehicle, ctx, null) +
-      `<div class="vei-progress"><span id="veiProgressText">Checklist: ${done}/${total} itens · ${pct}% concluída</span>` +
+      `<div class="vei-progress"><span id="veiProgressText">Vistoria: card ${cardIdx + 1}/${CARD_COUNT} · ${done}/${total} itens (${pct}%)</span>` +
       `<div class="vei-progress-bar" id="veiProgressBar"><i style="width:${pct}%"></i></div></div>` +
       `<p id="veiMissingWarn" class="notice" style="margin:0 0 12px;color:${miss.length ? "#fbbf24" : "#34d399"}">${
         miss.length
-          ? `Itens pendentes (${miss.length}): role o checklist e classifique cada linha em amarelo.`
-          : "Checklist completo — pode finalizar a vistoria."
+          ? `Itens pendentes no total (${miss.length}). Preencha um card por vez.`
+          : "Checklist completo — finalize no último card."
       }</p>` +
-      '<div class="vei-layout">' +
-      '<div id="veiChecklistHost">' +
-      renderChecklistRows(draft, false) +
-      "</div></div>" +
-      '<div class="vei-diagram-footer">' +
-      '<h4>Diagrama de avarias — 4 vistas</h4>' +
-      '<div id="veiDiagramHost">' +
-      renderDiagram(draft, false) +
-      "</div></div>" +
-      '<div id="veiMobilePhotosHost">' +
-      renderMobilePhotosSection(draft) +
+      renderFormLegend() +
+      '<div id="veiCardHost">' +
+      renderCardStep(cardIdx, draft, false) +
+      "</div>" +
+      '<div id="veiLastCardExtrasHost">' +
+      (cardIdx === CARD_COUNT - 1 ? renderLastCardExtras(draft) : "") +
       "</div>" +
       '<div id="veiDamageFormHost"></div>' +
-      '<div id="veiDamageListHost" class="vei-damage-host-hidden" aria-hidden="true"></div>' +
-      '<div class="vei-notes-block">' +
-      '<label for="veiGeneralNotes">Observações gerais da vistoria</label>' +
-      `<textarea class="vei-notes" id="veiGeneralNotes" placeholder="Informações adicionais…">${esc(draft.generalNotes)}</textarea>` +
-      "</div>" +
-      '<div class="vei-actions vei-no-print">' +
-      '<button type="button" class="secondary" id="veiModalCloseInner">Cancelar</button>' +
-      '<button type="button" id="veiFinalizeBtn">Finalizar vistoria</button>' +
-      "</div>"
+      '<div id="veiDamageListHost" class="vei-damage-host-hidden" aria-hidden="true"></div>'
     );
   }
 
@@ -775,7 +997,9 @@
           draft,
           helpers: {
             CHECKLIST,
+            INSPECTION_CARDS,
             CLASSIFICATIONS,
+            CLASS_SHORT,
             fmtDateTime,
             renderDiagram,
             renderDiagramForPrint,
@@ -1001,6 +1225,7 @@
 
       const wasEntryFlow = !_session.retroactive;
       const completedVehicle = _session.vehicle;
+      clearDraftStorage(completedVehicle?.id);
       alert(
         `Vistoria nº ${json.inspection_number} concluída.\nResponsável: ${json.inspector_name || "—"}\nData: ${fmtDateTime(json.completed_at)}${postWarn}`
       );
@@ -1037,15 +1262,15 @@
   function openEditModal(vehicle, ctx, opts) {
     ensureModal();
     const retroactive = !!opts?.retroactive;
-    _session = { vehicle, mode: "edit", draft: emptyDraft(), retroactive, ctx };
+    const saved = loadDraftFromStorage(vehicle.id);
+    const draft = saved || emptyDraft();
+    _session = { vehicle, mode: "edit", draft, retroactive, ctx };
     const modal = _modalEl;
     modal.classList.remove("hidden");
-    document.getElementById("veiModalTitle").textContent = retroactive
-      ? "Vistoria de entrada (retroativa)"
-      : "Vistoria de entrada";
+    document.getElementById("veiModalTitle").textContent = "Vistoria do veículo";
     document.getElementById("veiModalSubtitle").textContent = retroactive
-      ? `Placa ${vehicle.placa || "—"} — vistoria retroativa; data/hora registradas ao finalizar`
-      : `Placa ${vehicle.placa || "—"} — preencha o checklist completo`;
+      ? `Placa ${vehicle.placa || "—"} — vistoria retroativa · preencha card a card`
+      : `Placa ${vehicle.placa || "—"} — um card por vez (${CARD_COUNT} etapas)`;
     const body = document.getElementById("veiModalBody");
     body.innerHTML = buildEditHtml(vehicle, ctx, _session.draft);
     ensureEditModalEvents(body, ctx);
@@ -1167,7 +1392,10 @@
 
   global.vehicleEntryInspection = {
     CHECKLIST,
+    INSPECTION_CARDS,
+    CARD_COUNT,
     CLASSIFICATIONS,
+    CLASS_SHORT,
     INSPECTION_ITEM_COUNT: CHECKLIST.length,
     probeSchema,
     openForVehicle,
