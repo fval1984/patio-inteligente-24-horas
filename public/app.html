@@ -6375,7 +6375,7 @@
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme7" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260813vistui1" />
-    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile2" />
+    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile3" />
   </head>
   <body>
     <noscript>
@@ -16397,31 +16397,17 @@
         return parts.join(" ");
       }
 
-      function patioMobileDaysLabel(v) {
-        const d = calcDays(v);
-        return d === 1 ? "1 dia no pátio" : `${d} dias no pátio`;
-      }
-
-      function buildPatioMobileListCellHtml(v, colspan) {
-        const destaque = patioVehicleDestaqueRowClass(v);
-        let tags = "";
-        if (isPendingAdmReview(v)) {
-          tags += '<span class="patio-mobile-tag tag warning">Revisão ADM</span>';
-        } else if (isVehiclePatioDestaque(v)) {
-          tags += `<span class="patio-mobile-tag tag warning">${escapeHtml(VLS_STATUS_LABELS[v.status] || v.status || "")}</span>`;
-        }
+      function buildPatioMobileListCellsHtml(v) {
+        const dias = calcDays(v);
         return `
-          <td class="patio-mob-only" colspan="${colspan}">
-            <div class="patio-mobile-item${destaque ? ` ${destaque}` : ""}">
-              <div class="patio-mobile-item-text">
-                <div class="patio-mobile-placa">${escapeHtml(v.placa || "-")}</div>
-                <div class="patio-mobile-veiculo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</div>
-                <div class="patio-mobile-dias">${escapeHtml(patioMobileDaysLabel(v))}</div>
-                ${tags ? `<div class="patio-mobile-tags">${tags}</div>` : ""}
-              </div>
+            <td class="patio-mob-only patio-mob-field" data-label="Placa">${escapeHtml(v.placa || "-")}</td>
+            <td class="patio-mob-only patio-mob-field" data-label="Marca">${escapeHtml(v.marca || "-")}</td>
+            <td class="patio-mob-only patio-mob-field" data-label="Modelo">${escapeHtml(v.modelo || "-")}</td>
+            <td class="patio-mob-only patio-mob-field" data-label="Cor">${escapeHtml(v.cor || "-")}</td>
+            <td class="patio-mob-only patio-mob-field" data-label="Dias no pátio">${escapeHtml(String(dias))}</td>
+            <td class="patio-mob-only patio-mob-ficha-cell">
               <button type="button" class="patio-mobile-ficha-btn secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
-            </div>
-          </td>`;
+            </td>`;
       }
 
       function buildPatioVehicleActionsHtml(v, opts = {}) {
@@ -16513,7 +16499,7 @@
 
         return `
           <tr class="${rowClass}" data-vehicle-row="${v.id}">
-            ${buildPatioMobileListCellHtml(v, 8)}
+            ${buildPatioMobileListCellsHtml(v)}
             <td class="patio-desk-only" data-label="Placa">${v.placa || "-"}${situacaoHtml}</td>
             <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml(registoKind === "vnp" ? (isVlpStatus(v.status) ? "vlp" : "vnp") : registoKind)}</td>
             <td class="patio-desk-only" data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
@@ -16740,7 +16726,7 @@
 
             return `
               <tr data-vehicle-row="${v.id}">
-                ${buildPatioMobileListCellHtml(v, 9)}
+                ${buildPatioMobileListCellsHtml(v)}
                 <td class="patio-desk-only" data-label="Placa">${v.placa || "-"}</td>
                 <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td class="patio-desk-only" data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
