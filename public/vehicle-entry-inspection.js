@@ -382,8 +382,11 @@
       '<div class="vei-modal" role="dialog" aria-modal="true" aria-labelledby="veiModalTitle">' +
       '<div class="vei-modal-head vei-no-print">' +
       '<div><h3 id="veiModalTitle" style="margin:0">Vistoria de entrada</h3><p class="subtitle" id="veiModalSubtitle" style="margin:4px 0 0"></p></div>' +
+      '<div class="vei-modal-head-actions">' +
+      '<button type="button" class="secondary hidden" id="veiHeadPrintBtn">Imprimir</button>' +
+      '<button type="button" class="secondary hidden" id="veiHeadPdfBtn">PDF</button>' +
       '<button type="button" class="secondary" id="veiModalClose">Fechar</button>' +
-      "</div>" +
+      "</div></div>" +
       '<div class="vei-modal-body" id="veiModalBody"></div>' +
       "</div>";
     document.body.appendChild(backdrop);
@@ -398,6 +401,62 @@
   function closeModal() {
     _modalEl?.classList.add("hidden");
     _session = null;
+    document.getElementById("veiHeadPrintBtn")?.classList.add("hidden");
+    document.getElementById("veiHeadPdfBtn")?.classList.add("hidden");
+    document.getElementById("veiPrintHostHidden")?.replaceChildren();
+  }
+
+  function setViewModalActionsVisible(visible) {
+    document.getElementById("veiHeadPrintBtn")?.classList.toggle("hidden", !visible);
+    document.getElementById("veiHeadPdfBtn")?.classList.toggle("hidden", !visible);
+  }
+
+  function mountHiddenPrintDocument(vehicle, ctx, inspection, detail) {
+    const backdrop = ensureModal();
+    let host = document.getElementById("veiPrintHostHidden");
+    if (!host) {
+      host = document.createElement("div");
+      host.id = "veiPrintHostHidden";
+      host.className = "vei-no-print";
+      host.setAttribute("aria-hidden", "true");
+      host.style.cssText =
+        "position:fixed;left:-20000px;top:0;width:794px;max-width:794px;overflow:hidden;pointer-events:none;opacity:0;";
+      backdrop.appendChild(host);
+    }
+    host.replaceChildren();
+    const root = buildPrintDocumentRoot(vehicle, ctx, inspection, detail);
+    if (root) host.appendChild(root);
+    return host.querySelector("#veiPrintDocument") || host.querySelector(".vei-print-root");
+  }
+
+  function bindViewModalActions(vehicle, ctx, inspection, detail) {
+    const docMod = global.vehicleEntryInspectionDocument;
+    const runPrint = async () => {
+      let root =
+        document.getElementById("veiPrintDocument") ||
+        document.querySelector("#veiPrintHostHidden .vei-print-root");
+      if (!root) root = mountHiddenPrintDocument(vehicle, ctx, inspection, detail);
+      if (docMod?.printDocument) await docMod.printDocument(root, inspection);
+      else alert("Impressão indisponível. Atualize a página.");
+    };
+    const runPdf = async () => {
+      if (!document.getElementById("veiPrintDocument")) {
+        mountHiddenPrintDocument(vehicle, ctx, inspection, detail);
+      }
+      await downloadPdf(ctx, vehicle, inspection, detail);
+    };
+    const headPrint = document.getElementById("veiHeadPrintBtn");
+    const headPdf = document.getElementById("veiHeadPdfBtn");
+    if (headPrint) headPrint.onclick = (e) => { e.preventDefault(); runPrint(); };
+    if (headPdf) headPdf.onclick = (e) => { e.preventDefault(); runPdf(); };
+    document.getElementById("veiPrintBtn")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      runPrint();
+    });
+    document.getElementById("veiPdfBtn")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      runPdf();
+    });
   }
 
   function diagramMarkerCoords(m) {
@@ -1074,19 +1133,33 @@
 
   function buildReadonlyExtrasHtml(vehicle, ctx, inspection, detail, draft) {
     const cfg = draftCfg(draft);
+    const docMod = global.vehicleEntryInspectionDocument;
+    docMod?.injectStylesOnce?.();
     let html = '<div class="vei-edit-extras">';
+
+    const photosHtml = docMod?.buildViewPhotosHtml ? docMod.buildViewPhotosHtml(detail) : "";
+    if (photosHtml) {
+      html +=
+        '<div class="vei-card-panel">' +
+        '<div class="vei-section-head">Registro fotográfico</div>' +
+        `<div class="vei-section-body">${photosHtml}</div></div>`;
+    }
+
+    html +=
+      '<div class="vei-card-panel">' +
+      `<div class="vei-section-head">Diagrama de avarias — ${esc(cfg.shortLabel || cfg.label || "veículo")}</div>` +
+      '<div class="vei-section-body vei-doc-diagram">' +
+      renderDiagramForPrint(draft) +
+      "</div></div>";
+
     if (draft.generalNotes) {
       html +=
         '<div class="vei-card-panel">' +
         '<div class="vei-section-head">Observações gerais</div>' +
         `<div class="vei-section-body vei-readonly-notes">${esc(draft.generalNotes)}</div></div>`;
     }
-    html +=
-      '<div class="vei-card-panel">' +
-      `<div class="vei-section-head">Diagrama de avarias — ${esc(cfg.shortLabel || cfg.label || "veículo")}</div>` +
-      '<div class="vei-section-body vei-doc-diagram">' +
-      (typeof renderDiagramForPrint === "function" ? renderDiagramForPrint(draft, true) : renderDiagram(draft, true)) +
-      "</div></div></div>";
+
+    html += "</div>";
     return html;
   }
 
@@ -1365,8 +1438,12 @@
     const draft = detailToDraft(detail);
     return buildChecklistViewHtml(draft, true, {
       showLegend: false,
-      extrasHtml: "",
-      actionsHtml: "",
+      extrasHtml: buildReadonlyExtrasHtml(vehicle, ctx, inspection, detail, draft),
+      actionsHtml:
+        '<div class="vei-actions vei-actions-sticky vei-no-print vei-view-actions">' +
+        '<button type="button" class="secondary" id="veiPrintBtn">Imprimir</button>' +
+        '<button type="button" class="secondary" id="veiPdfBtn">Baixar PDF</button>' +
+        "</div>",
     });
   }
 
@@ -1712,6 +1789,8 @@
 
   function openVariantPicker(vehicle, ctx, opts) {
     ensureModal();
+    setViewModalActionsVisible(false);
+    document.getElementById("veiPrintHostHidden")?.replaceChildren();
     _session = { vehicle, mode: "pick_variant", retroactive: !!opts?.retroactive, ctx };
     const modal = _modalEl;
     modal.classList.remove("hidden");
@@ -1732,6 +1811,8 @@
 
   function openEditModal(vehicle, ctx, opts) {
     ensureModal();
+    setViewModalActionsVisible(false);
+    document.getElementById("veiPrintHostHidden")?.replaceChildren();
     const retroactive = !!opts?.retroactive;
     const variant = opts?.variant || "LEVE";
     const saved = loadDraftFromStorage(vehicle.id);
@@ -1757,6 +1838,8 @@
 
   async function openEditExistingModal(vehicle, ctx, inspectionId) {
     ensureModal();
+    setViewModalActionsVisible(false);
+    document.getElementById("veiPrintHostHidden")?.replaceChildren();
     const detail = await loadInspectionDetail(ctx, inspectionId);
     if (!detail) {
       alert("Vistoria não encontrada.");
@@ -1801,6 +1884,9 @@
     document.getElementById("veiModalSubtitle").textContent = `Placa ${vehicle.placa || "—"} — consulta`;
     const body = document.getElementById("veiModalBody");
     body.innerHTML = buildReadonlyHtml(vehicle, ctx, detail.inspection, detail);
+    setViewModalActionsVisible(true);
+    mountHiddenPrintDocument(vehicle, ctx, detail.inspection, detail);
+    bindViewModalActions(vehicle, ctx, detail.inspection, detail);
   }
 
   function canStartInspection(vehicle, ctx) {
