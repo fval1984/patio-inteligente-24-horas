@@ -812,11 +812,39 @@ label {
 .ops-exec-alert--green {
   background: var(--ag-success-bg) !important;
   border-color: rgba(22, 163, 74, 0.2) !important;
+  color: var(--ag-text) !important;
 }
 
 .hub-alert--warn,
-.hub-alert.danger {
+.hub-alert.danger,
+.ops-exec-alert--yellow,
+.ops-exec-alert--red {
   background: var(--ag-warning-bg) !important;
+  color: var(--ag-text) !important;
+}
+
+.ops-exec-alert--red {
+  background: #fef2f2 !important;
+  border-color: rgba(220, 38, 38, 0.25) !important;
+}
+
+.ops-exec-alert strong,
+.ops-exec-fila-step strong,
+.ops-exec-mapa-node strong,
+.hub-ops-card-value {
+  color: var(--ag-text) !important;
+}
+
+.ops-exec-fila-step span,
+.ops-exec-mapa-node span,
+.hub-ops-card-meta,
+.hub-ops-card-label {
+  color: var(--ag-muted) !important;
+}
+
+.hub-chart-panel h4,
+.hub-table-title {
+  color: var(--ag-text) !important;
 }
 
 /* ---- Auth ---- */
