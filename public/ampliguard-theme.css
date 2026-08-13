@@ -510,6 +510,151 @@ header .user {
   color: var(--ag-muted) !important;
 }
 
+/* ---- Módulos — subnav, cards e tabelas unificados (incl. Pátio) ---- */
+body.app-module-patio {
+  background: var(--ag-bg) !important;
+}
+
+body.app-module-patio header {
+  border-bottom-color: var(--ag-border) !important;
+}
+
+.module-kicker--patio,
+.module-kicker--finance,
+.module-kicker--partners,
+.module-kicker--config {
+  color: var(--ag-blue) !important;
+}
+
+#viewPatio .section-card.patio-subview,
+#viewPatio .section-card {
+  border-radius: var(--ag-radius-sm) !important;
+  border-color: var(--ag-border) !important;
+  background: var(--ag-surface) !important;
+  box-shadow: var(--ag-shadow-soft) !important;
+}
+
+#viewPatio .section-card.patio-subview > .pill:first-child {
+  background: var(--ag-blue-soft) !important;
+  border: 1px solid rgba(22, 119, 255, 0.2) !important;
+  color: var(--ag-blue-strong) !important;
+  box-shadow: none !important;
+}
+
+#viewPatio.patio-module-shell .toolbar {
+  border-bottom-color: var(--ag-border) !important;
+}
+
+#viewPatio .patio-nav-inline,
+#viewPatio #patioSubnav.patio-nav-inline,
+:is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+  border: 1px solid var(--ag-border) !important;
+  border-radius: var(--ag-radius-sm) !important;
+  padding: 8px 10px !important;
+  margin-top: 12px !important;
+  background: var(--ag-neutral-bg) !important;
+  box-shadow: none !important;
+}
+
+#viewPatio .patio-nav-inline button,
+:is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button {
+  border-radius: var(--ag-radius-sm) !important;
+  border: 1px solid var(--ag-border) !important;
+  background: var(--ag-surface) !important;
+  color: var(--ag-text) !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+  padding: 7px 12px !important;
+}
+
+#viewPatio .patio-nav-inline button.active,
+:is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button.active {
+  background: var(--ag-blue) !important;
+  border-color: var(--ag-blue-strong) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+#viewPatio .patio-nav-inline button.secondary:hover,
+:is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button:hover:not(.active) {
+  background: var(--ag-neutral-bg) !important;
+  border-color: var(--ag-border) !important;
+  color: var(--ag-text) !important;
+}
+
+.patio-inicio-panel {
+  background: var(--ag-surface) !important;
+  border: 1px solid var(--ag-border) !important;
+  border-radius: var(--ag-radius) !important;
+  box-shadow: var(--ag-shadow-soft) !important;
+}
+
+.patio-inicio-panel .patio-inicio-head {
+  border-bottom-color: var(--ag-border) !important;
+}
+
+.patio-inicio-stat {
+  background: var(--ag-surface) !important;
+  border: 1px solid var(--ag-border) !important;
+  border-radius: var(--ag-radius-sm) !important;
+}
+
+.patio-inicio-stat .label {
+  color: var(--ag-muted) !important;
+}
+
+.patio-inicio-stat .value {
+  color: var(--ag-text) !important;
+}
+
+#viewPatio .patio-plate-bar input {
+  border: 1px solid var(--ag-border) !important;
+  background: var(--ag-surface) !important;
+  border-radius: var(--ag-radius-sm) !important;
+  color: var(--ag-text) !important;
+}
+
+:is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .filter-bar {
+  background: var(--ag-surface) !important;
+  border: 1px solid var(--ag-border) !important;
+  border-radius: var(--ag-radius-sm) !important;
+  box-shadow: none !important;
+}
+
+:is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .table-wrap {
+  background: var(--ag-surface) !important;
+  border: 1px solid var(--ag-border) !important;
+  border-radius: var(--ag-radius-sm) !important;
+}
+
+:is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .table thead th {
+  background: var(--ag-navy) !important;
+  color: #fff !important;
+  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+:is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .table tbody tr:nth-child(even) {
+  background: #fafbfc !important;
+}
+
+:is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .table tbody tr:hover {
+  background: var(--ag-blue-soft) !important;
+}
+
+.patio-side-menu {
+  background: var(--ag-navy) !important;
+  border-right-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="light"] .patio-side-menu {
+  background: var(--ag-surface) !important;
+  border-right-color: var(--ag-border) !important;
+}
+
 /* ---- Botões ---- */
 button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.header-mobile-module-btn):not(.subnav button):not(.patio-nav-inline button):not(.lista-toolbar-actions button):not(.close-view):not([data-extra-remove]):not(.vei-damage-photo-clear):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn) {
   background: var(--ag-blue) !important;
