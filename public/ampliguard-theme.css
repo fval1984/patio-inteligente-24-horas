@@ -5,15 +5,15 @@
  */
 
 :root {
-  --ag-navy: #0f2744;
-  --ag-navy-deep: #0a1a2e;
-  --ag-blue: #2563eb;
-  --ag-blue-strong: #1d4ed8;
-  --ag-blue-soft: #dbeafe;
-  --ag-bg: #f1f5f9;
+  --ag-navy: #001529;
+  --ag-navy-deep: #000c17;
+  --ag-blue: #1677ff;
+  --ag-blue-strong: #0958d9;
+  --ag-blue-soft: #e6f4ff;
+  --ag-bg: #f0f2f5;
   --ag-surface: #ffffff;
-  --ag-border: #e2e8f0;
-  --ag-text: #0f2744;
+  --ag-border: #dee2e6;
+  --ag-text: #001529;
   --ag-muted: #64748b;
   --ag-success: #16a34a;
   --ag-success-bg: #dcfce7;
@@ -27,7 +27,7 @@
   --ag-radius-sm: 8px;
   --ag-shadow: 0 4px 24px rgba(15, 39, 68, 0.08);
   --ag-shadow-soft: 0 1px 3px rgba(15, 39, 68, 0.06);
-  --ag-sidebar-w: 220px;
+  --ag-sidebar-w: 200px;
 }
 
 /* Tokens globais — alinha Vistoria e demais módulos */
@@ -110,24 +110,25 @@ header .user {
     max-width: none;
     flex-direction: column;
     align-items: stretch;
-    gap: 4px;
-    padding: 92px 10px 16px;
+    gap: 2px;
+    padding: 16px 8px;
     margin: 0;
-    z-index: 8;
+    z-index: 9;
     background: var(--ag-navy);
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
     overflow-y: auto;
-    box-shadow: 2px 0 12px rgba(15, 39, 68, 0.12);
+    box-shadow: none;
   }
 
   #dashboardSystemEntry .dashboard-system-btn {
     width: 100%;
-    min-height: 44px;
-    padding: 10px 14px;
-    border-radius: var(--ag-radius-sm);
-    border: 1px solid transparent;
+    min-height: 42px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: none;
+    border-left: 3px solid transparent;
     background: transparent;
-    color: rgba(255, 255, 255, 0.88);
+    color: rgba(255, 255, 255, 0.85);
     box-shadow: none;
     text-align: left;
     transform: none !important;
@@ -143,8 +144,7 @@ header .user {
 
   #dashboardSystemEntry .dashboard-system-btn:active,
   #dashboardSystemEntry .dashboard-system-btn:focus-visible {
-    background: rgba(37, 99, 235, 0.35);
-    border-color: rgba(96, 165, 250, 0.4);
+    background: rgba(22, 119, 255, 0.2);
     outline: none;
   }
 
@@ -162,18 +162,19 @@ header .user {
     color: inherit;
   }
 
-  main {
-    margin-left: var(--ag-sidebar-w);
-  }
-
   header {
     margin-left: var(--ag-sidebar-w);
     width: calc(100% - var(--ag-sidebar-w));
+    min-height: 64px;
   }
 
-  #appHeaderMenuWrap:not(.hidden) .header-plate-search,
-  #appHeaderMenuWrap:not(.hidden) .header-plate-search-hint {
-    max-width: none;
+  header .brand {
+    display: none;
+  }
+
+  main {
+    margin-left: var(--ag-sidebar-w);
+    padding-top: 8px;
   }
 }
 
@@ -650,11 +651,14 @@ label {
   body.app-module-lista #dashboardOpenLista,
   body:has(#viewParceiros:not(.hidden)) #dashboardOpenParceiros,
   body:has(#viewConfiguracoes:not(.hidden)) #dashboardOpenConfiguracoes {
-    background: var(--ag-blue) !important;
-    border-color: rgba(96, 165, 250, 0.5) !important;
+    background: rgba(22, 119, 255, 0.18) !important;
+    border-left-color: var(--ag-blue) !important;
     color: #fff !important;
   }
 }
+
+/* ---- Responsivo ---- */
+@media (max-width: 900px) {
   main {
     margin-left: 0 !important;
   }
@@ -662,6 +666,10 @@ label {
   header {
     margin-left: 0 !important;
     width: 100% !important;
+  }
+
+  header .brand {
+    display: flex;
   }
 
   .panel {
