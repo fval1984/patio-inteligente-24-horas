@@ -2329,151 +2329,165 @@
       }
 
       /* ---- Tela de acesso (login) ---- */
-      body.auth-screen-active {
-        overflow: hidden;
-        background: #0a1218 url("/assets/ampliguard-login-bg.png?v=1") center center / cover no-repeat fixed;
-      }
-      body.auth-screen-active::before {
-        content: "";
+      .auth-backdrop {
         position: fixed;
         inset: 0;
         z-index: 0;
+        overflow: hidden;
+        background: #0a1218;
+      }
+      .auth-backdrop.hidden {
+        display: none !important;
+      }
+      .auth-backdrop__img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center center;
+      }
+      .auth-backdrop__shade {
+        position: absolute;
+        inset: 0;
         background: linear-gradient(
-          105deg,
-          rgba(0, 0, 0, 0.08) 0%,
-          rgba(0, 0, 0, 0.22) 42%,
-          rgba(0, 0, 0, 0.55) 100%
+          180deg,
+          rgba(0, 0, 0, 0.06) 0%,
+          rgba(0, 0, 0, 0.18) 55%,
+          rgba(0, 0, 0, 0.42) 100%
         );
         pointer-events: none;
       }
-      body.auth-screen-active .app-top-shell > header,
+      body.auth-screen-active {
+        overflow: hidden;
+        background: #0a1218;
+      }
+      body.auth-screen-active .app-top-shell,
       body.auth-screen-active #themeToggle {
         display: none !important;
       }
       body.auth-screen-active main {
-        position: relative;
+        position: fixed;
+        inset: 0;
         z-index: 1;
         display: flex;
-        align-items: center;
+        align-items: flex-end;
         justify-content: flex-end;
-        padding: max(20px, env(safe-area-inset-top)) max(5vw, env(safe-area-inset-right))
-          max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+        padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+          max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
         max-width: none;
-        min-height: 100dvh;
+        min-height: 0;
+        background: transparent;
+        pointer-events: none;
       }
       .auth-screen {
         position: relative;
-        width: min(100%, 400px);
+        width: min(100%, 240px);
         margin-left: auto;
+        pointer-events: auto;
       }
       .auth-screen__inner {
         width: 100%;
       }
       .auth-screen__card {
-        padding: 28px 24px 24px;
-        border-radius: 16px;
-        background: rgba(8, 18, 22, 0.88);
-        backdrop-filter: blur(14px);
-        border: 1px solid rgba(212, 175, 55, 0.38);
-        box-shadow: 0 24px 56px rgba(0, 0, 0, 0.48);
+        padding: 12px 12px 10px;
+        border-radius: 10px;
+        background: rgba(8, 12, 18, 0.52);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
       }
       .auth-login-form {
         display: flex;
         flex-direction: column;
-        gap: 16px;
-      }
-      .auth-login-form label {
-        display: block;
-        margin-bottom: 6px;
-        font-size: 13px;
-        font-weight: 600;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: rgba(250, 204, 21, 0.92);
+        gap: 8px;
       }
       .auth-login-form input {
         width: 100%;
-        min-height: 48px;
-        padding: 12px 14px;
-        font-size: 16px;
-        border-radius: 10px;
-        border: 1px solid rgba(148, 163, 184, 0.35);
-        background: rgba(15, 23, 42, 0.72);
-        color: #f8fafc;
+        min-height: 34px;
+        padding: 7px 10px;
+        font-size: 13px;
+        border-radius: 7px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(0, 0, 0, 0.35);
+        color: #f1f5f9;
       }
       .auth-login-form input::placeholder {
-        color: rgba(148, 163, 184, 0.85);
+        color: rgba(203, 213, 225, 0.72);
+        font-size: 12px;
       }
       .auth-login-form input:focus {
         outline: none;
-        border-color: rgba(250, 204, 21, 0.65);
-        box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.15);
+        border-color: rgba(250, 204, 21, 0.45);
+        box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.1);
       }
       .auth-login-form button[type="submit"] {
         width: 100%;
-        min-height: 48px;
-        margin-top: 4px;
-        font-size: 15px;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        border-radius: 10px;
-        border: 1px solid rgba(202, 138, 4, 0.85);
-        background: linear-gradient(180deg, #facc15 0%, #ca8a04 100%);
-        color: #1c1917;
+        min-height: 34px;
+        margin-top: 2px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        border-radius: 7px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(248, 250, 252, 0.92);
         cursor: pointer;
       }
       .auth-login-form button[type="submit"]:hover {
-        filter: brightness(1.05);
+        background: rgba(255, 255, 255, 0.16);
+        border-color: rgba(250, 204, 21, 0.35);
       }
       .auth-screen .auth-status {
-        margin-top: 14px;
-        min-height: 1.25em;
-        font-size: 14px;
+        margin-top: 8px;
+        min-height: 1em;
+        font-size: 11px;
+        line-height: 1.35;
+        color: rgba(248, 250, 252, 0.85);
+      }
+      .auth-screen .auth-status.error {
+        color: #fecaca;
+      }
+      .auth-screen .auth-status.success {
+        color: #bbf7d0;
       }
       @media (max-width: 768px) {
         body.auth-screen-active main {
           align-items: flex-end;
           justify-content: center;
-          padding: 12px 14px max(20px, env(safe-area-inset-bottom));
+          padding: 10px 12px max(16px, env(safe-area-inset-bottom));
         }
-        body.auth-screen-active {
-          background-position: center 28%;
+        .auth-backdrop__img {
+          object-position: center 22%;
         }
-        body.auth-screen-active::before {
+        .auth-backdrop__shade {
           background: linear-gradient(
             180deg,
-            rgba(0, 0, 0, 0.05) 0%,
-            rgba(0, 0, 0, 0.35) 55%,
-            rgba(0, 0, 0, 0.72) 100%
+            rgba(0, 0, 0, 0.02) 0%,
+            rgba(0, 0, 0, 0.22) 62%,
+            rgba(0, 0, 0, 0.5) 100%
           );
         }
         .auth-screen {
-          width: 100%;
-          max-width: 420px;
+          width: min(100%, 220px);
           margin: 0 auto;
-        }
-        .auth-screen__card {
-          padding: 22px 18px 20px;
         }
       }
       @media (min-width: 1200px) {
         body.auth-screen-active main {
-          padding-right: max(7vw, 48px);
-        }
-        .auth-screen {
-          width: min(100%, 420px);
+          padding-right: max(4vw, 36px);
+          padding-bottom: max(4vh, 36px);
         }
       }
       body.auth-screen-active #authorizationPanel:not(.hidden) {
-        width: min(100%, 420px);
-        max-width: 420px;
+        width: min(100%, 320px);
+        max-width: 320px;
         margin: 0 0 0 auto;
-        border-radius: 16px;
-        background: rgba(8, 18, 22, 0.88);
-        backdrop-filter: blur(14px);
-        border: 1px solid rgba(212, 175, 55, 0.38);
-        box-shadow: 0 24px 56px rgba(0, 0, 0, 0.48);
+        pointer-events: auto;
+        border-radius: 12px;
+        background: rgba(8, 12, 18, 0.72);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
       }
       @media (max-width: 768px) {
         body.auth-screen-active #authorizationPanel:not(.hidden) {
@@ -6523,7 +6537,7 @@
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile7" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate3" />
   </head>
-  <body>
+  <body class="auth-screen-active">
     <noscript>
       <p style="padding: 16px; font-family: system-ui, sans-serif">
         Ative o JavaScript para usar o AMPLIGUARD.
@@ -6627,6 +6641,16 @@
         <p class="notice plate-search-hint header-plate-search-hint hidden" aria-live="polite"></p>
       </div>
     </div>
+    <div id="authBackdrop" class="auth-backdrop" aria-hidden="true">
+      <img
+        class="auth-backdrop__img"
+        src="/assets/ampliguard-login-bg.png?v=2"
+        alt=""
+        decoding="async"
+        fetchpriority="high"
+      />
+      <div class="auth-backdrop__shade"></div>
+    </div>
     <button id="themeToggle" class="toggle hidden" type="button" aria-hidden="true" tabindex="-1">
       <span class="dot" aria-hidden="true"></span>
       <span id="themeLabel">Tema escuro</span>
@@ -6636,14 +6660,8 @@
         <div class="auth-screen__inner">
           <div class="auth-screen__card">
             <form id="loginForm" class="auth-login-form">
-              <div>
-                <label for="loginEmail">Login</label>
-                <input id="loginEmail" type="text" autocomplete="username" placeholder="Utilizador ou e-mail" required />
-              </div>
-              <div>
-                <label for="loginPassword">Senha</label>
-                <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Senha" required />
-              </div>
+              <input id="loginEmail" type="text" autocomplete="username" placeholder="Login" required />
+              <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Senha" required />
               <button type="submit">Entrar</button>
             </form>
             <div id="authStatus" class="status auth-status"></div>
@@ -8544,6 +8562,7 @@
       }
 
       const authPanel = document.getElementById("authPanel");
+      const authBackdrop = document.getElementById("authBackdrop");
       const authorizationPanel = document.getElementById("authorizationPanel");
       const appPanel = document.getElementById("appPanel");
       const authStatus = document.getElementById("authStatus");
@@ -14477,6 +14496,7 @@
         authorizationPanel?.classList.remove("hidden");
         appPanel.classList.add("hidden");
         document.body.classList.add("auth-screen-active");
+        showAuthBackdrop();
         setHeaderLoggedInUI(false);
         userInfo.textContent = user ? `Aguardando autorização — ${displayManagerIdentity(user.email || "")}` : "Aguardando autorização";
         const info = document.getElementById("authorizationUserInfo");
@@ -14649,6 +14669,7 @@
           hideAppSessionBanner();
           authPanel.classList.add("hidden");
           document.body.classList.remove("auth-screen-active");
+          hideAuthBackdrop();
           appPanel.classList.remove("hidden");
           setHeaderLoggedInUI(true);
           userInfo.textContent = user ? `Logado como ${displayManagerIdentity(user.email || "")}` : "Logado";
@@ -14868,11 +14889,20 @@
         });
       }
 
+      function showAuthBackdrop() {
+        authBackdrop?.classList.remove("hidden");
+      }
+
+      function hideAuthBackdrop() {
+        authBackdrop?.classList.add("hidden");
+      }
+
       function showAuth() {
         authPanel.classList.remove("hidden");
         authorizationPanel?.classList.add("hidden");
         appPanel.classList.add("hidden");
         document.body.classList.add("auth-screen-active");
+        showAuthBackdrop();
         setStatus("", "");
         setHeaderLoggedInUI(false);
         document.body.classList.remove("menus-no-modulo");
