@@ -1,0 +1,278 @@
+/* ---- Placa veicular BR (antiga + Mercosul) — componente visual ---- */
+.vp-input-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+
+.vp-preview-slot {
+  flex: 0 0 auto;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+}
+
+.vp-plate-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  vertical-align: middle;
+}
+
+.vp-plate {
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1;
+  user-select: none;
+}
+
+.vp-plate__merco {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid #111827;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 2px 6px rgba(15, 23, 42, 0.18);
+}
+
+.vp-plate__merco-band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 0;
+  padding: 2px 6px;
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e3a8a 100%);
+  color: #fff;
+}
+
+.vp-plate__merco-country {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.vp-plate__merco-flag {
+  width: 14px;
+  height: 10px;
+  border-radius: 1px;
+  background:
+    linear-gradient(180deg, #059669 0 42%, #facc15 42% 58%, #2563eb 58% 100%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset;
+}
+
+.vp-plate__body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+}
+
+.vp-plate__body--merco {
+  background: #fff;
+  border-top: 1px solid #cbd5e1;
+}
+
+.vp-plate__body--old {
+  border: 2px solid #111827;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #fefefe 0%, #eceff3 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 2px 6px rgba(15, 23, 42, 0.16);
+}
+
+.vp-plate__text {
+  font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.vp-plate--partial .vp-plate__text {
+  opacity: 0.88;
+}
+
+.vp-plate--partial .vp-plate__ghost {
+  opacity: 0.28;
+  font-weight: 700;
+}
+
+.vp-plate--empty .vp-plate__body--old {
+  border-style: dashed;
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.vp-plate--empty .vp-plate__text {
+  color: #94a3b8;
+  letter-spacing: 0.06em;
+}
+
+.vp-plate-caption {
+  display: block;
+  font-size: 11px;
+  color: var(--ag-muted, #64748b);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Tamanhos */
+.vp-plate--xs .vp-plate__merco,
+.vp-plate--xs .vp-plate__body--old {
+  width: 92px;
+}
+
+.vp-plate--xs .vp-plate__merco-band {
+  padding: 1px 4px;
+}
+
+.vp-plate--xs .vp-plate__merco-country {
+  font-size: 7px;
+}
+
+.vp-plate--xs .vp-plate__merco-flag {
+  width: 10px;
+  height: 7px;
+}
+
+.vp-plate--xs .vp-plate__body--merco,
+.vp-plate--xs .vp-plate__body--old {
+  min-height: 22px;
+  padding: 2px 4px;
+}
+
+.vp-plate--xs .vp-plate__text {
+  font-size: 10px;
+}
+
+.vp-plate--sm .vp-plate__merco,
+.vp-plate--sm .vp-plate__body--old {
+  width: 112px;
+}
+
+.vp-plate--sm .vp-plate__merco-band {
+  padding: 2px 5px;
+}
+
+.vp-plate--sm .vp-plate__merco-country {
+  font-size: 8px;
+}
+
+.vp-plate--sm .vp-plate__merco-flag {
+  width: 12px;
+  height: 8px;
+}
+
+.vp-plate--sm .vp-plate__body--merco,
+.vp-plate--sm .vp-plate__body--old {
+  min-height: 26px;
+  padding: 3px 6px;
+}
+
+.vp-plate--sm .vp-plate__text {
+  font-size: 12px;
+}
+
+.vp-plate--md .vp-plate__merco,
+.vp-plate--md .vp-plate__body--old {
+  width: 132px;
+}
+
+.vp-plate--md .vp-plate__merco-band {
+  padding: 3px 6px;
+}
+
+.vp-plate--md .vp-plate__merco-country {
+  font-size: 9px;
+}
+
+.vp-plate--md .vp-plate__merco-flag {
+  width: 14px;
+  height: 9px;
+}
+
+.vp-plate--md .vp-plate__body--merco,
+.vp-plate--md .vp-plate__body--old {
+  min-height: 30px;
+  padding: 4px 8px;
+}
+
+.vp-plate--md .vp-plate__text {
+  font-size: 14px;
+}
+
+.vp-plate--lg .vp-plate__merco,
+.vp-plate--lg .vp-plate__body--old {
+  width: 156px;
+}
+
+.vp-plate--lg .vp-plate__merco-band {
+  padding: 4px 8px;
+}
+
+.vp-plate--lg .vp-plate__merco-country {
+  font-size: 10px;
+}
+
+.vp-plate--lg .vp-plate__merco-flag {
+  width: 16px;
+  height: 10px;
+}
+
+.vp-plate--lg .vp-plate__body--merco,
+.vp-plate--lg .vp-plate__body--old {
+  min-height: 36px;
+  padding: 5px 10px;
+}
+
+.vp-plate--lg .vp-plate__text {
+  font-size: 16px;
+}
+
+/* Tabelas / listas */
+.table td .vp-plate-wrap,
+.table td .vp-plate {
+  margin: 2px 0;
+}
+
+.patio-mob-compact-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.patio-mob-compact-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-plate-search .vp-input-row,
+.patio-plate-bar .vp-input-row {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .vp-input-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .vp-preview-slot {
+    justify-content: flex-start;
+  }
+}
