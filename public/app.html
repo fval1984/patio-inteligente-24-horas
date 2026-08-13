@@ -1844,17 +1844,25 @@
         background: linear-gradient(135deg, #1d4ed8, #38bdf8);
         box-shadow: var(--shadow-soft);
       }
+      .header-top-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1 1 auto;
+        min-width: 0;
+      }
       .header-actions {
         display: flex;
         align-items: center;
         gap: 12px;
+        flex: 0 0 auto;
+        margin-left: auto;
       }
       .header-app-menu-wrap {
         display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 6px;
-        margin-left: auto;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
       }
       .header-menu-tray {
         position: relative;
@@ -1865,8 +1873,9 @@
         flex-wrap: wrap;
         align-items: center;
         gap: 4px 6px;
-        max-width: min(100vw - 48px, 420px);
+        max-width: min(100vw - 48px, 480px);
         justify-content: flex-end;
+        margin-left: auto;
       }
       .header-plate-search .header-plate-label {
         font-size: 10px;
@@ -1921,15 +1930,16 @@
       .header-module-nav.dashboard-system-entry {
         display: flex;
         flex-wrap: wrap;
-        justify-content: flex-end;
+        justify-content: flex-start;
+        align-items: center;
         gap: 4px;
         margin: 0;
-        max-width: min(100vw - 48px, 420px);
+        max-width: none;
       }
       .header-module-nav .dashboard-system-btn {
-        min-height: 26px;
-        padding: 2px 8px;
-        font-size: 10px;
+        min-height: 34px;
+        padding: 6px 12px;
+        font-size: 11px;
         font-weight: 600;
         border-radius: 6px;
         transform: none;
@@ -6102,13 +6112,20 @@
           background: rgba(224, 242, 254, 0.95);
           color: #0369a1;
         }
-        #appHeaderMenuWrap:not(.hidden) #dashboardSystemEntry {
+        #dashboardSystemEntry {
           display: none !important;
+        }
+        .header-top-left {
+          flex: 0 1 auto;
+        }
+        .header-actions {
+          margin-left: auto;
         }
         .header-app-menu-wrap {
           width: 100%;
           flex: 1 1 100%;
-          align-items: stretch;
+          flex-direction: column;
+          align-items: flex-end;
           order: 3;
         }
         .header-menu-tray {
@@ -6119,7 +6136,7 @@
           min-width: 0;
           max-width: none;
           width: auto;
-          justify-content: flex-start;
+          justify-content: flex-end;
         }
         .header-plate-search input#plateFilter {
           flex: 1 1 72px;
@@ -6299,7 +6316,7 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme2" />
+    <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme3" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260813vistui1" />
   </head>
   <body>
@@ -6309,13 +6326,51 @@
       </p>
     </noscript>
     <header>
-      <div class="brand">
-        <img
-          id="brandLogo"
-          src="/assets/ampliguard-header-trim.png?v=7"
-          alt="AMPLIGUARD — Segurança, Confiança, Compromisso"
-          class="brand-header-logo"
-        />
+      <div class="header-top-left">
+        <div class="brand">
+          <img
+            id="brandLogo"
+            src="/assets/ampliguard-header-trim.png?v=7"
+            alt="AMPLIGUARD — Segurança, Confiança, Compromisso"
+            class="brand-header-logo"
+          />
+        </div>
+        <nav class="dashboard-system-entry header-module-nav hidden" id="dashboardSystemEntry" aria-label="Módulos do sistema">
+          <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenPatio">
+            <span class="dashboard-system-btn__kicker">Operação</span>
+            <span class="dashboard-system-btn__title">PATIO</span>
+            <span class="dashboard-system-btn__desc">Acompanhe veículos, entradas, saídas e fluxo operacional.</span>
+            <span class="dashboard-system-btn__go">Abrir pátio →</span>
+          </button>
+          <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
+            <span class="dashboard-system-btn__kicker">Financeiro</span>
+            <span class="dashboard-system-btn__title">Financeiro</span>
+            <span class="dashboard-system-btn__desc">Receita em geração, contas a receber, pagamentos e caixa.</span>
+            <span class="dashboard-system-btn__go">Abrir financeiro →</span>
+          </button>
+          <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
+            <span class="dashboard-system-btn__kicker">Relacionamento</span>
+            <span class="dashboard-system-btn__title">Parceiros</span>
+            <span class="dashboard-system-btn__desc">Cadastro único de parceiros (RPV, RPP, etc.).</span>
+            <span class="dashboard-system-btn__go">Abrir parceiros →</span>
+          </button>
+          <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenLista">
+            <span class="dashboard-system-btn__kicker">Relatórios</span>
+            <span class="dashboard-system-btn__title">Lista</span>
+            <span class="dashboard-system-btn__desc">Acesse listagens operacionais, histórico e consultas rápidas.</span>
+            <span class="dashboard-system-btn__go">Abrir lista →</span>
+          </button>
+          <button
+            type="button"
+            class="dashboard-system-btn dashboard-system-btn--finance"
+            id="dashboardOpenConfiguracoes"
+          >
+            <span class="dashboard-system-btn__kicker">Sistema</span>
+            <span class="dashboard-system-btn__title">Configurações</span>
+            <span class="dashboard-system-btn__desc">Ajuste dados, usuários e parâmetros operacionais.</span>
+            <span class="dashboard-system-btn__go">Abrir configurações →</span>
+          </button>
+        </nav>
       </div>
       <div class="header-actions">
         <button id="themeToggle" class="toggle hidden" type="button" aria-hidden="true" tabindex="-1">
@@ -6364,42 +6419,6 @@
             <button type="button" class="header-mobile-module-btn" data-mobile-module="lista">Lista</button>
             <button type="button" class="header-mobile-module-btn" data-mobile-module="configuracoes" data-mobile-module-adm-only="1">Configurações</button>
           </nav>
-          <div class="dashboard-system-entry header-module-nav" id="dashboardSystemEntry">
-            <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenPatio">
-              <span class="dashboard-system-btn__kicker">Operação</span>
-              <span class="dashboard-system-btn__title">PATIO</span>
-              <span class="dashboard-system-btn__desc">Acompanhe veículos, entradas, saídas e fluxo operacional.</span>
-              <span class="dashboard-system-btn__go">Abrir pátio →</span>
-            </button>
-            <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
-              <span class="dashboard-system-btn__kicker">Financeiro</span>
-              <span class="dashboard-system-btn__title">Financeiro</span>
-              <span class="dashboard-system-btn__desc">Receita em geração, contas a receber, pagamentos e caixa.</span>
-              <span class="dashboard-system-btn__go">Abrir financeiro →</span>
-            </button>
-            <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
-              <span class="dashboard-system-btn__kicker">Relacionamento</span>
-              <span class="dashboard-system-btn__title">Parceiros</span>
-              <span class="dashboard-system-btn__desc">Cadastro único de parceiros (RPV, RPP, etc.).</span>
-              <span class="dashboard-system-btn__go">Abrir parceiros →</span>
-            </button>
-            <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenLista">
-              <span class="dashboard-system-btn__kicker">Relatórios</span>
-              <span class="dashboard-system-btn__title">Lista</span>
-              <span class="dashboard-system-btn__desc">Acesse listagens operacionais, histórico e consultas rápidas.</span>
-              <span class="dashboard-system-btn__go">Abrir lista →</span>
-            </button>
-            <button
-              type="button"
-              class="dashboard-system-btn dashboard-system-btn--finance"
-              id="dashboardOpenConfiguracoes"
-            >
-              <span class="dashboard-system-btn__kicker">Sistema</span>
-              <span class="dashboard-system-btn__title">Configurações</span>
-              <span class="dashboard-system-btn__desc">Ajuste dados, usuários e parâmetros operacionais.</span>
-              <span class="dashboard-system-btn__go">Abrir configurações →</span>
-            </button>
-          </div>
           <p class="notice plate-search-hint header-plate-search-hint hidden" aria-live="polite"></p>
         </div>
       </div>
@@ -9110,6 +9129,7 @@
       function setHeaderLoggedInUI(loggedIn) {
         document.getElementById("headerLogoutBtn")?.classList.toggle("hidden", !loggedIn);
         document.getElementById("appHeaderMenuWrap")?.classList.toggle("hidden", !loggedIn);
+        document.getElementById("dashboardSystemEntry")?.classList.toggle("hidden", !loggedIn);
       }
 
       let appInitPromise = null;
