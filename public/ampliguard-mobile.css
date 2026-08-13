@@ -132,6 +132,7 @@
 
   .header-plate-search-primary .vp-plate-editor {
     flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
   }
 
   .header-plate-search button,
@@ -619,9 +620,37 @@
     font-weight: 600;
     color: var(--ag-text, #001529);
     line-height: 1.35;
-    white-space: nowrap;
+    overflow: visible;
+  }
+
+  .patio-mob-compact-line {
+    flex-shrink: 0;
+    min-width: min-content;
+  }
+
+  .patio-mob-compact-line .vp-plate-wrap {
+    flex-shrink: 0;
+  }
+
+  .patio-mob-compact-meta {
+    flex: 1 1 auto;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .table td .vp-plate-wrap,
+  .table.stacked tbody td .vp-plate-wrap {
+    flex-shrink: 0 !important;
+    overflow: visible !important;
+  }
+
+  .table.stacked tbody td[data-label="Veículo / responsável"],
+  .table.stacked tbody td[data-label="Placa"] {
+    align-items: center;
+    flex-wrap: wrap;
+    row-gap: 4px;
   }
 
   .patio-mob-info-btn {
