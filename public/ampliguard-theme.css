@@ -374,9 +374,10 @@ header .user {
   }
 
   #appSubheader:not(.hidden) .header-mobile-module-nav {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--ag-border);
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    border-top: none !important;
+    margin-bottom: 6px !important;
   }
 
   .header-mobile-module-btn {
