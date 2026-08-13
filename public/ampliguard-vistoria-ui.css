@@ -1,5 +1,5 @@
 /**
- * Vistoria — UI alinhada ao mockup de referência (somente visual)
+ * Vistoria — layout idêntico ao mockup mobile (consulta / edição)
  */
 
 .vei-modal-backdrop {
@@ -7,6 +7,14 @@
   backdrop-filter: none !important;
   align-items: flex-start !important;
   padding: 0 !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1200 !important;
+  overflow: auto !important;
+}
+
+.vei-modal-backdrop.hidden {
+  display: none !important;
 }
 
 .vei-modal {
@@ -21,9 +29,13 @@
 }
 
 .vei-modal-head {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
   background: #fff !important;
   border-bottom: 1px solid #dee2e6 !important;
-  padding: 14px 24px !important;
+  padding: 14px 16px !important;
   position: sticky !important;
   top: 0 !important;
   z-index: 5 !important;
@@ -32,14 +44,15 @@
 
 .vei-modal-head h3 {
   margin: 0 !important;
-  font-size: 15px !important;
+  font-size: 14px !important;
   font-weight: 700 !important;
-  letter-spacing: 0.06em !important;
+  letter-spacing: 0.05em !important;
   text-transform: uppercase !important;
   color: #001529 !important;
   display: flex;
   align-items: center;
   gap: 10px;
+  line-height: 1.3;
 }
 
 .vei-modal-head h3::before {
@@ -57,546 +70,374 @@
   margin-top: 2px !important;
 }
 
-.vei-modal-body {
-  padding: 20px 24px 100px !important;
-  max-width: 1100px;
-  margin: 0 auto;
+.vei-modal-head #veiModalClose {
+  flex-shrink: 0;
+  margin-top: 2px;
+  padding: 6px 14px !important;
+  font-size: 13px !important;
 }
 
-.vei-shell {
+.vei-modal-body {
+  padding: 12px 12px 24px !important;
+  max-width: 100%;
+  margin: 0 auto;
+  background: #f0f2f5 !important;
+}
+
+.vei-shell.vei-checklist-view {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
-.vei-status-bar {
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  padding: 14px 18px;
-  box-shadow: 0 1px 2px rgba(0, 21, 41, 0.04);
-}
-
-.vei-status-bar .vei-status-label {
-  display: block;
-  color: #1677ff;
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.vei-status-bar .vei-status-vehicle {
-  color: #334155;
-  font-size: 13px;
-}
-
-.vei-meta-grid {
+.vei-checklist-view .vei-form-legend,
+.vei-checklist-view .vei-progress,
+.vei-checklist-view #veiMissingWarn,
+.vei-checklist-view .vei-status-bar,
+.vei-checklist-view .vei-meta-grid {
   display: none !important;
-}
-
-.vei-progress {
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin-bottom: 0 !important;
-}
-
-.vei-progress-bar {
-  background: #e2e8f0 !important;
-  height: 6px !important;
-}
-
-.vei-progress-bar i {
-  background: #1677ff !important;
-}
-
-#veiProgressText {
-  font-size: 12px;
-  color: #64748b;
-}
-
-#veiMissingWarn {
-  background: #fff !important;
-  border: 1px solid #fde68a !important;
-  color: #92400e !important;
-  border-radius: 8px;
-  padding: 10px 14px !important;
-}
-
-.vei-form-legend {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 10px 16px;
-  background: #fff !important;
-  border: 1px solid #dee2e6 !important;
-  border-radius: 8px !important;
-  padding: 10px 14px !important;
-  margin: 0 !important;
-  font-size: 12px !important;
-  color: #64748b !important;
-  text-align: center;
-}
-
-.vei-leg {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  color: #334155;
-}
-
-.vei-leg i {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
-  font-style: normal;
-  font-size: 11px;
-  font-weight: 800;
-  color: #fff;
-}
-
-.vei-leg--b i { background: #22c55e; }
-.vei-leg--r i { background: #f59e0b; }
-.vei-leg--d i { background: #ef4444; }
-.vei-leg--s i,
-.vei-leg--i i { background: #94a3b8; }
-
-.vei-card-panel {
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 21, 41, 0.06);
-  overflow: hidden;
 }
 
 .vei-cards-stack {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
-.vei-checklist-view .vei-cards-stack .vei-card-panel {
-  margin: 0;
+.vei-checklist-view .vei-card-panel {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: none;
 }
 
 .vei-checklist-view .vei-card-form {
   border: none !important;
-  background: transparent !important;
+  background: #fff !important;
   margin: 0 !important;
 }
 
-.vei-card-header-bar {
+.vei-checklist-view .vei-card-header-bar {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-  background: #001529;
-  color: #fff;
-  padding: 12px 16px;
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.vei-card-cls-heads {
-  display: none !important;
-}
-
-.vei-form-table {
-  table-layout: fixed !important;
-}
-
-.vei-form-table col.vei-col-cls {
-  width: 34px;
-}
-
-.vei-form-table thead.vei-thead-cols th {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  background: #f1f5f9 !important;
+  background: #eef2f6 !important;
   color: #001529 !important;
-  border-bottom: 2px solid #cbd5e1 !important;
-  padding: 8px 2px !important;
-  font-size: 12px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.08em;
-  text-align: center;
-}
-
-.vei-form-table thead.vei-thead-cols .vei-th-item {
-  text-align: left !important;
-  padding-left: 16px !important;
-  font-size: 11px !important;
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #64748b !important;
-  letter-spacing: 0.06em;
+  border-bottom: 1px solid #dee2e6;
 }
 
-.vei-form-table .vei-th-cls,
-.vei-form-table .vei-td-cls {
-  width: 34px !important;
-  min-width: 34px !important;
-  max-width: 34px !important;
-  padding: 6px 2px !important;
+.vei-checklist-view .vei-block-title {
+  padding: 8px 14px 4px !important;
+  color: #64748b !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-top: 1px solid #eef2f6 !important;
+  background: #fff !important;
+}
+
+.vei-checklist-view .vei-form-table {
+  width: 100%;
+  border-collapse: collapse !important;
+  table-layout: fixed !important;
+  font-size: 12px;
+  background: #fff;
+}
+
+.vei-checklist-view .vei-form-table col.vei-col-item {
+  width: auto;
+}
+
+.vei-checklist-view .vei-form-table col.vei-col-cls {
+  width: 36px;
+}
+
+.vei-checklist-view .vei-form-table thead.vei-thead-cols th {
+  background: #f8fafc !important;
+  color: #001529 !important;
+  border: 1px solid #dee2e6 !important;
+  padding: 7px 2px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em;
   text-align: center !important;
   vertical-align: middle !important;
 }
 
-.vei-form-table thead.vei-thead-accessible {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.vei-card-title {
-  display: none !important;
-}
-
-.vei-block-title {
-  padding: 10px 16px 6px !important;
+.vei-checklist-view .vei-form-table thead.vei-thead-cols .vei-th-item {
+  text-align: left !important;
+  padding-left: 12px !important;
+  font-size: 10px !important;
+  text-transform: uppercase;
   color: #64748b !important;
-  font-size: 11px !important;
-  border-top: 1px solid #eef2f6 !important;
-  background: #fafbfc;
+  letter-spacing: 0.05em;
+  font-weight: 700 !important;
 }
 
-.vei-form-table tbody tr {
-  background: #fff;
+.vei-checklist-view .vei-form-table .vei-th-cls,
+.vei-checklist-view .vei-form-table .vei-td-cls {
+  width: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  padding: 5px 3px !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  border: 1px solid #dee2e6 !important;
 }
 
-.vei-form-table tbody tr:nth-child(even) {
-  background: #fafbfc;
-}
-
-.vei-form-table tbody td {
-  border-bottom: 1px solid #eef2f6 !important;
-  padding: 10px 8px !important;
-}
-
-.vei-form-table .vei-td-label {
+.vei-checklist-view .vei-form-table tbody td.vei-td-label {
   color: #1e293b;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  padding-left: 16px !important;
-}
-
-.vei-cell-btn {
-  width: 30px !important;
-  height: 30px !important;
-  min-height: 30px !important;
-  max-width: 30px !important;
-  min-width: 30px !important;
-  border-radius: 6px !important;
-  border: 2px solid #cbd5e1 !important;
+  padding: 8px 12px !important;
+  border: 1px solid #dee2e6 !important;
+  vertical-align: middle !important;
+  line-height: 1.25;
+  word-break: break-word;
   background: #fff !important;
-  color: transparent !important;
-  font-size: 0 !important;
-  padding: 0 !important;
-  margin: 0 auto !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  position: relative;
 }
 
-.vei-cell-btn .vei-class-btn-label {
+.vei-checklist-view .vei-form-table tbody tr {
+  background: #fff !important;
+}
+
+.vei-checklist-view .vei-form-table tbody tr:nth-child(even) {
+  background: #fff !important;
+}
+
+.vei-checklist-view .vei-cls-box,
+.vei-checklist-view button.vei-cls-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  border: 1px solid #cbd5e1;
+  border-radius: 2px;
+  background: #fff;
+  font-weight: 800;
+  font-size: 11px;
+  line-height: 1;
+  color: #001529;
+  margin: 0 auto;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.vei-checklist-view button.vei-cls-box {
+  appearance: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  font-family: inherit;
+}
+
+.vei-checklist-view .vei-cls-box.vei-cls-on,
+.vei-checklist-view button.vei-cls-box.vei-cls-on,
+.vei-checklist-view button.vei-cls-box.active {
+  background: #fef9c3 !important;
+  border-color: #fde047 !important;
+  color: #001529 !important;
+  box-shadow: none !important;
+}
+
+.vei-checklist-view button.vei-cls-box::after {
   display: none !important;
 }
 
-.vei-cell-btn::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 14px;
-  height: 14px;
-  opacity: 0;
-}
-
-.vei-cell-btn.active::after {
-  opacity: 1;
-  background: center/contain no-repeat;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3'%3E%3Cpath d='M5 13l4 4L19 7'/%3E%3C/svg%3E");
-}
-
-.vei-cell-btn[data-class="BOM"].active {
-  background: #22c55e !important;
-  border-color: #16a34a !important;
-}
-
-.vei-cell-btn[data-class="REGULAR"].active {
-  background: #f59e0b !important;
-  border-color: #d97706 !important;
-}
-
-.vei-cell-btn[data-class="DANIFICADO"].active {
-  background: #ef4444 !important;
-  border-color: #dc2626 !important;
-}
-
-.vei-cell-btn[data-class="SEM_TESTE"].active,
-.vei-cell-btn[data-class="INEXISTENTE"].active {
-  background: #64748b !important;
-  border-color: #475569 !important;
-}
-
-.vei-form-table tr.vei-item-pending {
+.vei-checklist-view .vei-form-table tr.vei-item-pending .vei-td-label {
+  box-shadow: inset 3px 0 0 #f59e0b !important;
   background: #fffbeb !important;
 }
 
-.vei-form-table tr.vei-item-pending .vei-td-label {
-  box-shadow: inset 3px 0 0 #f59e0b !important;
+.vei-checklist-view .vei-text-row td {
+  padding: 8px 12px !important;
+  border: 1px solid #dee2e6 !important;
 }
 
-.vei-form-table .vei-td-cls.vei-cls-on {
-  background: #fef3c7 !important;
-  font-weight: 800 !important;
-  font-size: 12px !important;
-  color: #1e293b !important;
-  border: 1px solid #fde68a !important;
+.vei-checklist-view .vei-text-field,
+.vei-checklist-view .vei-number-field {
+  width: 100%;
+  max-width: 280px;
+  border: 1px solid #dee2e6;
   border-radius: 4px;
-}
-
-.vei-form-table .vei-td-cls:not(.vei-cls-on) {
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 12px;
   background: #fff;
-}
-
-.vei-letter-cell {
-  width: 30px !important;
-  height: 30px !important;
-  min-width: 30px !important;
-  min-height: 30px !important;
-  max-width: 30px !important;
-  border-radius: 4px !important;
-  border: 1px solid #e2e8f0 !important;
-  background: #fff !important;
-  color: #1e293b !important;
-  font-size: 12px !important;
-  font-weight: 800 !important;
-  padding: 0 !important;
-}
-
-.vei-letter-cell .vei-class-btn-label {
-  display: inline !important;
-  font-size: 12px !important;
-  font-weight: 800 !important;
-  color: inherit !important;
-}
-
-.vei-letter-cell:not(.active) .vei-class-btn-label {
-  visibility: hidden;
-}
-
-.vei-letter-cell.active {
-  background: #fef3c7 !important;
-  border-color: #fde68a !important;
-}
-
-.vei-letter-cell.active::after {
-  display: none !important;
+  color: #1e293b;
 }
 
 .vei-checklist-view .vei-edit-extras {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.vei-checklist-view .vei-edit-extras .vei-card-panel {
-  padding: 0;
+  gap: 12px;
+  margin-top: 4px;
 }
 
 .vei-checklist-view .vei-edit-extras .vei-section-head {
-  background: #001529;
-  color: #fff;
-  padding: 12px 16px;
+  background: #eef2f6;
+  color: #001529;
+  padding: 10px 14px;
   font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.04em;
+  font-size: 12px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+  border-bottom: 1px solid #dee2e6;
 }
 
 .vei-checklist-view .vei-edit-extras .vei-section-body {
-  padding: 14px 16px;
+  padding: 12px 14px;
+  background: #fff;
 }
 
-.vei-card-nav {
-  border-top: 1px solid #dee2e6 !important;
-  background: #fafbfc !important;
-  padding: 14px 16px !important;
+.vei-checklist-view .vei-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 12px 0 8px;
+  margin-top: 4px;
 }
 
-.vei-card-progress {
-  background: transparent !important;
-  border: none !important;
-  color: #64748b !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
+.vei-checklist-view .vei-actions.vei-actions-sticky {
+  position: sticky;
+  bottom: 0;
+  background: #f0f2f5;
+  border-top: 1px solid #dee2e6;
+  padding: 12px;
+  margin: 0 -12px;
+  z-index: 4;
 }
 
-#veiCardNext,
-#veiFinalizeBtn,
-#veiClosingNext {
+#veiFinalizeBtn {
   background: #1677ff !important;
   border-color: #0958d9 !important;
   color: #fff !important;
   min-width: 130px;
   border-radius: 6px !important;
   font-weight: 600 !important;
-  box-shadow: none !important;
 }
 
-.vei-card-prev,
-#veiClosingPrev,
-#veiModalClose,
-#veiModalCloseInner {
-  background: #fff !important;
-  border: 1px solid #dee2e6 !important;
-  color: #001529 !important;
-  border-radius: 6px !important;
-  box-shadow: none !important;
-}
-
-.vei-text-field,
-.vei-number-field,
 .vei-notes {
-  background: #fff !important;
-  border: 1px solid #dee2e6 !important;
-  border-radius: 6px !important;
-  color: #1e293b !important;
-}
-
-/* Stepper inferior */
-.vei-stepper {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1210;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 4px;
-  padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+  width: 100%;
+  min-height: 80px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
   background: #fff;
-  border-top: 1px solid #dee2e6;
-  box-shadow: 0 -2px 8px rgba(0, 21, 41, 0.06);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  color: #1e293b;
 }
 
-.vei-step {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  min-width: 52px;
-  max-width: 72px;
-  text-align: center;
+/* Diagrama / avarias / variant picker (funcional, neutro) */
+.vei-variant-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
 }
 
-.vei-step-num {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  background: #e2e8f0;
-  color: #64748b;
-  border: 2px solid #e2e8f0;
+.vei-variant-btn {
+  text-align: left;
+  padding: 14px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
 }
 
-.vei-step-label {
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+.vei-variant-btn strong {
+  display: block;
+  font-size: 13px;
   text-transform: uppercase;
-  color: #94a3b8;
-  line-height: 1.2;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.vei-step.active .vei-step-num {
-  background: #001529;
-  border-color: #001529;
-  color: #fff;
-}
-
-.vei-step.active .vei-step-label {
+  margin-bottom: 4px;
   color: #001529;
 }
 
-.vei-step.done .vei-step-num {
-  background: #1677ff;
-  border-color: #1677ff;
-  color: #fff;
-}
-
-.vei-step.done .vei-step-label {
+.vei-variant-btn span {
+  font-size: 12px;
   color: #64748b;
 }
 
-@media (max-width: 900px) {
-  .vei-modal-body {
-    padding: 12px 12px 88px !important;
-  }
+.vei-diagram-footer h4,
+.vei-damage-photos-section h4 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
 
-  .vei-form-table col.vei-col-cls {
-    width: 32px;
-  }
+.vei-diagram {
+  width: 100%;
+  max-width: min(640px, 100%);
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  cursor: crosshair;
+}
 
-  .vei-form-table .vei-th-cls,
-  .vei-form-table .vei-td-cls {
-    width: 32px !important;
-    min-width: 32px !important;
-    max-width: 32px !important;
-  }
+.vei-damage-photos-section {
+  margin: 0;
+}
 
-  .vei-cell-btn {
-    width: 28px !important;
-    height: 28px !important;
-    min-width: 28px !important;
-    max-width: 28px !important;
-    min-height: 28px !important;
-  }
+.vei-damage-photo-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 1px solid #eef2f6;
+}
 
-  .vei-stepper {
-    justify-content: flex-start;
-    padding-left: 8px;
-    padding-right: 8px;
-  }
+.vei-damage-photo-preview {
+  width: 88px;
+  height: 66px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+}
 
-  .vei-step {
-    min-width: 44px;
-  }
+.vei-damage-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
 
-  .vei-step-label {
-    font-size: 8px;
-  }
+.vei-damage-form input,
+.vei-damage-form select,
+.vei-damage-form textarea {
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  background: #fff;
+  padding: 8px 10px;
+  font: inherit;
+}
+
+.vei-diagram .vei-diagram-img {
+  pointer-events: none;
+}
+
+.vei-diagram .vei-marker {
+  fill: #ef4444;
+  stroke: #fff;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.vei-readonly-notes {
+  white-space: pre-wrap;
+  font-size: 13px;
+  color: #1e293b;
 }
 
 .vei-done-dot {
@@ -618,4 +459,32 @@
 
 .patio-mob-compact-line .vei-done-dot {
   margin-right: 2px;
+}
+
+@media (max-width: 900px) {
+  .vei-modal-body {
+    padding: 10px 10px 20px !important;
+  }
+
+  .vei-checklist-view .vei-form-table col.vei-col-cls,
+  .vei-checklist-view .vei-form-table .vei-th-cls,
+  .vei-checklist-view .vei-form-table .vei-td-cls {
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+  }
+
+  .vei-checklist-view .vei-cls-box,
+  .vei-checklist-view button.vei-cls-box {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    min-height: 26px;
+    font-size: 10px;
+  }
+
+  .vei-checklist-view .vei-form-table tbody td.vei-td-label {
+    font-size: 11px;
+    padding: 7px 8px !important;
+  }
 }
