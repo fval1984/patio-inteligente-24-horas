@@ -342,6 +342,13 @@
     return { origem: t.origem, descricao: t.descricao };
   }
 
+  function financePlateVisualHtml(placa) {
+    if (typeof window.vehiclePlateUI?.renderHtml === "function") {
+      return window.vehiclePlateUI.renderHtml(placa, { size: "sm", showEmpty: true, placeholder: "—" });
+    }
+    return escapeHtml(placa || "—");
+  }
+
   function financeReceivableManualCellHtml(r) {
     const t = financeReceivableTypedFields(r);
     const lines = [
@@ -2177,7 +2184,7 @@
     body.innerHTML = rows
       .map(({ vehicle: v, dias, valor, instituicao }) => {
         return `<tr>
-          <td data-label="Veículo"><strong>${escapeHtml(v.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "—")}</span></td>
+          <td data-label="Veículo">${financePlateVisualHtml(v.placa)}<br /><span class="notice">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "—")}</span></td>
           <td data-label="Financeira / banco">${escapeHtml(instituicao)}</td>
           <td data-label="Entrada">${escapeHtml(formatDateTime(v.data_entrada))}</td>
           <td data-label="Dias">${dias}</td>
@@ -2277,7 +2284,7 @@
         const rowSel = financeRowIsSelected("aguardando", r.id) ? " fin-row-selected" : "";
         return `<tr class="${rowSel.trim()}">
           ${financeRowCheckCell("aguardando", r.id)}
-          <td data-label="Veículo / RPV"><strong>${escapeHtml(v?.placa || "—")}</strong><br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span></td>
+          <td data-label="Veículo / RPV">${financePlateVisualHtml(v?.placa)}<br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span></td>
           <td data-label="RPP">${escapeHtml(financeReceberRppNome(r, v))}</td>
           <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
           <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
@@ -3828,7 +3835,7 @@
     if (v?.placa) {
       const vm = [v.marca, v.modelo].filter(Boolean).join(" ") || "—";
       const rpv = financeVehicleRpvNome(v);
-      return `<strong>${escapeHtml(v.placa)}</strong><br /><span class="muted">${escapeHtml(vm)}</span><br /><span class="muted">RPV: ${escapeHtml(rpv)}</span>`;
+      return `${financePlateVisualHtml(v.placa)}<br /><span class="muted">${escapeHtml(vm)}</span><br /><span class="muted">RPV: ${escapeHtml(rpv)}</span>`;
     }
     if (financeIsManualReceivable(r)) return financeReceivableManualCellHtml(r);
     return `<span class="muted">${escapeHtml(financeReceivableLabel(r))}</span>`;
