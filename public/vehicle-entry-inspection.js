@@ -1857,6 +1857,13 @@
     openVariantPicker(vehicle, ctx, { retroactive });
   }
 
+  function plateHtml(placa) {
+    if (typeof global.vehiclePlateUI?.renderHtml === "function") {
+      return global.vehiclePlateUI.renderHtml(placa, { size: "sm", showEmpty: true, placeholder: "—" });
+    }
+    return esc(placa || "—");
+  }
+
   function renderAwaitingTable(tbody, vehicles, ctx) {
     if (!tbody) return;
     const list = (vehicles || []).filter((v) => v.status === "AGUARDANDO_VISTORIA");
@@ -1884,7 +1891,7 @@
         }
         return (
           `<tr data-vehicle-row="${v.id}">` +
-          `<td data-label="Placa">${esc(v.placa || "—")}</td>` +
+          `<td data-label="Placa">${plateHtml(v.placa)}</td>` +
           `<td data-label="Marca">${esc(v.marca || "—")}</td>` +
           `<td data-label="Modelo">${esc(v.modelo || "—")}</td>` +
           `<td data-label="Ano">${esc(v.ano || "—")}</td>` +
