@@ -6375,7 +6375,7 @@
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme7" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260813vistui1" />
-    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile4" />
+    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile5" />
   </head>
   <body>
     <noscript>
@@ -6827,8 +6827,18 @@
             <div class="section-card patio-subview hidden" data-subview="no_patio">
               <div class="pill">VNP</div>
                 <div class="table-wrap">
-                <table class="table stacked">
-                <thead>
+                <table class="table stacked patio-vehicle-table">
+                <thead class="patio-mob-thead">
+                  <tr>
+                    <th>Placa</th>
+                    <th>Marca</th>
+                    <th>Modelo</th>
+                    <th>Cor</th>
+                    <th>Dias no pátio</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <thead class="patio-desk-thead">
                   <tr>
                     <th>Placa</th>
                     <th>Registo</th>
@@ -6855,8 +6865,18 @@
                 <button type="button" class="secondary" id="vlsFiltersClear">Limpar filtros</button>
               </div>
               <div class="table-wrap">
-                <table class="table stacked">
-                <thead>
+                <table class="table stacked patio-vehicle-table">
+                <thead class="patio-mob-thead">
+                  <tr>
+                    <th>Placa</th>
+                    <th>Marca</th>
+                    <th>Modelo</th>
+                    <th>Cor</th>
+                    <th>Dias no pátio</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <thead class="patio-desk-thead">
                   <tr>
                     <th>Placa</th>
                     <th>Registo</th>
@@ -6875,8 +6895,18 @@
             <div class="section-card patio-subview hidden" data-subview="removidos">
               <div class="pill">VRP</div>
               <div class="table-wrap">
-                <table class="table stacked">
-                <thead>
+                <table class="table stacked patio-vehicle-table">
+                <thead class="patio-mob-thead">
+                  <tr>
+                    <th>Placa</th>
+                    <th>Marca</th>
+                    <th>Modelo</th>
+                    <th>Cor</th>
+                    <th>Dias no pátio</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <thead class="patio-desk-thead">
                   <tr>
                     <th>Placa</th>
                     <th>Registo</th>
@@ -16474,12 +16504,12 @@
       function buildPatioMobileListCellsHtml(v) {
         const dias = calcDays(v);
         return `
-            <td class="patio-mob-only patio-mob-field" data-label="Placa">${escapeHtml(v.placa || "-")}</td>
-            <td class="patio-mob-only patio-mob-field" data-label="Marca">${escapeHtml(v.marca || "-")}</td>
-            <td class="patio-mob-only patio-mob-field" data-label="Modelo">${escapeHtml(v.modelo || "-")}</td>
-            <td class="patio-mob-only patio-mob-field patio-mob-field--cor" data-label="Cor">${buildPatioMobileColorDotHtml(v.cor)}</td>
-            <td class="patio-mob-only patio-mob-field" data-label="Dias no pátio">${escapeHtml(String(dias))}</td>
-            <td class="patio-mob-only patio-mob-ficha-cell">
+            <td class="patio-mob-only patio-mob-col-placa">${escapeHtml(v.placa || "-")}</td>
+            <td class="patio-mob-only patio-mob-col-text">${escapeHtml(v.marca || "-")}</td>
+            <td class="patio-mob-only patio-mob-col-text">${escapeHtml(v.modelo || "-")}</td>
+            <td class="patio-mob-only patio-mob-col-cor">${buildPatioMobileColorDotHtml(v.cor)}</td>
+            <td class="patio-mob-only patio-mob-col-dias">${escapeHtml(String(dias))}</td>
+            <td class="patio-mob-only patio-mob-col-ficha">
               <button type="button" class="patio-mobile-ficha-btn secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
             </td>`;
       }
