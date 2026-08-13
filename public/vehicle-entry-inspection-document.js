@@ -564,6 +564,42 @@
     return `<div class="vei-doc-photo-grid">${cells.map((c) => renderPhotoCell(c.label, c.url)).join("")}</div>`;
   }
 
+  /** Fotos para a tela de consulta (sem wrapper de seção do PDF). */
+  function buildViewPhotosHtml(detail) {
+    injectStylesOnce();
+    const { standard, extraDamage, other } = organizePhotos(detail?.photos, detail?.damages);
+    let html = "";
+    if (standard.length) html += buildPhotoGrid(standard);
+    if (other.length) {
+      html +=
+        '<p class="vei-doc-subsection-title" style="margin:12px 0 6px;font-size:11px;font-weight:700;color:#475569">Outras fotografias</p>' +
+        buildPhotoGrid(other);
+    }
+    const itemPhotos = (detail?.photos || []).filter(
+      (p) => p.photo_type?.startsWith("avaria_item_") || (p.item_key && p.photo_label?.toLowerCase().includes("avaria"))
+    );
+    if (itemPhotos.length) {
+      html +=
+        '<p class="vei-doc-subsection-title" style="margin:12px 0 6px;font-size:11px;font-weight:700;color:#475569">Fotos adicionais de avarias</p>' +
+        `<div class="vei-doc-photo-grid">${itemPhotos
+          .map((p) => {
+            let label = p.photo_label || p.item_key || "Avaria";
+            if (!/danificado/i.test(label)) {
+              const base = String(label).replace(/^avaria\s*[—\-]\s*/i, "").trim();
+              label = base ? `${base} — Danificado` : "Danificado";
+            }
+            return renderPhotoCell(label, p.url);
+          })
+          .join("")}</div>`;
+    }
+    if (extraDamage.length) {
+      html +=
+        '<p class="vei-doc-subsection-title" style="margin:12px 0 6px;font-size:11px;font-weight:700;color:#475569">Avarias — registro fotográfico</p>' +
+        buildPhotoGrid(extraDamage);
+    }
+    return html;
+  }
+
   function buildPrintHtml(options) {
     injectStylesOnce();
     const { vehicle, ctx, inspection, detail, draft, helpers } = options;
@@ -939,7 +975,7 @@
     }
 
     const loadJsPdf = ctx?.loadJsPdf || global.loadJsPdf;
-    const loadHtml2Canvas = global.loadHtml2Canvas;
+    const loadHtml2Canvas = ctx?.loadHtml2Canvas || global.loadHtml2Canvas;
     if (!loadJsPdf || !loadHtml2Canvas) {
       alert("Recursos de PDF indisponíveis. Atualize a página e tente novamente.");
       return;
@@ -1024,6 +1060,7 @@
     buildPrintHtml,
     buildEditablePrintHtml,
     buildChecklistSectionEditable,
+    buildViewPhotosHtml,
     printDocument,
     downloadPdf,
     pdfFileName,
