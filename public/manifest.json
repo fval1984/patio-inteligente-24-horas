@@ -4,8 +4,9 @@
   "description": "Segurança • Confiança • Compromisso — Guarda, transporte e remoção de veículos",
   "start_url": "/app.html",
   "display": "standalone",
-  "background_color": "#0a2a2a",
-  "theme_color": "#0a2a2a",
+  "orientation": "portrait-primary",
+  "background_color": "#f0f2f5",
+  "theme_color": "#001529",
   "icons": [
     {
       "src": "/assets/ampliguard-shield.png",
