@@ -87,8 +87,8 @@
       .ops-exec-filters { margin-bottom: 18px; flex-wrap: wrap; }
       .ops-exec-kpis { margin-bottom: 4px; }
       .ops-exec-panel {
-        background: rgba(15, 23, 42, 0.35);
-        border: 1px solid rgba(148, 163, 184, 0.12);
+        background: var(--ag-surface, #fff);
+        border: 1px solid var(--ag-border, #dee2e6);
       }
       .ops-exec-alerts { margin-bottom: 18px; }
       .ops-exec-alerts-title {
@@ -97,7 +97,7 @@
         font-weight: 700;
         letter-spacing: 0.04em;
         text-transform: uppercase;
-        color: var(--muted);
+        color: var(--ag-muted, #64748b);
       }
       .ops-exec-alerts-grid {
         display: grid;
@@ -112,8 +112,9 @@
         gap: 12px;
         padding: 14px 16px;
         border-radius: 12px;
-        border: 1px solid rgba(148,163,184,0.18);
-        background: rgba(15,23,42,0.45);
+        border: 1px solid var(--ag-border, #dee2e6);
+        background: var(--ag-surface, #fff);
+        color: var(--ag-text, #0f172a);
         text-align: left;
         width: 100%;
         min-width: 0;
@@ -125,16 +126,16 @@
         box-shadow: none !important;
         cursor: default;
       }
-      .ops-exec-alert .hub-alert-icon { flex: 0 0 auto; margin-top: 2px; line-height: 1; }
+      .ops-exec-alert .hub-alert-icon { flex: 0 0 auto; margin-top: 2px; line-height: 1; color: var(--ag-text, #0f172a); }
       .ops-exec-alert .hub-alert-body {
         flex: 1 1 auto; min-width: 0;
         display: flex; flex-direction: column; gap: 4px;
       }
-      .ops-exec-alert strong { font-size: 0.84rem; display: block; line-height: 1.35; }
-      .ops-exec-alert small { font-size: 0.75rem; color: var(--muted); line-height: 1.4; }
-      .ops-exec-alert--green { border-color: rgba(52,211,153,0.4); color: #34d399; }
-      .ops-exec-alert--yellow { border-color: rgba(251,191,36,0.45); background: rgba(251,191,36,0.06); }
-      .ops-exec-alert--red { border-color: rgba(248,113,113,0.45); background: rgba(248,113,113,0.08); }
+      .ops-exec-alert strong { font-size: 0.84rem; display: block; line-height: 1.35; color: var(--ag-text, #0f172a); }
+      .ops-exec-alert small { font-size: 0.75rem; color: var(--ag-muted, #64748b); line-height: 1.4; }
+      .ops-exec-alert--green { border-color: rgba(22, 163, 74, 0.35); background: var(--ag-success-bg, #f0fdf4); }
+      .ops-exec-alert--yellow { border-color: rgba(217, 119, 6, 0.35); background: var(--ag-warning-bg, #fffbeb); }
+      .ops-exec-alert--red { border-color: rgba(220, 38, 38, 0.35); background: #fef2f2; }
       @media (max-width: 640px) {
         .ops-exec-alerts-grid { grid-template-columns: 1fr; }
       }
@@ -144,8 +145,9 @@
       .ops-exec-fila-step {
         flex: 1 1 120px; min-width: 110px;
         padding: 14px 12px; border-radius: 12px;
-        border: 1px solid rgba(148,163,184,0.14);
-        background: rgba(15,23,42,0.45);
+        border: 1px solid var(--ag-border, #dee2e6);
+        background: var(--ag-surface, #fff);
+        color: var(--ag-text, #0f172a);
         display: flex; flex-direction: column; gap: 6px;
         position: relative;
       }
@@ -153,16 +155,16 @@
         content: "→";
         position: absolute; right: -8px; top: 50%;
         transform: translateY(-50%);
-        color: rgba(148,163,184,0.45); font-size: 0.85rem;
+        color: var(--ag-muted, #94a3b8); font-size: 0.85rem;
         pointer-events: none;
       }
       .ops-exec-fila-step:last-child::after { content: none; }
-      .ops-exec-fila-step span { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
-      .ops-exec-fila-step strong { font-size: 1.45rem; font-weight: 700; }
-      .ops-exec-fila-step--gray { border-color: rgba(148,163,184,0.35); color: #94a3b8; }
-      .ops-exec-fila-step--blue { border-color: rgba(96,165,250,0.4); color: #60a5fa; }
-      .ops-exec-fila-step--yellow { border-color: rgba(251,191,36,0.4); color: #fbbf24; }
-      .ops-exec-fila-step--green { border-color: rgba(52,211,153,0.4); color: #34d399; }
+      .ops-exec-fila-step span { font-size: 0.72rem; color: var(--ag-muted, #64748b); text-transform: uppercase; letter-spacing: 0.04em; }
+      .ops-exec-fila-step strong { font-size: 1.45rem; font-weight: 700; color: var(--ag-text, #0f172a); }
+      .ops-exec-fila-step--gray { border-left: 3px solid #94a3b8; }
+      .ops-exec-fila-step--blue { border-left: 3px solid #2563eb; }
+      .ops-exec-fila-step--yellow { border-left: 3px solid #d97706; }
+      .ops-exec-fila-step--green { border-left: 3px solid #16a34a; }
       .ops-exec-fila-step--clickable { cursor: pointer; }
       .ops-exec-fila-step--clickable:hover,
       .ops-exec-fila-step--clickable:focus-visible {
@@ -176,8 +178,9 @@
       .ops-exec-mapa-node {
         flex: 1 1 140px; min-width: 120px;
         padding: 16px 14px; text-align: center;
-        border: 1px solid rgba(148,163,184,0.16);
-        background: linear-gradient(180deg, rgba(30,41,59,0.65), rgba(15,23,42,0.55));
+        border: 1px solid var(--ag-border, #dee2e6);
+        background: var(--ag-surface, #fff);
+        color: var(--ag-text, #0f172a);
         position: relative;
       }
       .ops-exec-mapa-node:first-child { border-radius: 12px 0 0 12px; }
@@ -186,13 +189,13 @@
         content: "";
         position: absolute; right: -1px; top: 28%; bottom: 28%;
         width: 2px;
-        background: linear-gradient(180deg, transparent, rgba(96,165,250,0.55), transparent);
+        background: linear-gradient(180deg, transparent, rgba(37, 99, 235, 0.35), transparent);
       }
-      .ops-exec-mapa-node span { display: block; font-size: 0.72rem; color: var(--muted); margin-bottom: 6px; }
-      .ops-exec-mapa-node strong { font-size: 1.55rem; color: #e2e8f0; }
+      .ops-exec-mapa-node span { display: block; font-size: 0.72rem; color: var(--ag-muted, #64748b); margin-bottom: 6px; }
+      .ops-exec-mapa-node strong { font-size: 1.55rem; color: var(--ag-text, #0f172a); }
       .ops-exec-legend {
         display: flex; flex-wrap: wrap; gap: 10px 14px;
-        margin-bottom: 8px; font-size: 0.75rem; color: var(--muted);
+        margin-bottom: 8px; font-size: 0.75rem; color: var(--ag-muted, #64748b);
       }
       .ops-exec-legend-item { display: inline-flex; align-items: center; gap: 6px; }
       .ops-exec-legend-item i {
@@ -208,7 +211,10 @@
       .ops-exec-pie-legend li {
         display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center;
         font-size: 0.78rem;
+        color: var(--ag-text, #0f172a);
       }
+      .ops-exec-pie-legend li span { color: var(--ag-muted, #64748b); }
+      .ops-exec-pie-legend li strong { color: var(--ag-text, #0f172a); font-weight: 700; }
       .ops-exec-pie-legend i { width: 10px; height: 10px; border-radius: 2px; }
       .ops-exec-charts-row { margin-bottom: 24px; }
       @media (max-width: 900px) {
@@ -458,7 +464,7 @@
       if (slice <= 0) return;
       if (Math.abs(slice - Math.PI * 2) < 1e-6) {
         paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" opacity="0.9"></circle>`;
-        paths += `<circle cx="${cx}" cy="${cy}" r="${innerR}" fill="rgba(15,23,42,0.95)"></circle>`;
+        paths += `<circle cx="${cx}" cy="${cy}" r="${innerR}" fill="#ffffff"></circle>`;
       } else {
         paths += `<path class="ops-exec-pie-slice" d="M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} L ${xi0.toFixed(2)} ${yi0.toFixed(2)} A ${innerR} ${innerR} 0 ${large} 0 ${xi1.toFixed(2)} ${yi1.toFixed(2)} Z" fill="${color}" opacity="0.9"><title>${esc(item.label, ctx)}: ${esc(formatPct(item.pct), ctx)}</title></path>`;
       }
@@ -541,18 +547,6 @@
       color: STAGE_COLOR[s.key] || PIE_COLORS[i % PIE_COLORS.length],
     }));
 
-    const acaoBody = (m.aguardandoAcao || [])
-      .map(
-        (x) => `<tr>
-          <td>${esc(x.placa, ctx)}</td>
-          <td>${esc(x.financeira, ctx)}</td>
-          <td>${esc(x.statusAtual, ctx)}</td>
-          <td>${esc(String(x.diasNoPatio), ctx)}</td>
-          <td>${esc(x.responsavel, ctx)}</td>
-        </tr>`
-      )
-      .join("");
-
     const movBody = (m.ultimasMovimentacoes || [])
       .map(
         (x) => `<tr>
@@ -603,14 +597,6 @@
             ${pieChartSvg(statusItems, ctx)}
           </div>
         </section>
-
-        ${renderDataTable(
-          "Veículos aguardando ação",
-          ["Placa", "Financeira", "Status atual", "Dias no pátio", "Responsável"],
-          acaoBody,
-          "Nenhum veículo aguardando ação.",
-          ctx
-        )}
 
         ${renderDataTable(
           "Últimas movimentações",
