@@ -150,6 +150,24 @@
       .vei-doc-table thead { display: table-header-group; }
       .vei-doc-table tr { break-inside: avoid; page-break-inside: avoid; }
       .vei-doc-checklist-cat { margin-top: 10px; break-inside: auto; page-break-inside: auto; }
+      .vei-doc-card {
+        border: 1.5px solid #94a3b8; margin: 0 0 12px; break-inside: avoid-page; page-break-inside: avoid;
+      }
+      .vei-doc-card-title {
+        margin: 0; padding: 6px 8px; font-size: 10pt; font-weight: 800; text-transform: uppercase;
+        letter-spacing: 0.05em; background: #e2e8f0; border-bottom: 1.5px solid #94a3b8;
+        break-after: avoid; page-break-after: avoid;
+      }
+      .vei-doc-block-title {
+        margin: 0; padding: 5px 8px 3px; font-size: 8.5pt; font-weight: 700; text-transform: uppercase;
+        color: #475569; border-top: 1px solid #e2e8f0;
+      }
+      .vei-doc-check-table th.vei-doc-cls-h, .vei-doc-check-table td.vei-doc-cls-cell {
+        width: 28px; text-align: center; padding: 3px 2px;
+      }
+      .vei-doc-check-table td.vei-doc-cls-cell.on {
+        font-weight: 900; background: #fef3c7;
+      }
       .vei-doc-damage { border: 1px solid #fecaca; background: #fff7f7; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; break-inside: avoid; page-break-inside: avoid; }
       .vei-doc-damage strong { display: block; margin-bottom: 4px; }
       .vei-doc-notes { white-space: pre-wrap; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; }
@@ -249,20 +267,67 @@
     return `<div class="vei-doc-field"><span>${esc(label)}</span><strong>${esc(v)}</strong></div>`;
   }
 
-  function buildChecklistSection(helpers, draft) {
+  function classificationShort(id) {
+    const map = { BOM: "B", REGULAR: "R", DANIFICADO: "D", SEM_TESTE: "S", INEXISTENTE: "I" };
+    return map[id] || "";
+  }
+
+  function buildChecklistSection(helpers, draft, detailItems) {
     const CHECKLIST = helpers.CHECKLIST || [];
-    let html = "";
-    let lastCat = "";
-    CHECKLIST.forEach((it) => {
-      if (it.category !== lastCat) {
-        if (lastCat) html += "</tbody></table></div>";
-        lastCat = it.category;
-        html += `<div class="vei-doc-checklist-cat"><h4>${esc(it.category)}</h4><table class="vei-doc-table"><thead><tr><th>Item</th><th>Classificação</th></tr></thead><tbody>`;
-      }
-      const cls = classificationLabel(draft.classifications[it.key]);
-      html += `<tr><td>${esc(it.label)}</td><td class="cls">${esc(cls)}</td></tr>`;
+    const INSPECTION_CARDS = helpers.INSPECTION_CARDS || [];
+    const cards =
+      INSPECTION_CARDS.length > 0
+        ? INSPECTION_CARDS
+        : [
+            {
+              title: "Itens",
+              blocks: [{ items: CHECKLIST.map((it) => ({ key: it.key, label: it.label })) }],
+            },
+          ];
+
+    let html =
+      '<p class="vei-doc-legend" style="margin:0 0 10px;font-size:8.5pt;text-align:center;border:1px solid #cbd5e1;padding:6px;background:#f8fafc">' +
+      "<strong>Legenda:</strong> B — Bom · R — Regular · D — Danificado · S — Sem Teste · I — Inexistente</p>";
+
+    cards.forEach((card, cardIdx) => {
+      html += `<div class="vei-doc-card">`;
+      html += `<h4 class="vei-doc-card-title">${esc(cardIdx + 1)}. ${esc(card.title)}</h4>`;
+      card.blocks.forEach((block, blockIdx) => {
+        if (block.title) {
+          html += `<h5 class="vei-doc-block-title">${esc(block.title)}</h5>`;
+        } else if (blockIdx > 0 && card.blocks.length > 1) {
+          html += `<h5 class="vei-doc-block-title">Bloco ${blockIdx + 1}</h5>`;
+        }
+        html += '<table class="vei-doc-table vei-doc-check-table"><thead><tr><th>Item</th>';
+        ["B", "R", "D", "S", "I"].forEach((h) => {
+          html += `<th class="vei-doc-cls-h">${h}</th>`;
+        });
+        html += "</tr></thead><tbody>";
+        block.items.forEach((it) => {
+          const sel = draft.classifications[it.key];
+          html += `<tr><td>${esc(it.label)}</td>`;
+          ["BOM", "REGULAR", "DANIFICADO", "SEM_TESTE", "INEXISTENTE"].forEach((clsId) => {
+            const on = sel === clsId;
+            html += `<td class="vei-doc-cls-cell${on ? " on" : ""}">${on ? esc(classificationShort(clsId)) : ""}</td>`;
+          });
+          html += "</tr>";
+        });
+        html += "</tbody></table>";
+      });
+      html += "</div>";
     });
-    if (lastCat) html += "</tbody></table></div>";
+
+    const knownKeys = new Set(CHECKLIST.map((it) => it.key));
+    const legacy = (detailItems || []).filter((it) => it.item_key && !knownKeys.has(it.item_key));
+    if (legacy.length) {
+      html += `<div class="vei-doc-card"><h4 class="vei-doc-card-title">Itens (registro anterior)</h4>`;
+      html += '<table class="vei-doc-table"><thead><tr><th>Item</th><th>Categoria</th><th>Classificação</th></tr></thead><tbody>';
+      legacy.forEach((it) => {
+        html += `<tr><td>${esc(it.item_label || it.item_key)}</td><td>${esc(it.category || "—")}</td><td class="cls">${esc(classificationLabel(it.classification))}</td></tr>`;
+      });
+      html += "</tbody></table></div>";
+    }
+
     return html;
   }
 
@@ -408,7 +473,7 @@
       metaField("Tipo", inspection?.inspection_type || "ENTRADA") +
       metaField("Status", "CONCLUÍDA");
 
-    const checklistHtml = buildChecklistSection(h, normalizedDraft);
+    const checklistHtml = buildChecklistSection(h, normalizedDraft, detail?.items);
     const damagesHtml = buildDamagesSection(normalizedDraft, photosByDamage);
 
     const diagramHtml =
