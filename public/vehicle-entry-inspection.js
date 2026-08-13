@@ -447,18 +447,19 @@
       }
       .vei-class-btn .vei-class-btn-label { pointer-events: none; display: inline; }
       @media (max-width: 900px) {
-        .vei-item { padding: 7px 0; }
-        .vei-class-row {
-          flex-wrap: nowrap;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          gap: 3px;
-          padding-bottom: 1px;
+        .vei-form-table col.vei-col-cls { width: 32px; }
+        .vei-form-table .vei-th-cls,
+        .vei-form-table .vei-td-cls {
+          width: 32px;
+          min-width: 32px;
+          max-width: 32px;
         }
-        .vei-class-btn {
-          padding: 5px 6px;
-          font-size: 0.6rem;
-          min-height: 30px;
+        .vei-cell-btn {
+          width: 28px;
+          height: 28px;
+          min-width: 28px;
+          max-width: 28px;
+          min-height: 28px;
         }
       }
       .vei-class-btn.active {
@@ -487,29 +488,75 @@
         padding: 8px 12px 4px; color: var(--muted); border-top: 1px solid rgba(148,163,184,0.15);
       }
       .vei-form-table {
-        width: 100%; border-collapse: collapse; font-size: 0.78rem;
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.78rem;
+        table-layout: fixed;
+      }
+      .vei-form-table col.vei-col-item { width: auto; }
+      .vei-form-table col.vei-col-cls { width: 34px; }
+      .vei-form-table thead.vei-thead-cols th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        border-bottom: 2px solid rgba(148,163,184,0.35);
+        padding: 8px 4px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-align: center;
+        background: rgba(148,163,184,0.12);
+        letter-spacing: 0.06em;
+      }
+      .vei-form-table thead.vei-thead-cols .vei-th-item {
+        text-align: left;
+        padding-left: 10px;
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        color: var(--muted);
       }
       .vei-form-table thead th {
         border-bottom: 2px solid rgba(148,163,184,0.35);
         padding: 6px 4px; font-size: 0.68rem; font-weight: 800; text-align: center;
         background: rgba(148,163,184,0.06);
       }
-      .vei-form-table .vei-th-item { text-align: left; padding-left: 10px; width: 48%; }
-      .vei-form-table .vei-th-cls { width: 10.4%; }
+      .vei-form-table .vei-th-item { text-align: left; padding-left: 10px; }
+      .vei-form-table .vei-th-cls,
+      .vei-form-table .vei-td-cls {
+        width: 34px;
+        min-width: 34px;
+        max-width: 34px;
+        padding: 4px 2px;
+        text-align: center;
+        vertical-align: middle;
+      }
       .vei-form-table tbody td {
         border-bottom: 1px solid rgba(148,163,184,0.12);
-        padding: 4px 3px; vertical-align: middle;
+        padding: 4px 3px;
+        vertical-align: middle;
       }
       .vei-form-table .vei-td-label {
-        padding-left: 10px; font-weight: 600; line-height: 1.25;
+        padding-left: 10px;
+        padding-right: 6px;
+        font-weight: 600;
+        line-height: 1.25;
+        word-break: break-word;
       }
-      .vei-form-table .vei-td-cls { text-align: center; padding: 3px 2px; }
       .vei-form-table tr.vei-item-pending { background: rgba(251, 191, 36, 0.08); }
       .vei-form-table tr.vei-item-pending .vei-td-label { box-shadow: inset 3px 0 0 #fbbf24; }
       .vei-cell-btn {
-        width: 100%; min-width: 28px; max-width: 36px; min-height: 26px;
-        padding: 2px 0 !important; margin: 0 auto; display: block;
-        border-radius: 2px !important; font-size: 0.68rem !important;
+        width: 30px;
+        height: 30px;
+        min-width: 30px;
+        max-width: 30px;
+        min-height: 30px;
+        padding: 0 !important;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px !important;
+        font-size: 0 !important;
+        line-height: 1;
       }
       .vei-form-table .vei-cls-on {
         font-weight: 900; background: rgba(212,175,55,0.25); color: inherit;
@@ -1000,8 +1047,9 @@
     let html = '<div class="vei-card-form">';
     html += `<div class="vei-card-header-bar">`;
     html += `<span class="vei-card-title-text">${cardIndex + 1}. ${esc(card.title)}</span>`;
-    html += `<span class="vei-card-cls-heads">${CLASSIFICATIONS.map((c) => `<span>${esc(CLASS_SHORT[c.id] || c.label.charAt(0))}</span>`).join("")}</span>`;
     html += `</div>`;
+
+    let clsHeadRendered = false;
 
     card.blocks.forEach((block, blockIdx) => {
       if (block.title) {
@@ -1024,11 +1072,18 @@
         });
         html += "</tbody></table>";
       }
-      html += '<table class="vei-form-table"><thead class="vei-thead-accessible"><tr><th class="vei-th-item">Item</th>';
-      CLASSIFICATIONS.forEach((c) => {
-        html += `<th class="vei-th-cls">${esc(CLASS_SHORT[c.id] || c.label.charAt(0))}</th>`;
-      });
-      html += "</tr></thead><tbody>";
+      const hasClassify = block.items.some((it) => (it.kind || "classify") === "classify");
+      html += '<table class="vei-form-table">';
+      html += '<colgroup><col class="vei-col-item"/><col class="vei-col-cls" span="5"/></colgroup>';
+      if (hasClassify && !clsHeadRendered) {
+        html += '<thead class="vei-thead-cols"><tr><th class="vei-th-item">Item</th>';
+        CLASSIFICATIONS.forEach((c) => {
+          html += `<th class="vei-th-cls" title="${esc(c.label)}">${esc(CLASS_SHORT[c.id] || c.label.charAt(0))}</th>`;
+        });
+        html += "</tr></thead>";
+        clsHeadRendered = true;
+      }
+      html += "<tbody>";
       block.items.forEach((it) => {
         const kind = it.kind || "classify";
         if (kind === "text") {
@@ -1049,7 +1104,7 @@
           if (readOnly) {
             html += `<td class="vei-td-cls${sel === c.id ? " vei-cls-on" : ""}">${sel === c.id ? esc(short) : ""}</td>`;
           } else {
-            html += `<td class="vei-td-cls"><button type="button" class="vei-class-btn vei-cell-btn${sel === c.id ? " active" : ""}" data-class="${c.id}" data-item="${esc(it.key)}" aria-label="${esc(c.label)}" title="${esc(c.label)}">${esc(short)}</button></td>`;
+            html += `<td class="vei-td-cls"><button type="button" class="vei-class-btn vei-cell-btn${sel === c.id ? " active" : ""}" data-class="${c.id}" data-item="${esc(it.key)}" aria-label="${esc(c.label)}" title="${esc(c.label)}"><span class="vei-class-btn-label" aria-hidden="true">${esc(short)}</span></button></td>`;
           }
         });
         html += "</tr>";
