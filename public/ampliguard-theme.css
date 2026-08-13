@@ -869,6 +869,13 @@ label {
   border-color: var(--ag-border) !important;
 }
 
+.vei-modal-backdrop .vei-card-form,
+.vei-modal-backdrop .vei-card-title {
+  background: transparent !important;
+  border-color: #dee2e6 !important;
+  color: inherit !important;
+}
+
 .vei-card-title {
   background: var(--ag-navy) !important;
   color: #fff !important;
@@ -890,6 +897,14 @@ label {
   border-color: rgba(220, 38, 38, 0.45) !important;
   background: var(--ag-danger-bg) !important;
   color: var(--ag-danger) !important;
+}
+
+.vei-modal-backdrop .vei-class-btn.active,
+.vei-modal-backdrop .vei-class-btn[data-class="DANIFICADO"].active {
+  background: #fef08a !important;
+  border-color: #ca8a04 !important;
+  color: #1e293b !important;
+  box-shadow: none !important;
 }
 
 /* Top nav: item ativo por módulo */
