@@ -110,9 +110,32 @@
     </span>`;
   }
 
+  function renderOldChars(info) {
+    if (!info.clean && info.type === "empty") {
+      return `<span class="vp-plate__text vp-plate__text--old"><span class="vp-plate__old-letters">—</span></span>`;
+    }
+    const clean = info.clean || "";
+    const letters = clean.slice(0, 3);
+    const digits = clean.slice(3);
+    const ghostLetters = "___".slice(letters.length);
+    const ghostDigits = "____".slice(digits.length);
+
+    if (!info.partial || info.complete) {
+      const disp = info.display || formatOldDisplay(clean);
+      const m = disp.match(/^([A-Z]{3})-?([0-9]{0,4})$/);
+      const L = m ? m[1] : letters;
+      const D = m ? m[2] : digits;
+      return `<span class="vp-plate__text vp-plate__text--old"><span class="vp-plate__old-letters">${esc(L)}</span><span class="vp-plate__old-sep">-</span><span class="vp-plate__old-digits">${esc(D)}</span></span>`;
+    }
+
+    return `<span class="vp-plate__text vp-plate__text--old"><span class="vp-plate__old-letters">${esc(letters)}<span class="vp-plate__ghost">${esc(ghostLetters)}</span></span><span class="vp-plate__old-sep">-</span><span class="vp-plate__old-digits">${esc(digits)}<span class="vp-plate__ghost">${esc(ghostDigits)}</span></span></span>`;
+  }
+
   function renderOldPlate(info, size) {
     return `<span class="vp-plate vp-plate--old vp-plate--${size}${info.partial ? " vp-plate--partial" : ""}${info.complete ? " vp-plate--complete" : ""}" role="img" aria-label="Placa ${esc(info.display || info.clean || "veículo")}">
-      <span class="vp-plate__body vp-plate__body--old">${renderChars(info)}</span>
+      <span class="vp-plate__old">
+        <span class="vp-plate__body vp-plate__body--old">${renderOldChars(info)}</span>
+      </span>
     </span>`;
   }
 
@@ -128,7 +151,10 @@
 
     if (info.type === "empty") {
       if (!opts.showEmpty) return opts.placeholder ? `<span class="vp-plate-empty">${esc(opts.placeholder)}</span>` : "";
-      visual = renderOldPlate({ type: "empty", clean: "", display: opts.placeholder || "—", complete: false, partial: true }, size);
+      visual = renderOldPlate(
+        { type: "empty", clean: "", display: opts.placeholder || "—", complete: false, partial: true },
+        size
+      );
     } else if (info.type === "mercosul") {
       visual = renderMercosulPlate(info, size);
     } else {
