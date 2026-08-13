@@ -331,6 +331,7 @@
 }
 
 .header-plate-search .vp-input-row,
+.header-plate-search-primary .vp-input-row,
 .patio-plate-bar .vp-input-row {
   flex: 1 1 auto;
   min-width: 0;
@@ -346,9 +347,10 @@
     justify-content: flex-start;
   }
 
-  .header-plate-search .vp-input-row {
+  .header-plate-search .vp-input-row,
+  .header-plate-search-primary .vp-input-row {
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     gap: 4px 6px;
   }
