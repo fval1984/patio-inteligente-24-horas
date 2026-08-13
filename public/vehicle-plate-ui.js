@@ -13,12 +13,33 @@
       .replace(/"/g, "&quot;");
   }
 
+  /** Normaliza digitação respeitando posições antiga (LLLNNNN) e Mercosul (LLLNLNN). */
+  function sanitizePlateTyping(str) {
+    const raw = String(str || "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
+    let out = "";
+    for (let i = 0; i < raw.length && out.length < 7; i++) {
+      const ch = raw[i];
+      const p = out.length;
+      if (p < 3) {
+        if (/[A-Z]/.test(ch)) out += ch;
+      } else if (p === 3) {
+        if (/[0-9]/.test(ch)) out += ch;
+      } else if (p === 4 && /^[A-Z]{3}[0-9]$/.test(out)) {
+        if (/[A-Z0-9]/.test(ch)) out += ch;
+      } else if (/^[A-Z]{3}[0-9][A-Z]/.test(out)) {
+        if (/[0-9]/.test(ch)) out += ch;
+      } else if (/^[A-Z]{3}[0-9]/.test(out)) {
+        if (/[0-9]/.test(ch)) out += ch;
+      }
+    }
+    return out;
+  }
+
   /** Remove hífen/espaço; mantém letras/números; maiúsculas; máx. 7 chars. */
   function stripPlate(str) {
-    return String(str || "")
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, "")
-      .slice(0, 7);
+    return sanitizePlateTyping(str);
   }
 
   function isMercosulComplete(clean) {
@@ -205,8 +226,19 @@
     const visual = editor.querySelector(".vp-plate-editor__visual");
     if (!visual) return;
     const size = editor.getAttribute("data-vp-size") || "sm";
-    const clean = stripPlate(input.value);
-    if (input.value !== clean) input.value = clean;
+    const prev = input.value;
+    const selStart = input.selectionStart;
+    const selEnd = input.selectionEnd;
+    const clean = sanitizePlateTyping(prev);
+    if (prev !== clean) {
+      input.value = clean;
+      const pos = Math.min(clean.length, selStart != null ? selStart : clean.length);
+      try {
+        input.setSelectionRange(pos, pos);
+      } catch (e) {
+        /* ignore */
+      }
+    }
     visual.innerHTML = renderPlateEditorVisual(input, size);
     const info = analyzePlate(clean);
     editor.classList.toggle("vp-plate-editor--empty", !clean);
@@ -248,7 +280,7 @@
     if (!visual) {
       visual = document.createElement("div");
       visual.className = "vp-plate-editor__visual";
-      editor.appendChild(visual);
+      editor.insertBefore(visual, input);
     }
 
     const label = document.querySelector(`label[for="${input.id}"]`);
@@ -279,7 +311,21 @@
       }
     });
 
-    editor.addEventListener("click", focusEditor);
+    input.addEventListener("beforeinput", (event) => {
+      if (event.inputType !== "insertText" || !event.data) return;
+      const start = input.selectionStart ?? input.value.length;
+      const end = input.selectionEnd ?? start;
+      const trial = sanitizePlateTyping(input.value.slice(0, start) + event.data + input.value.slice(end));
+      const merged = input.value.slice(0, start) + event.data + input.value.slice(end);
+      if (sanitizePlateTyping(merged) === input.value && event.data.length === 1) {
+        event.preventDefault();
+      }
+    });
+
+    editor.addEventListener("click", (e) => {
+      e.preventDefault();
+      focusEditor();
+    });
 
     syncPlateEditorVisual(input);
     return input;
@@ -360,6 +406,7 @@
   }
 
   global.vehiclePlateUI = {
+    sanitizePlateTyping,
     stripPlate,
     analyzePlate,
     renderPlateHtml,
