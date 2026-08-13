@@ -1902,6 +1902,9 @@
         text-align: right;
         line-height: 1.25;
       }
+      .header-mobile-module-nav {
+        display: none;
+      }
       .header-module-nav.dashboard-system-entry {
         display: flex;
         flex-wrap: wrap;
@@ -6046,8 +6049,45 @@
       }
       @media (max-width: 900px) {
         #appHeaderMenuWrap:not(.hidden) .header-menu-trigger {
-          display: inline-flex;
-          flex-shrink: 0;
+          display: none !important;
+        }
+        #appHeaderMenuWrap:not(.hidden) .header-menu-tray {
+          display: none !important;
+        }
+        #appHeaderMenuWrap:not(.hidden) .header-mobile-module-nav {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          width: 100%;
+          margin-top: 2px;
+        }
+        .header-mobile-module-btn {
+          flex: 1 1 calc(33.333% - 6px);
+          min-width: calc(50% - 6px);
+          min-height: 40px;
+          padding: 8px 6px;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          border-radius: 8px;
+          border: 1px solid var(--border);
+          background: rgba(15, 23, 42, 0.55);
+          color: var(--text);
+          cursor: pointer;
+        }
+        [data-theme="light"] .header-mobile-module-btn {
+          background: rgba(248, 250, 252, 0.95);
+        }
+        .header-mobile-module-btn.active {
+          border-color: rgba(56, 189, 248, 0.55);
+          background: rgba(56, 189, 248, 0.14);
+          color: #7dd3fc;
+        }
+        [data-theme="light"] .header-mobile-module-btn.active {
+          border-color: rgba(2, 132, 199, 0.45);
+          background: rgba(224, 242, 254, 0.95);
+          color: #0369a1;
         }
         #appHeaderMenuWrap:not(.hidden) #dashboardSystemEntry {
           display: none !important;
@@ -6059,11 +6099,7 @@
           order: 3;
         }
         .header-menu-tray {
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
-          gap: 8px;
-          width: 100%;
+          display: none !important;
         }
         .header-plate-search {
           flex: 1 1 auto;
@@ -6306,6 +6342,13 @@
             <button type="button" class="secondary" id="clearPlateFilter">Limpar</button>
             <button type="button" id="headerLogoutBtn" class="secondary header-logout-btn hidden" title="Sair da conta">Sair</button>
           </form>
+          <nav id="headerMobileModuleNav" class="header-mobile-module-nav" aria-label="Módulos principais">
+            <button type="button" class="header-mobile-module-btn" data-mobile-module="patio">PATIO</button>
+            <button type="button" class="header-mobile-module-btn" data-mobile-module="financeiro" data-mobile-module-adm-only="1">Financeiro</button>
+            <button type="button" class="header-mobile-module-btn" data-mobile-module="parceiros" data-mobile-module-adm-only="1">Parceiros</button>
+            <button type="button" class="header-mobile-module-btn" data-mobile-module="lista">Lista</button>
+            <button type="button" class="header-mobile-module-btn" data-mobile-module="configuracoes" data-mobile-module-adm-only="1">Configurações</button>
+          </nav>
           <div class="dashboard-system-entry header-module-nav" id="dashboardSystemEntry">
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenPatio">
               <span class="dashboard-system-btn__kicker">Operação</span>
@@ -14689,6 +14732,55 @@
         }
       }
 
+      function applyMobileModuleNavRestrictions() {
+        const nav = document.getElementById("headerMobileModuleNav");
+        if (!nav) return;
+        nav.querySelectorAll("[data-mobile-module]").forEach((btn) => {
+          const admOnly = btn.hasAttribute("data-mobile-module-adm-only");
+          const show = !admOnly || !isGestorPista;
+          btn.classList.toggle("hidden", !show);
+          btn.style.display = show ? "" : "none";
+        });
+      }
+
+      function syncMobileModuleNavHighlight(view) {
+        const nav = document.getElementById("headerMobileModuleNav");
+        if (!nav || !isMobileLayout()) return;
+        nav.querySelectorAll("[data-mobile-module]").forEach((btn) => {
+          btn.classList.toggle("active", btn.getAttribute("data-mobile-module") === view);
+        });
+      }
+
+      function navigateMobileModule(module) {
+        if (!module) return;
+        closeAppHeaderMenu();
+        if (isGestorPista && module !== "patio" && module !== "lista") {
+          openMainView("patio");
+          setPatioView("inicio");
+          return;
+        }
+        if (module === "patio") {
+          openMainView("patio");
+          return;
+        }
+        if (module === "parceiros") {
+          openPartnerSubview("parceiros");
+          return;
+        }
+        if (module === "financeiro") {
+          openMainView("financeiro");
+          return;
+        }
+        if (module === "lista") {
+          openMainView("lista");
+          if (isGestorPista) openListaSubview("vnp");
+          return;
+        }
+        if (module === "configuracoes") {
+          openMainView("configuracoes");
+        }
+      }
+
       function openDefaultHomeView() {
         const view = defaultHomeViewForRole();
         showMainView(view);
@@ -14710,6 +14802,10 @@
         document.querySelectorAll("#appHeaderMenu button[data-view]").forEach((btn) => {
           btn.style.display = "";
         });
+        document.querySelectorAll("#headerMobileModuleNav [data-mobile-module-adm-only]").forEach((btn) => {
+          btn.classList.remove("hidden");
+          btn.style.display = "";
+        });
         patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.remove("hidden");
         patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.remove("hidden");
         const vehicleDailyReset = document.getElementById("vehicleDaily");
@@ -14728,6 +14824,7 @@
           if (patioOpsHead) patioOpsHead.textContent = "Indicadores operacionais";
           applyAdmDesktopPcRestrictions();
           applyMobileExecutiveDashboardRestrictions();
+          applyMobileModuleNavRestrictions();
           if (!opts.skipDefaultView) openDefaultHomeView();
           return;
         }
@@ -14794,6 +14891,7 @@
         window.isGestorPista = true;
         const patioOpsHead = document.querySelector("#patioInicioPanel .patio-inicio-ops-section h4");
         if (patioOpsHead) patioOpsHead.textContent = "Indicadores do pátio";
+        applyMobileModuleNavRestrictions();
       }
 
       async function bootstrap() {
@@ -21059,6 +21157,7 @@
           lastAppHeaderModuleView = view;
         }
         syncHeaderMenuModuleHighlight(view);
+        syncMobileModuleNavHighlight(view);
       }
 
       function setConfigSubview(sub) {
@@ -21523,6 +21622,12 @@
       });
 
       document.getElementById("appHeaderMenuBtn")?.addEventListener("click", toggleAppHeaderMenu);
+      document.getElementById("headerMobileModuleNav")?.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-mobile-module]");
+        if (!btn || btn.classList.contains("hidden")) return;
+        e.preventDefault();
+        navigateMobileModule(btn.getAttribute("data-mobile-module"));
+      });
       document.getElementById("appHeaderMenuClose")?.addEventListener("click", closeAppHeaderMenu);
       document.getElementById("appHeaderMenuBackdrop")?.addEventListener("click", closeAppHeaderMenu);
       document.querySelectorAll("#appHeaderMenu > .header-menu-details").forEach((det) => {
@@ -21656,6 +21761,7 @@
         window.__admPcResizeT = setTimeout(() => {
           applyAdmDesktopPcRestrictions();
           applyMobileExecutiveDashboardRestrictions();
+          applyMobileModuleNavRestrictions();
         }, 180);
       });
     </script>
