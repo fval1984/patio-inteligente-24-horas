@@ -38,108 +38,130 @@
     max-width: min(280px, 86vw) !important;
   }
 
-  /* Busca de placa — layout vertical para polegar */
+  /* ---- Botões compactos (padrão = módulos abaixo do cabeçalho) ---- */
+  :root {
+    --mob-btn-h: 36px;
+    --mob-btn-h-lg: 38px;
+    --mob-btn-pad-x: 10px;
+    --mob-btn-pad-y: 6px;
+    --mob-btn-font: 11px;
+    --mob-btn-radius: 8px;
+    --mob-gap: 6px;
+  }
+
+  /* Busca de placa — compacta, alinhada aos módulos */
   .app-subheader {
-    padding: 10px 12px !important;
-    padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    padding: 8px 10px !important;
+    padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
   }
 
   .header-plate-search {
     display: flex !important;
     flex-wrap: wrap !important;
-    align-items: stretch !important;
-    gap: 8px !important;
+    align-items: center !important;
+    gap: var(--mob-gap) !important;
     width: 100% !important;
-    padding: 10px !important;
+    padding: 0 !important;
   }
 
   .header-plate-search .header-plate-label {
     flex: 1 1 100%;
     width: 100%;
-    font-size: 12px !important;
+    font-size: 11px !important;
     margin-bottom: 0;
   }
 
   .header-plate-search input#plateFilter {
-    flex: 1 1 100% !important;
-    width: 100% !important;
+    flex: 1 1 auto !important;
     min-width: 0 !important;
-    min-height: 48px !important;
-    font-size: 16px !important;
-    letter-spacing: 0.08em;
-    padding: 12px 14px !important;
-    border-radius: 8px !important;
+    min-height: var(--mob-btn-h) !important;
+    font-size: 14px !important;
+    letter-spacing: 0.06em;
+    padding: 6px 10px !important;
+    border-radius: var(--mob-btn-radius) !important;
   }
 
-  .header-plate-search #plateSearchOk {
-    flex: 1 1 100% !important;
-    width: 100% !important;
-    min-height: 48px !important;
-    font-size: 15px !important;
-    font-weight: 700 !important;
-    border-radius: 8px !important;
-  }
-
+  .header-plate-search #plateSearchOk,
   .header-plate-search #goDashboardFromPlate,
   .header-plate-search #clearPlateFilter,
   .header-plate-search #headerLogoutBtn {
-    flex: 1 1 calc(33.333% - 6px) !important;
-    min-height: 44px !important;
-    font-size: 13px !important;
-    border-radius: 8px !important;
+    flex: 0 0 auto !important;
+    min-height: var(--mob-btn-h) !important;
+    padding: var(--mob-btn-pad-y) var(--mob-btn-pad-x) !important;
+    font-size: var(--mob-btn-font) !important;
+    font-weight: 700 !important;
+    border-radius: var(--mob-btn-radius) !important;
   }
 
-  /* Módulos — grid 2 colunas; PATIO em destaque */
+  /* Módulos — flex wrap como no cabeçalho */
   #appSubheader:not(.hidden) .header-mobile-module-nav {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 8px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: var(--mob-gap) !important;
     width: 100% !important;
-    margin-top: 10px !important;
-    padding-top: 10px !important;
+    margin-top: 8px !important;
+    padding-top: 8px !important;
   }
 
   .header-mobile-module-btn {
-    flex: none !important;
-    min-width: 0 !important;
-    width: 100% !important;
-    min-height: 48px !important;
-    padding: 10px 8px !important;
-    font-size: 12px !important;
+    flex: 1 1 calc(33.333% - 4px) !important;
+    min-width: calc(50% - 4px) !important;
+    width: auto !important;
+    min-height: var(--mob-btn-h) !important;
+    padding: var(--mob-btn-pad-y) 8px !important;
+    font-size: var(--mob-btn-font) !important;
     font-weight: 700 !important;
-    border-radius: 8px !important;
+    border-radius: var(--mob-btn-radius) !important;
     touch-action: manipulation;
   }
 
   .header-mobile-module-btn[data-mobile-module="patio"] {
-    grid-column: 1 / -1;
-    min-height: 52px !important;
-    font-size: 13px !important;
+    flex: 1 1 100% !important;
+    min-width: 100% !important;
+    min-height: var(--mob-btn-h-lg) !important;
   }
 
-  /* Alvos de toque — Material ~48dp */
-  button,
-  .auth-tab,
-  select,
-  input[type="submit"],
-  input[type="button"],
-  .header-mobile-module-btn,
-  .subnav button,
+  /* Subnav / ações — mesmo chip dos módulos */
+  :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button,
   .finance-subnav button,
   #viewPatio .patio-nav-inline button,
+  .subnav button,
+  .toolbar .actions button,
+  .lista-toolbar-actions button,
   .actions button,
-  .table td.actions button,
-  .lista-toolbar-actions button {
+  .gestor-pista-welcome .secondary,
+  .fin-toolbar .actions button {
+    min-height: var(--mob-btn-h) !important;
+    padding: var(--mob-btn-pad-y) var(--mob-btn-pad-x) !important;
+    font-size: var(--mob-btn-font) !important;
+    font-weight: 700 !important;
+    border-radius: var(--mob-btn-radius) !important;
+    box-shadow: none !important;
     touch-action: manipulation;
   }
 
-  button:not(.vei-class-btn):not(.vei-cell-btn),
-  .auth-tab,
-  .subnav button,
+  :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button,
   .finance-subnav button,
   #viewPatio .patio-nav-inline button,
+  .subnav button {
+    background: var(--ag-surface, #fff) !important;
+    border: 1px solid var(--ag-border, #dee2e6) !important;
+    color: var(--ag-navy, #001529) !important;
+  }
+
+  :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button.active,
+  .finance-subnav button.active,
+  #viewPatio .patio-nav-inline button.active,
+  .subnav button.active {
+    background: var(--ag-blue, #1677ff) !important;
+    border-color: var(--ag-blue-strong, #0958d9) !important;
+    color: #fff !important;
+  }
+
+  button:not(.vei-class-btn):not(.vei-cell-btn):not(.header-menu-trigger):not(.patio-mob-info-btn),
+  .auth-tab,
   .header-mobile-module-btn {
-    min-height: 44px;
+    min-height: var(--mob-btn-h);
   }
 
   /* Inputs — 16px evita zoom automático ao focar */
@@ -147,7 +169,7 @@
   select,
   textarea {
     font-size: 16px !important;
-    min-height: 44px;
+    min-height: var(--mob-btn-h);
   }
 
   textarea {
@@ -182,8 +204,8 @@
   .fin-toolbar {
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 10px !important;
-    margin-bottom: 12px !important;
+    gap: 8px !important;
+    margin-bottom: 10px !important;
   }
 
   .toolbar h2,
@@ -197,15 +219,16 @@
     width: 100%;
     justify-content: flex-end;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--mob-gap);
   }
 
   .close-view {
-    min-width: 48px !important;
-    min-height: 48px !important;
-    padding: 0 14px !important;
-    font-size: 18px !important;
+    min-width: var(--mob-btn-h) !important;
+    min-height: var(--mob-btn-h) !important;
+    padding: 0 10px !important;
+    font-size: 16px !important;
     font-weight: 700 !important;
+    border-radius: var(--mob-btn-radius) !important;
   }
 
   /* Subnav — scroll horizontal com dedo */
@@ -218,9 +241,9 @@
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     scroll-snap-type: x proximity;
-    padding-bottom: 6px !important;
-    margin-top: 8px !important;
-    gap: 8px !important;
+    padding-bottom: 4px !important;
+    margin-top: 6px !important;
+    gap: var(--mob-gap) !important;
   }
 
   :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav)::-webkit-scrollbar,
@@ -234,8 +257,6 @@
   #viewPatio .patio-nav-inline button {
     flex: 0 0 auto !important;
     white-space: nowrap !important;
-    min-height: 44px !important;
-    padding: 10px 16px !important;
     scroll-snap-align: start;
   }
 
@@ -288,10 +309,12 @@
   }
 
   .table td.actions button {
-    min-height: 40px !important;
-    min-width: 40px !important;
-    padding: 8px 10px !important;
+    min-height: 32px !important;
+    min-width: 32px !important;
+    padding: 5px 8px !important;
     margin: 2px 0;
+    font-size: 10px !important;
+    border-radius: var(--mob-btn-radius) !important;
   }
 
   /* Cards de dashboard */
@@ -374,10 +397,11 @@
 
   /* Patio flyout / menu lateral */
   .patio-flyout-close {
-    min-width: 48px !important;
-    min-height: 48px !important;
-    top: max(10px, env(safe-area-inset-top)) !important;
-    right: max(10px, env(safe-area-inset-right)) !important;
+    min-width: var(--mob-btn-h) !important;
+    min-height: var(--mob-btn-h) !important;
+    top: max(8px, env(safe-area-inset-top)) !important;
+    right: max(8px, env(safe-area-inset-right)) !important;
+    border-radius: var(--mob-btn-radius) !important;
   }
 
   #viewPatio.patio-flyout-open #patioContent {
@@ -386,20 +410,22 @@
   }
 
   .patio-side-menu button {
-    min-height: 48px !important;
-    padding: 12px 14px !important;
-    font-size: 15px !important;
-  }
-
-  /* Financeiro — ações em linha */
-  #viewFinanceiro .fin-row-actions {
-    flex-wrap: wrap !important;
-    gap: 6px !important;
+    min-height: var(--mob-btn-h) !important;
+    padding: var(--mob-btn-pad-y) 12px !important;
+    font-size: 12px !important;
+    border-radius: var(--mob-btn-radius) !important;
   }
 
   #viewFinanceiro .fin-row-actions button {
-    min-height: 40px !important;
-    padding: 8px 12px !important;
+    min-height: 32px !important;
+    padding: 5px 8px !important;
+    font-size: 10px !important;
+    border-radius: var(--mob-btn-radius) !important;
+  }
+
+  #viewFinanceiro .fin-row-actions {
+    flex-wrap: wrap !important;
+    gap: var(--mob-gap) !important;
   }
 
   /* Notices legíveis */
@@ -431,10 +457,6 @@
     font-size: 1.1rem !important;
   }
 
-  .header-mobile-module-nav {
-    grid-template-columns: 1fr 1fr !important;
-  }
-
   .patio-inicio-grid {
     grid-template-columns: 1fr 1fr !important;
   }
@@ -448,27 +470,23 @@
 @media (max-width: 360px) {
   .header-mobile-module-btn {
     font-size: 10px !important;
-    padding: 8px 4px !important;
+    padding: 5px 4px !important;
   }
 
   .header-mobile-module-btn[data-mobile-module="patio"] {
-    font-size: 12px !important;
+    font-size: 11px !important;
   }
 }
 
-/* Preferência touch — botões maiores */
+/* Touch — leve reforço, sem inflar demais */
 @media (max-width: 900px) and (pointer: coarse) {
-  .header-plate-search #plateSearchOk,
+  :root {
+    --mob-btn-h: 38px;
+    --mob-btn-h-lg: 40px;
+  }
+
   .header-plate-search input#plateFilter {
-    min-height: 52px !important;
-  }
-
-  .header-mobile-module-btn {
-    min-height: 50px !important;
-  }
-
-  :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button {
-    min-height: 48px !important;
+    min-height: 38px !important;
   }
 }
 
@@ -537,12 +555,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    padding: 12px 14px;
+    gap: 8px;
+    padding: 10px 12px;
     background: var(--ag-surface, #fff);
     border: 1px solid var(--ag-border, #dee2e6);
-    border-radius: 10px;
-    box-shadow: 0 1px 3px rgba(0, 21, 41, 0.06);
+    border-radius: var(--mob-btn-radius, 8px);
+    box-shadow: 0 1px 2px rgba(0, 21, 41, 0.05);
   }
 
   tr.vnp-row-pending-adm-review .patio-mob-compact-row {
@@ -568,7 +586,7 @@
   .patio-mob-compact-text {
     flex: 1 1 auto;
     min-width: 0;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--ag-text, #001529);
     line-height: 1.35;
@@ -579,15 +597,16 @@
 
   .patio-mob-info-btn {
     flex: 0 0 auto;
-    min-width: 52px !important;
-    min-height: 40px !important;
-    padding: 8px 12px !important;
+    min-width: 44px !important;
+    min-height: 32px !important;
+    padding: 5px 10px !important;
     font-weight: 700 !important;
-    font-size: 12px !important;
-    border-radius: 8px !important;
+    font-size: 10px !important;
+    border-radius: var(--mob-btn-radius, 8px) !important;
     background: var(--ag-blue, #1677ff) !important;
-    border-color: var(--ag-blue-strong, #0958d9) !important;
+    border: 1px solid var(--ag-blue-strong, #0958d9) !important;
     color: #fff !important;
+    box-shadow: none !important;
   }
 
   #patioVehicleActionsModal .modal {
@@ -597,15 +616,18 @@
   #patioVehicleActionsModal .patio-vehicle-actions-body {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--mob-gap, 6px);
     padding: 4px 0 8px;
   }
 
   #patioVehicleActionsModal .patio-vehicle-actions-body button.secondary,
   #patioVehicleActionsModal .patio-vehicle-actions-body .nfse-action-btn {
     width: 100%;
-    min-height: 48px !important;
-    font-size: 14px !important;
+    min-height: var(--mob-btn-h, 36px) !important;
+    padding: var(--mob-btn-pad-y, 6px) var(--mob-btn-pad-x, 10px) !important;
+    font-size: var(--mob-btn-font, 11px) !important;
+    font-weight: 700 !important;
+    border-radius: var(--mob-btn-radius, 8px) !important;
     justify-content: center;
   }
 
@@ -627,18 +649,23 @@
   #fichaSectionAcoes.ficha-inline-actions {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--mob-gap, 6px);
   }
 
   #fichaSectionAcoes.ficha-inline-actions button.secondary,
   #fichaSectionAcoes.ficha-inline-actions .nfse-action-btn {
     width: 100%;
-    min-height: 48px !important;
-    font-size: 14px !important;
+    min-height: var(--mob-btn-h, 36px) !important;
+    padding: var(--mob-btn-pad-y, 6px) var(--mob-btn-pad-x, 10px) !important;
+    font-size: var(--mob-btn-font, 11px) !important;
+    font-weight: 700 !important;
+    border-radius: var(--mob-btn-radius, 8px) !important;
   }
 
   #fichaModal .modal-header .actions button {
-    min-height: 44px !important;
+    min-height: var(--mob-btn-h, 36px) !important;
+    font-size: var(--mob-btn-font, 11px) !important;
+    padding: var(--mob-btn-pad-y, 6px) var(--mob-btn-pad-x, 10px) !important;
   }
 }
 
