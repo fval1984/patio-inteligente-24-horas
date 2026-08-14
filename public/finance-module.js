@@ -3790,12 +3790,12 @@
 
   function financeReceberClienteLogoUrl() {
     const base = window.location?.origin || "";
-    return `${base}/assets/recibo-header-logo.png`;
+    return `${base}/assets/ampliguard-header-trim.png?v=8`;
   }
 
   function financeReceberClienteLogoFallbackUrl() {
     const base = window.location?.origin || "";
-    return `${base}/assets/logo.png`;
+    return `${base}/assets/ampliguard-header-trim.png?v=8`;
   }
 
   function financeReceberClientePartnerFromQuery(query) {
@@ -3846,7 +3846,7 @@
   body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; color: #0f172a; background: #fff; }
   .doc { max-width: 920px; margin: 0 auto; padding: 24px 28px 32px; }
   .doc-head { text-align: center; border-bottom: 3px solid #dc2626; padding-bottom: 16px; margin-bottom: 18px; }
-  .doc-head img { max-height: 52px; max-width: 320px; object-fit: contain; }
+  .doc-head img { max-height: 64px; max-width: 380px; object-fit: contain; background: transparent; }
   .doc-title { margin: 14px 0 4px; font-size: 1.25rem; font-weight: 700; }
   .doc-sub { margin: 0; color: #475569; font-size: 0.88rem; }
   .doc-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin: 14px 0 18px; }
@@ -3991,8 +3991,8 @@
       if (logo) {
         try {
           const props = pdf.getImageProperties(logo.dataUrl);
-          const maxW = 240;
-          const maxH = 38;
+          const maxW = 280;
+          const maxH = 48;
           let imgW = maxW;
           let imgH = (props.height * imgW) / props.width;
           if (imgH > maxH) {
