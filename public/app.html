@@ -3679,6 +3679,213 @@
         box-shadow: none;
         padding: 6px 10px;
       }
+      /* ---- Card de fluxo VNP / VLP / VRP ---- */
+      #liberacaoModal.modal-backdrop {
+        padding: 24px 16px;
+      }
+      #liberacaoModal .workflow-step-modal {
+        width: min(460px, 94vw);
+        padding: 22px 22px 20px;
+        border-radius: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        max-height: min(90vh, 760px);
+      }
+      #liberacaoModal .workflow-step-handle {
+        display: none;
+        width: 40px;
+        height: 4px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--muted) 45%, transparent);
+        margin: 0 auto 2px;
+      }
+      #liberacaoModal .workflow-step-header {
+        align-items: flex-start;
+        margin-bottom: 0;
+        gap: 14px;
+        padding-bottom: 4px;
+      }
+      #liberacaoModal .workflow-step-heading {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        min-width: 0;
+        flex: 1;
+      }
+      #liberacaoModal .workflow-step-heading h3 {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+      }
+      #liberacaoModal .workflow-step-subtitle {
+        margin: 6px 0 0;
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--muted);
+      }
+      #liberacaoModal .workflow-step-badge {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        padding: 5px 8px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        background: var(--ag-blue-soft, #e6f4ff);
+        color: var(--ag-blue-strong, #0958d9);
+        border: 1px solid color-mix(in srgb, var(--ag-blue, #1677ff) 28%, transparent);
+      }
+      #liberacaoModal .workflow-step-badge--vlp {
+        background: var(--ag-warning-bg, #fef3c7);
+        color: #92400e;
+        border-color: color-mix(in srgb, var(--ag-warning, #d97706) 35%, transparent);
+      }
+      #liberacaoModal .workflow-step-badge--vrp {
+        background: var(--ag-success-bg, #dcfce7);
+        color: #166534;
+        border-color: color-mix(in srgb, var(--ag-success, #16a34a) 35%, transparent);
+      }
+      #liberacaoModal .wf-section-title {
+        margin: 0 0 10px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      #liberacaoModal .wf-context-wrap,
+      #liberacaoModal .wf-action-wrap {
+        min-width: 0;
+      }
+      #liberacaoModal .wf-context-fields {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--card) 72%, var(--ag-neutral-bg, #f1f5f9) 28%);
+        overflow: hidden;
+      }
+      #liberacaoModal .wf-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+      }
+      #liberacaoModal .wf-field.hidden,
+      #liberacaoModal .wf-context-wrap.hidden,
+      #liberacaoModal .wf-action-wrap.hidden {
+        display: none !important;
+      }
+      #liberacaoModal .wf-field label {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text);
+        line-height: 1.3;
+      }
+      #liberacaoModal .wf-field-hint {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.4;
+        color: var(--muted);
+      }
+      #liberacaoModal .wf-field--readonly {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 13px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      #liberacaoModal .wf-field--readonly:last-child {
+        border-bottom: none;
+      }
+      #liberacaoModal .wf-field--readonly label {
+        flex: 0 1 auto;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      #liberacaoModal .wf-field--readonly .wf-field-hint {
+        display: none;
+      }
+      #liberacaoModal .wf-field--readonly select {
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        appearance: none;
+        -webkit-appearance: none;
+        text-align: right;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text) !important;
+        cursor: default;
+        opacity: 1 !important;
+        background-image: none !important;
+        pointer-events: none;
+      }
+      #liberacaoModal .workflow-step-fields {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        grid-template-columns: none;
+      }
+      #liberacaoModal .wf-field--action {
+        gap: 8px;
+        padding: 16px;
+        border-radius: 14px;
+        border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border));
+        background: color-mix(in srgb, var(--primary-weak) 55%, var(--card));
+      }
+      #liberacaoModal .wf-field--action select {
+        width: 100%;
+        min-height: 48px !important;
+        padding: 12px 14px !important;
+        font-size: 15px;
+        font-weight: 600;
+        border-radius: 12px !important;
+      }
+      #liberacaoModal .workflow-step-actions {
+        margin-top: 4px;
+        padding-top: 4px;
+        gap: 10px;
+      }
+      #liberacaoModal .workflow-step-actions #confirmLiberacaoModal {
+        flex: 1 1 auto;
+        min-height: 46px;
+        padding: 12px 16px;
+        font-size: 14px;
+      }
+      #liberacaoModal .workflow-step-actions #cancelLiberacaoModal {
+        flex: 0 0 auto;
+        min-height: 46px;
+        padding: 12px 16px;
+      }
+      [data-theme="dark"] #liberacaoModal .wf-context-fields {
+        background: color-mix(in srgb, var(--card) 80%, #0f172a 20%);
+      }
+      [data-theme="dark"] #liberacaoModal .wf-field--action {
+        background: color-mix(in srgb, var(--primary-weak) 70%, var(--card));
+      }
+      [data-theme="dark"] #liberacaoModal .workflow-step-badge--vlp {
+        background: rgba(217, 119, 6, 0.18);
+        color: #fbbf24;
+      }
+      [data-theme="dark"] #liberacaoModal .workflow-step-badge--vrp {
+        background: rgba(22, 163, 74, 0.18);
+        color: #86efac;
+      }
       .modal-backdrop.tab-view-modal {
         z-index: 190;
         position: fixed !important;
@@ -7761,36 +7968,53 @@
       </div>
 
       <div id="liberacaoModal" class="modal-backdrop hidden">
-        <div class="modal">
-          <div class="modal-header">
-            <div>
-              <h3 id="liberacaoModalTitle">Fluxo VNP</h3>
+        <div class="modal workflow-step-modal">
+          <div class="workflow-step-handle" aria-hidden="true"></div>
+          <div class="modal-header workflow-step-header">
+            <div class="workflow-step-heading">
+              <span id="liberacaoModalBadge" class="workflow-step-badge">VNP</span>
+              <div>
+                <h3 id="liberacaoModalTitle">Fluxo VNP</h3>
+                <p id="liberacaoModalSubtitle" class="workflow-step-subtitle"></p>
+              </div>
             </div>
             <button class="modal-close" id="closeLiberacaoModal">Fechar</button>
           </div>
-          <div class="form-grid">
-            <div id="libRowSolicitante">
-              <label id="libSolicitanteLabel">Quem solicitou a liberação?</label>
-              <select id="libSolicitante"></select>
-            </div>
-            <div id="libRowConfirmador" class="hidden" aria-hidden="true">
-              <label id="libConfirmadorLabel">Quem confirmou a liberação?</label>
-              <select id="libConfirmador"></select>
-            </div>
-            <div id="libRowResponsavel" class="hidden" aria-hidden="true">
-              <label id="libResponsavelLabel">Quem será o RPP (responsável financeiro / pagamento)?</label>
-              <select id="libResponsavelPagamento"></select>
-            </div>
-            <div id="libRowSolicRemocao" class="hidden" aria-hidden="true">
-              <label id="libSolicRemocaoLabel">Quem solicitou a remoção?</label>
-              <select id="libSolicitanteRemocao"></select>
-            </div>
-            <div id="libRowRemoveu" class="hidden" aria-hidden="true">
-              <label id="libRemoveuLabel">Quem removeu o veículo?</label>
-              <select id="libRemoveu"></select>
+          <div id="libContextWrap" class="wf-context-wrap hidden">
+            <p class="wf-section-title">Registrado no fluxo</p>
+            <div id="libContextFields" class="wf-context-fields"></div>
+          </div>
+          <div id="libActionWrap" class="wf-action-wrap">
+            <p id="libActionTitle" class="wf-section-title">Informe</p>
+            <div id="libActionFields" class="form-grid workflow-step-fields">
+              <div id="libRowSolicitante" class="wf-field">
+                <label id="libSolicitanteLabel">Quem solicitou a liberação?</label>
+                <p class="wf-field-hint" id="libSolicitanteHint">Parceiro que pediu a liberação do veículo.</p>
+                <select id="libSolicitante"></select>
+              </div>
+              <div id="libRowConfirmador" class="wf-field hidden" aria-hidden="true">
+                <label id="libConfirmadorLabel">Quem confirma a liberação?</label>
+                <p class="wf-field-hint" id="libConfirmadorHint">Parceiro responsável por confirmar a liberação.</p>
+                <select id="libConfirmador"></select>
+              </div>
+              <div id="libRowResponsavel" class="wf-field hidden" aria-hidden="true">
+                <label id="libResponsavelLabel">RPP · responsável financeiro</label>
+                <p class="wf-field-hint" id="libResponsavelHint">Quem será cobrado pelas diárias deste ciclo.</p>
+                <select id="libResponsavelPagamento"></select>
+              </div>
+              <div id="libRowSolicRemocao" class="wf-field hidden" aria-hidden="true">
+                <label id="libSolicRemocaoLabel">Quem solicitou a remoção?</label>
+                <p class="wf-field-hint" id="libSolicRemocaoHint">Parceiro que pediu a retirada do veículo.</p>
+                <select id="libSolicitanteRemocao"></select>
+              </div>
+              <div id="libRowRemoveu" class="wf-field hidden" aria-hidden="true">
+                <label id="libRemoveuLabel">Quem removeu o veículo?</label>
+                <p class="wf-field-hint" id="libRemoveuHint">Parceiro que efetivou a saída do pátio.</p>
+                <select id="libRemoveu"></select>
+              </div>
             </div>
           </div>
-          <div class="form-actions">
+          <div class="form-actions workflow-step-actions">
             <button type="button" id="confirmLiberacaoModal">Confirmar</button>
             <button type="button" class="secondary" id="cancelLiberacaoModal">Cancelar</button>
           </div>
@@ -8590,12 +8814,23 @@
       const cancelLiberacaoModal = document.getElementById("cancelLiberacaoModal");
       const confirmLiberacaoModal = document.getElementById("confirmLiberacaoModal");
       const liberacaoModalTitle = document.getElementById("liberacaoModalTitle");
+      const liberacaoModalSubtitle = document.getElementById("liberacaoModalSubtitle");
+      const liberacaoModalBadge = document.getElementById("liberacaoModalBadge");
+      const libContextWrap = document.getElementById("libContextWrap");
+      const libContextFields = document.getElementById("libContextFields");
+      const libActionWrap = document.getElementById("libActionWrap");
+      const libActionTitle = document.getElementById("libActionTitle");
+      const libActionFields = document.getElementById("libActionFields");
       const libRowSolicitante = document.getElementById("libRowSolicitante");
       const libRowConfirmador = document.getElementById("libRowConfirmador");
       const libRowResponsavel = document.getElementById("libRowResponsavel");
       const libRowSolicRemocao = document.getElementById("libRowSolicRemocao");
       const libRowRemoveu = document.getElementById("libRowRemoveu");
       const libSolicitanteLabel = document.getElementById("libSolicitanteLabel");
+      const libConfirmadorLabel = document.getElementById("libConfirmadorLabel");
+      const libResponsavelLabel = document.getElementById("libResponsavelLabel");
+      const libSolicRemocaoLabel = document.getElementById("libSolicRemocaoLabel");
+      const libRemoveuLabel = document.getElementById("libRemoveuLabel");
       const libSolicitante = document.getElementById("libSolicitante");
       const libConfirmador = document.getElementById("libConfirmador");
       const libResponsavelPagamento = document.getElementById("libResponsavelPagamento");
@@ -18157,6 +18392,96 @@
         row.setAttribute("aria-hidden", visible ? "false" : "true");
       }
 
+      const WORKFLOW_FIELD_COPY = {
+        solicitante: {
+          action: "Quem solicitou a liberação?",
+          context: "Solicitante",
+        },
+        confirmador: {
+          action: "Quem confirma a liberação?",
+          context: "Confirmador",
+        },
+        responsavelFinanceiro: {
+          action: "RPP · responsável financeiro",
+          context: "RPP",
+        },
+        solicitanteRemocao: {
+          action: "Quem solicitou a remoção?",
+          context: "Solicitou remoção",
+        },
+        removeu: {
+          action: "Quem removeu o veículo?",
+          context: "Removeu",
+        },
+      };
+
+      function layoutWorkflowStepFields({ requiredFields = [], values = {}, readonly = {} }) {
+        const specs = [
+          { key: "solicitante", row: libRowSolicitante, labelEl: libSolicitanteLabel },
+          { key: "confirmador", row: libRowConfirmador, labelEl: libConfirmadorLabel },
+          { key: "responsavelFinanceiro", row: libRowResponsavel, labelEl: libResponsavelLabel },
+          { key: "solicitanteRemocao", row: libRowSolicRemocao, labelEl: libSolicRemocaoLabel },
+          { key: "removeu", row: libRowRemoveu, labelEl: libRemoveuLabel },
+        ];
+        let hasContext = false;
+        let hasAction = false;
+        specs.forEach(({ key, row, labelEl }) => {
+          if (!row) return;
+          const visible = requiredFields.includes(key) || !!values[key];
+          const isReadonly = visible && !!readonly[key];
+          const isAction = visible && !isReadonly;
+          const copy = WORKFLOW_FIELD_COPY[key] || {};
+          setWorkflowFieldVisibility(row, visible);
+          row.classList.toggle("wf-field--readonly", isReadonly);
+          row.classList.toggle("wf-field--action", isAction);
+          if (labelEl) labelEl.textContent = isReadonly ? copy.context || labelEl.textContent : copy.action || labelEl.textContent;
+          if (!visible) {
+            if (libActionFields) libActionFields.appendChild(row);
+            return;
+          }
+          if (isReadonly && libContextFields) {
+            libContextFields.appendChild(row);
+            hasContext = true;
+          } else if (libActionFields) {
+            libActionFields.appendChild(row);
+            hasAction = true;
+          }
+        });
+        libContextWrap?.classList.toggle("hidden", !hasContext);
+        libActionWrap?.classList.toggle("hidden", !hasAction);
+        if (libActionTitle) {
+          libActionTitle.textContent = requiredFields.includes("removeu")
+            ? "Efetivar saída"
+            : requiredFields.includes("confirmador")
+              ? "Confirmar agora"
+              : "Informe";
+        }
+      }
+
+      function applyWorkflowStepChrome({ requiredFields = [] }) {
+        const isVrp = requiredFields.includes("removeu");
+        const isLiberacao = requiredFields.includes("confirmador");
+        const isSolicitacao = requiredFields.includes("solicitante") && requiredFields.length === 1;
+        const isRemocao = requiredFields.includes("solicitanteRemocao");
+        if (liberacaoModalBadge) {
+          liberacaoModalBadge.textContent = isVrp ? "VRP" : isLiberacao || isRemocao ? "VLP" : "VNP";
+          liberacaoModalBadge.className =
+            "workflow-step-badge" +
+            (isVrp ? " workflow-step-badge--vrp" : isLiberacao || isRemocao ? " workflow-step-badge--vlp" : "");
+        }
+        if (liberacaoModalSubtitle) {
+          liberacaoModalSubtitle.textContent = isVrp
+            ? "Confira o fluxo e informe quem removeu o veículo do pátio."
+            : isLiberacao
+              ? "Informe quem confirma a liberação e o responsável financeiro (RPP)."
+              : isRemocao
+                ? "Informe quem solicitou a remoção do veículo."
+                : isSolicitacao
+                  ? "Informe quem está solicitando a liberação do veículo."
+                  : "";
+        }
+      }
+
       function readReciboDestinatarioFields() {
         const nome = (reciboDestinatarioNome?.value || "").trim();
         const doc = (reciboDestinatarioDoc?.value || "").trim();
@@ -19327,19 +19652,8 @@
 
           if (liberacaoModalTitle) liberacaoModalTitle.textContent = title;
           if (confirmLiberacaoModal) confirmLiberacaoModal.textContent = submitLabel;
-          if (libSolicitanteLabel) libSolicitanteLabel.textContent = "Quem solicitou a liberação?";
-
-          setWorkflowFieldVisibility(libRowSolicitante, requiredFields.includes("solicitante") || !!values.solicitante);
-          setWorkflowFieldVisibility(libRowConfirmador, requiredFields.includes("confirmador") || !!values.confirmador);
-          setWorkflowFieldVisibility(
-            libRowResponsavel,
-            requiredFields.includes("responsavelFinanceiro") || !!values.responsavelFinanceiro
-          );
-          setWorkflowFieldVisibility(
-            libRowSolicRemocao,
-            requiredFields.includes("solicitanteRemocao") || !!values.solicitanteRemocao
-          );
-          setWorkflowFieldVisibility(libRowRemoveu, requiredFields.includes("removeu") || !!values.removeu);
+          applyWorkflowStepChrome({ requiredFields });
+          layoutWorkflowStepFields({ requiredFields, values, readonly });
 
           syncWorkflowPartnerSelects();
           const setPartnerSel = (el, stored, ro) => {
@@ -20759,7 +21073,7 @@
           const actors = await getVehicleWorkflowActors(id);
           const libData = await openWorkflowStepModal({
             title: "Confirmar liberação",
-            submitLabel: "OK",
+            submitLabel: "Confirmar liberação",
             requiredFields: ["confirmador", "responsavelFinanceiro"],
             values: {
               solicitante: actors.solicitante,
@@ -21109,8 +21423,8 @@
           liveVehicle = readyVehicle;
           const actors = await getVehicleWorkflowActors(id);
           const vrpData = await openWorkflowStepModal({
-            title: "VRP - Efetivar saída",
-            submitLabel: "OK",
+            title: "VRP · Efetivar saída",
+            submitLabel: "Efetivar saída",
             requiredFields: ["removeu"],
             values: {
               solicitante: actors.solicitante,
