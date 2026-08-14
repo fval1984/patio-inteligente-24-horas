@@ -5,7 +5,7 @@
 (function vehicleEntryInspectionDocumentModule(global) {
   "use strict";
 
-  const LOGO_SRC = "/assets/ampliguard-header-trim.png?v=9";
+  const LOGO_SRC = "/assets/ampliguard-header-trim.png?v=10";
   const PHOTO_SIZE = "4cm";
   const A4_WIDTH_PX = 794;
   const CANVAS_MAX_SIDE = 16384;
