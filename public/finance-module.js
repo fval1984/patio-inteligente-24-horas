@@ -3790,12 +3790,12 @@
 
   function financeReceberClienteLogoUrl() {
     const base = window.location?.origin || "";
-    return `${base}/assets/ampliguard-header-trim.png?v=10`;
+    return `${base}/assets/ampliguard-header-trim.png?v=11`;
   }
 
   function financeReceberClienteLogoFallbackUrl() {
     const base = window.location?.origin || "";
-    return `${base}/assets/ampliguard-header-trim.png?v=10`;
+    return `${base}/assets/ampliguard-header-trim.png?v=11`;
   }
 
   function financeReceberClientePartnerFromQuery(query) {
