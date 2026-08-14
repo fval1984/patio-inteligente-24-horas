@@ -2860,9 +2860,9 @@
       }
       .lista-capture-logo-mark img {
         display: block;
-        height: 52px;
+        height: 58px;
         width: auto;
-        max-width: 300px;
+        max-width: 340px;
         object-fit: contain;
         background: transparent;
       }
@@ -6731,7 +6731,7 @@
         <div class="brand">
           <img
             id="brandLogo"
-            src="/assets/ampliguard-header-trim.png?v=11"
+            src="/assets/ampliguard-header-trim.png?v=12"
             alt="AMPLIGUARD — Segurança, Confiança, Compromisso"
             class="brand-header-logo"
           />
@@ -6853,7 +6853,7 @@
 
       <section id="authorizationPanel" class="panel auth auth-authorization hidden">
         <div class="auth-brand">
-          <img src="/assets/ampliguard-header.png?v=11" alt="AMPLIGUARD — Segurança, Confiança, Compromisso" class="auth-brand-logo" />
+          <img src="/assets/ampliguard-header.png?v=12" alt="AMPLIGUARD — Segurança, Confiança, Compromisso" class="auth-brand-logo" />
         </div>
         <h2>Acesso exclusivo</h2>
         <p class="auth-authorization-message">
@@ -6999,7 +6999,7 @@
             <div class="lista-capture-heading-row">
               <div id="listaCaptureHeading"></div>
               <div class="lista-capture-logo-mark" aria-label="AMPLIGUARD">
-                <img src="/assets/ampliguard-header-trim.png?v=11" alt="AMPLIGUARD" />
+                <img src="/assets/ampliguard-header-trim.png?v=12" alt="AMPLIGUARD" />
               </div>
             </div>
             <div class="section-card" style="margin: 0; border: 0; box-shadow: none; padding: 0">
@@ -12960,8 +12960,8 @@
   table { width: 100%; border-collapse: collapse; font-size: 0.76rem; margin-bottom: 14px; }
   th, td { border: 1px solid #bbb; padding: 6px; text-align: left; vertical-align: top; color: #111; }
   th { background: #f0f0f0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .lista-export-brand { margin: 0 0 16px; background: transparent; }
-  .lista-export-brand img { display: block; height: 56px; width: auto; max-width: 360px; object-fit: contain; background: transparent; }
+  .lista-export-brand { margin: 0 0 16px; background: transparent; overflow: visible; }
+  .lista-export-brand img { display: block; height: 64px; width: auto; max-width: 420px; object-fit: contain; background: transparent; }
   @page { margin: 12mm; }
   @media print { body { margin: 0; } }`;
 
@@ -13533,7 +13533,7 @@
 
       function listaExportBrandHtml() {
         return `<div class="lista-export-brand">
-    <img src="/assets/ampliguard-header-trim.png?v=11" alt="AMPLIGUARD" />
+    <img src="/assets/ampliguard-header-trim.png?v=12" alt="AMPLIGUARD" />
   </div>`;
       }
 
@@ -13677,8 +13677,8 @@
   .notice { color: #334155 !important; }
   .lista-receber-valor, .lista-receber-placa { color: #0f172a !important; font-weight: 700; font-variant-numeric: tabular-nums; }
   .lista-receber-diarias { color: #1e293b !important; }
-  .lista-export-brand { margin: 0 0 16px; background: transparent; }
-  .lista-export-brand img { display: block; height: 56px; width: auto; max-width: 360px; object-fit: contain; background: transparent; }
+  .lista-export-brand { margin: 0 0 16px; background: transparent; overflow: visible; }
+  .lista-export-brand img { display: block; height: 64px; width: auto; max-width: 420px; object-fit: contain; background: transparent; }
   @page { margin: 12mm; }`;
         const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(
           nomePatio
