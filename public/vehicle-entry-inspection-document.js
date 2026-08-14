@@ -5,7 +5,7 @@
 (function vehicleEntryInspectionDocumentModule(global) {
   "use strict";
 
-  const LOGO_SRC = "/assets/ampliguard-header.png?v=3";
+  const LOGO_SRC = "/assets/ampliguard-header-trim.png?v=8";
   const PHOTO_SIZE = "4cm";
   const A4_WIDTH_PX = 794;
   const CANVAS_MAX_SIDE = 16384;
@@ -139,7 +139,7 @@
     return `
       .vei-doc { color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.35; }
       .vei-doc-header { text-align: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #1e293b; break-inside: avoid; page-break-inside: avoid; }
-      .vei-doc-header img.vei-doc-logo { max-width: 480px; max-height: 120px; width: auto; height: auto; object-fit: contain; margin: 0 auto 10px; display: block; }
+      .vei-doc-header img.vei-doc-logo { max-width: 420px; max-height: 72px; width: auto; height: auto; object-fit: contain; margin: 0 auto 10px; display: block; background: transparent; }
       .vei-doc-title { margin: 0; font-size: 16pt; letter-spacing: 0.06em; text-transform: uppercase; color: #0f172a; }
       .vei-doc-subtitle { margin: 4px 0 0; font-size: 10pt; color: #475569; }
       .vei-doc-section { margin: 16px 0 18px; break-inside: auto; page-break-inside: auto; }
