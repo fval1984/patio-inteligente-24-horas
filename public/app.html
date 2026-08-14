@@ -2853,17 +2853,18 @@
         flex-shrink: 0;
         display: none;
         align-items: center;
-        gap: 8px;
+        background: transparent;
       }
       #listaCaptureRoot.lista-export-mode .lista-capture-logo-mark {
         display: flex;
       }
-      .lista-capture-logo-mark .brand-shield {
-        height: 40px;
-      }
-      .lista-capture-logo-mark .brand-wordmark {
-        height: 28px;
-        max-width: 160px;
+      .lista-capture-logo-mark img {
+        display: block;
+        height: 52px;
+        width: auto;
+        max-width: 300px;
+        object-fit: contain;
+        background: transparent;
       }
       .pill {
         display: inline-flex;
@@ -6997,9 +6998,8 @@
           <div id="listaCaptureRoot" class="lista-capture-root" style="background: #fff; color: #111; padding: 16px; border-radius: 12px; border: 1px solid #ddd">
             <div class="lista-capture-heading-row">
               <div id="listaCaptureHeading"></div>
-              <div class="brand-lockup lista-capture-logo-mark" aria-label="AMPLIGUARD">
-                <img src="/assets/ampliguard-shield.png?v=3" alt="" class="brand-shield" aria-hidden="true" />
-                <img src="/assets/ampliguard-wordmark.png?v=3" alt="AMPLIGUARD" class="brand-wordmark" width="180" height="44" decoding="async" />
+              <div class="lista-capture-logo-mark" aria-label="AMPLIGUARD">
+                <img src="/assets/ampliguard-header-trim.png?v=8" alt="AMPLIGUARD" />
               </div>
             </div>
             <div class="section-card" style="margin: 0; border: 0; box-shadow: none; padding: 0">
@@ -12960,6 +12960,8 @@
   table { width: 100%; border-collapse: collapse; font-size: 0.76rem; margin-bottom: 14px; }
   th, td { border: 1px solid #bbb; padding: 6px; text-align: left; vertical-align: top; color: #111; }
   th { background: #f0f0f0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .lista-export-brand { margin: 0 0 16px; background: transparent; }
+  .lista-export-brand img { display: block; height: 56px; width: auto; max-width: 360px; object-fit: contain; background: transparent; }
   @page { margin: 12mm; }
   @media print { body { margin: 0; } }`;
 
@@ -13530,9 +13532,8 @@
       }
 
       function listaExportBrandHtml() {
-        return `<div class="lista-export-brand" style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-    <img src="/assets/ampliguard-shield.png?v=3" alt="" style="height:44px;width:auto" />
-    <img src="/assets/ampliguard-wordmark.png?v=3" alt="AMPLIGUARD" style="height:30px;width:auto;max-width:200px" />
+        return `<div class="lista-export-brand">
+    <img src="/assets/ampliguard-header-trim.png?v=8" alt="AMPLIGUARD" />
   </div>`;
       }
 
@@ -13676,6 +13677,8 @@
   .notice { color: #334155 !important; }
   .lista-receber-valor, .lista-receber-placa { color: #0f172a !important; font-weight: 700; font-variant-numeric: tabular-nums; }
   .lista-receber-diarias { color: #1e293b !important; }
+  .lista-export-brand { margin: 0 0 16px; background: transparent; }
+  .lista-export-brand img { display: block; height: 56px; width: auto; max-width: 360px; object-fit: contain; background: transparent; }
   @page { margin: 12mm; }`;
         const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(
           nomePatio
@@ -17286,7 +17289,7 @@
       }
 
       async function loadReciboLogoDataUrl() {
-        const paths = ["/assets/ampliguard-shield.png", "/assets/ampliguard-wordmark.png", "/assets/recibo-header-logo.png"];
+        const paths = ["/assets/ampliguard-header-trim.png", "/assets/ampliguard-header.png"];
         for (const path of paths) {
           try {
             const r = await fetch(path, { cache: "force-cache" });
@@ -17356,8 +17359,8 @@
         if (logo) {
           try {
             const props = doc.getImageProperties(logo.dataUrl);
-            const maxW = 260;
-            const maxH = 40;
+            const maxW = 280;
+            const maxH = 48;
             let imgW = maxW;
             let imgH = (props.height * imgW) / props.width;
             if (imgH > maxH) {
