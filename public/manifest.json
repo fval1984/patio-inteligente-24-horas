@@ -9,13 +9,13 @@
   "theme_color": "#001529",
   "icons": [
     {
-      "src": "/assets/ampliguard-shield.png",
+      "src": "/assets/ampliguard-icon.png?v=11",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/ampliguard-shield.png",
+      "src": "/assets/ampliguard-icon.png?v=11",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
