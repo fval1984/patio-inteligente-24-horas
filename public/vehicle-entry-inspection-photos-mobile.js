@@ -170,11 +170,14 @@
         gap: 10px;
         max-width: 360px;
         margin: 0 auto;
+        position: relative;
+        z-index: 6;
       }
       .vei-mobile-photos .vei-photo-btn {
         appearance: none;
         display: block;
         position: relative;
+        overflow: hidden;
         box-sizing: border-box;
         border: none;
         border-radius: 12px;
@@ -186,6 +189,7 @@
         touch-action: manipulation;
         width: 100%;
         text-align: center;
+        z-index: 6;
       }
       .vei-mobile-photos .vei-photo-btn-primary {
         background: linear-gradient(135deg, #22d3ee, #0891b2);
@@ -269,7 +273,12 @@
         opacity: 0;
         cursor: pointer;
         font-size: 24px;
-        z-index: 2;
+        z-index: 6;
+      }
+      .vei-mobile-photos .vei-photo-btn-text {
+        pointer-events: none;
+        position: relative;
+        z-index: 1;
       }
       .vei-photo-native-input--detached {
         position: fixed;
@@ -322,10 +331,10 @@
       "</div>" +
       (hasPhoto ? '<p class="vei-photo-done">✓ Registrada</p>' : "") +
       '<div class="vei-photo-actions">' +
-      `<label class="vei-photo-btn vei-photo-btn-primary" id="veiPhotoTakeBtn">${hasPhoto ? "📷 Refazer foto" : "📷 Tirar foto"}` +
+      `<label class="vei-photo-btn vei-photo-btn-primary" id="veiPhotoTakeBtn"><span class="vei-photo-btn-text">${hasPhoto ? "📷 Refazer foto" : "📷 Tirar foto"}</span>` +
       '<input type="file" accept="image/*" capture="environment" class="vei-photo-native-input" id="veiPhotoCaptureInput" tabindex="-1"/>' +
       "</label>" +
-      '<label class="vei-photo-btn vei-photo-btn-secondary" id="veiPhotoGalleryBtn">📁 Galeria' +
+      '<label class="vei-photo-btn vei-photo-btn-secondary" id="veiPhotoGalleryBtn"><span class="vei-photo-btn-text">📁 Galeria</span>' +
       '<input type="file" accept="image/*" class="vei-photo-native-input" id="veiPhotoGalleryInput" tabindex="-1"/>' +
       "</label>" +
       '<div class="vei-photo-nav">' +
@@ -397,41 +406,89 @@
     return true;
   }
 
-  function bindFileInput(input, draft, onRefresh) {
-    if (!input) return;
-    input.addEventListener("change", async () => {
-      const file = input.files?.[0];
-      input.value = "";
-      if (await applyCapturedStandardPhoto(draft, file)) onRefresh();
-    });
-  }
-
-  function bindEvents(root, draft, onRefresh) {
-    const section = root.querySelector("#veiMobilePhotos") || root.closest?.("#veiMobilePhotos") || root;
-    if (!section || !section.querySelector) return;
-
+  function syncSection(host, draft) {
+    if (!host) return false;
     initDraftPhotos(draft);
+    injectStylesOnce();
+    let section = host.querySelector?.("#veiMobilePhotos");
+    if (!section) {
+      host.innerHTML = renderSection(draft);
+      return true;
+    }
 
-    bindFileInput(section.querySelector("#veiPhotoCaptureInput"), draft, onRefresh);
-    bindFileInput(section.querySelector("#veiPhotoGalleryInput"), draft, onRefresh);
+    const slots = slotsForDraft(draft);
+    const step = draft.currentPhotoStep || 0;
+    const slot = slots[step];
+    if (!slot) return false;
+    const photo = slotPhoto(draft, slot.key);
+    const hasPhoto = !!(photo && photo.preview);
+    const done = countStandardDone(draft);
+    const total = slots.length;
 
-    section.querySelector("#veiPhotoPrevBtn")?.addEventListener("click", (evt) => {
-      evt.stopPropagation();
-      if (stepPhoto(draft, -1)) onRefresh();
-    });
+    const progress = section.querySelector(".vei-photo-progress");
+    if (progress) progress.textContent = `Fotos: ${done}/${total}`;
+    const stepLabel = section.querySelector(".vei-photo-step-label");
+    if (stepLabel) stepLabel.textContent = `${step + 1}/${total}`;
+    const title = section.querySelector(".vei-photo-step-title");
+    if (title) title.textContent = String(slot.label || "").toUpperCase();
 
-    section.querySelector("#veiPhotoNextBtn")?.addEventListener("click", (evt) => {
-      evt.stopPropagation();
-      if (stepPhoto(draft, 1)) onRefresh();
-    });
+    const preview = section.querySelector(".vei-photo-preview");
+    if (preview) {
+      if (hasPhoto) {
+        preview.querySelector(".vei-photo-preview-empty")?.remove();
+        let img = preview.querySelector("img");
+        if (!img) {
+          img = document.createElement("img");
+          preview.appendChild(img);
+        }
+        if (img.getAttribute("src") !== photo.preview) img.setAttribute("src", photo.preview);
+        img.alt = slot.label || "";
+      } else {
+        preview.innerHTML = '<div class="vei-photo-preview-empty">Nenhuma foto registrada para este item</div>';
+      }
+    }
+
+    let doneMsg = section.querySelector(".vei-photo-done");
+    if (hasPhoto) {
+      if (!doneMsg) {
+        doneMsg = document.createElement("p");
+        doneMsg.className = "vei-photo-done";
+        preview?.insertAdjacentElement("afterend", doneMsg);
+      }
+      doneMsg.textContent = "✓ Registrada";
+    } else if (doneMsg) {
+      doneMsg.remove();
+    }
+
+    const takeText = section.querySelector("#veiPhotoTakeBtn .vei-photo-btn-text");
+    if (takeText) takeText.textContent = hasPhoto ? "📷 Refazer foto" : "📷 Tirar foto";
+
+    const prevBtn = section.querySelector("#veiPhotoPrevBtn");
+    const nextBtn = section.querySelector("#veiPhotoNextBtn");
+    if (prevBtn) {
+      if (step <= 0) prevBtn.setAttribute("disabled", "");
+      else prevBtn.removeAttribute("disabled");
+    }
+    if (nextBtn) {
+      if (step >= total - 1) nextBtn.setAttribute("disabled", "");
+      else nextBtn.removeAttribute("disabled");
+    }
 
     section.querySelectorAll("[data-photo-jump]").forEach((el) => {
-      el.addEventListener("click", (evt) => {
-        evt.stopPropagation();
-        const idx = Number(el.getAttribute("data-photo-jump"));
-        if (jumpPhoto(draft, idx)) onRefresh();
-      });
+      const i = Number(el.getAttribute("data-photo-jump"));
+      const s = slots[i];
+      const p = s ? slotPhoto(draft, s.key) : null;
+      const ok = !!(p && p.preview);
+      el.classList.toggle("done", ok);
+      el.classList.toggle("pending", !ok);
+      el.classList.toggle("active", i === step);
+      el.textContent = `${ok ? "✓ " : ""}${s?.label || ""}`;
     });
+    return false;
+  }
+
+  function bindEvents() {
+    /* Captura e navegação ficam no listener delegado do modal, para não recriar o input da câmera. */
   }
 
   function blobFromDraftPhoto(p) {
@@ -622,6 +679,7 @@
     stepPhoto,
     jumpPhoto,
     renderSection,
+    syncSection,
     bindEvents,
     uploadAll,
     initDraftPhotos,

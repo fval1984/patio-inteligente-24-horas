@@ -382,11 +382,13 @@ function testGestorPhotoCaptureOpens() {
   const mod = photos.vehicleEntryInspectionPhotosMobile;
   assert.ok(mod.resolvePhotosHost, "resolvePhotosHost exportado");
   assert.ok(mod.applyCapturedStandardPhoto, "applyCapturedStandardPhoto exportado");
+  assert.ok(mod.syncSection, "syncSection exportado");
 
   const draft = { inspectionVariant: "LEVE", standardPhotos: {}, currentPhotoStep: 0 };
   const html = mod.renderSection(draft);
   assert.match(html, /id="veiPhotoTakeBtn"/);
   assert.match(html, /<label class="vei-photo-btn vei-photo-btn-primary" id="veiPhotoTakeBtn"/);
+  assert.match(html, /class="vei-photo-btn-text"/);
   assert.match(html, /id="veiPhotoCaptureInput"[^>]*capture="environment"|capture="environment"[^>]*id="veiPhotoCaptureInput"/);
   assert.match(html, /id="veiPhotoGalleryInput"/);
   assert.match(html, /class="vei-photo-native-input"/);
@@ -394,7 +396,9 @@ function testGestorPhotoCaptureOpens() {
 
   const host = {
     id: "veiMobilePhotosHost",
-    querySelector() {
+    innerHTML: html,
+    querySelector(sel) {
+      if (sel === "#veiMobilePhotos") return { querySelector() { return null; }, querySelectorAll() { return []; } };
       return null;
     },
     closest() {
@@ -402,6 +406,7 @@ function testGestorPhotoCaptureOpens() {
     },
   };
   assert.strictEqual(mod.resolvePhotosHost(host), host, "host é o próprio elemento, não um descendente");
+  assert.strictEqual(mod.syncSection(host, draft), false, "não recria o input se a secção já existe");
 
   const body = {
     id: "veiModalBody",
@@ -424,11 +429,21 @@ function testGestorPhotoCaptureOpens() {
   const srcInsp = fs.readFileSync(path.join(root, "public/vehicle-entry-inspection.js"), "utf8");
   assert.match(srcInsp, /handleInspectionFileInputChange/);
   assert.match(srcInsp, /resolvePhotosHost/);
-  assert.match(srcInsp, /for="veiDamagePhotoCaptureInput"/);
+  assert.match(srcInsp, /paintClassificationRow/);
+  assert.match(srcInsp, /armCameraUiGuard/);
+  assert.match(srcInsp, /resumeActiveEdit/);
+  assert.match(srcInsp, /data-damage-item/);
+  assert.match(srcInsp, /scheduleMobilePhotosSync/);
+  assert.doesNotMatch(srcInsp, /for="veiDamagePhotoCaptureInput"/);
   assert.doesNotMatch(srcInsp, /class="vei-photo-capture-input hidden"/);
   assert.match(srcInsp, /pendingDamagePhotoKey/);
+  const classHandler = srcInsp.slice(srcInsp.indexOf("const classBtn = hit.closest"), srcInsp.indexOf("const diagramSvg"));
+  assert.match(classHandler, /paintClassificationRow/);
+  assert.doesNotMatch(classHandler, /refreshCurrentEditUI/);
   const srcApp = fs.readFileSync(path.join(root, "public/app.html"), "utf8");
-  assert.match(srcApp, /vehicle-entry-inspection-photos-mobile\.js\?v=20260818vistoria9/);
+  assert.match(srcApp, /vehicle-entry-inspection-photos-mobile\.js\?v=20260818vistoria10/);
+  assert.match(srcApp, /resumeActiveEdit/);
+  assert.match(srcApp, /const veiOpen = !document.getElementById\("veiInspectionBackdrop"\)\?\.classList.contains\("hidden"\)/);
 }
 
 function testPhotoUploadGoesThroughApi() {

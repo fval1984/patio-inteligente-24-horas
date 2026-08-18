@@ -6732,7 +6732,7 @@
       }
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme9" />
-    <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260818vistui9" />
+    <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260818vistui10" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile17" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
   </head>
@@ -8701,10 +8701,10 @@
     <script src="/partners-cadastro-ui.js?v=20260727pcad3"></script>
     <script src="/dashboard-metrics-service.js?v=20260727recvfix"></script>
     <script src="/amplipatio-dashboard.js?v=20260812admpc1"></script>
-    <script src="/vehicle-entry-inspection-checklist.js?v=20260818vistoria9"></script>
-    <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260818vistoria9"></script>
-    <script src="/vehicle-entry-inspection-document.js?v=20260818vistoria9"></script>
-    <script src="/vehicle-entry-inspection.js?v=20260818vistoria9"></script>
+    <script src="/vehicle-entry-inspection-checklist.js?v=20260818vistoria10"></script>
+    <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260818vistoria10"></script>
+    <script src="/vehicle-entry-inspection-document.js?v=20260818vistoria10"></script>
+    <script src="/vehicle-entry-inspection.js?v=20260818vistoria10"></script>
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
@@ -9640,6 +9640,11 @@
             if (session.user.id !== state.user.id) state.user = session.user;
             await loadAll();
             appInitUserId = session.user.id;
+            try {
+              await window.vehicleEntryInspection?.resumeActiveEdit?.(buildVehicleInspectionCtx(), state.vehicles);
+            } catch (resumeErr) {
+              console.warn("resume vistoria", resumeErr);
+            }
           } finally {
             appInitPromise = null;
           }
@@ -14877,6 +14882,8 @@
 
       document.addEventListener("visibilitychange", () => {
         if (document.visibilityState !== "visible" || !state.user?.id || !supabase) return;
+        const veiOpen = !document.getElementById("veiInspectionBackdrop")?.classList.contains("hidden");
+        if (veiOpen) return;
         ensureValidSupabaseSession().catch((e) => console.warn("refresh on focus", e));
       });
 

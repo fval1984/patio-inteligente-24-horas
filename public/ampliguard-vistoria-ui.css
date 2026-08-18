@@ -394,6 +394,37 @@
   z-index: 4;
 }
 
+.vei-mobile-photos,
+.vei-damage-photos-section {
+  padding-bottom: 12px;
+  scroll-margin-bottom: 88px;
+}
+
+.vei-damage-photo-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.vei-damage-photo-btn .vei-photo-native-input,
+.vei-photo-btn .vei-photo-native-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 24px;
+  z-index: 6;
+}
+
+.vei-photo-btn-text {
+  pointer-events: none;
+  position: relative;
+  z-index: 1;
+}
+
 #veiFinalizeBtn {
   background: #1677ff !important;
   border-color: #0958d9 !important;
@@ -490,6 +521,8 @@
   min-height: 44px;
   box-sizing: border-box;
   touch-action: manipulation;
+  position: relative;
+  overflow: hidden;
 }
 
 .vei-photo-native-input--detached {
@@ -501,7 +534,6 @@
   margin: 0;
   opacity: 0.01;
   z-index: 0;
-  pointer-events: none;
 }
 
 .vei-damage-photo-preview {
