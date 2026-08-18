@@ -149,10 +149,14 @@ function testClassificationMerge() {
   assert.strictEqual(draft.classifications.mec_motor, "REGULAR", "backup preenche o que falta");
 
   const draft2 = { classifications: { interno_painel: null } };
-  applyStoredClassifications(draft2, [], {
-    __item_classifications: { interno_painel: "INEXISTENTE" },
-  });
+  applyStoredClassifications(draft2, [], '{"__item_classifications":{"interno_painel":"INEXISTENTE"}}');
   assert.strictEqual(draft2.classifications.interno_painel, "INEXISTENTE");
+
+  const { inferVariantFromDetail } = insp.vehicleEntryInspection;
+  assert.strictEqual(
+    inferVariantFromDetail({ inspection_variant: null }, [{ item_key: "moto_farol", classification: "BOM" }], {}),
+    "MOTOS"
+  );
 }
 
 function testPersistBackupHelpers() {
@@ -168,6 +172,9 @@ function testPersistBackupHelpers() {
 function testPrintCss() {
   const src = fs.readFileSync(path.join(root, "public/vehicle-entry-inspection-document.js"), "utf8");
   assert.match(src, /size: A4 portrait/);
+  assert.match(src, /grid-template-columns: repeat\(4/);
+  assert.match(src, /object-fit: contain/);
+  assert.doesNotMatch(src, /width: calc\(25% - 8px\)/);
   assert.match(src, /margin: 12mm/);
   assert.match(src, /computeSafePageCuts/);
   assert.match(src, /width:210mm;height:297mm/);

@@ -412,3 +412,138 @@ export async function updateVehicleEntryInspection(
     error: null,
   };
 }
+
+export function parseInspectionFormExtras(raw: unknown): Record<string, unknown> {
+  if (!raw) return {};
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      return {};
+    }
+    return {};
+  }
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return raw as Record<string, unknown>;
+  }
+  return {};
+}
+
+export function inferInspectionVariant(input: {
+  storedVariant?: unknown;
+  items?: { item_key?: string | null }[];
+  formExtras?: Record<string, unknown>;
+}): string {
+  const stored = String(input.storedVariant || "").trim().toUpperCase();
+  if (stored === "LEVE" || stored === "PESADOS" || stored === "TRATORES" || stored === "MOTOS") {
+    return stored;
+  }
+  const keys = new Set<string>();
+  for (const it of input.items || []) {
+    if (it?.item_key) keys.add(String(it.item_key));
+  }
+  const backup = input.formExtras?.[ITEM_CLASSIFICATIONS_BACKUP_KEY];
+  if (backup && typeof backup === "object" && !Array.isArray(backup)) {
+    Object.keys(backup as Record<string, unknown>).forEach((k) => keys.add(k));
+  }
+  const list = Array.from(keys);
+  if (list.some((k) => k.startsWith("moto_"))) return "MOTOS";
+  if (list.some((k) => k.startsWith("trat_"))) return "TRATORES";
+  if (list.some((k) => k.startsWith("eixo_") || k.startsWith("car_"))) return "PESADOS";
+  return "LEVE";
+}
+
+export async function loadEntryInspectionDetail(
+  admin: SupabaseClient,
+  input: { ownerUserId: string; inspectionId?: string; vehicleId?: string; inspectionNumber?: number }
+): Promise<{
+  data: {
+    inspection: Record<string, unknown>;
+    items: Record<string, unknown>[];
+    damages: Record<string, unknown>[];
+    photos: Record<string, unknown>[];
+  } | null;
+  error: string | null;
+}> {
+  const ownerUserId = input.ownerUserId;
+  let inspection: Record<string, unknown> | null = null;
+
+  if (input.inspectionId) {
+    const { data, error } = await admin
+      .from("vehicle_entry_inspections")
+      .select("*")
+      .eq("id", input.inspectionId)
+      .maybeSingle();
+    if (error) return { data: null, error: error.message || "Erro ao carregar vistoria." };
+    inspection = (data as Record<string, unknown>) || null;
+  }
+
+  if (!inspection && input.inspectionNumber != null) {
+    const { data } = await admin
+      .from("vehicle_entry_inspections")
+      .select("*")
+      .eq("user_id", ownerUserId)
+      .eq("inspection_number", input.inspectionNumber)
+      .limit(1)
+      .maybeSingle();
+    inspection = (data as Record<string, unknown>) || null;
+  }
+
+  if (!inspection && input.vehicleId) {
+    const { data } = await admin
+      .from("vehicle_entry_inspections")
+      .select("*")
+      .eq("user_id", ownerUserId)
+      .eq("vehicle_id", input.vehicleId)
+      .eq("inspection_type", "ENTRADA")
+      .eq("status", "CONCLUIDA")
+      .order("inspection_number", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    inspection = (data as Record<string, unknown>) || null;
+  }
+
+  if (!inspection) {
+    return { data: null, error: "Vistoria não encontrada." };
+  }
+
+  const inspectionUserId = String(inspection.user_id || "");
+  if (inspectionUserId && inspectionUserId !== String(ownerUserId)) {
+    const { data: vehicle } = await admin
+      .from("vehicles")
+      .select("id, user_id")
+      .eq("id", String(inspection.vehicle_id || ""))
+      .maybeSingle();
+    if (String(vehicle?.user_id || "") !== String(ownerUserId)) {
+      return { data: null, error: "Vistoria não encontrada." };
+    }
+  }
+
+  const inspectionId = String(inspection.id);
+  const [{ data: items }, { data: damages }, { data: photos }] = await Promise.all([
+    admin.from("vehicle_entry_inspection_items").select("*").eq("inspection_id", inspectionId).limit(2000),
+    admin.from("vehicle_entry_inspection_damages").select("*").eq("inspection_id", inspectionId).limit(2000),
+    admin.from("vehicle_entry_inspection_photos").select("*").eq("inspection_id", inspectionId).limit(2000),
+  ]);
+
+  const extras = parseInspectionFormExtras(inspection.form_extras);
+  inspection.form_extras = extras;
+  inspection.inspection_variant = inferInspectionVariant({
+    storedVariant: inspection.inspection_variant,
+    items: (items || []) as { item_key?: string | null }[],
+    formExtras: extras,
+  });
+
+  return {
+    data: {
+      inspection,
+      items: (items || []) as Record<string, unknown>[],
+      damages: (damages || []) as Record<string, unknown>[],
+      photos: (photos || []) as Record<string, unknown>[],
+    },
+    error: null,
+  };
+}

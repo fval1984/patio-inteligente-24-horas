@@ -1461,8 +1461,40 @@
     return "";
   }
 
+  function parseFormExtras(raw) {
+    if (!raw) return {};
+    if (typeof raw === "string") {
+      try {
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+      } catch (e) {
+        return {};
+      }
+    }
+    if (typeof raw === "object" && !Array.isArray(raw)) return raw;
+    return {};
+  }
+
+  function inferVariantFromDetail(inspection, items, formExtras) {
+    const stored = String(inspection?.inspection_variant || "").trim().toUpperCase();
+    if (stored === "LEVE" || stored === "PESADOS" || stored === "TRATORES" || stored === "MOTOS") return stored;
+    const keys = new Set();
+    (items || []).forEach((it) => {
+      if (it?.item_key) keys.add(String(it.item_key));
+    });
+    const backup = formExtras?.__item_classifications;
+    if (backup && typeof backup === "object") {
+      Object.keys(backup).forEach((k) => keys.add(k));
+    }
+    const list = Array.from(keys);
+    if (list.some((k) => String(k).startsWith("moto_"))) return "MOTOS";
+    if (list.some((k) => String(k).startsWith("trat_"))) return "TRATORES";
+    if (list.some((k) => String(k).startsWith("eixo_") || String(k).startsWith("car_"))) return "PESADOS";
+    return "LEVE";
+  }
+
   function applyStoredClassifications(draft, items, formExtras) {
-    const extras = formExtras && typeof formExtras === "object" ? formExtras : {};
+    const extras = parseFormExtras(formExtras);
     const backup = extras.__item_classifications;
     if (backup && typeof backup === "object") {
       Object.keys(backup).forEach((k) => {
@@ -1470,23 +1502,33 @@
         if (k && cls) draft.classifications[k] = cls;
       });
     }
+    const byLabel = new Map();
+    draftCfg(draft).checklist.forEach((it) => {
+      if (it.kind === "classify") byLabel.set(String(it.label || "").trim().toLowerCase(), it.key);
+    });
     (items || []).forEach((it) => {
-      const key = String(it?.item_key || it?.key || "").trim();
       const cls = normalizeClassificationValue(it?.classification);
-      if (key && cls) draft.classifications[key] = cls;
+      if (!cls) return;
+      let key = String(it?.item_key || it?.key || "").trim();
+      if (key && Object.prototype.hasOwnProperty.call(draft.classifications, key)) {
+        draft.classifications[key] = cls;
+        return;
+      }
+      const labelKey = byLabel.get(String(it?.item_label || it?.label || "").trim().toLowerCase());
+      if (labelKey) draft.classifications[labelKey] = cls;
+      else if (key) draft.classifications[key] = cls;
     });
   }
 
   function detailToDraft(detail) {
-    const variant = detail.inspection?.inspection_variant || "LEVE";
+    const extras = parseFormExtras(detail.inspection?.form_extras);
+    const variant = inferVariantFromDetail(detail.inspection, detail.items, extras);
     const draft = emptyDraftForVariant(variant);
     draft.inspectionVariant = variant;
     draft.generalNotes = detail.inspection?.general_notes || "";
     draft.diagramMarkers = normalizeDiagramMarkers(detail.inspection?.diagram_markers);
-    if (detail.inspection?.form_extras && typeof detail.inspection.form_extras === "object") {
-      Object.assign(draft.formExtras, detail.inspection.form_extras);
-    }
-    applyStoredClassifications(draft, detail.items, detail.inspection?.form_extras);
+    Object.assign(draft.formExtras, extras);
+    applyStoredClassifications(draft, detail.items, extras);
     draft.damages = (detail.damages || []).map((d) => ({
       id: d.id,
       item_key: d.item_key,
@@ -1568,12 +1610,13 @@
     const acc = [];
     const page = 1000;
     for (let from = 0; from < 8000; from += page) {
-      const { data, error } = await ctx.supabase
-        .from(table)
-        .select("*")
-        .eq("inspection_id", inspectionId)
-        .order("id", { ascending: true })
-        .range(from, from + page - 1);
+      let q = ctx.supabase.from(table).select("*").eq("inspection_id", inspectionId).range(from, from + page - 1);
+      let { data, error } = await q;
+      if (error) {
+        const retry = await ctx.supabase.from(table).select("*").eq("inspection_id", inspectionId).limit(page);
+        data = retry.data;
+        error = retry.error;
+      }
       if (error) {
         console.warn("vei fetch", table, error.message || error);
         break;
@@ -1583,6 +1626,71 @@
       if (rows.length < page) break;
     }
     return acc;
+  }
+
+  async function loadInspectionDetailViaApi(ctx, inspectionId, vehicleId) {
+    if (typeof ctx?.getAccessToken !== "function") return null;
+    try {
+      const session = await ctx.getAccessToken();
+      if (!session) return null;
+      const res = await fetch("/api/vehicles/entry-inspection-detail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session}` },
+        body: JSON.stringify({
+          access_token: session,
+          inspection_id: inspectionId || "",
+          vehicle_id: vehicleId || "",
+        }),
+      });
+      if (!res.ok) return null;
+      const json = await res.json();
+      if (!json?.ok || !json.inspection) return null;
+      return {
+        inspection: json.inspection,
+        items: json.items || [],
+        damages: json.damages || [],
+        photos: json.photos || [],
+      };
+    } catch (e) {
+      console.warn("vei load api", e);
+      return null;
+    }
+  }
+
+  async function loadInspectionDetail(ctx, inspectionId, vehicleId) {
+    const fromApi = await loadInspectionDetailViaApi(ctx, inspectionId, vehicleId);
+    const inspection = fromApi?.inspection || (await loadInspectionByRef(ctx, inspectionId, vehicleId));
+    if (!inspection) return null;
+    const id = inspection.id;
+
+    let items = fromApi?.items;
+    let damages = fromApi?.damages;
+    let photos = fromApi?.photos;
+    if (!Array.isArray(items) || !items.length) {
+      items = await fetchRowsByInspection(ctx, "vehicle_entry_inspection_items", id);
+    }
+    if (!Array.isArray(damages) || !damages.length) {
+      damages = await fetchRowsByInspection(ctx, "vehicle_entry_inspection_damages", id);
+    }
+    if (!Array.isArray(photos) || !photos.length) {
+      photos = await fetchRowsByInspection(ctx, "vehicle_entry_inspection_photos", id);
+    }
+
+    const photoUrls = [];
+    for (const p of photos || []) {
+      let url = p.url || "";
+      if (!url && p.storage_path && ctx.supabase) {
+        const signed = await ctx.supabase.storage.from(STORAGE_BUCKET).createSignedUrl(p.storage_path, 3600);
+        url = signed.data?.signedUrl || "";
+      }
+      photoUrls.push({ ...p, url });
+    }
+
+    if (inspection && !inspection.form_extras && fromApi?.inspection?.form_extras) {
+      inspection.form_extras = fromApi.inspection.form_extras;
+    }
+
+    return { inspection, items: items || [], damages: damages || [], photos: photoUrls };
   }
 
   async function loadInspectionByRef(ctx, inspectionRef, vehicleId) {
@@ -1614,30 +1722,6 @@
       inspection = await findCompletedInspectionForVehicle(ctx, vehicleId);
     }
     return inspection;
-  }
-
-  async function loadInspectionDetail(ctx, inspectionId, vehicleId) {
-    const inspection = await loadInspectionByRef(ctx, inspectionId, vehicleId);
-    if (!inspection) return null;
-    const id = inspection.id;
-
-    const [items, damages, photos] = await Promise.all([
-      fetchRowsByInspection(ctx, "vehicle_entry_inspection_items", id),
-      fetchRowsByInspection(ctx, "vehicle_entry_inspection_damages", id),
-      fetchRowsByInspection(ctx, "vehicle_entry_inspection_photos", id),
-    ]);
-
-    const photoUrls = [];
-    for (const p of photos || []) {
-      let url = "";
-      if (p.storage_path && ctx.supabase) {
-        const signed = await ctx.supabase.storage.from(STORAGE_BUCKET).createSignedUrl(p.storage_path, 3600);
-        url = signed.data?.signedUrl || "";
-      }
-      photoUrls.push({ ...p, url });
-    }
-
-    return { inspection, items: items || [], damages: damages || [], photos: photoUrls };
   }
 
   async function findCompletedInspectionForVehicle(ctx, vehicleId) {
@@ -2104,5 +2188,6 @@
     getDiagramSrc: diagramSrcForDraft,
     applyStoredClassifications,
     normalizeClassificationValue,
+    inferVariantFromDetail,
   };
 })(typeof window !== "undefined" ? window : globalThis);
