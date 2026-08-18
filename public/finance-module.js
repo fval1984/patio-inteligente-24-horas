@@ -27,6 +27,9 @@
   let financeFilterReceberDataAte = "";
   let financeFilterReceberPlaca = "";
   let financeFilterReceberRppId = "";
+  let finReceberQuick = "todos";
+  let finPagarQuick = "todos";
+  let finReceberHorizonDays = 0;
   let financeFilterCaixaDataDe = "";
   let financeFilterCaixaDataAte = "";
   let financeFilterCaixaPlaca = "";
@@ -1700,6 +1703,158 @@
     return financeDedupePatioReceivables(list);
   }
 
+  function financeReceivablePaidList() {
+    const vmap = financeVehicleById();
+    return (state.receivables || []).filter((r) => {
+      if (String(r.status || "").toUpperCase() !== "PAGO") return false;
+      if (Number(r.valor || 0) <= 0) return false;
+      if (financeIsManualReceivable(r)) return true;
+      return r.financeiro_aprovado_contas_receber === true;
+    }).filter((r) => {
+      const plateNorm = financeNormalizePlate(financeFilterReceberPlaca);
+      if (plateNorm && !financePlateMatchesQuery(vmap.get(r.vehicle_id), plateNorm)) return false;
+      return true;
+    });
+  }
+
+  function financeYmdPlusDays(ymd, days) {
+    if (!ymd) return "";
+    const d = new Date(`${ymd}T12:00:00`);
+    d.setDate(d.getDate() + days);
+    return toLocalYmd(d.toISOString());
+  }
+
+  function financeReceberMatchesQuick(r) {
+    const today = financeTodayYmd();
+    const due = financeContaDueYmd(r, "receivable");
+    const st = financeReceivableDisplayStatus(r);
+    if (finReceberQuick === "hoje") return due === today;
+    if (finReceberQuick === "vencidos") return st === "Atrasado";
+    if (finReceberQuick === "a_vencer") return st === "Pendente";
+    if (finReceberQuick === "vencendo_7") {
+      if (st === "Recebido" || st === "Atrasado" || !due) return false;
+      const limit = financeYmdPlusDays(today, 7);
+      return due > today && due <= limit;
+    }
+    if (finReceberQuick === "recebidos") return String(r.status || "").toUpperCase() === "PAGO";
+    return true;
+  }
+
+  function financePagarMatchesQuick(p) {
+    const today = financeTodayYmd();
+    const due = financeContaDueYmd(p, "payable");
+    const st = financePayableDisplayStatus(p);
+    if (finPagarQuick === "hoje") return due === today;
+    if (finPagarQuick === "vencidos") return st === "Vencido";
+    if (finPagarQuick === "a_vencer") return st === "Pendente" || st === "Parcial";
+    if (finPagarQuick === "pagos") return st === "Pago";
+    return true;
+  }
+
+  function financeCompetenciaYm(record, vehicle, kind) {
+    const due = financeContaDueYmd(record, kind);
+    const period = toLocalYmd(record?.period_end || record?.period_start || "");
+    const saida = kind === "receivable" && vehicle ? financeReceivableSaidaYmd(record, vehicle) : "";
+    const ymd = period || saida || due || "";
+    return ymd ? String(ymd).slice(0, 7) : "";
+  }
+
+  function financeGroupBadge(items, kind) {
+    const today = financeTodayYmd();
+    let unpaid = 0;
+    let late = 0;
+    items.forEach((x) => {
+      const st = kind === "pagar" ? financePayableDisplayStatus(x) : financeReceivableDisplayStatus(x);
+      if (st === "Pago" || st === "Recebido") return;
+      unpaid += 1;
+      const due = financeContaDueYmd(x, kind === "pagar" ? "payable" : "receivable");
+      if (due && due < today) late += 1;
+    });
+    if (!unpaid) return { status: kind === "pagar" ? "Pago" : "Recebido", kind: "ok" };
+    if (late) return { status: "Vencido", kind: "late" };
+    return { status: "A vencer", kind: "soon" };
+  }
+
+  function financeBuildReceberCards(list) {
+    const vmap = financeVehicleById();
+    const groups = new Map();
+    const ui = globalThis.financeActionUi;
+    list.forEach((r) => {
+      const v = vmap.get(r.vehicle_id);
+      const title = financeIsManualReceivable(r)
+        ? financeReceivableTypedFields(r).origem || financeReceberRppNome(r, v) || "Receita"
+        : financeInstituicaoNome(v) || financeReceberRppNome(r, v) || "Sem financeira";
+      const ym = financeCompetenciaYm(r, v, "receivable");
+      const key = `${title}|${ym}`;
+      const cur = groups.get(key) || { title, ym, items: [] };
+      cur.items.push(r);
+      groups.set(key, cur);
+    });
+    return Array.from(groups.values())
+      .map((g) => {
+        const dueDates = g.items.map((r) => financeContaDueYmd(r, "receivable")).filter(Boolean).sort();
+        const vehicles = new Set(g.items.map((r) => r.vehicle_id).filter(Boolean));
+        const total = g.items.reduce((s, r) => s + Number(r.valor || 0), 0);
+        const badge = financeGroupBadge(g.items, "receber");
+        const unpaid = g.items.filter((r) => String(r.status || "").toUpperCase() !== "PAGO");
+        const countLabel = vehicles.size
+          ? `${vehicles.size} veículo${vehicles.size === 1 ? "" : "s"}`
+          : `${g.items.length} lançamento${g.items.length === 1 ? "" : "s"}`;
+        return {
+          title: g.title,
+          subtitle: `${countLabel} • Competência ${ui?.monthLabel?.(g.ym) || g.ym || "—"}`,
+          dueLabel: `Vencimento: ${dueDates[0] ? formatDate(dueDates[0]) : "—"}`,
+          amountLabel: formatCurrency(total),
+          status: badge.status,
+          statusKind: badge.kind,
+          actionIds: unpaid.map((r) => r.id),
+          allIds: g.items.map((r) => r.id),
+        };
+      })
+      .sort((a, b) => String(a.dueLabel).localeCompare(String(b.dueLabel)));
+  }
+
+  function financeBuildPagarCards(list) {
+    const groups = new Map();
+    const ui = globalThis.financeActionUi;
+    list.forEach((p) => {
+      const fields = financePayableTypedFields(p);
+      const title = fields.fornecedor || "Fornecedor";
+      const ym = financeCompetenciaYm(p, null, "payable");
+      const key = `${title}|${ym}`;
+      const cur = groups.get(key) || { title, ym, items: [] };
+      cur.items.push(p);
+      groups.set(key, cur);
+    });
+    return Array.from(groups.values()).map((g) => {
+      const dueDates = g.items.map((p) => financeContaDueYmd(p, "payable")).filter(Boolean).sort();
+      const total = g.items.reduce((s, p) => s + Number(p.valor || 0), 0);
+      const badge = financeGroupBadge(g.items, "pagar");
+      const unpaid = g.items.filter((p) => financePayableDisplayStatus(p) !== "Pago");
+      return {
+        title: g.title,
+        subtitle: `${g.items.length} lançamento${g.items.length === 1 ? "" : "s"}`,
+        dueLabel: `Vencimento: ${dueDates[0] ? formatDate(dueDates[0]) : "—"}`,
+        amountLabel: formatCurrency(total),
+        status: badge.status,
+        statusKind: badge.kind,
+        actionIds: unpaid.map((p) => p.id),
+        allIds: g.items.map((p) => p.id),
+      };
+    });
+  }
+
+  function financeRenderQuickChips(hostId, current, items) {
+    const host = document.getElementById(hostId);
+    if (!host) return;
+    host.innerHTML = items
+      .map(
+        ([value, label]) =>
+          `<button type="button" class="fin-act-chip${current === value ? " is-active" : ""}" data-fin-act-chip="${value}">${label}</button>`
+      )
+      .join("");
+  }
+
   function financeContasPagarList() {
     let list = (state.payables || []).filter((p) => financeIsManualPayable(p));
     const q = finPagarBusca.trim().toLowerCase();
@@ -2241,7 +2396,12 @@
     const totalEl = document.getElementById("finReceberTotal");
     if (!body) return;
     const vmap = financeVehicleById();
-    const list = financeContasReceberList();
+    let list = financeContasReceberList();
+    if (finReceberQuick === "recebidos") {
+      list = financeReceivablePaidList();
+    } else {
+      list = list.filter((r) => financeReceberMatchesQuick(r));
+    }
     const plateFilter = financeNormalizePlate(financeFilterReceberPlaca);
     const hasOtherFilters =
       plateFilter ||
@@ -2251,6 +2411,24 @@
       !!financeFilterTipo ||
       !!(financeFilterReceberDataDe || financeFilterReceberDataAte);
     if (totalEl) totalEl.textContent = formatCurrency(list.reduce((s, r) => s + Number(r.valor || 0), 0));
+    financeRenderQuickChips("finReceberQuickFilters", finReceberQuick === "vencendo_7" ? "a_vencer" : finReceberQuick, [
+      ["todos", "Todos"],
+      ["hoje", "Hoje"],
+      ["vencidos", "Vencidos"],
+      ["a_vencer", "A vencer"],
+      ["recebidos", "Recebidos"],
+    ]);
+    const cardsHostEarly = document.getElementById("finReceberCards");
+    if (cardsHostEarly && globalThis.financeActionUi?.renderLaunchCards) {
+      globalThis.financeActionUi.renderLaunchCards(
+        cardsHostEarly,
+        financeBuildReceberCards(list),
+        hasOtherFilters || finReceberQuick !== "todos"
+          ? "Nenhuma conta a receber com os filtros atuais."
+          : "Nenhuma conta a receber pendente.",
+        "receber"
+      );
+    }
     if (!list.length) {
       financePruneStaleRowSelection("receber");
       financeUpdateBatchBar("receber");
@@ -2358,9 +2536,25 @@
     const body = document.getElementById("finPagarBody");
     const totalEl = document.getElementById("finPagarTotal");
     if (!body) return;
-    const list = financeContasPagarList();
+    const list = financeContasPagarList().filter((p) => financePagarMatchesQuick(p));
     const abertas = list.filter((p) => financePayableDisplayStatus(p) !== "Pago");
     if (totalEl) totalEl.textContent = formatCurrency(abertas.reduce((s, p) => s + Number(p.valor || 0), 0));
+    financeRenderQuickChips("finPagarQuickFilters", finPagarQuick, [
+      ["todos", "Todos"],
+      ["hoje", "Hoje"],
+      ["vencidos", "Vencidos"],
+      ["a_vencer", "A vencer"],
+      ["pagos", "Pagos"],
+    ]);
+    const cardsHostPagar = document.getElementById("finPagarCards");
+    if (cardsHostPagar && globalThis.financeActionUi?.renderLaunchCards) {
+      globalThis.financeActionUi.renderLaunchCards(
+        cardsHostPagar,
+        financeBuildPagarCards(list),
+        "Nenhuma despesa com os filtros atuais.",
+        "pagar"
+      );
+    }
     if (!list.length) {
       financePruneStaleRowSelection("pagar");
       financeUpdateBatchBar("pagar");
@@ -4200,7 +4394,7 @@
     window.print();
   }
 
-  const FINANCE_SUBVIEWS = ["dashboard", "em_patio", "aguardando", "receber", "pagar", "caixa", "cadastros"];
+  const FINANCE_SUBVIEWS = ["dashboard", "em_patio", "aguardando", "receber", "pagar", "caixa", "cadastros", "financeiras"];
 
   const FIN_CADASTRO_TIPO_LABELS = {
     PRESTADOR: "Prestador de serviço",
@@ -4520,6 +4714,214 @@
     });
   }
 
+  function financeOpenLancamentoDetalhe(kind, ids) {
+    const ui = globalThis.financeActionUi;
+    if (!ui?.openDetailModal) return;
+    const idList = String(ids || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const vmap = financeVehicleById();
+    const rows = [];
+    const lines = [];
+    let total = 0;
+    let title = "Detalhes";
+    idList.forEach((id) => {
+      if (kind === "pagar") {
+        const p = (state.payables || []).find((x) => String(x.id) === String(id));
+        if (!p) return;
+        const fields = financePayableTypedFields(p);
+        title = fields.fornecedor || "Conta a pagar";
+        total += Number(p.valor || 0);
+        const due = financeContaDueYmd(p, "payable");
+        lines.push(
+          `<tr><td>${escapeHtml(fields.descricao || "—")}</td><td>${escapeHtml(formatDate(due) || "—")}</td><td>${escapeHtml(formatCurrency(Number(p.valor || 0)))}</td><td>${escapeHtml(financePayableDisplayStatus(p))}</td></tr>`
+        );
+      } else {
+        const r = (state.receivables || []).find((x) => String(x.id) === String(id));
+        if (!r) return;
+        const v = vmap.get(r.vehicle_id);
+        title = financeInstituicaoNome(v) || financeReceberRppNome(r, v) || "Conta a receber";
+        total += Number(r.valor || 0);
+        const due = financeContaDueYmd(r, "receivable");
+        const hist = financeReceivableHasCaixa(r.id) ? "Com caixa" : r.status === "PAGO" ? "Recebido" : "Em aberto";
+        lines.push(
+          `<tr><td>${escapeHtml(v?.placa || financeReceivableDescricaoCellText(r, v) || "—")}</td><td>${escapeHtml(v?.data_entrada ? formatDate(v.data_entrada) : "—")}</td><td>${escapeHtml(v?.data_saida ? formatDate(v.data_saida) : "—")}</td><td>${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td><td>${escapeHtml(due ? formatDate(due) : "—")}</td><td>${escapeHtml(financeReceivableDisplayStatus(r))} · ${escapeHtml(hist)}</td></tr>`
+        );
+      }
+    });
+    const first = idList[0]
+      ? kind === "pagar"
+        ? (state.payables || []).find((x) => String(x.id) === String(idList[0]))
+        : (state.receivables || []).find((x) => String(x.id) === String(idList[0]))
+      : null;
+    const v0 = first?.vehicle_id ? vmap.get(first.vehicle_id) : null;
+    if (kind === "pagar") {
+      const fields = first ? financePayableTypedFields(first) : {};
+      rows.push(
+        { label: "Fornecedor", value: fields.fornecedor || "—" },
+        { label: "Categoria", value: first ? payableCategoryLabel(first.payable_category) : "—" },
+        { label: "Vencimento", value: first ? formatDate(financeContaDueYmd(first, "payable")) || "—" : "—" },
+        { label: "Valor total", value: formatCurrency(total) },
+        { label: "Status", value: first ? financePayableDisplayStatus(first) : "—" }
+      );
+    } else {
+      rows.push(
+        { label: "Financeira", value: financeInstituicaoNome(v0) },
+        { label: "RPP", value: financeReceberRppNome(first, v0) },
+        { label: "Competência", value: globalThis.financeActionUi?.monthLabel?.(financeCompetenciaYm(first, v0, "receivable")) || "—" },
+        { label: "Veículos", value: String(idList.length) },
+        { label: "Valor total", value: formatCurrency(total) }
+      );
+    }
+    const table =
+      kind === "pagar"
+        ? `<div class="table-wrap"><table class="table fin-act-table"><thead><tr><th>Descrição</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead><tbody>${lines.join("")}</tbody></table></div>`
+        : `<div class="table-wrap"><table class="table fin-act-table"><thead><tr><th>Placa</th><th>Entrada</th><th>Saída</th><th>Valor</th><th>Vencimento</th><th>Status</th></tr></thead><tbody>${lines.join("")}</tbody></table></div>`;
+    ui.openDetailModal(title, `${idList.length} lançamento(s)`, ui.renderDetailRows(rows) + table);
+  }
+
+  function financeRenderFinanceiras() {
+    const host = document.getElementById("finFinanceirasRoot");
+    if (!host) return;
+    const svc = window.financialDashboardService;
+    const ui = globalThis.financeActionUi;
+    if (!svc?.getMetricsFromSnapshot || !ui?.renderFinanceirasTable) {
+      host.innerHTML = `<p class="fin-act-empty">Não foi possível montar o resumo das financeiras.</p>`;
+      return;
+    }
+    const m = svc.getMetricsFromSnapshot(
+      {
+        receivables: state.receivables || [],
+        cash: state.cash || [],
+        vehicles: state.vehicles || [],
+        partners: state.partners || [],
+      },
+      { period: "year" }
+    );
+    const rows = (m.financeirasResumo || []).map((r) => ({
+      ...r,
+      aReceberLabel: formatCurrency(r.aReceber),
+      recebidoLabel: formatCurrency(r.recebido),
+      emAbertoLabel: formatCurrency(r.emAberto),
+    }));
+    ui.renderFinanceirasTable(host, rows, "Nenhuma financeira com veículos ou títulos.");
+  }
+
+  function financeRenderFinanceiraDetail(id) {
+    const host = document.getElementById("finFinanceirasDetail");
+    if (!host) return;
+    const vmap = financeVehicleById();
+    const pmap = new Map((state.partners || []).map((p) => [String(p.id), p]));
+    const nome = id === "__sem__" ? "Sem financeira" : pmap.get(String(id))?.nome || "Financeira";
+    const vehicles = (state.vehicles || []).filter((v) => String(v.localizador_id || "") === String(id) || (id === "__sem__" && !v.localizador_id));
+    const recs = (state.receivables || []).filter((r) => {
+      const v = r.vehicle_id ? vmap.get(r.vehicle_id) : null;
+      const finId = String(v?.localizador_id || "") || "__sem__";
+      return finId === String(id);
+    });
+    const recByVehicle = new Map();
+    recs.forEach((r) => {
+      const key = String(r.vehicle_id || r.id);
+      const cur = recByVehicle.get(key) || { recebido: 0, aberto: 0, due: "", recs: [] };
+      const val = Number(r.valor || 0);
+      if (String(r.status || "").toUpperCase() === "PAGO") cur.recebido += val;
+      else if (String(r.status || "").toUpperCase() !== "CANCELADO") cur.aberto += val;
+      const due = financeContaDueYmd(r, "receivable");
+      if (due && (!cur.due || due < cur.due)) cur.due = due;
+      cur.recs.push(r);
+      recByVehicle.set(key, cur);
+    });
+    const seen = new Set();
+    const rows = [];
+    vehicles.forEach((v) => {
+      seen.add(String(v.id));
+      const agg = recByVehicle.get(String(v.id)) || { recebido: 0, aberto: 0, due: "", recs: [] };
+      rows.push({
+        placa: v.placa || "—",
+        entrada: v.data_entrada ? formatDate(v.data_entrada) : "—",
+        saida: v.data_saida ? formatDate(v.data_saida) : "—",
+        devido: agg.aberto + agg.recebido,
+        recebido: agg.recebido,
+        aberto: agg.aberto,
+        status: agg.aberto > 0 ? "Em aberto" : agg.recebido > 0 ? "Recebido" : "Sem título",
+        vencimento: agg.due ? formatDate(agg.due) : "—",
+      });
+    });
+    recByVehicle.forEach((agg, key) => {
+      if (seen.has(key)) return;
+      const r = agg.recs[0];
+      const v = r?.vehicle_id ? vmap.get(r.vehicle_id) : null;
+      rows.push({
+        placa: v?.placa || "Lançamento",
+        entrada: v?.data_entrada ? formatDate(v.data_entrada) : "—",
+        saida: v?.data_saida ? formatDate(v.data_saida) : "—",
+        devido: agg.aberto + agg.recebido,
+        recebido: agg.recebido,
+        aberto: agg.aberto,
+        status: agg.aberto > 0 ? "Em aberto" : "Recebido",
+        vencimento: agg.due ? formatDate(agg.due) : "—",
+      });
+    });
+    host.innerHTML = `<h3 style="margin:16px 0 8px">${escapeHtml(nome)}</h3>
+      <div class="fin-act-table-wrap"><table class="table fin-act-table">
+        <thead><tr><th>Placa</th><th>Entrada</th><th>Saída</th><th>Devido</th><th>Recebido</th><th>Em aberto</th><th>Status</th><th>Vencimento</th></tr></thead>
+        <tbody>${
+          rows.length
+            ? rows
+                .map(
+                  (r) => `<tr>
+                    <td>${escapeHtml(r.placa)}</td>
+                    <td>${escapeHtml(r.entrada)}</td>
+                    <td>${escapeHtml(r.saida)}</td>
+                    <td>${escapeHtml(formatCurrency(r.devido))}</td>
+                    <td>${escapeHtml(formatCurrency(r.recebido))}</td>
+                    <td>${escapeHtml(formatCurrency(r.aberto))}</td>
+                    <td>${escapeHtml(r.status)}</td>
+                    <td>${escapeHtml(r.vencimento)}</td>
+                  </tr>`
+                )
+                .join("")
+            : `<tr><td colspan="8" class="fin-act-empty">Nenhum veículo nesta financeira.</td></tr>`
+        }</tbody>
+      </table></div>`;
+  }
+
+  function financeActivateActionView(view, filter) {
+    if (view === "receber") {
+      finReceberQuick = filter || "todos";
+      finReceberHorizonDays = filter === "vencendo_7" ? 7 : 0;
+      if (filter === "vencendo_7") finReceberQuick = "vencendo_7";
+    }
+    if (view === "pagar" && filter) finPagarQuick = filter;
+    financeActivateSubview(view || "dashboard");
+  }
+
+  function financePaySelectedGroup(view, idsCsv) {
+    const ids = String(idsCsv || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!ids.length) return;
+    financeRowSelection[view]?.clear();
+    ids.forEach((id) => financeRowSelection[view]?.add(String(id)));
+    financeUpdateBatchBar(view);
+    const isPagar = view === "pagar";
+    financeOpenBatchConfirmModal({
+      view,
+      action: "pg",
+      title: isPagar ? "Confirmar pagamento (PG)" : "Confirmar recebimento (PG)",
+      subtitle: isPagar
+        ? "Cada despesa será marcada como paga, com a data e forma informadas abaixo."
+        : "Valor integral de cada título, com a data e forma informadas abaixo.",
+      message: isPagar
+        ? `Confirmar pagamento de ${ids.length} conta(s) a pagar?`
+        : `Confirmar recebimento de ${ids.length} conta(s) a receber?`,
+      confirmLabel: "Confirmar PG",
+      showPayFields: true,
+    });
+  }
+
   function financeNormalizeFinanceView(view) {
     if (view === "recebidos") return "caixa";
     if (view === "recorrentes") return "pagar";
@@ -4534,6 +4936,7 @@
     else if (view === "pagar") financeRenderPagar();
     else if (view === "caixa") financeRenderCaixa();
     else if (view === "cadastros") financeRenderCadastros();
+    else if (view === "financeiras") financeRenderFinanceiras();
   }
 
   function financeActivateSubview(view, opts = {}) {
@@ -5359,6 +5762,38 @@
         const id = btnPag.getAttribute("data-fin-pagar-id");
         const p = (state.payables || []).find((x) => String(x.id) === String(id));
         if (p) openPagarBaixaModal(p);
+        return;
+      }
+      const chip = e.target.closest("[data-fin-act-chip]");
+      if (chip) {
+        const value = chip.getAttribute("data-fin-act-chip") || "todos";
+        if (chip.closest("#finReceberQuickFilters") || chip.closest("[data-finance-subview='receber']")) {
+          finReceberQuick = value;
+          financeRenderReceber();
+        } else if (chip.closest("#finPagarQuickFilters") || chip.closest("[data-finance-subview='pagar']")) {
+          finPagarQuick = value;
+          financeRenderPagar();
+        }
+        return;
+      }
+      const groupRec = e.target.closest("[data-fin-group-receber]");
+      if (groupRec) {
+        financePaySelectedGroup("receber", groupRec.getAttribute("data-fin-group-receber"));
+        return;
+      }
+      const groupPag = e.target.closest("[data-fin-group-pagar]");
+      if (groupPag) {
+        financePaySelectedGroup("pagar", groupPag.getAttribute("data-fin-group-pagar"));
+        return;
+      }
+      const detalhe = e.target.closest("[data-fin-act-detalhe]");
+      if (detalhe) {
+        financeOpenLancamentoDetalhe(detalhe.getAttribute("data-fin-act-detalhe"), detalhe.getAttribute("data-fin-act-ids"));
+        return;
+      }
+      const finRow = e.target.closest("[data-fin-act-financeira]");
+      if (finRow) {
+        financeRenderFinanceiraDetail(finRow.getAttribute("data-fin-act-financeira"));
       }
     });
 
@@ -5440,4 +5875,6 @@
   window.financeContasReceberList = financeContasReceberList;
   window.financePayablesAbertas = financePayablesAbertas;
   window.financeRenderDashboard = financeRenderDashboard;
+  window.financeActivateSubview = financeActivateSubview;
+  window.financeActivateActionView = financeActivateActionView;
 })();

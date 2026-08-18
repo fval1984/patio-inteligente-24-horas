@@ -12,6 +12,8 @@
     parceiroId: "",
     status: "",
     search: "",
+    customFrom: "",
+    customTo: "",
   };
 
   function isCalendarYmd(v) {
@@ -62,7 +64,8 @@
     return `${y}-${String(m).padStart(2, "0")}-${String(last).padStart(2, "0")}`;
   }
 
-  function resolvePeriodRange(period, asOf) {
+  function resolvePeriodRange(period, asOf, extra) {
+    extra = extra || {};
     const curYm = yearMonthFromYmd(asOf);
     switch (period) {
       case "today":
@@ -72,11 +75,26 @@
       case "30d":
         return { from: addDaysYmd(asOf, -29), to: asOf, label: "Últimos 30 dias" };
       case "month":
-        return { from: monthStartYm(curYm), to: asOf, label: "Mês atual" };
+        return { from: monthStartYm(curYm), to: asOf, label: "Este mês" };
+      case "prev_month": {
+        const prevYm = yearMonthFromYmd(addDaysYmd(monthStartYm(curYm), -1));
+        return { from: monthStartYm(prevYm), to: monthEndYm(prevYm), label: "Mês anterior" };
+      }
+      case "3m": {
+        const d = ymdToDate(asOf);
+        d.setMonth(d.getMonth() - 2);
+        const fromYm = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        return { from: monthStartYm(fromYm), to: asOf, label: "3 meses" };
+      }
+      case "custom": {
+        const from = extra.customFrom && isCalendarYmd(extra.customFrom) ? extra.customFrom : monthStartYm(curYm);
+        const to = extra.customTo && isCalendarYmd(extra.customTo) ? extra.customTo : asOf;
+        return { from: from <= to ? from : to, to: from <= to ? to : from, label: "Personalizado" };
+      }
       case "year":
         return { from: `${asOf.slice(0, 4)}-01-01`, to: asOf, label: "Ano atual" };
       default:
-        return { from: monthStartYm(curYm), to: asOf, label: "Mês atual" };
+        return { from: monthStartYm(curYm), to: asOf, label: "Este mês" };
     }
   }
 
@@ -258,7 +276,7 @@
   FinancialMetricsService.prototype.compute = function compute(snapshot, filtersInput) {
     const filters = Object.assign({}, DEFAULT_FINANCIAL_FILTERS, filtersInput || {});
     const asOf = snapshot.asOfYmd || todayYmd();
-    const range = resolvePeriodRange(filters.period, asOf);
+    const range = resolvePeriodRange(filters.period, asOf, filters);
     const vmap = new Map((snapshot.vehicles || []).map((v) => [String(v.id), v]));
     const pmap = new Map((snapshot.partners || []).map((p) => [String(p.id), p]));
     const cashByConta = buildCashByContaId(snapshot.cash || []);
@@ -276,6 +294,9 @@
     let recebidoMes = 0;
     let pagamentosMes = 0;
     let recebidoMesAnt = 0;
+    let recebidoPeriodo = 0;
+    let pagamentosPeriodo = 0;
+    let recebidosHoje = 0;
     for (const r of receivables) {
       const rec = recebimentoYmd(r, cashByConta);
       if (!rec) continue;
@@ -287,7 +308,23 @@
       if (rec >= prevStart && rec <= prevEnd) {
         recebidoMesAnt += val;
       }
+      if (rec >= range.from && rec <= range.to) {
+        recebidoPeriodo += val;
+        pagamentosPeriodo += 1;
+      }
+      if (rec === asOf) recebidosHoje += 1;
     }
+
+    let entradasPeriodo = 0;
+    let saidasPeriodo = 0;
+    for (const mov of snapshot.cash || []) {
+      const ymd = caixaCompetenciaYmd(mov);
+      if (!ymd || ymd < range.from || ymd > range.to) continue;
+      const val = cashMovValor(mov);
+      if (cashIsEntrada(mov)) entradasPeriodo += val;
+      else if (cashIsSaida(mov)) saidasPeriodo += val;
+    }
+    const resultadoPeriodo = entradasPeriodo - saidasPeriodo;
 
     let receitaPeriodo = 0;
     let receitaPrevPeriodo = 0;
@@ -348,6 +385,7 @@
 
     const fluxoLabels = [];
     const fluxoEntradas = [];
+    const fluxoSaidas = [];
     const fluxoReceb = [];
     const fluxoSaldo = [];
     let saldoAcc = 0;
@@ -374,6 +412,7 @@
       }
       saldoAcc += ent - sai;
       fluxoEntradas.push(ent);
+      fluxoSaidas.push(sai);
       fluxoReceb.push(receb);
       fluxoSaldo.push(saldoAcc);
     }
@@ -499,6 +538,53 @@
       },
     };
 
+    const financeirasMap = new Map();
+    const ensureFin = (id, nome) => {
+      if (!financeirasMap.has(id)) {
+        financeirasMap.set(id, {
+          id,
+          nome,
+          veiculos: new Set(),
+          aReceber: 0,
+          recebido: 0,
+          emAberto: 0,
+        });
+      }
+      return financeirasMap.get(id);
+    };
+    for (const v of snapshot.vehicles || []) {
+      const id = financeiraIdOf(v) || "__sem__";
+      const nome = id === "__sem__" ? "Sem financeira" : partnerName(id, pmap);
+      ensureFin(id, nome).veiculos.add(String(v.id));
+    }
+    for (const r of snapshot.receivables || []) {
+      const v = r.vehicle_id ? vmap.get(String(r.vehicle_id)) : undefined;
+      const id = financeiraIdOf(v) || "__sem__";
+      const nome = id === "__sem__" ? "Sem financeira" : partnerName(id, pmap);
+      const row = ensureFin(id, nome);
+      if (r.vehicle_id) row.veiculos.add(String(r.vehicle_id));
+      const st = String(r.status || "").toUpperCase();
+      if (st === "CANCELADO" || receivableValor(r) <= 0) continue;
+      if (st === "PAGO") {
+        row.recebido += receivableValor(r);
+        row.aReceber += receivableValor(r);
+      } else if (isContaReceberAberta(r)) {
+        row.emAberto += receivableValor(r);
+        row.aReceber += receivableValor(r);
+      }
+    }
+    const financeirasResumo = Array.from(financeirasMap.values())
+      .map((x) => ({
+        id: x.id,
+        nome: x.nome,
+        veiculos: x.veiculos.size,
+        aReceber: x.aReceber,
+        recebido: x.recebido,
+        emAberto: x.emAberto,
+      }))
+      .filter((x) => x.veiculos > 0 || x.aReceber > 0 || x.recebido > 0)
+      .sort((a, b) => b.emAberto - a.emAberto || b.aReceber - a.aReceber || String(a.nome).localeCompare(String(b.nome), "pt-BR"));
+
     return {
       filters,
       range,
@@ -514,6 +600,13 @@
           pagamentos: pagamentosMes,
           trend: trend(recebidoMes, recebidoMesAnt),
         },
+        recebidoPeriodo: {
+          valor: recebidoPeriodo,
+          pagamentos: pagamentosPeriodo,
+        },
+        entradasPeriodo,
+        saidasPeriodo,
+        resultadoPeriodo,
         receitaAcumulada: {
           valor: receitaPeriodo,
           trend: trend(receitaPeriodo, receitaPrevPeriodo),
@@ -530,12 +623,14 @@
       fluxo: {
         labels: fluxoLabels,
         entradas: fluxoEntradas,
+        saidas: fluxoSaidas,
         recebimentos: fluxoReceb,
         saldo: fluxoSaldo,
       },
       receitaPorFinanceira,
       maioresContas,
       ultimosRecebimentos,
+      financeirasResumo,
       indicadores: {
         receitaHoje,
         receitaSemana,
@@ -543,6 +638,7 @@
         receitaAno,
         receitaMediaDiaria,
         receitaMediaMensal,
+        recebidosHoje,
       },
       alerts,
     };
@@ -558,6 +654,8 @@
       String(f.search || "")
         .trim()
         .toLowerCase(),
+      f.customFrom || "",
+      f.customTo || "",
     ].join("|");
   }
 
