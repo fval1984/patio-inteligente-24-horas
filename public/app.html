@@ -6732,6 +6732,7 @@
       }
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme9" />
+    <link rel="stylesheet" href="/finance-action-ui.css?v=20260818finact1" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260813vistui7" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile17" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
@@ -7389,7 +7390,8 @@
             </div>
           </div>
           <div class="finance-subnav" id="finSubnav">
-            <button type="button" data-finance-subview-btn="dashboard" class="active">Dashboard</button>
+            <button type="button" data-finance-subview-btn="dashboard" class="active">Início</button>
+            <button type="button" data-finance-subview-btn="financeiras">Financeiras</button>
             <button type="button" data-finance-subview-btn="em_patio">Veículos no pátio</button>
             <button type="button" data-finance-subview-btn="aguardando">Aguardando faturamento</button>
             <button type="button" data-finance-subview-btn="receber">Contas a receber</button>
@@ -7406,7 +7408,10 @@
                 <option value="today">Hoje</option>
                 <option value="7d">Últimos 7 dias</option>
                 <option value="30d">Últimos 30 dias</option>
-                <option value="month" selected>Mês atual</option>
+                <option value="month" selected>Este mês</option>
+                <option value="prev_month">Mês anterior</option>
+                <option value="3m">3 meses</option>
+                <option value="custom">Personalizado</option>
                 <option value="year">Ano atual</option>
               </select>
               <label for="finDashFilterFinanceira">Financeira</label>
@@ -7537,6 +7542,8 @@
               <strong>Total selecionado:</strong> <span id="finReceberSelectedTotal">R$ 0,00</span><span id="finReceberSelectedCount" class="notice"></span>
             </p>
             <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
+            <div class="fin-act-chips" id="finReceberQuickFilters" aria-label="Filtros rápidos"></div>
+            <div id="finReceberCards" class="fin-act-launch-host"></div>
             <div class="actions" style="margin: 0 0 12px; flex-wrap: wrap; gap: 8px">
               <button type="button" class="secondary" id="finReceberBtnPrint">Imprimir para cliente</button>
               <button type="button" class="secondary" id="finReceberBtnPdf">Baixar PDF para cliente</button>
@@ -7584,12 +7591,18 @@
               <button type="button" class="secondary fin-batch-delete fin-batch-action hidden" data-fin-batch-view="pagar" data-fin-batch-action="delete" data-fin-batch-label="Apagar Selecionados">Apagar Selecionados</button>
             </div>
             <p><strong>Total a pagar (abertas):</strong> <span id="finPagarTotal">R$ 0,00</span></p>
+            <div class="fin-act-chips" id="finPagarQuickFilters" aria-label="Filtros rápidos"></div>
+            <div id="finPagarCards" class="fin-act-launch-host"></div>
             <div class="table-wrap section-card">
               <table class="table">
                 <thead><tr><th class="fin-th-select" scope="col"><input type="checkbox" class="fin-select-all" data-fin-select-all="pagar" title="Selecionar todos" aria-label="Selecionar todos"></th><th>Fornecedor</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor</th><th>Vencimento</th><th>Forma</th><th>Conta</th><th>Status</th><th>Ações</th></tr></thead>
                 <tbody id="finPagarBody"></tbody>
               </table>
             </div>
+          </div>
+
+          <div class="finance-subview hidden" data-finance-subview="financeiras">
+            <div id="finFinanceirasRoot" class="fin-act-panel"></div>
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="caixa">
@@ -8687,10 +8700,11 @@
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
-    <script src="/finance-module.js?v=20260818seltotal"></script>
+    <script src="/finance-module.js?v=20260818finact1"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
-    <script src="/financial-metrics-service.js?v=20260727findash"></script>
-    <script src="/financial-dashboard-ui.js?v=20260727findash"></script>
+    <script src="/financial-metrics-service.js?v=20260818finact1"></script>
+    <script src="/financial-dashboard-ui.js?v=20260818finact1"></script>
+    <script src="/finance-action-ui.js?v=20260818finact1"></script>
     <script src="/patio-dashboard.js?v=20260715gestor"></script>
     <script src="/operational-metrics-service.js?v=20260727opsdash"></script>
     <script src="/operational-dashboard-ui.js?v=20260813opscontrast"></script>
@@ -15020,12 +15034,14 @@
       };
 
       const APP_FIN_SUBVIEW_LABELS = {
-        dashboard: "Dashboard",
+        dashboard: "Início",
+        financeiras: "Financeiras",
         em_patio: "Veículos no pátio",
         aguardando: "Aguardando faturamento",
         receber: "Contas a receber",
         pagar: "Contas a pagar",
         caixa: "Caixa",
+        cadastros: "Cadastros",
       };
 
       function bindAppContextMenuOnce() {

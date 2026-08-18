@@ -13,6 +13,8 @@
     parceiroId: "",
     status: "",
     search: "",
+    customFrom: "",
+    customTo: "",
   };
 
   const PIE_COLORS = [
@@ -92,6 +94,8 @@
     _filters.parceiroId = partnerEl ? partnerEl.value || "" : "";
     _filters.status = statusEl ? statusEl.value || "" : "";
     _filters.search = searchEl ? String(searchEl.value || "").trim() : "";
+    _filters.customFrom = document.getElementById("finDashCustomFrom")?.value || "";
+    _filters.customTo = document.getElementById("finDashCustomTo")?.value || "";
   }
 
   function populateSelect(sel, partners, emptyLabel, current) {
@@ -403,6 +407,8 @@
         parceiroId: _filters.parceiroId,
         status: _filters.status,
         search: _filters.search,
+        customFrom: _filters.customFrom,
+        customTo: _filters.customTo,
       }
     );
   }
@@ -423,150 +429,168 @@
     }
 
     const k = m.kpis;
-    const finItems = (m.receitaPorFinanceira || []).map((r, i) => ({
-      label: r.nome,
-      value: r.valor,
-      pct: r.pct,
-      color: PIE_COLORS[i % PIE_COLORS.length],
-    }));
-
-    const maioresBody = (m.maioresContas || [])
+    const period = _filters.period || "month";
+    const periods = [
+      ["today", "Hoje"],
+      ["7d", "7 dias"],
+      ["month", "Este mês"],
+      ["prev_month", "Mês anterior"],
+      ["3m", "3 meses"],
+      ["custom", "Personalizado"],
+    ];
+    const periodPills = periods
       .map(
-        (x) => `<tr>
-          <td>${escapeHtml(x.financeira)}</td>
-          <td>${escapeHtml(String(x.veiculos))}</td>
-          <td>${escapeHtml(formatCurrency(x.valor))}</td>
-          <td>${escapeHtml(Number(x.diasMedios || 0).toFixed(1).replace(".", ","))}</td>
-        </tr>`
+        ([value, label]) =>
+          `<button type="button" class="fin-act-period-btn${period === value ? " is-active" : ""}" data-fin-act-period="${value}">${escapeHtml(label)}</button>`
       )
       .join("");
 
-    const ultimosBody = (m.ultimosRecebimentos || [])
-      .map(
-        (x) => `<tr>
-          <td>${escapeHtml(formatYmdBr(x.data))}</td>
-          <td>${escapeHtml(x.financeira)}</td>
-          <td>${escapeHtml(x.descricao)}</td>
-          <td>${escapeHtml(formatCurrency(x.valor))}</td>
-          <td>${escapeHtml(x.situacao)}</td>
-        </tr>`
-      )
-      .join("");
+    const aReceber = k.contasAReceber?.valor || 0;
+    const recebido = k.recebidoPeriodo?.valor ?? k.recebimentosMes?.valor ?? 0;
+    const emAtraso = k.inadimplencia?.valor || 0;
+    const resultado = k.resultadoPeriodo || 0;
+    const entradas = k.entradasPeriodo || 0;
+    const saidas = k.saidasPeriodo || 0;
+    const saldoMes = (m.fluxo?.saldo || []).length ? m.fluxo.saldo[m.fluxo.saldo.length - 1] : entradas - saidas;
+
+    const alerts = m.alerts || {};
+    const attention = [];
+    if (alerts.titulosVencidos?.count > 0) {
+      attention.push({
+        tone: "red",
+        filter: "vencidos",
+        view: "receber",
+        text: `${alerts.titulosVencidos.count} cobrança${alerts.titulosVencidos.count === 1 ? "" : "s"} vencida${alerts.titulosVencidos.count === 1 ? "" : "s"}`,
+        detail: formatCurrency(alerts.titulosVencidos.valor),
+      });
+    }
+    if (alerts.vencendo7Dias?.count > 0) {
+      attention.push({
+        tone: "amber",
+        filter: "vencendo_7",
+        view: "receber",
+        text: `${alerts.vencendo7Dias.count} cobrança${alerts.vencendo7Dias.count === 1 ? "" : "s"} vencendo em 7 dias`,
+        detail: formatCurrency(alerts.vencendo7Dias.valor),
+      });
+    }
+    const recHoje = m.indicadores?.recebidosHoje || 0;
+    if (recHoje > 0) {
+      attention.push({
+        tone: "green",
+        filter: "recebidos",
+        view: "receber",
+        text: `${recHoje} pagamento${recHoje === 1 ? "" : "s"} recebido${recHoje === 1 ? "" : "s"} hoje`,
+        detail: formatCurrency(m.indicadores?.receitaHoje || 0),
+      });
+    }
+
+    const attentionHtml = attention.length
+      ? attention
+          .map(
+            (a) => `<button type="button" class="fin-act-attention-item" data-fin-act-goto="${escapeHtml(a.view)}" data-fin-act-filter="${escapeHtml(a.filter)}">
+              <span><i class="fin-act-dot fin-act-dot--${escapeHtml(a.tone)}"></i>${escapeHtml(a.text)}</span>
+              <strong>${escapeHtml(a.detail)}</strong>
+            </button>`
+          )
+          .join("")
+      : `<div class="hub-alert hub-alert--ok fin-exec-alert"><span>Nada urgente no momento.</span></div>`;
+
+    const customOpen = period === "custom" ? "" : " hidden";
 
     root.innerHTML = `
-      <div class="fin-exec-dashboard">
-        ${renderAlerts(m.alerts, formatCurrency)}
-
-        <section class="hub-dash-section">
-          <div class="hub-ops-cards hub-ops-cards--kpi fin-exec-kpis">
-            ${renderKpiCard({
-              theme: "recv",
-              icon: "recv",
-              label: "Contas a Receber",
-              value: k.contasAReceber.valor,
-              valueType: "currency",
-              formatCurrency,
-              meta: `${k.contasAReceber.titulos} título(s)`,
-              trend: k.contasAReceber.trend,
-            })}
-            ${renderKpiCard({
-              theme: "month",
-              icon: "paid",
-              label: "Recebimentos no Mês",
-              value: k.recebimentosMes.valor,
-              valueType: "currency",
-              formatCurrency,
-              meta: `${k.recebimentosMes.pagamentos} pagamento(s)`,
-              trend: k.recebimentosMes.trend,
-            })}
-            ${renderKpiCard({
-              theme: "profit",
-              icon: "billing",
-              label: "Receita Acumulada",
-              value: k.receitaAcumulada.valor,
-              valueType: "currency",
-              formatCurrency,
-              meta: m.range?.label || "período",
-              trend: k.receitaAcumulada.trend,
-            })}
-            ${renderKpiCard({
-              theme: "pay",
-              icon: "late",
-              label: "Inadimplência",
-              value: k.inadimplencia.valor,
-              valueType: "currency",
-              formatCurrency,
-              meta: `${k.inadimplencia.titulos} título(s) · ${formatPct(k.inadimplencia.pctSobreReceber)} do a receber`,
-              invertTrend: true,
-            })}
-            ${renderKpiCard({
-              theme: "ticket",
-              icon: "ticket",
-              label: "Ticket Médio",
-              value: k.ticketMedio,
-              valueType: "currency",
-              formatCurrency,
-              meta: "faturamento ÷ títulos faturados",
-            })}
-            ${renderKpiCard({
-              theme: "pending-recv",
-              icon: "forecast",
-              label: "Previsão de Recebimento",
-              value: k.previsaoRecebimento,
-              valueType: "currency",
-              formatCurrency,
-              meta: "títulos abertos com vencimento futuro",
-            })}
-          </div>
+      <div class="fin-act-home">
+        <div class="fin-act-periods" role="tablist" aria-label="Período">${periodPills}</div>
+        <div class="fin-act-custom"${customOpen}>
+          <label>De<input type="date" id="finDashCustomFrom" value="${escapeHtml(_filters.customFrom || "")}"></label>
+          <label>Até<input type="date" id="finDashCustomTo" value="${escapeHtml(_filters.customTo || "")}"></label>
+        </div>
+        <section class="fin-act-kpis" aria-label="Visão financeira">
+          <button type="button" class="fin-act-kpi fin-act-kpi--recv" data-fin-act-goto="receber" data-fin-act-filter="todos">
+            <span class="fin-act-kpi-label">A receber</span>
+            <strong class="fin-act-kpi-value">${escapeHtml(formatCurrency(aReceber))}</strong>
+            <small class="fin-act-kpi-meta">${k.contasAReceber?.titulos || 0} título(s) em aberto</small>
+          </button>
+          <button type="button" class="fin-act-kpi fin-act-kpi--paid" data-fin-act-goto="receber" data-fin-act-filter="recebidos">
+            <span class="fin-act-kpi-label">Recebido</span>
+            <strong class="fin-act-kpi-value">${escapeHtml(formatCurrency(recebido))}</strong>
+            <small class="fin-act-kpi-meta">${k.recebidoPeriodo?.pagamentos || 0} no período</small>
+          </button>
+          <button type="button" class="fin-act-kpi fin-act-kpi--late" data-fin-act-goto="receber" data-fin-act-filter="vencidos">
+            <span class="fin-act-kpi-label">Em atraso</span>
+            <strong class="fin-act-kpi-value">${escapeHtml(formatCurrency(emAtraso))}</strong>
+            <small class="fin-act-kpi-meta">${k.inadimplencia?.titulos || 0} vencido(s)</small>
+          </button>
+          <button type="button" class="fin-act-kpi fin-act-kpi--result${resultado < 0 ? " is-negative" : ""}" data-fin-act-goto="caixa">
+            <span class="fin-act-kpi-label">Resultado</span>
+            <strong class="fin-act-kpi-value">${escapeHtml(formatCurrency(resultado))}</strong>
+            <small class="fin-act-kpi-meta">Entradas − saídas</small>
+          </button>
         </section>
-
-        <section class="hub-dash-charts hub-dash-charts--exec fin-exec-charts-row">
-          <div class="hub-chart-panel section-card fin-exec-panel">
-            <h4>Receita Mensal (12 meses)</h4>
-            ${barChartSvg(m.receitaMensal12.labels, m.receitaMensal12.values, "#38bdf8", 200)}
+        <section class="fin-act-panel">
+          <h3>Fluxo de caixa</h3>
+          <div class="fin-act-flow-stats">
+            <div class="fin-act-flow-stat"><span>Entradas</span><strong>${escapeHtml(formatCurrency(entradas))}</strong></div>
+            <div class="fin-act-flow-stat"><span>Saídas</span><strong>${escapeHtml(formatCurrency(saidas))}</strong></div>
+            <div class="fin-act-flow-stat"><span>Saldo</span><strong>${escapeHtml(formatCurrency(saldoMes))}</strong></div>
           </div>
-          <div class="hub-chart-panel section-card fin-exec-panel">
-            <h4>Fluxo Financeiro</h4>
-            ${lineChartSvg(
-              m.fluxo.labels,
-              [
-                { name: "Entradas", values: m.fluxo.entradas, color: "#34d399" },
-                { name: "Recebimentos", values: m.fluxo.recebimentos, color: "#60a5fa" },
-                { name: "Saldo", values: m.fluxo.saldo, color: "#fbbf24" },
-              ],
-              220
-            )}
-          </div>
+          ${lineChartSvg(
+            m.fluxo.labels,
+            [
+              { name: "Entradas", values: m.fluxo.entradas, color: "#16a34a" },
+              { name: "Saídas", values: m.fluxo.saidas || [], color: "#dc2626" },
+              { name: "Saldo", values: m.fluxo.saldo, color: "#1677ff" },
+            ],
+            220
+          )}
         </section>
-
-        <section class="hub-dash-charts hub-dash-charts--exec fin-exec-charts-row">
-          <div class="hub-chart-panel section-card fin-exec-panel">
-            <h4>Top 10 Financeiras</h4>
-            ${hBarChartSvg(finItems, formatCurrency)}
-          </div>
-          <div class="hub-chart-panel section-card fin-exec-panel">
-            <h4>Participação por Financeira</h4>
-            ${pieChartSvg(finItems)}
-          </div>
+        <section class="fin-act-panel">
+          <h3>O que precisa da minha atenção</h3>
+          <div class="fin-act-attention">${attentionHtml}</div>
         </section>
-
-        ${renderDataTable(
-          "Maiores Contas a Receber",
-          ["Financeira", "Veículos", "Valor", "Dias médios"],
-          maioresBody,
-          "Nenhum título em aberto."
-        )}
-
-        ${renderDataTable(
-          "Últimos Recebimentos",
-          ["Data", "Financeira", "Descrição", "Valor", "Situação"],
-          ultimosBody,
-          "Nenhum recebimento encontrado."
-        )}
-
-        ${renderIndicadores(m.indicadores, formatCurrency)}
       </div>
     `;
+    bindHomeInteractions(root);
+  }
+
+  function bindHomeInteractions(root) {
+    if (!root) return;
+    const periodSel = document.getElementById("finDashFilterPeriod");
+    root.querySelectorAll("[data-fin-act-period]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const value = btn.getAttribute("data-fin-act-period") || "month";
+        if (periodSel) {
+          if (![...periodSel.options].some((o) => o.value === value)) {
+            const opt = document.createElement("option");
+            opt.value = value;
+            opt.textContent = value;
+            periodSel.appendChild(opt);
+          }
+          periodSel.value = value;
+        }
+        _filters.period = value;
+        invalidateAndRefresh();
+      });
+    });
+    const fromEl = document.getElementById("finDashCustomFrom");
+    const toEl = document.getElementById("finDashCustomTo");
+    const onCustom = () => {
+      _filters.customFrom = fromEl?.value || "";
+      _filters.customTo = toEl?.value || "";
+      invalidateAndRefresh();
+    };
+    fromEl?.addEventListener("change", onCustom);
+    toEl?.addEventListener("change", onCustom);
+    root.querySelectorAll("[data-fin-act-goto]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const view = btn.getAttribute("data-fin-act-goto");
+        const filter = btn.getAttribute("data-fin-act-filter") || "";
+        if (typeof global.financeActivateActionView === "function") {
+          global.financeActivateActionView(view, filter);
+        } else if (typeof global.financeActivateSubview === "function") {
+          global.financeActivateSubview(view);
+        }
+      });
+    });
   }
 
   function invalidateAndRefresh() {
