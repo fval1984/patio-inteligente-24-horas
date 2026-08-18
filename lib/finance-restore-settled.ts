@@ -61,7 +61,8 @@ export async function loadFinanceRestoreSnapshot(supabase: SupabaseClient, userI
   const [receivables, payables, cash, vehicles, partners] = await Promise.all([
     selectRows(supabase, "receivables", [
       "id,user_id,vehicle_id,valor,status,observacoes,responsavel_pagamento,forma_pagamento,period_start,period_end,financeiro_aprovado_contas_receber,updated_at,created_at",
-      "id,user_id,vehicle_id,valor,status,observacoes,responsavel_pagamento,period_end,updated_at,created_at",
+      "id,user_id,vehicle_id,valor,status,observacoes,responsavel_pagamento,period_end,financeiro_aprovado_contas_receber,updated_at,created_at",
+      "id,user_id,vehicle_id,valor,status,period_end,financeiro_aprovado_contas_receber,updated_at,created_at",
       "id,user_id,vehicle_id,valor,status,period_end,updated_at,created_at",
     ], userId),
     selectRows(supabase, "payables", [
