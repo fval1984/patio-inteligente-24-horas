@@ -442,6 +442,19 @@
     return false;
   }
 
+  function financeReceivableValorById(id) {
+    const r = (state.receivables || []).find((x) => String(x.id) === String(id));
+    return Number(r?.valor || 0);
+  }
+
+  function financeSelectedRowsTotal(view) {
+    const ids = financeRowSelection[view];
+    if (!ids?.size) return 0;
+    let sum = 0;
+    for (const id of ids) sum += financeReceivableValorById(id);
+    return sum;
+  }
+
   function financeUpdateBatchBar(view) {
     const count = financeRowSelection[view]?.size || 0;
     const panel = document.querySelector(`.finance-subview[data-finance-subview="${view}"]`);
@@ -458,6 +471,31 @@
       const base = btn.getAttribute("data-fin-batch-label") || btn.textContent.replace(/\s*\(\d+\)\s*$/, "");
       btn.textContent = count > 0 ? `${base} (${count})` : base;
     });
+    const selectedSummaryByView = {
+      aguardando: {
+        wrap: "finAguardandoSelectedSummary",
+        total: "finAguardandoSelectedTotal",
+        count: "finAguardandoSelectedCount",
+      },
+      receber: {
+        wrap: "finReceberSelectedSummary",
+        total: "finReceberSelectedTotal",
+        count: "finReceberSelectedCount",
+      },
+    };
+    const selCfg = selectedSummaryByView[view];
+    if (selCfg) {
+      const wrap = document.getElementById(selCfg.wrap);
+      const totalEl = document.getElementById(selCfg.total);
+      const countEl = document.getElementById(selCfg.count);
+      const selectedTotal = financeSelectedRowsTotal(view);
+      if (wrap) wrap.classList.toggle("hidden", count < 1);
+      if (totalEl) totalEl.textContent = formatCurrency(selectedTotal);
+      if (countEl) {
+        countEl.textContent =
+          count > 0 ? ` · ${count} registro${count === 1 ? "" : "s"} selecionado${count === 1 ? "" : "s"}` : "";
+      }
+    }
     const selectAll = scope.querySelector(`.fin-select-all[data-fin-select-all="${view}"]`);
     const checks = scope.querySelectorAll(`.fin-row-check[data-fin-row-check="${view}"]`);
     if (!selectAll) return;
