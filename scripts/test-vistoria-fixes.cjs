@@ -223,6 +223,7 @@ function testPersistBackupHelpers() {
   assert.match(src, /item_key}::\$\{inspectionId\}/);
   assert.match(src, /attachSignedPhotoUrls/);
   assert.match(src, /createSignedUrls/);
+  assert.match(src, /persistInspectionPhoto/);
   const sql = fs.readFileSync(path.join(root, "supabase/vehicle_entry_inspection_items_persist.sql"), "utf8");
   assert.match(sql, /UNIQUE \(inspection_id, item_key\)/);
 }
@@ -376,6 +377,16 @@ function testPhotosHydrateIntoDraft() {
   assert.match(src, /inferPhotoType,/);
 }
 
+function testPhotoUploadGoesThroughApi() {
+  const src = fs.readFileSync(path.join(root, "public/vehicle-entry-inspection-photos-mobile.js"), "utf8");
+  assert.match(src, /\/api\/vehicles\/entry-inspection-photo/);
+  assert.match(src, /blobFromDraftPhoto/);
+  assert.match(src, /data_base64/);
+  assert.doesNotMatch(src, /if \(!p \|\| !p\.file\) continue;/);
+  const route = fs.readFileSync(path.join(root, "app/api/vehicles/entry-inspection-photo/route.ts"), "utf8");
+  assert.match(route, /persistInspectionPhoto/);
+}
+
 let failed = 0;
 const tests = [
   ["legendas das fotos", testPhotoLabels],
@@ -386,6 +397,7 @@ const tests = [
   ["vistoria nº 1 e nº 2 independentes", testTwoInspectionsIndependent],
   ["PDF com várias fotografias", testManyPhotosPagination],
   ["fotos gravadas voltam no rascunho", testPhotosHydrateIntoDraft],
+  ["envio das fotos pela API", testPhotoUploadGoesThroughApi],
 ];
 
 for (const [name, fn] of tests) {

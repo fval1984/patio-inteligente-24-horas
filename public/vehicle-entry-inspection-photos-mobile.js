@@ -380,91 +380,181 @@
     });
   }
 
-  async function uploadBlob(ctx, path, blob) {
-    return ctx.supabase.storage.from(STORAGE_BUCKET).upload(path, blob, {
-      upsert: true,
-      contentType: blob.type || "image/jpeg",
+  function blobFromDraftPhoto(p) {
+    if (!p) return Promise.resolve(null);
+    if (p.file) return Promise.resolve(p.file);
+    if (p.storage_path && !p.preview) return Promise.resolve(null);
+    const preview = String(p.preview || "");
+    if (preview.indexOf("data:") === 0) {
+      return fetch(preview).then((r) => r.blob()).catch(() => null);
+    }
+    return Promise.resolve(null);
+  }
+
+  function compressPhotoBlob(blob) {
+    return new Promise((resolve) => {
+      if (!blob) return resolve(null);
+      if (typeof Image === "undefined" || typeof document === "undefined") return resolve(blob);
+      const img = new Image();
+      const url = URL.createObjectURL(blob);
+      img.onload = () => {
+        try {
+          const max = 1600;
+          let w = img.naturalWidth || 0;
+          let h = img.naturalHeight || 0;
+          if (!w || !h) {
+            URL.revokeObjectURL(url);
+            return resolve(blob);
+          }
+          if (w > max || h > max) {
+            const scale = max / Math.max(w, h);
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            URL.revokeObjectURL(url);
+            return resolve(blob);
+          }
+          ctx.drawImage(img, 0, 0, w, h);
+          canvas.toBlob(
+            (out) => {
+              URL.revokeObjectURL(url);
+              resolve(out || blob);
+            },
+            "image/jpeg",
+            0.72
+          );
+        } catch (e) {
+          URL.revokeObjectURL(url);
+          resolve(blob);
+        }
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(blob);
+      };
+      img.src = url;
     });
   }
 
-  async function insertPhotoRow(ctx, row) {
-    const full = { ...row };
-    let { error } = await ctx.supabase.from("vehicle_entry_inspection_photos").insert(full);
-    if (error && /column|schema cache|photo_type/i.test(error.message || "")) {
-      const basic = {
-        inspection_id: row.inspection_id,
-        storage_path: row.storage_path,
-        file_name: row.file_name,
+  function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => {
+        const s = String(r.result || "");
+        const comma = s.indexOf(",");
+        resolve(comma >= 0 ? s.slice(comma + 1) : s);
       };
-      ({ error } = await ctx.supabase.from("vehicle_entry_inspection_photos").insert(basic));
+      r.onerror = () => reject(r.error || new Error("Falha ao ler a foto"));
+      r.readAsDataURL(blob);
+    });
+  }
+
+  async function uploadPhotoViaApi(ctx, payload) {
+    if (typeof ctx?.getAccessToken !== "function") return { ok: false, error: "Sessão em falta." };
+    const session = await ctx.getAccessToken();
+    if (!session) return { ok: false, error: "Sessão em falta." };
+    const res = await fetch("/api/vehicles/entry-inspection-photo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session}` },
+      body: JSON.stringify({ access_token: session, ...payload }),
+    });
+    let json = {};
+    try {
+      json = await res.json();
+    } catch (e) {
+      json = {};
     }
-    if (error) {
-      console.warn("vei insertPhotoRow", error.message || error);
-      return error;
+    if (!res.ok || !json?.ok) {
+      return { ok: false, error: json.error || "Não foi possível gravar a foto." };
     }
-    return null;
+    return { ok: true, storage_path: json.storage_path, url: json.url };
+  }
+
+  async function uploadOneStandardPhoto(ctx, inspectionId, vehicleId, slot, photo, meta) {
+    if (photo?.storage_path && !photo?.file && String(photo.preview || "").indexOf("data:") !== 0) {
+      return { ok: true, skipped: true };
+    }
+    const raw = await blobFromDraftPhoto(photo);
+    if (!raw) return { ok: false, error: `Sem arquivo para ${slot.label}` };
+    const compressed = (await compressPhotoBlob(raw)) || raw;
+    const dataBase64 = await blobToBase64(compressed);
+    const result = await uploadPhotoViaApi(ctx, {
+      inspection_id: inspectionId,
+      vehicle_id: vehicleId || "",
+      photo_type: slot.key,
+      photo_label: slot.label,
+      photo_category: slot.category,
+      file_name: `${slot.key}.jpg`,
+      content_type: "image/jpeg",
+      data_base64: dataBase64,
+      captured_at: photo.capturedAt || new Date().toISOString(),
+    });
+    if (result.ok && photo) {
+      photo.storage_path = result.storage_path;
+      if (result.url) photo.preview = result.url;
+      photo.file = null;
+    }
+    return result;
   }
 
   async function uploadAll(ctx, inspectionId, vehicleId, draft, meta) {
-    if (!ctx.supabase || !inspectionId) return;
     initDraftPhotos(draft);
-
-    const uid = ctx.effectiveUserId();
-    if (!uid) return;
-
-    const inspectorName = meta?.inspectorName || "Utilizador";
-    const inspectorUserId = meta?.inspectorUserId || uid;
-    const now = Date.now();
-
+    const errors = [];
+    let uploaded = 0;
     for (const slot of slotsForDraft(draft)) {
       const p = slotPhoto(draft, slot.key);
-      if (!p || !p.file) continue;
+      if (!p || (!p.file && !p.preview && !p.storage_path)) continue;
+      if (!p.file && p.storage_path && String(p.preview || "").indexOf("data:") !== 0) continue;
       try {
-        const safeName = `${slot.key}.jpg`;
-        const path = `${uid}/inspections/${inspectionId}/standard/${now}_${safeName}`;
-        const { error: upErr } = await uploadBlob(ctx, path, p.file);
-        if (upErr) continue;
-        await insertPhotoRow(ctx, {
-          inspection_id: inspectionId,
-          storage_path: path,
-          file_name: safeName,
-          photo_type: slot.key,
-          photo_category: slot.category,
-          photo_label: slot.label,
-          vehicle_id: vehicleId,
-          captured_by_user_id: inspectorUserId,
-          captured_by_name: inspectorName,
-          captured_at: p.capturedAt || new Date().toISOString(),
-        });
+        const result = await uploadOneStandardPhoto(ctx, inspectionId, vehicleId, slot, p, meta);
+        if (result.ok && !result.skipped) uploaded += 1;
+        else if (!result.ok) errors.push(result.error || slot.label);
       } catch (e) {
         console.warn("vei standard photo upload", slot.key, e);
+        errors.push(slot.label);
       }
     }
 
     for (let i = 0; i < (draft.extraDamagePhotos || []).length; i++) {
       const ex = draft.extraDamagePhotos[i];
-      if (!ex?.file) continue;
+      if (!ex || (!ex.file && String(ex.preview || "").indexOf("data:") !== 0)) continue;
       try {
-        const safeName = `avaria_extra_${i + 1}.jpg`;
-        const path = `${uid}/inspections/${inspectionId}/extra/${now}_${safeName}`;
-        const { error: upErr } = await uploadBlob(ctx, path, ex.file);
-        if (upErr) continue;
-        await insertPhotoRow(ctx, {
+        const raw = await blobFromDraftPhoto(ex);
+        if (!raw) {
+          errors.push(ex.label || `Avaria ${i + 1}`);
+          continue;
+        }
+        const compressed = (await compressPhotoBlob(raw)) || raw;
+        const dataBase64 = await blobToBase64(compressed);
+        const result = await uploadPhotoViaApi(ctx, {
           inspection_id: inspectionId,
-          storage_path: path,
-          file_name: safeName,
+          vehicle_id: vehicleId || "",
           photo_type: "avaria_extra",
-          photo_category: "AVARIAS",
           photo_label: ex.label || ex.area_label || ex.description || `Avaria adicional ${i + 1}`,
-          vehicle_id: vehicleId,
-          captured_by_user_id: inspectorUserId,
-          captured_by_name: inspectorName,
+          photo_category: "AVARIAS",
+          file_name: `avaria_extra_${i + 1}.jpg`,
+          content_type: "image/jpeg",
+          data_base64: dataBase64,
           captured_at: ex.capturedAt || new Date().toISOString(),
         });
+        if (result.ok) {
+          uploaded += 1;
+          ex.storage_path = result.storage_path;
+          if (result.url) ex.preview = result.url;
+          ex.file = null;
+        } else errors.push(result.error || `Avaria ${i + 1}`);
       } catch (e) {
         console.warn("vei extra damage photo upload", i, e);
+        errors.push(`Avaria ${i + 1}`);
       }
     }
+
+    return { uploaded, failed: errors.length, errors };
   }
 
   global.vehicleEntryInspectionPhotosMobile = {

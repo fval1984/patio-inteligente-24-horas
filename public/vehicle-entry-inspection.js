@@ -2087,7 +2087,7 @@
       }
       try {
         if (global.vehicleEntryInspectionPhotosMobile?.uploadAll) {
-          await global.vehicleEntryInspectionPhotosMobile.uploadAll(
+          const photoResult = await global.vehicleEntryInspectionPhotosMobile.uploadAll(
             ctx,
             json.inspection_id,
             _session.vehicle.id,
@@ -2097,10 +2097,23 @@
               inspectorUserId: ctx.effectiveUserId(),
             }
           );
+          if (photoResult && photoResult.failed) {
+            postWarn +=
+              `\n\nAviso: ${photoResult.failed} foto(s) do registro fotográfico não foram gravadas.` +
+              (photoResult.errors?.length ? `\n${photoResult.errors.slice(0, 5).join("\n")}` : "");
+          } else if (photoResult && photoResult.uploaded === 0) {
+            const taken = Object.keys(draft.standardPhotos || {}).filter((k) => {
+              const p = draft.standardPhotos[k];
+              return p && (p.file || (p.preview && String(p.preview).indexOf("data:") === 0));
+            }).length;
+            if (taken) {
+              postWarn += "\n\nAviso: as fotos tiradas agora não chegaram a ser gravadas. Abra a vistoria e envie de novo.";
+            }
+          }
         }
       } catch (mobilePhotoErr) {
         console.warn("vei mobile photos", mobilePhotoErr);
-        postWarn += "\n\nAviso: algumas fotos do registro mobile podem não ter sido enviadas.";
+        postWarn += "\n\nAviso: algumas fotos do registro fotográfico podem não ter sido enviadas.";
       }
       try {
         if (typeof ctx.loadVehicles === "function") await ctx.loadVehicles();

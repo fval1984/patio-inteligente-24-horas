@@ -396,6 +396,96 @@ export async function attachSignedPhotoUrls(
   }
 }
 
+export async function persistInspectionPhoto(
+  admin: SupabaseClient,
+  input: {
+    ownerUserId: string;
+    inspectorUserId: string;
+    inspectorName?: string;
+    inspectionId: string;
+    vehicleId: string;
+    photoType: string;
+    photoLabel?: string;
+    photoCategory?: string;
+    fileName?: string;
+    contentType?: string;
+    bytes: Uint8Array;
+    capturedAt?: string;
+  }
+): Promise<{ data: { storage_path: string; url: string } | null; error: string | null }> {
+  const inspectionId = String(input.inspectionId || "").trim();
+  const ownerUserId = String(input.ownerUserId || "").trim();
+  const photoType = String(input.photoType || "standard").trim() || "standard";
+  if (!inspectionId || !ownerUserId || !input.bytes?.length) {
+    return { data: null, error: "Foto inválida." };
+  }
+
+  const { data: insp, error: inspErr } = await admin
+    .from("vehicle_entry_inspections")
+    .select("id, user_id, vehicle_id")
+    .eq("id", inspectionId)
+    .maybeSingle();
+  if (inspErr || !insp) {
+    return { data: null, error: inspErr?.message || "Vistoria não encontrada." };
+  }
+  if (String(insp.user_id || "") !== ownerUserId) {
+    return { data: null, error: "Vistoria não encontrada." };
+  }
+  if (input.vehicleId && String(insp.vehicle_id || "") !== String(input.vehicleId)) {
+    return { data: null, error: "Veículo não corresponde à vistoria." };
+  }
+
+  const safeName = String(input.fileName || `${photoType}.jpg`)
+    .replace(/[^\w.\-]+/g, "_")
+    .slice(0, 80);
+  const folder = /^avaria/i.test(photoType) ? "avaria" : "standard";
+  const path = `${ownerUserId}/inspections/${inspectionId}/${folder}/${Date.now()}_${safeName}`;
+  const contentType = input.contentType || "image/jpeg";
+
+  const { error: upErr } = await admin.storage.from(PHOTO_STORAGE_BUCKET).upload(path, input.bytes, {
+    upsert: true,
+    contentType,
+  });
+  if (upErr) {
+    return { data: null, error: upErr.message || "Erro ao enviar a foto." };
+  }
+
+  if (!/^avaria_extra/i.test(photoType)) {
+    await admin
+      .from("vehicle_entry_inspection_photos")
+      .delete()
+      .eq("inspection_id", inspectionId)
+      .eq("photo_type", photoType);
+  }
+
+  const fullRow = {
+    inspection_id: inspectionId,
+    storage_path: path,
+    file_name: safeName,
+    photo_type: photoType,
+    photo_category: input.photoCategory || "",
+    photo_label: input.photoLabel || "",
+    vehicle_id: input.vehicleId || insp.vehicle_id || null,
+    captured_by_user_id: input.inspectorUserId || null,
+    captured_by_name: input.inspectorName || null,
+    captured_at: input.capturedAt || new Date().toISOString(),
+  };
+  let { error: insErr } = await admin.from("vehicle_entry_inspection_photos").insert(fullRow);
+  if (insErr && /column|schema cache|photo_type|vehicle_id|captured/i.test(insErr.message || "")) {
+    const basic = { inspection_id: inspectionId, storage_path: path, file_name: safeName };
+    ({ error: insErr } = await admin.from("vehicle_entry_inspection_photos").insert(basic));
+  }
+  if (insErr) {
+    return { data: null, error: insErr.message || "Erro ao gravar a foto da vistoria." };
+  }
+
+  const signed = await attachSignedPhotoUrls(admin, [{ storage_path: path }]);
+  return {
+    data: { storage_path: path, url: String(signed[0]?.url || "") },
+    error: null,
+  };
+}
+
 export function validateInspectionItems(
   items: InspectionItemPayload[],
   variant?: string
