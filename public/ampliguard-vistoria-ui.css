@@ -336,26 +336,28 @@
 .vei-checklist-view .vei-doc-photo-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px 14px;
 }
 
 .vei-checklist-view .vei-doc-photo-frame {
   width: 100%;
-  aspect-ratio: 1;
-  max-width: 140px;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  max-width: none;
   margin: 0 auto;
 }
 
 .vei-checklist-view .vei-doc-photo-frame img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   display: block;
 }
 
 @media (min-width: 640px) {
   .vei-checklist-view .vei-doc-photo-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

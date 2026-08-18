@@ -123,7 +123,6 @@ function testPageCuts() {
     { top: 950, bottom: 1180 },
     { top: 950, bottom: 1180 },
     { top: 950, bottom: 1180 },
-    { top: 950, bottom: 1180 },
   ];
   const photoCuts = computeSafePageCuts(photoRow, 1000, 1800, 24);
   assert.ok(photoCuts.includes(950) || photoCuts[1] <= 950, "fotos da mesma linha devem ir juntas para a página seguinte");
@@ -152,6 +151,21 @@ function testClassificationMerge() {
   applyStoredClassifications(draft2, [], '{"__item_classifications":{"interno_painel":"INEXISTENTE"}}');
   assert.strictEqual(draft2.classifications.interno_painel, "INEXISTENTE");
 
+  const truncated = { classifications: {} };
+  const backupAll = {};
+  const firstPage = [];
+  for (let i = 0; i < 93; i++) {
+    const key = `item_${i}`;
+    truncated.classifications[key] = null;
+    backupAll[key] = i % 2 ? "REGULAR" : "BOM";
+    if (i < 50) firstPage.push({ item_key: key, classification: backupAll[key] });
+  }
+  applyStoredClassifications(truncated, firstPage, { __item_classifications: backupAll });
+  for (let i = 0; i < 93; i++) {
+    const key = `item_${i}`;
+    assert.strictEqual(truncated.classifications[key], backupAll[key], `item ${key} deve reaparecer`);
+  }
+
   const { inferVariantFromDetail } = insp.vehicleEntryInspection;
   assert.strictEqual(
     inferVariantFromDetail({ inspection_variant: null }, [{ item_key: "moto_farol", classification: "BOM" }], {}),
@@ -165,6 +179,8 @@ function testPersistBackupHelpers() {
   assert.match(src, /persistInspectionItems/);
   assert.match(src, /withClassificationBackup/);
   assert.match(src, /onConflict: "inspection_id,item_key"/);
+  assert.match(src, /INSPECTION_ROW_PAGE = 50/);
+  assert.match(src, /fetchAllRowsByInspectionId/);
   const sql = fs.readFileSync(path.join(root, "supabase/vehicle_entry_inspection_items_persist.sql"), "utf8");
   assert.match(sql, /UNIQUE \(inspection_id, item_key\)/);
 }
@@ -172,13 +188,21 @@ function testPersistBackupHelpers() {
 function testPrintCss() {
   const src = fs.readFileSync(path.join(root, "public/vehicle-entry-inspection-document.js"), "utf8");
   assert.match(src, /size: A4 portrait/);
-  assert.match(src, /grid-template-columns: repeat\(4/);
+  assert.match(src, /grid-template-columns: repeat\(\$\{PHOTO_GRID_COLUMNS\}/);
+  assert.match(src, /PHOTO_GRID_COLUMNS = 3/);
+  assert.match(src, /aspect-ratio: 4 \/ 3/);
   assert.match(src, /object-fit: contain/);
   assert.doesNotMatch(src, /width: calc\(25% - 8px\)/);
   assert.match(src, /margin: 12mm/);
   assert.match(src, /computeSafePageCuts/);
   assert.match(src, /width:210mm;height:297mm/);
   assert.doesNotMatch(src, /return "Foto"/);
+  const uiCss = fs.readFileSync(path.join(root, "public/ampliguard-vistoria-ui.css"), "utf8");
+  assert.match(uiCss, /aspect-ratio: 4 \/ 3/);
+  assert.doesNotMatch(uiCss, /max-width: 140px/);
+  const client = fs.readFileSync(path.join(root, "public/vehicle-entry-inspection.js"), "utf8");
+  assert.match(client, /const page = 50/);
+  assert.match(client, /mergeInspectionRows/);
 }
 
 function testTwoInspectionsIndependent() {
@@ -250,7 +274,7 @@ function testManyPhotosPagination() {
     const label = resolveStandardPhotoLabel(key, "Foto", { file_name: `${key}.jpg` });
     assert.notStrictEqual(label.toLowerCase(), "foto", key);
     atoms.push({ top: y, bottom: y + 220, key, label });
-    if (atoms.length % 4 === 0) y += 230;
+    if (atoms.length % 3 === 0) y += 230;
   }
   const cuts = computeSafePageCuts(atoms, 1000, y + 50, 24);
   assert.ok(cuts.length >= 2, "várias fotos devem gerar várias páginas");

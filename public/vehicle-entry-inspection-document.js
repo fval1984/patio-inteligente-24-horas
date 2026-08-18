@@ -6,7 +6,7 @@
   "use strict";
 
   const LOGO_SRC = "/assets/ampliguard-header-trim.png?v=12";
-  const PHOTO_SIZE = "4cm";
+  const PHOTO_GRID_COLUMNS = 3;
   const A4_WIDTH_PX = 794;
   const A4_HEIGHT_PX = 1123;
   const PRINT_MARGIN_PX = 45;
@@ -287,10 +287,10 @@
       .vei-doc-diagram-stack img.vei-doc-diagram-img { width: 100%; height: auto; display: block; }
       .vei-doc-diagram-stack svg.vei-doc-diagram-markers { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
       .vei-doc-diagram svg { max-width: 100%; height: auto; }
-      .vei-doc-photo-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 10px; margin-top: 8px; }
+      .vei-doc-photo-grid { display: grid; grid-template-columns: repeat(${PHOTO_GRID_COLUMNS}, minmax(0, 1fr)); gap: 10px 12px; margin-top: 8px; }
       .vei-doc-photo-cell { break-inside: avoid; page-break-inside: avoid; text-align: center; min-width: 0; }
       .vei-doc-photo-label { margin: 0 0 4px; font-size: 8pt; font-weight: 700; line-height: 1.2; min-height: 2.4em; display: flex; align-items: flex-end; justify-content: center; break-after: avoid; page-break-after: avoid; }
-      .vei-doc-photo-frame { width: ${PHOTO_SIZE}; height: ${PHOTO_SIZE}; max-width: 100%; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; }
+      .vei-doc-photo-frame { width: 100%; height: auto; aspect-ratio: 4 / 3; max-width: none; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; }
       .vei-doc-photo-frame img { width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; object-position: center; display: block; }
       .vei-doc-photo-empty { font-size: 8pt; color: #94a3b8; padding: 8px; }
       .vei-doc-withdrawal { margin-top: 20px; padding-top: 14px; border-top: 2px solid #1e293b; break-inside: avoid-page; page-break-inside: avoid; }
@@ -343,9 +343,9 @@
       }
       ${documentCssRules()}
       .vei-doc { width: 100%; max-width: 100%; overflow: visible !important; }
-      .vei-doc-photo-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .vei-doc-photo-grid { display: grid; grid-template-columns: repeat(${PHOTO_GRID_COLUMNS}, minmax(0, 1fr)); }
       .vei-doc-photo-cell { break-inside: avoid; page-break-inside: avoid; }
-      .vei-doc-photo-frame { width: ${PHOTO_SIZE}; height: ${PHOTO_SIZE}; max-width: 100%; }
+      .vei-doc-photo-frame { width: 100%; height: auto; aspect-ratio: 4 / 3; max-width: none; }
       .vei-doc-photo-frame img { width: 100%; height: 100%; object-fit: contain; object-position: center; }
       .vei-doc-section > h3, .vei-doc-section > h4 { break-after: avoid; page-break-after: avoid; }
       .vei-doc-table tr, .vei-doc-damage, .vei-doc-header, .vei-doc-withdrawal { break-inside: avoid; page-break-inside: avoid; }

@@ -134,7 +134,7 @@
       }
       .vei-mobile-photos .vei-photo-preview {
         width: 100%;
-        max-width: 360px;
+        max-width: none;
         margin: 0 auto 14px;
         aspect-ratio: 4/3;
         border-radius: 12px;
@@ -148,7 +148,8 @@
       .vei-mobile-photos .vei-photo-preview img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
+        object-position: center;
       }
       .vei-mobile-photos .vei-photo-preview-empty {
         color: var(--muted);
@@ -484,7 +485,7 @@
     guard.id = "veiMobilePhotoStylesDesktop";
     guard.textContent =
       ".vei-mobile-photos .vei-photo-btn { cursor: pointer; }" +
-      "@media (min-width:769px){.vei-mobile-photos .vei-photo-preview{max-width:480px}}";
+      "@media (min-width:769px){.vei-mobile-photos .vei-photo-preview{max-width:640px}}";
     document.head.appendChild(guard);
   }
 })(typeof window !== "undefined" ? window : globalThis);

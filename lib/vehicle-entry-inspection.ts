@@ -168,29 +168,25 @@ export function classificationsFromBackup(formExtras: unknown): Record<string, I
   return out;
 }
 
-export async function persistInspectionItems(
+const INSPECTION_ROW_PAGE = 50;
+
+async function persistInspectionItemChunk(
   admin: SupabaseClient,
   inspectionId: string,
-  items: InspectionItemPayload[]
+  chunk: Array<{
+    inspection_id: string;
+    category: string;
+    item_key: string;
+    item_label: string;
+    classification: string;
+  }>
 ): Promise<string | null> {
-  const payload = (items || [])
-    .map((it) => ({
-      inspection_id: inspectionId,
-      category: String(it.category || ""),
-      item_key: String(it.item_key || "").trim(),
-      item_label: String(it.item_label || ""),
-      classification: normalizeInspectionClassification(it.classification) || it.classification,
-    }))
-    .filter((it) => it.item_key && VALID_CLASSIFICATIONS.has(String(it.classification)));
-
-  if (!payload.length) return "Checklist vazio.";
-
   const { error: upsertErr } = await admin
     .from("vehicle_entry_inspection_items")
-    .upsert(payload, { onConflict: "inspection_id,item_key" });
+    .upsert(chunk, { onConflict: "inspection_id,item_key" });
   if (!upsertErr) return null;
 
-  const { error: insertErr } = await admin.from("vehicle_entry_inspection_items").insert(payload);
+  const { error: insertErr } = await admin.from("vehicle_entry_inspection_items").insert(chunk);
   if (!insertErr) return null;
 
   const duplicate = /duplicate|unique|conflict/i.test(`${insertErr.message || ""} ${upsertErr.message || ""}`);
@@ -198,7 +194,7 @@ export async function persistInspectionItems(
     return insertErr.message || upsertErr.message || "Erro ao gravar itens da vistoria.";
   }
 
-  for (const it of payload) {
+  for (const it of chunk) {
     const { data: existing, error: findErr } = await admin
       .from("vehicle_entry_inspection_items")
       .select("id")
@@ -224,6 +220,66 @@ export async function persistInspectionItems(
     }
   }
   return null;
+}
+
+export async function persistInspectionItems(
+  admin: SupabaseClient,
+  inspectionId: string,
+  items: InspectionItemPayload[]
+): Promise<string | null> {
+  const payload = (items || [])
+    .map((it) => ({
+      inspection_id: inspectionId,
+      category: String(it.category || ""),
+      item_key: String(it.item_key || "").trim(),
+      item_label: String(it.item_label || ""),
+      classification: normalizeInspectionClassification(it.classification) || it.classification,
+    }))
+    .filter((it) => it.item_key && VALID_CLASSIFICATIONS.has(String(it.classification)));
+
+  if (!payload.length) return "Checklist vazio.";
+
+  for (let i = 0; i < payload.length; i += INSPECTION_ROW_PAGE) {
+    const chunkErr = await persistInspectionItemChunk(
+      admin,
+      inspectionId,
+      payload.slice(i, i + INSPECTION_ROW_PAGE)
+    );
+    if (chunkErr) return chunkErr;
+  }
+  return null;
+}
+
+async function fetchAllRowsByInspectionId(
+  admin: SupabaseClient,
+  table: string,
+  inspectionId: string
+): Promise<Record<string, unknown>[]> {
+  const acc: Record<string, unknown>[] = [];
+  for (let from = 0; from < 20000; from += INSPECTION_ROW_PAGE) {
+    const { data, error } = await admin
+      .from(table)
+      .select("*")
+      .eq("inspection_id", inspectionId)
+      .order("id", { ascending: true })
+      .range(from, from + INSPECTION_ROW_PAGE - 1);
+    if (error) {
+      const retry = await admin
+        .from(table)
+        .select("*")
+        .eq("inspection_id", inspectionId)
+        .range(from, from + INSPECTION_ROW_PAGE - 1);
+      if (retry.error) break;
+      const rows = (retry.data || []) as Record<string, unknown>[];
+      acc.push(...rows);
+      if (rows.length < INSPECTION_ROW_PAGE) break;
+      continue;
+    }
+    const rows = (data || []) as Record<string, unknown>[];
+    acc.push(...rows);
+    if (rows.length < INSPECTION_ROW_PAGE) break;
+  }
+  return acc;
 }
 
 export function validateInspectionItems(
@@ -295,13 +351,11 @@ export async function completeVehicleEntryInspection(
   }
 
   const inspectionId = String(row.inspection_id);
-  const persistErr = await persistInspectionItems(admin, inspectionId, input.items);
-  if (persistErr) {
-    await admin
-      .from("vehicle_entry_inspections")
-      .update({ form_extras: formExtras, updated_at: new Date().toISOString() })
-      .eq("id", inspectionId);
-  }
+  await persistInspectionItems(admin, inspectionId, input.items);
+  await admin
+    .from("vehicle_entry_inspections")
+    .update({ form_extras: formExtras, updated_at: new Date().toISOString() })
+    .eq("id", inspectionId);
 
   return {
     data: {
@@ -523,10 +577,10 @@ export async function loadEntryInspectionDetail(
   }
 
   const inspectionId = String(inspection.id);
-  const [{ data: items }, { data: damages }, { data: photos }] = await Promise.all([
-    admin.from("vehicle_entry_inspection_items").select("*").eq("inspection_id", inspectionId).limit(2000),
-    admin.from("vehicle_entry_inspection_damages").select("*").eq("inspection_id", inspectionId).limit(2000),
-    admin.from("vehicle_entry_inspection_photos").select("*").eq("inspection_id", inspectionId).limit(2000),
+  const [items, damages, photos] = await Promise.all([
+    fetchAllRowsByInspectionId(admin, "vehicle_entry_inspection_items", inspectionId),
+    fetchAllRowsByInspectionId(admin, "vehicle_entry_inspection_damages", inspectionId),
+    fetchAllRowsByInspectionId(admin, "vehicle_entry_inspection_photos", inspectionId),
   ]);
 
   const extras = parseInspectionFormExtras(inspection.form_extras);

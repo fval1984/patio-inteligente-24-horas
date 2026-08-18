@@ -1493,31 +1493,46 @@
     return "LEVE";
   }
 
+  function applyClassificationToDraft(draft, byLabel, key, label, cls, onlyIfEmpty) {
+    const value = normalizeClassificationValue(cls);
+    if (!value) return;
+    const itemKey = String(key || "").trim();
+    const labelKey = byLabel.get(String(label || "").trim().toLowerCase());
+    const target =
+      itemKey && Object.prototype.hasOwnProperty.call(draft.classifications, itemKey)
+        ? itemKey
+        : labelKey || itemKey;
+    if (!target) return;
+    if (onlyIfEmpty && draft.classifications[target]) return;
+    draft.classifications[target] = value;
+  }
+
   function applyStoredClassifications(draft, items, formExtras) {
     const extras = parseFormExtras(formExtras);
     const backup = extras.__item_classifications;
-    if (backup && typeof backup === "object") {
-      Object.keys(backup).forEach((k) => {
-        const cls = normalizeClassificationValue(backup[k]);
-        if (k && cls) draft.classifications[k] = cls;
-      });
-    }
     const byLabel = new Map();
     draftCfg(draft).checklist.forEach((it) => {
       if (it.kind === "classify") byLabel.set(String(it.label || "").trim().toLowerCase(), it.key);
     });
+    const itemsByKey = new Map();
     (items || []).forEach((it) => {
-      const cls = normalizeClassificationValue(it?.classification);
-      if (!cls) return;
-      let key = String(it?.item_key || it?.key || "").trim();
-      if (key && Object.prototype.hasOwnProperty.call(draft.classifications, key)) {
-        draft.classifications[key] = cls;
-        return;
-      }
-      const labelKey = byLabel.get(String(it?.item_label || it?.label || "").trim().toLowerCase());
-      if (labelKey) draft.classifications[labelKey] = cls;
-      else if (key) draft.classifications[key] = cls;
+      const key = String(it?.item_key || it?.key || "").trim();
+      if (key) itemsByKey.set(key, it);
+      applyClassificationToDraft(draft, byLabel, key, it?.item_label || it?.label, it?.classification, false);
     });
+    if (backup && typeof backup === "object") {
+      Object.keys(backup).forEach((k) => {
+        const row = itemsByKey.get(k);
+        applyClassificationToDraft(
+          draft,
+          byLabel,
+          k,
+          row?.item_label || row?.label,
+          backup[k],
+          true
+        );
+      });
+    }
   }
 
   function detailToDraft(detail) {
@@ -1606,14 +1621,42 @@
     return _schemaReady;
   }
 
+  function mergeInspectionRows(primary, extra, keyField) {
+    const out = [];
+    const seenId = new Set();
+    const seenKey = new Set();
+    function add(row) {
+      if (!row || typeof row !== "object") return;
+      const id = row.id != null ? String(row.id) : "";
+      const key = row[keyField] != null ? String(row[keyField]) : "";
+      if (id && seenId.has(id)) return;
+      if (!id && key && seenKey.has(key)) return;
+      if (id) seenId.add(id);
+      if (key) seenKey.add(key);
+      out.push(row);
+    }
+    (primary || []).forEach(add);
+    (extra || []).forEach(add);
+    return out;
+  }
+
   async function fetchRowsByInspection(ctx, table, inspectionId) {
     const acc = [];
-    const page = 1000;
-    for (let from = 0; from < 8000; from += page) {
-      let q = ctx.supabase.from(table).select("*").eq("inspection_id", inspectionId).range(from, from + page - 1);
-      let { data, error } = await q;
+    const page = 50;
+    if (!ctx?.supabase || !inspectionId) return acc;
+    for (let from = 0; from < 20000; from += page) {
+      let { data, error } = await ctx.supabase
+        .from(table)
+        .select("*")
+        .eq("inspection_id", inspectionId)
+        .order("id", { ascending: true })
+        .range(from, from + page - 1);
       if (error) {
-        const retry = await ctx.supabase.from(table).select("*").eq("inspection_id", inspectionId).limit(page);
+        const retry = await ctx.supabase
+          .from(table)
+          .select("*")
+          .eq("inspection_id", inspectionId)
+          .range(from, from + page - 1);
         data = retry.data;
         error = retry.error;
       }
@@ -1663,18 +1706,12 @@
     if (!inspection) return null;
     const id = inspection.id;
 
-    let items = fromApi?.items;
-    let damages = fromApi?.damages;
-    let photos = fromApi?.photos;
-    if (!Array.isArray(items) || !items.length) {
-      items = await fetchRowsByInspection(ctx, "vehicle_entry_inspection_items", id);
-    }
-    if (!Array.isArray(damages) || !damages.length) {
-      damages = await fetchRowsByInspection(ctx, "vehicle_entry_inspection_damages", id);
-    }
-    if (!Array.isArray(photos) || !photos.length) {
-      photos = await fetchRowsByInspection(ctx, "vehicle_entry_inspection_photos", id);
-    }
+    const clientItems = await fetchRowsByInspection(ctx, "vehicle_entry_inspection_items", id);
+    const clientDamages = await fetchRowsByInspection(ctx, "vehicle_entry_inspection_damages", id);
+    const clientPhotos = await fetchRowsByInspection(ctx, "vehicle_entry_inspection_photos", id);
+    const items = mergeInspectionRows(fromApi?.items, clientItems, "item_key");
+    const damages = mergeInspectionRows(fromApi?.damages, clientDamages, "item_key");
+    const photos = mergeInspectionRows(fromApi?.photos, clientPhotos, "storage_path");
 
     const photoUrls = [];
     for (const p of photos || []) {
