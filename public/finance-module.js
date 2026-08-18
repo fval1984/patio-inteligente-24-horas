@@ -29,6 +29,10 @@
   let financeFilterReceberRppId = "";
   let finReceberQuick = "todos";
   let finPagarQuick = "todos";
+  let finDashReceberQuick = "todos";
+  let finDashPagarQuick = "todos";
+  let finLancamentosFilter = "todos";
+  let finLancamentosLimit = 40;
   let finReceberHorizonDays = 0;
   let financeFilterCaixaDataDe = "";
   let financeFilterCaixaDataAte = "";
@@ -1737,6 +1741,10 @@
       return due > today && due <= limit;
     }
     if (finReceberQuick === "recebidos") return String(r.status || "").toUpperCase() === "PAGO";
+    if (finReceberQuick === "recebidos_hoje") {
+      if (String(r.status || "").toUpperCase() !== "PAGO") return false;
+      return financeReceivableCashCompetenciaYmd(r) === today;
+    }
     return true;
   }
 
@@ -1831,9 +1839,14 @@
       const total = g.items.reduce((s, p) => s + Number(p.valor || 0), 0);
       const badge = financeGroupBadge(g.items, "pagar");
       const unpaid = g.items.filter((p) => financePayableDisplayStatus(p) !== "Pago");
+      const cat = String(g.items[0]?.payable_category || "").toUpperCase();
+      const countLabel =
+        cat === "GUINCHO" || /remo/i.test(String(g.items[0]?.descricao || ""))
+          ? `${g.items.length} remoção${g.items.length === 1 ? "" : "ões"}`
+          : `${g.items.length} lançamento${g.items.length === 1 ? "" : "s"}`;
       return {
         title: g.title,
-        subtitle: `${g.items.length} lançamento${g.items.length === 1 ? "" : "s"}`,
+        subtitle: countLabel,
         dueLabel: `Vencimento: ${dueDates[0] ? formatDate(dueDates[0]) : "—"}`,
         amountLabel: formatCurrency(total),
         status: badge.status,
@@ -2346,6 +2359,7 @@
     const ctx = { formatCurrency, escapeHtml, filters: financeDashFiltersFromDom() };
     if (typeof window.financeDashboardRender === "function") {
       window.financeDashboardRender(dashData, ctx);
+      financeFillDashboardPreviews();
       return;
     }
     const el = document.getElementById("finDashCards");
@@ -2397,8 +2411,12 @@
     if (!body) return;
     const vmap = financeVehicleById();
     let list = financeContasReceberList();
-    if (finReceberQuick === "recebidos") {
+    if (finReceberQuick === "recebidos" || finReceberQuick === "recebidos_hoje") {
       list = financeReceivablePaidList();
+      if (finReceberQuick === "recebidos_hoje") {
+        const today = financeTodayYmd();
+        list = list.filter((r) => financeReceivableCashCompetenciaYmd(r) === today);
+      }
     } else {
       list = list.filter((r) => financeReceberMatchesQuick(r));
     }
@@ -2411,13 +2429,16 @@
       !!financeFilterTipo ||
       !!(financeFilterReceberDataDe || financeFilterReceberDataAte);
     if (totalEl) totalEl.textContent = formatCurrency(list.reduce((s, r) => s + Number(r.valor || 0), 0));
-    financeRenderQuickChips("finReceberQuickFilters", finReceberQuick === "vencendo_7" ? "a_vencer" : finReceberQuick, [
+    const recChips = [
       ["todos", "Todos"],
       ["hoje", "Hoje"],
       ["vencidos", "Vencidos"],
       ["a_vencer", "A vencer"],
       ["recebidos", "Recebidos"],
-    ]);
+    ];
+    if (finReceberQuick === "vencendo_7") recChips.splice(4, 0, ["vencendo_7", "Vencendo em 7 dias"]);
+    if (finReceberQuick === "recebidos_hoje") recChips.push(["recebidos_hoje", "Recebidos hoje"]);
+    financeRenderQuickChips("finReceberQuickFilters", finReceberQuick, recChips);
     const cardsHostEarly = document.getElementById("finReceberCards");
     if (cardsHostEarly && globalThis.financeActionUi?.renderLaunchCards) {
       globalThis.financeActionUi.renderLaunchCards(
@@ -4394,7 +4415,18 @@
     window.print();
   }
 
-  const FINANCE_SUBVIEWS = ["dashboard", "em_patio", "aguardando", "receber", "pagar", "caixa", "cadastros", "financeiras"];
+  const FINANCE_SUBVIEWS = [
+    "dashboard",
+    "em_patio",
+    "aguardando",
+    "receber",
+    "pagar",
+    "caixa",
+    "cadastros",
+    "financeiras",
+    "lancamentos",
+    "relatorios",
+  ];
 
   const FIN_CADASTRO_TIPO_LABELS = {
     PRESTADOR: "Prestador de serviço",
@@ -4714,6 +4746,169 @@
     });
   }
 
+  function financeStatusKindFromLabel(st) {
+    const s = String(st || "");
+    if (s === "Pago" || s === "Recebido") return "ok";
+    if (s === "Vencido" || s === "Atrasado") return "late";
+    if (s === "A vencer" || s === "Pendente" || s === "Parcial") return "soon";
+    return "open";
+  }
+
+  function financeCashForConta(id) {
+    return (state.cash || []).filter((m) => String(m.conta_id) === String(id));
+  }
+
+  function financeHistoryHtml(records, kind) {
+    const fmtDt = (v) => (typeof formatDateTime === "function" ? formatDateTime(v) : String(v || ""));
+    const lines = [];
+    (records || []).forEach((rec) => {
+      if (rec.created_at) lines.push(`Criado em ${fmtDt(rec.created_at)}${rec.created_by || rec.user_id ? ` · ${rec.created_by || rec.user_id}` : ""}`);
+      if (rec.updated_at && rec.updated_at !== rec.created_at) {
+        lines.push(`Atualizado em ${fmtDt(rec.updated_at)}`);
+      }
+      financeCashForConta(rec.id).forEach((m) => {
+        const tipo = financeCashIsEntrada(m) ? "Recebimento" : "Pagamento";
+        const who = m.usuario_nome || m.user_id || m.created_by || "";
+        lines.push(
+          `${tipo} ${formatCurrency(financeCashMovValor(m))} em ${formatDate(m.data_movimento || m.created_at) || "—"}${who ? ` · ${who}` : ""}${m.forma_pagamento ? ` · ${m.forma_pagamento}` : ""}`
+        );
+      });
+      if (kind === "pagar" && rec.data_pagamento) lines.push(`Pago em ${formatDate(rec.data_pagamento)}`);
+    });
+    if (!lines.length) return `<p class="notice">Sem histórico extra neste lançamento.</p>`;
+    return `<ul class="fin-act-history">${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>`;
+  }
+
+  function financeVehicleLinkHtml(v) {
+    if (!v?.id) return escapeHtml(v?.placa || "—");
+    return `<button type="button" class="fin-act-vehicle-link" data-fin-open-vehicle="${escapeHtml(String(v.id))}">${escapeHtml(v.placa || "Veículo")}</button>`;
+  }
+
+  function financeOpenVehicle(id) {
+    if (!id) return;
+    if (typeof window.openVehicleFromFinance === "function") {
+      window.openVehicleFromFinance(id);
+      return;
+    }
+    const v = (state.vehicles || []).find((x) => String(x.id) === String(id));
+    if (v && typeof window.openFicha === "function") window.openFicha(v);
+  }
+
+  function financeDashPeriodFilters() {
+    const f = financeDashFiltersFromDom();
+    return {
+      period: f.period || "month",
+      financeiraId: f.financeiraId || "",
+      parceiroId: f.partnerId || "",
+      status: f.status || "",
+      search: (document.getElementById("finGlobalSearch")?.value || f.search || "").trim(),
+      customFrom: document.getElementById("finDashCustomFrom")?.value || "",
+      customTo: document.getElementById("finDashCustomTo")?.value || "",
+    };
+  }
+
+  function financeCurrentMetrics() {
+    const svc = window.financialDashboardService;
+    if (!svc?.getMetricsFromSnapshot) return null;
+    return svc.getMetricsFromSnapshot(
+      {
+        receivables: state.receivables || [],
+        cash: state.cash || [],
+        vehicles: state.vehicles || [],
+        partners: state.partners || [],
+      },
+      financeDashPeriodFilters()
+    );
+  }
+
+  function financeReceberListForQuick(quick) {
+    const prev = finReceberQuick;
+    finReceberQuick = quick || "todos";
+    let list;
+    try {
+      if (finReceberQuick === "recebidos" || finReceberQuick === "recebidos_hoje") {
+        list = financeReceivablePaidList();
+        if (finReceberQuick === "recebidos_hoje") {
+          const today = financeTodayYmd();
+          list = list.filter((r) => financeReceivableCashCompetenciaYmd(r) === today);
+        }
+      } else {
+        list = financeContasReceberList().filter((r) => financeReceberMatchesQuick(r));
+      }
+    } finally {
+      finReceberQuick = prev;
+    }
+    return list;
+  }
+
+  function financePagarListForQuick(quick) {
+    const prev = finPagarQuick;
+    finPagarQuick = quick || "todos";
+    let list;
+    try {
+      list = financeContasPagarList().filter((p) => financePagarMatchesQuick(p));
+    } finally {
+      finPagarQuick = prev;
+    }
+    return list;
+  }
+
+  function financeFillDashboardPreviews() {
+    const ui = globalThis.financeActionUi;
+    if (!ui?.renderLaunchCards) return;
+    financeRenderQuickChips("finDashReceberChips", finDashReceberQuick, [
+      ["todos", "Todos"],
+      ["hoje", "Hoje"],
+      ["vencidos", "Vencidos"],
+      ["a_vencer", "A vencer"],
+      ["recebidos", "Recebidos"],
+    ]);
+    financeRenderQuickChips("finDashPagarChips", finDashPagarQuick, [
+      ["todos", "Todos"],
+      ["hoje", "Hoje"],
+      ["vencidos", "Vencidos"],
+      ["a_vencer", "A vencer"],
+      ["pagos", "Pagos"],
+    ]);
+    const recHost = document.getElementById("finDashReceberPreview");
+    if (recHost) {
+      ui.renderLaunchCards(
+        recHost,
+        financeBuildReceberCards(financeReceberListForQuick(finDashReceberQuick)).slice(0, 6),
+        "Nenhuma conta a receber com este filtro.",
+        "receber"
+      );
+    }
+    const payHost = document.getElementById("finDashPagarPreview");
+    if (payHost) {
+      ui.renderLaunchCards(
+        payHost,
+        financeBuildPagarCards(financePagarListForQuick(finDashPagarQuick)).slice(0, 6),
+        "Nenhuma conta a pagar com este filtro.",
+        "pagar"
+      );
+    }
+    const finHost = document.getElementById("finDashFinanceirasPreview");
+    if (finHost) financeRenderFinanceirasTableInto(finHost);
+  }
+
+  function financeRenderFinanceirasTableInto(host) {
+    if (!host) return;
+    const ui = globalThis.financeActionUi;
+    const m = financeCurrentMetrics();
+    if (!m || !ui?.renderFinanceirasTable) {
+      host.innerHTML = `<p class="fin-act-empty">Não foi possível montar o resumo das financeiras.</p>`;
+      return;
+    }
+    const rows = (m.financeirasResumo || []).map((r) => ({
+      ...r,
+      aReceberLabel: formatCurrency(r.aReceber),
+      recebidoLabel: formatCurrency(r.recebido),
+      emAbertoLabel: formatCurrency(r.emAberto),
+    }));
+    ui.renderFinanceirasTable(host, rows, "Nenhuma financeira com veículos ou títulos.");
+  }
+
   function financeOpenLancamentoDetalhe(kind, ids) {
     const ui = globalThis.financeActionUi;
     if (!ui?.openDetailModal) return;
@@ -4724,12 +4919,15 @@
     const vmap = financeVehicleById();
     const rows = [];
     const lines = [];
+    const recs = [];
     let total = 0;
     let title = "Detalhes";
+    const uniqueVehicles = new Set();
     idList.forEach((id) => {
       if (kind === "pagar") {
         const p = (state.payables || []).find((x) => String(x.id) === String(id));
         if (!p) return;
+        recs.push(p);
         const fields = financePayableTypedFields(p);
         title = fields.fornecedor || "Conta a pagar";
         total += Number(p.valor || 0);
@@ -4740,81 +4938,80 @@
       } else {
         const r = (state.receivables || []).find((x) => String(x.id) === String(id));
         if (!r) return;
+        recs.push(r);
         const v = vmap.get(r.vehicle_id);
+        if (r.vehicle_id) uniqueVehicles.add(String(r.vehicle_id));
         title = financeInstituicaoNome(v) || financeReceberRppNome(r, v) || "Conta a receber";
         total += Number(r.valor || 0);
         const due = financeContaDueYmd(r, "receivable");
         const hist = financeReceivableHasCaixa(r.id) ? "Com caixa" : r.status === "PAGO" ? "Recebido" : "Em aberto";
+        const plateCell = v?.id
+          ? financeVehicleLinkHtml(v)
+          : escapeHtml(v?.placa || financeReceivableDescricaoCellText(r, v) || "—");
         lines.push(
-          `<tr><td>${escapeHtml(v?.placa || financeReceivableDescricaoCellText(r, v) || "—")}</td><td>${escapeHtml(v?.data_entrada ? formatDate(v.data_entrada) : "—")}</td><td>${escapeHtml(v?.data_saida ? formatDate(v.data_saida) : "—")}</td><td>${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td><td>${escapeHtml(due ? formatDate(due) : "—")}</td><td>${escapeHtml(financeReceivableDisplayStatus(r))} · ${escapeHtml(hist)}</td></tr>`
+          `<tr><td>${plateCell}</td><td>${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</td><td>${escapeHtml(v?.data_entrada ? formatDate(v.data_entrada) : "—")}</td><td>${escapeHtml(v?.data_saida ? formatDate(v.data_saida) : "—")}</td><td>${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td><td>${escapeHtml(due ? formatDate(due) : "—")}</td><td>${escapeHtml(financeReceivableDisplayStatus(r))} · ${escapeHtml(hist)}</td></tr>`
         );
       }
     });
-    const first = idList[0]
-      ? kind === "pagar"
-        ? (state.payables || []).find((x) => String(x.id) === String(idList[0]))
-        : (state.receivables || []).find((x) => String(x.id) === String(idList[0]))
-      : null;
+    const first = recs[0] || null;
     const v0 = first?.vehicle_id ? vmap.get(first.vehicle_id) : null;
+    const cash0 = first ? financeCashForConta(first.id)[0] : null;
     if (kind === "pagar") {
       const fields = first ? financePayableTypedFields(first) : {};
       rows.push(
         { label: "Fornecedor", value: fields.fornecedor || "—" },
+        { label: "Serviço", value: fields.descricao || "—" },
+        { label: "Quantidade", value: String(idList.length) },
         { label: "Categoria", value: first ? payableCategoryLabel(first.payable_category) : "—" },
         { label: "Vencimento", value: first ? formatDate(financeContaDueYmd(first, "payable")) || "—" : "—" },
         { label: "Valor total", value: formatCurrency(total) },
-        { label: "Status", value: first ? financePayableDisplayStatus(first) : "—" }
+        { label: "Status", value: first ? financePayableDisplayStatus(first) : "—" },
+        { label: "Data do pagamento", value: first?.data_pagamento ? formatDate(first.data_pagamento) : cash0 ? formatDate(cash0.data_movimento) || "—" : "—" },
+        { label: "Forma de pagamento", value: first?.forma_pagamento || cash0?.forma_pagamento || "—" },
+        { label: "Observações", value: fields.observacoes || "—" }
       );
     } else {
+      const paidAt = first && String(first.status || "").toUpperCase() === "PAGO" ? financeReceivableCashCompetenciaYmd(first) : "";
       rows.push(
         { label: "Financeira", value: financeInstituicaoNome(v0) },
         { label: "RPP", value: financeReceberRppNome(first, v0) },
+        { label: "Quantidade de veículos", value: String(uniqueVehicles.size || idList.length) },
         { label: "Competência", value: globalThis.financeActionUi?.monthLabel?.(financeCompetenciaYm(first, v0, "receivable")) || "—" },
-        { label: "Veículos", value: String(idList.length) },
-        { label: "Valor total", value: formatCurrency(total) }
+        { label: "Valor total", value: formatCurrency(total) },
+        { label: "Vencimento", value: first ? formatDate(financeContaDueYmd(first, "receivable")) || "—" : "—" },
+        { label: "Status", value: first ? financeReceivableDisplayStatus(first) : "—" },
+        { label: "Data do recebimento", value: paidAt ? formatDate(paidAt) : "—" },
+        { label: "Forma de pagamento", value: first?.forma_pagamento || cash0?.forma_pagamento || "—" },
+        { label: "Observações", value: first ? financeReceivableTypedFields(first).observacoes || "—" : "—" }
       );
     }
     const table =
       kind === "pagar"
         ? `<div class="table-wrap"><table class="table fin-act-table"><thead><tr><th>Descrição</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead><tbody>${lines.join("")}</tbody></table></div>`
-        : `<div class="table-wrap"><table class="table fin-act-table"><thead><tr><th>Placa</th><th>Entrada</th><th>Saída</th><th>Valor</th><th>Vencimento</th><th>Status</th></tr></thead><tbody>${lines.join("")}</tbody></table></div>`;
-    ui.openDetailModal(title, `${idList.length} lançamento(s)`, ui.renderDetailRows(rows) + table);
+        : `<div class="table-wrap"><table class="table fin-act-table"><thead><tr><th>Placa</th><th>Modelo</th><th>Entrada</th><th>Saída</th><th>Valor</th><th>Vencimento</th><th>Status</th></tr></thead><tbody>${lines.join("")}</tbody></table></div>`;
+    ui.openDetailModal(
+      title,
+      `${idList.length} lançamento(s)`,
+      ui.renderDetailRows(rows) + table + `<h4 style="margin:16px 0 8px">Histórico</h4>${financeHistoryHtml(recs, kind)}`
+    );
   }
 
   function financeRenderFinanceiras() {
-    const host = document.getElementById("finFinanceirasRoot");
-    if (!host) return;
-    const svc = window.financialDashboardService;
-    const ui = globalThis.financeActionUi;
-    if (!svc?.getMetricsFromSnapshot || !ui?.renderFinanceirasTable) {
-      host.innerHTML = `<p class="fin-act-empty">Não foi possível montar o resumo das financeiras.</p>`;
-      return;
-    }
-    const m = svc.getMetricsFromSnapshot(
-      {
-        receivables: state.receivables || [],
-        cash: state.cash || [],
-        vehicles: state.vehicles || [],
-        partners: state.partners || [],
-      },
-      { period: "year" }
-    );
-    const rows = (m.financeirasResumo || []).map((r) => ({
-      ...r,
-      aReceberLabel: formatCurrency(r.aReceber),
-      recebidoLabel: formatCurrency(r.recebido),
-      emAbertoLabel: formatCurrency(r.emAberto),
-    }));
-    ui.renderFinanceirasTable(host, rows, "Nenhuma financeira com veículos ou títulos.");
+    financeRenderFinanceirasTableInto(document.getElementById("finFinanceirasRoot"));
   }
 
-  function financeRenderFinanceiraDetail(id) {
-    const host = document.getElementById("finFinanceirasDetail");
+  function financeRenderFinanceiraDetail(id, hostEl) {
+    const host =
+      hostEl ||
+      document.querySelector(".finance-subview:not(.hidden) .fin-financeiras-detail") ||
+      document.querySelector(".fin-financeiras-detail");
     if (!host) return;
     const vmap = financeVehicleById();
     const pmap = new Map((state.partners || []).map((p) => [String(p.id), p]));
     const nome = id === "__sem__" ? "Sem financeira" : pmap.get(String(id))?.nome || "Financeira";
-    const vehicles = (state.vehicles || []).filter((v) => String(v.localizador_id || "") === String(id) || (id === "__sem__" && !v.localizador_id));
+    const vehicles = (state.vehicles || []).filter(
+      (v) => String(v.localizador_id || "") === String(id) || (id === "__sem__" && !v.localizador_id)
+    );
     const recs = (state.receivables || []).filter((r) => {
       const v = r.vehicle_id ? vmap.get(r.vehicle_id) : null;
       const finId = String(v?.localizador_id || "") || "__sem__";
@@ -4823,10 +5020,15 @@
     const recByVehicle = new Map();
     recs.forEach((r) => {
       const key = String(r.vehicle_id || r.id);
-      const cur = recByVehicle.get(key) || { recebido: 0, aberto: 0, due: "", recs: [] };
+      const cur = recByVehicle.get(key) || { recebido: 0, aberto: 0, vencido: 0, due: "", recs: [] };
       const val = Number(r.valor || 0);
-      if (String(r.status || "").toUpperCase() === "PAGO") cur.recebido += val;
-      else if (String(r.status || "").toUpperCase() !== "CANCELADO") cur.aberto += val;
+      const st = String(r.status || "").toUpperCase();
+      if (st === "PAGO") cur.recebido += val;
+      else if (st !== "CANCELADO") {
+        cur.aberto += val;
+        const due = financeContaDueYmd(r, "receivable");
+        if (due && due < financeTodayYmd()) cur.vencido += val;
+      }
       const due = financeContaDueYmd(r, "receivable");
       if (due && (!cur.due || due < cur.due)) cur.due = due;
       cur.recs.push(r);
@@ -4836,15 +5038,17 @@
     const rows = [];
     vehicles.forEach((v) => {
       seen.add(String(v.id));
-      const agg = recByVehicle.get(String(v.id)) || { recebido: 0, aberto: 0, due: "", recs: [] };
+      const agg = recByVehicle.get(String(v.id)) || { recebido: 0, aberto: 0, vencido: 0, due: "", recs: [] };
       rows.push({
+        vehicleId: v.id,
         placa: v.placa || "—",
+        modelo: [v.marca, v.modelo].filter(Boolean).join(" ") || "—",
         entrada: v.data_entrada ? formatDate(v.data_entrada) : "—",
         saida: v.data_saida ? formatDate(v.data_saida) : "—",
         devido: agg.aberto + agg.recebido,
         recebido: agg.recebido,
         aberto: agg.aberto,
-        status: agg.aberto > 0 ? "Em aberto" : agg.recebido > 0 ? "Recebido" : "Sem título",
+        status: agg.aberto > 0 ? (agg.vencido > 0 ? "Vencido" : "Em aberto") : agg.recebido > 0 ? "Recebido" : "Sem título",
         vencimento: agg.due ? formatDate(agg.due) : "—",
       });
     });
@@ -4853,7 +5057,9 @@
       const r = agg.recs[0];
       const v = r?.vehicle_id ? vmap.get(r.vehicle_id) : null;
       rows.push({
+        vehicleId: v?.id || "",
         placa: v?.placa || "Lançamento",
+        modelo: [v?.marca, v?.modelo].filter(Boolean).join(" ") || "—",
         entrada: v?.data_entrada ? formatDate(v.data_entrada) : "—",
         saida: v?.data_saida ? formatDate(v.data_saida) : "—",
         devido: agg.aberto + agg.recebido,
@@ -4863,15 +5069,31 @@
         vencimento: agg.due ? formatDate(agg.due) : "—",
       });
     });
+    const totVeic = rows.length;
+    const totReceber = rows.reduce((s, r) => s + r.devido, 0);
+    const totRecebido = rows.reduce((s, r) => s + r.recebido, 0);
+    const totAberto = rows.reduce((s, r) => s + r.aberto, 0);
+    const totVencido = Array.from(recByVehicle.values()).reduce((s, a) => s + (a.vencido || 0), 0);
     host.innerHTML = `<h3 style="margin:16px 0 8px">${escapeHtml(nome)}</h3>
+      <div class="fin-act-fin-kpis">
+        <div><span>Veículos</span><strong>${totVeic}</strong></div>
+        <div><span>A receber</span><strong>${escapeHtml(formatCurrency(totReceber))}</strong></div>
+        <div><span>Recebido</span><strong>${escapeHtml(formatCurrency(totRecebido))}</strong></div>
+        <div><span>Em aberto</span><strong>${escapeHtml(formatCurrency(totAberto))}</strong></div>
+        <div><span>Vencido</span><strong>${escapeHtml(formatCurrency(totVencido))}</strong></div>
+      </div>
+      <label class="fin-act-search-wrap">Filtrar veículos
+        <input type="search" id="finFinanceiraVeiculoFiltro" placeholder="Placa, modelo ou status" />
+      </label>
       <div class="fin-act-table-wrap"><table class="table fin-act-table">
-        <thead><tr><th>Placa</th><th>Entrada</th><th>Saída</th><th>Devido</th><th>Recebido</th><th>Em aberto</th><th>Status</th><th>Vencimento</th></tr></thead>
-        <tbody>${
+        <thead><tr><th>Placa</th><th>Modelo</th><th>Entrada</th><th>Saída</th><th>Valor</th><th>Recebido</th><th>Em aberto</th><th>Status</th><th>Vencimento</th></tr></thead>
+        <tbody id="finFinanceiraVeiculoBody">${
           rows.length
             ? rows
                 .map(
-                  (r) => `<tr>
-                    <td>${escapeHtml(r.placa)}</td>
+                  (r) => `<tr data-fin-fin-row="${escapeHtml((r.placa + " " + r.modelo + " " + r.status).toLowerCase())}">
+                    <td>${r.vehicleId ? financeVehicleLinkHtml({ id: r.vehicleId, placa: r.placa }) : escapeHtml(r.placa)}</td>
+                    <td>${escapeHtml(r.modelo)}</td>
                     <td>${escapeHtml(r.entrada)}</td>
                     <td>${escapeHtml(r.saida)}</td>
                     <td>${escapeHtml(formatCurrency(r.devido))}</td>
@@ -4882,18 +5104,299 @@
                   </tr>`
                 )
                 .join("")
-            : `<tr><td colspan="8" class="fin-act-empty">Nenhum veículo nesta financeira.</td></tr>`
+            : `<tr><td colspan="9" class="fin-act-empty">Nenhum veículo nesta financeira.</td></tr>`
         }</tbody>
       </table></div>`;
+    document.getElementById("finFinanceiraVeiculoFiltro")?.addEventListener("input", (e) => {
+      const q = String(e.target.value || "").toLowerCase().trim();
+      host.querySelectorAll("[data-fin-fin-row]").forEach((tr) => {
+        tr.style.display = !q || String(tr.getAttribute("data-fin-fin-row") || "").includes(q) ? "" : "none";
+      });
+    });
+  }
+
+  function financeBuildLancamentos() {
+    const q = String(document.getElementById("finLancamentosSearch")?.value || document.getElementById("finGlobalSearch")?.value || "")
+      .trim()
+      .toLowerCase();
+    const cat = String(document.getElementById("finLancamentosCategoria")?.value || "");
+    const finId = String(document.getElementById("finLancamentosFinanceira")?.value || "");
+    const vmap = financeVehicleById();
+    const range = financeCurrentMetrics()?.range;
+    const items = [];
+    (state.receivables || []).forEach((r) => {
+      const v = r.vehicle_id ? vmap.get(r.vehicle_id) : null;
+      if (finId && String(v?.localizador_id || "") !== finId) return;
+      const st = financeReceivableDisplayStatus(r);
+      const due = financeContaDueYmd(r, "receivable");
+      const catVal = financeIsManualReceivable(r) ? String(r.receivable_category || r.categoria || "") : "GUARDA_PATIO";
+      if (cat && catVal !== cat) return;
+      const card = {
+        kind: "receber",
+        title: financeInstituicaoNome(v) || financeReceberRppNome(r, v) || "Receita",
+        subtitle: [v?.placa, [v?.marca, v?.modelo].filter(Boolean).join(" "), st].filter(Boolean).join(" · "),
+        dueLabel: `Vencimento: ${due ? formatDate(due) : "—"}`,
+        amountLabel: formatCurrency(Number(r.valor || 0)),
+        status: st === "Atrasado" ? "Vencido" : st === "Pendente" ? "Pendente" : st,
+        statusKind: financeStatusKindFromLabel(st === "Atrasado" ? "Vencido" : st),
+        actionIds: st === "Recebido" ? [] : [r.id],
+        allIds: [r.id],
+        vehicleId: r.vehicle_id || "",
+        placa: v?.placa || "",
+        tipo: "entrada",
+        paid: st === "Recebido",
+        late: st === "Atrasado",
+        valor: Number(r.valor || 0),
+        due,
+        id: r.id,
+        blob: [v?.placa, financeInstituicaoNome(v), r.id, r.valor, due, formatDate(due)].join(" ").toLowerCase(),
+      };
+      if (range) {
+        const recYmd = st === "Recebido" ? financeReceivableCashCompetenciaYmd(r) : due;
+        const inRange = recYmd && recYmd >= range.from && recYmd <= range.to;
+        if (!inRange && st !== "Atrasado" && st !== "Pendente") return;
+      }
+      items.push(card);
+    });
+    (state.payables || []).filter((p) => financeIsManualPayable(p)).forEach((p) => {
+      const fields = financePayableTypedFields(p);
+      const st = financePayableDisplayStatus(p);
+      const due = financeContaDueYmd(p, "payable");
+      const catVal = String(p.payable_category || "OUTROS");
+      if (cat && catVal !== cat) return;
+      const card = {
+        kind: "pagar",
+        title: fields.fornecedor || "Despesa",
+        subtitle: [fields.descricao, typeof payableCategoryLabel === "function" ? payableCategoryLabel(p.payable_category) : catVal].filter(Boolean).join(" · "),
+        dueLabel: `Vencimento: ${due ? formatDate(due) : "—"}`,
+        amountLabel: formatCurrency(Number(p.valor || 0)),
+        status: st,
+        statusKind: financeStatusKindFromLabel(st),
+        actionIds: st === "Pago" ? [] : [p.id],
+        allIds: [p.id],
+        tipo: "saida",
+        paid: st === "Pago",
+        late: st === "Vencido",
+        valor: Number(p.valor || 0),
+        due,
+        id: p.id,
+        blob: [fields.fornecedor, fields.descricao, p.id, p.valor, due, formatDate(due)].join(" ").toLowerCase(),
+      };
+      items.push(card);
+    });
+    let list = items;
+    if (finLancamentosFilter === "entrada") list = list.filter((x) => x.tipo === "entrada");
+    if (finLancamentosFilter === "saida") list = list.filter((x) => x.tipo === "saida");
+    if (finLancamentosFilter === "recebido") list = list.filter((x) => x.tipo === "entrada" && x.paid);
+    if (finLancamentosFilter === "pago") list = list.filter((x) => x.tipo === "saida" && x.paid);
+    if (finLancamentosFilter === "pendente") list = list.filter((x) => !x.paid && !x.late);
+    if (finLancamentosFilter === "vencido") list = list.filter((x) => x.late);
+    if (q) list = list.filter((x) => x.blob.includes(q) || String(x.valor).includes(q.replace(",", ".")));
+    list.sort((a, b) => String(a.due || "9999").localeCompare(String(b.due || "9999")));
+    return list;
+  }
+
+  function financePopulateLancamentoFilters() {
+    const catSel = document.getElementById("finLancamentosCategoria");
+    if (catSel && !catSel.dataset.filled) {
+      const rec = typeof getLancReceitaCategorias === "function" ? getLancReceitaCategorias() : [];
+      const desp = typeof getLancDespesaCategorias === "function" ? getLancDespesaCategorias() : [];
+      const opts = [...rec, ...desp].filter((c, i, arr) => arr.findIndex((x) => x.value === c.value) === i);
+      catSel.innerHTML =
+        `<option value="">Todas as categorias</option>` +
+        opts.map((c) => `<option value="${escapeHtml(c.value)}">${escapeHtml(c.label)}</option>`).join("");
+      catSel.dataset.filled = "1";
+    }
+    const finSel = document.getElementById("finLancamentosFinanceira");
+    if (finSel) {
+      const cur = finSel.value;
+      const partners = (state.partners || []).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR"));
+      finSel.innerHTML =
+        `<option value="">Todas as financeiras</option>` +
+        partners.map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.nome || "-")}</option>`).join("");
+      if (cur) finSel.value = cur;
+    }
+  }
+
+  function financeRenderLancamentos() {
+    const host = document.getElementById("finLancamentosRoot");
+    if (!host) return;
+    financePopulateLancamentoFilters();
+    financeRenderQuickChips("finLancamentosChips", finLancamentosFilter, [
+      ["todos", "Todos"],
+      ["entrada", "Entrada"],
+      ["saida", "Saída"],
+      ["recebido", "Recebido"],
+      ["pago", "Pago"],
+      ["pendente", "Pendente"],
+      ["vencido", "Vencido"],
+    ]);
+    const all = financeBuildLancamentos();
+    const shown = all.slice(0, finLancamentosLimit);
+    const ui = globalThis.financeActionUi;
+    if (ui?.renderLancamentoCards) {
+      ui.renderLancamentoCards(host, shown, "Nenhum lançamento com os filtros atuais.");
+    }
+    const more = document.getElementById("finLancamentosMore");
+    if (more) {
+      more.classList.toggle("hidden", all.length <= shown.length);
+      more.textContent = `Carregar mais (${shown.length} de ${all.length})`;
+    }
+  }
+
+  function financeRenderRelatorios() {
+    const host = document.getElementById("finRelatoriosRoot");
+    const ui = globalThis.financeActionUi;
+    if (!host || !ui?.renderReportCards) return;
+    ui.renderReportCards(host, [
+      { id: "receber", title: "Contas a receber", detail: "Títulos em aberto e recebidos no filtro atual." },
+      { id: "pagar", title: "Contas a pagar", detail: "Despesas abertas, vencidas e pagas." },
+      { id: "caixa", title: "Fluxo de caixa", detail: "Entradas e saídas do caixa no período." },
+      { id: "recebimentos", title: "Recebimentos", detail: "Valores efetivamente recebidos." },
+      { id: "pagamentos", title: "Pagamentos", detail: "Valores efetivamente pagos." },
+      { id: "financeiras", title: "Valores por financeira", detail: "A receber, recebido e em aberto por instituição." },
+      { id: "aberto", title: "Valores em aberto", detail: "Contas ainda não recebidas ou pagas." },
+      { id: "vencidos", title: "Valores vencidos", detail: "Cobranças e despesas atrasadas." },
+      { id: "resultado", title: "Resultado por período", detail: "Entradas menos saídas no período selecionado." },
+    ]);
+  }
+
+  function financePrintSimpleReport(title, headers, rows) {
+    const head = headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("");
+    const body = rows
+      .map((r) => `<tr>${r.map((c) => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`)
+      .join("");
+    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
+      <style>body{font-family:Inter,Arial,sans-serif;padding:24px;color:#0f172a}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #e2e8f0;padding:8px;text-align:left}h1{font-size:20px}</style></head>
+      <body><h1>${escapeHtml(title)}</h1><p>${escapeHtml(document.getElementById("finPeriodRangeLabel")?.textContent || "")}</p>
+      <table><thead><tr>${head}</tr></thead><tbody>${body || `<tr><td colspan="${headers.length}">Sem dados.</td></tr>`}</tbody></table></body></html>`;
+    if (typeof window.printHtmlInHiddenIframe === "function") {
+      window.printHtmlInHiddenIframe(html, { iframeTitle: title, closeModalId: null });
+      return;
+    }
+    window.print();
+  }
+
+  function financeRunReport(id, fmt) {
+    const m = financeCurrentMetrics() || { kpis: {}, financeirasResumo: [] };
+    if (id === "receber") {
+      if (fmt === "csv") {
+        const prev = currentFinanceView;
+        currentFinanceView = "receber";
+        financeExportCurrentView();
+        currentFinanceView = prev;
+        return;
+      }
+      financePrintReceberCliente();
+      return;
+    }
+    if (id === "pagar" && fmt === "csv") {
+      const prev = currentFinanceView;
+      currentFinanceView = "pagar";
+      financeExportCurrentView();
+      currentFinanceView = prev;
+      return;
+    }
+    if (id === "caixa" && fmt === "csv") {
+      const prev = currentFinanceView;
+      currentFinanceView = "caixa";
+      financeExportCurrentView();
+      currentFinanceView = prev;
+      return;
+    }
+    const rowsMap = {
+      pagar: () =>
+        financeContasPagarList().map((p) => [
+          financePayableTypedFields(p).fornecedor,
+          financePayableTypedFields(p).descricao,
+          formatCurrency(Number(p.valor || 0)),
+          formatDate(financeContaDueYmd(p, "payable")) || "—",
+          financePayableDisplayStatus(p),
+        ]),
+      caixa: () =>
+        financeCaixaMovsMerged().map((mov) => [
+          formatDate(mov.data_movimento || mov.created_at) || "—",
+          financeCashIsEntrada(mov) ? "Entrada" : "Saída",
+          formatCurrency(financeCashMovValor(mov)),
+          financeStripFinmeta(mov.descricao || ""),
+        ]),
+      recebimentos: () =>
+        financeReceivablePaidList().map((r) => {
+          const v = financeVehicleById().get(r.vehicle_id);
+          return [v?.placa || "—", financeInstituicaoNome(v), formatCurrency(Number(r.valor || 0)), formatDate(financeReceivableCashCompetenciaYmd(r)) || "—"];
+        }),
+      pagamentos: () =>
+        (state.payables || [])
+          .filter((p) => financePayableDisplayStatus(p) === "Pago")
+          .map((p) => [financePayableTypedFields(p).fornecedor, formatCurrency(Number(p.valor || 0)), formatDate(p.data_pagamento || financePayableCashCompetenciaYmd(p)) || "—"]),
+      financeiras: () =>
+        (m.financeirasResumo || []).map((f) => [f.nome, String(f.veiculos), formatCurrency(f.aReceber), formatCurrency(f.recebido), formatCurrency(f.emAberto)]),
+      aberto: () => [
+        ...financeReceberListForQuick("todos").map((r) => {
+          const v = financeVehicleById().get(r.vehicle_id);
+          return ["Receber", v?.placa || financeInstituicaoNome(v), formatCurrency(Number(r.valor || 0)), formatDate(financeContaDueYmd(r, "receivable")) || "—"];
+        }),
+        ...financePagarListForQuick("todos")
+          .filter((p) => financePayableDisplayStatus(p) !== "Pago")
+          .map((p) => ["Pagar", financePayableTypedFields(p).fornecedor, formatCurrency(Number(p.valor || 0)), formatDate(financeContaDueYmd(p, "payable")) || "—"]),
+      ],
+      vencidos: () => [
+        ...financeReceberListForQuick("vencidos").map((r) => {
+          const v = financeVehicleById().get(r.vehicle_id);
+          return ["Receber", v?.placa || financeInstituicaoNome(v), formatCurrency(Number(r.valor || 0)), formatDate(financeContaDueYmd(r, "receivable")) || "—"];
+        }),
+        ...financePagarListForQuick("vencidos").map((p) => [
+          "Pagar",
+          financePayableTypedFields(p).fornecedor,
+          formatCurrency(Number(p.valor || 0)),
+          formatDate(financeContaDueYmd(p, "payable")) || "—",
+        ]),
+      ],
+      resultado: () => [
+        ["Entradas", formatCurrency(m.kpis?.entradasPeriodo || 0)],
+        ["Saídas", formatCurrency(m.kpis?.saidasPeriodo || 0)],
+        ["Resultado", formatCurrency(m.kpis?.resultadoPeriodo || 0)],
+        ["A receber", formatCurrency(m.kpis?.contasAReceber?.valor || 0)],
+        ["Recebido", formatCurrency(m.kpis?.recebidoPeriodo?.valor || 0)],
+        ["Em atraso", formatCurrency(m.kpis?.inadimplencia?.valor || 0)],
+      ],
+    };
+    const headersMap = {
+      pagar: ["Fornecedor", "Descrição", "Valor", "Vencimento", "Status"],
+      caixa: ["Data", "Tipo", "Valor", "Descrição"],
+      recebimentos: ["Placa", "Financeira", "Valor", "Data"],
+      pagamentos: ["Fornecedor", "Valor", "Data"],
+      financeiras: ["Financeira", "Veículos", "A receber", "Recebido", "Em aberto"],
+      aberto: ["Tipo", "Referência", "Valor", "Vencimento"],
+      vencidos: ["Tipo", "Referência", "Valor", "Vencimento"],
+      resultado: ["Indicador", "Valor"],
+    };
+    const titleMap = {
+      pagar: "Contas a pagar",
+      caixa: "Fluxo de caixa",
+      recebimentos: "Recebimentos",
+      pagamentos: "Pagamentos",
+      financeiras: "Valores por financeira",
+      aberto: "Valores em aberto",
+      vencidos: "Valores vencidos",
+      resultado: "Resultado por período",
+    };
+    const headers = headersMap[id] || ["Campo", "Valor"];
+    const rows = (rowsMap[id] || (() => []))();
+    if (fmt === "csv") {
+      financeExportCsv([headers, ...rows], `financeiro-${id}-${financeTodayYmd()}.csv`);
+      return;
+    }
+    financePrintSimpleReport(titleMap[id] || "Relatório financeiro", headers, rows);
   }
 
   function financeActivateActionView(view, filter) {
     if (view === "receber") {
       finReceberQuick = filter || "todos";
       finReceberHorizonDays = filter === "vencendo_7" ? 7 : 0;
-      if (filter === "vencendo_7") finReceberQuick = "vencendo_7";
     }
     if (view === "pagar" && filter) finPagarQuick = filter;
+    if (view === "lancamentos" && filter) finLancamentosFilter = filter;
     financeActivateSubview(view || "dashboard");
   }
 
@@ -4937,6 +5440,8 @@
     else if (view === "caixa") financeRenderCaixa();
     else if (view === "cadastros") financeRenderCadastros();
     else if (view === "financeiras") financeRenderFinanceiras();
+    else if (view === "lancamentos") financeRenderLancamentos();
+    else if (view === "relatorios") financeRenderRelatorios();
   }
 
   function financeActivateSubview(view, opts = {}) {
@@ -5658,6 +6163,32 @@
       }
       financeRenderDashboard();
     });
+    const syncGlobalSearch = () => {
+      const src = document.getElementById("finGlobalSearch");
+      const dest = document.getElementById("finDashFilterSearch");
+      const lanc = document.getElementById("finLancamentosSearch");
+      if (src && dest) dest.value = src.value || "";
+      if (src && lanc && document.activeElement !== lanc) lanc.value = src.value || "";
+      if (typeof window.financialDashboardService?.invalidateCache === "function") {
+        window.financialDashboardService.invalidateCache();
+      }
+      if (currentFinanceView === "lancamentos") financeRenderLancamentos();
+      else financeRenderDashboard();
+    };
+    document.getElementById("finGlobalSearch")?.addEventListener("input", syncGlobalSearch);
+    document.getElementById("finGlobalSearch")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        financeActivateActionView("lancamentos");
+      }
+    });
+    document.getElementById("finLancamentosSearch")?.addEventListener("input", () => financeRenderLancamentos());
+    document.getElementById("finLancamentosCategoria")?.addEventListener("change", () => financeRenderLancamentos());
+    document.getElementById("finLancamentosFinanceira")?.addEventListener("change", () => financeRenderLancamentos());
+    document.getElementById("finLancamentosMore")?.addEventListener("click", () => {
+      finLancamentosLimit += 40;
+      financeRenderLancamentos();
+    });
 
     document.getElementById("viewFinanceiro")?.addEventListener("click", async (e) => {
       const btnReceber = e.target.closest("[data-fin-aguardando-receber]");
@@ -5773,7 +6304,22 @@
         } else if (chip.closest("#finPagarQuickFilters") || chip.closest("[data-finance-subview='pagar']")) {
           finPagarQuick = value;
           financeRenderPagar();
+        } else if (chip.closest("#finLancamentosChips")) {
+          finLancamentosFilter = value;
+          finLancamentosLimit = 40;
+          financeRenderLancamentos();
+        } else if (chip.closest("#finDashReceberChips")) {
+          finDashReceberQuick = value;
+          financeFillDashboardPreviews();
+        } else if (chip.closest("#finDashPagarChips")) {
+          finDashPagarQuick = value;
+          financeFillDashboardPreviews();
         }
+        return;
+      }
+      const reportBtn = e.target.closest("[data-fin-report]");
+      if (reportBtn) {
+        financeRunReport(reportBtn.getAttribute("data-fin-report"), reportBtn.getAttribute("data-fin-report-fmt") || "print");
         return;
       }
       const groupRec = e.target.closest("[data-fin-group-receber]");
@@ -5793,8 +6339,16 @@
       }
       const finRow = e.target.closest("[data-fin-act-financeira]");
       if (finRow) {
-        financeRenderFinanceiraDetail(finRow.getAttribute("data-fin-act-financeira"));
+        const detailHost = finRow.closest("#finFinanceirasRoot, #finDashFinanceirasPreview")?.querySelector(".fin-financeiras-detail");
+        financeRenderFinanceiraDetail(finRow.getAttribute("data-fin-act-financeira"), detailHost);
       }
+    });
+
+    document.addEventListener("click", (e) => {
+      const openVehicle = e.target.closest("[data-fin-open-vehicle]");
+      if (!openVehicle) return;
+      e.preventDefault();
+      financeOpenVehicle(openVehicle.getAttribute("data-fin-open-vehicle"));
     });
 
     document.getElementById("finDespesaModal")?.addEventListener("click", (e) => {
@@ -5877,4 +6431,6 @@
   window.financeRenderDashboard = financeRenderDashboard;
   window.financeActivateSubview = financeActivateSubview;
   window.financeActivateActionView = financeActivateActionView;
+  window.financeFillDashboardPreviews = financeFillDashboardPreviews;
+  window.financeOpenVehicle = financeOpenVehicle;
 })();

@@ -413,6 +413,33 @@
     );
   }
 
+  function sliceFluxoToRange(fluxo, range) {
+    const labels = fluxo?.labels || [];
+    const fromYm = String(range?.from || "").slice(0, 7);
+    const toYm = String(range?.to || "").slice(0, 7);
+    const idx = [];
+    labels.forEach((lbl, i) => {
+      const mm = String(lbl || "").slice(0, 2);
+      const yy = String(lbl || "").slice(3);
+      const ym = /^\d{2}$/.test(yy) ? `20${yy}-${mm}` : "";
+      if (ym && ym >= fromYm && ym <= toYm) idx.push(i);
+    });
+    const use = idx.length ? idx : labels.map((_, i) => i);
+    const entradas = use.map((i) => Number(fluxo.entradas?.[i] || 0));
+    const saidas = use.map((i) => Number(fluxo.saidas?.[i] || 0));
+    let acc = 0;
+    const saldo = entradas.map((e, i) => {
+      acc += e - saidas[i];
+      return acc;
+    });
+    return {
+      labels: use.map((i) => labels[i]),
+      entradas,
+      saidas,
+      saldo,
+    };
+  }
+
   function financeDashboardRender(data, ctx) {
     init();
     const root = resolveMountRoot();
@@ -420,6 +447,12 @@
 
     syncFiltersFromDom();
     populatePartnerFilters(data?.partners);
+
+    const searchEl = document.getElementById("finGlobalSearch");
+    const hiddenSearch = document.getElementById("finDashFilterSearch");
+    if (searchEl && hiddenSearch && searchEl.value !== hiddenSearch.value) {
+      if (!searchEl.dataset.finTouched) searchEl.value = hiddenSearch.value || "";
+    }
 
     const formatCurrency = (n) => formatMoney(n, ctx);
     const m = computeMetrics(data || {});
@@ -445,60 +478,60 @@
       )
       .join("");
 
+    const rangeLabel = `${formatYmdBr(m.range.from)} até ${formatYmdBr(m.range.to)}`;
+    const rangeEl = document.getElementById("finPeriodRangeLabel");
+    if (rangeEl) rangeEl.textContent = rangeLabel;
+
     const aReceber = k.contasAReceber?.valor || 0;
     const recebido = k.recebidoPeriodo?.valor ?? k.recebimentosMes?.valor ?? 0;
     const emAtraso = k.inadimplencia?.valor || 0;
     const resultado = k.resultadoPeriodo || 0;
     const entradas = k.entradasPeriodo || 0;
     const saidas = k.saidasPeriodo || 0;
-    const saldoMes = (m.fluxo?.saldo || []).length ? m.fluxo.saldo[m.fluxo.saldo.length - 1] : entradas - saidas;
+    const saldoPeriodo = entradas - saidas;
+    const fluxo = sliceFluxoToRange(m.fluxo || {}, m.range);
 
     const alerts = m.alerts || {};
-    const attention = [];
-    if (alerts.titulosVencidos?.count > 0) {
-      attention.push({
+    const recHoje = m.indicadores?.recebidosHoje || 0;
+    const attentionItems = [
+      {
         tone: "red",
         filter: "vencidos",
         view: "receber",
-        text: `${alerts.titulosVencidos.count} cobrança${alerts.titulosVencidos.count === 1 ? "" : "s"} vencida${alerts.titulosVencidos.count === 1 ? "" : "s"}`,
-        detail: formatCurrency(alerts.titulosVencidos.valor),
-      });
-    }
-    if (alerts.vencendo7Dias?.count > 0) {
-      attention.push({
+        count: alerts.titulosVencidos?.count || 0,
+        title: "Cobranças vencidas",
+        detail: formatCurrency(alerts.titulosVencidos?.valor || 0),
+      },
+      {
         tone: "amber",
         filter: "vencendo_7",
         view: "receber",
-        text: `${alerts.vencendo7Dias.count} cobrança${alerts.vencendo7Dias.count === 1 ? "" : "s"} vencendo em 7 dias`,
-        detail: formatCurrency(alerts.vencendo7Dias.valor),
-      });
-    }
-    const recHoje = m.indicadores?.recebidosHoje || 0;
-    if (recHoje > 0) {
-      attention.push({
+        count: alerts.vencendo7Dias?.count || 0,
+        title: "Cobranças vencendo em 7 dias",
+        detail: formatCurrency(alerts.vencendo7Dias?.valor || 0),
+      },
+      {
         tone: "green",
-        filter: "recebidos",
+        filter: "recebidos_hoje",
         view: "receber",
-        text: `${recHoje} pagamento${recHoje === 1 ? "" : "s"} recebido${recHoje === 1 ? "" : "s"} hoje`,
+        count: recHoje,
+        title: "Pagamentos recebidos hoje",
         detail: formatCurrency(m.indicadores?.receitaHoje || 0),
-      });
-    }
-
-    const attentionHtml = attention.length
-      ? attention
-          .map(
-            (a) => `<button type="button" class="fin-act-attention-item" data-fin-act-goto="${escapeHtml(a.view)}" data-fin-act-filter="${escapeHtml(a.filter)}">
-              <span><i class="fin-act-dot fin-act-dot--${escapeHtml(a.tone)}"></i>${escapeHtml(a.text)}</span>
-              <strong>${escapeHtml(a.detail)}</strong>
-            </button>`
-          )
-          .join("")
-      : `<div class="hub-alert hub-alert--ok fin-exec-alert"><span>Nada urgente no momento.</span></div>`;
+      },
+    ];
+    const ui = global.financeActionUi;
+    const attentionHtml = ui?.renderAttentionCards
+      ? ui.renderAttentionCards(attentionItems)
+      : "";
 
     const customOpen = period === "custom" ? "" : " hidden";
 
     root.innerHTML = `
       <div class="fin-act-home">
+        <div class="fin-act-home-head">
+          <h2>Financeiro — Visão geral</h2>
+          <strong>${escapeHtml(rangeLabel)}</strong>
+        </div>
         <div class="fin-act-periods" role="tablist" aria-label="Período">${periodPills}</div>
         <div class="fin-act-custom"${customOpen}>
           <label>De<input type="date" id="finDashCustomFrom" value="${escapeHtml(_filters.customFrom || "")}"></label>
@@ -508,22 +541,26 @@
           <button type="button" class="fin-act-kpi fin-act-kpi--recv" data-fin-act-goto="receber" data-fin-act-filter="todos">
             <span class="fin-act-kpi-label">A receber</span>
             <strong class="fin-act-kpi-value">${escapeHtml(formatCurrency(aReceber))}</strong>
+            <span class="fin-act-kpi-desc">Total a receber</span>
             <small class="fin-act-kpi-meta">${k.contasAReceber?.titulos || 0} título(s) em aberto</small>
           </button>
           <button type="button" class="fin-act-kpi fin-act-kpi--paid" data-fin-act-goto="receber" data-fin-act-filter="recebidos">
             <span class="fin-act-kpi-label">Recebido</span>
             <strong class="fin-act-kpi-value">${escapeHtml(formatCurrency(recebido))}</strong>
+            <span class="fin-act-kpi-desc">Total recebido</span>
             <small class="fin-act-kpi-meta">${k.recebidoPeriodo?.pagamentos || 0} no período</small>
           </button>
           <button type="button" class="fin-act-kpi fin-act-kpi--late" data-fin-act-goto="receber" data-fin-act-filter="vencidos">
             <span class="fin-act-kpi-label">Em atraso</span>
             <strong class="fin-act-kpi-value">${escapeHtml(formatCurrency(emAtraso))}</strong>
+            <span class="fin-act-kpi-desc">Total vencido</span>
             <small class="fin-act-kpi-meta">${k.inadimplencia?.titulos || 0} vencido(s)</small>
           </button>
           <button type="button" class="fin-act-kpi fin-act-kpi--result${resultado < 0 ? " is-negative" : ""}" data-fin-act-goto="caixa">
             <span class="fin-act-kpi-label">Resultado</span>
             <strong class="fin-act-kpi-value">${escapeHtml(formatCurrency(resultado))}</strong>
-            <small class="fin-act-kpi-meta">Entradas − saídas</small>
+            <span class="fin-act-kpi-desc">Entradas - Saídas</span>
+            <small class="fin-act-kpi-meta">No período selecionado</small>
           </button>
         </section>
         <section class="fin-act-panel">
@@ -531,25 +568,51 @@
           <div class="fin-act-flow-stats">
             <div class="fin-act-flow-stat"><span>Entradas</span><strong>${escapeHtml(formatCurrency(entradas))}</strong></div>
             <div class="fin-act-flow-stat"><span>Saídas</span><strong>${escapeHtml(formatCurrency(saidas))}</strong></div>
-            <div class="fin-act-flow-stat"><span>Saldo</span><strong>${escapeHtml(formatCurrency(saldoMes))}</strong></div>
+            <div class="fin-act-flow-stat"><span>Saldo</span><strong>${escapeHtml(formatCurrency(saldoPeriodo))}</strong></div>
           </div>
           ${lineChartSvg(
-            m.fluxo.labels,
+            fluxo.labels,
             [
-              { name: "Entradas", values: m.fluxo.entradas, color: "#16a34a" },
-              { name: "Saídas", values: m.fluxo.saidas || [], color: "#dc2626" },
-              { name: "Saldo", values: m.fluxo.saldo, color: "#1677ff" },
+              { name: "Entradas", values: fluxo.entradas, color: "#16a34a" },
+              { name: "Saídas", values: fluxo.saidas || [], color: "#dc2626" },
+              { name: "Saldo", values: fluxo.saldo, color: "#1677ff" },
             ],
             220
           )}
         </section>
         <section class="fin-act-panel">
           <h3>O que precisa da minha atenção</h3>
-          <div class="fin-act-attention">${attentionHtml}</div>
+          ${attentionHtml}
+        </section>
+        <section class="fin-act-panel">
+          <div class="fin-act-section-head">
+            <h3>Contas a receber</h3>
+            <button type="button" class="fin-act-linkish" data-fin-act-goto="receber" data-fin-act-filter="todos">Ver todos →</button>
+          </div>
+          <div class="fin-act-chips" id="finDashReceberChips"></div>
+          <div id="finDashReceberPreview" class="fin-act-launch-host"></div>
+        </section>
+        <section class="fin-act-panel">
+          <div class="fin-act-section-head">
+            <h3>Contas a pagar</h3>
+            <button type="button" class="fin-act-linkish" data-fin-act-goto="pagar" data-fin-act-filter="todos">Ver todos →</button>
+          </div>
+          <div class="fin-act-chips" id="finDashPagarChips"></div>
+          <div id="finDashPagarPreview" class="fin-act-launch-host"></div>
+        </section>
+        <section class="fin-act-panel">
+          <div class="fin-act-section-head">
+            <h3>Financeiras</h3>
+            <button type="button" class="fin-act-linkish" data-fin-act-goto="financeiras">Ver todas →</button>
+          </div>
+          <div id="finDashFinanceirasPreview"></div>
         </section>
       </div>
     `;
     bindHomeInteractions(root);
+    if (typeof global.financeFillDashboardPreviews === "function") {
+      global.financeFillDashboardPreviews();
+    }
   }
 
   function bindHomeInteractions(root) {

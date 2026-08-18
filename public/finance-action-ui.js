@@ -119,9 +119,80 @@
 
   function renderDetailRows(rows) {
     return `<div class="fin-act-detail-grid">${(rows || [])
+      .map((r) => {
+        const value = r.html ? String(r.value || "") : esc(r.value);
+        return `<div><span>${esc(r.label)}</span><strong>${value}</strong></div>`;
+      })
+      .join("")}</div>`;
+  }
+
+  function renderAttentionCards(items) {
+    return `<div class="fin-act-attention-grid">${(items || [])
       .map(
-        (r) =>
-          `<div><span>${esc(r.label)}</span><strong>${esc(r.value)}</strong></div>`
+        (a) => `<button type="button" class="fin-act-attention-card fin-act-attention-card--${esc(a.tone)}" data-fin-act-goto="${esc(a.view)}" data-fin-act-filter="${esc(a.filter)}">
+          <span class="fin-act-attention-count">${esc(String(a.count ?? 0))}</span>
+          <span class="fin-act-attention-title">${esc(a.title)}</span>
+          <small>${esc(a.detail || "")}</small>
+          <span class="fin-act-attention-go">Ver agora →</span>
+        </button>`
+      )
+      .join("")}</div>`;
+  }
+
+  function renderLancamentoCards(host, cards, emptyText) {
+    if (!host) return;
+    if (!cards?.length) {
+      host.innerHTML = `<p class="fin-act-empty">${esc(emptyText || "Nenhum lançamento.")}</p>`;
+      return;
+    }
+    host.innerHTML = `<div class="fin-act-launch-list">${cards
+      .map((c) => {
+        const kind = c.kind === "pagar" || c.kind === "saida" ? "pagar" : "receber";
+        const unpaid = (c.actionIds || []).filter(Boolean);
+        const actionLabel = kind === "pagar" ? "Pagar" : "Receber";
+        const actionAttr = kind === "pagar" ? "data-fin-group-pagar" : "data-fin-group-receber";
+        const singleAttr = kind === "pagar" ? "data-fin-pagar-pg" : "data-fin-receber-pg";
+        const actionBtn =
+          unpaid.length === 1
+            ? `<button type="button" class="fin-act-primary" ${singleAttr}="${esc(unpaid[0])}">${actionLabel}</button>`
+            : unpaid.length > 1
+              ? `<button type="button" class="fin-act-primary" ${actionAttr}="${esc(unpaid.join(","))}">${actionLabel}</button>`
+              : "";
+        const vehicleBtn = c.vehicleId
+          ? `<button type="button" class="secondary" data-fin-open-vehicle="${esc(c.vehicleId)}">${esc(c.placa || "Veículo")}</button>`
+          : "";
+        return `<article class="fin-act-launch">
+          <div>
+            <h4>${esc(c.title)}</h4>
+            <p>${esc(c.subtitle || "")}</p>
+            <p>${esc(c.dueLabel || "")}</p>
+          </div>
+          <div>
+            <div class="fin-act-launch-amount">${esc(c.amountLabel)}</div>
+            <span class="${statusClass(c.statusKind)}">${esc(c.status)}</span>
+          </div>
+          <div class="fin-act-launch-actions">
+            ${actionBtn}
+            ${vehicleBtn}
+            <button type="button" class="secondary" data-fin-act-detalhe="${esc(kind)}" data-fin-act-ids="${esc((c.allIds || []).join(","))}">Detalhes</button>
+          </div>
+        </article>`;
+      })
+      .join("")}</div>`;
+  }
+
+  function renderReportCards(host, items) {
+    if (!host) return;
+    host.innerHTML = `<div class="fin-act-report-grid">${(items || [])
+      .map(
+        (r) => `<article class="fin-act-report">
+          <h4>${esc(r.title)}</h4>
+          <p>${esc(r.detail || "")}</p>
+          <div class="fin-act-launch-actions">
+            <button type="button" class="fin-act-primary" data-fin-report="${esc(r.id)}" data-fin-report-fmt="print">Imprimir / PDF</button>
+            <button type="button" class="secondary" data-fin-report="${esc(r.id)}" data-fin-report-fmt="csv">Excel / CSV</button>
+          </div>
+        </article>`
       )
       .join("")}</div>`;
   }
@@ -146,12 +217,15 @@
         )
         .join("")}</tbody>
     </table></div>
-    <div id="finFinanceirasDetail"></div>`;
+    <div class="fin-financeiras-detail"></div>`;
   }
 
   global.financeActionUi = {
     monthLabel,
     renderLaunchCards,
+    renderLancamentoCards,
+    renderAttentionCards,
+    renderReportCards,
     openDetailModal,
     closeDetailModal,
     renderDetailRows,

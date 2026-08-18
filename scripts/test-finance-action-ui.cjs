@@ -78,6 +78,8 @@ function testMetricsPeriodAndResultado() {
     ],
   };
   const month = svc.getMetricsFromSnapshot(snapshot, { period: "month" });
+  assert.strictEqual(month.range.from, "2026-08-01");
+  assert.strictEqual(month.range.to, "2026-08-31");
   assert.strictEqual(month.kpis.contasAReceber.valor, 1000);
   assert.strictEqual(month.kpis.inadimplencia.valor, 1000, "vencido em 10/08");
   assert.strictEqual(month.kpis.recebidoPeriodo.valor, 400);
@@ -86,7 +88,11 @@ function testMetricsPeriodAndResultado() {
   assert.strictEqual(month.kpis.resultadoPeriodo, 450);
   assert.ok(Array.isArray(month.fluxo.saidas));
   assert.strictEqual(month.fluxo.saidas.length, month.fluxo.entradas.length);
-  assert.ok(month.financeirasResumo.some((f) => f.nome === "Banco Alpha" && f.emAberto === 1000));
+  const alpha = month.financeirasResumo.find((f) => f.nome === "Banco Alpha");
+  assert.ok(alpha);
+  assert.strictEqual(alpha.emAberto, 1000);
+  assert.strictEqual(alpha.recebido, 400);
+  assert.ok(alpha.vencido >= 1000);
 
   const todayM = svc.getMetricsFromSnapshot(snapshot, { period: "today" });
   assert.strictEqual(todayM.range.from, today);
@@ -145,23 +151,40 @@ function testActionUiRender() {
     ""
   );
   assert.match(html, /data-fin-act-financeira="f1"/);
+  html = ui.renderAttentionCards([
+    { tone: "red", filter: "vencidos", view: "receber", count: 8, title: "Cobranças vencidas", detail: "R$ 1,00" },
+    { tone: "amber", filter: "vencendo_7", view: "receber", count: 12, title: "Cobranças vencendo em 7 dias", detail: "R$ 2,00" },
+    { tone: "green", filter: "recebidos_hoje", view: "receber", count: 25, title: "Pagamentos recebidos hoje", detail: "R$ 3,00" },
+  ]);
+  assert.match(html, /Ver agora →/);
+  assert.match(html, /Cobranças vencidas/);
+  assert.match(html, /data-fin-act-filter="recebidos_hoje"/);
 }
 
 function testFilesStayInFinance() {
   const app = fs.readFileSync(path.join(root, "public/app.html"), "utf8");
-  assert.match(app, /finance-action-ui\.css\?v=20260818finact2/);
-  assert.match(app, /finance-action-ui\.js\?v=20260818finact2/);
+  assert.match(app, /finance-action-ui\.css\?v=20260818finact3/);
+  assert.match(app, /finance-action-ui\.js\?v=20260818finact3/);
   assert.match(app, /data-finance-subview-btn="financeiras"/);
+  assert.match(app, /data-finance-subview-btn="lancamentos"/);
+  assert.match(app, /data-finance-subview-btn="relatorios"/);
   assert.match(app, /id="finReceberCards"/);
   assert.match(app, /id="finPagarCards"/);
+  assert.match(app, /id="finGlobalSearch"/);
+  assert.match(app, /Visão geral da situação financeira/);
+  assert.match(app, /openVehicleFromFinance/);
   assert.match(app, /vehicle-entry-inspection\.js\?v=20260818vistoria10/, "não alterar cache da vistoria");
   const dash = fs.readFileSync(path.join(root, "public/financial-dashboard-ui.js"), "utf8");
   assert.match(dash, /A receber/);
   assert.match(dash, /O que precisa da minha atenção/);
   assert.match(dash, /Fluxo de caixa/);
+  assert.match(dash, /Total a receber/);
+  assert.match(dash, /finDashReceberPreview/);
   const mod = fs.readFileSync(path.join(root, "public/finance-module.js"), "utf8");
   assert.match(mod, /financeiras/);
   assert.match(mod, /financePaySelectedGroup/);
+  assert.match(mod, /financeRenderLancamentos/);
+  assert.match(mod, /financeRunReport/);
   assert.match(mod, /openReceberBaixaModal|data-fin-receber-pg/);
 }
 

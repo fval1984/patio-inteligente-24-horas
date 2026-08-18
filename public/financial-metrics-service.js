@@ -75,7 +75,7 @@
       case "30d":
         return { from: addDaysYmd(asOf, -29), to: asOf, label: "Últimos 30 dias" };
       case "month":
-        return { from: monthStartYm(curYm), to: asOf, label: "Este mês" };
+        return { from: monthStartYm(curYm), to: monthEndYm(curYm), label: "Este mês" };
       case "prev_month": {
         const prevYm = yearMonthFromYmd(addDaysYmd(monthStartYm(curYm), -1));
         return { from: monthStartYm(prevYm), to: monthEndYm(prevYm), label: "Mês anterior" };
@@ -548,6 +548,7 @@
           aReceber: 0,
           recebido: 0,
           emAberto: 0,
+          vencido: 0,
         });
       }
       return financeirasMap.get(id);
@@ -566,11 +567,16 @@
       const st = String(r.status || "").toUpperCase();
       if (st === "CANCELADO" || receivableValor(r) <= 0) continue;
       if (st === "PAGO") {
-        row.recebido += receivableValor(r);
-        row.aReceber += receivableValor(r);
+        const rec = recebimentoYmd(r, cashByConta);
+        if (rec && rec >= range.from && rec <= range.to) {
+          row.recebido += receivableValor(r);
+          row.aReceber += receivableValor(r);
+        }
       } else if (isContaReceberAberta(r)) {
         row.emAberto += receivableValor(r);
         row.aReceber += receivableValor(r);
+        const due = receivableDueYmd(r);
+        if (due && due < asOf) row.vencido += receivableValor(r);
       }
     }
     const financeirasResumo = Array.from(financeirasMap.values())
@@ -581,6 +587,7 @@
         aReceber: x.aReceber,
         recebido: x.recebido,
         emAberto: x.emAberto,
+        vencido: x.vencido,
       }))
       .filter((x) => x.veiculos > 0 || x.aReceber > 0 || x.recebido > 0)
       .sort((a, b) => b.emAberto - a.emAberto || b.aReceber - a.aReceber || String(a.nome).localeCompare(String(b.nome), "pt-BR"));

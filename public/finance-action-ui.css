@@ -373,3 +373,204 @@
     flex-wrap: nowrap;
   }
 }
+
+#viewFinanceiro .fin-act-pagehead {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+#viewFinanceiro .fin-act-subtitle {
+  margin: 4px 0 0;
+  color: var(--fin-act-muted);
+  font-size: 0.92rem;
+}
+
+#viewFinanceiro .fin-act-period-range {
+  margin: 6px 0 0;
+  font-weight: 800;
+  font-size: 0.92rem;
+  color: var(--fin-act-ink);
+}
+
+#viewFinanceiro .fin-act-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+#viewFinanceiro .fin-act-search-wrap {
+  min-width: min(100%, 260px);
+}
+
+#viewFinanceiro .fin-act-search-wrap input,
+#viewFinanceiro #finLancamentosSearch {
+  min-height: 42px;
+  border-radius: 12px;
+  border: 1px solid var(--fin-act-line);
+  padding: 8px 12px;
+  width: 100%;
+}
+
+#viewFinanceiro .fin-act-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+#viewFinanceiro .finance-subnav {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#viewFinanceiro .finance-subnav button.active {
+  background: var(--fin-act-blue);
+  border-color: var(--fin-act-blue);
+  color: #fff;
+}
+
+#viewFinanceiro .fin-act-home-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+#viewFinanceiro .fin-act-home-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+#viewFinanceiro .fin-act-kpi-desc {
+  font-size: 0.8rem;
+  color: var(--fin-act-muted);
+  font-weight: 600;
+}
+
+#viewFinanceiro .fin-act-attention-grid,
+#viewFinanceiro .fin-act-report-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+#viewFinanceiro .fin-act-attention-card,
+#viewFinanceiro .fin-act-report {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  border: 1px solid var(--fin-act-line);
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  cursor: pointer;
+  min-height: 132px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+#viewFinanceiro .fin-act-report {
+  cursor: default;
+}
+
+#viewFinanceiro .fin-act-attention-count {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+#viewFinanceiro .fin-act-attention-title {
+  font-weight: 800;
+}
+
+#viewFinanceiro .fin-act-attention-go {
+  margin-top: auto;
+  color: var(--fin-act-blue);
+  font-weight: 800;
+  font-size: 0.86rem;
+}
+
+#viewFinanceiro .fin-act-attention-card--red .fin-act-attention-count { color: var(--fin-act-red); }
+#viewFinanceiro .fin-act-attention-card--amber .fin-act-attention-count { color: var(--fin-act-amber); }
+#viewFinanceiro .fin-act-attention-card--green .fin-act-attention-count { color: var(--fin-act-green); }
+
+#viewFinanceiro .fin-act-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+#viewFinanceiro .fin-act-section-head h3 {
+  margin: 0;
+}
+
+#viewFinanceiro .fin-act-linkish {
+  border: 0;
+  background: none;
+  color: var(--fin-act-blue);
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0;
+}
+
+#viewFinanceiro .fin-act-history,
+#finActDetailModal .fin-act-history {
+  margin: 0;
+  padding-left: 18px;
+  color: #475569;
+}
+
+#viewFinanceiro .fin-act-primary {
+  background: var(--fin-act-blue);
+  color: #fff;
+  border: 1px solid var(--fin-act-blue);
+  border-radius: 10px;
+  min-height: 42px;
+  padding: 8px 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+#finActDetailModal .fin-act-vehicle-link {
+  border: 0;
+  background: none;
+  color: var(--fin-act-blue);
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0;
+  text-align: right;
+}
+
+#viewFinanceiro .fin-act-fin-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+#viewFinanceiro .fin-act-fin-kpis div {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+#viewFinanceiro .fin-act-fin-kpis span {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--fin-act-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+@media (max-width: 980px) {
+  #viewFinanceiro .fin-act-attention-grid,
+  #viewFinanceiro .fin-act-report-grid,
+  #viewFinanceiro .fin-act-fin-kpis {
+    grid-template-columns: 1fr;
+  }
+}

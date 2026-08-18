@@ -6732,7 +6732,7 @@
       }
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme9" />
-    <link rel="stylesheet" href="/finance-action-ui.css?v=20260818finact2" />
+    <link rel="stylesheet" href="/finance-action-ui.css?v=20260818finact3" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260818vistui10" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile17" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
@@ -7381,21 +7381,29 @@
         </div>
 
         <div id="viewFinanceiro" class="panel hidden finance-module-shell">
-          <div class="toolbar">
+          <div class="toolbar fin-act-pagehead">
             <div>
               <h2 style="margin: 0">Financeiro</h2>
+              <p class="fin-act-subtitle">Visão geral da situação financeira</p>
+              <p class="fin-act-period-range" id="finPeriodRangeLabel"></p>
             </div>
-            <div class="actions">
+            <div class="actions fin-act-head-actions">
+              <label class="fin-act-search-wrap" for="finGlobalSearch">
+                <span class="fin-act-sr">Pesquisar</span>
+                <input type="search" id="finGlobalSearch" placeholder="Placa, financeira, fornecedor, valor ou data" autocomplete="off" />
+              </label>
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar">X</button>
             </div>
           </div>
           <div class="finance-subnav" id="finSubnav">
             <button type="button" data-finance-subview-btn="dashboard" class="active">Início</button>
-            <button type="button" data-finance-subview-btn="financeiras">Financeiras</button>
-            <button type="button" data-finance-subview-btn="em_patio">Veículos no pátio</button>
-            <button type="button" data-finance-subview-btn="aguardando">Aguardando faturamento</button>
             <button type="button" data-finance-subview-btn="receber">Contas a receber</button>
             <button type="button" data-finance-subview-btn="pagar">Contas a pagar</button>
+            <button type="button" data-finance-subview-btn="financeiras">Financeiras</button>
+            <button type="button" data-finance-subview-btn="lancamentos">Lançamentos</button>
+            <button type="button" data-finance-subview-btn="relatorios">Relatórios</button>
+            <button type="button" data-finance-subview-btn="em_patio">Veículos no pátio</button>
+            <button type="button" data-finance-subview-btn="aguardando">Aguardando faturamento</button>
             <button type="button" data-finance-subview-btn="caixa">Caixa</button>
             <button type="button" data-finance-subview-btn="cadastros">Cadastros</button>
           </div>
@@ -7603,6 +7611,30 @@
 
           <div class="finance-subview hidden" data-finance-subview="financeiras">
             <div id="finFinanceirasRoot" class="fin-act-panel"></div>
+          </div>
+
+          <div class="finance-subview hidden" data-finance-subview="lancamentos">
+            <div class="fin-act-chips" id="finLancamentosChips" aria-label="Filtros de lançamentos"></div>
+            <div class="fin-toolbar">
+              <div>
+                <label for="finLancamentosSearch">Busca</label>
+                <input id="finLancamentosSearch" type="search" placeholder="Placa, financeira, fornecedor, nº, valor ou data" autocomplete="off" />
+              </div>
+              <div>
+                <label for="finLancamentosCategoria">Categoria</label>
+                <select id="finLancamentosCategoria"><option value="">Todas</option></select>
+              </div>
+              <div>
+                <label for="finLancamentosFinanceira">Financeira</label>
+                <select id="finLancamentosFinanceira"><option value="">Todas</option></select>
+              </div>
+            </div>
+            <div id="finLancamentosRoot" class="fin-act-launch-host"></div>
+            <button type="button" class="secondary hidden" id="finLancamentosMore">Carregar mais</button>
+          </div>
+
+          <div class="finance-subview hidden" data-finance-subview="relatorios">
+            <div id="finRelatoriosRoot" class="fin-act-panel"></div>
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="caixa">
@@ -8700,11 +8732,11 @@
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
-    <script src="/finance-module.js?v=20260818finact2"></script>
+    <script src="/finance-module.js?v=20260818finact3"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
-    <script src="/financial-metrics-service.js?v=20260818finact2"></script>
-    <script src="/financial-dashboard-ui.js?v=20260818finact2"></script>
-    <script src="/finance-action-ui.js?v=20260818finact2"></script>
+    <script src="/financial-metrics-service.js?v=20260818finact3"></script>
+    <script src="/financial-dashboard-ui.js?v=20260818finact3"></script>
+    <script src="/finance-action-ui.js?v=20260818finact3"></script>
     <script src="/patio-dashboard.js?v=20260715gestor"></script>
     <script src="/operational-metrics-service.js?v=20260727opsdash"></script>
     <script src="/operational-dashboard-ui.js?v=20260813opscontrast"></script>
@@ -15047,6 +15079,8 @@
         aguardando: "Aguardando faturamento",
         receber: "Contas a receber",
         pagar: "Contas a pagar",
+        lancamentos: "Lançamentos",
+        relatorios: "Relatórios",
         caixa: "Caixa",
         cadastros: "Cadastros",
       };
@@ -17632,6 +17666,14 @@
         await refreshFichaIfOpen(vehicle.id);
         nfseModal.classList.remove("hidden");
       }
+
+      window.openVehicleFromFinance = async function openVehicleFromFinance(vehicleOrId) {
+        const id = vehicleOrId && typeof vehicleOrId === "object" ? vehicleOrId.id : vehicleOrId;
+        const fromObj = vehicleOrId && typeof vehicleOrId === "object" && vehicleOrId.placa ? vehicleOrId : null;
+        const v = fromObj || (state.vehicles || []).find((x) => String(x.id) === String(id));
+        if (!v) return;
+        await openFicha(v);
+      };
 
       async function openFicha(vehicle) {
         if (fichaModalTitle) {
