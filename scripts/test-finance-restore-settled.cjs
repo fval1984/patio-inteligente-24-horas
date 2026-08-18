@@ -163,6 +163,24 @@ function testPaidHistoryAndArchivePlateAreEvidence() {
   assert.ok(!plan.restoreReceivables.some((r) => r.id === "r-open"));
 }
 
+function testCollapsesSameCycleRestoresToOnePaid() {
+  const plan = planFinanceRestoreSettled({
+    vehicles: [{ id: "v1", placa: "QQJ9G76", localizador_id: "f1", data_saida: "2026-04-23", payment_status: "PAGO" }],
+    partners: [{ id: "f1", nome: "Banco Alpha" }],
+    receivables: [
+      { id: "a", vehicle_id: "v1", valor: 760, status: "EM_ABERTO", period_end: "2026-04-23" },
+      { id: "b", vehicle_id: "v1", valor: 760, status: "EM_ABERTO", period_end: "2026-04-23" },
+      { id: "c", vehicle_id: "v1", valor: 400, status: "EM_ABERTO", period_end: "2026-04-23" },
+    ],
+    payables: [],
+    cash: [],
+    paidHistory: [],
+  });
+  assert.strictEqual(plan.restoreReceivables.length, 1);
+  assert.strictEqual(plan.restoreReceivables[0].id, "a");
+  assert.strictEqual(plan.hideDuplicates.length, 2);
+}
+
 function testDoesNotInventCashOrPayEverything() {
   const plan = planFinanceRestoreSettled({
     receivables: [
@@ -185,6 +203,7 @@ const tests = [
   ["não marca tudo como pago", testDoesNotInventCashOrPayEverything],
   ["archive e payment_status do veículo são evidência", testArchiveAndVehiclePaymentAreEvidence],
   ["histórico de placa e archive por descrição são evidência", testPaidHistoryAndArchivePlateAreEvidence],
+  ["várias duplicatas do mesmo ciclo geram uma baixa só", testCollapsesSameCycleRestoresToOnePaid],
 ];
 for (const [name, fn] of tests) {
   try {

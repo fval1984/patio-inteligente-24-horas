@@ -354,6 +354,38 @@ function planFinanceRestoreSettled(snapshot) {
     });
   }
 
+  const restoreByCycle = new Map();
+  const restoreReceivablesKept = [];
+  for (const row of restoreReceivables) {
+    const k = row.vehicleId && row.periodEnd ? `${row.vehicleId}|${row.periodEnd}` : "";
+    if (!k) {
+      restoreReceivablesKept.push(row);
+      continue;
+    }
+    if (!restoreByCycle.has(k)) restoreByCycle.set(k, []);
+    restoreByCycle.get(k).push(row);
+  }
+  restoreReceivables.length = 0;
+  for (const row of restoreReceivablesKept) restoreReceivables.push(row);
+  for (const [k, items] of restoreByCycle) {
+    items.sort((a, b) => {
+      const ac = a.cashId ? 1 : 0;
+      const bc = b.cashId ? 1 : 0;
+      if (bc !== ac) return bc - ac;
+      return money(b.valor) - money(a.valor);
+    });
+    restoreReceivables.push(items[0]);
+    for (const extra of items.slice(1)) {
+      hideDuplicates.push({
+        ...extra,
+        statusCorreto: "duplicata (ciclo já restaurado)",
+        acao: "hide_duplicate",
+        motivo: "Mesmo veículo e mesma saída de um título que será restaurado. Não duplicar baixa.",
+        evidencia: `ciclo ${k} canônico ${items[0].id}`,
+      });
+    }
+  }
+
   for (const p of payables) {
     const st = statusOf(p);
     const fieldsNome = unpackFinanceMeta(p.observacoes || p.descricao || "").text || p.descricao || p.fornecedor || "";
