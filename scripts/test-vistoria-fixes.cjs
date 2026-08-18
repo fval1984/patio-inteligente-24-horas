@@ -166,11 +166,48 @@ function testClassificationMerge() {
     assert.strictEqual(truncated.classifications[key], backupAll[key], `item ${key} deve reaparecer`);
   }
 
-  const { inferVariantFromDetail } = insp.vehicleEntryInspection;
+  const { inferVariantFromDetail, hydrateInspectionItems, canonicalItemKey } = insp.vehicleEntryInspection;
   assert.strictEqual(
     inferVariantFromDetail({ inspection_variant: null }, [{ item_key: "moto_farol", classification: "BOM" }], {}),
     "MOTOS"
   );
+
+  const inspectionId = "11111111-2222-4333-8444-555555555555";
+  assert.strictEqual(canonicalItemKey(`interno_painel::${inspectionId}`), "interno_painel");
+  assert.strictEqual(canonicalItemKey("mec_motor"), "mec_motor");
+
+  const sevenKeys = [
+    "rod_pneu_dd",
+    "rod_pneu_de",
+    "rod_pneu_td",
+    "rod_pneu_te",
+    "rod_estepe",
+    "rod_calotas",
+    "rod_liga_leve",
+  ];
+  const snapshot = [];
+  const allKeys = ["interno_painel", "mec_motor", "eq_radio", ...sevenKeys];
+  const draft7 = { classifications: {} };
+  allKeys.forEach((k) => {
+    draft7.classifications[k] = null;
+    snapshot.push({ item_key: k, classification: k === "mec_motor" ? "REGULAR" : "BOM" });
+  });
+  const tableOnlySeven = sevenKeys.map((k) => ({
+    item_key: `${k}::${inspectionId}`,
+    classification: "BOM",
+  }));
+  const hydrated = hydrateInspectionItems(tableOnlySeven, {
+    __item_classifications: Object.fromEntries(snapshot.map((r) => [r.item_key, r.classification])),
+    __inspection_items: snapshot,
+  });
+  assert.strictEqual(hydrated.length, allKeys.length, "snapshot completa os itens que a tabela não trouxe");
+  applyStoredClassifications(draft7, hydrated, {
+    __inspection_items: snapshot,
+    __item_classifications: Object.fromEntries(snapshot.map((r) => [r.item_key, r.classification])),
+  });
+  allKeys.forEach((k) => {
+    assert.ok(draft7.classifications[k], `marcação de ${k} deve reaparecer`);
+  });
 }
 
 function testPersistBackupHelpers() {
@@ -180,7 +217,10 @@ function testPersistBackupHelpers() {
   assert.match(src, /withClassificationBackup/);
   assert.match(src, /onConflict: "inspection_id,item_key"/);
   assert.match(src, /INSPECTION_ROW_PAGE = 50/);
-  assert.match(src, /fetchAllRowsByInspectionId/);
+  assert.match(src, /ITEM_SNAPSHOT_BACKUP_KEY = "__inspection_items"/);
+  assert.match(src, /hydrateInspectionItems/);
+  assert.match(src, /canonicalItemKey/);
+  assert.match(src, /item_key}::\$\{inspectionId\}/);
   const sql = fs.readFileSync(path.join(root, "supabase/vehicle_entry_inspection_items_persist.sql"), "utf8");
   assert.match(sql, /UNIQUE \(inspection_id, item_key\)/);
 }

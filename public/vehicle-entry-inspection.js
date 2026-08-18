@@ -151,6 +151,36 @@
     return `vei_draft_v3_${String(vehicleId || "")}`;
   }
 
+  function savedClassificationsStorageKey(inspectionId) {
+    return `vei_saved_cls_v1_${String(inspectionId || "")}`;
+  }
+
+  function persistSavedClassifications(inspectionId, classifications) {
+    if (!inspectionId || !classifications) return;
+    try {
+      const payload = {};
+      Object.keys(classifications).forEach((k) => {
+        const cls = normalizeClassificationValue(classifications[k]);
+        if (k && cls) payload[k] = cls;
+      });
+      localStorage.setItem(savedClassificationsStorageKey(inspectionId), JSON.stringify(payload));
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function loadSavedClassifications(inspectionId) {
+    if (!inspectionId) return null;
+    try {
+      const raw = localStorage.getItem(savedClassificationsStorageKey(inspectionId));
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   function persistDraftToStorage(vehicleId, draft) {
     if (!vehicleId || !draft) return;
     try {
@@ -1480,12 +1510,21 @@
     if (stored === "LEVE" || stored === "PESADOS" || stored === "TRATORES" || stored === "MOTOS") return stored;
     const keys = new Set();
     (items || []).forEach((it) => {
-      if (it?.item_key) keys.add(String(it.item_key));
+      const key = canonicalItemKey(it?.item_key);
+      if (key) keys.add(key);
     });
-    const backup = formExtras?.__item_classifications;
+    const extras = parseFormExtras(formExtras);
+    const backup = extras.__item_classifications;
     if (backup && typeof backup === "object") {
-      Object.keys(backup).forEach((k) => keys.add(k));
+      Object.keys(backup).forEach((k) => {
+        const key = canonicalItemKey(k);
+        if (key) keys.add(key);
+      });
     }
+    (Array.isArray(extras.__inspection_items) ? extras.__inspection_items : []).forEach((row) => {
+      const key = canonicalItemKey(row?.item_key);
+      if (key) keys.add(key);
+    });
     const list = Array.from(keys);
     if (list.some((k) => String(k).startsWith("moto_"))) return "MOTOS";
     if (list.some((k) => String(k).startsWith("trat_"))) return "TRATORES";
@@ -1493,10 +1532,73 @@
     return "LEVE";
   }
 
+  function canonicalItemKey(raw) {
+    const s = String(raw || "").trim();
+    const m = s.match(
+      /^(.*)(?:::|__)([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
+    );
+    return m ? m[1] : s;
+  }
+
+  function extrasWithClassificationBackup(draft, items) {
+    const extras = { ...(draft?.formExtras || {}) };
+    const prevBackup =
+      extras.__item_classifications && typeof extras.__item_classifications === "object"
+        ? extras.__item_classifications
+        : {};
+    const backup = { ...prevBackup };
+    const snapshotByKey = new Map();
+    (Array.isArray(extras.__inspection_items) ? extras.__inspection_items : []).forEach((row) => {
+      const key = canonicalItemKey(row?.item_key);
+      if (key) snapshotByKey.set(key, { ...row, item_key: key });
+    });
+    (items || []).forEach((it) => {
+      const key = canonicalItemKey(it?.item_key);
+      const cls = normalizeClassificationValue(it?.classification);
+      if (!key || !cls) return;
+      backup[key] = cls;
+      snapshotByKey.set(key, {
+        item_key: key,
+        item_label: it.item_label || "",
+        category: it.category || "",
+        classification: cls,
+      });
+    });
+    extras.__item_classifications = backup;
+    extras.__inspection_items = Array.from(snapshotByKey.values());
+    return extras;
+  }
+
+  function hydrateInspectionItems(items, formExtras) {
+    const extras = parseFormExtras(formExtras);
+    const byKey = new Map();
+    function add(row) {
+      if (!row || typeof row !== "object") return;
+      const key = canonicalItemKey(row.item_key || row.key);
+      if (!key) return;
+      const cls = normalizeClassificationValue(row.classification) || String(row.classification || "").trim();
+      const prev = byKey.get(key);
+      if (!prev) {
+        byKey.set(key, { ...row, item_key: key, classification: cls || row.classification });
+        return;
+      }
+      if (cls) prev.classification = cls;
+      if (!prev.item_label && row.item_label) prev.item_label = row.item_label;
+      if (!prev.category && row.category) prev.category = row.category;
+    }
+    (Array.isArray(extras.__inspection_items) ? extras.__inspection_items : []).forEach(add);
+    (items || []).forEach(add);
+    const backup = extras.__item_classifications;
+    if (backup && typeof backup === "object") {
+      Object.keys(backup).forEach((k) => add({ item_key: k, classification: backup[k] }));
+    }
+    return Array.from(byKey.values());
+  }
+
   function applyClassificationToDraft(draft, byLabel, key, label, cls, onlyIfEmpty) {
     const value = normalizeClassificationValue(cls);
     if (!value) return;
-    const itemKey = String(key || "").trim();
+    const itemKey = canonicalItemKey(key);
     const labelKey = byLabel.get(String(label || "").trim().toLowerCase());
     const target =
       itemKey && Object.prototype.hasOwnProperty.call(draft.classifications, itemKey)
@@ -1516,13 +1618,13 @@
     });
     const itemsByKey = new Map();
     (items || []).forEach((it) => {
-      const key = String(it?.item_key || it?.key || "").trim();
+      const key = canonicalItemKey(it?.item_key || it?.key);
       if (key) itemsByKey.set(key, it);
       applyClassificationToDraft(draft, byLabel, key, it?.item_label || it?.label, it?.classification, false);
     });
     if (backup && typeof backup === "object") {
       Object.keys(backup).forEach((k) => {
-        const row = itemsByKey.get(k);
+        const row = itemsByKey.get(canonicalItemKey(k));
         applyClassificationToDraft(
           draft,
           byLabel,
@@ -1543,7 +1645,8 @@
     draft.generalNotes = detail.inspection?.general_notes || "";
     draft.diagramMarkers = normalizeDiagramMarkers(detail.inspection?.diagram_markers);
     Object.assign(draft.formExtras, extras);
-    applyStoredClassifications(draft, detail.items, extras);
+    applyStoredClassifications(draft, hydrateInspectionItems(detail.items, extras), extras);
+    applyStoredClassifications(draft, [], { __item_classifications: loadSavedClassifications(detail.inspection?.id) });
     draft.damages = (detail.damages || []).map((d) => ({
       id: d.id,
       item_key: d.item_key,
@@ -1709,9 +1812,10 @@
     const clientItems = await fetchRowsByInspection(ctx, "vehicle_entry_inspection_items", id);
     const clientDamages = await fetchRowsByInspection(ctx, "vehicle_entry_inspection_damages", id);
     const clientPhotos = await fetchRowsByInspection(ctx, "vehicle_entry_inspection_photos", id);
-    const items = mergeInspectionRows(fromApi?.items, clientItems, "item_key");
+    let items = mergeInspectionRows(fromApi?.items, clientItems, "item_key");
     const damages = mergeInspectionRows(fromApi?.damages, clientDamages, "item_key");
     const photos = mergeInspectionRows(fromApi?.photos, clientPhotos, "storage_path");
+    items = hydrateInspectionItems(items, inspection.form_extras || fromApi?.inspection?.form_extras);
 
     const photoUrls = [];
     for (const p of photos || []) {
@@ -1847,6 +1951,7 @@
       }
       const items = buildInspectionItemsPayload(draft);
       const damages = buildDamagesPayload(draft).map(({ client_key, ...d }) => d);
+      const formExtras = extrasWithClassificationBackup(draft, items);
       const isUpdate = !!_session?.editingInspectionId;
       const res = await fetch(
         isUpdate ? "/api/vehicles/update-entry-inspection" : "/api/vehicles/complete-entry-inspection",
@@ -1860,7 +1965,7 @@
                   inspection_id: _session.editingInspectionId,
                   vehicle_id: _session.vehicle.id,
                   inspection_variant: draft.inspectionVariant || "LEVE",
-                  form_extras: draft.formExtras || {},
+                  form_extras: formExtras,
                   general_notes: draft.generalNotes,
                   diagram_markers: normalizeDiagramMarkers(draft.diagramMarkers),
                   items,
@@ -1870,7 +1975,7 @@
                   access_token: session,
                   vehicle_id: _session.vehicle.id,
                   inspection_variant: draft.inspectionVariant || "LEVE",
-                  form_extras: draft.formExtras || {},
+                  form_extras: formExtras,
                   general_notes: draft.generalNotes,
                   diagram_markers: normalizeDiagramMarkers(draft.diagramMarkers),
                   items,
@@ -1942,6 +2047,7 @@
 
       const wasEntryFlow = !_session.retroactive && !isUpdate;
       const completedVehicle = _session.vehicle;
+      persistSavedClassifications(json.inspection_id, draft.classifications);
       clearDraftStorage(completedVehicle?.id);
       alert(
         isUpdate
@@ -2224,6 +2330,9 @@
     normalizeDiagramMarkers,
     getDiagramSrc: diagramSrcForDraft,
     applyStoredClassifications,
+    hydrateInspectionItems,
+    canonicalItemKey,
+    extrasWithClassificationBackup,
     normalizeClassificationValue,
     inferVariantFromDetail,
   };

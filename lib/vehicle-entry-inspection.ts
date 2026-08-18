@@ -125,6 +125,7 @@ const VALID_CLASSIFICATIONS = new Set([
 
 /** Cópia das classificações em form_extras — recupera a vistoria se a tabela de itens falhar ou vier vazia. */
 export const ITEM_CLASSIFICATIONS_BACKUP_KEY = "__item_classifications";
+export const ITEM_SNAPSHOT_BACKUP_KEY = "__inspection_items";
 
 export function normalizeInspectionClassification(raw: unknown): InspectionClassification | "" {
   const s = String(raw || "")
@@ -137,35 +138,96 @@ export function normalizeInspectionClassification(raw: unknown): InspectionClass
   return "";
 }
 
+/** Unique global em item_key força sufixo `::inspectionId` na 2ª vistoria. */
+export function canonicalItemKey(raw: unknown): string {
+  const s = String(raw || "").trim();
+  const m = s.match(
+    /^(.*)(?:::|__)([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
+  );
+  return m ? m[1] : s;
+}
+
 export function withClassificationBackup(
   formExtras: Record<string, unknown> | undefined,
   items: InspectionItemPayload[]
 ): Record<string, unknown> {
   const extras: Record<string, unknown> = { ...(formExtras || {}) };
-  const backup: Record<string, InspectionClassification> = {};
+  const backup: Record<string, InspectionClassification> = {
+    ...classificationsFromBackup(extras),
+  };
+  const snapshotByKey = new Map<string, Record<string, unknown>>();
+  const prevSnap = extras[ITEM_SNAPSHOT_BACKUP_KEY];
+  if (Array.isArray(prevSnap)) {
+    for (const row of prevSnap) {
+      if (!row || typeof row !== "object") continue;
+      const rec = row as Record<string, unknown>;
+      const key = canonicalItemKey(rec.item_key);
+      if (key) snapshotByKey.set(key, { ...rec, item_key: key });
+    }
+  }
   for (const it of items || []) {
-    const key = String(it?.item_key || "").trim();
+    const key = canonicalItemKey(it?.item_key);
     const cls = normalizeInspectionClassification(it?.classification);
-    if (key && cls) backup[key] = cls;
+    if (!key || !cls) continue;
+    backup[key] = cls;
+    snapshotByKey.set(key, {
+      item_key: key,
+      item_label: String(it.item_label || ""),
+      category: String(it.category || ""),
+      classification: cls,
+    });
   }
   extras[ITEM_CLASSIFICATIONS_BACKUP_KEY] = backup;
+  extras[ITEM_SNAPSHOT_BACKUP_KEY] = Array.from(snapshotByKey.values());
   return extras;
 }
 
 export function classificationsFromBackup(formExtras: unknown): Record<string, InspectionClassification> {
-  const extras =
-    formExtras && typeof formExtras === "object" && !Array.isArray(formExtras)
-      ? (formExtras as Record<string, unknown>)
-      : {};
+  const extras = parseInspectionFormExtras(formExtras);
   const raw = extras[ITEM_CLASSIFICATIONS_BACKUP_KEY];
   const out: Record<string, InspectionClassification> = {};
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
   for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
-    const k = String(key || "").trim();
+    const k = canonicalItemKey(key);
     const cls = normalizeInspectionClassification(value);
     if (k && cls) out[k] = cls;
   }
   return out;
+}
+
+export function hydrateInspectionItems(
+  items: Record<string, unknown>[] | null | undefined,
+  formExtras: unknown
+): Record<string, unknown>[] {
+  const extras = parseInspectionFormExtras(formExtras);
+  const byKey = new Map<string, Record<string, unknown>>();
+
+  const add = (row: Record<string, unknown> | null | undefined) => {
+    if (!row || typeof row !== "object") return;
+    const key = canonicalItemKey(row.item_key || row.key);
+    if (!key) return;
+    const cls =
+      normalizeInspectionClassification(row.classification) ||
+      String(row.classification || "").trim();
+    const prev = byKey.get(key);
+    if (!prev) {
+      byKey.set(key, { ...row, item_key: key, classification: cls || row.classification });
+      return;
+    }
+    if (cls) prev.classification = cls;
+    if (!prev.item_label && row.item_label) prev.item_label = row.item_label;
+    if (!prev.category && row.category) prev.category = row.category;
+  };
+
+  const snap = extras[ITEM_SNAPSHOT_BACKUP_KEY];
+  if (Array.isArray(snap)) {
+    for (const row of snap) add(row as Record<string, unknown>);
+  }
+  (items || []).forEach((row) => add(row));
+  for (const [key, cls] of Object.entries(classificationsFromBackup(extras))) {
+    add({ item_key: key, classification: cls });
+  }
+  return Array.from(byKey.values());
 }
 
 const INSPECTION_ROW_PAGE = 50;
@@ -214,9 +276,32 @@ async function persistInspectionItemChunk(
       if (updErr) return updErr.message || "Erro ao gravar itens da vistoria.";
     } else {
       const { error: oneErr } = await admin.from("vehicle_entry_inspection_items").insert(it);
-      if (oneErr && !/duplicate|unique|conflict/i.test(oneErr.message || "")) {
+      if (!oneErr) continue;
+      if (!/duplicate|unique|conflict/i.test(oneErr.message || "")) {
         return oneErr.message || "Erro ao gravar itens da vistoria.";
       }
+      const suffixedKey = `${it.item_key}::${inspectionId}`;
+      const { data: suffixed } = await admin
+        .from("vehicle_entry_inspection_items")
+        .select("id")
+        .eq("inspection_id", inspectionId)
+        .eq("item_key", suffixedKey)
+        .maybeSingle();
+      if (suffixed?.id) {
+        await admin
+          .from("vehicle_entry_inspection_items")
+          .update({
+            category: it.category,
+            item_label: it.item_label,
+            classification: it.classification,
+          })
+          .eq("id", suffixed.id);
+        continue;
+      }
+      await admin.from("vehicle_entry_inspection_items").insert({
+        ...it,
+        item_key: suffixedKey,
+      });
     }
   }
   return null;
@@ -410,7 +495,7 @@ export async function updateVehicleEntryInspection(
   }
 
   const persistErr = await persistInspectionItems(admin, input.inspectionId, input.items);
-  if (persistErr) {
+  if (persistErr && !/duplicate|unique|conflict/i.test(persistErr)) {
     return { data: null, error: persistErr };
   }
 
@@ -585,16 +670,17 @@ export async function loadEntryInspectionDetail(
 
   const extras = parseInspectionFormExtras(inspection.form_extras);
   inspection.form_extras = extras;
+  const hydratedItems = hydrateInspectionItems(items || [], extras);
   inspection.inspection_variant = inferInspectionVariant({
     storedVariant: inspection.inspection_variant,
-    items: (items || []) as { item_key?: string | null }[],
+    items: hydratedItems as { item_key?: string | null }[],
     formExtras: extras,
   });
 
   return {
     data: {
       inspection,
-      items: (items || []) as Record<string, unknown>[],
+      items: hydratedItems,
       damages: (damages || []) as Record<string, unknown>[],
       photos: (photos || []) as Record<string, unknown>[],
     },
