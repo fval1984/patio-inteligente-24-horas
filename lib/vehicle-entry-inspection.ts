@@ -367,6 +367,35 @@ async function fetchAllRowsByInspectionId(
   return acc;
 }
 
+const PHOTO_STORAGE_BUCKET = "vehicle-inspection-photos";
+
+export async function attachSignedPhotoUrls(
+  admin: SupabaseClient,
+  photos: Record<string, unknown>[] | null | undefined
+): Promise<Record<string, unknown>[]> {
+  const list = (photos || []).map((p) => ({ ...p }));
+  const paths = Array.from(
+    new Set(list.map((p) => String(p.storage_path || "").trim()).filter(Boolean))
+  );
+  if (!paths.length) return list;
+  try {
+    const { data } = await admin.storage.from(PHOTO_STORAGE_BUCKET).createSignedUrls(paths, 60 * 60 * 12);
+    const byPath = new Map<string, string>();
+    (data || []).forEach((row) => {
+      const path = String(row?.path || "").trim();
+      const url = String(row?.signedUrl || "").trim();
+      if (path && url) byPath.set(path, url);
+    });
+    return list.map((p) => {
+      const path = String(p.storage_path || "").trim();
+      const url = String(p.url || byPath.get(path) || "");
+      return { ...p, url };
+    });
+  } catch {
+    return list;
+  }
+}
+
 export function validateInspectionItems(
   items: InspectionItemPayload[],
   variant?: string
@@ -671,6 +700,7 @@ export async function loadEntryInspectionDetail(
   const extras = parseInspectionFormExtras(inspection.form_extras);
   inspection.form_extras = extras;
   const hydratedItems = hydrateInspectionItems(items || [], extras);
+  const photosWithUrl = await attachSignedPhotoUrls(admin, photos || []);
   inspection.inspection_variant = inferInspectionVariant({
     storedVariant: inspection.inspection_variant,
     items: hydratedItems as { item_key?: string | null }[],
@@ -682,7 +712,7 @@ export async function loadEntryInspectionDetail(
       inspection,
       items: hydratedItems,
       damages: (damages || []) as Record<string, unknown>[],
-      photos: (photos || []) as Record<string, unknown>[],
+      photos: photosWithUrl,
     },
     error: null,
   };

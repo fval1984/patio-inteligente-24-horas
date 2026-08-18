@@ -1259,6 +1259,7 @@
     printDocument,
     downloadPdf,
     pdfFileName,
+    inferPhotoType,
     resolveStandardPhotoLabel,
     formatDamagePhotoLabel,
     computeSafePageCuts,

@@ -221,6 +221,8 @@ function testPersistBackupHelpers() {
   assert.match(src, /hydrateInspectionItems/);
   assert.match(src, /canonicalItemKey/);
   assert.match(src, /item_key}::\$\{inspectionId\}/);
+  assert.match(src, /attachSignedPhotoUrls/);
+  assert.match(src, /createSignedUrls/);
   const sql = fs.readFileSync(path.join(root, "supabase/vehicle_entry_inspection_items_persist.sql"), "utf8");
   assert.match(sql, /UNIQUE \(inspection_id, item_key\)/);
 }
@@ -328,6 +330,52 @@ function testManyPhotosPagination() {
   }
 }
 
+function testPhotosHydrateIntoDraft() {
+  const checklist = loadIife("public/vehicle-entry-inspection-checklist.js");
+  const photosMod = loadIife("public/vehicle-entry-inspection-photos-mobile.js", {
+    vehicleEntryInspectionChecklist: checklist.vehicleEntryInspectionChecklist,
+  });
+  const doc = loadIife("public/vehicle-entry-inspection-document.js", {
+    vehicleEntryInspectionChecklist: checklist.vehicleEntryInspectionChecklist,
+    vehicleEntryInspectionPhotosMobile: photosMod.vehicleEntryInspectionPhotosMobile,
+  });
+  const insp = loadIife("public/vehicle-entry-inspection.js", {
+    vehicleEntryInspectionChecklist: checklist.vehicleEntryInspectionChecklist,
+    vehicleEntryInspectionPhotosMobile: photosMod.vehicleEntryInspectionPhotosMobile,
+    vehicleEntryInspectionDocument: doc.vehicleEntryInspectionDocument,
+  });
+  const { applyPhotosToDraft } = insp.vehicleEntryInspection;
+  const draft = {
+    inspectionVariant: "LEVE",
+    standardPhotos: {},
+    itemDamagePhotos: {},
+    extraDamagePhotos: [],
+  };
+  applyPhotosToDraft(draft, [
+    {
+      photo_type: "front",
+      url: "https://example.com/front.jpg",
+      storage_path: "owner/inspections/abc/standard/1_front.jpg",
+    },
+    {
+      photo_type: "engine",
+      url: "https://example.com/engine.jpg",
+      file_name: "engine.jpg",
+    },
+    {
+      photo_type: "avaria_extra",
+      url: "https://example.com/avaria.jpg",
+      photo_label: "Para-choque",
+    },
+  ]);
+  assert.ok(draft.standardPhotos.front?.preview, "foto Frente deve voltar no rascunho");
+  assert.ok(draft.standardPhotos.engine?.preview, "foto Motor deve voltar no rascunho");
+  assert.strictEqual(draft.extraDamagePhotos.length, 1);
+
+  const src = require("fs").readFileSync(require("path").join(__dirname, "..", "public/vehicle-entry-inspection-document.js"), "utf8");
+  assert.match(src, /inferPhotoType,/);
+}
+
 let failed = 0;
 const tests = [
   ["legendas das fotos", testPhotoLabels],
@@ -337,6 +385,7 @@ const tests = [
   ["CSS A4 / impressão", testPrintCss],
   ["vistoria nº 1 e nº 2 independentes", testTwoInspectionsIndependent],
   ["PDF com várias fotografias", testManyPhotosPagination],
+  ["fotos gravadas voltam no rascunho", testPhotosHydrateIntoDraft],
 ];
 
 for (const [name, fn] of tests) {

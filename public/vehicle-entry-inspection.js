@@ -1647,6 +1647,7 @@
     Object.assign(draft.formExtras, extras);
     applyStoredClassifications(draft, hydrateInspectionItems(detail.items, extras), extras);
     applyStoredClassifications(draft, [], { __item_classifications: loadSavedClassifications(detail.inspection?.id) });
+    applyPhotosToDraft(draft, detail.photos);
     draft.damages = (detail.damages || []).map((d) => ({
       id: d.id,
       item_key: d.item_key,
@@ -1655,15 +1656,61 @@
       severity: d.severity,
       description: d.description,
       notes: d.notes,
-      photoPreview: (detail.photos || []).find((p) => p.damage_id === d.id)?.url || null,
+      photoPreview:
+        d.photoPreview ||
+        (detail.photos || []).find((p) => p.damage_id === d.id)?.url ||
+        null,
     }));
-    (detail.photos || []).forEach((p) => {
-      if (p.item_key && p.photo_type?.startsWith("avaria_item_")) {
-        const key = p.item_key || p.photo_type.replace("avaria_item_", "");
-        draft.itemDamagePhotos[key] = { preview: p.url, capturedAt: p.captured_at };
+    return draft;
+  }
+
+  function applyPhotosToDraft(draft, photos) {
+    if (!draft) return;
+    if (!draft.standardPhotos || typeof draft.standardPhotos !== "object") draft.standardPhotos = {};
+    if (!draft.itemDamagePhotos || typeof draft.itemDamagePhotos !== "object") draft.itemDamagePhotos = {};
+    if (!Array.isArray(draft.extraDamagePhotos)) draft.extraDamagePhotos = [];
+    const slots = global.vehicleEntryInspectionPhotosMobile?.getStandardSlots?.(draft) || [];
+    const slotKeys = slots.map((s) => s.key).filter(Boolean);
+    const infer = global.vehicleEntryInspectionDocument?.inferPhotoType;
+    (photos || []).forEach((p) => {
+      if (!p) return;
+      const url = p.url || p.preview || "";
+      const type = String(p.photo_type || p.type || "").trim();
+      if (type === "avaria_extra" || /^avaria_extra/i.test(type)) {
+        if (url && !draft.extraDamagePhotos.some((x) => x.preview === url || x.storage_path === p.storage_path)) {
+          draft.extraDamagePhotos.push({
+            preview: url,
+            storage_path: p.storage_path,
+            label: p.photo_label || p.label,
+            capturedAt: p.captured_at,
+          });
+        }
+        return;
+      }
+      if (type.startsWith("avaria_item_") || p.damage_id) {
+        const key = p.item_key || String(type).replace("avaria_item_", "");
+        if (key && url && !draft.itemDamagePhotos[key]) {
+          draft.itemDamagePhotos[key] = { preview: url, capturedAt: p.captured_at, storage_path: p.storage_path };
+        }
+        return;
+      }
+      let key = type;
+      if (!key || slotKeys.indexOf(key) < 0) {
+        key = infer ? infer(type, p.photo_label || p.file_name, p) : key;
+      }
+      if (!key || slotKeys.indexOf(key) < 0) {
+        const blob = `${p.file_name || ""} ${p.storage_path || ""}`;
+        key = slotKeys.find((k) => blob.indexOf(k) !== -1) || key;
+      }
+      if (key && url && !draft.standardPhotos[key]) {
+        draft.standardPhotos[key] = {
+          preview: url,
+          capturedAt: p.captured_at,
+          storage_path: p.storage_path,
+          label: p.photo_label,
+        };
       }
     });
-    return draft;
   }
 
   async function uploadItemDamagePhotos(ctx, inspectionId, draft, damageRows) {
@@ -1673,6 +1720,7 @@
     const damageByKey = new Map((damageRows || []).map((d) => [d.item_key, d]));
     for (const [itemKey, photo] of Object.entries(photos)) {
       if (!photo?.file && !photo?.preview) continue;
+      if (!photo.file && (photo.storage_path || /^https?:/i.test(String(photo.preview || "")))) continue;
       try {
         let blob;
         if (photo.file) blob = photo.file;
@@ -1725,21 +1773,37 @@
   }
 
   function mergeInspectionRows(primary, extra, keyField) {
-    const out = [];
-    const seenId = new Set();
-    const seenKey = new Set();
+    const byId = new Map();
+    const noId = [];
     function add(row) {
       if (!row || typeof row !== "object") return;
       const id = row.id != null ? String(row.id) : "";
-      const key = row[keyField] != null ? String(row[keyField]) : "";
-      if (id && seenId.has(id)) return;
-      if (!id && key && seenKey.has(key)) return;
-      if (id) seenId.add(id);
-      if (key) seenKey.add(key);
-      out.push(row);
+      if (id) {
+        const prev = byId.get(id);
+        if (!prev) {
+          byId.set(id, row);
+          return;
+        }
+        byId.set(id, {
+          ...prev,
+          ...row,
+          url: prev.url || row.url || "",
+          storage_path: prev.storage_path || row.storage_path || "",
+        });
+        return;
+      }
+      noId.push(row);
     }
     (primary || []).forEach(add);
     (extra || []).forEach(add);
+    const out = Array.from(byId.values());
+    const seenKey = new Set(out.map((r) => (r[keyField] != null ? String(r[keyField]) : "")).filter(Boolean));
+    noId.forEach((row) => {
+      const key = row[keyField] != null ? String(row[keyField]) : "";
+      if (key && seenKey.has(key)) return;
+      if (key) seenKey.add(key);
+      out.push(row);
+    });
     return out;
   }
 
@@ -1898,6 +1962,7 @@
     for (let i = 0; i < damages.length; i++) {
       const d = damages[i];
       if (!d.photoFile && !d.photoPreview) continue;
+      if (!d.photoFile && (d.storage_path || /^https?:/i.test(String(d.photoPreview || "")))) continue;
       try {
         let blob;
         if (d.photoFile) blob = d.photoFile;
@@ -2330,6 +2395,7 @@
     normalizeDiagramMarkers,
     getDiagramSrc: diagramSrcForDraft,
     applyStoredClassifications,
+    applyPhotosToDraft,
     hydrateInspectionItems,
     canonicalItemKey,
     extrasWithClassificationBackup,
