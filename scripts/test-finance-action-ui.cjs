@@ -245,9 +245,12 @@ function testActionUiRender() {
 
 function testFilesStayInFinance() {
   const app = fs.readFileSync(path.join(root, "public/app.html"), "utf8");
+  const plan = fs.readFileSync(path.join(root, "public/finance-restore-settled-plan.js"), "utf8");
   assert.match(app, /finance-action-ui\.css\?v=20260818finact6/);
   assert.match(app, /finance-action-ui\.js\?v=20260818finact6/);
-  assert.match(app, /finance-restore-settled-plan\.js\?v=20260818restore6/);
+  assert.match(app, /finance-restore-settled-plan\.js\?v=20260818restore7/);
+  assert.match(plan, /\(function \(root\)/);
+  assert.doesNotMatch(plan, /^const toPeriodYmd/m);
   assert.match(app, /data-finance-subview-btn="financeiras"/);
   assert.match(app, /data-finance-subview-btn="lancamentos"/);
   assert.match(app, /data-finance-subview-btn="relatorios"/);

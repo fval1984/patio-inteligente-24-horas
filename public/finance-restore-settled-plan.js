@@ -3,7 +3,11 @@
  * Não altera dados. Não marca tudo como pago — só o que tem evidência de baixa.
  *
  * Corte: 18/08/2026 17:00 America/Sao_Paulo.
+ *
+ * IIFE: não vazar `toPeriodYmd` para o global — isso quebrava o login em app.html
+ * (Identifier 'toPeriodYmd' has already been declared).
  */
+(function (root) {
 "use strict";
 
 const RESTORE_SETTLED_CUTOFF_ISO = "2026-08-18T20:00:00.000Z";
@@ -498,6 +502,5 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = api;
   module.exports.default = api;
 }
-if (typeof globalThis !== "undefined") {
-  globalThis.financeRestoreSettledPlan = api;
-}
+if (root) root.financeRestoreSettledPlan = api;
+})(typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : this);
