@@ -123,6 +123,109 @@ const VALID_CLASSIFICATIONS = new Set([
   "INEXISTENTE",
 ]);
 
+/** Cópia das classificações em form_extras — recupera a vistoria se a tabela de itens falhar ou vier vazia. */
+export const ITEM_CLASSIFICATIONS_BACKUP_KEY = "__item_classifications";
+
+export function normalizeInspectionClassification(raw: unknown): InspectionClassification | "" {
+  const s = String(raw || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_")
+    .replace(/-/g, "_");
+  if (s === "SEMTESTE") return "SEM_TESTE";
+  if (VALID_CLASSIFICATIONS.has(s)) return s as InspectionClassification;
+  return "";
+}
+
+export function withClassificationBackup(
+  formExtras: Record<string, unknown> | undefined,
+  items: InspectionItemPayload[]
+): Record<string, unknown> {
+  const extras: Record<string, unknown> = { ...(formExtras || {}) };
+  const backup: Record<string, InspectionClassification> = {};
+  for (const it of items || []) {
+    const key = String(it?.item_key || "").trim();
+    const cls = normalizeInspectionClassification(it?.classification);
+    if (key && cls) backup[key] = cls;
+  }
+  extras[ITEM_CLASSIFICATIONS_BACKUP_KEY] = backup;
+  return extras;
+}
+
+export function classificationsFromBackup(formExtras: unknown): Record<string, InspectionClassification> {
+  const extras =
+    formExtras && typeof formExtras === "object" && !Array.isArray(formExtras)
+      ? (formExtras as Record<string, unknown>)
+      : {};
+  const raw = extras[ITEM_CLASSIFICATIONS_BACKUP_KEY];
+  const out: Record<string, InspectionClassification> = {};
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const k = String(key || "").trim();
+    const cls = normalizeInspectionClassification(value);
+    if (k && cls) out[k] = cls;
+  }
+  return out;
+}
+
+export async function persistInspectionItems(
+  admin: SupabaseClient,
+  inspectionId: string,
+  items: InspectionItemPayload[]
+): Promise<string | null> {
+  const payload = (items || [])
+    .map((it) => ({
+      inspection_id: inspectionId,
+      category: String(it.category || ""),
+      item_key: String(it.item_key || "").trim(),
+      item_label: String(it.item_label || ""),
+      classification: normalizeInspectionClassification(it.classification) || it.classification,
+    }))
+    .filter((it) => it.item_key && VALID_CLASSIFICATIONS.has(String(it.classification)));
+
+  if (!payload.length) return "Checklist vazio.";
+
+  const { error: upsertErr } = await admin
+    .from("vehicle_entry_inspection_items")
+    .upsert(payload, { onConflict: "inspection_id,item_key" });
+  if (!upsertErr) return null;
+
+  const { error: insertErr } = await admin.from("vehicle_entry_inspection_items").insert(payload);
+  if (!insertErr) return null;
+
+  const duplicate = /duplicate|unique|conflict/i.test(`${insertErr.message || ""} ${upsertErr.message || ""}`);
+  if (!duplicate) {
+    return insertErr.message || upsertErr.message || "Erro ao gravar itens da vistoria.";
+  }
+
+  for (const it of payload) {
+    const { data: existing, error: findErr } = await admin
+      .from("vehicle_entry_inspection_items")
+      .select("id")
+      .eq("inspection_id", inspectionId)
+      .eq("item_key", it.item_key)
+      .maybeSingle();
+    if (findErr) return findErr.message || "Erro ao gravar itens da vistoria.";
+    if (existing?.id) {
+      const { error: updErr } = await admin
+        .from("vehicle_entry_inspection_items")
+        .update({
+          category: it.category,
+          item_label: it.item_label,
+          classification: it.classification,
+        })
+        .eq("id", existing.id);
+      if (updErr) return updErr.message || "Erro ao gravar itens da vistoria.";
+    } else {
+      const { error: oneErr } = await admin.from("vehicle_entry_inspection_items").insert(it);
+      if (oneErr && !/duplicate|unique|conflict/i.test(oneErr.message || "")) {
+        return oneErr.message || "Erro ao gravar itens da vistoria.";
+      }
+    }
+  }
+  return null;
+}
+
 export function validateInspectionItems(
   items: InspectionItemPayload[],
   variant?: string
@@ -167,6 +270,8 @@ export async function completeVehicleEntryInspection(
   const itemErr = validateInspectionItems(input.items, variant);
   if (itemErr) return { data: null, error: itemErr };
 
+  const formExtras = withClassificationBackup(input.formExtras, input.items);
+
   const { data, error } = await admin.rpc("complete_vehicle_entry_inspection", {
     p_user_id: input.ownerUserId,
     p_vehicle_id: input.vehicleId,
@@ -177,7 +282,7 @@ export async function completeVehicleEntryInspection(
     p_items: input.items,
     p_damages: input.damages.map(({ client_key, ...rest }) => rest),
     p_inspection_variant: variant,
-    p_form_extras: input.formExtras || {},
+    p_form_extras: formExtras,
   });
 
   if (error) {
@@ -189,9 +294,18 @@ export async function completeVehicleEntryInspection(
     return { data: null, error: "Resposta inválida ao finalizar vistoria." };
   }
 
+  const inspectionId = String(row.inspection_id);
+  const persistErr = await persistInspectionItems(admin, inspectionId, input.items);
+  if (persistErr) {
+    await admin
+      .from("vehicle_entry_inspections")
+      .update({ form_extras: formExtras, updated_at: new Date().toISOString() })
+      .eq("id", inspectionId);
+  }
+
   return {
     data: {
-      inspection_id: String(row.inspection_id),
+      inspection_id: inspectionId,
       inspection_number: Number(row.inspection_number),
       vehicle_id: String(row.vehicle_id),
     },
@@ -224,13 +338,14 @@ export async function updateVehicleEntryInspection(
     return { data: null, error: "Somente vistorias concluídas podem ser editadas." };
   }
 
+  const formExtras = withClassificationBackup(input.formExtras, input.items);
   const now = new Date().toISOString();
   const { error: updErr } = await admin
     .from("vehicle_entry_inspections")
     .update({
       general_notes: input.generalNotes || "",
       diagram_markers: input.diagramMarkers || [],
-      form_extras: input.formExtras || {},
+      form_extras: formExtras,
       inspection_variant: variant,
       updated_at: now,
     })
@@ -240,24 +355,22 @@ export async function updateVehicleEntryInspection(
     return { data: null, error: updErr.message || "Erro ao atualizar vistoria." };
   }
 
-  const { error: delItemsErr } = await admin
-    .from("vehicle_entry_inspection_items")
-    .delete()
-    .eq("inspection_id", input.inspectionId);
-  if (delItemsErr) {
-    return { data: null, error: delItemsErr.message || "Erro ao atualizar itens da vistoria." };
+  const persistErr = await persistInspectionItems(admin, input.inspectionId, input.items);
+  if (persistErr) {
+    return { data: null, error: persistErr };
   }
 
-  const itemsPayload = input.items.map((it) => ({
-    inspection_id: input.inspectionId,
-    category: it.category,
-    item_key: it.item_key,
-    item_label: it.item_label,
-    classification: it.classification,
-  }));
-  const { error: itemsErr } = await admin.from("vehicle_entry_inspection_items").insert(itemsPayload);
-  if (itemsErr) {
-    return { data: null, error: itemsErr.message || "Erro ao gravar itens da vistoria." };
+  const keepKeys = new Set(input.items.map((it) => String(it.item_key || "").trim()).filter(Boolean));
+  const { data: existingItems } = await admin
+    .from("vehicle_entry_inspection_items")
+    .select("id, item_key")
+    .eq("inspection_id", input.inspectionId);
+  const staleIds = (existingItems || [])
+    .filter((row) => !keepKeys.has(String(row.item_key || "").trim()))
+    .map((row) => row.id)
+    .filter(Boolean);
+  if (staleIds.length) {
+    await admin.from("vehicle_entry_inspection_items").delete().in("id", staleIds);
   }
 
   const { error: delDmgErr } = await admin

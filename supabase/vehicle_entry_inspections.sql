@@ -263,7 +263,11 @@ BEGIN
       v_item->>'item_key',
       v_item->>'item_label',
       v_item->>'classification'
-    );
+    )
+    ON CONFLICT (inspection_id, item_key) DO UPDATE SET
+      category = EXCLUDED.category,
+      item_label = EXCLUDED.item_label,
+      classification = EXCLUDED.classification;
   END LOOP;
 
   FOR v_damage IN SELECT * FROM jsonb_array_elements(COALESCE(p_damages, '[]'::jsonb))

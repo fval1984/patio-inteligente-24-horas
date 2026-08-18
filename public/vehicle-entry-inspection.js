@@ -399,6 +399,9 @@
   }
 
   function closeModal() {
+    if (_session?.mode === "edit" && _session.vehicle?.id && _session.draft && !_session.editingInspectionId) {
+      persistDraftToStorage(_session.vehicle.id, _session.draft);
+    }
     _modalEl?.classList.add("hidden");
     _session = null;
     document.getElementById("veiHeadPrintBtn")?.classList.add("hidden");
@@ -420,7 +423,7 @@
       host.className = "vei-no-print";
       host.setAttribute("aria-hidden", "true");
       host.style.cssText =
-        "position:fixed;left:-20000px;top:0;width:794px;max-width:794px;overflow:hidden;pointer-events:none;opacity:0;";
+        "position:fixed;left:-20000px;top:0;width:794px;max-width:794px;overflow:visible;pointer-events:none;opacity:0;";
       backdrop.appendChild(host);
     }
     host.replaceChildren();
@@ -1447,6 +1450,33 @@
     });
   }
 
+  function normalizeClassificationValue(raw) {
+    const s = String(raw || "")
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "_")
+      .replace(/-/g, "_");
+    if (s === "SEMTESTE") return "SEM_TESTE";
+    if (s === "BOM" || s === "REGULAR" || s === "DANIFICADO" || s === "SEM_TESTE" || s === "INEXISTENTE") return s;
+    return "";
+  }
+
+  function applyStoredClassifications(draft, items, formExtras) {
+    const extras = formExtras && typeof formExtras === "object" ? formExtras : {};
+    const backup = extras.__item_classifications;
+    if (backup && typeof backup === "object") {
+      Object.keys(backup).forEach((k) => {
+        const cls = normalizeClassificationValue(backup[k]);
+        if (k && cls) draft.classifications[k] = cls;
+      });
+    }
+    (items || []).forEach((it) => {
+      const key = String(it?.item_key || it?.key || "").trim();
+      const cls = normalizeClassificationValue(it?.classification);
+      if (key && cls) draft.classifications[key] = cls;
+    });
+  }
+
   function detailToDraft(detail) {
     const variant = detail.inspection?.inspection_variant || "LEVE";
     const draft = emptyDraftForVariant(variant);
@@ -1456,9 +1486,7 @@
     if (detail.inspection?.form_extras && typeof detail.inspection.form_extras === "object") {
       Object.assign(draft.formExtras, detail.inspection.form_extras);
     }
-    (detail.items || []).forEach((it) => {
-      if (it.item_key) draft.classifications[it.item_key] = it.classification;
-    });
+    applyStoredClassifications(draft, detail.items, detail.inspection?.form_extras);
     draft.damages = (detail.damages || []).map((d) => ({
       id: d.id,
       item_key: d.item_key,
@@ -1504,7 +1532,7 @@
           inspection_id: inspectionId,
           damage_id: damageId,
           storage_path: path,
-          file_name: `${itemKey}.jpg`,
+          file_name: `avaria_item_${itemKey}.jpg`,
           photo_type: `avaria_item_${itemKey}`,
           photo_label: `${label} — Danificado`,
         });
@@ -1512,7 +1540,7 @@
           await ctx.supabase.from("vehicle_entry_inspection_photos").insert({
             inspection_id: inspectionId,
             storage_path: path,
-            file_name: `${itemKey}.jpg`,
+            file_name: `avaria_item_${itemKey}.jpg`,
           });
         }
       } catch (e) {
@@ -1536,20 +1564,67 @@
     return _schemaReady;
   }
 
-  async function loadInspectionDetail(ctx, inspectionId) {
-    const uid = ctx.effectiveUserId();
-    const { data: inspection, error } = await ctx.supabase
-      .from("vehicle_entry_inspections")
-      .select("*")
-      .eq("id", inspectionId)
-      .eq("user_id", uid)
-      .maybeSingle();
-    if (error || !inspection) return null;
+  async function fetchRowsByInspection(ctx, table, inspectionId) {
+    const acc = [];
+    const page = 1000;
+    for (let from = 0; from < 8000; from += page) {
+      const { data, error } = await ctx.supabase
+        .from(table)
+        .select("*")
+        .eq("inspection_id", inspectionId)
+        .order("id", { ascending: true })
+        .range(from, from + page - 1);
+      if (error) {
+        console.warn("vei fetch", table, error.message || error);
+        break;
+      }
+      const rows = data || [];
+      acc.push(...rows);
+      if (rows.length < page) break;
+    }
+    return acc;
+  }
 
-    const [{ data: items }, { data: damages }, { data: photos }] = await Promise.all([
-      ctx.supabase.from("vehicle_entry_inspection_items").select("*").eq("inspection_id", inspectionId),
-      ctx.supabase.from("vehicle_entry_inspection_damages").select("*").eq("inspection_id", inspectionId),
-      ctx.supabase.from("vehicle_entry_inspection_photos").select("*").eq("inspection_id", inspectionId),
+  async function loadInspectionByRef(ctx, inspectionRef, vehicleId) {
+    const uid = ctx.effectiveUserId();
+    const ref = String(inspectionRef || "").trim();
+    if (!ctx.supabase || !ref) return null;
+
+    const trySelect = async (builder) => {
+      const { data, error } = await builder.maybeSingle();
+      if (error) console.warn("vei load inspection", error.message || error);
+      return data || null;
+    };
+
+    let inspection = null;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ref)) {
+      inspection = await trySelect(ctx.supabase.from("vehicle_entry_inspections").select("*").eq("id", ref));
+      if (!inspection && uid) {
+        inspection = await trySelect(
+          ctx.supabase.from("vehicle_entry_inspections").select("*").eq("id", ref).eq("user_id", uid)
+        );
+      }
+    }
+    if (!inspection && /^\d+$/.test(ref)) {
+      let q = ctx.supabase.from("vehicle_entry_inspections").select("*").eq("inspection_number", Number(ref));
+      if (uid) q = q.eq("user_id", uid);
+      inspection = await trySelect(q.limit(1));
+    }
+    if (!inspection && vehicleId) {
+      inspection = await findCompletedInspectionForVehicle(ctx, vehicleId);
+    }
+    return inspection;
+  }
+
+  async function loadInspectionDetail(ctx, inspectionId, vehicleId) {
+    const inspection = await loadInspectionByRef(ctx, inspectionId, vehicleId);
+    if (!inspection) return null;
+    const id = inspection.id;
+
+    const [items, damages, photos] = await Promise.all([
+      fetchRowsByInspection(ctx, "vehicle_entry_inspection_items", id),
+      fetchRowsByInspection(ctx, "vehicle_entry_inspection_damages", id),
+      fetchRowsByInspection(ctx, "vehicle_entry_inspection_photos", id),
     ]);
 
     const photoUrls = [];
@@ -1567,14 +1642,28 @@
 
   async function findCompletedInspectionForVehicle(ctx, vehicleId) {
     const uid = ctx.effectiveUserId();
-    const { data } = await ctx.supabase
+    if (!ctx.supabase || !vehicleId) return null;
+    let q = ctx.supabase
       .from("vehicle_entry_inspections")
       .select("*")
-      .eq("user_id", uid)
       .eq("vehicle_id", vehicleId)
       .eq("inspection_type", "ENTRADA")
-      .eq("status", "CONCLUIDA")
-      .maybeSingle();
+      .eq("status", "CONCLUIDA");
+    if (uid) q = q.eq("user_id", uid);
+    const { data, error } = await q.order("inspection_number", { ascending: false }).limit(1).maybeSingle();
+    if (error) {
+      console.warn("vei find inspection", error.message || error);
+      const retry = await ctx.supabase
+        .from("vehicle_entry_inspections")
+        .select("*")
+        .eq("vehicle_id", vehicleId)
+        .eq("inspection_type", "ENTRADA")
+        .eq("status", "CONCLUIDA")
+        .order("inspection_number", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return retry.data || null;
+    }
     return data || null;
   }
 
@@ -1602,6 +1691,8 @@
             inspection_id: inspectionId,
             storage_path: path,
             file_name: safeName,
+            photo_type: d.item_key ? `avaria_item_${d.item_key}` : "avaria_extra",
+            photo_label: d.area_label || d.description || "Avaria",
           });
         }
       } catch (e) {
@@ -1840,7 +1931,7 @@
     ensureModal();
     setViewModalActionsVisible(false);
     document.getElementById("veiPrintHostHidden")?.replaceChildren();
-    const detail = await loadInspectionDetail(ctx, inspectionId);
+    const detail = await loadInspectionDetail(ctx, inspectionId, vehicle?.id);
     if (!detail) {
       alert("Vistoria não encontrada.");
       return;
@@ -1872,7 +1963,7 @@
 
   async function openViewModal(vehicle, ctx, inspectionId) {
     ensureModal();
-    const detail = await loadInspectionDetail(ctx, inspectionId);
+    const detail = await loadInspectionDetail(ctx, inspectionId, vehicle?.id);
     if (!detail) {
       alert("Vistoria não encontrada.");
       return;
@@ -2011,5 +2102,7 @@
     renderDiagramForPrint,
     normalizeDiagramMarkers,
     getDiagramSrc: diagramSrcForDraft,
+    applyStoredClassifications,
+    normalizeClassificationValue,
   };
 })(typeof window !== "undefined" ? window : globalThis);
