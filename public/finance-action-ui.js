@@ -57,7 +57,7 @@
           unpaid.length === 1
             ? `<button type="button" class="fin-act-primary" ${singleAttr}="${esc(unpaid[0])}">${actionLabel}</button>`
             : unpaid.length > 1
-              ? `<button type="button" class="fin-act-primary" ${actionAttr}="${esc(ids)}">${actionLabel}</button>`
+              ? `<button type="button" class="fin-act-primary" data-fin-act-detalhe="${esc(kind)}" data-fin-act-ids="${esc((c.allIds || []).join(","))}">${actionLabel}</button>`
               : "";
         return `<article class="fin-act-launch">
           <div>
@@ -122,6 +122,38 @@
       .map((r) => {
         const value = r.html ? String(r.value || "") : esc(r.value);
         return `<div><span>${esc(r.label)}</span><strong>${value}</strong></div>`;
+      })
+      .join("")}</div>`;
+  }
+
+  function renderReceberDetailItems(items) {
+    if (!items?.length) return `<p class="fin-act-empty">Nenhum registro neste grupo.</p>`;
+    return `<div class="fin-act-item-list">${items
+      .map((item) => {
+        const receiveBtn =
+          item.canReceive && item.id
+            ? `<button type="button" class="fin-act-primary" data-fin-receber-pg="${esc(item.id)}">Receber ${esc(item.amountLabel || "")}</button>`
+            : "";
+        const vehicleBtn = item.vehicleId
+          ? `<button type="button" class="secondary" data-fin-open-vehicle="${esc(item.vehicleId)}">${esc(item.placa || "Veículo")}</button>`
+          : "";
+        return `<article class="fin-act-item">
+          <div>
+            <h4>${esc(item.title)}</h4>
+            ${item.servico ? `<p class="fin-act-item-servico">Serviço: ${esc(item.servico)}</p>` : ""}
+            <p>${esc(item.subtitle || "")}</p>
+            <p>${esc(item.dueLabel || "")}</p>
+          </div>
+          <div>
+            <div class="fin-act-launch-amount">${esc(item.amountLabel)}</div>
+            <span class="${statusClass(item.statusKind)}">${esc(item.status)}</span>
+          </div>
+          <div class="fin-act-launch-actions">
+            ${receiveBtn}
+            ${vehicleBtn}
+          </div>
+          ${item.historyHtml ? `<div class="fin-act-item-hist"><h5>Histórico deste serviço</h5>${item.historyHtml}</div>` : ""}
+        </article>`;
       })
       .join("")}</div>`;
   }
@@ -224,6 +256,7 @@
     monthLabel,
     renderLaunchCards,
     renderLancamentoCards,
+    renderReceberDetailItems,
     renderAttentionCards,
     renderReportCards,
     openDetailModal,

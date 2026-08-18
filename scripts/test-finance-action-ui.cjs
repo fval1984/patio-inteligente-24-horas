@@ -143,8 +143,42 @@ function testActionUiRender() {
     "receber"
   );
   assert.match(html, /Banco XYZ/);
-  assert.match(html, /data-fin-group-receber="a,b"/);
+  assert.match(html, /data-fin-act-detalhe="receber"/);
+  assert.match(html, /data-fin-act-ids="a,b"/);
+  assert.doesNotMatch(html, /data-fin-group-receber="a,b"/);
   assert.match(html, /Detalhes/);
+  html = ui.renderReceberDetailItems([
+    {
+      id: "r1",
+      vehicleId: "v1",
+      placa: "ABC1D23",
+      title: "ABC1D23",
+      servico: "Guarda de pátio",
+      subtitle: "Onix · Entrada 01/08/2026",
+      dueLabel: "Vencimento: 20/08/2026",
+      amountLabel: "R$ 850,00",
+      status: "Vencido",
+      statusKind: "late",
+      canReceive: true,
+      historyHtml: "<ul><li>Criado em 01/08/2026</li></ul>",
+    },
+    {
+      id: "r2",
+      title: "DEF2E34",
+      servico: "Remoção de veículos",
+      amountLabel: "R$ 300,00",
+      status: "Pendente",
+      statusKind: "soon",
+      canReceive: true,
+      historyHtml: "<ul><li>Criado em 02/08/2026</li></ul>",
+    },
+  ]);
+  assert.match(html, /data-fin-receber-pg="r1"/);
+  assert.match(html, /data-fin-receber-pg="r2"/);
+  assert.match(html, /Serviço: Guarda de pátio/);
+  assert.match(html, /Serviço: Remoção de veículos/);
+  assert.match(html, /Histórico deste serviço/);
+  assert.match(html, /Receber R\$ 850,00/);
   ui.renderFinanceirasTable(
     host,
     [{ id: "f1", nome: "Financeira A", veiculos: 2, aReceberLabel: "R$ 10,00", recebidoLabel: "R$ 4,00", emAbertoLabel: "R$ 6,00" }],
@@ -163,8 +197,8 @@ function testActionUiRender() {
 
 function testFilesStayInFinance() {
   const app = fs.readFileSync(path.join(root, "public/app.html"), "utf8");
-  assert.match(app, /finance-action-ui\.css\?v=20260818finact3/);
-  assert.match(app, /finance-action-ui\.js\?v=20260818finact3/);
+  assert.match(app, /finance-action-ui\.css\?v=20260818finact4/);
+  assert.match(app, /finance-action-ui\.js\?v=20260818finact4/);
   assert.match(app, /data-finance-subview-btn="financeiras"/);
   assert.match(app, /data-finance-subview-btn="lancamentos"/);
   assert.match(app, /data-finance-subview-btn="relatorios"/);
@@ -186,6 +220,12 @@ function testFilesStayInFinance() {
   assert.match(mod, /financeRenderLancamentos/);
   assert.match(mod, /financeRunReport/);
   assert.match(mod, /openReceberBaixaModal|data-fin-receber-pg/);
+  assert.match(mod, /Histórico deste serviço|historyHtml/);
+  assert.match(mod, /financeReceivableServicoLabel/);
+  assert.doesNotMatch(
+    mod,
+    /financeIsManualReceivable\(r\) \? String\(r\.receivable_category \|\| r\.categoria \|\| ""\) : "GUARDA_PATIO"/
+  );
 }
 
 let failed = 0;

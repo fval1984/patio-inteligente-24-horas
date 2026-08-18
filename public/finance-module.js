@@ -4932,8 +4932,13 @@
         title = fields.fornecedor || "Conta a pagar";
         total += Number(p.valor || 0);
         const due = financeContaDueYmd(p, "payable");
+        const st = financePayableDisplayStatus(p);
+        const payBtn =
+          st !== "Pago"
+            ? `<button type="button" class="fin-act-primary" data-fin-pagar-pg="${escapeHtml(String(p.id))}">Pagar ${escapeHtml(formatCurrency(Number(p.valor || 0)))}</button>`
+            : "";
         lines.push(
-          `<tr><td>${escapeHtml(fields.descricao || "—")}</td><td>${escapeHtml(formatDate(due) || "—")}</td><td>${escapeHtml(formatCurrency(Number(p.valor || 0)))}</td><td>${escapeHtml(financePayableDisplayStatus(p))}</td></tr>`
+          `<tr><td>${escapeHtml(fields.descricao || "—")}</td><td>${escapeHtml(formatDate(due) || "—")}</td><td>${escapeHtml(formatCurrency(Number(p.valor || 0)))}</td><td>${escapeHtml(st)}</td><td>${payBtn}</td></tr>`
         );
       } else {
         const r = (state.receivables || []).find((x) => String(x.id) === String(id));
@@ -4943,14 +4948,6 @@
         if (r.vehicle_id) uniqueVehicles.add(String(r.vehicle_id));
         title = financeInstituicaoNome(v) || financeReceberRppNome(r, v) || "Conta a receber";
         total += Number(r.valor || 0);
-        const due = financeContaDueYmd(r, "receivable");
-        const hist = financeReceivableHasCaixa(r.id) ? "Com caixa" : r.status === "PAGO" ? "Recebido" : "Em aberto";
-        const plateCell = v?.id
-          ? financeVehicleLinkHtml(v)
-          : escapeHtml(v?.placa || financeReceivableDescricaoCellText(r, v) || "—");
-        lines.push(
-          `<tr><td>${plateCell}</td><td>${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</td><td>${escapeHtml(v?.data_entrada ? formatDate(v.data_entrada) : "—")}</td><td>${escapeHtml(v?.data_saida ? formatDate(v.data_saida) : "—")}</td><td>${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td><td>${escapeHtml(due ? formatDate(due) : "—")}</td><td>${escapeHtml(financeReceivableDisplayStatus(r))} · ${escapeHtml(hist)}</td></tr>`
-        );
       }
     });
     const first = recs[0] || null;
@@ -4971,28 +4968,71 @@
         { label: "Observações", value: fields.observacoes || "—" }
       );
     } else {
-      const paidAt = first && String(first.status || "").toUpperCase() === "PAGO" ? financeReceivableCashCompetenciaYmd(first) : "";
       rows.push(
         { label: "Financeira", value: financeInstituicaoNome(v0) },
         { label: "RPP", value: financeReceberRppNome(first, v0) },
         { label: "Quantidade de veículos", value: String(uniqueVehicles.size || idList.length) },
         { label: "Competência", value: globalThis.financeActionUi?.monthLabel?.(financeCompetenciaYm(first, v0, "receivable")) || "—" },
-        { label: "Valor total", value: formatCurrency(total) },
-        { label: "Vencimento", value: first ? formatDate(financeContaDueYmd(first, "receivable")) || "—" : "—" },
-        { label: "Status", value: first ? financeReceivableDisplayStatus(first) : "—" },
-        { label: "Data do recebimento", value: paidAt ? formatDate(paidAt) : "—" },
-        { label: "Forma de pagamento", value: first?.forma_pagamento || cash0?.forma_pagamento || "—" },
-        { label: "Observações", value: first ? financeReceivableTypedFields(first).observacoes || "—" : "—" }
+        { label: "Montante do grupo", value: formatCurrency(total) }
       );
     }
-    const table =
-      kind === "pagar"
-        ? `<div class="table-wrap"><table class="table fin-act-table"><thead><tr><th>Descrição</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead><tbody>${lines.join("")}</tbody></table></div>`
-        : `<div class="table-wrap"><table class="table fin-act-table"><thead><tr><th>Placa</th><th>Modelo</th><th>Entrada</th><th>Saída</th><th>Valor</th><th>Vencimento</th><th>Status</th></tr></thead><tbody>${lines.join("")}</tbody></table></div>`;
+    const unpaidIds = recs
+      .filter((x) =>
+        kind === "pagar"
+          ? financePayableDisplayStatus(x) !== "Pago"
+          : String(x.status || "").toUpperCase() !== "PAGO"
+      )
+      .map((x) => x.id);
+    let table = "";
+    if (kind === "pagar") {
+      table = `<div class="table-wrap"><table class="table fin-act-table"><thead><tr><th>Descrição</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>Ação</th></tr></thead><tbody>${lines.join("")}</tbody></table></div>`;
+      if (unpaidIds.length > 1) {
+        table =
+          `<p class="fin-act-detail-hint">O montante do grupo é ${escapeHtml(formatCurrency(total))}. Pague cada lançamento em separado.</p>
+          <div class="fin-act-launch-actions" style="margin:0 0 12px">
+            <button type="button" class="secondary" data-fin-group-pagar="${escapeHtml(unpaidIds.join(","))}">Pagar todos (${unpaidIds.length})</button>
+          </div>` + table;
+      }
+    } else {
+      const itemCards = recs.map((r) => {
+        const v = vmap.get(r.vehicle_id);
+        const st = financeReceivableDisplayStatus(r);
+        const due = financeContaDueYmd(r, "receivable");
+        const placa = v?.placa || financeReceivableDescricaoCellText(r, v) || "Lançamento";
+        const modelo = [v?.marca, v?.modelo].filter(Boolean).join(" ");
+        const servico = financeReceivableServicoLabel(r);
+        const desc = financeIsManualReceivable(r)
+          ? financeReceivableTypedFields(r).descricao
+          : financeReceivableDescricaoCellText(r, v);
+        return {
+          id: r.id,
+          vehicleId: v?.id || r.vehicle_id || "",
+          placa,
+          title: placa,
+          servico: servico && servico !== "—" ? servico : "",
+          subtitle: [desc && desc !== placa ? desc : modelo, v?.data_entrada ? `Entrada ${formatDate(v.data_entrada)}` : "", v?.data_saida ? `Saída ${formatDate(v.data_saida)}` : ""]
+            .filter(Boolean)
+            .join(" · "),
+          dueLabel: `Vencimento: ${due ? formatDate(due) : "—"}`,
+          amountLabel: formatCurrency(Number(r.valor || 0)),
+          status: st === "Atrasado" ? "Vencido" : st,
+          statusKind: financeStatusKindFromLabel(st === "Atrasado" ? "Vencido" : st),
+          canReceive: String(r.status || "").toUpperCase() !== "PAGO",
+          historyHtml: financeHistoryHtml([r], "receber"),
+        };
+      });
+      table = `<p class="fin-act-detail-hint">Cada serviço abaixo mantém o próprio valor e o histórico original. O montante do grupo é ${escapeHtml(formatCurrency(total))}.</p>`;
+      if (unpaidIds.length > 1) {
+        table += `<div class="fin-act-launch-actions" style="margin:0 0 12px">
+          <button type="button" class="secondary" data-fin-group-receber="${escapeHtml(unpaidIds.join(","))}">Receber todos (${unpaidIds.length})</button>
+        </div>`;
+      }
+      table += ui.renderReceberDetailItems ? ui.renderReceberDetailItems(itemCards) : "";
+    }
     ui.openDetailModal(
       title,
-      `${idList.length} lançamento(s)`,
-      ui.renderDetailRows(rows) + table + `<h4 style="margin:16px 0 8px">Histórico</h4>${financeHistoryHtml(recs, kind)}`
+      `${idList.length} registro(s) · total ${formatCurrency(total)}`,
+      ui.renderDetailRows(rows) + table
     );
   }
 
@@ -5129,12 +5169,13 @@
       if (finId && String(v?.localizador_id || "") !== finId) return;
       const st = financeReceivableDisplayStatus(r);
       const due = financeContaDueYmd(r, "receivable");
-      const catVal = financeIsManualReceivable(r) ? String(r.receivable_category || r.categoria || "") : "GUARDA_PATIO";
+      const catVal = String(r.receivable_category || r.categoria || "");
       if (cat && catVal !== cat) return;
+      const servico = financeReceivableServicoLabel(r);
       const card = {
         kind: "receber",
         title: financeInstituicaoNome(v) || financeReceberRppNome(r, v) || "Receita",
-        subtitle: [v?.placa, [v?.marca, v?.modelo].filter(Boolean).join(" "), st].filter(Boolean).join(" · "),
+        subtitle: [v?.placa, servico && servico !== "—" ? servico : "", st].filter(Boolean).join(" · "),
         dueLabel: `Vencimento: ${due ? formatDate(due) : "—"}`,
         amountLabel: formatCurrency(Number(r.valor || 0)),
         status: st === "Atrasado" ? "Vencido" : st === "Pendente" ? "Pendente" : st,
@@ -6345,6 +6386,44 @@
     });
 
     document.addEventListener("click", (e) => {
+      const inDetail = e.target.closest("#finActDetailModal");
+      if (inDetail) {
+        const recBtn = e.target.closest("[data-fin-receber-pg]");
+        if (recBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = recBtn.getAttribute("data-fin-receber-pg");
+          const r = (state.receivables || []).find((x) => String(x.id) === String(id));
+          if (!r) return;
+          globalThis.financeActionUi?.closeDetailModal?.();
+          const v = financeVehicleById().get(r.vehicle_id);
+          openReceberBaixaModal({ receivable: r, vehicle: v, valor: r.valor });
+          return;
+        }
+        const pagBtn = e.target.closest("[data-fin-pagar-pg]");
+        if (pagBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          const p = (state.payables || []).find((x) => String(x.id) === String(pagBtn.getAttribute("data-fin-pagar-pg")));
+          globalThis.financeActionUi?.closeDetailModal?.();
+          if (p) openPagarBaixaModal(p, { mode: "payment" });
+          return;
+        }
+        const groupRec = e.target.closest("[data-fin-group-receber]");
+        if (groupRec) {
+          e.preventDefault();
+          globalThis.financeActionUi?.closeDetailModal?.();
+          financePaySelectedGroup("receber", groupRec.getAttribute("data-fin-group-receber"));
+          return;
+        }
+        const groupPag = e.target.closest("[data-fin-group-pagar]");
+        if (groupPag) {
+          e.preventDefault();
+          globalThis.financeActionUi?.closeDetailModal?.();
+          financePaySelectedGroup("pagar", groupPag.getAttribute("data-fin-group-pagar"));
+          return;
+        }
+      }
       const openVehicle = e.target.closest("[data-fin-open-vehicle]");
       if (!openVehicle) return;
       e.preventDefault();
