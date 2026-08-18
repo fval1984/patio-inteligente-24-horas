@@ -1,14 +1,19 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import restorePlan from "../public/finance-restore-settled-plan.js";
+import paidHistoryEvidence from "./finance-paid-history-evidence.json";
 
 const {
   planFinanceRestoreSettled,
+  packFinanceMeta,
+  unpackFinanceMeta,
   RESTORE_SETTLED_CONFIRM,
   RESTORE_SETTLED_CUTOFF_ISO,
   RESTORE_SETTLED_CUTOFF_YMD,
   RESTORE_SETTLED_MIGRATION_TYPE,
 } = restorePlan as {
   planFinanceRestoreSettled: (snapshot: Record<string, unknown>) => any;
+  packFinanceMeta: (meta: Record<string, unknown>, text?: string) => string;
+  unpackFinanceMeta: (raw: string) => { meta: Record<string, unknown>; text: string };
   RESTORE_SETTLED_CONFIRM: string;
   RESTORE_SETTLED_CUTOFF_ISO: string;
   RESTORE_SETTLED_CUTOFF_YMD: string;
@@ -29,9 +34,23 @@ function isSchemaError(message: string) {
   );
 }
 
+async function selectAllForUser(supabase: SupabaseClient, table: string, sel: string, userId: string) {
+  const pageSize = 1000;
+  let from = 0;
+  const all: Record<string, unknown>[] = [];
+  while (true) {
+    const res = await supabase.from(table).select(sel).eq("user_id", userId).range(from, from + pageSize - 1);
+    if (res.error) return { error: res.error, data: all };
+    const rows = (res.data || []) as Record<string, unknown>[];
+    all.push(...rows);
+    if (rows.length < pageSize) return { error: null, data: all };
+    from += pageSize;
+  }
+}
+
 async function selectRows(supabase: SupabaseClient, table: string, selects: string[], userId: string) {
   for (const sel of selects) {
-    const res = await supabase.from(table).select(sel).eq("user_id", userId);
+    const res = await selectAllForUser(supabase, table, sel, userId);
     if (!res.error) return res.data || [];
     if (!isSchemaError(res.error.message || "")) throw new Error(`${table}: ${res.error.message}`);
   }
@@ -54,10 +73,26 @@ export async function loadFinanceRestoreSnapshot(supabase: SupabaseClient, userI
       "id,user_id,tipo_conta,conta_id,valor,descricao,data_movimento,forma_pagamento,created_at",
       "id,user_id,tipo_conta,conta_id,valor,data_movimento,created_at",
     ], userId),
-    selectRows(supabase, "vehicles", ["id,placa,localizador_id,data_saida,marca,modelo", "id,placa,localizador_id,data_saida"], userId),
+    selectRows(supabase, "vehicles", ["id,placa,localizador_id,data_saida,payment_status", "id,placa,localizador_id,data_saida"], userId),
     selectRows(supabase, "partners", ["id,nome"], userId),
   ]);
-  return { receivables, payables, cash, vehicles, partners };
+  let cashArchive: Record<string, unknown>[] = [];
+  const arch = await selectAllForUser(
+    supabase,
+    "cash_movements_archive",
+    "original_id,payload,archived_at,created_at",
+    userId
+  );
+  if (!arch.error) cashArchive = arch.data || [];
+  return {
+    receivables,
+    payables,
+    cash,
+    cashArchive,
+    vehicles,
+    partners,
+    paidHistory: paidHistoryEvidence,
+  };
 }
 
 export async function buildFinanceRestoreSettledPreview(supabase: SupabaseClient, userId: string) {
@@ -70,9 +105,9 @@ export async function buildFinanceRestoreSettledPreview(supabase: SupabaseClient
     ...plan,
     tables: ["receivables", "payables", "cash_movements", "vehicles", "partners", "finance_migration_runs", "finance_migration_snapshots"],
     causa:
-      "O sincronismo VRP reabria o ciclo de saída já baixado (status PAGO sobrescrito ou título duplicado em aberto). O caixa e o histórico da baixa permaneceram.",
+      "O sincronismo VRP reabria o ciclo de saída já baixado (status PAGO sobrescrito ou título duplicado em aberto). O reset do caixa arquivou entradas. Scripts de reversão para Aguardando faturamento também reabriram títulos já pagos.",
     regra:
-      "Só restaura PAGO quando existe evidência de baixa (caixa vinculado e/ou data de pagamento no histórico) até 18/08/2026 17:00. Não cria movimentação nova. Não altera valor, competência, veículo nem financeira.",
+      "Só restaura PAGO quando existe evidência de baixa (caixa atual, archive, finmeta, payment_status do veículo ou histórico placa+saída+pagamento) até 18/08/2026 17:00. Não cria movimentação nova. Não altera valor, competência, veículo nem financeira.",
   };
 }
 
@@ -191,9 +226,18 @@ export async function executeFinanceRestoreSettled(
   for (const row of plan.restoreReceivables) {
     const before = recById.get(String(row.id)) as Record<string, unknown> | undefined;
     if (before) await saveSnapshot(supabase, run.id, userId, "receivable", String(row.id), before);
+    const raw = String(before?.observacoes || before?.responsavel_pagamento || "");
+    const unpacked = unpackFinanceMeta(raw);
+    const meta = { ...(unpacked.meta || {}) };
+    if (row.dataBaixa && !meta.data_pagamento && !meta.data_recebimento) {
+      meta.data_pagamento = row.dataBaixa;
+      meta.data_recebimento = row.dataBaixa;
+    }
+    const observacoes = Object.keys(meta).length ? packFinanceMeta(meta, unpacked.text) : raw;
     const res = await updateReceivable(supabase, userId, String(row.id), {
       status: "PAGO",
       financeiro_aprovado_contas_receber: true,
+      ...(observacoes ? { observacoes } : {}),
     });
     if (res.ok) recebimentos += 1;
     else errors.push(`receber ${row.id}: ${res.error}`);

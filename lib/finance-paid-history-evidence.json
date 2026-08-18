@@ -1,0 +1,861 @@
+[
+  {
+    "plate": "CFZ3J00",
+    "valor": 200,
+    "saidaDate": "2026-05-26",
+    "paidDate": "2026-05-29"
+  },
+  {
+    "plate": "DSF7D74",
+    "valor": 0,
+    "saidaDate": "2026-02-05",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "END3I82",
+    "valor": 0,
+    "saidaDate": "2026-03-25",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "FCI1J96",
+    "valor": 0,
+    "saidaDate": "2026-03-26",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "HXR1I28",
+    "valor": 240,
+    "saidaDate": "2026-04-28",
+    "paidDate": "2026-05-06"
+  },
+  {
+    "plate": "KKY4389",
+    "valor": 0,
+    "saidaDate": "2026-04-13",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "MZE8942",
+    "valor": 0,
+    "saidaDate": "2026-03-03",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "NME8J96",
+    "valor": 0,
+    "saidaDate": "2026-03-03",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "PCC5J55",
+    "valor": 120,
+    "saidaDate": "2026-05-21",
+    "paidDate": "2026-05-25"
+  },
+  {
+    "plate": "PCG7556",
+    "valor": 0,
+    "saidaDate": "2026-02-20",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "PCM9G77",
+    "valor": 150,
+    "saidaDate": "2026-05-08",
+    "paidDate": "2026-05-12"
+  },
+  {
+    "plate": "PDA8420",
+    "valor": 0,
+    "saidaDate": "2026-04-20",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "PDI2C97",
+    "valor": 330,
+    "saidaDate": "2026-04-27",
+    "paidDate": "2026-05-08"
+  },
+  {
+    "plate": "PDM4C51",
+    "valor": 240,
+    "saidaDate": "2026-04-27",
+    "paidDate": "2026-05-05"
+  },
+  {
+    "plate": "PDR7B60",
+    "valor": 90,
+    "saidaDate": "2026-05-05",
+    "paidDate": "2026-05-08"
+  },
+  {
+    "plate": "PDV8F14",
+    "valor": 210,
+    "saidaDate": "2026-05-22",
+    "paidDate": "2026-05-28"
+  },
+  {
+    "plate": "PDW3A12",
+    "valor": 330,
+    "saidaDate": "2026-05-14",
+    "paidDate": "2026-05-25"
+  },
+  {
+    "plate": "PDW8260",
+    "valor": 375,
+    "saidaDate": "2026-04-09",
+    "paidDate": "2026-05-04"
+  },
+  {
+    "plate": "PDW8260",
+    "valor": 0,
+    "saidaDate": "2026-05-04",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "PDW9D44",
+    "valor": 0,
+    "saidaDate": "2026-03-04",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "PDY4F95",
+    "valor": 0,
+    "saidaDate": "2026-05-04",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "PEC2H21",
+    "valor": 0,
+    "saidaDate": "2026-02-20",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "PFS0240",
+    "valor": 0,
+    "saidaDate": "2026-03-03",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "PFZ0A85",
+    "valor": 0,
+    "saidaDate": "2026-03-03",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "PGL3H13",
+    "valor": 300,
+    "saidaDate": "2026-04-29",
+    "paidDate": "2026-05-08"
+  },
+  {
+    "plate": "PGQ2H63",
+    "valor": 0,
+    "saidaDate": "2026-04-23",
+    "paidDate": "2026-05-26",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "PGQ3I89",
+    "valor": 210,
+    "saidaDate": "2026-05-22",
+    "paidDate": "2026-05-28"
+  },
+  {
+    "plate": "PGR8747",
+    "valor": 0,
+    "saidaDate": "2026-03-25",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "PZO7C79",
+    "valor": 330,
+    "saidaDate": "2026-05-18",
+    "paidDate": "2026-05-29"
+  },
+  {
+    "plate": "QKQ9348",
+    "valor": 0,
+    "saidaDate": "2026-04-29",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "QLC1E25",
+    "valor": 60,
+    "saidaDate": "2026-05-26",
+    "paidDate": "2026-05-28"
+  },
+  {
+    "plate": "QLC1E25",
+    "valor": 0,
+    "saidaDate": "2026-05-28",
+    "paidDate": "2026-06-01",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "QLI9J77",
+    "valor": 60,
+    "saidaDate": "2026-05-18",
+    "paidDate": "2026-05-20"
+  },
+  {
+    "plate": "QPO2F05",
+    "valor": 150,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-04"
+  },
+  {
+    "plate": "QPO2F05",
+    "valor": 0,
+    "saidaDate": "2026-05-04",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "QQK8J81",
+    "valor": 0,
+    "saidaDate": "2026-03-10",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "QQN9E59",
+    "valor": 60,
+    "saidaDate": "2026-05-07",
+    "paidDate": "2026-05-08"
+  },
+  {
+    "plate": "QQN9E59",
+    "valor": 0,
+    "saidaDate": "2026-05-08",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "QXM8G83",
+    "valor": 630,
+    "saidaDate": "2026-04-15",
+    "paidDate": "2026-05-06"
+  },
+  {
+    "plate": "QYA5C45",
+    "valor": 795,
+    "saidaDate": "2026-03-13",
+    "paidDate": "2026-05-04"
+  },
+  {
+    "plate": "QYA5C45",
+    "valor": 0,
+    "saidaDate": "2026-05-04",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "QYE7E85",
+    "valor": 0,
+    "saidaDate": "2026-05-04",
+    "paidDate": "2026-05-08",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "QYP9F00",
+    "valor": 0,
+    "saidaDate": "2026-04-02",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "QYR1E87",
+    "valor": 0,
+    "saidaDate": "2026-04-16",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "QYT3D79",
+    "valor": 0,
+    "saidaDate": "2026-04-06",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "QYW3D26",
+    "valor": 0,
+    "saidaDate": "2026-04-23",
+    "paidDate": "2026-05-26",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "QYX2D91",
+    "valor": 300,
+    "saidaDate": "2026-04-23",
+    "paidDate": "2026-05-08"
+  },
+  {
+    "plate": "RFW4F34",
+    "valor": 0,
+    "saidaDate": "2026-04-23",
+    "paidDate": "2026-05-26",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "RII2H22",
+    "valor": 690,
+    "saidaDate": "2026-04-14",
+    "paidDate": "2026-05-29"
+  },
+  {
+    "plate": "RNG8B19",
+    "valor": 75,
+    "saidaDate": "2026-05-05",
+    "paidDate": "2026-05-08"
+  },
+  {
+    "plate": "RTL3G87",
+    "valor": 0,
+    "saidaDate": "2026-04-20",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "RTM1I82",
+    "valor": 600,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-20"
+  },
+  {
+    "plate": "RTM1I82",
+    "valor": 0,
+    "saidaDate": "2026-05-20",
+    "paidDate": "2026-05-20",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "RUS0B38",
+    "valor": 180,
+    "saidaDate": "2026-05-20",
+    "paidDate": "2026-05-25"
+  },
+  {
+    "plate": "RUV2E49",
+    "valor": 0,
+    "saidaDate": "2026-03-03",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "RZK5J04",
+    "valor": 90,
+    "saidaDate": "2026-05-05",
+    "paidDate": "2026-05-08"
+  },
+  {
+    "plate": "RZL7E72",
+    "valor": 0,
+    "saidaDate": "2026-04-02",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "RZQ8B88",
+    "valor": 0,
+    "saidaDate": "2026-04-16",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "RZQ8E78",
+    "valor": 0,
+    "saidaDate": "2026-02-20",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "RZS1C42",
+    "valor": 960,
+    "saidaDate": "2026-03-23",
+    "paidDate": "2026-05-25"
+  },
+  {
+    "plate": "RZV1B76",
+    "valor": 360,
+    "saidaDate": "2026-04-24",
+    "paidDate": "2026-05-05"
+  },
+  {
+    "plate": "RZZ1J57",
+    "valor": 150,
+    "saidaDate": "2026-04-29",
+    "paidDate": "2026-05-04"
+  },
+  {
+    "plate": "SFV6B80",
+    "valor": 800,
+    "saidaDate": "2026-05-03",
+    "paidDate": "2026-05-11"
+  },
+  {
+    "plate": "SFV6B80",
+    "valor": 0,
+    "saidaDate": "2026-05-11",
+    "paidDate": "2026-05-11",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SHB6H60",
+    "valor": 30,
+    "saidaDate": "2026-05-19",
+    "paidDate": "2026-05-19"
+  },
+  {
+    "plate": "SHB6H60",
+    "valor": 0,
+    "saidaDate": "2026-05-19",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SHB8A03",
+    "valor": 0,
+    "saidaDate": "2026-04-29",
+    "paidDate": "2026-05-26",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SHT9J35",
+    "valor": 60,
+    "saidaDate": "2026-05-26",
+    "paidDate": "2026-05-29"
+  },
+  {
+    "plate": "SHU2G14",
+    "valor": 0,
+    "saidaDate": "2026-04-10",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SIZ4F67",
+    "valor": 0,
+    "saidaDate": "2026-05-28",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNN5A22",
+    "valor": 0,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO7F38",
+    "valor": 210,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-06"
+  },
+  {
+    "plate": "SNO7F38",
+    "valor": 0,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO7F38",
+    "valor": 0,
+    "saidaDate": "2026-05-06",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO7I98",
+    "valor": 210,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-06"
+  },
+  {
+    "plate": "SNO7I98",
+    "valor": 0,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO7I98",
+    "valor": 0,
+    "saidaDate": "2026-05-06",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8C88",
+    "valor": 210,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-06"
+  },
+  {
+    "plate": "SNO8C88",
+    "valor": 0,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8C88",
+    "valor": 0,
+    "saidaDate": "2026-05-06",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8D68",
+    "valor": 210,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-06"
+  },
+  {
+    "plate": "SNO8D68",
+    "valor": 0,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8D68",
+    "valor": 0,
+    "saidaDate": "2026-05-06",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8E38",
+    "valor": 210,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-06"
+  },
+  {
+    "plate": "SNO8E38",
+    "valor": 0,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8E38",
+    "valor": 0,
+    "saidaDate": "2026-05-06",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8E98",
+    "valor": 210,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-06"
+  },
+  {
+    "plate": "SNO8E98",
+    "valor": 0,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8E98",
+    "valor": 0,
+    "saidaDate": "2026-05-06",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8G38",
+    "valor": 240,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-08"
+  },
+  {
+    "plate": "SNO8G38",
+    "valor": 0,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8G38",
+    "valor": 0,
+    "saidaDate": "2026-05-08",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8G48",
+    "valor": 240,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-08"
+  },
+  {
+    "plate": "SNO8G48",
+    "valor": 0,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8G48",
+    "valor": 0,
+    "saidaDate": "2026-05-08",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8G68",
+    "valor": 210,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-06"
+  },
+  {
+    "plate": "SNO8G68",
+    "valor": 0,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8G68",
+    "valor": 0,
+    "saidaDate": "2026-05-06",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8H38",
+    "valor": 210,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-06"
+  },
+  {
+    "plate": "SNO8H38",
+    "valor": 0,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8H38",
+    "valor": 0,
+    "saidaDate": "2026-05-06",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8H58",
+    "valor": 210,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-06"
+  },
+  {
+    "plate": "SNO8H58",
+    "valor": 0,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO8H58",
+    "valor": 0,
+    "saidaDate": "2026-05-06",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO9A58",
+    "valor": 210,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-06"
+  },
+  {
+    "plate": "SNO9A58",
+    "valor": 0,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO9A58",
+    "valor": 0,
+    "saidaDate": "2026-05-06",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO9B38",
+    "valor": 210,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-06"
+  },
+  {
+    "plate": "SNO9B38",
+    "valor": 0,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO9B38",
+    "valor": 0,
+    "saidaDate": "2026-05-06",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNO9D08",
+    "valor": 210,
+    "saidaDate": "2026-04-30",
+    "paidDate": "2026-05-06"
+  },
+  {
+    "plate": "SNO9D08",
+    "valor": 0,
+    "saidaDate": "2026-05-06",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNY4J16",
+    "valor": 420,
+    "saidaDate": "2026-04-07",
+    "paidDate": "2026-05-04"
+  },
+  {
+    "plate": "SNY4J16",
+    "valor": 0,
+    "saidaDate": "2026-05-04",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SNZ7F17",
+    "valor": 900,
+    "saidaDate": "2026-03-06",
+    "paidDate": "2026-05-04"
+  },
+  {
+    "plate": "SNZ7F17",
+    "valor": 0,
+    "saidaDate": "2026-05-04",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SOF0G64",
+    "valor": 90,
+    "saidaDate": "2026-05-05",
+    "paidDate": "2026-05-08"
+  },
+  {
+    "plate": "SOH9F30",
+    "valor": 140,
+    "saidaDate": "2026-05-13",
+    "paidDate": "2026-05-27"
+  },
+  {
+    "plate": "SOK3G87",
+    "valor": 105,
+    "saidaDate": "2026-05-22",
+    "paidDate": "2026-05-29"
+  },
+  {
+    "plate": "SOL5I69",
+    "valor": 465,
+    "saidaDate": "2026-04-24",
+    "paidDate": "2026-05-25"
+  },
+  {
+    "plate": "SOP9J15",
+    "valor": 105,
+    "saidaDate": "2026-05-20",
+    "paidDate": "2026-05-26"
+  },
+  {
+    "plate": "SOQ9C44",
+    "valor": 585,
+    "saidaDate": "2026-03-27",
+    "paidDate": "2026-05-04"
+  },
+  {
+    "plate": "SOQ9C44",
+    "valor": 0,
+    "saidaDate": "2026-05-04",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SOT1H11",
+    "valor": 200,
+    "saidaDate": "2026-05-21",
+    "paidDate": "2026-05-29"
+  },
+  {
+    "plate": "SOW4G62",
+    "valor": 795,
+    "saidaDate": "2026-03-13",
+    "paidDate": "2026-05-04"
+  },
+  {
+    "plate": "SOW4G62",
+    "valor": 0,
+    "saidaDate": "2026-05-04",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "SOX5F86",
+    "valor": 330,
+    "saidaDate": "2026-05-04",
+    "paidDate": "2026-05-25"
+  },
+  {
+    "plate": "SOY9E09",
+    "valor": 90,
+    "saidaDate": "2026-05-19",
+    "paidDate": "2026-05-21"
+  },
+  {
+    "plate": "SUH6B38",
+    "valor": 0,
+    "saidaDate": "2026-03-24",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  },
+  {
+    "plate": "UHM0A38",
+    "valor": 250,
+    "saidaDate": "2026-05-16",
+    "paidDate": "2026-05-25"
+  },
+  {
+    "plate": "UHM8D60",
+    "valor": 0,
+    "saidaDate": "2026-04-28",
+    "paidDate": "2026-05-28",
+    "includeZeroValor": true
+  }
+]

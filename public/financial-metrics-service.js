@@ -199,7 +199,20 @@
       const ymd = toLocalYmd(mov.data_movimento || mov.created_at);
       if (ymd) return ymd;
     }
-    return toLocalYmd(r.updated_at || r.created_at);
+    const raw = String(r.observacoes || r.responsavel_pagamento || "");
+    if (raw.startsWith("[[finmeta:")) {
+      const end = raw.indexOf("]]");
+      if (end > 0) {
+        try {
+          const meta = JSON.parse(raw.slice(10, end));
+          const fromMeta = toLocalYmd(meta.data_pagamento || meta.data_recebimento || meta.data_baixa || "");
+          if (fromMeta) return fromMeta;
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    return toLocalYmd(r.period_end || r.updated_at || r.created_at);
   }
 
   function cashMovValor(m) {

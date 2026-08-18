@@ -5598,7 +5598,7 @@
   }
 
   const FINANCE_CAIXA_REPAIR_KEY = "finance_caixa_repair_v2_done";
-  const FINANCE_RESTORE_SETTLED_KEY = "finance_restore_settled_v1_done";
+  const FINANCE_RESTORE_SETTLED_KEY = "finance_restore_settled_v2_done";
 
   async function financeApplyRestorePlanClient(plan) {
     if (!plan?.needsRestore || typeof supabase === "undefined" || !supabase) return { applied: 0 };
@@ -5653,12 +5653,20 @@
       if (execResp.ok) {
         json = await execResp.json().catch(() => ({}));
       } else if (typeof window.financeRestoreSettledPlan?.planFinanceRestoreSettled === "function") {
+        let paidHistory = [];
+        try {
+          const histResp = await fetch("/finance-paid-history-evidence.json");
+          if (histResp.ok) paidHistory = await histResp.json();
+        } catch (e) {
+          /* ignore */
+        }
         const plan = window.financeRestoreSettledPlan.planFinanceRestoreSettled({
           receivables: state.receivables || [],
           payables: state.payables || [],
           cash: state.cash || [],
           vehicles: state.vehicles || [],
           partners: state.partners || [],
+          paidHistory,
         });
         json = { ok: true, clientFallback: true, ...(await financeApplyRestorePlanClient(plan)), counts: plan.counts };
       } else {

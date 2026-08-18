@@ -99,6 +99,65 @@ function money(n) {
   return Math.max(0, Number(n || 0));
 }
 
+function normalizePlate(p) {
+  return String(p || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+}
+
+function packFinanceMeta(meta, text) {
+  const clean = String(text || "").trim();
+  if (!meta || !Object.keys(meta).length) return clean;
+  return `${FINANCE_META_PREFIX}${JSON.stringify(meta)}]]${clean ? ` ${clean}` : ""}`.trim();
+}
+
+function plateFromText(value) {
+  const s = String(value || "").toUpperCase();
+  const m = s.match(/([A-Z]{3}\d[A-Z]\d{2}|[A-Z]{3}\d{4})/);
+  return m ? m[1] : "";
+}
+
+function ymdWithinDays(a, b, days = 1) {
+  const da = toPeriodYmd(a);
+  const db = toPeriodYmd(b);
+  if (!da || !db) return false;
+  if (da === db) return true;
+  const ta = Date.parse(`${da}T12:00:00`);
+  const tb = Date.parse(`${db}T12:00:00`);
+  if (!Number.isFinite(ta) || !Number.isFinite(tb)) return false;
+  return Math.abs(ta - tb) / 86400000 <= days;
+}
+
+let DEFAULT_PAID_HISTORY = [];
+try {
+  if (typeof require !== "undefined") {
+    DEFAULT_PAID_HISTORY = require("./finance-paid-history-evidence.json");
+  }
+} catch {
+  DEFAULT_PAID_HISTORY = [];
+}
+
+function findPaidHistoryEntry(placa, periodEnd, dataSaida, valor, entries) {
+  const plate = normalizePlate(placa);
+  if (!plate) return null;
+  const end = toPeriodYmd(periodEnd) || toPeriodYmd(dataSaida);
+  const hits = (entries || []).filter((e) => normalizePlate(e.plate) === plate);
+  if (!hits.length) return null;
+  const bySaida = hits.filter(
+    (e) =>
+      (end && (e.saidaDate === end || ymdWithinDays(e.saidaDate, end, 1) || e.paidDate === end)) ||
+      (!end && ymdOnOrBeforeCutoff(e.paidDate))
+  );
+  const pool = end ? bySaida : hits.filter((e) => ymdOnOrBeforeCutoff(e.paidDate));
+  if (!pool.length) return null;
+  const v = money(valor);
+  if (v > 0) {
+    const byVal = pool.filter((e) => Math.abs(Number(e.valor || 0) - v) < 0.01);
+    if (byVal.length) return byVal[0];
+  }
+  return pool[0];
+}
+
 function pickBestCash(movs) {
   return [...(movs || [])].sort((a, b) => {
     const da = String(a.data_movimento || a.created_at || "");
@@ -113,19 +172,45 @@ function pickBestCash(movs) {
 function planFinanceRestoreSettled(snapshot) {
   const receivables = Array.isArray(snapshot?.receivables) ? snapshot.receivables : [];
   const payables = Array.isArray(snapshot?.payables) ? snapshot.payables : [];
-  const cash = Array.isArray(snapshot?.cash) ? snapshot.cash : [];
+  const cash = Array.isArray(snapshot?.cash) ? snapshot.cash.slice() : [];
   const vehicles = Array.isArray(snapshot?.vehicles) ? snapshot.vehicles : [];
   const partners = Array.isArray(snapshot?.partners) ? snapshot.partners : [];
+  const paidHistory = Array.isArray(snapshot?.paidHistory) && snapshot.paidHistory.length
+    ? snapshot.paidHistory
+    : DEFAULT_PAID_HISTORY;
+  for (const a of snapshot?.cashArchive || []) {
+    const p = a && (a.payload || a);
+    if (!p) continue;
+    cash.push({
+      id: a.original_id || p.id,
+      tipo_conta: p.tipo_conta,
+      conta_id: p.conta_id,
+      valor: p.valor,
+      descricao: p.descricao,
+      data_movimento: p.data_movimento,
+      forma_pagamento: p.forma_pagamento,
+      created_at: p.created_at || a.archived_at || a.created_at,
+      _fromArchive: true,
+      _plate: plateFromText(p.descricao || p.observacoes || ""),
+    });
+  }
 
   const vmap = new Map(vehicles.map((v) => [String(v.id), v]));
   const pmap = new Map(partners.map((p) => [String(p.id), p]));
 
   const cashByConta = new Map();
+  const cashByPlate = new Map();
   for (const m of cash) {
-    if (!m?.conta_id) continue;
-    const id = String(m.conta_id);
-    if (!cashByConta.has(id)) cashByConta.set(id, []);
-    cashByConta.get(id).push(m);
+    if (m?.conta_id) {
+      const id = String(m.conta_id);
+      if (!cashByConta.has(id)) cashByConta.set(id, []);
+      cashByConta.get(id).push(m);
+    }
+    const plate = normalizePlate(m._plate || plateFromText(m.descricao || ""));
+    if (plate) {
+      if (!cashByPlate.has(plate)) cashByPlate.set(plate, []);
+      cashByPlate.get(plate).push(m);
+    }
   }
 
   const paidCycleKeys = new Set();
@@ -147,7 +232,18 @@ function planFinanceRestoreSettled(snapshot) {
     const financeira = v ? pmap.get(String(v.localizador_id || ""))?.nome || "" : "";
     const placa = v?.placa || "";
     const movs = (cashByConta.get(String(r.id)) || []).filter((m) => isEntradaTipo(m.tipo_conta) && money(m.valor) > 0);
-    const cashMov = pickBestCash(movs.filter(cashEvidenceBeforeCutoff)) || pickBestCash(movs);
+    const plateMovs = (cashByPlate.get(normalizePlate(placa)) || []).filter((m) => {
+      if (!isEntradaTipo(m.tipo_conta) || !(money(m.valor) > 0)) return false;
+      if (String(m.conta_id || "") === String(r.id)) return false;
+      const sameValor = Math.abs(money(m.valor) - money(r.valor)) < 0.01 || money(r.valor) === 0;
+      const sameExit = ymdWithinDays(m.data_movimento, r.period_end, 2) || ymdWithinDays(m.data_movimento, v?.data_saida, 2);
+      return sameValor && (sameExit || cashEvidenceBeforeCutoff(m));
+    });
+    const cashMov =
+      pickBestCash(movs.filter(cashEvidenceBeforeCutoff)) ||
+      pickBestCash(movs) ||
+      pickBestCash(plateMovs.filter(cashEvidenceBeforeCutoff)) ||
+      pickBestCash(plateMovs);
     const metaYmd = metaPaymentYmd(r);
     const cycleKey = receivableCycleKey(r);
     const base = {
@@ -170,7 +266,7 @@ function planFinanceRestoreSettled(snapshot) {
       continue;
     }
 
-    const cashBefore = movs.some(cashEvidenceBeforeCutoff);
+    const cashBefore = movs.some(cashEvidenceBeforeCutoff) || plateMovs.some(cashEvidenceBeforeCutoff);
     const metaBefore = ymdOnOrBeforeCutoff(metaYmd);
     if (cashBefore || (cashMov && metaBefore) || (cashMov && ymdOnOrBeforeCutoff(cashMov.data_movimento))) {
       const paidAt = toPeriodYmd(cashMov?.data_movimento || metaYmd || cashMov?.created_at);
@@ -182,7 +278,11 @@ function planFinanceRestoreSettled(snapshot) {
         formaPagamento: cashMov?.forma_pagamento || unpackFinanceMeta(r.observacoes || r.responsavel_pagamento).meta.forma_pagamento || "",
         cashId: cashMov?.id || "",
         motivo: "Há baixa no caixa (entrada) vinculada a este título.",
-        evidencia: cashBefore ? "cash_movements.data_movimento/created_at até 18/08/2026 17:00" : "cash_movements vinculado + data de pagamento",
+        evidencia: cashMov?._fromArchive
+          ? "cash_movements_archive (baixa arquivada no reset do caixa)"
+          : cashBefore
+            ? "cash_movements.data_movimento/created_at até 18/08/2026 17:00"
+            : "cash_movements vinculado + data de pagamento",
       });
       continue;
     }
@@ -197,6 +297,39 @@ function planFinanceRestoreSettled(snapshot) {
         cashId: "",
         motivo: "Histórico do título (finmeta data_pagamento/recebimento) anterior ao corte.",
         evidencia: `finmeta ${metaYmd}`,
+      });
+      continue;
+    }
+
+    const vehiclePaid =
+      String(v?.payment_status || "").toUpperCase() === "PAGO" &&
+      toPeriodYmd(r.period_end) &&
+      toPeriodYmd(r.period_end) === toPeriodYmd(v?.data_saida);
+    if (vehiclePaid) {
+      restoreReceivables.push({
+        ...base,
+        statusCorreto: "PAGO",
+        acao: "restore_pago",
+        dataBaixa: toPeriodYmd(v.data_saida),
+        formaPagamento: "",
+        cashId: "",
+        motivo: "Veículo da mesma saída já está marcado como PAGO no cadastro.",
+        evidencia: "vehicles.payment_status=PAGO + period_end=data_saida",
+      });
+      continue;
+    }
+
+    const hist = findPaidHistoryEntry(placa, r.period_end, v?.data_saida, r.valor, paidHistory);
+    if (hist && ymdOnOrBeforeCutoff(hist.paidDate || hist.saidaDate) && !(cycleKey && paidCycleKeys.has(cycleKey))) {
+      restoreReceivables.push({
+        ...base,
+        statusCorreto: "PAGO",
+        acao: "restore_pago",
+        dataBaixa: toPeriodYmd(hist.paidDate || hist.saidaDate),
+        formaPagamento: "",
+        cashId: "",
+        motivo: "Histórico documentado de baixa (placa + saída + data de pagamento) anterior ao corte.",
+        evidencia: `histórico ${hist.plate} saída ${hist.saidaDate} pago ${hist.paidDate}`,
       });
       continue;
     }
@@ -315,6 +448,8 @@ const api = {
   RESTORE_SETTLED_CONFIRM,
   RESTORE_SETTLED_MIGRATION_TYPE,
   toPeriodYmd,
+  packFinanceMeta,
+  unpackFinanceMeta,
   planFinanceRestoreSettled,
 };
 

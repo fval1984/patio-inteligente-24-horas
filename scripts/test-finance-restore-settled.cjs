@@ -100,6 +100,69 @@ function testDuplicateOfPaidCycleIsNotMarkedPaid() {
   assert.strictEqual(plan.hideDuplicates[0].acao, "hide_duplicate");
 }
 
+function testArchiveAndVehiclePaymentAreEvidence() {
+  const plan = planFinanceRestoreSettled({
+    vehicles: [
+      { id: "v1", placa: "JUL7A31", localizador_id: "f1", data_saida: "2026-07-31", payment_status: "PAGO" },
+    ],
+    partners: [{ id: "f1", nome: "Banco XYZ" }],
+    receivables: [
+      { id: "r-arch", vehicle_id: "v1", valor: 500, status: "EM_ABERTO", period_end: "2026-07-28" },
+      { id: "r-veh", vehicle_id: "v1", valor: 800, status: "EM_ABERTO", period_end: "2026-07-31" },
+    ],
+    payables: [],
+    cash: [],
+    cashArchive: [
+      {
+        original_id: "old-cash",
+        payload: {
+          tipo_conta: "RECEBER",
+          conta_id: "r-arch",
+          valor: 500,
+          data_movimento: "2026-07-28",
+          created_at: "2026-07-28T12:00:00.000Z",
+        },
+      },
+    ],
+  });
+  const ids = plan.restoreReceivables.map((r) => r.id).sort();
+  assert.deepStrictEqual(ids, ["r-arch", "r-veh"]);
+}
+
+function testPaidHistoryAndArchivePlateAreEvidence() {
+  const plan = planFinanceRestoreSettled({
+    vehicles: [
+      { id: "v1", placa: "SNZ7F17", localizador_id: "f1", data_saida: "2026-03-06" },
+      { id: "v2", placa: "ABC9Z99", localizador_id: "f1", data_saida: "2026-07-28" },
+    ],
+    partners: [{ id: "f1", nome: "Banco XYZ" }],
+    receivables: [
+      { id: "r-hist", vehicle_id: "v1", valor: 900, status: "EM_ABERTO", period_end: "2026-03-06" },
+      { id: "r-plate-arch", vehicle_id: "v2", valor: 450, status: "EM_ABERTO", period_end: "2026-07-28" },
+      { id: "r-open", vehicle_id: "v2", valor: 80, status: "EM_ABERTO", period_end: "2026-08-10" },
+    ],
+    payables: [],
+    cash: [],
+    cashArchive: [
+      {
+        original_id: "old-cash-2",
+        payload: {
+          tipo_conta: "RECEBER",
+          conta_id: "other-id",
+          valor: 450,
+          descricao: "Recebimento ABC9Z99",
+          data_movimento: "2026-07-30",
+          created_at: "2026-07-30T12:00:00.000Z",
+        },
+      },
+    ],
+    paidHistory: [{ plate: "SNZ7F17", valor: 900, saidaDate: "2026-03-06", paidDate: "2026-05-04" }],
+  });
+  const ids = plan.restoreReceivables.map((r) => r.id).sort();
+  assert.deepStrictEqual(ids, ["r-hist", "r-plate-arch"]);
+  assert.ok(!plan.restoreReceivables.some((r) => r.id === "r-open"));
+}
+
 function testDoesNotInventCashOrPayEverything() {
   const plan = planFinanceRestoreSettled({
     receivables: [
@@ -120,6 +183,8 @@ const tests = [
   ["restaura só quem tem evidência de baixa", testRestoreFromCashNotFromOpenStatus],
   ["duplicata do ciclo pago não vira recebida", testDuplicateOfPaidCycleIsNotMarkedPaid],
   ["não marca tudo como pago", testDoesNotInventCashOrPayEverything],
+  ["archive e payment_status do veículo são evidência", testArchiveAndVehiclePaymentAreEvidence],
+  ["histórico de placa e archive por descrição são evidência", testPaidHistoryAndArchivePlateAreEvidence],
 ];
 for (const [name, fn] of tests) {
   try {
