@@ -454,7 +454,7 @@
           file_name: safeName,
           photo_type: "avaria_extra",
           photo_category: "AVARIAS",
-          photo_label: `Foto adicional de avaria ${i + 1}`,
+          photo_label: ex.label || ex.area_label || ex.description || `Avaria adicional ${i + 1}`,
           vehicle_id: vehicleId,
           captured_by_user_id: inspectorUserId,
           captured_by_name: inspectorName,

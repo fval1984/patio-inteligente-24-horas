@@ -8,6 +8,8 @@
   const LOGO_SRC = "/assets/ampliguard-header-trim.png?v=12";
   const PHOTO_SIZE = "4cm";
   const A4_WIDTH_PX = 794;
+  const A4_HEIGHT_PX = 1123;
+  const PRINT_MARGIN_PX = 45;
   const CANVAS_MAX_SIDE = 16384;
 
   /** Descrições padronizadas em português para o registro fotográfico (impressão/PDF). */
@@ -22,7 +24,7 @@
     diag_rear_right: "Diagonal traseira direita",
     roof: "Teto",
     plate: "Placa",
-    odometer: "Odômetro",
+    odometer: "Hodômetro",
     dashboard_on: "Painel de instrumentos com o veículo ligado",
     battery: "Bateria",
     spare: "Estepe",
@@ -42,8 +44,13 @@
 
   const PHOTO_LABEL_ALIASES = {
     Dianteira: "Frente",
-    "Odômetro / Quilometragem": "Odômetro",
+    "Dianteira diagonal esquerda": "Diagonal dianteira esquerda",
+    "Dianteira diagonal direita": "Diagonal dianteira direita",
+    "Odômetro / Quilometragem": "Hodômetro",
+    Odômetro: "Hodômetro",
     "Chassi / Número do chassi": "Chassi",
+    "Painel": "Painel de instrumentos com o veículo ligado",
+    dashboard: "Painel de instrumentos com o veículo ligado",
   };
 
   let _stylesInjected = false;
@@ -65,47 +72,146 @@
     }
   }
 
-  function photoLabelFromType(type) {
-    if (!type) return null;
-    return PHOTO_LABEL_PT[type] || null;
+  function knownPhotoKeys() {
+    const keys = new Set(Object.keys(PHOTO_LABEL_PT));
+    const slots =
+      global.vehicleEntryInspectionPhotosMobile?.getStandardSlots?.() ||
+      global.vehicleEntryInspectionPhotosMobile?.STANDARD_SLOTS ||
+      global.vehicleEntryInspectionChecklist?.LEVE_PHOTO_SLOTS ||
+      [];
+    slots.forEach((s) => {
+      if (s?.key) keys.add(s.key);
+    });
+    return keys;
   }
 
-  function isTechnicalPhotoLabel(str) {
-    if (str == null) return true;
-    const s = String(str).trim();
+  function checklistItemLabel(itemKey) {
+    if (!itemKey) return null;
+    const mod = global.vehicleEntryInspectionChecklist;
+    if (!mod) return null;
+    const variants = ["LEVE", "PESADOS", "TRATORES", "MOTOS"];
+    for (let i = 0; i < variants.length; i++) {
+      const cfg = mod.getVariantConfig ? mod.getVariantConfig(variants[i]) : null;
+      const found = (cfg?.checklist || []).find((it) => it.key === itemKey);
+      if (found?.label) return found.label;
+    }
+    const legacy = (mod.CHECKLIST || []).find((it) => it.key === itemKey);
+    return legacy?.label || null;
+  }
+
+  function slotLabelForKey(key) {
+    if (!key) return null;
+    if (PHOTO_LABEL_PT[key]) return PHOTO_LABEL_PT[key];
+    const slots =
+      global.vehicleEntryInspectionPhotosMobile?.STANDARD_SLOTS ||
+      global.vehicleEntryInspectionChecklist?.LEVE_PHOTO_SLOTS ||
+      [];
+    const found = slots.find((s) => s.key === key);
+    if (found?.label) {
+      return PHOTO_LABEL_ALIASES[found.label] || found.label;
+    }
+    return checklistItemLabel(key);
+  }
+
+  function extractKnownPhotoKey(raw) {
+    if (raw == null) return null;
+    const s = String(raw).trim();
+    if (!s) return null;
+    if (PHOTO_LABEL_PT[s]) return s;
+    const file = (s.split(/[\\/]/).pop() || s).replace(/\.(jpe?g|png|webp|gif|heic|bmp)$/i, "");
+    const noTs = file.replace(/^\d+_/, "");
+    if (PHOTO_LABEL_PT[noTs]) return noTs;
+    const avariaItem = s.match(/avaria_item_([a-z0-9_]+)/i) || noTs.match(/^avaria_item_(.+)$/i);
+    if (avariaItem) return avariaItem[1];
+    const keys = knownPhotoKeys();
+    const list = Array.from(keys);
+    for (let i = 0; i < list.length; i++) {
+      const key = list[i];
+      if (!key) continue;
+      if (noTs === key) return key;
+      if (new RegExp(`(?:^|[_./-])${key}(?:[_./-]|\\.|$)`, "i").test(s)) return key;
+    }
+    if (/^[a-z]+(_[a-z0-9]+)+$/i.test(noTs) && noTs !== "avaria_extra") return noTs;
+    return null;
+  }
+
+  function inferPhotoType(type, fallbackLabel, photo) {
+    const blobs = [
+      type,
+      photo?.photo_type,
+      photo?.type,
+      fallbackLabel,
+      photo?.photo_label,
+      photo?.label,
+      photo?.file_name,
+      photo?.storage_path,
+      photo?.item_key,
+    ];
+    for (let i = 0; i < blobs.length; i++) {
+      const key = extractKnownPhotoKey(blobs[i]);
+      if (key && key !== "avaria_extra") return key;
+    }
+    return null;
+  }
+
+  function isGenericPhotoCaption(str) {
+    const s = String(str || "").trim();
     if (!s) return true;
+    if (/^fotos?$/i.test(s)) return true;
+    if (/^foto adicional de avaria\s*\d*$/i.test(s)) return true;
+    if (/^avaria extra\s*\d*$/i.test(s)) return true;
     if (/\.(jpe?g|png|webp|gif|heic|bmp)$/i.test(s)) return true;
     if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) return true;
-    if (PHOTO_LABEL_PT[s]) return true;
-    if (/^[a-z]+(_[a-z0-9]+)+$/i.test(s)) return true;
-    if (/^foto adicional de avaria\s*\d*$/i.test(s)) return true;
     return false;
   }
 
-  function resolveStandardPhotoLabel(type, fallbackLabel) {
-    const fromType = photoLabelFromType(type);
-    if (fromType) return fromType;
-    const fb = String(fallbackLabel || "").trim();
+  function isTechnicalPhotoLabel(str) {
+    if (isGenericPhotoCaption(str)) return true;
+    const s = String(str || "").trim();
+    if (PHOTO_LABEL_PT[s]) return true;
+    if (/^[a-z]+(_[a-z0-9]+)+$/i.test(s)) return true;
+    return false;
+  }
+
+  function resolveStandardPhotoLabel(type, fallbackLabel, photo) {
+    const inferred = inferPhotoType(type, fallbackLabel, photo);
+    const fromKey = slotLabelForKey(inferred);
+    if (fromKey) return fromKey;
+    const fb = String(fallbackLabel || photo?.photo_label || photo?.label || "").trim();
     if (fb && PHOTO_LABEL_ALIASES[fb]) return PHOTO_LABEL_ALIASES[fb];
-    if (fb && !isTechnicalPhotoLabel(fb)) return fb;
-    return "Foto";
+    if (fb && !isTechnicalPhotoLabel(fb) && !isGenericPhotoCaption(fb)) return fb;
+    const fromFile = slotLabelForKey(extractKnownPhotoKey(photo?.file_name || photo?.storage_path));
+    if (fromFile) return fromFile;
+    if (inferred) return inferred.replace(/_/g, " ");
+    return fb && !isGenericPhotoCaption(fb) ? fb : slotLabelForKey(type) || "Item fotografado";
   }
 
   function formatDamagePhotoLabel(photo, damage) {
+    const inferred = inferPhotoType(photo?.photo_type || photo?.type, photo?.photo_label || photo?.label, photo);
     const rawLabel = String(photo?.photo_label || photo?.label || "").trim();
     let desc = "";
-    if (rawLabel && !isTechnicalPhotoLabel(rawLabel)) {
+    if (rawLabel && !isTechnicalPhotoLabel(rawLabel) && !isGenericPhotoCaption(rawLabel)) {
       desc = rawLabel;
     } else if (damage?.area_label && !isTechnicalPhotoLabel(damage.area_label)) {
       desc = String(damage.area_label).trim();
+    } else if (photo?.item_key && checklistItemLabel(photo.item_key)) {
+      desc = checklistItemLabel(photo.item_key);
+    } else if (inferred && checklistItemLabel(inferred)) {
+      desc = checklistItemLabel(inferred);
+    } else if (inferred && slotLabelForKey(inferred) && inferred !== "avaria_extra") {
+      desc = slotLabelForKey(inferred);
     } else if (damage?.description) {
       desc = String(damage.description).trim();
     }
+    desc = String(desc || "")
+      .replace(/^avaria\s*[—\-:]+\s*/i, "")
+      .replace(/\s*—\s*danificado$/i, "")
+      .trim();
     if (desc) {
       if (/^avaria(\s*[—\-:]|$)/i.test(desc)) {
         return desc.charAt(0).toUpperCase() + desc.slice(1);
       }
-      return `Avaria — ${desc}`;
+      return /danificado/i.test(desc) ? desc : `Avaria — ${desc}`;
     }
     return "Avaria";
   }
@@ -156,7 +262,7 @@
       .vei-doc-table tr { break-inside: avoid; page-break-inside: avoid; }
       .vei-doc-checklist-cat { margin-top: 10px; break-inside: auto; page-break-inside: auto; }
       .vei-doc-card {
-        border: 1.5px solid #94a3b8; margin: 0 0 12px; break-inside: avoid-page; page-break-inside: avoid;
+        border: 1.5px solid #94a3b8; margin: 0 0 12px; break-inside: auto; page-break-inside: auto;
       }
       .vei-doc-card-title {
         margin: 0; padding: 6px 8px; font-size: 10pt; font-weight: 800; text-transform: uppercase;
@@ -181,9 +287,9 @@
       .vei-doc-diagram-stack img.vei-doc-diagram-img { width: 100%; height: auto; display: block; }
       .vei-doc-diagram-stack svg.vei-doc-diagram-markers { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
       .vei-doc-diagram svg { max-width: 100%; height: auto; }
-      .vei-doc-photo-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 10px; margin-top: 8px; }
-      .vei-doc-photo-cell { break-inside: avoid; page-break-inside: avoid; text-align: center; }
-      .vei-doc-photo-label { margin: 0 0 4px; font-size: 8pt; font-weight: 700; line-height: 1.2; min-height: 2.4em; display: flex; align-items: flex-end; justify-content: center; }
+      .vei-doc-photo-grid { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 8px; align-items: flex-start; }
+      .vei-doc-photo-cell { break-inside: avoid; page-break-inside: avoid; text-align: center; width: calc(25% - 8px); box-sizing: border-box; }
+      .vei-doc-photo-label { margin: 0 0 4px; font-size: 8pt; font-weight: 700; line-height: 1.2; min-height: 2.4em; display: flex; align-items: flex-end; justify-content: center; break-after: avoid; page-break-after: avoid; }
       .vei-doc-photo-frame { width: ${PHOTO_SIZE}; height: ${PHOTO_SIZE}; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; }
       .vei-doc-photo-frame img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; }
       .vei-doc-photo-empty { font-size: 8pt; color: #94a3b8; padding: 8px; }
@@ -236,9 +342,12 @@
         print-color-adjust: exact;
       }
       ${documentCssRules()}
-      .vei-doc { width: 100%; max-width: 100%; }
-      .vei-doc-photo-grid { grid-template-columns: repeat(4, 1fr); }
-      img { max-width: 100%; }
+      .vei-doc { width: 100%; max-width: 100%; overflow: visible !important; }
+      .vei-doc-photo-grid { display: flex; flex-wrap: wrap; }
+      .vei-doc-photo-cell { width: calc(25% - 8px); break-inside: avoid; page-break-inside: avoid; }
+      .vei-doc-section > h3, .vei-doc-section > h4 { break-after: avoid; page-break-after: avoid; }
+      .vei-doc-table tr, .vei-doc-damage, .vei-doc-header, .vei-doc-withdrawal { break-inside: avoid; page-break-inside: avoid; }
+      img { max-width: 100%; page-break-inside: avoid; break-inside: avoid; }
     `;
   }
 
@@ -252,7 +361,8 @@
       documentCssRules() +
       `
       @media screen and (max-width: 720px) {
-        .vei-doc-photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .vei-doc-photo-grid { display: flex; flex-wrap: wrap; }
+        .vei-doc-photo-cell { width: calc(50% - 8px); }
       }
     `;
     document.head.appendChild(style);
@@ -456,14 +566,7 @@
     return (
       `<section class="vei-doc-section"><h3>Fotos adicionais de avarias</h3>` +
       `<div class="vei-doc-photo-grid">${photos
-        .map((p) => {
-          let label = p.photo_label || p.item_key || "Avaria";
-          if (!/danificado/i.test(label)) {
-            const base = String(label).replace(/^avaria\s*[—\-]\s*/i, "").trim();
-            label = base ? `${base} — Danificado` : "Danificado";
-          }
-          return renderPhotoCell(label, p.url);
-        })
+        .map((p) => renderPhotoCell(formatDamagePhotoLabel(p, null), p.url))
         .join("")}</div></section>`
     );
   }
@@ -521,19 +624,27 @@
         type: p.photo_type || "",
         damage_id: p.damage_id || null,
         photo_label: p.photo_label || "",
+        file_name: p.file_name || "",
+        storage_path: p.storage_path || "",
+        item_key: p.item_key || "",
+        photo_type: p.photo_type || "",
       };
-      if (entry.type === "avaria_extra") {
+      if (entry.type === "avaria_extra" || /^avaria_extra/i.test(entry.type)) {
         extraDamage.push({ ...entry, label: formatDamagePhotoLabel(entry) });
-      } else if (entry.damage_id) {
+      } else if (entry.damage_id || String(entry.type || "").startsWith("avaria_item_")) {
         checklistDamage.push(entry);
-      } else if (entry.type && standardKeys.has(entry.type)) {
-        standard.push({
-          ...entry,
-          label: resolveStandardPhotoLabel(entry.type, entry.label),
-          order: standardOrder.findIndex((s) => s.key === entry.type),
-        });
       } else {
-        other.push({ ...entry, label: resolveStandardPhotoLabel(entry.type, entry.label) });
+        const inferredType = inferPhotoType(entry.type, entry.label, entry);
+        if (inferredType && (standardKeys.has(inferredType) || PHOTO_LABEL_PT[inferredType])) {
+          standard.push({
+            ...entry,
+            type: inferredType,
+            label: resolveStandardPhotoLabel(inferredType, entry.label, entry),
+            order: standardOrder.findIndex((s) => s.key === inferredType),
+          });
+        } else {
+          other.push({ ...entry, label: resolveStandardPhotoLabel(entry.type, entry.label, entry) });
+        }
       }
     });
 
@@ -582,14 +693,7 @@
       html +=
         '<p class="vei-doc-subsection-title" style="margin:12px 0 6px;font-size:11px;font-weight:700;color:#475569">Fotos adicionais de avarias</p>' +
         `<div class="vei-doc-photo-grid">${itemPhotos
-          .map((p) => {
-            let label = p.photo_label || p.item_key || "Avaria";
-            if (!/danificado/i.test(label)) {
-              const base = String(label).replace(/^avaria\s*[—\-]\s*/i, "").trim();
-              label = base ? `${base} — Danificado` : "Danificado";
-            }
-            return renderPhotoCell(label, p.url);
-          })
+          .map((p) => renderPhotoCell(formatDamagePhotoLabel(p, null), p.url))
           .join("")}</div>`;
     }
     if (extraDamage.length) {
@@ -821,7 +925,8 @@
     const iframe = document.createElement("iframe");
     iframe.setAttribute("aria-hidden", "true");
     iframe.title = "Impressão da vistoria";
-    iframe.style.cssText = "position:fixed;width:0;height:0;border:0;visibility:hidden;left:-9999px;top:0;";
+    iframe.style.cssText =
+      "position:fixed;left:0;top:0;width:210mm;height:297mm;border:0;opacity:0;pointer-events:none;z-index:-1;";
     document.body.appendChild(iframe);
 
     const doc = iframe.contentDocument;
@@ -966,6 +1071,87 @@
     return stitched;
   }
 
+  function computeSafePageCuts(atomRanges, pageHeight, totalHeight, minKeep) {
+    const keep = minKeep == null ? 24 : minKeep;
+    const height = Math.max(1, Number(pageHeight) || 1);
+    const total = Math.max(0, Number(totalHeight) || 0);
+    const cuts = [0];
+    if (total <= height) return cuts;
+    let pageStart = 0;
+    let guard = 0;
+    while (pageStart + height < total - 1 && guard < 80) {
+      guard += 1;
+      const idealEnd = Math.min(pageStart + height, total);
+      let cut = idealEnd;
+      for (let i = 0; i < (atomRanges || []).length; i++) {
+        const a = atomRanges[i];
+        if (!a) continue;
+        const top = Number(a.top);
+        const bottom = Number(a.bottom);
+        if (!Number.isFinite(top) || !Number.isFinite(bottom)) continue;
+        if (bottom <= pageStart + 1) continue;
+        if (top >= idealEnd - 1) continue;
+        if (top >= pageStart - 1 && bottom > idealEnd && top > pageStart + keep) {
+          cut = Math.min(cut, top);
+        }
+      }
+      if (cut <= pageStart + keep) cut = idealEnd;
+      if (cut <= pageStart) cut = Math.min(pageStart + height, total);
+      cuts.push(cut);
+      pageStart = cut;
+    }
+    return cuts;
+  }
+
+  function collectAtomRanges(root, scaleY) {
+    if (!root || typeof root.getBoundingClientRect !== "function") return [];
+    const rootRect = root.getBoundingClientRect();
+    const scale = Number(scaleY) || 1;
+    const toY = (el, edge) => {
+      const r = el.getBoundingClientRect();
+      const y = edge === "bottom" ? r.bottom : r.top;
+      return (y - rootRect.top) * scale;
+    };
+    const nodes = [
+      ...root.querySelectorAll(
+        ".vei-doc-header, .vei-doc-card, .vei-doc-photo-cell, .vei-doc-damage, .vei-doc-diagram, .vei-doc-notes, .vei-doc-withdrawal, .vei-doc-grid, .vei-doc-section > h3, .vei-doc-section > h4"
+      ),
+    ];
+    const ranges = nodes
+      .map((el) => ({
+        el,
+        glueNext: /^(H3|H4)$/.test(el.tagName),
+        top: toY(el, "top"),
+        bottom: toY(el, "bottom"),
+      }))
+      .filter((a) => Number.isFinite(a.top) && Number.isFinite(a.bottom) && a.bottom > a.top)
+      .sort((a, b) => a.top - b.top || a.bottom - b.bottom);
+
+    const out = [];
+    const used = new Set();
+    for (let i = 0; i < ranges.length; i++) {
+      if (used.has(i)) continue;
+      const a = ranges[i];
+      if (a.glueNext) {
+        let nextIdx = -1;
+        for (let j = i + 1; j < ranges.length; j++) {
+          if (used.has(j) || ranges[j].glueNext) continue;
+          if (ranges[j].top >= a.top - 2) {
+            nextIdx = j;
+            break;
+          }
+        }
+        if (nextIdx >= 0 && ranges[nextIdx].top - a.bottom < 96) {
+          out.push({ top: a.top, bottom: Math.max(a.bottom, ranges[nextIdx].bottom) });
+          used.add(nextIdx);
+          continue;
+        }
+      }
+      out.push({ top: a.top, bottom: a.bottom });
+    }
+    return out;
+  }
+
   async function downloadPdf(ctx, vehicle, inspection, detail) {
     const sourceRoot =
       document.getElementById("veiPrintDocument") || document.querySelector(".vei-print-root");
@@ -1004,22 +1190,33 @@
       const doc = new jsPdfCtor({ unit: "pt", format: "a4", orientation: "portrait" });
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
-      const margin = 28;
+      const marginMm = 12;
+      const margin = (marginMm / 25.4) * 72;
       const innerW = pageW - margin * 2;
       const innerH = pageH - margin * 2;
       const pxPerPt = canvas.width / innerW;
       const pageSlicePx = Math.max(1, Math.floor(innerH * pxPerPt));
+      const scaleY = canvas.height / Math.max(1, captureRoot.scrollHeight || captureRoot.offsetHeight || 1);
+      const atomRanges = collectAtomRanges(captureRoot, scaleY);
+      const cuts = computeSafePageCuts(atomRanges, pageSlicePx, canvas.height, Math.round(pageSlicePx * 0.08));
       const pageCanvas = document.createElement("canvas");
       const pageCtx = pageCanvas.getContext("2d");
       if (!pageCtx) throw new Error("Falha ao preparar PDF.");
 
       pageCanvas.width = canvas.width;
-      let offsetY = 0;
-      let pageIndex = 0;
-      const totalPages = Math.max(1, Math.ceil(canvas.height / pageSlicePx));
+      const slices = [];
+      for (let i = 0; i < cuts.length; i++) {
+        const start = Math.max(0, Math.floor(cuts[i]));
+        const end = Math.min(canvas.height, Math.ceil(i + 1 < cuts.length ? cuts[i + 1] : canvas.height));
+        if (end <= start) continue;
+        slices.push({ start, end });
+      }
+      if (!slices.length) slices.push({ start: 0, end: canvas.height });
+      const totalPages = slices.length;
 
-      while (offsetY < canvas.height) {
-        const sliceH = Math.min(pageSlicePx, canvas.height - offsetY);
+      for (let pageIndex = 0; pageIndex < slices.length; pageIndex++) {
+        const sliceH = slices[pageIndex].end - slices[pageIndex].start;
+        const offsetY = slices[pageIndex].start;
         pageCanvas.height = sliceH;
         pageCtx.fillStyle = "#ffffff";
         pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
@@ -1031,15 +1228,12 @@
         const drawY = margin;
 
         if (pageIndex > 0) doc.addPage();
-        doc.addImage(pageCanvas.toDataURL("image/jpeg", 0.92), "JPEG", drawX, drawY, drawW, drawH);
+        doc.addImage(pageCanvas.toDataURL("image/jpeg", 0.92), "JPEG", drawX, drawY, drawW, Math.min(drawH, innerH));
 
         doc.setFontSize(8);
         doc.setTextColor(100);
         const footer = `Página ${pageIndex + 1} de ${totalPages} · Vistoria nº ${inspection?.inspection_number || "—"}`;
         doc.text(footer, pageW / 2, pageH - 14, { align: "center" });
-
-        offsetY += sliceH;
-        pageIndex += 1;
       }
 
       doc.save(pdfFileName(vehicle, inspection));
@@ -1064,5 +1258,9 @@
     printDocument,
     downloadPdf,
     pdfFileName,
+    resolveStandardPhotoLabel,
+    formatDamagePhotoLabel,
+    computeSafePageCuts,
+    collectAtomRanges,
   };
 })(typeof window !== "undefined" ? window : globalThis);
