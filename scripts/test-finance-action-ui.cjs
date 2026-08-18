@@ -110,6 +110,54 @@ function testMetricsPeriodAndResultado() {
   assert.strictEqual(custom.kpis.entradasPeriodo, 500);
 }
 
+function testDuplicatePaidJulyCycleStaysClosed() {
+  const ctx = loadIife("public/financial-metrics-service.js");
+  const svc = ctx.financialDashboardService;
+  assert.strictEqual(ctx.toPeriodYmd("2026-07-31T00:00:00.000Z"), "2026-07-31");
+  const snapshot = {
+    asOfYmd: "2026-08-18",
+    partners: [{ id: "f1", nome: "Banco Alpha" }],
+    vehicles: [{ id: "v1", placa: "AAA1A11", localizador_id: "f1", data_saida: "2026-07-31" }],
+    receivables: [
+      {
+        id: "paid-july",
+        vehicle_id: "v1",
+        valor: 800,
+        status: "PAGO",
+        financeiro_aprovado_contas_receber: true,
+        period_end: "2026-07-31T00:00:00.000Z",
+        updated_at: "2026-07-31T18:00:00",
+      },
+      {
+        id: "dup-july",
+        vehicle_id: "v1",
+        valor: 800,
+        status: "EM_ABERTO",
+        financeiro_aprovado_contas_receber: true,
+        period_end: "2026-07-31",
+        data_vencimento: "2026-07-31",
+      },
+      {
+        id: "open-aug",
+        vehicle_id: "v1",
+        valor: 200,
+        status: "EM_ABERTO",
+        financeiro_aprovado_contas_receber: true,
+        period_end: "2026-08-10",
+        data_vencimento: "2026-08-20",
+      },
+    ],
+    cash: [{ id: "c1", conta_id: "paid-july", tipo_conta: "RECEBER", valor: 800, data_movimento: "2026-07-31" }],
+  };
+  const paidKeys = ctx.paidReceivableCycleKeySet(snapshot.receivables);
+  assert.ok(paidKeys.has("v1|2026-07-31"));
+  assert.ok(ctx.isDuplicateOfPaidReceivableCycle(snapshot.receivables[1], paidKeys));
+  assert.ok(!ctx.isDuplicateOfPaidReceivableCycle(snapshot.receivables[2], paidKeys));
+  const month = svc.getMetricsFromSnapshot(snapshot, { period: "month" });
+  assert.strictEqual(month.kpis.contasAReceber.valor, 200, "duplicata de julho pago não volta a receber");
+  assert.strictEqual(month.kpis.contasAReceber.titulos, 1);
+}
+
 function testActionUiRender() {
   const ctx = loadIife("public/finance-action-ui.js");
   const ui = ctx.financeActionUi;
@@ -197,8 +245,8 @@ function testActionUiRender() {
 
 function testFilesStayInFinance() {
   const app = fs.readFileSync(path.join(root, "public/app.html"), "utf8");
-  assert.match(app, /finance-action-ui\.css\?v=20260818finact4/);
-  assert.match(app, /finance-action-ui\.js\?v=20260818finact4/);
+  assert.match(app, /finance-action-ui\.css\?v=20260818finact5/);
+  assert.match(app, /finance-action-ui\.js\?v=20260818finact5/);
   assert.match(app, /data-finance-subview-btn="financeiras"/);
   assert.match(app, /data-finance-subview-btn="lancamentos"/);
   assert.match(app, /data-finance-subview-btn="relatorios"/);
@@ -222,6 +270,9 @@ function testFilesStayInFinance() {
   assert.match(mod, /openReceberBaixaModal|data-fin-receber-pg/);
   assert.match(mod, /Histórico deste serviço|historyHtml/);
   assert.match(mod, /financeReceivableServicoLabel/);
+  assert.match(mod, /financeReceivableIsDuplicateOfPaidCycle/);
+  assert.match(app, /receivableHasPaidSiblingCycle/);
+  assert.match(app, /toPeriodYmd/);
   assert.doesNotMatch(
     mod,
     /financeIsManualReceivable\(r\) \? String\(r\.receivable_category \|\| r\.categoria \|\| ""\) : "GUARDA_PATIO"/
@@ -231,6 +282,7 @@ function testFilesStayInFinance() {
 let failed = 0;
 const tests = [
   ["métricas reais, período e resultado", testMetricsPeriodAndResultado],
+  ["duplicata de ciclo já pago não volta à fila", testDuplicatePaidJulyCycleStaysClosed],
   ["cartões e financeiras na UI", testActionUiRender],
   ["alterações só no financeiro", testFilesStayInFinance],
 ];

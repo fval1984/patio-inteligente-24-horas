@@ -69,6 +69,48 @@
     return toLocalYmd(new Date().toISOString());
   }
 
+  /** Data de competência do ciclo sem deslocar UTC para o dia anterior. */
+  function financeToPeriodYmd(value) {
+    if (typeof window.toPeriodYmd === "function") return window.toPeriodYmd(value) || "";
+    if (!value) return "";
+    const s = String(value).trim();
+    const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (m) return m[1];
+    return (typeof toLocalYmd === "function" ? toLocalYmd(s) : "") || "";
+  }
+
+  function financeReceivableCycleKey(r) {
+    if (!r?.vehicle_id) return "";
+    const end = financeToPeriodYmd(r.period_end);
+    return end ? `${String(r.vehicle_id)}|${end}` : "";
+  }
+
+  function financePaidReceivableCycleKeys() {
+    if (typeof window.paidReceivableCycleKeySet === "function") {
+      return window.paidReceivableCycleKeySet(state.receivables || []);
+    }
+    const keys = new Set();
+    for (const rec of state.receivables || []) {
+      if (String(rec.status || "").toUpperCase() !== "PAGO") continue;
+      const k = financeReceivableCycleKey(rec);
+      if (k) keys.add(k);
+    }
+    return keys;
+  }
+
+  /** Duplicata em aberto de um ciclo já pago (ex.: final de julho recriado pelo VRP). */
+  function financeReceivableIsDuplicateOfPaidCycle(r) {
+    if (typeof window.receivableHasPaidSiblingCycle === "function") {
+      return window.receivableHasPaidSiblingCycle(r);
+    }
+    if (typeof window.isDuplicateOfPaidReceivableCycle === "function") {
+      return window.isDuplicateOfPaidReceivableCycle(r, financePaidReceivableCycleKeys());
+    }
+    if (!r || String(r.status || "").toUpperCase() === "PAGO") return false;
+    const k = financeReceivableCycleKey(r);
+    return !!(k && financePaidReceivableCycleKeys().has(k));
+  }
+
   /** Mês marco do caixa (gravado em settings.caixa_reset_ym após o reset). */
   function financeGetCaixaResetYm() {
     const ym = state.settings?.caixa_reset_ym;
@@ -1348,6 +1390,10 @@
   function financeReceivableDisplayStatus(r) {
     if (!r) return "—";
     if (r.status === "PAGO") return "Recebido";
+    if (typeof receivableFluxoFinanceiroQuitado === "function" && receivableFluxoFinanceiroQuitado(r)) {
+      return "Recebido";
+    }
+    if (financeReceivableIsDuplicateOfPaidCycle(r)) return "Recebido";
     const due = financeContaDueYmd(r, "receivable");
     const today = financeTodayYmd();
     if (due && today && due < today) return "Atrasado";
@@ -1628,7 +1674,7 @@
       typeof window.receivableIsManualControleReceitas === "function"
         ? window.receivableIsManualControleReceitas
         : () => false;
-    let list = (state.receivables || []).filter((r) => isContaReceber(r));
+    let list = (state.receivables || []).filter((r) => isContaReceber(r) && !financeReceivableIsDuplicateOfPaidCycle(r));
     const plateNorm = financeNormalizePlate(financeFilterReceberPlaca);
     const rppId = (financeFilterReceberRppId || "").trim();
     if (plateNorm) {
@@ -1958,6 +2004,11 @@
   /** Valor da movimentação; se vier zerado na base, usa o título pago vinculado. */
   function financeReceivableCycleRank(r) {
     let score = 0;
+    const st = String(r?.status || "").toUpperCase();
+    if (st === "PAGO") score += 1e18;
+    else if (typeof receivableFluxoFinanceiroQuitado === "function" && receivableFluxoFinanceiroQuitado(r)) {
+      score += 1e17;
+    }
     if (r?.period_end) score += 1e15;
     const ts = new Date(r?.period_end || r?.updated_at || r?.created_at || 0).getTime();
     if (Number.isFinite(ts)) score += ts;
@@ -1975,7 +2026,7 @@
         manual.push(r);
         continue;
       }
-      const endYmd = toLocalYmd(r.period_end || r.updated_at || r.created_at) || "sem-data";
+      const endYmd = financeToPeriodYmd(r.period_end) || toLocalYmd(r.period_end || r.updated_at || r.created_at) || "sem-data";
       const key = `${String(r.vehicle_id)}|${endYmd}`;
       const prev = byKey.get(key);
       if (!prev || financeReceivableCycleRank(r) >= financeReceivableCycleRank(prev)) {
@@ -5165,6 +5216,7 @@
     const range = financeCurrentMetrics()?.range;
     const items = [];
     (state.receivables || []).forEach((r) => {
+      if (financeReceivableIsDuplicateOfPaidCycle(r)) return;
       const v = r.vehicle_id ? vmap.get(r.vehicle_id) : null;
       if (finId && String(v?.localizador_id || "") !== finId) return;
       const st = financeReceivableDisplayStatus(r);
@@ -6498,6 +6550,7 @@
   window.financePayableDefaultBaixaDateYmd = financePayableDefaultBaixaDateYmd;
   window.financeIsManualPayable = financeIsManualPayable;
   window.financeDedupePatioReceivables = financeDedupePatioReceivables;
+  window.financeReceivableIsDuplicateOfPaidCycle = financeReceivableIsDuplicateOfPaidCycle;
   window.financeParseDateRangeText = financeParseDateRangeText;
   window.financeYmdInRange = financeYmdInRange;
   window.financeReceivableSaidaYmd = financeReceivableSaidaYmd;

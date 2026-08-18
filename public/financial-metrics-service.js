@@ -36,6 +36,38 @@
     return toLocalYmd(d);
   }
 
+  /** Data de competência do ciclo (YYYY-MM-DD gravado), sem converter UTC para o dia anterior. */
+  function toPeriodYmd(value) {
+    if (!value) return "";
+    if (value instanceof Date) return toLocalYmd(value) || "";
+    const s = String(value).trim();
+    const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (m) return m[1];
+    return toLocalYmd(s) || "";
+  }
+
+  function receivableCycleKey(r) {
+    if (!r?.vehicle_id) return "";
+    const end = toPeriodYmd(r.period_end);
+    return end ? `${String(r.vehicle_id)}|${end}` : "";
+  }
+
+  function paidReceivableCycleKeySet(receivables) {
+    const keys = new Set();
+    for (const rec of receivables || []) {
+      if (String(rec.status || "").toUpperCase() !== "PAGO") continue;
+      const k = receivableCycleKey(rec);
+      if (k) keys.add(k);
+    }
+    return keys;
+  }
+
+  function isDuplicateOfPaidReceivableCycle(r, paidKeys) {
+    if (!r || String(r.status || "").toUpperCase() === "PAGO") return false;
+    const k = receivableCycleKey(r);
+    return !!(k && paidKeys.has(k));
+  }
+
   function todayYmd(now) {
     return toLocalYmd(now || new Date());
   }
@@ -281,8 +313,11 @@
     const pmap = new Map((snapshot.partners || []).map((p) => [String(p.id), p]));
     const cashByConta = buildCashByContaId(snapshot.cash || []);
     const receivables = filterReceivables(snapshot, filters, asOf);
+    const paidCycleKeys = paidReceivableCycleKeySet(snapshot.receivables);
 
-    const abertas = receivables.filter(isContaReceberAberta);
+    const abertas = receivables.filter(
+      (r) => isContaReceberAberta(r) && !isDuplicateOfPaidReceivableCycle(r, paidCycleKeys)
+    );
     const totalAberto = abertas.reduce((s, r) => s + receivableValor(r), 0);
 
     const curYm = yearMonthFromYmd(asOf);
@@ -709,4 +744,7 @@
   global.financialTodayYmd = todayYmd;
   global.isContaReceberAberta = isContaReceberAberta;
   global.isReceivableFaturado = isReceivableFaturado;
+  global.toPeriodYmd = toPeriodYmd;
+  global.paidReceivableCycleKeySet = paidReceivableCycleKeySet;
+  global.isDuplicateOfPaidReceivableCycle = isDuplicateOfPaidReceivableCycle;
 })(typeof window !== "undefined" ? window : globalThis);

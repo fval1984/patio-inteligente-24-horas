@@ -38,6 +38,42 @@ export function toLocalYmd(value: string | Date | null | undefined): Ymd | null 
   return toLocalYmd(d);
 }
 
+/** Data de competência do ciclo (YYYY-MM-DD gravado), sem converter UTC para o dia anterior. */
+export function toPeriodYmd(value: string | Date | null | undefined): Ymd | null {
+  if (!value) return null;
+  if (value instanceof Date) return toLocalYmd(value);
+  const s = String(value).trim();
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (m) return m[1];
+  return toLocalYmd(s);
+}
+
+function receivableCycleKey(r: FinancialReceivable): string {
+  if (!r?.vehicle_id) return "";
+  const end = toPeriodYmd(r.period_end);
+  return end ? `${String(r.vehicle_id)}|${end}` : "";
+}
+
+export function paidReceivableCycleKeySet(receivables: FinancialReceivable[] | null | undefined): Set<string> {
+  const keys = new Set<string>();
+  for (const r of receivables || []) {
+    if (String(r.status || "").toUpperCase() !== "PAGO") continue;
+    const k = receivableCycleKey(r);
+    if (k) keys.add(k);
+  }
+  return keys;
+}
+
+/** Título em aberto do mesmo veículo + saída que já foi pago — não deve voltar à fila. */
+export function isDuplicateOfPaidReceivableCycle(
+  r: FinancialReceivable,
+  paidKeys: Set<string>
+): boolean {
+  if (!r || String(r.status || "").toUpperCase() === "PAGO") return false;
+  const k = receivableCycleKey(r);
+  return !!(k && paidKeys.has(k));
+}
+
 export function todayYmd(now: Date = new Date()): Ymd {
   return toLocalYmd(now) as Ymd;
 }
@@ -251,8 +287,11 @@ export class FinancialMetricsService {
     const pmap: PMap = new Map((snapshot.partners || []).map((p) => [String(p.id), p]));
     const cashByConta = buildCashByContaId(snapshot.cash || []);
     const receivables = filterReceivables(snapshot, filters, asOf);
+    const paidCycleKeys = paidReceivableCycleKeySet(snapshot.receivables);
 
-    const abertas = receivables.filter(isContaReceberAberta);
+    const abertas = receivables.filter(
+      (r) => isContaReceberAberta(r) && !isDuplicateOfPaidReceivableCycle(r, paidCycleKeys)
+    );
     const totalAberto = abertas.reduce((s, r) => s + receivableValor(r), 0);
 
     const curYm = yearMonthFromYmd(asOf);
