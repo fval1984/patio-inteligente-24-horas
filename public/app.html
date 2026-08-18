@@ -6732,7 +6732,7 @@
       }
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme9" />
-    <link rel="stylesheet" href="/finance-action-ui.css?v=20260818finact5" />
+    <link rel="stylesheet" href="/finance-action-ui.css?v=20260818finact6" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260818vistui10" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile17" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
@@ -8732,11 +8732,12 @@
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
-    <script src="/finance-module.js?v=20260818finact5"></script>
+    <script src="/finance-restore-settled-plan.js?v=20260818restore1"></script>
+    <script src="/finance-module.js?v=20260818finact6"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
-    <script src="/financial-metrics-service.js?v=20260818finact5"></script>
-    <script src="/financial-dashboard-ui.js?v=20260818finact5"></script>
-    <script src="/finance-action-ui.js?v=20260818finact5"></script>
+    <script src="/financial-metrics-service.js?v=20260818finact6"></script>
+    <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
+    <script src="/finance-action-ui.js?v=20260818finact6"></script>
     <script src="/patio-dashboard.js?v=20260715gestor"></script>
     <script src="/operational-metrics-service.js?v=20260727opsdash"></script>
     <script src="/operational-dashboard-ui.js?v=20260813opscontrast"></script>
@@ -11418,7 +11419,7 @@
 
         const cycleRec = await findReceivableForVrpRepair(vehicleId, dataSaida);
         if (cycleRec?.id) {
-          if (receivableFluxoFinanceiroQuitado(cycleRec)) {
+          if (receivableFinanceStatus(cycleRec) === "PAGO" || receivableFluxoFinanceiroQuitado(cycleRec)) {
             result.ok = true;
             result.receivableId = cycleRec.id;
             return result;
@@ -11499,12 +11500,19 @@
         let recErr = null;
 
         if (receivableId) {
+          const liveStatus = String(
+            (state.receivables || []).find((x) => String(x.id) === String(receivableId))?.status || cycleRec?.status || ""
+          ).toUpperCase();
+          if (liveStatus === "PAGO") {
+            recErr = null;
+          } else {
           for (const patch of recPatchAttempts) {
             const res = await supabase
               .from("receivables")
               .update(patch)
               .eq("id", receivableId)
-              .eq("user_id", uid);
+              .eq("user_id", uid)
+              .neq("status", "PAGO");
             if (!res.error) {
               recErr = null;
               break;

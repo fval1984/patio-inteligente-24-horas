@@ -5598,6 +5598,83 @@
   }
 
   const FINANCE_CAIXA_REPAIR_KEY = "finance_caixa_repair_v2_done";
+  const FINANCE_RESTORE_SETTLED_KEY = "finance_restore_settled_v1_done";
+
+  async function financeApplyRestorePlanClient(plan) {
+    if (!plan?.needsRestore || typeof supabase === "undefined" || !supabase) return { applied: 0 };
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid) return { applied: 0 };
+    let applied = 0;
+    for (const row of plan.restoreReceivables || []) {
+      const { error } = await supabase
+        .from("receivables")
+        .update({ status: "PAGO", financeiro_aprovado_contas_receber: true })
+        .eq("id", row.id)
+        .eq("user_id", uid)
+        .neq("status", "PAGO");
+      if (!error) applied += 1;
+    }
+    for (const row of plan.hideDuplicates || []) {
+      const { error } = await supabase
+        .from("receivables")
+        .update({ financeiro_aprovado_contas_receber: false })
+        .eq("id", row.id)
+        .eq("user_id", uid)
+        .neq("status", "PAGO");
+      if (!error) applied += 1;
+    }
+    for (const row of plan.restorePayables || []) {
+      let { error } = await supabase
+        .from("payables")
+        .update({ status: "PAGO", data_pagamento: row.dataBaixa || undefined })
+        .eq("id", row.id)
+        .eq("user_id", uid)
+        .neq("status", "PAGO");
+      if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
+        ({ error } = await supabase.from("payables").update({ status: "PAGO" }).eq("id", row.id).eq("user_id", uid).neq("status", "PAGO"));
+      }
+      if (!error) applied += 1;
+    }
+    return { applied };
+  }
+
+  async function financeRunRestoreSettledIfNeeded() {
+    const userId = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!userId) return null;
+    try {
+      if (localStorage.getItem(FINANCE_RESTORE_SETTLED_KEY) === userId) return null;
+      const confirm = window.financeRestoreSettledPlan?.RESTORE_SETTLED_CONFIRM || "RESTORE_SETTLED_20260818_1700";
+      let json = null;
+      const execResp = await fetch("/api/finance/restore-settled/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, confirm }),
+      });
+      if (execResp.ok) {
+        json = await execResp.json().catch(() => ({}));
+      } else if (typeof window.financeRestoreSettledPlan?.planFinanceRestoreSettled === "function") {
+        const plan = window.financeRestoreSettledPlan.planFinanceRestoreSettled({
+          receivables: state.receivables || [],
+          payables: state.payables || [],
+          cash: state.cash || [],
+          vehicles: state.vehicles || [],
+          partners: state.partners || [],
+        });
+        json = { ok: true, clientFallback: true, ...(await financeApplyRestorePlanClient(plan)), counts: plan.counts };
+      } else {
+        console.warn("financeRunRestoreSettledIfNeeded", execResp.status);
+        return null;
+      }
+      localStorage.setItem(FINANCE_RESTORE_SETTLED_KEY, userId);
+      if (typeof loadReceivables === "function") await loadReceivables();
+      if (typeof loadPayables === "function") await loadPayables();
+      console.info("financeRunRestoreSettledIfNeeded", json);
+      return json;
+    } catch (e) {
+      console.warn("financeRunRestoreSettledIfNeeded", e?.message || e);
+      return null;
+    }
+  }
 
   async function financeRunCaixaRepairIfNeeded() {
     if (financeOperationalModeActive()) return null;
@@ -5636,6 +5713,7 @@
   }
 
   window.financeRunCaixaRepairIfNeeded = financeRunCaixaRepairIfNeeded;
+  window.financeRunRestoreSettledIfNeeded = financeRunRestoreSettledIfNeeded;
 
   window.refreshFinanceData = async function refreshFinanceData(opts = {}) {
     const preserveView = financeResolvePreserveView(opts);
@@ -5683,6 +5761,9 @@
         }
         if (typeof window.financeSyncReceivablesIntegrity === "function") {
           await window.financeSyncReceivablesIntegrity({ alwaysReload: false });
+        }
+        if (typeof financeRunRestoreSettledIfNeeded === "function") {
+          await financeRunRestoreSettledIfNeeded();
         }
         if (
           !financeOperationalModeActive() &&
