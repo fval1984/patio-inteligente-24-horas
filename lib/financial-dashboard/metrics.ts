@@ -317,7 +317,15 @@ export class FinancialMetricsService {
     let recebidoMes = 0;
     let pagamentosMes = 0;
     let recebidoMesAnt = 0;
+    const seenPaidCycle = new Set<string>();
     for (const r of receivables) {
+      if (String(r.status || "").toUpperCase() === "PAGO") {
+        const k = receivableCycleKey(r);
+        if (k) {
+          if (seenPaidCycle.has(k)) continue;
+          seenPaidCycle.add(k);
+        }
+      }
       const rec = recebimentoYmd(r, cashByConta);
       if (!rec) continue;
       const val = receivableValor(r);

@@ -345,7 +345,15 @@
     let recebidoPeriodo = 0;
     let pagamentosPeriodo = 0;
     let recebidosHoje = 0;
+    const seenPaidCycle = new Set();
     for (const r of receivables) {
+      if (String(r.status || "").toUpperCase() === "PAGO") {
+        const k = receivableCycleKey(r);
+        if (k) {
+          if (seenPaidCycle.has(k)) continue;
+          seenPaidCycle.add(k);
+        }
+      }
       const rec = recebimentoYmd(r, cashByConta);
       if (!rec) continue;
       const val = receivableValor(r);
@@ -606,6 +614,7 @@
       const nome = id === "__sem__" ? "Sem financeira" : partnerName(id, pmap);
       ensureFin(id, nome).veiculos.add(String(v.id));
     }
+    const seenPaidFin = new Set();
     for (const r of snapshot.receivables || []) {
       const v = r.vehicle_id ? vmap.get(String(r.vehicle_id)) : undefined;
       const id = financeiraIdOf(v) || "__sem__";
@@ -615,12 +624,17 @@
       const st = String(r.status || "").toUpperCase();
       if (st === "CANCELADO" || receivableValor(r) <= 0) continue;
       if (st === "PAGO") {
+        const k = receivableCycleKey(r);
+        if (k) {
+          if (seenPaidFin.has(k)) continue;
+          seenPaidFin.add(k);
+        }
         const rec = recebimentoYmd(r, cashByConta);
         if (rec && rec >= range.from && rec <= range.to) {
           row.recebido += receivableValor(r);
           row.aReceber += receivableValor(r);
         }
-      } else if (isContaReceberAberta(r)) {
+      } else if (isContaReceberAberta(r) && !isDuplicateOfPaidReceivableCycle(r, paidCycleKeys)) {
         row.emAberto += receivableValor(r);
         row.aReceber += receivableValor(r);
         const due = receivableDueYmd(r);

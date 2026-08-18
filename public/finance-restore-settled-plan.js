@@ -266,6 +266,18 @@ function planFinanceRestoreSettled(snapshot) {
       continue;
     }
 
+    if (cycleKey && paidCycleKeys.has(cycleKey) && !cashMov) {
+      hideDuplicates.push({
+        ...base,
+        statusCorreto: "duplicata (ciclo já recebido)",
+        acao: "hide_duplicate",
+        dataBaixa: "",
+        motivo: "Mesmo veículo e mesma saída de um título já PAGO. Não criar nova baixa.",
+        evidencia: `ciclo ${cycleKey}`,
+      });
+      continue;
+    }
+
     const cashBefore = movs.some(cashEvidenceBeforeCutoff) || plateMovs.some(cashEvidenceBeforeCutoff);
     const metaBefore = ymdOnOrBeforeCutoff(metaYmd);
     if (cashBefore || (cashMov && metaBefore) || (cashMov && ymdOnOrBeforeCutoff(cashMov.data_movimento))) {
@@ -330,18 +342,6 @@ function planFinanceRestoreSettled(snapshot) {
         cashId: "",
         motivo: "Histórico documentado de baixa (placa + saída + data de pagamento) anterior ao corte.",
         evidencia: `histórico ${hist.plate} saída ${hist.saidaDate} pago ${hist.paidDate}`,
-      });
-      continue;
-    }
-
-    if (cycleKey && paidCycleKeys.has(cycleKey) && !cashMov) {
-      hideDuplicates.push({
-        ...base,
-        statusCorreto: "duplicata (ciclo já recebido)",
-        acao: "hide_duplicate",
-        dataBaixa: "",
-        motivo: "Mesmo veículo e mesma saída de um título já PAGO. Não criar nova baixa.",
-        evidencia: `ciclo ${cycleKey}`,
       });
       continue;
     }

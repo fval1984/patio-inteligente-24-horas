@@ -247,7 +247,7 @@ function testFilesStayInFinance() {
   const app = fs.readFileSync(path.join(root, "public/app.html"), "utf8");
   assert.match(app, /finance-action-ui\.css\?v=20260818finact6/);
   assert.match(app, /finance-action-ui\.js\?v=20260818finact6/);
-  assert.match(app, /finance-restore-settled-plan\.js\?v=20260818restore4/);
+  assert.match(app, /finance-restore-settled-plan\.js\?v=20260818restore5/);
   assert.match(app, /data-finance-subview-btn="financeiras"/);
   assert.match(app, /data-finance-subview-btn="lancamentos"/);
   assert.match(app, /data-finance-subview-btn="relatorios"/);
