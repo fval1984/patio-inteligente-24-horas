@@ -5039,6 +5039,22 @@
         opacity: 0.5;
         cursor: not-allowed;
       }
+      .fin-selected-summary {
+        margin: 0 0 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(212, 175, 55, 0.35);
+        background: rgba(212, 175, 55, 0.08);
+        font-size: 14px;
+      }
+      .fin-selected-summary.hidden {
+        display: none;
+      }
+      .fin-selected-summary #finAguardandoSelectedTotal,
+      .fin-selected-summary #finReceberSelectedTotal {
+        font-weight: 800;
+        color: #e8c547;
+      }
       .finance-subnav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
       .finance-subnav button {
         border: 1px solid var(--border);
@@ -7474,6 +7490,9 @@
               <button type="button" class="secondary fin-batch-action" data-fin-batch-view="aguardando" data-fin-batch-action="promote" data-fin-batch-label="Contas a receber" disabled>Contas a receber</button>
               <button type="button" class="secondary fin-batch-delete fin-batch-action hidden" data-fin-batch-view="aguardando" data-fin-batch-action="delete" data-fin-batch-label="Apagar Selecionados">Apagar Selecionados</button>
             </div>
+            <p id="finAguardandoSelectedSummary" class="fin-selected-summary hidden" aria-live="polite">
+              <strong>Total selecionado:</strong> <span id="finAguardandoSelectedTotal">R$ 0,00</span><span id="finAguardandoSelectedCount" class="notice"></span>
+            </p>
             <p><strong>Total aguardando:</strong> <span id="finAguardandoTotal">R$ 0,00</span></p>
             <div class="table-wrap section-card">
               <table class="table">
@@ -7514,6 +7533,9 @@
               <button type="button" class="secondary fin-batch-action" data-fin-batch-view="receber" data-fin-batch-action="caixa" data-fin-batch-label="Caixa Selecionados" disabled>Caixa Selecionados</button>
               <button type="button" class="secondary fin-batch-delete fin-batch-action hidden" data-fin-batch-view="receber" data-fin-batch-action="delete" data-fin-batch-label="Apagar Selecionados">Apagar Selecionados</button>
             </div>
+            <p id="finReceberSelectedSummary" class="fin-selected-summary hidden" aria-live="polite">
+              <strong>Total selecionado:</strong> <span id="finReceberSelectedTotal">R$ 0,00</span><span id="finReceberSelectedCount" class="notice"></span>
+            </p>
             <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
             <div class="actions" style="margin: 0 0 12px; flex-wrap: wrap; gap: 8px">
               <button type="button" class="secondary" id="finReceberBtnPrint">Imprimir para cliente</button>
@@ -8665,7 +8687,7 @@
     <!-- Supabase no mesmo domínio: evita falha no celular quando CDN externa é bloqueada -->
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
-    <script src="/finance-module.js?v=20260727findash"></script>
+    <script src="/finance-module.js?v=20260818seltotal"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260727findash"></script>
     <script src="/financial-dashboard-ui.js?v=20260727findash"></script>
