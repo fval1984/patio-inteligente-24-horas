@@ -163,6 +163,22 @@ function testPaidHistoryAndArchivePlateAreEvidence() {
   assert.ok(!plan.restoreReceivables.some((r) => r.id === "r-open"));
 }
 
+function testAlreadyHiddenDuplicateIsUnchanged() {
+  const plan = planFinanceRestoreSettled({
+    vehicles: [{ id: "v1", placa: "SOE5I24", data_saida: "2026-07-01", payment_status: "PAGO" }],
+    receivables: [
+      { id: "paid", vehicle_id: "v1", valor: 100, status: "PAGO", period_end: "2026-07-01" },
+      { id: "dup", vehicle_id: "v1", valor: 100, status: "EM_ABERTO", period_end: "2026-07-01", financeiro_aprovado_contas_receber: false },
+    ],
+    payables: [],
+    cash: [],
+    paidHistory: [],
+  });
+  assert.strictEqual(plan.restoreReceivables.length, 0);
+  assert.strictEqual(plan.hideDuplicates.length, 0);
+  assert.strictEqual(plan.needsRestore, false);
+}
+
 function testSiblingPaidIsHiddenNotRestoredViaVehicleStatus() {
   const plan = planFinanceRestoreSettled({
     vehicles: [{ id: "v1", placa: "SOE5I24", data_saida: "2026-07-01", payment_status: "PAGO" }],
@@ -221,6 +237,7 @@ const tests = [
   ["histórico de placa e archive por descrição são evidência", testPaidHistoryAndArchivePlateAreEvidence],
   ["várias duplicatas do mesmo ciclo geram uma baixa só", testCollapsesSameCycleRestoresToOnePaid],
   ["duplicata de ciclo já PAGO não é restaurada de novo", testSiblingPaidIsHiddenNotRestoredViaVehicleStatus],
+  ["duplicata já oculta permanece inalterada", testAlreadyHiddenDuplicateIsUnchanged],
 ];
 for (const [name, fn] of tests) {
   try {

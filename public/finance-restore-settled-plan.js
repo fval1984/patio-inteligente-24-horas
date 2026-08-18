@@ -267,6 +267,15 @@ function planFinanceRestoreSettled(snapshot) {
     }
 
     if (cycleKey && paidCycleKeys.has(cycleKey) && !cashMov) {
+      if (r.financeiro_aprovado_contas_receber === false) {
+        unchangedReceivables.push({
+          ...base,
+          statusCorreto: "duplicata oculta",
+          acao: "none",
+          motivo: "Duplicata do ciclo já recebido, já retirada de Contas a receber.",
+        });
+        continue;
+      }
       hideDuplicates.push({
         ...base,
         statusCorreto: "duplicata (ciclo já recebido)",
