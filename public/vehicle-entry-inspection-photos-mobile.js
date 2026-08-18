@@ -173,6 +173,9 @@
       }
       .vei-mobile-photos .vei-photo-btn {
         appearance: none;
+        display: block;
+        position: relative;
+        box-sizing: border-box;
         border: none;
         border-radius: 12px;
         padding: 16px 18px;
@@ -182,6 +185,7 @@
         min-height: 52px;
         touch-action: manipulation;
         width: 100%;
+        text-align: center;
       }
       .vei-mobile-photos .vei-photo-btn-primary {
         background: linear-gradient(135deg, #22d3ee, #0891b2);
@@ -255,13 +259,28 @@
         line-height: 1;
         cursor: pointer;
       }
-      .vei-mobile-photos .vei-photo-capture-input {
+      .vei-mobile-photos .vei-photo-native-input {
         position: absolute;
-        width: 1px;
-        height: 1px;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
         opacity: 0;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
+        cursor: pointer;
+        font-size: 24px;
+        z-index: 2;
+      }
+      .vei-photo-native-input--detached {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 44px;
+        height: 44px;
+        margin: 0;
+        opacity: 0.01;
+        z-index: 0;
+        pointer-events: none;
       }
     `;
     document.head.appendChild(style);
@@ -303,7 +322,12 @@
       "</div>" +
       (hasPhoto ? '<p class="vei-photo-done">✓ Registrada</p>' : "") +
       '<div class="vei-photo-actions">' +
-      `<button type="button" class="vei-photo-btn vei-photo-btn-primary" id="veiPhotoTakeBtn">${hasPhoto ? "📷 Refazer foto" : "📷 Tirar foto"}</button>` +
+      `<label class="vei-photo-btn vei-photo-btn-primary" id="veiPhotoTakeBtn">${hasPhoto ? "📷 Refazer foto" : "📷 Tirar foto"}` +
+      '<input type="file" accept="image/*" capture="environment" class="vei-photo-native-input" id="veiPhotoCaptureInput" tabindex="-1"/>' +
+      "</label>" +
+      '<label class="vei-photo-btn vei-photo-btn-secondary" id="veiPhotoGalleryBtn">📁 Galeria' +
+      '<input type="file" accept="image/*" class="vei-photo-native-input" id="veiPhotoGalleryInput" tabindex="-1"/>' +
+      "</label>" +
       '<div class="vei-photo-nav">' +
       `<button type="button" class="vei-photo-btn vei-photo-btn-secondary" id="veiPhotoPrevBtn"${step <= 0 ? " disabled" : ""}>← Anterior</button>` +
       `<button type="button" class="vei-photo-btn vei-photo-btn-secondary" id="veiPhotoNextBtn"${step >= total - 1 ? " disabled" : ""}>Próxima →</button>` +
@@ -312,7 +336,6 @@
       '<div class="vei-photo-checklist">' +
       checklist +
       "</div>" +
-      '<input type="file" class="vei-photo-capture-input" id="veiPhotoCaptureInput" accept="image/*" capture="environment"/>' +
       "</section>"
     );
   }
@@ -326,56 +349,87 @@
     });
   }
 
+  function resolvePhotosHost(root) {
+    if (!root) return null;
+    if (root.id === "veiMobilePhotosHost") return root;
+    if (typeof root.closest === "function") {
+      const nested = root.closest("#veiMobilePhotosHost");
+      if (nested) return nested;
+    }
+    if (typeof root.querySelector === "function") {
+      const found = root.querySelector("#veiMobilePhotosHost");
+      if (found) return found;
+    }
+    return null;
+  }
+
+  async function applyCapturedStandardPhoto(draft, file) {
+    initDraftPhotos(draft);
+    if (!file || !draft) return false;
+    const slot = slotsForDraft(draft)[draft.currentPhotoStep];
+    if (!slot) return false;
+    const preview = await readFileAsDataUrl(file);
+    if (!preview) return false;
+    draft.standardPhotos[slot.key] = {
+      file,
+      preview,
+      capturedAt: new Date().toISOString(),
+      label: slot.label,
+      category: slot.category,
+    };
+    return true;
+  }
+
+  function stepPhoto(draft, delta) {
+    initDraftPhotos(draft);
+    const total = slotsForDraft(draft).length;
+    const next = (draft.currentPhotoStep || 0) + delta;
+    if (next < 0 || next >= total) return false;
+    draft.currentPhotoStep = next;
+    return true;
+  }
+
+  function jumpPhoto(draft, idx) {
+    initDraftPhotos(draft);
+    const total = slotsForDraft(draft).length;
+    if (!Number.isFinite(idx) || idx < 0 || idx >= total) return false;
+    draft.currentPhotoStep = idx;
+    return true;
+  }
+
+  function bindFileInput(input, draft, onRefresh) {
+    if (!input) return;
+    input.addEventListener("change", async () => {
+      const file = input.files?.[0];
+      input.value = "";
+      if (await applyCapturedStandardPhoto(draft, file)) onRefresh();
+    });
+  }
+
   function bindEvents(root, draft, onRefresh) {
     const section = root.querySelector("#veiMobilePhotos") || root.closest?.("#veiMobilePhotos") || root;
     if (!section || !section.querySelector) return;
 
     initDraftPhotos(draft);
 
-    const captureInput = section.querySelector("#veiPhotoCaptureInput");
+    bindFileInput(section.querySelector("#veiPhotoCaptureInput"), draft, onRefresh);
+    bindFileInput(section.querySelector("#veiPhotoGalleryInput"), draft, onRefresh);
 
-    section.querySelector("#veiPhotoTakeBtn")?.addEventListener("click", () => {
-      captureInput?.click();
+    section.querySelector("#veiPhotoPrevBtn")?.addEventListener("click", (evt) => {
+      evt.stopPropagation();
+      if (stepPhoto(draft, -1)) onRefresh();
     });
 
-    captureInput?.addEventListener("change", async () => {
-      const file = captureInput.files?.[0];
-      captureInput.value = "";
-      if (!file) return;
-      const slot = slotsForDraft(draft)[draft.currentPhotoStep];
-      if (!slot) return;
-      const preview = await readFileAsDataUrl(file);
-      draft.standardPhotos[slot.key] = {
-        file,
-        preview,
-        capturedAt: new Date().toISOString(),
-        label: slot.label,
-        category: slot.category,
-      };
-      onRefresh();
-    });
-
-    section.querySelector("#veiPhotoPrevBtn")?.addEventListener("click", () => {
-      if (draft.currentPhotoStep > 0) {
-        draft.currentPhotoStep--;
-        onRefresh();
-      }
-    });
-
-    section.querySelector("#veiPhotoNextBtn")?.addEventListener("click", () => {
-      if (draft.currentPhotoStep < slotsForDraft(draft).length - 1) {
-        draft.currentPhotoStep++;
-        onRefresh();
-      }
+    section.querySelector("#veiPhotoNextBtn")?.addEventListener("click", (evt) => {
+      evt.stopPropagation();
+      if (stepPhoto(draft, 1)) onRefresh();
     });
 
     section.querySelectorAll("[data-photo-jump]").forEach((el) => {
-      el.addEventListener("click", () => {
+      el.addEventListener("click", (evt) => {
+        evt.stopPropagation();
         const idx = Number(el.getAttribute("data-photo-jump"));
-        if (Number.isFinite(idx) && idx >= 0 && idx < slotsForDraft(draft).length) {
-          draft.currentPhotoStep = idx;
-          onRefresh();
-        }
+        if (jumpPhoto(draft, idx)) onRefresh();
       });
     });
   }
@@ -563,6 +617,10 @@
     STANDARD_SLOTS: LEGACY_STANDARD_SLOTS,
     STANDARD_COUNT: LEGACY_STANDARD_SLOTS.length,
     isCaptureDevice,
+    resolvePhotosHost,
+    applyCapturedStandardPhoto,
+    stepPhoto,
+    jumpPhoto,
     renderSection,
     bindEvents,
     uploadAll,

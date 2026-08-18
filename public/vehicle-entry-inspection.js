@@ -511,10 +511,12 @@
   function refreshMobilePhotosUI(root, draft) {
     const mod = global.vehicleEntryInspectionPhotosMobile;
     if (!mod?.renderSection) return;
-    const host = root.querySelector("#veiMobilePhotosHost");
+    const host = (typeof mod.resolvePhotosHost === "function" ? mod.resolvePhotosHost(root) : null) ||
+      (root?.id === "veiMobilePhotosHost" ? root : root?.querySelector?.("#veiMobilePhotosHost"));
     if (!host) return;
     host.innerHTML = mod.renderSection(draft);
-    mod.bindEvents(host, draft, () => refreshMobilePhotosUI(root, draft));
+    const refreshRoot = root?.id === "veiModalBody" ? root : document.getElementById("veiModalBody") || root;
+    mod.bindEvents(host, draft, () => refreshMobilePhotosUI(refreshRoot, draft));
   }
 
   function bindMobilePhotosIfNeeded(root, draft) {
@@ -667,6 +669,38 @@
     return list;
   }
 
+  async function handleInspectionFileInputChange(input) {
+    const draft = _session?.draft;
+    if (!draft || !input || input.type !== "file") return;
+    const file = input.files?.[0];
+    const inputId = input.id;
+    input.value = "";
+    if (!file) return;
+    const root = document.getElementById("veiModalBody");
+    const photosMod = global.vehicleEntryInspectionPhotosMobile;
+
+    if (inputId === "veiPhotoCaptureInput" || inputId === "veiPhotoGalleryInput") {
+      const ok = await photosMod?.applyCapturedStandardPhoto?.(draft, file);
+      if (ok) {
+        if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+        if (root) refreshMobilePhotosUI(root, draft);
+      }
+      return;
+    }
+
+    if (inputId === "veiDamagePhotoCaptureInput" || inputId === "veiDamagePhotoGalleryInput") {
+      const key = _session?.pendingDamagePhotoKey;
+      if (!key) return;
+      const preview = await readFileAsDataUrl(file);
+      if (!preview) return;
+      if (!draft.itemDamagePhotos) draft.itemDamagePhotos = {};
+      draft.itemDamagePhotos[key] = { file, preview, capturedAt: new Date().toISOString() };
+      _session.pendingDamagePhotoKey = null;
+      if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+      if (root) refreshCurrentEditUI(root, draft, _session.ctx);
+    }
+  }
+
   function handleEditModalInteraction(evt) {
     const draft = _session?.draft;
     const ctx = _session?.ctx;
@@ -677,6 +711,37 @@
 
     const hit = eventTargetElement(evt);
     if (!hit) return;
+
+    if (hit.closest?.("input[type='file']") || hit.closest?.("#veiPhotoTakeBtn") || hit.closest?.("#veiPhotoGalleryBtn")) {
+      return;
+    }
+
+    const photosMod = global.vehicleEntryInspectionPhotosMobile;
+    const photoJump = hit.closest?.("[data-photo-jump]");
+    if (photoJump && root.contains(photoJump)) {
+      const idx = Number(photoJump.getAttribute("data-photo-jump"));
+      if (photosMod?.jumpPhoto?.(draft, idx)) {
+        if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+        refreshMobilePhotosUI(root, draft);
+      }
+      return;
+    }
+    if (hit.closest?.("#veiPhotoPrevBtn") && root.contains(hit.closest("#veiPhotoPrevBtn"))) {
+      evt.preventDefault();
+      if (photosMod?.stepPhoto?.(draft, -1)) {
+        if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+        refreshMobilePhotosUI(root, draft);
+      }
+      return;
+    }
+    if (hit.closest?.("#veiPhotoNextBtn") && root.contains(hit.closest("#veiPhotoNextBtn"))) {
+      evt.preventDefault();
+      if (photosMod?.stepPhoto?.(draft, 1)) {
+        if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+        refreshMobilePhotosUI(root, draft);
+      }
+      return;
+    }
 
     const classBtn = hit.closest?.(".vei-class-btn[data-class]");
     if (classBtn && root.contains(classBtn)) {
@@ -794,6 +859,22 @@
     if (backdrop.dataset.veiInteractionBound === "1") return;
     backdrop.dataset.veiInteractionBound = "1";
     backdrop.addEventListener("click", handleEditModalInteraction);
+    backdrop.addEventListener(
+      "pointerdown",
+      (evt) => {
+        if (!_session || _session.mode !== "edit") return;
+        const t = evt.target?.closest?.("[data-damage-photo-capture], [data-damage-photo-add]");
+        if (!t) return;
+        _session.pendingDamagePhotoKey =
+          t.getAttribute("data-damage-photo-capture") || t.getAttribute("data-damage-photo-add");
+      },
+      true
+    );
+    backdrop.addEventListener("change", (evt) => {
+      const t = evt.target;
+      if (!t || !_session?.draft) return;
+      void handleInspectionFileInputChange(t);
+    });
     backdrop.addEventListener("input", (evt) => {
       const t = evt.target;
       if (!t || !_session?.draft) return;
@@ -975,8 +1056,8 @@
       }
       if (!readOnly) {
         html +=
-          `<button type="button" class="secondary vei-damage-photo-btn" data-damage-photo-capture="${esc(it.key)}">${photo?.preview ? "Refazer foto" : "Tirar foto"}</button>` +
-          `<button type="button" class="secondary vei-damage-photo-btn" data-damage-photo-add="${esc(it.key)}">Adicionar foto</button>`;
+          `<label class="secondary vei-damage-photo-btn" for="veiDamagePhotoCaptureInput" data-damage-photo-capture="${esc(it.key)}">${photo?.preview ? "Refazer foto" : "Tirar foto"}</label>` +
+          `<label class="secondary vei-damage-photo-btn" for="veiDamagePhotoGalleryInput" data-damage-photo-add="${esc(it.key)}">Galeria</label>`;
         if (photo?.preview) {
           html += `<button type="button" class="secondary vei-damage-photo-clear" data-damage-photo-clear="${esc(it.key)}">Remover</button>`;
         }
@@ -984,8 +1065,8 @@
       html += "</div>";
     });
     html +=
-      '<input type="file" class="vei-photo-capture-input hidden" id="veiDamagePhotoCaptureInput" accept="image/*" capture="environment"/>' +
-      '<input type="file" class="vei-photo-capture-input hidden" id="veiDamagePhotoGalleryInput" accept="image/*"/>';
+      '<input type="file" class="vei-photo-native-input vei-photo-native-input--detached" id="veiDamagePhotoCaptureInput" accept="image/*" capture="environment"/>' +
+      '<input type="file" class="vei-photo-native-input vei-photo-native-input--detached" id="veiDamagePhotoGalleryInput" accept="image/*"/>';
     html += "</div>";
     return html;
   }
@@ -1017,25 +1098,27 @@
     let activeKey = null;
 
     async function applyPhoto(file) {
-      if (!file || !activeKey) return;
+      const key = activeKey || _session?.pendingDamagePhotoKey;
+      if (!file || !key) return;
       const preview = await readFileAsDataUrl(file);
       if (!draft.itemDamagePhotos) draft.itemDamagePhotos = {};
-      draft.itemDamagePhotos[activeKey] = { file, preview, capturedAt: new Date().toISOString() };
+      draft.itemDamagePhotos[key] = { file, preview, capturedAt: new Date().toISOString() };
       if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
       activeKey = null;
+      if (_session) _session.pendingDamagePhotoKey = null;
       onRefresh();
     }
 
     section.querySelectorAll("[data-damage-photo-capture]").forEach((btn) => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("pointerdown", () => {
         activeKey = btn.getAttribute("data-damage-photo-capture");
-        captureInput?.click();
+        if (_session) _session.pendingDamagePhotoKey = activeKey;
       });
     });
     section.querySelectorAll("[data-damage-photo-add]").forEach((btn) => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("pointerdown", () => {
         activeKey = btn.getAttribute("data-damage-photo-add");
-        galleryInput?.click();
+        if (_session) _session.pendingDamagePhotoKey = activeKey;
       });
     });
     section.querySelectorAll("[data-damage-photo-clear]").forEach((btn) => {
@@ -1432,10 +1515,11 @@
       itemPhotosHost.innerHTML = renderItemDamagePhotosSection(draft, false);
       bindItemDamagePhotoEvents(itemPhotosHost, draft, () => refreshEditChecklistUI(root, draft, ctx));
     }
-    const mobileHost = root.querySelector("#veiMobilePhotosHost");
+    const mobileHost =
+      global.vehicleEntryInspectionPhotosMobile?.resolvePhotosHost?.(root) ||
+      root.querySelector?.("#veiMobilePhotosHost");
     if (mobileHost) {
-      mobileHost.innerHTML = renderMobilePhotosSection(draft);
-      bindMobilePhotosIfNeeded(mobileHost, draft);
+      bindMobilePhotosIfNeeded(root, draft);
     }
     const progressText = root.querySelector("#veiProgressText");
     const progressBar = root.querySelector("#veiProgressBar i");

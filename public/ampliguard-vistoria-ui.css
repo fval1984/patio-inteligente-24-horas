@@ -476,6 +476,34 @@
   border-bottom: 1px solid #eef2f6;
 }
 
+.vei-damage-photo-btn,
+.vei-damage-photo-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  margin: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.92rem;
+  min-height: 44px;
+  box-sizing: border-box;
+  touch-action: manipulation;
+}
+
+.vei-photo-native-input--detached {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  opacity: 0.01;
+  z-index: 0;
+  pointer-events: none;
+}
+
 .vei-damage-photo-preview {
   width: 88px;
   height: 66px;

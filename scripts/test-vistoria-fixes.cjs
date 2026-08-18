@@ -377,6 +377,60 @@ function testPhotosHydrateIntoDraft() {
   assert.match(src, /inferPhotoType,/);
 }
 
+function testGestorPhotoCaptureOpens() {
+  const photos = loadIife("public/vehicle-entry-inspection-photos-mobile.js");
+  const mod = photos.vehicleEntryInspectionPhotosMobile;
+  assert.ok(mod.resolvePhotosHost, "resolvePhotosHost exportado");
+  assert.ok(mod.applyCapturedStandardPhoto, "applyCapturedStandardPhoto exportado");
+
+  const draft = { inspectionVariant: "LEVE", standardPhotos: {}, currentPhotoStep: 0 };
+  const html = mod.renderSection(draft);
+  assert.match(html, /id="veiPhotoTakeBtn"/);
+  assert.match(html, /<label class="vei-photo-btn vei-photo-btn-primary" id="veiPhotoTakeBtn"/);
+  assert.match(html, /id="veiPhotoCaptureInput"[^>]*capture="environment"|capture="environment"[^>]*id="veiPhotoCaptureInput"/);
+  assert.match(html, /id="veiPhotoGalleryInput"/);
+  assert.match(html, /class="vei-photo-native-input"/);
+  assert.doesNotMatch(html, /clip:\s*rect\(0,\s*0,\s*0,\s*0\)/);
+
+  const host = {
+    id: "veiMobilePhotosHost",
+    querySelector() {
+      return null;
+    },
+    closest() {
+      return null;
+    },
+  };
+  assert.strictEqual(mod.resolvePhotosHost(host), host, "host é o próprio elemento, não um descendente");
+
+  const body = {
+    id: "veiModalBody",
+    querySelector(sel) {
+      return sel === "#veiMobilePhotosHost" ? host : null;
+    },
+    closest() {
+      return null;
+    },
+  };
+  assert.strictEqual(mod.resolvePhotosHost(body), host);
+
+  assert.strictEqual(mod.stepPhoto(draft, 1), true);
+  assert.strictEqual(draft.currentPhotoStep, 1);
+  assert.strictEqual(mod.jumpPhoto(draft, 0), true);
+  assert.strictEqual(draft.currentPhotoStep, 0);
+
+  const srcPhotos = fs.readFileSync(path.join(root, "public/vehicle-entry-inspection-photos-mobile.js"), "utf8");
+  assert.doesNotMatch(srcPhotos, /clip: rect\(0, 0, 0, 0\)/);
+  const srcInsp = fs.readFileSync(path.join(root, "public/vehicle-entry-inspection.js"), "utf8");
+  assert.match(srcInsp, /handleInspectionFileInputChange/);
+  assert.match(srcInsp, /resolvePhotosHost/);
+  assert.match(srcInsp, /for="veiDamagePhotoCaptureInput"/);
+  assert.doesNotMatch(srcInsp, /class="vei-photo-capture-input hidden"/);
+  assert.match(srcInsp, /pendingDamagePhotoKey/);
+  const srcApp = fs.readFileSync(path.join(root, "public/app.html"), "utf8");
+  assert.match(srcApp, /vehicle-entry-inspection-photos-mobile\.js\?v=20260818vistoria9/);
+}
+
 function testPhotoUploadGoesThroughApi() {
   const src = fs.readFileSync(path.join(root, "public/vehicle-entry-inspection-photos-mobile.js"), "utf8");
   assert.match(src, /\/api\/vehicles\/entry-inspection-photo/);
@@ -398,6 +452,7 @@ const tests = [
   ["PDF com várias fotografias", testManyPhotosPagination],
   ["fotos gravadas voltam no rascunho", testPhotosHydrateIntoDraft],
   ["envio das fotos pela API", testPhotoUploadGoesThroughApi],
+  ["câmera da vistoria no gestor de pista", testGestorPhotoCaptureOpens],
 ];
 
 for (const [name, fn] of tests) {
