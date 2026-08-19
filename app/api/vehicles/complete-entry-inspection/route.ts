@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { verifyInspectorSessionToken } from "@/lib/inspector-session";
+import { actorRequiresInspectorIdentification, resolvePatioActor } from "@/lib/patio-actor";
 import { extractBearerToken, getUserIdFromAccessToken } from "@/lib/user-authorization";
 import {
   completeVehicleEntryInspection,
@@ -10,6 +12,7 @@ import {
 
 type Body = {
   access_token?: string;
+  inspector_token?: string;
   vehicle_id?: string;
   inspection_variant?: string;
   form_extras?: Record<string, unknown>;
@@ -88,8 +91,28 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = getSupabaseAdmin();
-  const { ownerUserId, inspectorUserId } = await resolveVehicleOwnerUserId(admin, userId);
-  const inspectorName = await resolveInspectorDisplayName(admin, inspectorUserId);
+  const actor = await resolvePatioActor(admin, userId);
+  const { ownerUserId } = await resolveVehicleOwnerUserId(admin, userId);
+
+  let inspectorUserId = actor.authUserId;
+  let inspectorName = await resolveInspectorDisplayName(admin, inspectorUserId);
+  const inspectorToken = String(body.inspector_token || "").trim();
+
+  if (actorRequiresInspectorIdentification(actor) || inspectorToken) {
+    if (!inspectorToken) {
+      return NextResponse.json(
+        { error: "Identifique o vistoriador com usuário e senha antes de finalizar a vistoria." },
+        { status: 401 }
+      );
+    }
+    const verified = verifyInspectorSessionToken(inspectorToken, ownerUserId);
+    if (!verified.ok) {
+      return NextResponse.json({ error: verified.error }, { status: 401 });
+    }
+    inspectorUserId = verified.payload.iid;
+    inspectorName =
+      (verified.payload.n || "").trim() || (await resolveInspectorDisplayName(admin, inspectorUserId));
+  }
 
   const { data, error } = await completeVehicleEntryInspection(admin, {
     ownerUserId,
@@ -120,6 +143,8 @@ export async function POST(request: NextRequest) {
     inspection_id: data.inspection_id,
     inspection_number: data.inspection_number,
     inspector_name: inspectorName,
+    inspector_id: inspectorUserId,
+    vistoriador_id: inspectorUserId,
     completed_at: new Date().toISOString(),
   });
 }

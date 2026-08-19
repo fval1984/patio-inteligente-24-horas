@@ -6733,7 +6733,7 @@
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme9" />
     <link rel="stylesheet" href="/finance-action-ui.css?v=20260818finact6" />
-    <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260818vistui10" />
+    <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260819vistoriador1" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile17" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
   </head>
@@ -6896,6 +6896,11 @@
           <p id="appSessionBannerText">Não foi possível carregar os dados. Sua sessão pode ter expirado.</p>
           <button type="button" class="secondary" id="appSessionRetry">Tentar novamente</button>
           <button type="button" id="appSessionLogout">Sair</button>
+        </div>
+        <div id="vistoriadorWelcomeBanner" class="gestor-pista-welcome hidden" role="status">
+          <p class="notice gestor-pista-welcome-text">
+            <strong>Terminal de vistoria.</strong> Toque em <strong>INICIAR VISTORIA</strong> e identifique-se com o seu usuário e senha antes de cada vistoria. O tablet pode permanecer logado.
+          </p>
         </div>
         <div id="gestorPistaWelcomeBanner" class="gestor-pista-welcome hidden" role="status">
           <p class="notice gestor-pista-welcome-text">
@@ -7804,6 +7809,7 @@
               <p class="notice" style="margin: 0 0 12px">
                 Cria um utilizador só para a pista: <strong>Nome</strong> e <strong>senha</strong>. O funcionário abre a <strong>mesma app</strong> (este site) →
                 <strong>Entrar</strong> → escreve o <strong>mesmo nome</strong> e a <strong>senha</strong> (se o nome não tiver @, não precisa de e-mail).
+                O perfil <strong>Vistoriador</strong> abre só o módulo de vistoria (tablet compartilhado).
               </p>
               <div id="trackManagerFormWrap" class="hidden">
                 <div class="form-grid">
@@ -7814,6 +7820,13 @@
                   <div class="full">
                     <label for="trackManagerPassword">Senha</label>
                     <input id="trackManagerPassword" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres" />
+                  </div>
+                  <div class="full">
+                    <label for="trackManagerRole">Perfil</label>
+                    <select id="trackManagerRole">
+                      <option value="GESTOR_PISTA">Gestor de pista</option>
+                      <option value="VISTORIADOR">Vistoriador</option>
+                    </select>
                   </div>
                 </div>
                 <div class="form-actions" style="margin-top: 10px">
@@ -8751,7 +8764,7 @@
     <script src="/vehicle-entry-inspection-checklist.js?v=20260818vistoria10"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260818vistoria10"></script>
     <script src="/vehicle-entry-inspection-document.js?v=20260818vistoria10"></script>
-    <script src="/vehicle-entry-inspection.js?v=20260818vistoria10"></script>
+    <script src="/vehicle-entry-inspection.js?v=20260819vistoriador1"></script>
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
@@ -9421,6 +9434,7 @@
       const trackManagerBtnCancelar = document.getElementById("trackManagerBtnCancelar");
       const trackManagerUsername = document.getElementById("trackManagerUsername");
       const trackManagerPassword = document.getElementById("trackManagerPassword");
+      const trackManagerRole = document.getElementById("trackManagerRole");
       const addTrackManager = document.getElementById("addTrackManager");
       const trackManagerStatus = document.getElementById("trackManagerStatus");
       const trackManagerAccessBox = document.getElementById("trackManagerAccessBox");
@@ -9724,10 +9738,11 @@
       }
 
       let isGestorPista = false;
+      let isVistoriador = false;
       const ADM_PC_MIN_WIDTH_PX = 901;
 
       function isAdmDesktopPc() {
-        if (isGestorPista) return false;
+        if (isGestorPista || isVistoriador) return false;
         try {
           return window.matchMedia(`(min-width: ${ADM_PC_MIN_WIDTH_PX}px)`).matches;
         } catch (e) {
@@ -9756,6 +9771,7 @@
       }
 
       function defaultHomeViewForRole() {
+        if (isVistoriador) return "patio";
         if (isGestorPista || isMobileLayout()) return "patio";
         return "dashboard";
       }
@@ -15076,6 +15092,11 @@
       }
 
       function applyAppLaunchConfig(cfg) {
+        if (isVistoriador) {
+          showMainView("patio");
+          setPatioView("vistoria");
+          return;
+        }
         const view = cfg.view || (cfg.fin ? "financeiro" : null) || (cfg.patio ? "patio" : null);
         if (!view) return;
         try {
@@ -15257,16 +15278,22 @@
         state.user = null;
         state.patioOwnerUserId = null;
         isGestorPista = false;
+        isVistoriador = false;
+        window.isGestorPista = false;
+        window.isVistoriador = false;
+        document.body.classList.remove("role-vistoriador", "role-gestor-pista");
+        document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
+        document.getElementById("vistoriadorWelcomeBanner")?.classList.add("hidden");
         appInitUserId = null;
         appInitPromise = null;
         appLaunchConfigConsumed = false;
         capturedAppLaunchConfig = null;
         showAppBootstrapping = false;
-        document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
       }
 
       async function loadPatioDelegatedRole() {
         isGestorPista = false;
+        isVistoriador = false;
         state.patioOwnerUserId = null;
         try {
           if (!supabase || !state?.user?.id) return false;
@@ -15289,6 +15316,13 @@
             return false;
           }
           state.patioOwnerUserId = data.owner_user_id;
+          const role = String(data.role || "GESTOR_PISTA")
+            .trim()
+            .toUpperCase();
+          if (role === "VISTORIADOR") {
+            isVistoriador = true;
+            return true;
+          }
           isGestorPista = true;
           return true;
         } catch (e) {
@@ -15331,6 +15365,7 @@
 
       function applyMobileModuleNavRestrictions() {
         const gestorVisible = new Set(["dashboardOpenPatio", "dashboardOpenLista"]);
+        const vistoriadorVisible = new Set();
         [
           "dashboardOpenPatio",
           "dashboardOpenFinance",
@@ -15340,7 +15375,7 @@
         ].forEach((id) => {
           const btn = document.getElementById(id);
           if (!btn) return;
-          const show = !isGestorPista || gestorVisible.has(id);
+          const show = isVistoriador ? vistoriadorVisible.has(id) : !isGestorPista || gestorVisible.has(id);
           btn.classList.toggle("hidden", !show);
           btn.style.display = show ? "" : "none";
         });
@@ -15363,6 +15398,11 @@
       }
 
       function openDefaultHomeView() {
+        if (isVistoriador) {
+          showMainView("patio");
+          setPatioView("vistoria");
+          return;
+        }
         const view = defaultHomeViewForRole();
         showMainView(view);
         if (view === "patio") setPatioView("inicio");
@@ -15383,6 +15423,11 @@
         document.querySelectorAll("#appHeaderMenu button[data-view]").forEach((btn) => {
           btn.style.display = "";
         });
+        patioSubnav?.querySelectorAll("button[data-subview]").forEach((btn) => btn.classList.remove("hidden"));
+        document.getElementById("dashboardSystemEntry")?.classList.remove("hidden");
+        document.getElementById("patioMenuNewVehicle")?.classList.remove("hidden");
+        const patioTitleReset = document.querySelector("#viewPatio .patio-toolbar h2");
+        if (patioTitleReset) patioTitleReset.textContent = "Gestão de Pátio";
         patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.remove("hidden");
         patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.remove("hidden");
         const vehicleDailyReset = document.getElementById("vehicleDaily");
@@ -15391,12 +15436,49 @@
         if (vehicleDailyReset) vehicleDailyReset.required = true;
 
         document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
+        document.getElementById("vistoriadorWelcomeBanner")?.classList.add("hidden");
+        document.body.classList.remove("role-vistoriador", "role-gestor-pista");
         goDashboardFromPlate?.classList.remove("hidden");
+        if (isVistoriador) {
+          try {
+            navStack.splice(0, navStack.length, "patio", "patio:vistoria");
+          } catch (e) {
+            console.warn("navStack", e);
+          }
+          document.querySelectorAll("#appHeaderMenu button[data-view]").forEach((btn) => {
+            btn.style.display = "none";
+          });
+          document.querySelectorAll("#appHeaderMenu .header-menu-details").forEach((el) => el.classList.add("hidden"));
+          goDashboardFromPlate?.classList.add("hidden");
+          document.getElementById("headerDetailsConfig")?.classList.add("hidden");
+          document.getElementById("headerDetailsFinance")?.classList.add("hidden");
+          document.getElementById("headerDetailsParceiros")?.classList.add("hidden");
+          document.getElementById("headerDetailsLista")?.classList.add("hidden");
+          document.getElementById("dashboardSystemEntry")?.classList.add("hidden");
+          document.getElementById("dashboardOpenFinance")?.classList.add("hidden");
+          patioSubnav?.querySelectorAll("button[data-subview]").forEach((btn) => {
+            btn.classList.toggle("hidden", btn.getAttribute("data-subview") !== "vistoria");
+          });
+          document.getElementById("patioMenuNewVehicle")?.classList.add("hidden");
+          const patioTitle = document.querySelector("#viewPatio .patio-toolbar h2");
+          if (patioTitle) patioTitle.textContent = "Vistoria";
+          document.body.classList.add("role-vistoriador");
+          window.isGestorPista = false;
+          window.isVistoriador = true;
+          applyMobileModuleNavRestrictions();
+          if (!opts.skipDefaultView) {
+            showMainView("patio");
+            setPatioView("vistoria");
+          }
+          document.getElementById("vistoriadorWelcomeBanner")?.classList.remove("hidden");
+          return;
+        }
         if (!isGestorPista) {
           document.getElementById("dashboardSystemEntry")?.classList.remove("dashboard-system-entry--single");
           document.getElementById("dashboardOpenFinance")?.classList.remove("hidden");
           document.getElementById("headerDetailsFinance")?.classList.remove("hidden");
           window.isGestorPista = false;
+          window.isVistoriador = false;
           const patioOpsHead = document.querySelector("#patioInicioPanel .patio-inicio-ops-section h4");
           if (patioOpsHead) patioOpsHead.textContent = "Indicadores operacionais";
           applyAdmDesktopPcRestrictions();
@@ -15466,6 +15548,7 @@
 
         document.getElementById("gestorPistaWelcomeBanner")?.classList.remove("hidden");
         window.isGestorPista = true;
+        window.isVistoriador = false;
         const patioOpsHead = document.querySelector("#patioInicioPanel .patio-inicio-ops-section h4");
         if (patioOpsHead) patioOpsHead.textContent = "Indicadores do pátio";
         applyMobileModuleNavRestrictions();
@@ -15909,6 +15992,8 @@
           supabase,
           effectiveUserId,
           isGestorPista,
+          isVistoriador,
+          requiresInspectorIdentification: !!isVistoriador,
           isAdmDesktopPc: isAdmDesktopPc(),
           isVehicleOnPatio,
           partners: state.partners || [],
@@ -15921,6 +16006,11 @@
           renderVehicles,
           loadVehicleInspections,
           onInspectionCompleted() {
+            if (isVistoriador) {
+              showMainView("patio");
+              setPatioView("vistoria");
+              return;
+            }
             openMainView("patio");
             openPatioSubview("no_patio");
           },
@@ -15928,7 +16018,7 @@
       }
 
       async function loadAll() {
-        if (isGestorPista) {
+        if (isGestorPista || isVistoriador) {
           await Promise.all([loadPartners(), loadVehicles(), loadVehicleInspections()]);
           probeVehiclesRpfColumns().catch(() => {});
           return;
@@ -16486,6 +16576,7 @@
       window.pickVehicleByPlate = pickVehicleByPlate;
 
       function resolvePlateSearchSubview(v) {
+        if (isVistoriador) return "vistoria";
         if (!v) return "no_patio";
         if (v.status === "AGUARDANDO_VISTORIA") return isAdmDesktopPc() ? "no_patio" : "vistoria";
         if (v.status === "REMOVIDO") {
@@ -17137,6 +17228,7 @@
       }
 
       function setPatioView(view, opts = {}) {
+        if (isVistoriador) view = "vistoria";
         if (isAdmDesktopPc() && view === "vistoria") view = "no_patio";
         const silent = opts.silent === true;
         if (view === "liberacao_solicitada") view = "vlp";
@@ -18028,6 +18120,10 @@
       }
 
       function openVehicleModal(mode, vehicle) {
+        if (isVistoriador) {
+          alert("Este perfil só pode realizar vistorias.");
+          return;
+        }
         if (isGestorPista && mode === "edit") {
           alert("O gestor de pista não pode editar veículos.");
           return;
@@ -18130,6 +18226,7 @@
         openVehicleModal("create");
       });
       patioMenuNewVehicle?.addEventListener("click", () => {
+        if (isVistoriador) return;
         closePatioMenu();
         openVehicleModal("create");
       });
@@ -20377,6 +20474,7 @@
         trackManagerFormWrap?.classList.add("hidden");
         if (trackManagerUsername) trackManagerUsername.value = "";
         if (trackManagerPassword) trackManagerPassword.value = "";
+        if (trackManagerRole) trackManagerRole.value = "GESTOR_PISTA";
         if (trackManagerStatus) trackManagerStatus.textContent = "";
         hideTrackManagerAccessBox();
       });
@@ -20464,6 +20562,7 @@
                 anon_key: supabaseKey,
                 email,
                 password: ownerChosenPassword,
+                role: (trackManagerRole?.value || "GESTOR_PISTA").toUpperCase() === "VISTORIADOR" ? "VISTORIADOR" : "GESTOR_PISTA",
               }),
             });
 
@@ -20542,6 +20641,7 @@
             trackManagerFormWrap?.classList.add("hidden");
             if (trackManagerUsername) trackManagerUsername.value = "";
             if (trackManagerPassword) trackManagerPassword.value = "";
+            if (trackManagerRole) trackManagerRole.value = "GESTOR_PISTA";
             await loadTrackManagersList();
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
@@ -20631,6 +20731,10 @@
       async function handleVnpVehicleAction(button) {
         const id = button.getAttribute("data-id");
         const action = button.getAttribute("data-action");
+        if (isVistoriador && action !== "vistoria") {
+          alert("Este perfil só pode realizar vistorias.");
+          return;
+        }
 
         if (action === "patio_acoes") {
           const vehicleInfo = state.vehicles.find((v) => v.id === id);
@@ -21930,6 +22034,9 @@
 
       function showMainView(view) {
         view = resolveViewForDevice(view);
+        if (isVistoriador) {
+          view = "patio";
+        }
         if (isGestorPista && view === "dashboard") {
           navStack.splice(0, navStack.length, "patio", "patio:inicio");
           showMainView("patio");
@@ -21993,6 +22100,7 @@
         }
         syncHeaderMenuModuleHighlight(view);
         syncMobileModuleNavHighlight(view);
+        if (isVistoriador) setPatioView("vistoria");
       }
 
       function setConfigSubview(sub) {
@@ -22016,7 +22124,7 @@
       }
 
       async function loadTrackManagersList() {
-        if (!tableTrackManagersBody || !supabase || !state.user?.id || isGestorPista) return;
+        if (!tableTrackManagersBody || !supabase || !state.user?.id || isGestorPista || isVistoriador) return;
         let { data, error } = await supabase
           .from("track_managers")
           .select("user_id, email, role")
@@ -22043,7 +22151,7 @@
         }
         tableTrackManagersBody.innerHTML = rows
           .map((r) => {
-            const perfil = "Gestor de pista";
+            const perfil = String(r.role || "").toUpperCase() === "VISTORIADOR" ? "Vistoriador" : "Gestor de pista";
             const rotulo = escapeHtml(displayManagerIdentity((r.email || "—").trim()));
             const uid = String(r.user_id || "").trim();
             if (!uid) {
@@ -22143,6 +22251,11 @@
 
       function openMainView(view) {
         view = resolveViewForDevice(view);
+        if (isVistoriador) {
+          showMainView("patio");
+          setPatioView("vistoria");
+          return;
+        }
         if (isGestorPista && view !== "patio" && view !== "lista") {
           showMainView("patio");
           setPatioView("inicio");
@@ -22196,6 +22309,11 @@
       }
 
       function openPatioSubview(sub) {
+        if (isVistoriador) {
+          showMainView("patio");
+          setPatioView("vistoria");
+          return;
+        }
         if (sub === "liberacao_solicitada") sub = "vlp";
         if (sub === "nfse_pendente") sub = "no_patio";
         if (sub === "fechando_ciclo") sub = "removidos";
@@ -22217,6 +22335,11 @@
       }
 
       function openPartnerSubview(sub) {
+        if (isVistoriador) {
+          showMainView("patio");
+          setPatioView("vistoria");
+          return;
+        }
         sub = sub === "parceiros" ? "parceiros" : "dashboard";
         const top = navStack[navStack.length - 1];
         if (top === `parceiros:${sub}`) {
@@ -22236,6 +22359,11 @@
       }
 
       function openListaSubview(sub) {
+        if (isVistoriador) {
+          showMainView("patio");
+          setPatioView("vistoria");
+          return;
+        }
         if (!sub) return;
         if (sub === "aguardando_lancamento") sub = "aguardando_faturamento";
         if (sub === "historico_receber" || sub === "receber_alerta") sub = "receber";
@@ -22268,6 +22396,11 @@
       }
 
       function closeStackTop() {
+        if (isVistoriador) {
+          showMainView("patio");
+          setPatioView("vistoria");
+          return;
+        }
         if (navStack.length <= 1) return;
         const current = navStack[navStack.length - 1];
         navStack.pop();
@@ -22418,6 +22551,12 @@
       function navigateMainViewFromNav(view) {
         if (!view) return;
         view = resolveViewForDevice(view);
+        if (isVistoriador) {
+          showMainView("patio");
+          setPatioView("vistoria");
+          closeAppHeaderMenu();
+          return;
+        }
         if (isGestorPista && view === "dashboard") {
           openMainView("patio");
           return;

@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS public.track_managers (
   role text NOT NULL DEFAULT 'GESTOR_PISTA',
   created_at timestamptz NOT NULL DEFAULT (timezone('utc', now())),
   CONSTRAINT track_managers_owner_delegate_unique UNIQUE (owner_user_id, user_id),
-  CONSTRAINT track_managers_role_check CHECK (role IN ('GESTOR_PISTA', 'OPERADOR_CADASTRO'))
+  CONSTRAINT track_managers_role_check CHECK (role IN ('GESTOR_PISTA', 'OPERADOR_CADASTRO', 'VISTORIADOR'))
 );
 
 COMMENT ON TABLE public.track_managers IS
@@ -24,10 +24,10 @@ UPDATE public.track_managers SET role = 'GESTOR_PISTA' WHERE role = 'OPERADOR_CA
 
 ALTER TABLE public.track_managers DROP CONSTRAINT IF EXISTS track_managers_role_check;
 ALTER TABLE public.track_managers ADD CONSTRAINT track_managers_role_check
-  CHECK (role IN ('GESTOR_PISTA', 'OPERADOR_CADASTRO'));
+  CHECK (role IN ('GESTOR_PISTA', 'OPERADOR_CADASTRO', 'VISTORIADOR'));
 
 COMMENT ON COLUMN public.track_managers.role IS
-  'Na app: gestor de pista = cadastro leve (placa, modelo, localizador) e consulta sem valores; sem editar/apagar/liberar.';
+  'GESTOR_PISTA = cadastro leve e consulta do pátio. VISTORIADOR = terminal exclusivo de vistoria. OPERADOR_CADASTRO mantido só por compatibilidade.';
 
 -- === Parte 2: RLS ===
 ALTER TABLE public.track_managers ENABLE ROW LEVEL SECURITY;

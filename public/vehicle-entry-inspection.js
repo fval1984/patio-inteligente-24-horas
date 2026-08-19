@@ -58,7 +58,9 @@
   let _ignoreUiUntil = 0;
   let _photoSyncTimer = 0;
   let _resumeListenersBound = false;
+  let _inspectorIdentity = null;
   const ACTIVE_EDIT_KEY = "vei_active_edit_v1";
+  const INSPECTOR_SESSION_KEY = "vei_inspector_session_v1";
 
   function armCameraUiGuard(ms) {
     _ignoreUiUntil = Date.now() + (ms || 1800);
@@ -111,6 +113,197 @@
     } catch (e) {
       /* ignore */
     }
+  }
+
+  function clearInspectorIdentity() {
+    _inspectorIdentity = null;
+    try {
+      sessionStorage.removeItem(INSPECTOR_SESSION_KEY);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function persistInspectorIdentity(identity) {
+    if (!identity?.inspectorToken || !identity?.inspectorUserId) return;
+    _inspectorIdentity = {
+      inspectorUserId: String(identity.inspectorUserId),
+      inspectorName: String(identity.inspectorName || ""),
+      inspectorToken: String(identity.inspectorToken),
+      vehicleId: identity.vehicleId ? String(identity.vehicleId) : "",
+      ts: Date.now(),
+    };
+    try {
+      sessionStorage.setItem(INSPECTOR_SESSION_KEY, JSON.stringify(_inspectorIdentity));
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function readInspectorIdentity(vehicleId) {
+    let current = _inspectorIdentity;
+    if (!current) {
+      try {
+        current = JSON.parse(sessionStorage.getItem(INSPECTOR_SESSION_KEY) || "null");
+      } catch (e) {
+        current = null;
+      }
+    }
+    if (!current?.inspectorToken || !current?.inspectorUserId) return null;
+    if (Date.now() - Number(current.ts || 0) > 8 * 60 * 60 * 1000) {
+      clearInspectorIdentity();
+      return null;
+    }
+    if (vehicleId && current.vehicleId && String(current.vehicleId) !== String(vehicleId)) return null;
+    _inspectorIdentity = current;
+    return current;
+  }
+
+  function requiresInspectorIdentification(ctx) {
+    return !!(ctx && (ctx.requiresInspectorIdentification || ctx.isVistoriador));
+  }
+
+  function ensureIdentifyModal() {
+    let el = document.getElementById("veiIdentifyBackdrop");
+    if (el) return el;
+    el = document.createElement("div");
+    el.id = "veiIdentifyBackdrop";
+    el.className = "vei-identify-backdrop hidden";
+    el.innerHTML =
+      '<div class="vei-identify-modal" role="dialog" aria-modal="true" aria-labelledby="veiIdentifyTitle">' +
+      '<h3 id="veiIdentifyTitle">IDENTIFICAÇÃO DO VISTORIADOR</h3>' +
+      '<p class="vei-identify-lede">Informe o seu usuário e senha para iniciar esta vistoria. O tablet pode permanecer com a sessão compartilhada.</p>' +
+      '<form id="veiIdentifyForm" autocomplete="off">' +
+      '<label for="veiIdentifyUser">Usuário</label>' +
+      '<input id="veiIdentifyUser" name="vei-inspector-user" type="text" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" required />' +
+      '<label for="veiIdentifyPass">Senha</label>' +
+      '<input id="veiIdentifyPass" name="vei-inspector-pass" type="password" autocomplete="off" required />' +
+      '<p class="vei-identify-error hidden" id="veiIdentifyError" role="alert"></p>' +
+      '<div class="vei-identify-actions">' +
+      '<button type="submit" id="veiIdentifySubmit">ENTRAR E INICIAR VISTORIA</button>' +
+      '<button type="button" class="secondary" id="veiIdentifyCancel">CANCELAR</button>' +
+      "</div></form></div>";
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function hideIdentifyModal() {
+    const el = document.getElementById("veiIdentifyBackdrop");
+    el?.classList.add("hidden");
+    const form = document.getElementById("veiIdentifyForm");
+    if (form) form.reset();
+    const err = document.getElementById("veiIdentifyError");
+    if (err) {
+      err.textContent = "";
+      err.classList.add("hidden");
+    }
+  }
+
+  function promptInspectorIdentification(ctx, vehicle) {
+    return new Promise((resolve) => {
+      const backdrop = ensureIdentifyModal();
+      const form = backdrop.querySelector("#veiIdentifyForm");
+      const userInput = backdrop.querySelector("#veiIdentifyUser");
+      const passInput = backdrop.querySelector("#veiIdentifyPass");
+      const errEl = backdrop.querySelector("#veiIdentifyError");
+      const submitBtn = backdrop.querySelector("#veiIdentifySubmit");
+      const cancelBtn = backdrop.querySelector("#veiIdentifyCancel");
+
+      function setError(msg) {
+        if (!errEl) return;
+        errEl.textContent = msg || "";
+        errEl.classList.toggle("hidden", !msg);
+      }
+
+      function cleanup() {
+        form?.removeEventListener("submit", onSubmit);
+        cancelBtn?.removeEventListener("click", onCancel);
+        backdrop.removeEventListener("click", onBackdrop);
+      }
+
+      function finish(value) {
+        cleanup();
+        hideIdentifyModal();
+        resolve(value);
+      }
+
+      function onCancel(e) {
+        if (e) e.preventDefault();
+        finish(null);
+      }
+
+      function onBackdrop(e) {
+        if (e.target === backdrop) onCancel(e);
+      }
+
+      async function onSubmit(e) {
+        e.preventDefault();
+        const username = String(userInput?.value || "").trim();
+        const password = String(passInput?.value || "");
+        if (!username || !password) {
+          setError("Usuário ou senha inválidos.");
+          return;
+        }
+        const session = await (ctx.getAccessToken ? ctx.getAccessToken() : null);
+        if (!session) {
+          setError("Sessão do tablet expirada. Entre novamente.");
+          return;
+        }
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = "Validando…";
+        }
+        setError("");
+        try {
+          const res = await fetch("/api/vehicles/identify-inspector", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session}` },
+            body: JSON.stringify({ access_token: session, username, password }),
+          });
+          let json = {};
+          try {
+            json = await res.json();
+          } catch (parseErr) {
+            json = {};
+          }
+          if (!res.ok || !json.ok || !json.inspector_token || !json.inspector_id) {
+            setError(json.error || "Usuário ou senha inválidos.");
+            return;
+          }
+          persistInspectorIdentity({
+            inspectorUserId: json.inspector_id,
+            inspectorName: json.inspector_name || username,
+            inspectorToken: json.inspector_token,
+            vehicleId: vehicle?.id,
+          });
+          finish(readInspectorIdentity(vehicle?.id));
+        } catch (err) {
+          console.warn("vei identify-inspector", err);
+          setError("Usuário ou senha inválidos.");
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "ENTRAR E INICIAR VISTORIA";
+          }
+        }
+      }
+
+      cleanup();
+      form?.addEventListener("submit", onSubmit);
+      cancelBtn?.addEventListener("click", onCancel);
+      backdrop.addEventListener("click", onBackdrop);
+      backdrop.classList.remove("hidden");
+      setError("");
+      setTimeout(() => userInput?.focus(), 50);
+    });
+  }
+
+  async function ensureInspectorForStart(ctx, vehicle) {
+    if (!requiresInspectorIdentification(ctx)) return true;
+    const existing = readInspectorIdentity(vehicle?.id);
+    if (existing) return true;
+    const identified = await promptInspectorIdentification(ctx, vehicle);
+    return !!identified;
   }
 
   function readActiveEdit() {
@@ -1508,7 +1701,8 @@
         `<div><span>Responsável</span><strong>${esc(inspection.completed_by_name || "—")}</strong></div>` +
         `<div><span>Status</span><strong>CONCLUÍDA</strong></div>`
       : `<div><span>Tipo de vistoria</span><strong>${esc(variantLabel || "—")}</strong></div>` +
-        `<div><span>Data/hora vistoria</span><strong>${esc(fmtDateTime(new Date().toISOString()))}</strong></div>`;
+        `<div><span>Data/hora vistoria</span><strong>${esc(fmtDateTime(new Date().toISOString()))}</strong></div>` +
+        `<div><span>Responsável</span><strong>${esc(readInspectorIdentity(vehicle?.id)?.inspectorName || "—")}</strong></div>`;
     return (
       '<div class="vei-meta-grid">' +
       `<div><span>Placa</span><strong>${esc(vehicle.placa || "—")}</strong></div>` +
@@ -2297,6 +2491,7 @@
                 }
               : {
                   access_token: session,
+                  inspector_token: readInspectorIdentity(_session.vehicle?.id)?.inspectorToken || "",
                   vehicle_id: _session.vehicle.id,
                   inspection_variant: draft.inspectionVariant || "LEVE",
                   form_extras: formExtras,
@@ -2353,7 +2548,7 @@
             draft,
             {
               inspectorName: json.inspector_name,
-              inspectorUserId: ctx.effectiveUserId(),
+              inspectorUserId: json.inspector_id || json.vistoriador_id || readInspectorIdentity(_session.vehicle?.id)?.inspectorUserId || ctx.effectiveUserId(),
             }
           );
           if (photoResult && photoResult.failed) {
@@ -2386,6 +2581,7 @@
       const completedVehicle = _session.vehicle;
       persistSavedClassifications(json.inspection_id, draft.classifications);
       clearDraftStorage(completedVehicle?.id);
+      clearInspectorIdentity();
       alert(
         isUpdate
           ? `Vistoria nº ${json.inspection_number} atualizada.${postWarn}`
@@ -2575,6 +2771,10 @@
       return;
     }
     if (opts?.mode === "edit_existing") {
+      if (ctx?.isVistoriador) {
+        alert("O perfil Vistoriador não pode alterar uma vistoria já finalizada.");
+        return;
+      }
       const insp = opts.inspection || (await findCompletedInspectionForVehicle(ctx, vehicle.id));
       if (!insp) {
         alert("Este veículo não possui vistoria concluída para editar.");
@@ -2591,6 +2791,7 @@
       }
       return;
     }
+    if (!(await ensureInspectorForStart(ctx, vehicle))) return;
     const retroactive = String(vehicle.status || "").toUpperCase() !== "AGUARDANDO_VISTORIA";
     openVariantPicker(vehicle, ctx, { retroactive });
   }
@@ -2603,8 +2804,14 @@
     if (!vehicle) return false;
     try {
       if (active.editingInspectionId) {
+        if (ctx.isVistoriador) {
+          alert("O perfil Vistoriador não pode alterar uma vistoria já finalizada.");
+          clearActiveEdit();
+          return false;
+        }
         await openEditExistingModal(vehicle, ctx, active.editingInspectionId);
       } else {
+        if (!(await ensureInspectorForStart(ctx, vehicle))) return false;
         const retroactive = String(vehicle.status || "").toUpperCase() !== "AGUARDANDO_VISTORIA";
         openEditModal(vehicle, ctx, { variant: active.variant || "LEVE", retroactive });
       }
@@ -2633,9 +2840,12 @@
       .map((v) => {
         const loc = partnerName(ctx, v.localizador_id);
         const isGp = !!ctx.isGestorPista;
+        const isVistoriador = !!ctx.isVistoriador;
         const isAdmPc = !!ctx.isAdmDesktopPc;
         let actions = "";
-        if (isGp) {
+        if (isVistoriador) {
+          actions = `<button class="vei-start-btn" data-action="vistoria" data-id="${v.id}">INICIAR VISTORIA</button>`;
+        } else if (isGp) {
           actions = `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`;
         } else if (isAdmPc) {
           actions =
@@ -2681,6 +2891,9 @@
     INSPECTION_ITEM_COUNT: checklistMod.ITEM_COUNT || 0,
     probeSchema,
     openForVehicle,
+    promptInspectorIdentification,
+    clearInspectorIdentity,
+    readInspectorIdentity,
     renderAwaitingTable,
     findCompletedInspectionForVehicle,
     loadInspectionDetail,

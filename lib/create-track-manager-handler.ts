@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { randomBytes } from "node:crypto";
+import { normalizeTrackManagerRole, resolvePatioActor } from "@/lib/patio-actor";
+import { displayManagerIdentity } from "@/lib/manager-login";
 import { activateTrackManagerAccount } from "@/lib/user-authorization";
 
 /** Só para diagnóstico: lê `role` do JWT sem verificar assinatura. */
@@ -20,6 +22,7 @@ function jwtRoleClaimUnsafe(jwt: string): string | null {
 type CreateTrackManagerBody = {
   email?: string;
   password?: string;
+  role?: string;
   /** JWT da sessão do dono (preferir enviar no corpo — não depender do header Authorization na Vercel). */
   access_token?: string;
   accessToken?: string;
@@ -184,6 +187,18 @@ export async function runCreateTrackManager(
     };
   }
 
+  const requesterAdmin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const requesterActor = await resolvePatioActor(requesterAdmin, requesterId);
+  if (requesterActor.role !== "ADM") {
+    return {
+      status: 403,
+      body: { error: "Apenas a conta principal (ADM) pode criar utilizadores." },
+    };
+  }
+
+  const requestedRole = normalizeTrackManagerRole(body.role);
   let email = (body.email || "").trim().toLowerCase();
   let password = (body.password || "").trim();
   let initialPasswordForResponse: string | undefined;
@@ -229,6 +244,10 @@ export async function runCreateTrackManager(
         email,
         password,
         email_confirm: true,
+        user_metadata: {
+          display_name: displayManagerIdentity(email),
+          patio_role: requestedRole,
+        },
       }),
     });
 
@@ -311,7 +330,7 @@ export async function runCreateTrackManager(
   }
 
   try {
-    let insertResp = await insertTrackManager({ ...baseRow, role: "GESTOR_PISTA" });
+    let insertResp = await insertTrackManager({ ...baseRow, role: requestedRole });
     let insertJson: any = await insertResp.json().catch(() => ({}));
 
     if (!insertResp.ok) {
@@ -320,8 +339,27 @@ export async function runCreateTrackManager(
         /'role'|\"role\"|column.*role|Could not find.*role/i.test(errText) ||
         (/PGRST204|schema cache/i.test(errText) && /role/i.test(errText));
       if (missingRoleCol) {
+        if (requestedRole === "VISTORIADOR") {
+          return {
+            status: 400,
+            body: {
+              error:
+                "O perfil VISTORIADOR ainda não está na base. Execute supabase/track_managers_vistoriador_role.sql no SQL Editor do Supabase e tente de novo.",
+              user_id: newUserId,
+            },
+          };
+        }
         insertResp = await insertTrackManager({ ...baseRow });
         insertJson = await insertResp.json().catch(() => ({}));
+      } else if (/check constraint|track_managers_role_check|invalid input/i.test(errText) && requestedRole === "VISTORIADOR") {
+        return {
+          status: 400,
+          body: {
+            error:
+              "O perfil VISTORIADOR ainda não está na base. Execute supabase/track_managers_vistoriador_role.sql no SQL Editor do Supabase e tente de novo.",
+            user_id: newUserId,
+          },
+        };
       }
     }
 
@@ -349,6 +387,7 @@ export async function runCreateTrackManager(
       body: {
         user_id: newUserId,
         email,
+        role: requestedRole,
         ...(autoLogin ? { generated_login: true } : {}),
         ...(autoPassword && initialPasswordForResponse && !reusedExistingAuthUser
           ? { initial_password: initialPasswordForResponse }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { resolvePatioActor } from "@/lib/patio-actor";
 import { extractBearerToken, getUserIdFromAccessToken } from "@/lib/user-authorization";
 import {
   resolveVehicleOwnerUserId,
@@ -91,6 +92,13 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = getSupabaseAdmin();
+  const actor = await resolvePatioActor(admin, userId);
+  if (actor.role === "VISTORIADOR") {
+    return NextResponse.json(
+      { error: "O perfil Vistoriador não pode alterar uma vistoria já finalizada." },
+      { status: 403 }
+    );
+  }
   const { ownerUserId } = await resolveVehicleOwnerUserId(admin, userId);
 
   const { data, error } = await updateVehicleEntryInspection(admin, {

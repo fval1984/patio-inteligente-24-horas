@@ -750,3 +750,140 @@
   border-color: #ca8a04 !important;
   color: #1e293b !important;
 }
+
+/* Identificação do vistoriador — tablet compartilhado */
+.vei-identify-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(10, 22, 28, 0.72);
+}
+
+.vei-identify-backdrop.hidden {
+  display: none !important;
+}
+
+.vei-identify-modal {
+  width: min(520px, 100%);
+  background: #fff;
+  color: #1e293b;
+  border-radius: 16px;
+  padding: 28px 24px 24px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.28);
+}
+
+.vei-identify-modal h3 {
+  margin: 0 0 10px;
+  font-size: 1.25rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #0f172a;
+}
+
+.vei-identify-lede {
+  margin: 0 0 22px;
+  color: #475569;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.vei-identify-modal label {
+  display: block;
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.vei-identify-modal input {
+  width: 100%;
+  min-height: 56px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  font-size: 1.15rem;
+  background: #f8fafc;
+}
+
+.vei-identify-error {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  color: #b91c1c;
+  background: #fef2f2;
+  font-weight: 600;
+}
+
+.vei-identify-actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.vei-identify-actions button {
+  min-height: 56px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  border-radius: 12px;
+}
+
+body.role-vistoriador #dashboardSystemEntry,
+body.role-vistoriador #goDashboardFromPlate,
+body.role-vistoriador #viewPatio .close-view,
+body.role-vistoriador #patioInicioPanel,
+body.role-vistoriador #patioFlyoutSummaryCards,
+body.role-vistoriador #patioMenuNewVehicle,
+body.role-vistoriador #headerDetailsFinance,
+body.role-vistoriador #headerDetailsParceiros,
+body.role-vistoriador #headerDetailsLista,
+body.role-vistoriador #headerDetailsConfig,
+body.role-vistoriador #appHeaderMenu .header-menu-top,
+body.role-vistoriador #gestorPistaWelcomeBanner {
+  display: none !important;
+}
+
+body.role-vistoriador #patioSubnav button:not([data-subview="vistoria"]) {
+  display: none !important;
+}
+
+body.role-vistoriador #headerDetailsPatio [data-header-patio-sub]:not([data-header-patio-sub="vistoria"]),
+body.role-vistoriador #headerDetailsPatio [data-header-patio="new-vehicle"] {
+  display: none !important;
+}
+
+body.role-vistoriador #viewPatio .patio-toolbar h2 {
+  font-size: 1.35rem;
+}
+
+body.role-vistoriador #tableVistoria .vei-start-btn,
+body.role-vistoriador .vei-start-btn {
+  min-height: 52px;
+  padding: 14px 18px;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  border-radius: 12px;
+}
+
+body.role-vistoriador #patioContent [data-subview="vistoria"] .table td.actions {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+@media (max-width: 1100px) {
+  .vei-identify-modal {
+    padding: 32px 22px 24px;
+  }
+  .vei-identify-modal input,
+  .vei-identify-actions button {
+    min-height: 60px;
+    font-size: 1.2rem;
+  }
+}
+

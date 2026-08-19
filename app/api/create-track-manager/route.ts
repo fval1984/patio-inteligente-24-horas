@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
   let body: {
     email?: string;
     password?: string;
+    role?: string;
     access_token?: string;
     accessToken?: string;
     anon_key?: string;

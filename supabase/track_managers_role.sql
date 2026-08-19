@@ -10,10 +10,10 @@ UPDATE track_managers SET role = 'GESTOR_PISTA' WHERE role = 'OPERADOR_CADASTRO'
 
 ALTER TABLE track_managers DROP CONSTRAINT IF EXISTS track_managers_role_check;
 ALTER TABLE track_managers ADD CONSTRAINT track_managers_role_check
-  CHECK (role IN ('GESTOR_PISTA', 'OPERADOR_CADASTRO'));
+  CHECK (role IN ('GESTOR_PISTA', 'OPERADOR_CADASTRO', 'VISTORIADOR'));
 
 COMMENT ON COLUMN track_managers.role IS
-  'Na app: gestor de pista = cadastro leve (placa, modelo, localizador) e consulta sem valores; sem editar/apagar/liberar. Valor OPERADOR_CADASTRO mantido só por compatibilidade com a base.';
+  'GESTOR_PISTA = cadastro leve e consulta do pátio. VISTORIADOR = terminal exclusivo de vistoria. OPERADOR_CADASTRO mantido só por compatibilidade com a base.';
 
 -- RLS: o utilizador delegado (auth.uid() = track_managers.user_id) precisa de políticas que permitam
 -- ler/inserir veículos e parceiros do dono (owner_user_id), não só onde user_id = auth.uid().
