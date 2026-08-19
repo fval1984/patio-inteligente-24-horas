@@ -114,9 +114,28 @@ function testAppHtmlRoleRestrictions() {
   assert.match(html, /requiresInspectorIdentification: !!isVistoriador/);
   assert.match(html, /if \(isVistoriador\) \{\s*view = "patio";/s);
   assert.match(html, /Este perfil só pode realizar vistorias/);
-  assert.match(html, /vehicle-entry-inspection\.js\?v=20260819vistoriador1/);
-  assert.match(html, /ampliguard-vistoria-ui\.css\?v=20260819vistoriador1/);
+  assert.match(html, /vehicle-entry-inspection\.js\?v=20260819mobile2/);
+  assert.match(html, /ampliguard-vistoria-ui\.css\?v=20260819mobile2/);
+  assert.match(html, /if \(isVistoriador\) \{\s*unwrapTabModalShell\(patioContent\)/s);
+  assert.match(html, /function returnToPainelFromPatioFlyout\(\) \{\s*if \(isVistoriador\)/s);
   assert.doesNotMatch(html, /id="gestorPistaWelcomeBanner"[\s\S]*id="gestorPistaWelcomeBanner"/);
+}
+
+function testInlineAppScriptsParse() {
+  const { spawnSync } = require("child_process");
+  const os = require("os");
+  const html = read("public/app.html");
+  const scripts = [];
+  const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;
+  let m;
+  while ((m = re.exec(html))) scripts.push(m[1]);
+  assert.ok(scripts.length >= 2, "esperados scripts inline em app.html");
+  scripts.forEach((src, i) => {
+    const file = path.join(os.tmpdir(), `amplipatio-app-inline-${i}.js`);
+    fs.writeFileSync(file, src);
+    const r = spawnSync("node", ["--check", file], { encoding: "utf8" });
+    assert.strictEqual(r.status, 0, `script inline ${i} inválido: ${r.stderr || r.stdout}`);
+  });
 }
 
 function testExistingProfilesUntouched() {
@@ -138,6 +157,7 @@ const tests = [
   ["criação de utilizador com perfil", testCreateTrackManagerRole],
   ["modal de identificação na vistoria", testFrontendIdentification],
   ["restrições do app.html", testAppHtmlRoleRestrictions],
+  ["scripts inline de app.html parseiam", testInlineAppScriptsParse],
   ["perfis ADM/Gestor preservados", testExistingProfilesUntouched],
 ];
 

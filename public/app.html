@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<!-- amplipatio-static build=users-delete-v1 -->
+<!-- amplipatio-static build=mobile-open-v1 -->
 <html lang="pt-BR" data-theme="light">
   <head>
     <script>
@@ -48,7 +48,7 @@
       })();
     </script>
     <meta charset="utf-8" />
-    <meta name="amplipatio-build" content="layout-global-fullwidth-v1" />
+    <meta name="amplipatio-build" content="mobile-open-v1" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta
       name="viewport"
@@ -6733,7 +6733,7 @@
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme9" />
     <link rel="stylesheet" href="/finance-action-ui.css?v=20260818finact6" />
-    <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260819vistoriador1" />
+    <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260819mobile2" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile17" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
   </head>
@@ -8764,7 +8764,7 @@
     <script src="/vehicle-entry-inspection-checklist.js?v=20260818vistoria10"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260818vistoria10"></script>
     <script src="/vehicle-entry-inspection-document.js?v=20260818vistoria10"></script>
-    <script src="/vehicle-entry-inspection.js?v=20260819vistoriador1"></script>
+    <script src="/vehicle-entry-inspection.js?v=20260819mobile2"></script>
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
@@ -11522,25 +11522,26 @@
           if (liveStatus === "PAGO") {
             recErr = null;
           } else {
-          for (const patch of recPatchAttempts) {
-            const res = await supabase
-              .from("receivables")
-              .update(patch)
-              .eq("id", receivableId)
-              .eq("user_id", uid)
-              .neq("status", "PAGO");
-            if (!res.error) {
-              recErr = null;
-              break;
-            }
-            recErr = res.error;
-            const msg = res.error.message || "";
-            if (
-              !/column|schema cache|PGRST204|patio_liberado|financeiro_aprovado|observacoes|invalid input value for enum payment_status/i.test(
-                msg
-              )
-            ) {
-              break;
+            for (const patch of recPatchAttempts) {
+              const res = await supabase
+                .from("receivables")
+                .update(patch)
+                .eq("id", receivableId)
+                .eq("user_id", uid)
+                .neq("status", "PAGO");
+              if (!res.error) {
+                recErr = null;
+                break;
+              }
+              recErr = res.error;
+              const msg = res.error.message || "";
+              if (
+                !/column|schema cache|PGRST204|patio_liberado|financeiro_aprovado|observacoes|invalid input value for enum payment_status/i.test(
+                  msg
+                )
+              ) {
+                break;
+              }
             }
           }
         } else {
@@ -17238,23 +17239,28 @@
         const isDashboard = view === "dashboard";
         const isInicio = view === "inicio";
         const isContentView = !isNone && !isDashboard && !isInicio;
-        patioSubnav.querySelectorAll("button[data-subview]").forEach((btn) => {
+        patioSubnav?.querySelectorAll("button[data-subview]").forEach((btn) => {
           btn.classList.toggle("active", !isNone && btn.getAttribute("data-subview") === view);
         });
         document.getElementById("patioPlateSearchBar")?.classList.toggle("hidden", isDashboard || isInicio);
         const patioRoot = document.getElementById("viewPatio");
         patioRoot?.classList.remove("patio-flyout-open", "patio-subview-fullscreen");
-        patioRoot?.classList.toggle("patio-subtab-modal-open", isContentView);
+        patioRoot?.classList.toggle("patio-subtab-modal-open", isContentView && !isVistoriador);
         patioFlyoutBackdrop?.classList.add("hidden");
         const patioContent = document.getElementById("patioContent");
         const patioInicioPanel = document.getElementById("patioInicioPanel");
-        if (patioInicioPanel) patioInicioPanel.classList.toggle("hidden", !isInicio);
+        if (patioInicioPanel) patioInicioPanel.classList.toggle("hidden", isVistoriador ? true : !isInicio);
         if (patioContent) {
           patioContent.classList.toggle("hidden", !isContentView);
           if (isContentView) {
-            ensureTabModalShell(patioContent, returnToPainelFromPatioFlyout);
-            const meta = PATIO_TAB_LABELS[view] || { title: view, subtitle: "" };
-            setTabModalMeta(patioContent, meta.title, meta.subtitle);
+            if (isVistoriador) {
+              unwrapTabModalShell(patioContent);
+              rehomeViewToAppPanel(patioContent);
+            } else {
+              ensureTabModalShell(patioContent, returnToPainelFromPatioFlyout);
+              const meta = PATIO_TAB_LABELS[view] || { title: view, subtitle: "" };
+              setTabModalMeta(patioContent, meta.title, meta.subtitle);
+            }
           }
         }
         let shownPanel = null;
@@ -18209,6 +18215,11 @@
         patioSubnav?.classList.remove("open");
       };
       function returnToPainelFromPatioFlyout() {
+        if (isVistoriador) {
+          showMainView("patio");
+          setPatioView("vistoria");
+          return;
+        }
         setPatioView("none", { silent: true });
         document.getElementById("patioContent")?.classList.add("hidden");
         document.getElementById("viewPatio")?.classList.remove("patio-subtab-modal-open");
@@ -22100,7 +22111,13 @@
         }
         syncHeaderMenuModuleHighlight(view);
         syncMobileModuleNavHighlight(view);
-        if (isVistoriador) setPatioView("vistoria");
+        if (isVistoriador) {
+          try {
+            setPatioView("vistoria");
+          } catch (e) {
+            console.warn("setPatioView vistoria", e);
+          }
+        }
       }
 
       function setConfigSubview(sub) {

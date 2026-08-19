@@ -876,6 +876,31 @@ body.role-vistoriador #patioContent [data-subview="vistoria"] .table td.actions 
   padding-bottom: 12px;
 }
 
+/* Tablet/telemóvel: a vistoria fica no painel, sem overlay que ao fechar deixa o ecrã vazio. */
+body.role-vistoriador #viewPatio:not(.hidden) {
+  display: block !important;
+}
+
+body.role-vistoriador #patioContent:not(.hidden) {
+  display: block !important;
+  position: relative !important;
+  inset: auto !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  overflow: visible !important;
+}
+
+body.role-vistoriador #patioContent [data-subview="vistoria"]:not(.hidden) {
+  display: block !important;
+}
+
 @media (max-width: 1100px) {
   .vei-identify-modal {
     padding: 32px 22px 24px;
