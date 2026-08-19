@@ -98,7 +98,8 @@ function testPhotoLabels() {
 
 function testPageCuts() {
   const ctx = loadIife("public/vehicle-entry-inspection-document.js");
-  const { computeSafePageCuts } = ctx.vehicleEntryInspectionDocument;
+  const { computeSafePageCuts, mergeAlignedAtomRanges, buildPhotoGrid, PHOTO_GRID_COLUMNS } =
+    ctx.vehicleEntryInspectionDocument;
   const pageH = 1000;
   const atoms = [
     { top: 0, bottom: 200 },
@@ -114,7 +115,7 @@ function testPageCuts() {
     for (let i = 1; i < cuts.length; i++) {
       const cut = cuts[i];
       const straddles = a.top < cut && a.bottom > cut;
-      if (straddles && a.bottom - a.top < pageH && a.top > cuts[i - 1] + 24) {
+      if (straddles && a.bottom - a.top < pageH && a.top > cuts[i - 1] + 2) {
         assert.fail(`corte em ${cut} parte o bloco ${a.top}-${a.bottom}`);
       }
     }
@@ -125,7 +126,35 @@ function testPageCuts() {
     { top: 950, bottom: 1180 },
   ];
   const photoCuts = computeSafePageCuts(photoRow, 1000, 1800, 24);
-  assert.ok(photoCuts.includes(950) || photoCuts[1] <= 950, "fotos da mesma linha devem ir juntas para a página seguinte");
+  assert.ok(
+    photoCuts.includes(950) || photoCuts[1] <= 950,
+    "fotos da mesma linha devem ir juntas para a página seguinte"
+  );
+
+  const lastRow = [
+    { top: 6850, bottom: 7120 },
+    { top: 6850, bottom: 7120 },
+    { top: 6850, bottom: 7120 },
+  ];
+  const lastCuts = computeSafePageCuts(lastRow, pageH, 7120, Math.round(pageH * 0.08));
+  for (let i = 1; i < lastCuts.length; i++) {
+    const cut = lastCuts[i];
+    assert.ok(!(cut > 6850 && cut < 7120), `a última linha de fotos não pode ser cortada em ${cut}`);
+  }
+  assert.ok(lastCuts.includes(6850) || lastCuts[lastCuts.length - 1] <= 6850);
+
+  const merged = mergeAlignedAtomRanges(lastRow);
+  assert.strictEqual(merged.length, 1, "as 3 fotos da mesma linha formam um só bloco");
+  assert.strictEqual(merged[0].top, 6850);
+  assert.strictEqual(merged[0].bottom, 7120);
+
+  const cells = [];
+  for (let i = 0; i < 21; i++) cells.push({ label: `Foto ${i + 1}`, url: `https://example.test/${i}.jpg` });
+  const grid = buildPhotoGrid(cells);
+  assert.match(grid, /vei-doc-photo-row/);
+  const rowCount = (grid.match(/vei-doc-photo-row/g) || []).length;
+  assert.strictEqual(rowCount, 7);
+  assert.strictEqual(PHOTO_GRID_COLUMNS, 3);
 }
 
 function testClassificationMerge() {
@@ -238,7 +267,10 @@ function testPrintCss() {
   assert.doesNotMatch(src, /width: calc\(25% - 8px\)/);
   assert.match(src, /margin: 12mm/);
   assert.match(src, /computeSafePageCuts/);
-  assert.match(src, /width:210mm;height:297mm/);
+  assert.match(src, /vei-doc-photo-row/);
+  assert.match(src, /mergeAlignedAtomRanges/);
+  assert.match(src, /min-height:297mm/);
+  assert.doesNotMatch(src, /height:297mm;border:0/);
   assert.doesNotMatch(src, /return "Foto"/);
   const uiCss = fs.readFileSync(path.join(root, "public/ampliguard-vistoria-ui.css"), "utf8");
   assert.match(uiCss, /aspect-ratio: 4 \/ 3/);

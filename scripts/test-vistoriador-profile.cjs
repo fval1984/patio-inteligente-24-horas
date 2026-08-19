@@ -115,7 +115,7 @@ function testAppHtmlRoleRestrictions() {
   assert.match(html, /if \(isVistoriador\) \{\s*view = "patio";/s);
   assert.match(html, /Este perfil só pode realizar vistorias/);
   assert.match(html, /vehicle-entry-inspection\.js\?v=20260819apagarvist1/);
-  assert.match(html, /ampliguard-vistoria-ui\.css\?v=20260819apagarvist1/);
+  assert.match(html, /ampliguard-vistoria-ui\.css\?v=20260819fotos7/);
   assert.match(html, /if \(isVistoriador\) \{\s*unwrapTabModalShell\(patioContent\)/s);
   assert.match(html, /function returnToPainelFromPatioFlyout\(\) \{\s*if \(isVistoriador\)/s);
   assert.doesNotMatch(html, /id="gestorPistaWelcomeBanner"[\s\S]*id="gestorPistaWelcomeBanner"/);

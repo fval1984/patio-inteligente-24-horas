@@ -287,7 +287,11 @@
       .vei-doc-diagram-stack img.vei-doc-diagram-img { width: 100%; height: auto; display: block; }
       .vei-doc-diagram-stack svg.vei-doc-diagram-markers { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
       .vei-doc-diagram svg { max-width: 100%; height: auto; }
-      .vei-doc-photo-grid { display: grid; grid-template-columns: repeat(${PHOTO_GRID_COLUMNS}, minmax(0, 1fr)); gap: 10px 12px; margin-top: 8px; }
+      .vei-doc-photo-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+      .vei-doc-photo-row {
+        display: grid; grid-template-columns: repeat(${PHOTO_GRID_COLUMNS}, minmax(0, 1fr)); gap: 10px 12px;
+        break-inside: avoid; page-break-inside: avoid; break-after: auto;
+      }
       .vei-doc-photo-cell { break-inside: avoid; page-break-inside: avoid; text-align: center; min-width: 0; }
       .vei-doc-photo-label { margin: 0 0 4px; font-size: 8pt; font-weight: 700; line-height: 1.2; min-height: 2.4em; display: flex; align-items: flex-end; justify-content: center; break-after: avoid; page-break-after: avoid; }
       .vei-doc-photo-frame { width: 100%; height: auto; aspect-ratio: 4 / 3; max-width: none; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; }
@@ -343,7 +347,11 @@
       }
       ${documentCssRules()}
       .vei-doc { width: 100%; max-width: 100%; overflow: visible !important; }
-      .vei-doc-photo-grid { display: grid; grid-template-columns: repeat(${PHOTO_GRID_COLUMNS}, minmax(0, 1fr)); }
+      .vei-doc-photo-grid { display: flex; flex-direction: column; gap: 12px; }
+      .vei-doc-photo-row {
+        display: grid; grid-template-columns: repeat(${PHOTO_GRID_COLUMNS}, minmax(0, 1fr)); gap: 10px 12px;
+        break-inside: avoid; page-break-inside: avoid;
+      }
       .vei-doc-photo-cell { break-inside: avoid; page-break-inside: avoid; }
       .vei-doc-photo-frame { width: 100%; height: auto; aspect-ratio: 4 / 3; max-width: none; }
       .vei-doc-photo-frame img { width: 100%; height: 100%; object-fit: contain; object-position: center; }
@@ -363,7 +371,7 @@
       documentCssRules() +
       `
       @media screen and (max-width: 720px) {
-        .vei-doc-photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .vei-doc-photo-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
     `;
     document.head.appendChild(style);
@@ -566,9 +574,8 @@
     if (!photos.length) return "";
     return (
       `<section class="vei-doc-section"><h3>Fotos adicionais de avarias</h3>` +
-      `<div class="vei-doc-photo-grid">${photos
-        .map((p) => renderPhotoCell(formatDamagePhotoLabel(p, null), p.url))
-        .join("")}</div></section>`
+      buildPhotoGrid(photos.map((p) => ({ label: formatDamagePhotoLabel(p, null), url: p.url }))) +
+      `</section>`
     );
   }
 
@@ -580,9 +587,9 @@
       .map((d, idx) => {
         const linked = photosByDamage[d.id] || photosByDamage[idx] || [];
         const photoHtml = linked.length
-          ? `<div class="vei-doc-photo-grid">${linked.map((p) => renderPhotoCell(formatDamagePhotoLabel(p, d), p.url)).join("")}</div>`
+          ? buildPhotoGrid(linked.map((p) => ({ label: formatDamagePhotoLabel(p, d), url: p.url })))
           : d.photoPreview
-            ? `<div class="vei-doc-photo-grid">${renderPhotoCell(formatDamagePhotoLabel({ label: d.area_label }, d), d.photoPreview)}</div>`
+            ? buildPhotoGrid([{ label: formatDamagePhotoLabel({ label: d.area_label }, d), url: d.photoPreview }])
             : "";
         return (
           `<div class="vei-doc-damage">` +
@@ -607,6 +614,18 @@
       `<div class="vei-doc-photo-frame">${img}</div>` +
       `</div>`
     );
+  }
+
+  function buildPhotoGrid(cells) {
+    if (!cells.length) return "";
+    const rows = [];
+    for (let i = 0; i < cells.length; i += PHOTO_GRID_COLUMNS) {
+      const slice = cells.slice(i, i + PHOTO_GRID_COLUMNS);
+      rows.push(
+        `<div class="vei-doc-photo-row">${slice.map((c) => renderPhotoCell(c.label, c.url)).join("")}</div>`
+      );
+    }
+    return `<div class="vei-doc-photo-grid">${rows.join("")}</div>`;
   }
 
   function organizePhotos(photos, damages) {
@@ -671,11 +690,6 @@
     return { standard, extraDamage, other, photosByDamage };
   }
 
-  function buildPhotoGrid(cells) {
-    if (!cells.length) return "";
-    return `<div class="vei-doc-photo-grid">${cells.map((c) => renderPhotoCell(c.label, c.url)).join("")}</div>`;
-  }
-
   /** Fotos para a tela de consulta (sem wrapper de seção do PDF). */
   function buildViewPhotosHtml(detail) {
     injectStylesOnce();
@@ -693,9 +707,7 @@
     if (itemPhotos.length) {
       html +=
         '<p class="vei-doc-subsection-title" style="margin:12px 0 6px;font-size:11px;font-weight:700;color:#475569">Fotos adicionais de avarias</p>' +
-        `<div class="vei-doc-photo-grid">${itemPhotos
-          .map((p) => renderPhotoCell(formatDamagePhotoLabel(p, null), p.url))
-          .join("")}</div>`;
+        buildPhotoGrid(itemPhotos.map((p) => ({ label: formatDamagePhotoLabel(p, null), url: p.url })));
     }
     if (extraDamage.length) {
       html +=
@@ -927,7 +939,7 @@
     iframe.setAttribute("aria-hidden", "true");
     iframe.title = "Impressão da vistoria";
     iframe.style.cssText =
-      "position:fixed;left:0;top:0;width:210mm;height:297mm;border:0;opacity:0;pointer-events:none;z-index:-1;";
+      "position:fixed;left:-9999px;top:0;width:210mm;min-height:297mm;height:auto;border:0;opacity:0;pointer-events:none;z-index:-1;overflow:visible;";
     document.body.appendChild(iframe);
 
     const doc = iframe.contentDocument;
@@ -1022,6 +1034,13 @@
         height: h,
         windowWidth: w,
         windowHeight: h,
+        onclone(clonedDoc) {
+          const el = clonedDoc.getElementById(root.id) || clonedDoc.querySelector(".vei-doc-export-mode");
+          if (!el || !el.style) return;
+          el.style.overflow = "visible";
+          el.style.height = "auto";
+          el.style.maxHeight = "none";
+        },
       });
     }
 
@@ -1072,32 +1091,53 @@
     return stitched;
   }
 
+  function mergeAlignedAtomRanges(atomRanges, yTol) {
+    const tol = yTol == null ? 12 : yTol;
+    const sorted = (atomRanges || [])
+      .map((a) => ({ top: Number(a.top), bottom: Number(a.bottom) }))
+      .filter((a) => Number.isFinite(a.top) && Number.isFinite(a.bottom) && a.bottom > a.top)
+      .sort((a, b) => a.top - b.top || a.bottom - b.bottom);
+    const out = [];
+    sorted.forEach((a) => {
+      const prev = out[out.length - 1];
+      if (prev && Math.abs(a.top - prev.top) <= tol) {
+        prev.top = Math.min(prev.top, a.top);
+        prev.bottom = Math.max(prev.bottom, a.bottom);
+      } else {
+        out.push({ top: a.top, bottom: a.bottom });
+      }
+    });
+    return out;
+  }
+
   function computeSafePageCuts(atomRanges, pageHeight, totalHeight, minKeep) {
     const keep = minKeep == null ? 24 : minKeep;
     const height = Math.max(1, Number(pageHeight) || 1);
     const total = Math.max(0, Number(totalHeight) || 0);
+    const atoms = mergeAlignedAtomRanges(atomRanges);
     const cuts = [0];
     if (total <= height) return cuts;
     let pageStart = 0;
     let guard = 0;
-    while (pageStart + height < total - 1 && guard < 80) {
+    while (total - pageStart > height + 1 && guard < 80) {
       guard += 1;
       const idealEnd = Math.min(pageStart + height, total);
       let cut = idealEnd;
-      for (let i = 0; i < (atomRanges || []).length; i++) {
-        const a = atomRanges[i];
-        if (!a) continue;
-        const top = Number(a.top);
-        const bottom = Number(a.bottom);
-        if (!Number.isFinite(top) || !Number.isFinite(bottom)) continue;
+      for (let i = 0; i < atoms.length; i++) {
+        const top = atoms[i].top;
+        const bottom = atoms[i].bottom;
         if (bottom <= pageStart + 1) continue;
         if (top >= idealEnd - 1) continue;
-        if (top >= pageStart - 1 && bottom > idealEnd && top > pageStart + keep) {
+        const straddles = top < idealEnd && bottom > idealEnd;
+        if (!straddles) continue;
+        const atomH = bottom - top;
+        if (atomH <= height && top > pageStart + 2) {
           cut = Math.min(cut, top);
         }
       }
-      if (cut <= pageStart + keep) cut = idealEnd;
+      if (cut <= pageStart + Math.min(keep, 8)) cut = idealEnd;
       if (cut <= pageStart) cut = Math.min(pageStart + height, total);
+      if (cut >= total) break;
       cuts.push(cut);
       pageStart = cut;
     }
@@ -1115,7 +1155,7 @@
     };
     const nodes = [
       ...root.querySelectorAll(
-        ".vei-doc-header, .vei-doc-card, .vei-doc-photo-cell, .vei-doc-damage, .vei-doc-diagram, .vei-doc-notes, .vei-doc-withdrawal, .vei-doc-grid, .vei-doc-section > h3, .vei-doc-section > h4"
+        ".vei-doc-header, .vei-doc-card, .vei-doc-photo-row, .vei-doc-photo-cell, .vei-doc-damage, .vei-doc-diagram, .vei-doc-notes, .vei-doc-withdrawal, .vei-doc-grid, .vei-doc-section > h3, .vei-doc-section > h4"
       ),
     ];
     const ranges = nodes
@@ -1207,10 +1247,13 @@
       pageCanvas.width = canvas.width;
       const slices = [];
       for (let i = 0; i < cuts.length; i++) {
-        const start = Math.max(0, Math.floor(cuts[i]));
-        const end = Math.min(canvas.height, Math.ceil(i + 1 < cuts.length ? cuts[i + 1] : canvas.height));
-        if (end <= start) continue;
-        slices.push({ start, end });
+        let start = Math.max(0, Math.floor(cuts[i]));
+        const rawEnd = Math.min(canvas.height, Math.ceil(i + 1 < cuts.length ? cuts[i + 1] : canvas.height));
+        while (rawEnd - start > pageSlicePx + 1) {
+          slices.push({ start, end: start + pageSlicePx });
+          start += pageSlicePx;
+        }
+        if (rawEnd > start) slices.push({ start, end: rawEnd });
       }
       if (!slices.length) slices.push({ start: 0, end: canvas.height });
       const totalPages = slices.length;
@@ -1224,7 +1267,7 @@
         pageCtx.drawImage(canvas, 0, offsetY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
 
         const drawW = innerW;
-        const drawH = sliceH / pxPerPt;
+        const drawH = Math.min(sliceH / pxPerPt, innerH);
         const drawX = margin;
         const drawY = margin;
 
@@ -1264,5 +1307,8 @@
     formatDamagePhotoLabel,
     computeSafePageCuts,
     collectAtomRanges,
+    mergeAlignedAtomRanges,
+    buildPhotoGrid,
+    PHOTO_GRID_COLUMNS,
   };
 })(typeof window !== "undefined" ? window : globalThis);

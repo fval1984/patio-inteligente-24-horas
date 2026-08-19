@@ -334,9 +334,17 @@
 }
 
 .vei-checklist-view .vei-doc-photo-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vei-checklist-view .vei-doc-photo-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px 14px;
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 .vei-checklist-view .vei-doc-photo-frame {
@@ -356,7 +364,7 @@
 }
 
 @media (min-width: 640px) {
-  .vei-checklist-view .vei-doc-photo-grid {
+  .vei-checklist-view .vei-doc-photo-row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
