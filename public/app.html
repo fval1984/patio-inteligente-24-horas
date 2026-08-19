@@ -3399,6 +3399,16 @@
         background: rgba(254, 240, 138, 0.55);
         box-shadow: inset 4px 0 0 0 rgba(202, 138, 4, 0.95);
       }
+      #viewPatio tr.vnp-row-aguardando-vistoria,
+      #viewLista tr.vnp-row-aguardando-vistoria {
+        background: rgba(239, 68, 68, 0.14);
+        box-shadow: inset 4px 0 0 0 rgba(239, 68, 68, 0.95);
+      }
+      [data-theme="light"] #viewPatio tr.vnp-row-aguardando-vistoria,
+      [data-theme="light"] #viewLista tr.vnp-row-aguardando-vistoria {
+        background: rgba(254, 202, 202, 0.45);
+        box-shadow: inset 4px 0 0 0 rgba(185, 28, 28, 0.95);
+      }
       #viewPatio tr.vnp-row-sem-valor {
         background: rgba(220, 38, 38, 0.12);
         box-shadow: inset 3px 0 0 0 rgba(220, 38, 38, 0.85);
@@ -6733,7 +6743,7 @@
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme9" />
     <link rel="stylesheet" href="/finance-action-ui.css?v=20260818finact6" />
-    <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260819fotos7" />
+    <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260819vnpvist1" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile17" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
   </head>
@@ -8759,12 +8769,12 @@
     <script src="/financial-partner-dashboard-ui.js?v=20260727parceiros"></script>
     <script src="/partners-cadastro-service.js?v=20260727pcad3"></script>
     <script src="/partners-cadastro-ui.js?v=20260727pcad3"></script>
-    <script src="/dashboard-metrics-service.js?v=20260727recvfix"></script>
+    <script src="/dashboard-metrics-service.js?v=20260819vnpvist1"></script>
     <script src="/amplipatio-dashboard.js?v=20260812admpc1"></script>
     <script src="/vehicle-entry-inspection-checklist.js?v=20260818vistoria10"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260818vistoria10"></script>
     <script src="/vehicle-entry-inspection-document.js?v=20260819fotos7"></script>
-    <script src="/vehicle-entry-inspection.js?v=20260819apagarvist1"></script>
+    <script src="/vehicle-entry-inspection.js?v=20260819vnpvist1"></script>
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
@@ -12670,8 +12680,21 @@
       function isVehicleOnPatio(v) {
         if (!v) return false;
         const s = String(v.status || "").toUpperCase();
-        if (s === "REMOVIDO" || s === "AGUARDANDO_VISTORIA") return false;
+        if (s === "REMOVIDO") return false;
         return true;
+      }
+
+      function vehicleHasCompletedEntryInspection(v) {
+        return !!(v && getInspectionIndexEntry(v.id));
+      }
+
+      /** Cadastro novo / fila eletrônica: ainda no pátio e sem vistoria concluída. */
+      function vehicleNeedsEntryInspection(v) {
+        if (!v || vehicleHasCompletedEntryInspection(v)) return false;
+        const s = String(v.status || "").toUpperCase();
+        if (s === "REMOVIDO") return false;
+        if (s === "AGUARDANDO_VISTORIA") return true;
+        return v.entry_inspection_flow === true;
       }
 
       /** VNP: ações prioritárias (liberação / VRP) → sem valor → demais. */
@@ -12701,12 +12724,13 @@
         if (!v) return 100;
         if (isPendingAdmReview(v)) return -1;
         if (isVnpAcaoPrioritaria(v)) return 0;
-        if (isVnpSemValorDiaria(v)) return 1;
-        return 2;
+        if (vehicleNeedsEntryInspection(v)) return 1;
+        if (isVnpSemValorDiaria(v)) return 2;
+        return 3;
       }
 
       function isVehiclePatioDestaque(v) {
-        return !!v && (isPendingAdmReview(v) || isVnpAcaoPrioritaria(v));
+        return !!v && (isPendingAdmReview(v) || isVnpAcaoPrioritaria(v) || vehicleNeedsEntryInspection(v));
       }
 
       function patioVehicleDestaqueRowClass(v) {
@@ -12715,6 +12739,7 @@
         if (st === "LIBERACAO_SOLICITADA") return "vnp-row-acao-prioritaria vnp-row-liberacao-solicitada";
         if (st === "LIBERACAO_CONFIRMADA") return "vnp-row-acao-prioritaria vnp-row-liberacao-confirmada";
         if (st === "REMocao_CONFIRMADA" || canEfetivarRemocaoVrp(v)) return "vnp-row-acao-prioritaria vnp-row-vrp-pronto";
+        if (vehicleNeedsEntryInspection(v)) return "vnp-row-aguardando-vistoria";
         return "";
       }
 
@@ -15962,9 +15987,23 @@
         return idx[key] || idx[vehicleId] || null;
       }
 
+      function inspectionStatusIndicatorHtml(vehicleOrId) {
+        let v = vehicleOrId && typeof vehicleOrId === "object" ? vehicleOrId : null;
+        if (!v && vehicleOrId != null && vehicleOrId !== "") {
+          v = (state.vehicles || []).find((x) => String(x.id) === String(vehicleOrId)) || null;
+        }
+        const id = v ? v.id : vehicleOrId;
+        if (getInspectionIndexEntry(id)) {
+          return `<span class="vei-status-dot vei-status-dot--ok vei-done-dot" title="Vistoria concluída" aria-label="Vistoria concluída"></span>`;
+        }
+        if (v && vehicleNeedsEntryInspection(v)) {
+          return `<span class="vei-status-dot vei-status-dot--pending" title="Aguardando vistoria" aria-label="Aguardando vistoria"></span>`;
+        }
+        return "";
+      }
+
       function inspectionDoneIndicatorHtml(vehicleId) {
-        if (!getInspectionIndexEntry(vehicleId)) return "";
-        return `<span class="vei-done-dot" title="Vistoria concluída" aria-label="Vistoria concluída"></span>`;
+        return inspectionStatusIndicatorHtml(vehicleId);
       }
 
       /** Consultar vistoria concluída na VNP/VLP (ADM no PC sempre vê o botão). */
@@ -16002,6 +16041,8 @@
           requiresInspectorIdentification: !!isVistoriador,
           isAdmDesktopPc: isAdmDesktopPc(),
           isVehicleOnPatio,
+          vehicleNeedsEntryInspection,
+          vehicleHasCompletedEntryInspection,
           partners: state.partners || [],
           inspectionIndex: state.inspectionIndex || {},
           formatDateTime,
@@ -16020,11 +16061,14 @@
             openMainView("patio");
             openPatioSubview("no_patio");
           },
-          onInspectionDeleted(info) {
-            if (info?.revertedToAguardando && !isAdmDesktopPc()) {
+          onInspectionDeleted() {
+            if (isVistoriador) {
               showMainView("patio");
               setPatioView("vistoria");
+              return;
             }
+            openMainView("patio");
+            openPatioSubview("no_patio");
           },
         };
       }
@@ -16590,7 +16634,7 @@
       function resolvePlateSearchSubview(v) {
         if (isVistoriador) return "vistoria";
         if (!v) return "no_patio";
-        if (v.status === "AGUARDANDO_VISTORIA") return isAdmDesktopPc() ? "no_patio" : "vistoria";
+        if (vehicleNeedsEntryInspection(v)) return isVistoriador ? "vistoria" : "no_patio";
         if (v.status === "REMOVIDO") {
           const r = latestReceivableForVehicle(v.id);
           if (r && receivableNaFilaFechamentoCicloPatio(r)) return "removidos";
@@ -16851,9 +16895,7 @@
           }
         }
 
-        const vnpOnPatio = sortVnpOnPatioForDisplay(
-          filteredVehicles.filter((v) => isVehicleOnPatio(v) && v.status !== "AGUARDANDO_VISTORIA")
-        );
+        const vnpOnPatio = sortVnpOnPatioForDisplay(filteredVehicles.filter((v) => isVehicleOnPatio(v)));
         const vlpItems = sortVnpUnifiedForDisplay(vlsForTable);
         const patioCardTitle1 = document.getElementById("patioCardTitle1");
         const patioCardTitle2 = document.getElementById("patioCardTitle2");
@@ -16941,8 +16983,12 @@
             ? vlsFilteredCount
             : mergeVlsItems(byStatus).length;
         const nFech = typeof fechandoCicloCount === "number" ? fechandoCicloCount : 0;
-        const onPatioCount = byStatus.NO_PATIO.length + mergeVlsItems(byStatus).length;
-        const vistoriaCount = (byStatus.AGUARDANDO_VISTORIA || []).length;
+        const onPatioCount =
+          byStatus.NO_PATIO.length + (byStatus.AGUARDANDO_VISTORIA || []).length + mergeVlsItems(byStatus).length;
+        const qPlate = normalizePlateSearch(plateQuery);
+        const vistoriaCount = (state.vehicles || []).filter(
+          (v) => vehicleNeedsEntryInspection(v) && (!qPlate || normalizePlateSearch(v.placa) === qPlate)
+        ).length;
         const counts = {
           vistoria: vistoriaCount,
           no_patio: onPatioCount,
@@ -17029,7 +17075,7 @@
           `<div class="patio-mob-info-row"><span class="patio-mob-info-label">${escapeHtml(label)}</span><span class="patio-mob-info-value">${value}</span></div>`;
 
         let html = `<div class="patio-mob-info-card">`;
-        html += row("Placa", `<span class="vei-plate-with-status">${inspectionDoneIndicatorHtml(v.id)}${plateVisualHtml(v.placa, "sm")}</span>`);
+        html += row("Placa", `<span class="vei-plate-with-status">${inspectionStatusIndicatorHtml(v)}${plateVisualHtml(v.placa, "sm")}</span>`);
         html += row("Marca", escapeHtml(v.marca || "—"));
         html += row("Modelo", escapeHtml(v.modelo || "—"));
         html += row("Cor", escapeHtml(v.cor || "—"));
@@ -17048,7 +17094,7 @@
       }
 
       function buildPatioMobileCompactLine(v) {
-        const dot = inspectionDoneIndicatorHtml(v.id);
+        const dot = inspectionStatusIndicatorHtml(v);
         const plate = plateVisualHtml(v.placa, "xs");
         const modelo = escapeHtml(String(v.modelo || v.marca || "-").trim() || "-");
         return `<span class="patio-mob-compact-line">${dot}<span class="vei-plate-with-status">${plate}</span><span class="patio-mob-compact-meta">${modelo}</span></span>`;
@@ -17119,7 +17165,7 @@
           fluxoBtn =
             `<button class="secondary" data-action="editar" data-id="${v.id}">Revisar registro</button>` +
             `<button class="secondary" data-action="validar_adm_review" data-id="${v.id}">Validar registro</button>`;
-        } else if (v.status === "NO_PATIO") {
+        } else if (v.status === "NO_PATIO" || v.status === "AGUARDANDO_VISTORIA") {
           fluxoBtn = `<button class="secondary" data-action="solicitar" data-id="${v.id}">Liberação solicitada</button>`;
         } else if (v.status === "LIBERACAO_SOLICITADA") {
           fluxoBtn = `<button class="secondary" data-action="confirmar_liberacao" data-id="${v.id}">Confirmar liberação</button>`;
@@ -17172,7 +17218,9 @@
               `<span class="tag notice">Cadastro gestor de pista</span>`
           );
         }
-        if (emPipeline && !isPendingAdmReview(v)) {
+        if (vehicleNeedsEntryInspection(v)) {
+          situacaoTags.push(`<span class="tag warning">Aguardando vistoria</span>`);
+        } else if (emPipeline && !isPendingAdmReview(v)) {
           situacaoTags.push(
             `<span class="tag warning">${escapeHtml(VLS_STATUS_LABELS[v.status] || v.status || "-")}</span>`
           );
@@ -17192,7 +17240,7 @@
         return `
           <tr class="${rowClass}" data-vehicle-row="${v.id}">
             ${buildPatioMobileListCellsHtml(v, 8)}
-            <td class="patio-desk-only" data-label="Placa"><span class="vei-plate-with-status">${inspectionDoneIndicatorHtml(v.id)}${plateVisualHtml(v.placa, "sm")}</span>${situacaoHtml}</td>
+            <td class="patio-desk-only" data-label="Placa"><span class="vei-plate-with-status">${inspectionStatusIndicatorHtml(v)}${plateVisualHtml(v.placa, "sm")}</span>${situacaoHtml}</td>
             <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml(registoKind === "vnp" ? (isVlpStatus(v.status) ? "vlp" : "vnp") : registoKind)}</td>
             <td class="patio-desk-only" data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
             <td class="patio-desk-only" data-label="RPV">${localizador}</td>
@@ -17226,6 +17274,7 @@
               : "No pátio"
             : VLS_STATUS_LABELS[v.status] || v.status || "-";
         if (isPendingAdmReview(v)) sit = "Aguardando revisão do ADM";
+        else if (vehicleNeedsEntryInspection(v)) sit = "Aguardando vistoria";
         else if (isGestorAguardandoRemocao(v)) sit = "Aguardando remoção";
         const pendingTag = isPendingAdmReview(v)
           ? `<div class="vnp-situacao"><span class="tag warning">Aguardando revisão do ADM</span><span class="tag notice">Gestor de pista</span></div>`
@@ -20161,7 +20210,7 @@
           return;
         }
         if (!editingVehicleId) {
-          payload.status = "AGUARDANDO_VISTORIA";
+          payload.status = "NO_PATIO";
           payload.entry_inspection_flow = true;
           payload.data_saida = null;
           payload.payment_status = "EM_ABERTO";
@@ -20258,9 +20307,8 @@
             else if (k === "admreview") tryPayload = stripAdmReviewFrom(tryPayload);
             else if (k === "status" && !editingVehicleId) {
               alert(
-                "Não foi possível cadastrar o veículo no fluxo de vistoria (status Aguardando vistoria).\n\n" +
-                  "No Supabase → SQL Editor, execute supabase/vehicles_status_aguardando_vistoria.sql " +
-                  "(ou o ficheiro completo supabase/vehicle_entry_inspections.sql).\n\n" +
+                "Não foi possível cadastrar o veículo no pátio (status No pátio).\n\n" +
+                  "No Supabase → SQL Editor, execute supabase/vehicle_entry_inspections.sql.\n\n" +
                   (error.message || "")
               );
               return;
@@ -20326,24 +20374,13 @@
         vehicleModal.classList.add("hidden");
         await loadVehicles();
         await refreshFichaIfOpen(savedEditId);
-        if (wasNewVehicle && tryPayload.status === "AGUARDANDO_VISTORIA") {
+        if (wasNewVehicle) {
           openMainView("patio");
-          openPatioSubview("vistoria");
-          const vehicle =
-            savedNewVehicle ||
-            state.vehicles.find(
-              (v) => normalizePlateSearch(v.placa) === normalizePlateSearch(tryPayload.placa)
-            );
-          if (vehicle && window.vehicleEntryInspection?.openForVehicle) {
-            await window.vehicleEntryInspection.openForVehicle(vehicle, buildVehicleInspectionCtx(), {
-              mode: "edit",
-            });
-          }
-        } else if (wasNewVehicle) {
+          openPatioSubview("no_patio");
           alert(
             gestorCreate
-              ? "Veículo cadastrado pelo gestor de pista. O registro ficará marcado como «Aguardando revisão do ADM» até validação. Conclua a vistoria de entrada."
-              : "Veículo cadastrado. Conclua a vistoria de entrada antes de utilizá-lo no VNP."
+              ? "Veículo cadastrado pelo gestor de pista. Fica no VNP em destaque, aguardando revisão do ADM e a vistoria de entrada."
+              : "Veículo cadastrado. Fica no VNP em destaque, aguardando vistoria de entrada."
           );
         }
       });

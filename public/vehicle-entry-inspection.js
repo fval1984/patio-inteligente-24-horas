@@ -1,6 +1,7 @@
 /**
  * Vistoria de entrada eletrônica — AMPLIGUARD (Gestão de Pátio)
- * Novos veículos: AGUARDANDO_VISTORIA → vistoria → NO_PATIO (VNP)
+ * Cadastro: NO_PATIO no VNP (bola vermelha) até concluir a vistoria (bola verde).
+ * A aba Vistoria lista os veículos ainda não vistoriados.
  */
 (function vehicleEntryInspectionModule(global) {
   "use strict";
@@ -835,11 +836,7 @@
     if (typeof ctx.onInspectionDeleted === "function") {
       ctx.onInspectionDeleted({ vehicleId, revertedToAguardando: !!json.reverted_to_aguardando });
     }
-    alert(
-      json.reverted_to_aguardando
-        ? "Vistoria apagada. O veículo voltou para a fila Aguardando vistoria."
-        : "Vistoria apagada."
-    );
+    alert("Vistoria apagada. O veículo permanece no VNP, aguardando nova vistoria.");
     return true;
   }
 
@@ -2843,6 +2840,18 @@
     bindViewModalActions(vehicle, ctx, detail.inspection, detail);
   }
 
+  function vehicleNeedsEntryInspection(vehicle, ctx) {
+    if (!vehicle) return false;
+    if (typeof ctx?.vehicleNeedsEntryInspection === "function") {
+      return ctx.vehicleNeedsEntryInspection(vehicle);
+    }
+    if (vehicleHasCompletedInspection(ctx, vehicle.id)) return false;
+    const s = String(vehicle.status || "").toUpperCase();
+    if (s === "REMOVIDO") return false;
+    if (s === "AGUARDANDO_VISTORIA") return true;
+    return vehicle.entry_inspection_flow === true;
+  }
+
   function canStartInspection(vehicle, ctx) {
     if (!vehicle) return false;
     const s = String(vehicle.status || "").toUpperCase();
@@ -2930,7 +2939,14 @@
 
   function renderAwaitingTable(tbody, vehicles, ctx) {
     if (!tbody) return;
-    const list = (vehicles || []).filter((v) => v.status === "AGUARDANDO_VISTORIA");
+    const list = (vehicles || [])
+      .filter((v) => vehicleNeedsEntryInspection(v, ctx))
+      .sort((a, b) => {
+        const ta = new Date(a.data_entrada || a.created_at || 0).getTime();
+        const tb = new Date(b.data_entrada || b.created_at || 0).getTime();
+        if (tb !== ta) return tb - ta;
+        return String(b.id || "").localeCompare(String(a.id || ""), "pt-BR");
+      });
     if (!list.length) {
       tbody.innerHTML = `<tr><td colspan="9" class="notice" style="text-align:center;padding:18px">Nenhum veículo aguardando vistoria.</td></tr>`;
       return;
@@ -2957,8 +2973,8 @@
             `<button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>`;
         }
         return (
-          `<tr data-vehicle-row="${v.id}">` +
-          `<td data-label="Placa">${plateHtml(v.placa)}</td>` +
+          `<tr class="vnp-row-aguardando-vistoria" data-vehicle-row="${v.id}">` +
+          `<td data-label="Placa"><span class="vei-plate-with-status"><span class="vei-status-dot vei-status-dot--pending" title="Aguardando vistoria" aria-label="Aguardando vistoria"></span>${plateHtml(v.placa)}</span></td>` +
           `<td data-label="Marca">${esc(v.marca || "—")}</td>` +
           `<td data-label="Modelo">${esc(v.modelo || "—")}</td>` +
           `<td data-label="Ano">${esc(v.ano || "—")}</td>` +

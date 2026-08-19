@@ -913,21 +913,17 @@ export async function deleteVehicleEntryInspection(
   }
 
   const currentStatus = String(vehicle?.status || "").toUpperCase();
-  const inInspectionFlow = vehicle?.entry_inspection_flow === true;
-  let revertedToAguardando = false;
   let vehicleStatus: string | null = currentStatus || null;
 
-  if (vehicle && currentStatus === "NO_PATIO" && inInspectionFlow) {
+  if (vehicle && currentStatus !== "REMOVIDO") {
     const now = new Date().toISOString();
-    const { error: stErr } = await admin
+    const { error: flowErr } = await admin
       .from("vehicles")
-      .update({ status: "AGUARDANDO_VISTORIA", updated_at: now })
+      .update({ entry_inspection_flow: true, updated_at: now })
       .eq("id", vehicleId)
-      .eq("user_id", ownerUserId)
-      .eq("status", "NO_PATIO");
-    if (!stErr) {
-      revertedToAguardando = true;
-      vehicleStatus = "AGUARDANDO_VISTORIA";
+      .eq("user_id", ownerUserId);
+    if (flowErr && !/entry_inspection_flow|column|schema cache|PGRST204/i.test(flowErr.message || "")) {
+      console.warn("deleteVehicleEntryInspection flow flag", flowErr.message || flowErr);
     }
   }
 
@@ -944,7 +940,7 @@ export async function deleteVehicleEntryInspection(
       inspection_number: Number(insp.inspection_number),
       vehicle_id: vehicleId,
       vehicle_status: vehicleStatus,
-      reverted_to_aguardando: revertedToAguardando,
+      reverted_to_aguardando: false,
     },
     error: null,
   };

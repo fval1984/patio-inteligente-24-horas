@@ -87,7 +87,7 @@
 
   function isVehicleOnPatio(v) {
     const s = statusUpper(v);
-    if (s === "REMOVIDO" || s === "AGUARDANDO_VISTORIA") return false;
+    if (s === "REMOVIDO") return false;
     return true;
   }
 

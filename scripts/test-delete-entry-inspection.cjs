@@ -24,13 +24,14 @@ function testApiIsAdmOnly() {
 
 function testLibDeletesInspectionAndPhotos() {
   const lib = read("lib/vehicle-entry-inspection.ts");
+  const del = lib.slice(lib.indexOf("export async function deleteVehicleEntryInspection"));
   assert.match(lib, /export async function deleteVehicleEntryInspection/);
   assert.match(lib, /vehicle-inspection-photos/);
   assert.match(lib, /\.from\("vehicle_entry_inspections"\)\.delete\(\)/);
-  assert.match(lib, /AGUARDANDO_VISTORIA/);
-  assert.match(lib, /entry_inspection_flow/);
-  assert.match(lib, /VISTORIA_APAGADA/);
-  assert.match(lib, /reverted_to_aguardando/);
+  assert.match(del, /entry_inspection_flow: true/);
+  assert.match(del, /VISTORIA_APAGADA/);
+  assert.match(del, /reverted_to_aguardando: false/);
+  assert.doesNotMatch(del, /status: "AGUARDANDO_VISTORIA"/);
 }
 
 function testActorHelper() {
@@ -72,7 +73,7 @@ function testVistoriadorCannotDelete() {
 let failed = 0;
 const tests = [
   ["API só para gestor principal", testApiIsAdmOnly],
-  ["lib apaga vistoria, fotos e pode reabrir a fila", testLibDeletesInspectionAndPhotos],
+  ["lib apaga vistoria e fotos e o veículo fica no VNP", testLibDeletesInspectionAndPhotos],
   ["actorCanAccessAdminModules = ADM", testActorHelper],
   ["botão só no perfil principal", testFrontendAdmOnly],
   ["não mistura financeiro", testDoesNotTouchFinance],
