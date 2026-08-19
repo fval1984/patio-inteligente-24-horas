@@ -807,3 +807,145 @@ export async function loadEntryInspectionDetail(
     error: null,
   };
 }
+
+export type DeleteEntryInspectionInput = {
+  ownerUserId: string;
+  vehicleId: string;
+  inspectionId?: string;
+};
+
+export type DeleteEntryInspectionResult = {
+  inspection_id: string;
+  inspection_number: number;
+  vehicle_id: string;
+  vehicle_status: string | null;
+  reverted_to_aguardando: boolean;
+};
+
+async function listInspectionStoragePaths(
+  admin: SupabaseClient,
+  ownerUserId: string,
+  inspectionId: string
+): Promise<string[]> {
+  const prefix = `${ownerUserId}/inspections/${inspectionId}`;
+  const folders = [prefix, `${prefix}/standard`, `${prefix}/avaria`];
+  const paths: string[] = [];
+  for (const folder of folders) {
+    const { data } = await admin.storage.from(PHOTO_STORAGE_BUCKET).list(folder, { limit: 1000 });
+    for (const obj of data || []) {
+      const name = String(obj?.name || "").trim();
+      if (!name || name.endsWith("/")) continue;
+      paths.push(`${folder}/${name}`);
+    }
+  }
+  return paths;
+}
+
+export async function deleteVehicleEntryInspection(
+  admin: SupabaseClient,
+  input: DeleteEntryInspectionInput
+): Promise<{ data: DeleteEntryInspectionResult | null; error: string | null }> {
+  const ownerUserId = String(input.ownerUserId || "").trim();
+  const vehicleId = String(input.vehicleId || "").trim();
+  const inspectionIdHint = String(input.inspectionId || "").trim();
+  if (!ownerUserId || !vehicleId) {
+    return { data: null, error: "Veículo em falta." };
+  }
+
+  let query = admin
+    .from("vehicle_entry_inspections")
+    .select("id, vehicle_id, inspection_number, status, user_id, inspection_type")
+    .eq("user_id", ownerUserId)
+    .eq("vehicle_id", vehicleId)
+    .eq("inspection_type", "ENTRADA");
+  if (inspectionIdHint) query = query.eq("id", inspectionIdHint);
+  const { data: insp, error: fetchErr } = await query
+    .order("inspection_number", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (fetchErr || !insp) {
+    return { data: null, error: fetchErr?.message || "Vistoria não encontrada." };
+  }
+
+  const inspectionId = String(insp.id);
+  const { data: photoRows } = await admin
+    .from("vehicle_entry_inspection_photos")
+    .select("storage_path")
+    .eq("inspection_id", inspectionId);
+
+  const fromTable = (photoRows || [])
+    .map((row) => String(row.storage_path || "").trim())
+    .filter(Boolean);
+  const fromFolder = await listInspectionStoragePaths(admin, ownerUserId, inspectionId);
+  const storagePaths = Array.from(new Set([...fromTable, ...fromFolder]));
+  if (storagePaths.length) {
+    const { error: rmErr } = await admin.storage.from(PHOTO_STORAGE_BUCKET).remove(storagePaths);
+    if (rmErr) {
+      console.warn("deleteVehicleEntryInspection storage", rmErr.message || rmErr);
+    }
+  }
+
+  const { error: delErr } = await admin.from("vehicle_entry_inspections").delete().eq("id", inspectionId).eq("user_id", ownerUserId);
+  if (delErr) {
+    return { data: null, error: delErr.message || "Não foi possível apagar a vistoria." };
+  }
+
+  let vehicle: { id?: string; status?: string; entry_inspection_flow?: boolean } | null = null;
+  {
+    const r1 = await admin
+      .from("vehicles")
+      .select("id, status, entry_inspection_flow")
+      .eq("id", vehicleId)
+      .eq("user_id", ownerUserId)
+      .maybeSingle();
+    if (r1.error && /entry_inspection_flow|column|schema cache|PGRST204/i.test(r1.error.message || "")) {
+      const r2 = await admin
+        .from("vehicles")
+        .select("id, status")
+        .eq("id", vehicleId)
+        .eq("user_id", ownerUserId)
+        .maybeSingle();
+      vehicle = r2.data;
+    } else {
+      vehicle = r1.data;
+    }
+  }
+
+  const currentStatus = String(vehicle?.status || "").toUpperCase();
+  const inInspectionFlow = vehicle?.entry_inspection_flow === true;
+  let revertedToAguardando = false;
+  let vehicleStatus: string | null = currentStatus || null;
+
+  if (vehicle && currentStatus === "NO_PATIO" && inInspectionFlow) {
+    const now = new Date().toISOString();
+    const { error: stErr } = await admin
+      .from("vehicles")
+      .update({ status: "AGUARDANDO_VISTORIA", updated_at: now })
+      .eq("id", vehicleId)
+      .eq("user_id", ownerUserId)
+      .eq("status", "NO_PATIO");
+    if (!stErr) {
+      revertedToAguardando = true;
+      vehicleStatus = "AGUARDANDO_VISTORIA";
+    }
+  }
+
+  await admin.from("vehicle_events").insert({
+    vehicle_id: vehicleId,
+    tipo: "VISTORIA_APAGADA",
+    responsavel: "Administrador",
+    descricao: `Vistoria de entrada nº ${insp.inspection_number} apagada pelo gestor principal.`,
+  });
+
+  return {
+    data: {
+      inspection_id: inspectionId,
+      inspection_number: Number(insp.inspection_number),
+      vehicle_id: vehicleId,
+      vehicle_status: vehicleStatus,
+      reverted_to_aguardando: revertedToAguardando,
+    },
+    error: null,
+  };
+}

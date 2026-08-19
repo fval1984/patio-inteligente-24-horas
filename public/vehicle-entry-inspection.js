@@ -709,6 +709,7 @@
       '<div class="vei-modal-head-actions">' +
       '<button type="button" class="secondary hidden" id="veiHeadPrintBtn">Imprimir</button>' +
       '<button type="button" class="secondary hidden" id="veiHeadPdfBtn">PDF</button>' +
+      '<button type="button" class="secondary hidden" id="veiHeadDeleteBtn">Apagar vistoria</button>' +
       '<button type="button" class="secondary" id="veiModalClose">Fechar</button>' +
       "</div></div>" +
       '<div class="vei-modal-body" id="veiModalBody"></div>' +
@@ -733,12 +734,15 @@
     _session = null;
     document.getElementById("veiHeadPrintBtn")?.classList.add("hidden");
     document.getElementById("veiHeadPdfBtn")?.classList.add("hidden");
+    document.getElementById("veiHeadDeleteBtn")?.classList.add("hidden");
     document.getElementById("veiPrintHostHidden")?.replaceChildren();
   }
 
-  function setViewModalActionsVisible(visible) {
+  function setViewModalActionsVisible(visible, opts) {
     document.getElementById("veiHeadPrintBtn")?.classList.toggle("hidden", !visible);
     document.getElementById("veiHeadPdfBtn")?.classList.toggle("hidden", !visible);
+    const showDelete = !!(visible && opts?.canDelete);
+    document.getElementById("veiHeadDeleteBtn")?.classList.toggle("hidden", !showDelete);
   }
 
   function mountHiddenPrintDocument(vehicle, ctx, inspection, detail) {
@@ -759,6 +763,86 @@
     return host.querySelector("#veiPrintDocument") || host.querySelector(".vei-print-root");
   }
 
+  function canDeleteCompletedInspection(ctx) {
+    return !!(ctx && !ctx.isGestorPista && !ctx.isVistoriador);
+  }
+
+  async function deleteCompletedInspection(vehicle, ctx, inspection, opts) {
+    if (!canDeleteCompletedInspection(ctx)) {
+      alert("Apenas o gestor principal pode apagar uma vistoria.");
+      return false;
+    }
+    const insp = inspection || {};
+    const inspectionId = String(insp.id || "").trim();
+    const vehicleId = String(vehicle?.id || insp.vehicle_id || "").trim();
+    if (!vehicleId) {
+      alert("Veículo em falta.");
+      return false;
+    }
+    const n = insp.inspection_number ? ` nº ${insp.inspection_number}` : "";
+    const placa = String(vehicle?.placa || "").trim();
+    if (opts?.confirm !== false) {
+      const ok = confirm(
+        `Apagar a vistoria${n}${placa ? ` do veículo ${placa}` : ""}?\n\n` +
+          "As fotos e o checklist serão removidos. O veículo não é apagado.\n" +
+          "Se ainda estiver no pátio, poderá ser vistoriado de novo."
+      );
+      if (!ok) return false;
+    }
+    if (typeof ctx?.getAccessToken !== "function") {
+      alert("Sessão em falta.");
+      return false;
+    }
+    const session = await ctx.getAccessToken();
+    if (!session) {
+      alert("Sessão em falta. Entre novamente.");
+      return false;
+    }
+    let res;
+    try {
+      res = await fetch("/api/vehicles/delete-entry-inspection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session}` },
+        body: JSON.stringify({
+          access_token: session,
+          vehicle_id: vehicleId,
+          inspection_id: inspectionId || undefined,
+        }),
+      });
+    } catch (e) {
+      alert("Não foi possível apagar a vistoria. Verifique a rede e tente novamente.");
+      return false;
+    }
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json?.ok) {
+      alert(json?.error || "Não foi possível apagar a vistoria.");
+      return false;
+    }
+    closeModal();
+    clearDraftStorage(vehicleId);
+    try {
+      if (inspectionId) localStorage.removeItem(savedClassificationsStorageKey(inspectionId));
+    } catch (e) {
+      /* ignore */
+    }
+    if (ctx.inspectionIndex && vehicleId) {
+      delete ctx.inspectionIndex[vehicleId];
+      delete ctx.inspectionIndex[String(vehicleId)];
+    }
+    if (typeof ctx.loadVehicleInspections === "function") await ctx.loadVehicleInspections();
+    if (typeof ctx.loadVehicles === "function") await ctx.loadVehicles();
+    if (typeof ctx.renderVehicles === "function") ctx.renderVehicles();
+    if (typeof ctx.onInspectionDeleted === "function") {
+      ctx.onInspectionDeleted({ vehicleId, revertedToAguardando: !!json.reverted_to_aguardando });
+    }
+    alert(
+      json.reverted_to_aguardando
+        ? "Vistoria apagada. O veículo voltou para a fila Aguardando vistoria."
+        : "Vistoria apagada."
+    );
+    return true;
+  }
+
   function bindViewModalActions(vehicle, ctx, inspection, detail) {
     const docMod = global.vehicleEntryInspectionDocument;
     const runPrint = async () => {
@@ -777,8 +861,15 @@
     };
     const headPrint = document.getElementById("veiHeadPrintBtn");
     const headPdf = document.getElementById("veiHeadPdfBtn");
+    const headDelete = document.getElementById("veiHeadDeleteBtn");
     if (headPrint) headPrint.onclick = (e) => { e.preventDefault(); runPrint(); };
     if (headPdf) headPdf.onclick = (e) => { e.preventDefault(); runPdf(); };
+    if (headDelete) {
+      headDelete.onclick = async (e) => {
+        e.preventDefault();
+        await deleteCompletedInspection(vehicle, ctx, inspection);
+      };
+    }
     document.getElementById("veiPrintBtn")?.addEventListener("click", (e) => {
       e.preventDefault();
       runPrint();
@@ -786,6 +877,10 @@
     document.getElementById("veiPdfBtn")?.addEventListener("click", (e) => {
       e.preventDefault();
       runPdf();
+    });
+    document.getElementById("veiDeleteBtn")?.addEventListener("click", async (e) => {
+      e.preventDefault();
+      await deleteCompletedInspection(vehicle, ctx, inspection);
     });
   }
 
@@ -1922,6 +2017,9 @@
 
   function buildReadonlyHtml(vehicle, ctx, inspection, detail) {
     const draft = detailToDraft(detail);
+    const deleteBtn = canDeleteCompletedInspection(ctx)
+      ? '<button type="button" class="secondary vei-delete-btn" id="veiDeleteBtn">Apagar vistoria</button>'
+      : "";
     return buildChecklistViewHtml(draft, true, {
       showLegend: false,
       extrasHtml: buildReadonlyExtrasHtml(vehicle, ctx, inspection, detail, draft),
@@ -1929,6 +2027,7 @@
         '<div class="vei-actions vei-actions-sticky vei-no-print vei-view-actions">' +
         '<button type="button" class="secondary" id="veiPrintBtn">Imprimir</button>' +
         '<button type="button" class="secondary" id="veiPdfBtn">Baixar PDF</button>' +
+        deleteBtn +
         "</div>",
     });
   }
@@ -2739,7 +2838,7 @@
     document.getElementById("veiModalSubtitle").textContent = `Placa ${vehicle.placa || "—"} — consulta`;
     const body = document.getElementById("veiModalBody");
     body.innerHTML = buildReadonlyHtml(vehicle, ctx, detail.inspection, detail);
-    setViewModalActionsVisible(true);
+    setViewModalActionsVisible(true, { canDelete: canDeleteCompletedInspection(ctx) });
     mountHiddenPrintDocument(vehicle, ctx, detail.inspection, detail);
     bindViewModalActions(vehicle, ctx, detail.inspection, detail);
   }
@@ -2898,6 +2997,8 @@
     findCompletedInspectionForVehicle,
     loadInspectionDetail,
     canStartInspection,
+    canDeleteCompletedInspection,
+    deleteCompletedInspection,
     vehicleHasCompletedInspection,
     renderDiagram,
     renderDiagramForPrint,

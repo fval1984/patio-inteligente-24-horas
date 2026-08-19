@@ -6733,7 +6733,7 @@
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260813theme9" />
     <link rel="stylesheet" href="/finance-action-ui.css?v=20260818finact6" />
-    <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260819mobile2" />
+    <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260819apagarvist1" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile17" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
   </head>
@@ -8764,7 +8764,7 @@
     <script src="/vehicle-entry-inspection-checklist.js?v=20260818vistoria10"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260818vistoria10"></script>
     <script src="/vehicle-entry-inspection-document.js?v=20260818vistoria10"></script>
-    <script src="/vehicle-entry-inspection.js?v=20260819mobile2"></script>
+    <script src="/vehicle-entry-inspection.js?v=20260819apagarvist1"></script>
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
@@ -15988,6 +15988,11 @@
         return !!getInspectionIndexEntry(v.id);
       }
 
+      function vnpShouldShowVistoriaDeleteButton(v) {
+        if (!v || isGestorPista || isVistoriador) return false;
+        return !!getInspectionIndexEntry(v.id);
+      }
+
       function buildVehicleInspectionCtx() {
         return {
           supabase,
@@ -16014,6 +16019,12 @@
             }
             openMainView("patio");
             openPatioSubview("no_patio");
+          },
+          onInspectionDeleted(info) {
+            if (info?.revertedToAguardando && !isAdmDesktopPc()) {
+              showMainView("patio");
+              setPatioView("vistoria");
+            }
           },
         };
       }
@@ -17088,6 +17099,16 @@
               <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
               <button class="secondary" data-action="voltar" data-id="${v.id}" title="Desfaz remoção feita por engano e volta para o passo anterior">Voltar</button>
               ${nfseActionButtonHtml(v)}
+              ${
+                vnpShouldShowVistoriaViewButton(v)
+                  ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
+                  : ""
+              }
+              ${
+                vnpShouldShowVistoriaDeleteButton(v)
+                  ? `<button class="secondary" data-action="apagar_vistoria" data-id="${v.id}">Apagar vistoria</button>`
+                  : ""
+              }
               <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
               <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
               <span class="tag success">Removido</span>
@@ -17109,6 +17130,9 @@
           ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>` +
             (vnpShouldShowVistoriaEditButton(v)
               ? `<button class="secondary" data-action="editar_vistoria" data-id="${v.id}">Editar vistoria</button>`
+              : "") +
+            (vnpShouldShowVistoriaDeleteButton(v)
+              ? `<button class="secondary" data-action="apagar_vistoria" data-id="${v.id}">Apagar vistoria</button>`
               : "")
           : vnpShouldShowVistoriaStartButton(v)
             ? `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`
@@ -20759,6 +20783,7 @@
 
         const patioWriteActions = new Set([
           "apagar",
+          "apagar_vistoria",
           "voltar",
           "confirmar_liberacao",
           "remocao_solicitada",
@@ -21059,6 +21084,25 @@
               inspection: insp,
             });
           }
+          return;
+        }
+
+        if (action === "apagar_vistoria") {
+          if (isGestorPista || isVistoriador) {
+            alert("Apenas o gestor principal pode apagar uma vistoria.");
+            return;
+          }
+          const insp = getInspectionIndexEntry(vehicle.id);
+          if (!insp) {
+            alert("Este veículo não possui vistoria concluída para apagar.");
+            return;
+          }
+          if (window.vehicleEntryInspection?.deleteCompletedInspection) {
+            await window.vehicleEntryInspection.deleteCompletedInspection(vehicle, buildVehicleInspectionCtx(), insp);
+          }
+          fichaModal.classList.add("hidden");
+          delete fichaModal.dataset.openVehicleId;
+          closePatioVehicleActionsModalFn();
           return;
         }
 
