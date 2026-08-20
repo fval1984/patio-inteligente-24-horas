@@ -75,7 +75,7 @@ function testChecklistItemReplacement() {
   });
   assert.deepStrictEqual(labelsByCard.dianteira, [
     "Capô",
-    "Para-choque",
+    "Pára-choque",
     "Parabrisa",
     "Limp de Parabrisa",
     "Faróis",
@@ -123,8 +123,8 @@ function testChecklistItemReplacement() {
     "Radiador",
     "Motor de Arranque",
     "Diferencial",
-    "Câmbio — Tipo",
-    "Freios ABS",
+    "Câmbio-Tipo",
+    "Freios-ABS",
     "Ar Condicionado",
     "Direção Hidráulica",
     "Embreagem",
@@ -136,10 +136,12 @@ function testChecklistItemReplacement() {
   assert.ok(labelsByCard.equipamentos.includes("Marca"));
   assert.ok(labelsByCard.equipamentos.includes("Modelo"));
   assert.ok(labelsByCard.equipamentos.includes("OBS."));
-  assert.ok(labelsByCard.equipamentos.includes("Alto Falantes Portas Dianteiras — Qtd."));
-  assert.ok(labelsByCard.equipamentos.includes("Alto Falantes Portas Traseiras — Qtd."));
-  assert.ok(labelsByCard.equipamentos.includes("Alto Falantes Tampão/Painel — Qtd."));
-  assert.ok(labelsByCard.equipamentos.includes("Cabo Carregador — Se Híbr. ou Elétr."));
+  assert.ok(labelsByCard.equipamentos.includes("Alto Falantes Portas Dianteiras"));
+  assert.ok(labelsByCard.equipamentos.includes("Alto Falantes Portas Traseiras"));
+  assert.ok(labelsByCard.equipamentos.includes("Alto Falantes Tampão/Painel"));
+  assert.ok(labelsByCard.equipamentos.includes("Cabo Carregador (Se Hibr. ou Elétr.)"));
+  assert.ok(labelsByCard.equipamentos.includes("Turbo"));
+  assert.ok(labelsByCard.equipamentos.includes("Kit Gás"));
   const cabo = leve.cards
     .find((c) => c.id === "equipamentos")
     .blocks[0].items.find((it) => it.key === "eq_cabo_carregador");
@@ -147,10 +149,15 @@ function testChecklistItemReplacement() {
   assert.deepStrictEqual(clone(cabo.choices.map((c) => c.label)), ["Sim", "Não"]);
   assert.deepStrictEqual(labelsByCard.rodas, [
     "Estepe",
+    "Marca/Tipo",
     "Diant. Dir.",
+    "Marca/Tipo",
     "Diant. Esq.",
+    "Marca/Tipo",
     "Tras. Dir.",
+    "Marca/Tipo",
     "Tras. Esq.",
+    "Marca/Tipo",
     "Reparador Run Flat?",
   ]);
 
@@ -170,9 +177,17 @@ function testChecklistItemReplacement() {
 
   const estepe = leve.cards.find((c) => c.id === "rodas").blocks[0].items.find((it) => it.key === "rod_estepe");
   assert.deepStrictEqual(clone(estepe.choices.map((c) => c.label)), ["Liga", "Ferro", "Ausente"]);
-  assert.ok(!estepe.textKey, "estepe não tem Marca/Tipo");
+  const estepeMarca = leve.cards
+    .find((c) => c.id === "rodas")
+    .blocks[0].items.find((it) => it.key === "rod_estepe_marca_tipo");
+  assert.strictEqual(estepeMarca.kind, "text");
+  assert.strictEqual(estepeMarca.label, "Marca/Tipo");
   const pneuDd = leve.cards.find((c) => c.id === "rodas").blocks[0].items.find((it) => it.key === "rod_pneu_dd");
-  assert.strictEqual(pneuDd.textLabel, "Marca/Tipo");
+  assert.ok(!pneuDd.textKey, "Marca/Tipo das rodas é item próprio");
+  const pneuDdMarca = leve.cards
+    .find((c) => c.id === "rodas")
+    .blocks[0].items.find((it) => it.key === "rod_pneu_dd_marca_tipo");
+  assert.strictEqual(pneuDdMarca.kind, "text");
   const runFlat = leve.cards.find((c) => c.id === "rodas").blocks[0].items.find((it) => it.key === "rod_run_flat");
   assert.strictEqual(runFlat.kind, "choice");
   assert.deepStrictEqual(clone(runFlat.choices.map((c) => c.label)), ["Sim", "Não"]);

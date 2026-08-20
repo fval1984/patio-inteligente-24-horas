@@ -49,18 +49,16 @@
     ];
   }
 
-  function wheelItem(key, label, withMarca) {
-    const opts = {
+  function wheelItem(key, label) {
+    return cls(key, label, {
       choiceKey: key + "_tipo",
       choiceLabel: "Tipo",
       choices: WHEEL_TYPES,
-    };
-    if (withMarca) {
-      opts.textKey = key + "_marca_tipo";
-      opts.textLabel = "Marca/Tipo";
-      opts.textPlaceholder = "Marca / medida";
-    }
-    return cls(key, label, opts);
+    });
+  }
+
+  function wheelMarca(key) {
+    return txt(key, "Marca/Tipo", "Marca / medida");
   }
 
   const DIAGRAMS = {
@@ -110,12 +108,8 @@
             cls("mec_radiador", "Radiador"),
             cls("mec_motor_arranque", "Motor de Arranque"),
             cls("mec_diferencial", "Diferencial"),
-            cls("mec_cambio", "Câmbio — Tipo", {
-              textKey: "mec_cambio_tipo",
-              textLabel: "Tipo",
-              textPlaceholder: "4M, 5M, Aut…",
-            }),
-            cls("mec_freios_abs", "Freios ABS"),
+            cls("mec_cambio", "Câmbio-Tipo"),
+            cls("mec_freios_abs", "Freios-ABS"),
             cls("mec_ar_condicionado", "Ar Condicionado"),
             cls("mec_bomba_dir_hidraulica", "Direção Hidráulica"),
             cls("mec_embreagem", "Embreagem"),
@@ -150,29 +144,25 @@
             txt("eq_modelo", "Modelo"),
             cls("eq_antena", "Antena Interna"),
             cls("eq_antena_externa", "Antena Externa"),
-            cls("eq_alto_falantes", "Alto Falantes Portas Dianteiras — Qtd.", {
+            cls("eq_alto_falantes", "Alto Falantes Portas Dianteiras", {
               numberKey: "eq_alto_falantes_qtd",
-              numberLabel: "Quantidade",
+              numberLabel: "Qtd.",
             }),
-            cls("eq_alto_falantes_tras", "Alto Falantes Portas Traseiras — Qtd.", {
+            cls("eq_alto_falantes_tras", "Alto Falantes Portas Traseiras", {
               numberKey: "eq_alto_falantes_tras_qtd",
-              numberLabel: "Quantidade",
+              numberLabel: "Qtd.",
             }),
-            cls("eq_tampao", "Alto Falantes Tampão/Painel — Qtd.", {
+            cls("eq_tampao", "Alto Falantes Tampão/Painel", {
               numberKey: "eq_tampao_qtd",
-              numberLabel: "Quantidade",
+              numberLabel: "Qtd.",
             }),
-            cls("eq_turbo", "Turbo — Aspirado / Rebaixado", {
+            cls("eq_turbo", "Turbo", {
               choiceKey: "eq_turbo_tipo",
               choiceLabel: "Tipo",
               choices: TURBO_TYPES,
             }),
-            cls("eq_kit_gas", "Kit Gás — Desc.", {
-              textKey: "eq_kit_gas_desc",
-              textLabel: "Descrição",
-              textPlaceholder: "Descrição do kit gás",
-            }),
-            choice("eq_cabo_carregador", "Cabo Carregador — Se Híbr. ou Elétr.", SIM_NAO),
+            cls("eq_kit_gas", "Kit Gás"),
+            choice("eq_cabo_carregador", "Cabo Carregador (Se Hibr. ou Elétr.)", SIM_NAO),
             txt("eq_bateria_marca", "Bateria/Marca"),
             txt("eq_obs", "OBS."),
           ],
@@ -186,7 +176,7 @@
         {
           items: [
             cls("dian_capo", "Capô"),
-            cls("dian_para_choque", "Para-choque"),
+            cls("dian_para_choque", "Pára-choque"),
             cls("dian_para_brisa", "Parabrisa"),
             cls("dian_limpadores", "Limp de Parabrisa"),
             cls("dian_farois", "Faróis"),
@@ -218,11 +208,16 @@
       blocks: [
         {
           items: [
-            wheelItem("rod_estepe", "Estepe", false),
-            wheelItem("rod_pneu_dd", "Diant. Dir.", true),
-            wheelItem("rod_pneu_de", "Diant. Esq.", true),
-            wheelItem("rod_pneu_td", "Tras. Dir.", true),
-            wheelItem("rod_pneu_te", "Tras. Esq.", true),
+            wheelItem("rod_estepe", "Estepe"),
+            wheelMarca("rod_estepe_marca_tipo"),
+            wheelItem("rod_pneu_dd", "Diant. Dir."),
+            wheelMarca("rod_pneu_dd_marca_tipo"),
+            wheelItem("rod_pneu_de", "Diant. Esq."),
+            wheelMarca("rod_pneu_de_marca_tipo"),
+            wheelItem("rod_pneu_td", "Tras. Dir."),
+            wheelMarca("rod_pneu_td_marca_tipo"),
+            wheelItem("rod_pneu_te", "Tras. Esq."),
+            wheelMarca("rod_pneu_te_marca_tipo"),
             choice("rod_run_flat", "Reparador Run Flat?", SIM_NAO),
           ],
         },
