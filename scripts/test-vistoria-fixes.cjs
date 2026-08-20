@@ -691,6 +691,24 @@ function testGestorPhotoCaptureOpens() {
   assert.match(srcApp, /const veiOpen = !document.getElementById\("veiInspectionBackdrop"\)\?\.classList.contains\("hidden"\)/);
 }
 
+function testChoiceButtonsAndPertences() {
+  const srcInsp = fs.readFileSync(path.join(root, "public/vehicle-entry-inspection.js"), "utf8");
+  const srcCss = fs.readFileSync(path.join(root, "public/ampliguard-vistoria-ui.css"), "utf8");
+  const srcTheme = fs.readFileSync(path.join(root, "public/ampliguard-theme.css"), "utf8");
+  const srcApp = fs.readFileSync(path.join(root, "public/app.html"), "utf8");
+  assert.match(srcTheme, /:not\(\.vei-choice-btn\)/);
+  assert.match(srcCss, /button\.vei-choice-btn\.active/);
+  assert.match(srcCss, /background: #1677ff !important/);
+  assert.match(srcCss, /vei-choice-followup/);
+  assert.match(srcInsp, /function renderChoiceFollowup/);
+  assert.match(srcInsp, /data-text-when-for/);
+  assert.match(srcInsp, /vei-pertences-field/);
+  assert.match(srcInsp, /querySelectorAll\(`\[data-text-when-for="\$\{extraKey\}"\]`\)/);
+  assert.match(srcApp, /ampliguard-theme\.css\?v=20260820theme10/);
+  assert.match(srcApp, /ampliguard-vistoria-ui\.css\?v=20260820vistoria6/);
+  assert.match(srcApp, /vehicle-entry-inspection\.js\?v=20260820vistoria6/);
+}
+
 function testPhotoUploadGoesThroughApi() {
   const src = fs.readFileSync(path.join(root, "public/vehicle-entry-inspection-photos-mobile.js"), "utf8");
   assert.match(src, /\/api\/vehicles\/entry-inspection-photo/);
@@ -714,6 +732,7 @@ const tests = [
   ["fotos gravadas voltam no rascunho", testPhotosHydrateIntoDraft],
   ["envio das fotos pela API", testPhotoUploadGoesThroughApi],
   ["câmera da vistoria no gestor de pista", testGestorPhotoCaptureOpens],
+  ["botões de escolha e pertences", testChoiceButtonsAndPertences],
 ];
 
 for (const [name, fn] of tests) {

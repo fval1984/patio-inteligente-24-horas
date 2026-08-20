@@ -562,7 +562,7 @@ body.app-module-patio header {
 }
 
 /* ---- Botões ---- */
-button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.subnav button):not(.patio-nav-inline button):not(.lista-toolbar-actions button):not(.close-view):not([data-extra-remove]):not(.vei-damage-photo-clear):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn) {
+button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.subnav button):not(.patio-nav-inline button):not(.lista-toolbar-actions button):not(.close-view):not([data-extra-remove]):not(.vei-damage-photo-clear):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn) {
   background: var(--ag-blue) !important;
   color: #fff !important;
   border: 1px solid var(--ag-blue-strong) !important;
@@ -571,7 +571,7 @@ button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab
   border-radius: var(--ag-radius-sm);
 }
 
-button:not(.secondary):not(.modal-close):hover {
+button:not(.secondary):not(.modal-close):not(.vei-choice-btn):hover {
   background: var(--ag-blue-strong) !important;
   transform: translateY(-1px);
 }

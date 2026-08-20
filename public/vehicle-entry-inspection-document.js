@@ -438,7 +438,7 @@
           const value = ch.value || ch;
           const label = ch.label || ch;
           const on = sel === value;
-          html += `<button type="button" class="vei-choice-btn${on ? " active" : ""}" data-extra-key="${esc(it.choiceKey)}" data-choice="${esc(value)}">${esc(label)}</button> `;
+        html += `<button type="button" class="vei-choice-btn${on ? " active" : ""}" data-extra-key="${esc(it.choiceKey)}" data-choice="${esc(value)}">${esc(label)}</button> `;
         });
       } else {
         html += esc(choiceLabelFor(it.choices, sel) || "—");

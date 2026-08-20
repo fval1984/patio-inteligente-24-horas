@@ -1325,19 +1325,20 @@
     const choiceBtn = hit.closest?.(".vei-choice-btn[data-extra-key]");
     if (choiceBtn && root.contains(choiceBtn)) {
       evt.preventDefault();
+      evt.stopPropagation();
       const extraKey = choiceBtn.getAttribute("data-extra-key");
       const value = choiceBtn.getAttribute("data-choice");
       if (extraKey && value) {
         if (!draft.formExtras) draft.formExtras = {};
         draft.formExtras[extraKey] = value;
-        const scope = choiceBtn.closest("table") || choiceBtn.closest("tr") || root;
-        scope.querySelectorAll(".vei-choice-btn[data-extra-key]").forEach((btn) => {
-          if (btn.getAttribute("data-extra-key") !== extraKey) return;
-          btn.classList.toggle("active", btn.getAttribute("data-choice") === value);
+        root.querySelectorAll(`.vei-choice-btn[data-extra-key="${extraKey}"]`).forEach((btn) => {
+          const on = btn.getAttribute("data-choice") === value;
+          btn.classList.toggle("active", on);
+          btn.setAttribute("aria-pressed", on ? "true" : "false");
         });
-        (choiceBtn.closest("table") || root).querySelectorAll(`[data-text-when-for="${extraKey}"]`).forEach((row) => {
-          const when = row.getAttribute("data-text-when-value");
-          row.style.display = when && when !== value ? "none" : "";
+        root.querySelectorAll(`[data-text-when-for="${extraKey}"]`).forEach((el) => {
+          const when = el.getAttribute("data-text-when-value");
+          el.style.display = when && when !== value ? "none" : "";
         });
         updateChecklistProgressChrome(root, draft);
         if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
@@ -1592,9 +1593,24 @@
       if (readOnly) {
         html += `<span class="vei-choice-btn${on ? " active" : ""}">${esc(label)}</span>`;
       } else {
-        html += `<button type="button" class="vei-choice-btn${on ? " active" : ""}" data-extra-key="${esc(extraKey)}" data-choice="${esc(value)}">${esc(label)}</button>`;
+        html += `<button type="button" class="secondary vei-choice-btn${on ? " active" : ""}" data-extra-key="${esc(extraKey)}" data-choice="${esc(value)}" aria-pressed="${on ? "true" : "false"}">${esc(label)}</button>`;
       }
     });
+    html += "</span>";
+    return html;
+  }
+
+  function renderChoiceFollowup(it, draft, readOnly) {
+    if (!it.textKey || !it.textWhen) return "";
+    const extras = draft.formExtras || {};
+    const hidden = extras[it.key] !== it.textWhen;
+    const val = extras[it.textKey] || "";
+    let html = `<span class="vei-choice-followup" data-text-when-for="${esc(it.key)}" data-text-when-value="${esc(it.textWhen)}"${hidden ? ' style="display:none"' : ""}>`;
+    html += `<label>${esc(it.textLabel || "Quais?")}</label> `;
+    if (readOnly) html += `<span>${esc(val || "—")}</span>`;
+    else {
+      html += `<input type="text" class="vei-text-field vei-pertences-field" data-extra-key="${esc(it.textKey)}" value="${esc(val)}" placeholder="${esc(it.textPlaceholder || "Descreva os pertences")}"/>`;
+    }
     html += "</span>";
     return html;
   }
@@ -1726,8 +1742,14 @@
           html += `<tr class="vei-text-row vei-choice-item"><td colspan="${colSpan}">`;
           html += `<label>${esc(it.label)}</label> `;
           html += renderChoiceButtons(it.key, optsList, sel, readOnly);
+          html += renderChoiceFollowup(it, draft, readOnly);
           html += "</td></tr>";
-          html += renderItemExtraRows(it, draft, readOnly, colSpan);
+          html += renderItemExtraRows(
+            it.textWhen ? Object.assign({}, it, { textKey: null }) : it,
+            draft,
+            readOnly,
+            colSpan
+          );
           return;
         }
         if (kind !== "classify") return;
