@@ -58,15 +58,15 @@ function testChecklistItemReplacement() {
 
   const leve = mod.getVariantConfig("LEVE");
   assert.strictEqual(leve.cardCount, 8, "Leve mantém 8 cards");
-  assert.deepStrictEqual(clone(leve.cards.map((c) => c.id)), [
-    "interno",
-    "mecanica",
-    "traseira",
-    "equipamentos",
-    "dianteira",
-    "lado_esquerdo",
-    "lado_direito",
-    "rodas",
+  assert.deepStrictEqual(clone(leve.cards.map((c) => c.title)), [
+    "INTERIOR",
+    "MECÂNICA",
+    "TRASEIRA",
+    "ACESSÓRIOS",
+    "DIANTEIRA",
+    "LATERAL ESQUERDA",
+    "LATERAL DIREITA",
+    "RODAS E PNEUS",
   ]);
 
   const labelsByCard = {};
@@ -116,15 +116,16 @@ function testChecklistItemReplacement() {
     "Triângulo",
     "Extintor",
   ]);
+  assert.strictEqual(leve.cards.find((c) => c.id === "interno").blocks[1].title, "EQUIPAMENTOS OBRIGATÓRIOS");
   assert.deepStrictEqual(labelsByCard.mecanica, [
     "Motor",
     "Ignição Eletrônica",
-    "Injeção Elet./Carburador",
+    "Injeção Elet./Carburad.",
     "Radiador",
     "Motor de Arranque",
     "Diferencial",
-    "Câmbio-Tipo",
-    "Freios-ABS",
+    "Câmbio - Tipo",
+    "Freios: ABS",
     "Ar Condicionado",
     "Direção Hidráulica",
     "Embreagem",
@@ -142,6 +143,7 @@ function testChecklistItemReplacement() {
   assert.ok(labelsByCard.equipamentos.includes("Cabo Carregador (Se Hibr. ou Elétr.)"));
   assert.ok(labelsByCard.equipamentos.includes("Turbo"));
   assert.ok(labelsByCard.equipamentos.includes("Kit Gás"));
+  assert.ok(labelsByCard.equipamentos.includes("USB"));
   const cabo = leve.cards
     .find((c) => c.id === "equipamentos")
     .blocks[0].items.find((it) => it.key === "eq_cabo_carregador");
@@ -174,6 +176,14 @@ function testChecklistItemReplacement() {
     .find((c) => c.id === "lado_esquerdo")
     .blocks[0].items.find((it) => it.key === "lesq_retrovisor");
   assert.deepStrictEqual(clone(retroEsq.choices.map((c) => c.label)), ["Elétrico", "Manual"]);
+  const vidrosDir = leve.cards
+    .find((c) => c.id === "lado_direito")
+    .blocks[0].items.find((it) => it.key === "ldir_vidros");
+  assert.deepStrictEqual(clone(vidrosDir.choices.map((c) => c.label)), ["Elétrico", "Manual"]);
+  const vidrosEsq = leve.cards
+    .find((c) => c.id === "lado_esquerdo")
+    .blocks[0].items.find((it) => it.key === "lesq_vidros");
+  assert.deepStrictEqual(clone(vidrosEsq.choices.map((c) => c.label)), ["Elétrico", "Manual"]);
 
   const estepe = leve.cards.find((c) => c.id === "rodas").blocks[0].items.find((it) => it.key === "rod_estepe");
   assert.deepStrictEqual(clone(estepe.choices.map((c) => c.label)), ["Liga", "Ferro", "Ausente"]);

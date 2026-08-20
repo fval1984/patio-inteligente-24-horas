@@ -44,7 +44,11 @@
         choiceLabel: "Tipo",
         choices: RETRO_TYPES,
       }),
-      cls(prefix + "_vidros", "Vidros"),
+      cls(prefix + "_vidros", "Vidros", {
+        choiceKey: prefix + "_vidros_tipo",
+        choiceLabel: "Tipo",
+        choices: RETRO_TYPES,
+      }),
       cls(prefix + "_friso", "Frisos"),
     ];
   }
@@ -71,7 +75,7 @@
   const LEVE_CARDS = [
     {
       id: "interno",
-      title: "INTERNO",
+      title: "INTERIOR",
       blocks: [
         {
           items: [
@@ -87,6 +91,11 @@
             cls("interno_acendedor", "Acendedor de cig."),
             cls("interno_retrovisor", "Retrovisor Intern."),
             cls("interno_encosto_cabeca", "Encosto de Cabeça"),
+          ],
+        },
+        {
+          title: "EQUIPAMENTOS OBRIGATÓRIOS",
+          items: [
             cls("interno_cinto_seguranca", "Cintos de Segurança"),
             cls("interno_macaco", "Macaco"),
             cls("interno_chave_roda", "Chave de Roda"),
@@ -104,12 +113,16 @@
           items: [
             cls("mec_motor", "Motor"),
             cls("mec_ignicao_eletronica", "Ignição Eletrônica"),
-            cls("mec_injecao_eletronica", "Injeção Elet./Carburador"),
+            cls("mec_injecao_eletronica", "Injeção Elet./Carburad."),
             cls("mec_radiador", "Radiador"),
             cls("mec_motor_arranque", "Motor de Arranque"),
             cls("mec_diferencial", "Diferencial"),
-            cls("mec_cambio", "Câmbio-Tipo"),
-            cls("mec_freios_abs", "Freios-ABS"),
+            cls("mec_cambio", "Câmbio - Tipo", {
+              textKey: "mec_cambio_tipo",
+              textLabel: "Tipo",
+              textPlaceholder: "4M, 5M, Aut…",
+            }),
+            cls("mec_freios_abs", "Freios: ABS"),
             cls("mec_ar_condicionado", "Ar Condicionado"),
             cls("mec_bomba_dir_hidraulica", "Direção Hidráulica"),
             cls("mec_embreagem", "Embreagem"),
@@ -131,7 +144,7 @@
     },
     {
       id: "equipamentos",
-      title: "EQUIPAMENTOS / ACESSÓRIOS",
+      title: "ACESSÓRIOS",
       blocks: [
         {
           items: [
@@ -139,6 +152,7 @@
             cls("eq_toca_fitas", "T. Fitas"),
             cls("eq_cd", "CD"),
             cls("eq_dvd", "DVD"),
+            cls("eq_usb", "USB"),
             cls("eq_gps", "GPS"),
             txt("eq_marca", "Marca"),
             txt("eq_modelo", "Modelo"),
@@ -161,7 +175,11 @@
               choiceLabel: "Tipo",
               choices: TURBO_TYPES,
             }),
-            cls("eq_kit_gas", "Kit Gás"),
+            cls("eq_kit_gas", "Kit Gás", {
+              textKey: "eq_kit_gas_desc",
+              textLabel: "Desc.",
+              textPlaceholder: "Descrição do kit gás",
+            }),
             choice("eq_cabo_carregador", "Cabo Carregador (Se Hibr. ou Elétr.)", SIM_NAO),
             txt("eq_bateria_marca", "Bateria/Marca"),
             txt("eq_obs", "OBS."),
@@ -182,7 +200,7 @@
             cls("dian_farois", "Faróis"),
             cls("dian_farois_aux", "Faróis Aux. (Qtd)", {
               numberKey: "dian_farois_aux_qtd",
-              numberLabel: "Quantidade",
+              numberLabel: "Qtd.",
             }),
             cls("dian_lanternas", "Lanternas"),
             cls("dian_teto", "Teto"),
@@ -194,17 +212,17 @@
     },
     {
       id: "lado_esquerdo",
-      title: "LADO ESQUERDO",
+      title: "LATERAL ESQUERDA",
       blocks: [{ items: sideItems("lesq") }],
     },
     {
       id: "lado_direito",
-      title: "LADO DIREITO",
+      title: "LATERAL DIREITA",
       blocks: [{ items: sideItems("ldir") }],
     },
     {
       id: "rodas",
-      title: "RODAS",
+      title: "RODAS E PNEUS",
       blocks: [
         {
           items: [
