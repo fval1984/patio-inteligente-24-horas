@@ -705,8 +705,21 @@ function testChoiceButtonsAndPertences() {
   assert.match(srcInsp, /vei-pertences-field/);
   assert.match(srcInsp, /querySelectorAll\(`\[data-text-when-for="\$\{extraKey\}"\]`\)/);
   assert.match(srcApp, /ampliguard-theme\.css\?v=20260820theme10/);
-  assert.match(srcApp, /ampliguard-vistoria-ui\.css\?v=20260820vistoria6/);
-  assert.match(srcApp, /vehicle-entry-inspection\.js\?v=20260820vistoria6/);
+  assert.match(srcApp, /ampliguard-vistoria-ui\.css\?v=20260820vistoria7/);
+  assert.match(srcApp, /vehicle-entry-inspection\.js\?v=20260820vistoria7/);
+}
+
+function testDiagramMarkerUndo() {
+  const srcInsp = fs.readFileSync(path.join(root, "public/vehicle-entry-inspection.js"), "utf8");
+  const srcCss = fs.readFileSync(path.join(root, "public/ampliguard-vistoria-ui.css"), "utf8");
+  assert.match(srcInsp, /id="veiDiagramUndo"/);
+  assert.match(srcInsp, /Desfazer última/);
+  assert.match(srcInsp, /diagramMarkers\.pop\(\)/);
+  assert.match(srcInsp, /data-marker-idx/);
+  assert.match(srcInsp, /function nearestDiagramMarkerIndex/);
+  assert.match(srcCss, /\.vei-diagram \.vei-marker \{\s*pointer-events: auto;/);
+  assert.match(srcCss, /vei-marker-hit/);
+  assert.doesNotMatch(srcCss, /\.vei-diagram \.vei-marker \{[^}]*pointer-events: none;/);
 }
 
 function testPhotoUploadGoesThroughApi() {
@@ -733,6 +746,7 @@ const tests = [
   ["envio das fotos pela API", testPhotoUploadGoesThroughApi],
   ["câmera da vistoria no gestor de pista", testGestorPhotoCaptureOpens],
   ["botões de escolha e pertences", testChoiceButtonsAndPertences],
+  ["desfazer marcação do diagrama", testDiagramMarkerUndo],
 ];
 
 for (const [name, fn] of tests) {

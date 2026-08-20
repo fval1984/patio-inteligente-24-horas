@@ -1008,25 +1008,58 @@
     }
   }
 
+  function nearestDiagramMarkerIndex(draft, pt, maxDist) {
+    if (!pt) return -1;
+    let best = -1;
+    let bestD = maxDist;
+    (draft.diagramMarkers || []).forEach((m, i) => {
+      const p = diagramMarkerCoords(m);
+      if (!p) return;
+      const d = Math.hypot(p.cx - pt.cx, p.cy - pt.cy);
+      if (d <= bestD) {
+        bestD = d;
+        best = i;
+      }
+    });
+    return best;
+  }
+
+  function persistDiagramChange(root, draft, ctx) {
+    if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+    const host = root?.querySelector?.("#veiDiagramHost");
+    if (host) host.innerHTML = renderDiagram(draft, false);
+    else refreshCurrentEditUI(root, draft, ctx);
+  }
+
   function renderDiagram(draft, readOnly) {
     const forPrint = readOnly === true || readOnly === "print";
     if (forPrint) return renderDiagramForPrint(draft);
     const markers = draft.diagramMarkers || [];
     const marks = markers
-      .map((m) => {
+      .map((m, i) => {
         const p = diagramMarkerCoords(m);
         if (!p) return "";
-        return `<circle class="vei-marker" cx="${p.cx}" cy="${p.cy}" r="9"></circle>`;
+        return (
+          `<g class="vei-marker" data-marker-idx="${i}">` +
+          `<circle class="vei-marker-hit" cx="${p.cx}" cy="${p.cy}" r="20"></circle>` +
+          `<circle class="vei-marker-dot" cx="${p.cx}" cy="${p.cy}" r="9"></circle>` +
+          `</g>`
+        );
       })
       .join("");
     const src = esc(diagramAbsUrl(draft));
+    const n = markers.length;
     return (
       '<div class="vei-diagram-wrap">' +
       `<svg class="vei-diagram" viewBox="0 0 ${DIAGRAM_W} ${DIAGRAM_H}" style="max-width:100%;height:auto" aria-label="Diagrama do veículo — 4 vistas">` +
       `<image class="vei-diagram-img" href="${src}" xlink:href="${src}" x="0" y="0" width="${DIAGRAM_W}" height="${DIAGRAM_H}" preserveAspectRatio="xMidYMid meet"/>` +
       `<rect class="vei-diagram-hit" x="0" y="0" width="${DIAGRAM_W}" height="${DIAGRAM_H}" fill="transparent"/>` +
       marks +
-      "</svg></div>"
+      "</svg>" +
+      '<div class="vei-diagram-toolbar">' +
+      '<p class="vei-diagram-hint">Toque no diagrama para marcar. Toque numa marcação para apagar.</p>' +
+      `<button type="button" class="secondary" id="veiDiagramUndo"${n ? "" : " disabled"}>Desfazer última</button>` +
+      "</div></div>"
     );
   }
 
@@ -1368,13 +1401,38 @@
       return;
     }
 
+    const diagramUndo = hit.closest?.("#veiDiagramUndo");
+    if (diagramUndo && root.contains(diagramUndo)) {
+      evt.preventDefault();
+      if (draft.diagramMarkers?.length) {
+        draft.diagramMarkers.pop();
+        persistDiagramChange(root, draft, ctx);
+      }
+      return;
+    }
+
     const diagramSvg = hit.closest?.("svg.vei-diagram");
-    if (diagramSvg && root.contains(diagramSvg) && !hit.classList?.contains("vei-marker")) {
+    if (diagramSvg && root.contains(diagramSvg)) {
+      const markerEl = hit.closest?.(".vei-marker");
+      if (markerEl) {
+        evt.preventDefault();
+        const idx = Number(markerEl.getAttribute("data-marker-idx"));
+        if (Number.isInteger(idx) && idx >= 0 && idx < (draft.diagramMarkers || []).length) {
+          draft.diagramMarkers.splice(idx, 1);
+          persistDiagramChange(root, draft, ctx);
+        }
+        return;
+      }
       const pt = svgPointFromEvent(diagramSvg, evt);
       if (pt) {
-        draft.diagramMarkers.push(pt);
-        if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
-        refreshCurrentEditUI(root, draft, ctx);
+        const nearIdx = nearestDiagramMarkerIndex(draft, pt, 22);
+        if (nearIdx >= 0) {
+          draft.diagramMarkers.splice(nearIdx, 1);
+        } else {
+          if (!Array.isArray(draft.diagramMarkers)) draft.diagramMarkers = [];
+          draft.diagramMarkers.push(pt);
+        }
+        persistDiagramChange(root, draft, ctx);
       }
       return;
     }

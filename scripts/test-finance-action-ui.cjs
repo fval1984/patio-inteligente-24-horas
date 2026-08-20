@@ -259,7 +259,7 @@ function testFilesStayInFinance() {
   assert.match(app, /id="finGlobalSearch"/);
   assert.match(app, /Visão geral da situação financeira/);
   assert.match(app, /openVehicleFromFinance/);
-  assert.match(app, /vehicle-entry-inspection\.js\?v=20260820vistoria6/, "não alterar cache da vistoria");
+  assert.match(app, /vehicle-entry-inspection\.js\?v=20260820vistoria7/, "não alterar cache da vistoria");
   const dash = fs.readFileSync(path.join(root, "public/financial-dashboard-ui.js"), "utf8");
   assert.match(dash, /A receber/);
   assert.match(dash, /O que precisa da minha atenção/);
