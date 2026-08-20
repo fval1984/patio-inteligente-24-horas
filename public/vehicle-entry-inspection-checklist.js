@@ -10,6 +10,58 @@
   function txt(key, label, placeholder) {
     return { key, label, kind: "text", placeholder: placeholder || "" };
   }
+  function choice(key, label, choices, opts) {
+    return { key, label, kind: "choice", choices: choices || [], ...(opts || {}) };
+  }
+
+  const RETRO_TYPES = [
+    { value: "ELETRICO", label: "Elétrico" },
+    { value: "MANUAL", label: "Manual" },
+  ];
+  const WHEEL_TYPES = [
+    { value: "LIGA", label: "Liga" },
+    { value: "FERRO", label: "Ferro" },
+    { value: "AUSENTE", label: "Ausente" },
+  ];
+  const SIM_NAO = [
+    { value: "SIM", label: "Sim" },
+    { value: "NAO", label: "Não" },
+  ];
+  const TURBO_TYPES = [
+    { value: "ASPIRADO", label: "Aspirado" },
+    { value: "REBAIXADO", label: "Rebaixado" },
+  ];
+
+  function sideItems(prefix) {
+    return [
+      cls(prefix + "_para_lama_diant", "Paralama Dianteiro"),
+      cls(prefix + "_para_lama_tras", "Paralama Traseiro"),
+      cls(prefix + "_porta_diant", "Porta Dianteira"),
+      cls(prefix + "_porta_tras", "Porta Traseira"),
+      cls(prefix + "_macaneta", "Maçaneta"),
+      cls(prefix + "_retrovisor", "Retrovisor", {
+        choiceKey: prefix + "_retrovisor_tipo",
+        choiceLabel: "Tipo",
+        choices: RETRO_TYPES,
+      }),
+      cls(prefix + "_vidros", "Vidros"),
+      cls(prefix + "_friso", "Frisos"),
+    ];
+  }
+
+  function wheelItem(key, label, withMarca) {
+    const opts = {
+      choiceKey: key + "_tipo",
+      choiceLabel: "Tipo",
+      choices: WHEEL_TYPES,
+    };
+    if (withMarca) {
+      opts.textKey = key + "_marca_tipo";
+      opts.textLabel = "Marca/Tipo";
+      opts.textPlaceholder = "Marca / medida";
+    }
+    return cls(key, label, opts);
+  }
 
   const DIAGRAMS = {
     LEVE: "/vehicle-inspection-diagram-4v.webp",
@@ -25,25 +77,23 @@
       blocks: [
         {
           items: [
-            cls("interno_painel", "Painel"),
-            cls("interno_console", "Console"),
-            cls("interno_relogio", "Relógio"),
-            cls("interno_air_bag", "Air Bag"),
-            cls("interno_macaneta", "Maçaneta"),
+            cls("interno_assoalho", "Assoalho"),
             cls("interno_tapetes", "Tapetes"),
-            cls("interno_bancos_altos", "Bancos — Altos"),
-            cls("interno_bancos_baixos", "Bancos — Baixos"),
-            cls("interno_revestimentos", "Revestimentos (Teto/Laterais)"),
-            cls("interno_cinto_seguranca", "Cinto de Segurança"),
+            cls("interno_macaneta", "Maçanetas"),
+            cls("interno_painel", "Painel/Console"),
+            cls("interno_bancos_altos", "Bancos Dianteiros"),
+            cls("interno_bancos_baixos", "Banco Traseiro"),
+            cls("interno_revestimentos", "Revestimentos"),
+            cls("interno_porta_luvas", "Porta Luvas"),
+            cls("interno_para_sol", "Para Sol"),
+            cls("interno_acendedor", "Acendedor de cig."),
+            cls("interno_retrovisor", "Retrovisor Intern."),
+            cls("interno_encosto_cabeca", "Encosto de Cabeça"),
+            cls("interno_cinto_seguranca", "Cintos de Segurança"),
             cls("interno_macaco", "Macaco"),
             cls("interno_chave_roda", "Chave de Roda"),
             cls("interno_triangulo", "Triângulo"),
             cls("interno_extintor", "Extintor"),
-            cls("interno_assoalho", "Assoalho"),
-            cls("interno_acendedor", "Acendedor"),
-            cls("interno_retrovisor", "Retrovisor"),
-            cls("interno_teto_solar", "Teto Solar"),
-            cls("interno_encosto_cabeca", "Encosto de Cabeça"),
           ],
         },
       ],
@@ -56,21 +106,22 @@
           items: [
             cls("mec_motor", "Motor"),
             cls("mec_ignicao_eletronica", "Ignição Eletrônica"),
-            cls("mec_injecao_eletronica", "Injeção Eletrônica"),
-            cls("mec_carburador", "Carburador"),
-            cls("mec_bateria", "Bateria"),
-            cls("mec_bomba_injetora", "Bomba Injetora"),
+            cls("mec_injecao_eletronica", "Injeção Elet./Carburador"),
             cls("mec_radiador", "Radiador"),
             cls("mec_motor_arranque", "Motor de Arranque"),
-            cls("mec_freios_pe_mao", "Freios (Pé/Mão)"),
-            cls("mec_bomba_ar_condicionado", "Bomba — Ar Condicionado"),
-            cls("mec_bomba_dir_hidraulica", "Bomba — Dir. Hidráulica"),
-            cls("mec_bomba_comb_eletronica", "Bomba — Comb. Eletrônica"),
-            cls("mec_bobina", "Bobina"),
+            cls("mec_diferencial", "Diferencial"),
+            cls("mec_cambio", "Câmbio — Tipo", {
+              textKey: "mec_cambio_tipo",
+              textLabel: "Tipo",
+              textPlaceholder: "4M, 5M, Aut…",
+            }),
+            cls("mec_freios_abs", "Freios ABS"),
+            cls("mec_ar_condicionado", "Ar Condicionado"),
+            cls("mec_bomba_dir_hidraulica", "Direção Hidráulica"),
             cls("mec_embreagem", "Embreagem"),
-            cls("mec_cambio_4m", "Câmbio — 4M"),
-            cls("mec_cambio_5m", "Câmbio — 5M"),
-            cls("mec_cambio_aut", "Câmbio — Aut"),
+            cls("eq_buzina", "Buzina"),
+            cls("eq_alarme", "Alarme"),
+            cls("mec_bateria", "Bateria"),
           ],
         },
       ],
@@ -80,17 +131,7 @@
       title: "TRASEIRA",
       blocks: [
         {
-          items: [
-            cls("tras_tampa_traseira", "Tampa Traseira"),
-            cls("tras_macaneta", "Maçaneta"),
-            cls("tras_para_choque", "Para-Choque"),
-            cls("tras_limpador", "Limpador Tras."),
-            cls("tras_lanternas", "Lanternas"),
-            cls("tras_vidros", "Vidros"),
-            cls("tras_escapamento", "Escapamento"),
-            cls("tras_sala", "Sala"),
-            cls("tras_engate", "Engate"),
-          ],
+          items: [cls("tras_capo", "Capô"), cls("tras_sala", "Saia")],
         },
       ],
     },
@@ -101,22 +142,39 @@
         {
           items: [
             cls("eq_radio", "Rádio"),
+            cls("eq_toca_fitas", "T. Fitas"),
+            cls("eq_cd", "CD"),
+            cls("eq_dvd", "DVD"),
+            cls("eq_gps", "GPS"),
             txt("eq_marca", "Marca"),
             txt("eq_modelo", "Modelo"),
-            cls("eq_alto_falantes", "Alto Falantes", { numberKey: "eq_alto_falantes_qtd", numberLabel: "Quantidade" }),
-            cls("eq_antena", "Antena"),
-            cls("eq_chave_veiculo", "Chave do Veículo"),
-            cls("eq_modulo_som", "Módulo de Som"),
-            cls("eq_kit_gas", "Kit Gás"),
-            cls("eq_buzina", "Buzina"),
-            cls("eq_alarme", "Alarme"),
-            cls("eq_banco_couro", "Banco de Couro"),
-            cls("eq_bagageiro_teto", "Bagageiro de Teto"),
-            cls("eq_para_sol", "Para-Sol"),
-            cls("eq_tacografo", "Tacógrafo"),
-            cls("eq_toca_fitas", "Toca Fitas"),
-            cls("eq_cd", "CD"),
-            cls("eq_tampao", "Tampão"),
+            cls("eq_antena", "Antena Interna"),
+            cls("eq_antena_externa", "Antena Externa"),
+            cls("eq_alto_falantes", "Alto Falantes Portas Dianteiras — Qtd.", {
+              numberKey: "eq_alto_falantes_qtd",
+              numberLabel: "Quantidade",
+            }),
+            cls("eq_alto_falantes_tras", "Alto Falantes Portas Traseiras — Qtd.", {
+              numberKey: "eq_alto_falantes_tras_qtd",
+              numberLabel: "Quantidade",
+            }),
+            cls("eq_tampao", "Alto Falantes Tampão/Painel — Qtd.", {
+              numberKey: "eq_tampao_qtd",
+              numberLabel: "Quantidade",
+            }),
+            cls("eq_turbo", "Turbo — Aspirado / Rebaixado", {
+              choiceKey: "eq_turbo_tipo",
+              choiceLabel: "Tipo",
+              choices: TURBO_TYPES,
+            }),
+            cls("eq_kit_gas", "Kit Gás — Desc.", {
+              textKey: "eq_kit_gas_desc",
+              textLabel: "Descrição",
+              textPlaceholder: "Descrição do kit gás",
+            }),
+            choice("eq_cabo_carregador", "Cabo Carregador — Se Híbr. ou Elétr.", SIM_NAO),
+            txt("eq_bateria_marca", "Bateria/Marca"),
+            txt("eq_obs", "OBS."),
           ],
         },
       ],
@@ -128,14 +186,17 @@
         {
           items: [
             cls("dian_capo", "Capô"),
-            cls("dian_para_choque", "Para-Choque"),
-            cls("dian_limpadores", "Limpadores Para-Brisa"),
-            cls("dian_para_brisa", "Para-Brisa"),
+            cls("dian_para_choque", "Para-choque"),
+            cls("dian_para_brisa", "Parabrisa"),
+            cls("dian_limpadores", "Limp de Parabrisa"),
             cls("dian_farois", "Faróis"),
-            cls("dian_farois_aux", "Faróis Auxiliares"),
+            cls("dian_farois_aux", "Faróis Aux. (Qtd)", {
+              numberKey: "dian_farois_aux_qtd",
+              numberLabel: "Quantidade",
+            }),
             cls("dian_lanternas", "Lanternas"),
             cls("dian_teto", "Teto"),
-            cls("dian_sala", "Sala"),
+            cls("dian_sala", "Saia"),
             cls("dian_grade", "Grade"),
           ],
         },
@@ -144,56 +205,25 @@
     {
       id: "lado_esquerdo",
       title: "LADO ESQUERDO",
-      blocks: [
-        {
-          items: [
-            cls("lesq_para_lama_diant", "Para-Lama Dianteiro"),
-            cls("lesq_para_lama_tras", "Para-Lama Traseiro"),
-            cls("lesq_porta_diant", "Porta Dianteira"),
-            cls("lesq_porta_tras", "Porta Traseira"),
-            cls("lesq_macaneta", "Maçaneta"),
-            cls("lesq_retrovisor", "Retrovisor"),
-            cls("lesq_vidros", "Vidros"),
-            cls("lesq_friso", "Friso"),
-          ],
-        },
-      ],
+      blocks: [{ items: sideItems("lesq") }],
     },
     {
       id: "lado_direito",
       title: "LADO DIREITO",
-      blocks: [
-        {
-          items: [
-            cls("ldir_para_lama_diant", "Para-Lama Dianteiro"),
-            cls("ldir_para_lama_tras", "Para-Lama Traseiro"),
-            cls("ldir_porta_diant", "Porta Dianteira"),
-            cls("ldir_porta_tras", "Porta Traseira"),
-            cls("ldir_macaneta", "Maçaneta"),
-            cls("ldir_retrovisor", "Retrovisor"),
-            cls("ldir_vidros", "Vidros"),
-            cls("ldir_friso", "Friso"),
-          ],
-        },
-      ],
+      blocks: [{ items: sideItems("ldir") }],
     },
     {
       id: "rodas",
       title: "RODAS",
       blocks: [
         {
-          textFields: [
-            txt("rod_pneu_referencia", "Referência do pneu", "175/70 R13"),
-            txt("rod_pneu_marca", "Marca"),
-          ],
           items: [
-            cls("rod_pneu_dd", "Pneu D/Dir."),
-            cls("rod_pneu_de", "Pneu D/Esq."),
-            cls("rod_pneu_td", "Pneu T/Dir."),
-            cls("rod_pneu_te", "Pneu T/Esq."),
-            cls("rod_estepe", "Estepe"),
-            cls("rod_calotas", "Calotas"),
-            cls("rod_liga_leve", "Liga Leve"),
+            wheelItem("rod_estepe", "Estepe", false),
+            wheelItem("rod_pneu_dd", "Diant. Dir.", true),
+            wheelItem("rod_pneu_de", "Diant. Esq.", true),
+            wheelItem("rod_pneu_td", "Tras. Dir.", true),
+            wheelItem("rod_pneu_te", "Tras. Esq.", true),
+            choice("rod_run_flat", "Reparador Run Flat?", SIM_NAO),
           ],
         },
       ],
@@ -354,6 +384,19 @@
     MOTOS: MOTOS_CARDS,
   };
 
+  function extraFields(it) {
+    return {
+      numberKey: it.numberKey || null,
+      numberLabel: it.numberLabel || null,
+      choiceKey: it.choiceKey || null,
+      choiceLabel: it.choiceLabel || null,
+      choices: it.choices || null,
+      textKey: it.textKey || null,
+      textLabel: it.textLabel || null,
+      textPlaceholder: it.textPlaceholder || null,
+    };
+  }
+
   function flattenCards(cards) {
     const checklist = [];
     cards.forEach((card) => {
@@ -375,9 +418,8 @@
             key: it.key,
             label: it.label,
             kind: it.kind || "classify",
-            numberKey: it.numberKey || null,
-            numberLabel: it.numberLabel || null,
             blockTitle: block.title || null,
+            ...extraFields(it),
           });
           if (it.numberKey) {
             checklist.push({

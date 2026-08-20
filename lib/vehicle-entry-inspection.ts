@@ -619,12 +619,20 @@ export async function updateVehicleEntryInspection(
   }
 
   const keepKeys = new Set(input.items.map((it) => String(it.item_key || "").trim()).filter(Boolean));
+  const currentKeys = new Set(getChecklistKeysForVariant(variant).map(String));
   const { data: existingItems } = await admin
     .from("vehicle_entry_inspection_items")
     .select("id, item_key")
     .eq("inspection_id", input.inspectionId);
   const staleIds = (existingItems || [])
-    .filter((row) => !keepKeys.has(String(row.item_key || "").trim()))
+    .filter((row) => {
+      const raw = String(row.item_key || "").trim();
+      const key = canonicalItemKey(raw);
+      if (keepKeys.has(raw) || keepKeys.has(key)) return false;
+      // Preserva itens de vistorias antigas que saíram do checklist atual.
+      if (!currentKeys.has(key) && !currentKeys.has(raw)) return false;
+      return true;
+    })
     .map((row) => row.id)
     .filter(Boolean);
   if (staleIds.length) {

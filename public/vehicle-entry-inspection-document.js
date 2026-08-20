@@ -316,6 +316,11 @@
         width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 4px;
         padding: 4px 6px; font-size: 9pt;
       }
+      .vei-choice-btn {
+        display: inline-block; margin: 0 4px 4px 0; padding: 2px 8px; border: 1px solid #cbd5e1;
+        border-radius: 2px; background: #fff; font-size: 8pt; font-weight: 700; font-family: inherit;
+      }
+      .vei-choice-btn.active { background: #fef08a; border-color: #ca8a04; }
       .vei-doc-edit .vei-doc-notes-edit {
         width: 100%; box-sizing: border-box; min-height: 88px; border: 1px solid #cbd5e1;
         border-radius: 6px; padding: 8px 10px; font-family: inherit; font-size: 10pt; resize: vertical;
@@ -414,6 +419,69 @@
     return map[id] || "";
   }
 
+  function choiceLabelFor(choices, value) {
+    if (!value) return "";
+    const found = (choices || []).find((ch) => (ch.value || ch) === value);
+    return found ? found.label || found : value;
+  }
+
+  function renderDocItemExtras(it, formExtras, editable) {
+    let html = "";
+    if (it.choiceKey && it.choices && it.choices.length) {
+      const sel = formExtras[it.choiceKey] || "";
+      html += `<tr><td colspan="6"><em>${esc(it.choiceLabel || "Tipo")}:</em> `;
+      if (editable) {
+        (it.choices || []).forEach((ch) => {
+          const value = ch.value || ch;
+          const label = ch.label || ch;
+          const on = sel === value;
+          html += `<button type="button" class="vei-choice-btn${on ? " active" : ""}" data-extra-key="${esc(it.choiceKey)}" data-choice="${esc(value)}">${esc(label)}</button> `;
+        });
+      } else {
+        html += esc(choiceLabelFor(it.choices, sel) || "—");
+      }
+      html += "</td></tr>";
+    }
+    if (it.numberKey) {
+      const qVal = formExtras[it.numberKey] || "";
+      html += `<tr class="vei-qty-row"><td colspan="6"><em>${esc(it.numberLabel || "Quantidade")}:</em> `;
+      if (editable) {
+        html += `<input type="number" min="0" step="1" class="vei-number-field vei-doc-inline-field" data-extra-key="${esc(it.numberKey)}" value="${esc(qVal)}" style="max-width:120px;display:inline-block"/>`;
+      } else {
+        html += esc(qVal || "—");
+      }
+      html += "</td></tr>";
+    }
+    if (it.textKey) {
+      const val = formExtras[it.textKey] || "";
+      html += `<tr class="vei-text-row"><td colspan="6"><em>${esc(it.textLabel || "")}:</em> `;
+      if (editable) {
+        html += `<input type="text" class="vei-text-field vei-doc-inline-field" data-extra-key="${esc(it.textKey)}" value="${esc(val)}" placeholder="${esc(it.textPlaceholder || "")}" style="max-width:280px"/>`;
+      } else {
+        html += esc(val || "—");
+      }
+      html += "</td></tr>";
+    }
+    return html;
+  }
+
+  function renderDocChoiceRow(it, formExtras, editable) {
+    const sel = formExtras[it.key] || "";
+    let html = `<tr><td colspan="6"><strong>${esc(it.label)}:</strong> `;
+    if (editable) {
+      (it.choices || []).forEach((ch) => {
+        const value = ch.value || ch;
+        const label = ch.label || ch;
+        const on = sel === value;
+        html += `<button type="button" class="vei-choice-btn${on ? " active" : ""}" data-extra-key="${esc(it.key)}" data-choice="${esc(value)}">${esc(label)}</button> `;
+      });
+    } else {
+      html += esc(choiceLabelFor(it.choices, sel) || "—");
+    }
+    html += "</td></tr>";
+    return html;
+  }
+
   function buildChecklistSection(helpers, draft, detailItems) {
     const variant = draft?.inspectionVariant || "LEVE";
     const cfg = helpers.getVariantConfig ? helpers.getVariantConfig(variant) : null;
@@ -452,6 +520,10 @@
             html += `<tr><td colspan="6"><strong>${esc(it.label)}:</strong> ${esc(formExtras[it.key] || "—")}</td></tr>`;
             return;
           }
+          if (kind === "choice") {
+            html += renderDocChoiceRow(it, formExtras, false);
+            return;
+          }
           if (kind !== "classify") return;
           const sel = draft.classifications[it.key];
           html += `<tr><td>${esc(it.label)}</td>`;
@@ -460,9 +532,7 @@
             html += `<td class="vei-doc-cls-cell${on ? " on" : ""}">${on ? esc(classificationShort(clsId)) : ""}</td>`;
           });
           html += "</tr>";
-          if (it.numberKey) {
-            html += `<tr><td colspan="6"><em>${esc(it.numberLabel || "Quantidade")}:</em> ${esc(formExtras[it.numberKey] || "—")}</td></tr>`;
-          }
+          html += renderDocItemExtras(it, formExtras, false);
         });
         html += "</tbody></table>";
       });
@@ -536,6 +606,10 @@
             html += `</td></tr>`;
             return;
           }
+          if (kind === "choice") {
+            html += renderDocChoiceRow(it, formExtras, true);
+            return;
+          }
           if (kind !== "classify") return;
           const sel = draft.classifications?.[it.key];
           html += `<tr class="vei-item vei-doc-item${!sel ? " vei-item-pending" : ""}" data-item-key="${esc(it.key)}">`;
@@ -551,13 +625,7 @@
               `</button></td>`;
           });
           html += "</tr>";
-          if (it.numberKey) {
-            const qVal = formExtras[it.numberKey] || "";
-            html += `<tr class="vei-qty-row"><td colspan="6">`;
-            html += `<em>${esc(it.numberLabel || "Quantidade")}:</em> `;
-            html += `<input type="number" min="0" step="1" class="vei-number-field vei-doc-inline-field" data-extra-key="${esc(it.numberKey)}" value="${esc(qVal)}" style="max-width:120px;display:inline-block"/>`;
-            html += `</td></tr>`;
-          }
+          html += renderDocItemExtras(it, formExtras, true);
         });
         html += "</tbody></table>";
       });

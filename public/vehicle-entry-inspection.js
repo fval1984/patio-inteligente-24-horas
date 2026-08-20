@@ -383,7 +383,7 @@
     const formExtras = {};
     cfg.checklist.forEach((it) => {
       if (it.kind === "classify") classifications[it.key] = null;
-      else if (it.kind === "text" || it.kind === "number") formExtras[it.key] = "";
+      else if (it.kind === "text" || it.kind === "number" || it.kind === "choice") formExtras[it.key] = "";
     });
     return {
       inspectionVariant: cfg.id || variant || "LEVE",
@@ -1209,6 +1209,24 @@
       return;
     }
 
+    const choiceBtn = hit.closest?.(".vei-choice-btn[data-extra-key]");
+    if (choiceBtn && root.contains(choiceBtn)) {
+      evt.preventDefault();
+      const extraKey = choiceBtn.getAttribute("data-extra-key");
+      const value = choiceBtn.getAttribute("data-choice");
+      if (extraKey && value) {
+        if (!draft.formExtras) draft.formExtras = {};
+        draft.formExtras[extraKey] = value;
+        const scope = choiceBtn.closest("tr") || root;
+        scope.querySelectorAll(".vei-choice-btn[data-extra-key]").forEach((btn) => {
+          if (btn.getAttribute("data-extra-key") !== extraKey) return;
+          btn.classList.toggle("active", btn.getAttribute("data-choice") === value);
+        });
+        if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+      }
+      return;
+    }
+
     const classBtn = hit.closest?.(".vei-class-btn[data-class]");
     if (classBtn && root.contains(classBtn)) {
       evt.preventDefault();
@@ -1424,6 +1442,50 @@
     return html;
   }
 
+  function renderChoiceButtons(extraKey, choices, selected, readOnly) {
+    let html = '<span class="vei-choice-group">';
+    (choices || []).forEach((ch) => {
+      const value = ch.value || ch;
+      const label = ch.label || ch;
+      const on = selected === value;
+      if (readOnly) {
+        html += `<span class="vei-choice-btn${on ? " active" : ""}">${esc(label)}</span>`;
+      } else {
+        html += `<button type="button" class="vei-choice-btn${on ? " active" : ""}" data-extra-key="${esc(extraKey)}" data-choice="${esc(value)}">${esc(label)}</button>`;
+      }
+    });
+    html += "</span>";
+    return html;
+  }
+
+  function renderItemExtraRows(it, draft, readOnly, colSpan) {
+    const extras = draft.formExtras || {};
+    let html = "";
+    if (it.choiceKey && it.choices && it.choices.length) {
+      html += `<tr class="vei-extra-row"><td colspan="${colSpan}">`;
+      html += `<label>${esc(it.choiceLabel || "Tipo")}</label> `;
+      html += renderChoiceButtons(it.choiceKey, it.choices, extras[it.choiceKey] || "", readOnly);
+      html += "</td></tr>";
+    }
+    if (it.numberKey) {
+      const qVal = extras[it.numberKey] || "";
+      html += `<tr class="vei-qty-row vei-extra-row"><td colspan="${colSpan}">`;
+      html += `<label>${esc(it.numberLabel || "Quantidade")}</label> `;
+      if (readOnly) html += esc(qVal || "—");
+      else html += `<input type="number" min="0" step="1" class="vei-number-field" data-extra-key="${esc(it.numberKey)}" value="${esc(qVal)}" style="max-width:120px"/>`;
+      html += "</td></tr>";
+    }
+    if (it.textKey) {
+      const val = extras[it.textKey] || "";
+      html += `<tr class="vei-text-row vei-extra-row"><td colspan="${colSpan}">`;
+      html += `<label>${esc(it.textLabel || "")}</label> `;
+      if (readOnly) html += esc(val || "—");
+      else html += `<input type="text" class="vei-text-field" data-extra-key="${esc(it.textKey)}" value="${esc(val)}" placeholder="${esc(it.textPlaceholder || "")}"/>`;
+      html += "</td></tr>";
+    }
+    return html;
+  }
+
   function renderCardStep(cardIndex, draft, readOnly, opts) {
     opts = opts || {};
     const cfg = draftCfg(draft);
@@ -1483,6 +1545,14 @@
           html += "</td></tr>";
           return;
         }
+        if (kind === "choice") {
+          const sel = draft.formExtras?.[it.key] || "";
+          html += `<tr class="vei-text-row vei-choice-item"><td colspan="${colSpan}">`;
+          html += `<label>${esc(it.label)}</label> `;
+          html += renderChoiceButtons(it.key, it.choices, sel, readOnly);
+          html += "</td></tr>";
+          return;
+        }
         if (kind !== "classify") return;
         const sel = draft.classifications[it.key];
         html += `<tr class="vei-item${!readOnly && !sel ? " vei-item-pending" : ""}" data-item-key="${esc(it.key)}">`;
@@ -1498,14 +1568,7 @@
           }
         });
         html += "</tr>";
-        if (it.numberKey) {
-          const qVal = draft.formExtras?.[it.numberKey] || "";
-          html += `<tr class="vei-qty-row"><td colspan="${colSpan}">`;
-          html += `<label>${esc(it.numberLabel || "Quantidade")}</label> `;
-          if (readOnly) html += esc(qVal || "—");
-          else html += `<input type="number" min="0" step="1" class="vei-number-field" data-extra-key="${esc(it.numberKey)}" value="${esc(qVal)}" style="max-width:120px"/>`;
-          html += "</td></tr>";
-        }
+        html += renderItemExtraRows(it, draft, readOnly, colSpan);
       });
       html += "</tbody></table>";
     });

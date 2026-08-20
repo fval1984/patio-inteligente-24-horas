@@ -310,6 +310,44 @@
   color: #1e293b;
 }
 
+.vei-checklist-view .vei-extra-row td,
+.vei-checklist-view .vei-qty-row td {
+  padding: 6px 12px !important;
+  border: 1px solid #dee2e6 !important;
+  background: #f8fafc !important;
+  font-size: 12px;
+}
+
+.vei-checklist-view .vei-choice-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  vertical-align: middle;
+}
+
+.vei-checklist-view .vei-choice-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  margin: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 2px;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  color: #001529;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.vei-checklist-view .vei-choice-btn.active {
+  background: #fef08a !important;
+  border-color: #ca8a04 !important;
+  color: #1e293b !important;
+}
+
 .vei-checklist-view .vei-edit-extras {
   display: flex;
   flex-direction: column;

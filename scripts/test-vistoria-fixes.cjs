@@ -46,6 +46,209 @@ function loadIife(relPath, extra = {}) {
   return context;
 }
 
+function testChecklistItemReplacement() {
+  const clone = (v) => JSON.parse(JSON.stringify(v));
+  const ctx = loadIife("public/vehicle-entry-inspection-checklist.js");
+  const mod = ctx.vehicleEntryInspectionChecklist;
+  const json = require(path.join(root, "lib/vehicle-entry-inspection-checklist-keys.json"));
+  for (const variant of ["LEVE", "PESADOS", "TRATORES", "MOTOS"]) {
+    const cfg = mod.getVariantConfig(variant);
+    assert.deepStrictEqual(clone(cfg.classifyKeys), json[variant], `chaves ${variant} sincronizadas`);
+  }
+
+  const leve = mod.getVariantConfig("LEVE");
+  assert.strictEqual(leve.cardCount, 8, "Leve mantém 8 cards");
+  assert.deepStrictEqual(clone(leve.cards.map((c) => c.id)), [
+    "interno",
+    "mecanica",
+    "traseira",
+    "equipamentos",
+    "dianteira",
+    "lado_esquerdo",
+    "lado_direito",
+    "rodas",
+  ]);
+
+  const labelsByCard = {};
+  leve.cards.forEach((card) => {
+    labelsByCard[card.id] = clone(card.blocks.flatMap((b) => b.items.map((it) => it.label)));
+  });
+  assert.deepStrictEqual(labelsByCard.dianteira, [
+    "Capô",
+    "Para-choque",
+    "Parabrisa",
+    "Limp de Parabrisa",
+    "Faróis",
+    "Faróis Aux. (Qtd)",
+    "Lanternas",
+    "Teto",
+    "Saia",
+    "Grade",
+  ]);
+  assert.deepStrictEqual(labelsByCard.lado_direito, [
+    "Paralama Dianteiro",
+    "Paralama Traseiro",
+    "Porta Dianteira",
+    "Porta Traseira",
+    "Maçaneta",
+    "Retrovisor",
+    "Vidros",
+    "Frisos",
+  ]);
+  assert.deepStrictEqual(labelsByCard.lado_esquerdo, labelsByCard.lado_direito);
+  assert.deepStrictEqual(labelsByCard.traseira, ["Capô", "Saia"]);
+  assert.deepStrictEqual(labelsByCard.interno, [
+    "Assoalho",
+    "Tapetes",
+    "Maçanetas",
+    "Painel/Console",
+    "Bancos Dianteiros",
+    "Banco Traseiro",
+    "Revestimentos",
+    "Porta Luvas",
+    "Para Sol",
+    "Acendedor de cig.",
+    "Retrovisor Intern.",
+    "Encosto de Cabeça",
+    "Cintos de Segurança",
+    "Macaco",
+    "Chave de Roda",
+    "Triângulo",
+    "Extintor",
+  ]);
+  assert.deepStrictEqual(labelsByCard.mecanica, [
+    "Motor",
+    "Ignição Eletrônica",
+    "Injeção Elet./Carburador",
+    "Radiador",
+    "Motor de Arranque",
+    "Diferencial",
+    "Câmbio — Tipo",
+    "Freios ABS",
+    "Ar Condicionado",
+    "Direção Hidráulica",
+    "Embreagem",
+    "Buzina",
+    "Alarme",
+    "Bateria",
+  ]);
+  assert.ok(labelsByCard.equipamentos.includes("Rádio"));
+  assert.ok(labelsByCard.equipamentos.includes("Marca"));
+  assert.ok(labelsByCard.equipamentos.includes("Modelo"));
+  assert.ok(labelsByCard.equipamentos.includes("OBS."));
+  assert.ok(labelsByCard.equipamentos.includes("Alto Falantes Portas Dianteiras — Qtd."));
+  assert.ok(labelsByCard.equipamentos.includes("Alto Falantes Portas Traseiras — Qtd."));
+  assert.ok(labelsByCard.equipamentos.includes("Alto Falantes Tampão/Painel — Qtd."));
+  assert.ok(labelsByCard.equipamentos.includes("Cabo Carregador — Se Híbr. ou Elétr."));
+  const cabo = leve.cards
+    .find((c) => c.id === "equipamentos")
+    .blocks[0].items.find((it) => it.key === "eq_cabo_carregador");
+  assert.strictEqual(cabo.kind, "choice");
+  assert.deepStrictEqual(clone(cabo.choices.map((c) => c.label)), ["Sim", "Não"]);
+  assert.deepStrictEqual(labelsByCard.rodas, [
+    "Estepe",
+    "Diant. Dir.",
+    "Diant. Esq.",
+    "Tras. Dir.",
+    "Tras. Esq.",
+    "Reparador Run Flat?",
+  ]);
+
+  const farolAux = leve.cards
+    .find((c) => c.id === "dianteira")
+    .blocks[0].items.find((it) => it.key === "dian_farois_aux");
+  assert.strictEqual(farolAux.numberKey, "dian_farois_aux_qtd");
+
+  const retroDir = leve.cards
+    .find((c) => c.id === "lado_direito")
+    .blocks[0].items.find((it) => it.key === "ldir_retrovisor");
+  assert.deepStrictEqual(clone(retroDir.choices.map((c) => c.label)), ["Elétrico", "Manual"]);
+  const retroEsq = leve.cards
+    .find((c) => c.id === "lado_esquerdo")
+    .blocks[0].items.find((it) => it.key === "lesq_retrovisor");
+  assert.deepStrictEqual(clone(retroEsq.choices.map((c) => c.label)), ["Elétrico", "Manual"]);
+
+  const estepe = leve.cards.find((c) => c.id === "rodas").blocks[0].items.find((it) => it.key === "rod_estepe");
+  assert.deepStrictEqual(clone(estepe.choices.map((c) => c.label)), ["Liga", "Ferro", "Ausente"]);
+  assert.ok(!estepe.textKey, "estepe não tem Marca/Tipo");
+  const pneuDd = leve.cards.find((c) => c.id === "rodas").blocks[0].items.find((it) => it.key === "rod_pneu_dd");
+  assert.strictEqual(pneuDd.textLabel, "Marca/Tipo");
+  const runFlat = leve.cards.find((c) => c.id === "rodas").blocks[0].items.find((it) => it.key === "rod_run_flat");
+  assert.strictEqual(runFlat.kind, "choice");
+  assert.deepStrictEqual(clone(runFlat.choices.map((c) => c.label)), ["Sim", "Não"]);
+
+  const marca = leve.cards
+    .find((c) => c.id === "equipamentos")
+    .blocks[0].items.find((it) => it.key === "eq_marca");
+  assert.strictEqual(marca.kind, "text");
+  const modelo = leve.cards
+    .find((c) => c.id === "equipamentos")
+    .blocks[0].items.find((it) => it.key === "eq_modelo");
+  assert.strictEqual(modelo.kind, "text");
+
+  const removed = [
+    "interno_relogio",
+    "interno_air_bag",
+    "interno_teto_solar",
+    "tras_engate",
+    "rod_calotas",
+    "rod_liga_leve",
+    "eq_banco_couro",
+  ];
+  removed.forEach((key) => {
+    assert.ok(!leve.classifyKeys.includes(key), `${key} saiu do checklist novo`);
+  });
+  ["interno_painel", "dian_capo", "lesq_retrovisor", "rod_estepe", "eq_radio"].forEach((key) => {
+    assert.ok(leve.classifyKeys.includes(key), `${key} permanece para preservar dados`);
+  });
+
+  const motos = mod.getVariantConfig("MOTOS");
+  assert.deepStrictEqual(clone(motos.classifyKeys), json.MOTOS);
+  assert.strictEqual(motos.cards[0].id, "motos");
+  const tratores = mod.getVariantConfig("TRATORES");
+  assert.deepStrictEqual(clone(tratores.classifyKeys), json.TRATORES);
+  const pesados = mod.getVariantConfig("PESADOS");
+  assert.strictEqual(pesados.cardCount, 10);
+  assert.ok(pesados.classifyKeys.includes("eixo_toco"));
+  assert.ok(pesados.classifyKeys.includes("car_tanque"));
+  assert.ok(pesados.classifyKeys.includes("dian_capo"));
+
+  const doc = loadIife("public/vehicle-entry-inspection-document.js", {
+    vehicleEntryInspectionChecklist: mod,
+  });
+  const printHtml = doc.vehicleEntryInspectionDocument.buildPrintHtml({
+    vehicle: { placa: "ABC1D23", marca: "VW", modelo: "Gol", ano: "2018" },
+    ctx: { partners: [] },
+    inspection: { inspection_number: 1, inspection_variant: "LEVE", completed_at: "2026-08-20T12:00:00Z" },
+    detail: {
+      items: [
+        { item_key: "dian_capo", item_label: "Capô", category: "DIANTEIRA", classification: "BOM" },
+        { item_key: "interno_relogio", item_label: "Relógio", category: "INTERNO", classification: "BOM" },
+      ],
+      photos: [],
+      damages: [],
+    },
+    draft: {
+      inspectionVariant: "LEVE",
+      classifications: { dian_capo: "BOM" },
+      formExtras: { dian_farois_aux_qtd: "2", rod_pneu_dd_marca_tipo: "Pirelli 175/70" },
+    },
+    helpers: {
+      getVariantConfig: mod.getVariantConfig,
+      INSPECTION_CARDS: mod.INSPECTION_CARDS,
+      CHECKLIST: mod.CHECKLIST,
+      fmtDateTime: () => "20/08/2026",
+    },
+  });
+  assert.match(printHtml, /Faróis Aux/);
+  assert.match(printHtml, /Paralama Dianteiro/);
+  assert.match(printHtml, /Reparador Run Flat/);
+  assert.match(printHtml, /Itens \(registro anterior\)/);
+  assert.match(printHtml, /Relógio/);
+  assert.match(printHtml, /Pirelli 175\/70/);
+  assert.match(printHtml, /Cliente|Placa/);
+}
+
 function testPhotoLabels() {
   const ctx = loadIife("public/vehicle-entry-inspection-document.js");
   const mod = ctx.vehicleEntryInspectionDocument;
@@ -253,6 +456,8 @@ function testPersistBackupHelpers() {
   assert.match(src, /attachSignedPhotoUrls/);
   assert.match(src, /createSignedUrls/);
   assert.match(src, /persistInspectionPhoto/);
+  assert.match(src, /currentKeys.has\(key\)/);
+  assert.match(src, /Preserva itens de vistorias antigas/);
   const sql = fs.readFileSync(path.join(root, "supabase/vehicle_entry_inspection_items_persist.sql"), "utf8");
   assert.match(sql, /UNIQUE \(inspection_id, item_key\)/);
 }
@@ -491,6 +696,7 @@ function testPhotoUploadGoesThroughApi() {
 let failed = 0;
 const tests = [
   ["legendas das fotos", testPhotoLabels],
+  ["itens da vistoria substituídos", testChecklistItemReplacement],
   ["cortes de página sem partir blocos", testPageCuts],
   ["persistência/carregamento das classificações", testClassificationMerge],
   ["backup e unique por vistoria", testPersistBackupHelpers],

@@ -87,8 +87,8 @@ function testApagarVistoriaFicaNoVnp() {
 
 function testCacheBust() {
   const html = read("public/app.html");
-  assert.match(html, /vehicle-entry-inspection\.js\?v=20260819vnpvist1/);
-  assert.match(html, /ampliguard-vistoria-ui\.css\?v=20260819vnpvist1/);
+  assert.match(html, /vehicle-entry-inspection\.js\?v=20260820itens1/);
+  assert.match(html, /ampliguard-vistoria-ui\.css\?v=20260820itens1/);
 }
 
 function testJsParse() {
