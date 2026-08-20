@@ -220,7 +220,7 @@
     const map = {
       BOM: "BOM",
       REGULAR: "REGULAR",
-      DANIFICADO: "DANIFICADO",
+      DANIFICADO: "DANIFICADA",
       SEM_TESTE: "SEM TESTE",
       INEXISTENTE: "INEXISTENTE",
     };
@@ -321,6 +321,9 @@
         border-radius: 2px; background: #fff; font-size: 8pt; font-weight: 700; font-family: inherit;
       }
       .vei-choice-btn.active { background: #fef08a; border-color: #ca8a04; }
+      .vei-doc-fuel-wrap { text-align: center; margin: 8px 0 10px; break-inside: avoid; page-break-inside: avoid; }
+      .vei-doc-fuel-wrap .vei-fuel-gauge { width: 100%; max-width: 360px; height: auto; display: block; margin: 0 auto; }
+      .vei-fuel-x line { stroke: #dc2626; }
       .vei-doc-edit .vei-doc-notes-edit {
         width: 100%; box-sizing: border-box; min-height: 88px; border: 1px solid #cbd5e1;
         border-radius: 6px; padding: 8px 10px; font-family: inherit; font-size: 10pt; resize: vertical;
@@ -453,10 +456,25 @@
       html += "</td></tr>";
     }
     if (it.textKey) {
-      const val = formExtras[it.textKey] || "";
-      html += `<tr class="vei-text-row"><td colspan="6"><em>${esc(it.textLabel || "")}:</em> `;
+      const triggerVal = formExtras[it.key] || formExtras[it.choiceKey] || "";
+      if (it.textWhen && triggerVal !== it.textWhen) {
+        /* campo condicional oculto */
+      } else {
+        const val = formExtras[it.textKey] || "";
+        html += `<tr class="vei-text-row"><td colspan="6"><em>${esc(it.textLabel || "")}:</em> `;
+        if (editable) {
+          html += `<input type="text" class="vei-text-field vei-doc-inline-field" data-extra-key="${esc(it.textKey)}" value="${esc(val)}" placeholder="${esc(it.textPlaceholder || "")}" style="max-width:280px"/>`;
+        } else {
+          html += esc(val || "—");
+        }
+        html += "</td></tr>";
+      }
+    }
+    if (it.textKey2) {
+      const val = formExtras[it.textKey2] || "";
+      html += `<tr class="vei-text-row"><td colspan="6"><em>${esc(it.textLabel2 || "")}:</em> `;
       if (editable) {
-        html += `<input type="text" class="vei-text-field vei-doc-inline-field" data-extra-key="${esc(it.textKey)}" value="${esc(val)}" placeholder="${esc(it.textPlaceholder || "")}" style="max-width:280px"/>`;
+        html += `<input type="text" class="vei-text-field vei-doc-inline-field" data-extra-key="${esc(it.textKey2)}" value="${esc(val)}" placeholder="${esc(it.textPlaceholder2 || "")}" style="max-width:280px"/>`;
       } else {
         html += esc(val || "—");
       }
@@ -467,18 +485,132 @@
 
   function renderDocChoiceRow(it, formExtras, editable) {
     const sel = formExtras[it.key] || "";
+    const opts = it.choices || it.options || [];
     let html = `<tr><td colspan="6"><strong>${esc(it.label)}:</strong> `;
     if (editable) {
-      (it.choices || []).forEach((ch) => {
+      opts.forEach((ch) => {
         const value = ch.value || ch;
         const label = ch.label || ch;
         const on = sel === value;
         html += `<button type="button" class="vei-choice-btn${on ? " active" : ""}" data-extra-key="${esc(it.key)}" data-choice="${esc(value)}">${esc(label)}</button> `;
       });
     } else {
-      html += esc(choiceLabelFor(it.choices, sel) || "—");
+      html += esc(choiceLabelFor(opts, sel) || "—");
     }
     html += "</td></tr>";
+    return html;
+  }
+
+  function renderDocNumberRow(it, formExtras, editable) {
+    const val = formExtras[it.key] || "";
+    let html = `<tr><td colspan="6"><strong>${esc(it.label)}:</strong> `;
+    if (editable) {
+      html += `<input type="text" inputmode="numeric" pattern="[0-9]*" class="vei-number-field vei-doc-inline-field" data-extra-key="${esc(it.key)}" value="${esc(val)}" style="max-width:140px;display:inline-block"/>`;
+    } else {
+      html += esc(val || "—");
+    }
+    html += "</td></tr>";
+    return html;
+  }
+
+  function renderDocFuelGauge(formExtras, helpers) {
+    const checklist = helpers?.vehicleEntryInspectionChecklist || global.vehicleEntryInspectionChecklist;
+    const mark = formExtras?.ini_fuel_gauge;
+    if (!checklist?.renderFuelGaugeSvg) return "";
+    return (
+      '<div class="vei-doc-fuel-wrap">' +
+      checklist.renderFuelGaugeSvg(mark, { readOnly: true }) +
+      "</div>"
+    );
+  }
+
+  function renderDocClassifyRow(it, draft, helpers, editable) {
+    const classifications = helpers.CLASSIFICATIONS || [
+      { id: "BOM", label: "Bom" },
+      { id: "REGULAR", label: "Regular" },
+      { id: "DANIFICADO", label: "Danificada" },
+      { id: "SEM_TESTE", label: "Sem Teste" },
+      { id: "INEXISTENTE", label: "Inexistente" },
+    ];
+    const classShort = helpers.CLASS_SHORT || classificationShort;
+    const allowed = Array.isArray(it.classIds) && it.classIds.length ? it.classIds : classifications.map((c) => c.id);
+    const sel = draft.classifications?.[it.key];
+    let html = `<tr class="vei-item${editable && !sel ? " vei-item-pending" : ""}" data-item-key="${esc(it.key)}">`;
+    html += `<td class="vei-td-label">${esc(it.label)}</td>`;
+    classifications.forEach((c) => {
+      const clsId = c.id || c;
+      const short = typeof classShort === "function" ? classShort(clsId) : classShort[clsId] || classificationShort(clsId);
+      const on = sel === clsId;
+      if (!allowed.includes(clsId)) {
+        html += '<td class="vei-doc-cls-cell"></td>';
+        return;
+      }
+      if (!editable) {
+        html += `<td class="vei-doc-cls-cell${on ? " on" : ""}">${on ? esc(short) : ""}</td>`;
+        return;
+      }
+      html +=
+        `<td class="vei-doc-cls-cell${on ? " on" : ""}">` +
+        `<button type="button" class="vei-class-btn vei-doc-class-btn${on ? " active" : ""}" data-class="${esc(clsId)}" data-item="${esc(it.key)}" aria-label="${esc(c.label || clsId)}" title="${esc(c.label || clsId)}">` +
+        `<span class="vei-class-btn-label" aria-hidden="true">${esc(short)}</span>` +
+        `</button></td>`;
+    });
+    html += "</tr>";
+    return html;
+  }
+
+  function renderDocBlockItems(block, draft, helpers, editable) {
+    const formExtras = draft.formExtras || {};
+    let html = "";
+    if (block.fuelGauge) html += renderDocFuelGauge(formExtras, helpers);
+    if (block.textFields?.length) {
+      html += '<table class="vei-doc-table"><tbody>';
+      block.textFields.forEach((tf) => {
+        const val = formExtras[tf.key] || "";
+        html += `<tr><td><strong>${esc(tf.label)}</strong></td><td>`;
+        if (editable) {
+          html += `<input type="text" class="vei-text-field vei-doc-inline-field" data-extra-key="${esc(tf.key)}" value="${esc(val)}" placeholder="${esc(tf.placeholder || "")}"/>`;
+        } else {
+          html += esc(val || "—");
+        }
+        html += "</td></tr>";
+      });
+      html += "</tbody></table>";
+    }
+    const items = block.items || [];
+    if (!items.length) return html;
+    html += '<table class="vei-doc-table vei-doc-check-table"><thead><tr><th>Item</th>';
+    ["B", "R", "D", "S", "I"].forEach((h) => {
+      html += `<th class="vei-doc-cls-h">${h}</th>`;
+    });
+    html += "</tr></thead><tbody>";
+    items.forEach((it) => {
+      const kind = it.kind || "classify";
+      if (kind === "text") {
+        const val = formExtras[it.key] || "";
+        html += `<tr><td colspan="6"><strong>${esc(it.label)}:</strong> `;
+        if (editable) {
+          html += `<input type="text" class="vei-text-field vei-doc-inline-field" data-extra-key="${esc(it.key)}" value="${esc(val)}" placeholder="${esc(it.placeholder || "")}" style="max-width:280px"/>`;
+        } else {
+          html += esc(val || "—");
+        }
+        html += "</td></tr>";
+        return;
+      }
+      if (kind === "number") {
+        html += renderDocNumberRow(it, formExtras, editable);
+        return;
+      }
+      if (kind === "choice" || kind === "pick") {
+        html += renderDocChoiceRow(it, formExtras, editable);
+        html += renderDocItemExtras(it, formExtras, editable);
+        return;
+      }
+      if (kind !== "classify") return;
+      html += renderDocClassifyRow(it, draft, helpers, editable);
+      html += renderDocItemExtras(it, formExtras, editable);
+    });
+    html += "</tbody></table>";
     return html;
   }
 
@@ -491,7 +623,7 @@
 
     let html =
       '<p class="vei-doc-legend" style="margin:0 0 10px;font-size:8.5pt;text-align:center;border:1px solid #cbd5e1;padding:6px;background:#f8fafc">' +
-      "<strong>Legenda:</strong> B — Bom · R — Regular · D — Danificado · S — Sem Teste · I — Inexistente</p>";
+      "<strong>Legenda:</strong> B — Bom · R — Regular · D — Danificada · S — Sem Teste · I — Inexistente</p>";
 
     cards.forEach((card, cardIdx) => {
       html += `<div class="vei-doc-card">`;
@@ -502,39 +634,7 @@
         } else if (blockIdx > 0 && card.blocks.length > 1) {
           html += `<h5 class="vei-doc-block-title">Bloco ${blockIdx + 1}</h5>`;
         }
-        if (block.textFields?.length) {
-          html += '<table class="vei-doc-table"><tbody>';
-          block.textFields.forEach((tf) => {
-            html += `<tr><td><strong>${esc(tf.label)}</strong></td><td>${esc(formExtras[tf.key] || "—")}</td></tr>`;
-          });
-          html += "</tbody></table>";
-        }
-        html += '<table class="vei-doc-table vei-doc-check-table"><thead><tr><th>Item</th>';
-        ["B", "R", "D", "S", "I"].forEach((h) => {
-          html += `<th class="vei-doc-cls-h">${h}</th>`;
-        });
-        html += "</tr></thead><tbody>";
-        block.items.forEach((it) => {
-          const kind = it.kind || "classify";
-          if (kind === "text") {
-            html += `<tr><td colspan="6"><strong>${esc(it.label)}:</strong> ${esc(formExtras[it.key] || "—")}</td></tr>`;
-            return;
-          }
-          if (kind === "choice") {
-            html += renderDocChoiceRow(it, formExtras, false);
-            return;
-          }
-          if (kind !== "classify") return;
-          const sel = draft.classifications[it.key];
-          html += `<tr><td>${esc(it.label)}</td>`;
-          ["BOM", "REGULAR", "DANIFICADO", "SEM_TESTE", "INEXISTENTE"].forEach((clsId) => {
-            const on = sel === clsId;
-            html += `<td class="vei-doc-cls-cell${on ? " on" : ""}">${on ? esc(classificationShort(clsId)) : ""}</td>`;
-          });
-          html += "</tr>";
-          html += renderDocItemExtras(it, formExtras, false);
-        });
-        html += "</tbody></table>";
+        html += renderDocBlockItems(block, draft, helpers, false);
       });
       html += "</div>";
     });
@@ -569,7 +669,7 @@
 
     let html =
       '<p class="vei-doc-legend" style="margin:0 0 10px;font-size:8.5pt;text-align:center;border:1px solid #cbd5e1;padding:6px;background:#f8fafc">' +
-      "<strong>Legenda:</strong> B — Bom · R — Regular · D — Danificado · S — Sem Teste · I — Inexistente</p>";
+      "<strong>Legenda:</strong> B — Bom · R — Regular · D — Danificada · S — Sem Teste · I — Inexistente</p>";
 
     cards.forEach((card, cardIdx) => {
       html += `<div class="vei-doc-card">`;
@@ -580,54 +680,7 @@
         } else if (blockIdx > 0 && card.blocks.length > 1) {
           html += `<h5 class="vei-doc-block-title">Bloco ${blockIdx + 1}</h5>`;
         }
-        if (block.textFields?.length) {
-          html += '<table class="vei-doc-table"><tbody>';
-          block.textFields.forEach((tf) => {
-            const val = formExtras[tf.key] || "";
-            html +=
-              `<tr><td><strong>${esc(tf.label)}</strong></td><td>` +
-              `<input type="text" class="vei-text-field vei-doc-inline-field" data-extra-key="${esc(tf.key)}" value="${esc(val)}" placeholder="${esc(tf.placeholder || "")}"/>` +
-              `</td></tr>`;
-          });
-          html += "</tbody></table>";
-        }
-        html += '<table class="vei-doc-table vei-doc-check-table"><thead><tr><th>Item</th>';
-        ["B", "R", "D", "S", "I"].forEach((h) => {
-          html += `<th class="vei-doc-cls-h">${h}</th>`;
-        });
-        html += "</tr></thead><tbody>";
-        block.items.forEach((it) => {
-          const kind = it.kind || "classify";
-          if (kind === "text") {
-            const val = formExtras[it.key] || "";
-            html += `<tr class="vei-text-row"><td colspan="6">`;
-            html += `<strong>${esc(it.label)}:</strong> `;
-            html += `<input type="text" class="vei-text-field vei-doc-inline-field" data-extra-key="${esc(it.key)}" value="${esc(val)}" placeholder="${esc(it.placeholder || "")}" style="max-width:280px"/>`;
-            html += `</td></tr>`;
-            return;
-          }
-          if (kind === "choice") {
-            html += renderDocChoiceRow(it, formExtras, true);
-            return;
-          }
-          if (kind !== "classify") return;
-          const sel = draft.classifications?.[it.key];
-          html += `<tr class="vei-item vei-doc-item${!sel ? " vei-item-pending" : ""}" data-item-key="${esc(it.key)}">`;
-          html += `<td class="vei-td-label">${esc(it.label)}</td>`;
-          classifications.forEach((c) => {
-            const clsId = c.id || c;
-            const short = typeof classShort === "function" ? classShort(clsId) : classShort[clsId] || classificationShort(clsId);
-            const active = sel === clsId;
-            html +=
-              `<td class="vei-doc-cls-cell${active ? " on" : ""}">` +
-              `<button type="button" class="vei-class-btn vei-doc-class-btn${active ? " active" : ""}" data-class="${esc(clsId)}" data-item="${esc(it.key)}" aria-label="${esc(c.label || clsId)}" title="${esc(c.label || clsId)}">` +
-              `<span class="vei-class-btn-label" aria-hidden="true">${esc(short)}</span>` +
-              `</button></td>`;
-          });
-          html += "</tr>";
-          html += renderDocItemExtras(it, formExtras, true);
-        });
-        html += "</tbody></table>";
+        html += renderDocBlockItems(block, draft, helpers, true);
       });
       html += "</div>";
     });

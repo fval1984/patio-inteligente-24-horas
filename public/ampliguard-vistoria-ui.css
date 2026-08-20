@@ -321,7 +321,7 @@
 .vei-checklist-view .vei-choice-group {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   vertical-align: middle;
 }
 
@@ -329,13 +329,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 28px;
-  padding: 4px 10px;
+  min-height: 40px;
+  min-width: 52px;
+  padding: 8px 12px;
   margin: 0;
   border: 1px solid #cbd5e1;
-  border-radius: 2px;
+  border-radius: 4px;
   background: #fff;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   color: #001529;
   cursor: pointer;
@@ -972,6 +973,39 @@ body.role-vistoriador #patioContent:not(.hidden) {
 
 body.role-vistoriador #patioContent [data-subview="vistoria"]:not(.hidden) {
   display: block !important;
+}
+
+.vei-fuel-gauge-wrap {
+  padding: 10px 12px 14px;
+  background: #fff;
+}
+
+.vei-fuel-gauge {
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  touch-action: manipulation;
+  cursor: pointer;
+  background: #fff;
+}
+
+.vei-fuel-gauge.vei-fuel-gauge--ro {
+  cursor: default;
+}
+
+.vei-fuel-gauge-hint {
+  text-align: center;
+  font-size: 12px;
+  color: #64748b;
+  margin: 8px 0 0;
+}
+
+.vei-checklist-view .vei-number-field {
+  max-width: 160px;
+  min-height: 40px;
+  font-size: 16px;
 }
 
 @media (max-width: 1100px) {

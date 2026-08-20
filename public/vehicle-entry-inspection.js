@@ -8,11 +8,11 @@
 
   const STORAGE_BUCKET = "vehicle-inspection-photos";
   const CLASSIFICATIONS = [
-    { id: "BOM", label: "BOM", short: "B" },
-    { id: "REGULAR", label: "REGULAR", short: "R" },
-    { id: "DANIFICADO", label: "DANIFICADO", short: "D" },
-    { id: "SEM_TESTE", label: "SEM TESTE", short: "S" },
-    { id: "INEXISTENTE", label: "INEXISTENTE", short: "I" },
+    { id: "BOM", label: "Bom", short: "B" },
+    { id: "REGULAR", label: "Regular", short: "R" },
+    { id: "DANIFICADO", label: "Danificada", short: "D" },
+    { id: "SEM_TESTE", label: "Sem Teste", short: "S" },
+    { id: "INEXISTENTE", label: "Inexistente", short: "I" },
   ];
 
   const CLASS_SHORT = { BOM: "B", REGULAR: "R", DANIFICADO: "D", SEM_TESTE: "S", INEXISTENTE: "I" };
@@ -383,7 +383,13 @@
     const formExtras = {};
     cfg.checklist.forEach((it) => {
       if (it.kind === "classify") classifications[it.key] = null;
-      else if (it.kind === "text" || it.kind === "number" || it.kind === "choice") formExtras[it.key] = "";
+      else if (it.kind === "text" || it.kind === "number" || it.kind === "choice" || it.kind === "pick") {
+        formExtras[it.key] = "";
+      } else if (it.kind === "fuel_gauge") {
+        formExtras[it.key] = null;
+      }
+      if (it.textKey && formExtras[it.textKey] == null) formExtras[it.textKey] = "";
+      if (it.textKey2 && formExtras[it.textKey2] == null) formExtras[it.textKey2] = "";
     });
     return {
       inspectionVariant: cfg.id || variant || "LEVE",
@@ -577,38 +583,102 @@
     return labels;
   }
 
+  function allowedClassIds(it) {
+    if (Array.isArray(it?.classIds) && it.classIds.length) return it.classIds;
+    return CLASSIFICATIONS.map((c) => c.id);
+  }
+
+  function parseFuelMark(raw) {
+    return checklistMod.parseFuelMark ? checklistMod.parseFuelMark(raw) : null;
+  }
+
+  function isItemFilled(draft, it) {
+    if (!it) return true;
+    const extras = draft.formExtras || {};
+    const kind = it.kind || "classify";
+    if (kind === "classify") return !!draft.classifications[it.key];
+    if (kind === "choice" || kind === "pick") {
+      if (it.required && !extras[it.key]) return false;
+      if (it.textWhen && it.textKey && extras[it.key] === it.textWhen) {
+        return String(extras[it.textKey] || "").trim() !== "";
+      }
+      return !it.required || !!extras[it.key];
+    }
+    if (kind === "number") {
+      if (!it.required) return true;
+      return extras[it.key] !== "" && extras[it.key] != null;
+    }
+    if (kind === "fuel_gauge") {
+      if (!it.required) return true;
+      return !!parseFuelMark(extras[it.key] || extras.ini_fuel_gauge);
+    }
+    if (kind === "text" && it.required) return String(extras[it.key] || "").trim() !== "";
+    if (it.textWhen && it.textKey && extras[it.key] === it.textWhen) {
+      return String(extras[it.textKey] || "").trim() !== "";
+    }
+    return true;
+  }
+
+  function trackedChecklistItems(draft) {
+    return draftCfg(draft).checklist.filter((it) => {
+      const kind = it.kind || "classify";
+      if (kind === "classify") return true;
+      if (kind === "choice" || kind === "pick" || kind === "number" || kind === "fuel_gauge") return !!it.required;
+      return false;
+    });
+  }
+
+  function cardTrackedItems(draft, cardIndex) {
+    const card = draftCfg(draft).cards[cardIndex];
+    if (!card) return [];
+    const items = [];
+    card.blocks.forEach((block) => {
+      if (block.fuelGauge) {
+        items.push({
+          key: "ini_fuel_gauge",
+          label: "Nível de combustível",
+          kind: "fuel_gauge",
+          required: true,
+        });
+      }
+      (block.items || []).forEach((it) => items.push(it));
+    });
+    return items;
+  }
+
   function missingItemsInCard(draft, cardIndex) {
-    const labels = cardClassifyLabels(draft, cardIndex);
-    return cardClassifyKeys(draft, cardIndex)
-      .filter((key) => !draft.classifications[key])
-      .map((key) => labels.get(key) || key);
+    const missing = [];
+    cardTrackedItems(draft, cardIndex).forEach((it) => {
+      if (!isItemFilled(draft, it)) missing.push(it.label);
+    });
+    return missing;
   }
 
   function findCardIndexForItemKey(draft, itemKey) {
     const cards = draftCfg(draft).cards;
     for (let i = 0; i < cards.length; i++) {
-      if (cardClassifyKeys(draft, i).includes(itemKey)) return i;
+      if (cardTrackedItems(draft, i).some((it) => it.key === itemKey)) return i;
     }
     return 0;
   }
 
   function classifiedCount(draft) {
     let done = 0;
-    draftCfg(draft).checklist.forEach((it) => {
-      if (it.kind === "classify" && draft.classifications[it.key]) done++;
+    trackedChecklistItems(draft).forEach((it) => {
+      if (isItemFilled(draft, it)) done++;
     });
     return done;
   }
 
   function progressPct(draft) {
-    const total = draftCfg(draft).checklist.filter((it) => it.kind === "classify").length;
+    const total = trackedChecklistItems(draft).length;
     if (!total) return 0;
     return Math.round((classifiedCount(draft) / total) * 100);
   }
 
   function missingItems(draft) {
-    return draftCfg(draft).checklist
-      .filter((it) => it.kind === "classify" && !draft.classifications[it.key])
+    return trackedChecklistItems(draft)
+      .filter((it) => !isItemFilled(draft, it))
       .map((it) => it.label);
   }
 
@@ -624,7 +694,7 @@
   }
 
   function scrollToFirstMissingItem(root, draft) {
-    const first = draftCfg(draft).checklist.find((it) => it.kind === "classify" && !draft.classifications[it.key]);
+    const first = trackedChecklistItems(draft).find((it) => !isItemFilled(draft, it));
     if (!first || !root) return;
     if (_session?.allCardsVisible || _session?.editLayout === "checklist") {
       // scroll only — all cards visíveis
@@ -637,7 +707,10 @@
         return;
       }
     }
-    const el = root.querySelector(`.vei-item[data-item-key="${first.key}"]`);
+    const el =
+      root.querySelector(`.vei-item[data-item-key="${first.key}"]`) ||
+      root.querySelector(`[data-extra-key="${first.key}"]`) ||
+      (first.kind === "fuel_gauge" ? root.querySelector("svg.vei-fuel-gauge") : null);
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "center" });
     el.classList.add("vei-item-highlight");
@@ -1108,6 +1181,46 @@
     }
   }
 
+  function paintFuelGaugeMark(svg, mark) {
+    if (!svg) return;
+    const parsed = parseFuelMark(mark);
+    const existing = svg.querySelector(".vei-fuel-x");
+    if (!parsed) {
+      if (existing) existing.remove();
+      return;
+    }
+    const vb = svg.viewBox?.baseVal;
+    const w = vb && vb.width ? vb.width : checklistMod.FUEL_GAUGE_VB?.w || 360;
+    const h = vb && vb.height ? vb.height : checklistMod.FUEL_GAUGE_VB?.h || 150;
+    const x = (parsed.x / 100) * w;
+    const y = (parsed.y / 100) * h;
+    if (existing) {
+      existing.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+      return;
+    }
+    const ns = "http://www.w3.org/2000/svg";
+    const g = document.createElementNS(ns, "g");
+    g.setAttribute("class", "vei-fuel-x");
+    g.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+    g.style.pointerEvents = "none";
+    const s = 11;
+    [
+      [-s, -s, s, s],
+      [s, -s, -s, s],
+    ].forEach((pts) => {
+      const line = document.createElementNS(ns, "line");
+      line.setAttribute("x1", String(pts[0]));
+      line.setAttribute("y1", String(pts[1]));
+      line.setAttribute("x2", String(pts[2]));
+      line.setAttribute("y2", String(pts[3]));
+      line.setAttribute("stroke", "#dc2626");
+      line.setAttribute("stroke-width", "3.2");
+      line.setAttribute("stroke-linecap", "round");
+      g.appendChild(line);
+    });
+    svg.appendChild(g);
+  }
+
   function paintClassificationRow(row, cls) {
     if (!row) return;
     row.classList.toggle("vei-item-pending", !cls);
@@ -1126,7 +1239,7 @@
     if (!root || !draft) return;
     const cfg = draftCfg(draft);
     const done = classifiedCount(draft);
-    const total = cfg.checklist.filter((it) => it.kind === "classify").length;
+    const total = trackedChecklistItems(draft).length;
     const pct = progressPct(draft);
     const miss = missingItems(draft);
     const progressText = root.querySelector("#veiProgressText");
@@ -1136,7 +1249,7 @@
     if (progressBar) progressBar.style.width = `${pct}%`;
     if (warn) {
       warn.textContent = miss.length
-        ? `Itens pendentes (${miss.length}). Toque B, R, D, S ou I em cada linha.`
+        ? `Itens pendentes (${miss.length}). Preencha todas as opções de cada seção.`
         : "Checklist completo — role até o final para salvar.";
       warn.style.color = miss.length ? "#d97706" : "#16a34a";
     }
@@ -1217,11 +1330,16 @@
       if (extraKey && value) {
         if (!draft.formExtras) draft.formExtras = {};
         draft.formExtras[extraKey] = value;
-        const scope = choiceBtn.closest("tr") || root;
+        const scope = choiceBtn.closest("table") || choiceBtn.closest("tr") || root;
         scope.querySelectorAll(".vei-choice-btn[data-extra-key]").forEach((btn) => {
           if (btn.getAttribute("data-extra-key") !== extraKey) return;
           btn.classList.toggle("active", btn.getAttribute("data-choice") === value);
         });
+        (choiceBtn.closest("table") || root).querySelectorAll(`[data-text-when-for="${extraKey}"]`).forEach((row) => {
+          const when = row.getAttribute("data-text-when-value");
+          row.style.display = when && when !== value ? "none" : "";
+        });
+        updateChecklistProgressChrome(root, draft);
         if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
       }
       return;
@@ -1256,6 +1374,24 @@
         draft.diagramMarkers.push(pt);
         if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
         refreshCurrentEditUI(root, draft, ctx);
+      }
+      return;
+    }
+
+    const fuelSvg = hit.closest?.("svg.vei-fuel-gauge");
+    if (fuelSvg && root.contains(fuelSvg) && !fuelSvg.classList.contains("vei-fuel-gauge--ro")) {
+      const pt = svgPointFromEvent(fuelSvg, evt);
+      const mark = checklistMod.fuelMarkFromSvgPoint
+        ? checklistMod.fuelMarkFromSvgPoint(pt)
+        : pt
+          ? { x: Math.round((pt.cx / 360) * 1000) / 10, y: Math.round((pt.cy / 150) * 1000) / 10 }
+          : null;
+      if (mark) {
+        if (!draft.formExtras) draft.formExtras = {};
+        draft.formExtras.ini_fuel_gauge = mark;
+        paintFuelGaugeMark(fuelSvg, mark);
+        updateChecklistProgressChrome(root, draft);
+        if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
       }
       return;
     }
@@ -1383,7 +1519,12 @@
         const key = t.getAttribute("data-extra-key");
         if (key) {
           if (!_session.draft.formExtras) _session.draft.formExtras = {};
-          _session.draft.formExtras[key] = t.value;
+          let val = t.value || "";
+          if (t.classList.contains("vei-number-field")) {
+            val = String(val).replace(/[^\d]/g, "");
+            if (t.value !== val) t.value = val;
+          }
+          _session.draft.formExtras[key] = val;
         }
       }
       if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, _session.draft);
@@ -1402,7 +1543,7 @@
       '<div class="vei-form-legend">' +
       '<span class="vei-leg vei-leg--b"><i>B</i> Bom</span>' +
       '<span class="vei-leg vei-leg--r"><i>R</i> Regular</span>' +
-      '<span class="vei-leg vei-leg--d"><i>D</i> Danificado</span>' +
+      '<span class="vei-leg vei-leg--d"><i>D</i> Danificada</span>' +
       '<span class="vei-leg vei-leg--s"><i>S</i> Sem teste</span>' +
       '<span class="vei-leg vei-leg--i"><i>I</i> Inexistente</span>' +
       "</div>"
@@ -1476,11 +1617,21 @@
       html += "</td></tr>";
     }
     if (it.textKey) {
+      const triggerVal = extras[it.key] || extras[it.choiceKey] || "";
+      const hidden = !!(it.textWhen && triggerVal !== it.textWhen);
       const val = extras[it.textKey] || "";
-      html += `<tr class="vei-text-row vei-extra-row"><td colspan="${colSpan}">`;
+      html += `<tr class="vei-text-row vei-extra-row"${it.textWhen ? ` data-text-when-for="${esc(it.key)}" data-text-when-value="${esc(it.textWhen)}"` : ""}${hidden ? ' style="display:none"' : ""}><td colspan="${colSpan}">`;
       html += `<label>${esc(it.textLabel || "")}</label> `;
       if (readOnly) html += esc(val || "—");
       else html += `<input type="text" class="vei-text-field" data-extra-key="${esc(it.textKey)}" value="${esc(val)}" placeholder="${esc(it.textPlaceholder || "")}"/>`;
+      html += "</td></tr>";
+    }
+    if (it.textKey2) {
+      const val = extras[it.textKey2] || "";
+      html += `<tr class="vei-text-row vei-extra-row"><td colspan="${colSpan}">`;
+      html += `<label>${esc(it.textLabel2 || "")}</label> `;
+      if (readOnly) html += esc(val || "—");
+      else html += `<input type="text" class="vei-text-field" data-extra-key="${esc(it.textKey2)}" value="${esc(val)}" placeholder="${esc(it.textPlaceholder2 || "")}"/>`;
       html += "</td></tr>";
     }
     return html;
@@ -1507,6 +1658,17 @@
       } else if (blockIdx > 0 && card.blocks.length > 1) {
         html += `<div class="vei-block-title">Bloco ${blockIdx + 1}</div>`;
       }
+      if (block.fuelGauge) {
+        const mark = draft.formExtras?.ini_fuel_gauge;
+        html += '<div class="vei-fuel-gauge-wrap">';
+        html += checklistMod.renderFuelGaugeSvg
+          ? checklistMod.renderFuelGaugeSvg(mark, { readOnly })
+          : "";
+        if (!readOnly) {
+          html += '<p class="vei-fuel-gauge-hint">Toque no diagrama para marcar o nível com um X vermelho.</p>';
+        }
+        html += "</div>";
+      }
       if (block.textFields?.length) {
         html += '<table class="vei-form-table"><tbody>';
         block.textFields.forEach((tf) => {
@@ -1522,7 +1684,9 @@
         });
         html += "</tbody></table>";
       }
-      const hasClassify = block.items.some((it) => (it.kind || "classify") === "classify");
+      const items = block.items || [];
+      if (!items.length) return;
+      const hasClassify = items.some((it) => (it.kind || "classify") === "classify");
       html += '<table class="vei-form-table vei-checklist-table">';
       html += '<colgroup><col class="vei-col-item"/><col class="vei-col-cls" span="5"/></colgroup>';
       if (hasClassify && !clsHeadRendered) {
@@ -1534,7 +1698,7 @@
         clsHeadRendered = true;
       }
       html += "<tbody>";
-      block.items.forEach((it) => {
+      items.forEach((it) => {
         const kind = it.kind || "classify";
         if (kind === "text") {
           const val = draft.formExtras?.[it.key] || "";
@@ -1545,20 +1709,38 @@
           html += "</td></tr>";
           return;
         }
-        if (kind === "choice") {
+        if (kind === "number") {
+          const val = draft.formExtras?.[it.key] || "";
+          html += `<tr class="vei-text-row vei-number-item"><td colspan="${colSpan}">`;
+          html += `<label>${esc(it.label)}</label> `;
+          if (readOnly) html += `<div>${esc(val || "—")}</div>`;
+          else {
+            html += `<input type="text" inputmode="numeric" pattern="[0-9]*" class="vei-number-field" data-extra-key="${esc(it.key)}" value="${esc(val)}" placeholder="Somente números"/>`;
+          }
+          html += "</td></tr>";
+          return;
+        }
+        if (kind === "choice" || kind === "pick") {
           const sel = draft.formExtras?.[it.key] || "";
+          const optsList = it.choices || it.options || [];
           html += `<tr class="vei-text-row vei-choice-item"><td colspan="${colSpan}">`;
           html += `<label>${esc(it.label)}</label> `;
-          html += renderChoiceButtons(it.key, it.choices, sel, readOnly);
+          html += renderChoiceButtons(it.key, optsList, sel, readOnly);
           html += "</td></tr>";
+          html += renderItemExtraRows(it, draft, readOnly, colSpan);
           return;
         }
         if (kind !== "classify") return;
         const sel = draft.classifications[it.key];
+        const allowed = allowedClassIds(it);
         html += `<tr class="vei-item${!readOnly && !sel ? " vei-item-pending" : ""}" data-item-key="${esc(it.key)}">`;
         html += `<td class="vei-td-label">${esc(it.label)}</td>`;
         CLASSIFICATIONS.forEach((c) => {
           const short = CLASS_SHORT[c.id] || c.label.charAt(0);
+          if (!allowed.includes(c.id)) {
+            html += '<td class="vei-td-cls vei-td-cls-na"></td>';
+            return;
+          }
           if (readOnly) {
             html += `<td class="vei-td-cls"><span class="vei-cls-box${sel === c.id ? " vei-cls-on" : ""}">${sel === c.id ? esc(short) : ""}</span></td>`;
           } else if (opts.docStyleCells) {
@@ -1594,7 +1776,7 @@
     damaged.forEach((it) => {
       const photo = draft.itemDamagePhotos[it.key];
       html += '<div class="vei-damage-photo-item" data-damage-photo-key="' + esc(it.key) + '">';
-      html += `<strong>${esc(it.label)} — Danificado</strong>`;
+      html += `<strong>${esc(it.label)} — Danificada</strong>`;
       if (photo?.preview) {
         html += `<img class="vei-damage-photo-preview" src="${esc(photo.preview)}" alt="${esc(it.label)}"/>`;
       }
@@ -1723,14 +1905,14 @@
 
     if (options.showProgress && !readOnly) {
       const done = classifiedCount(draft);
-      const total = cfg.checklist.filter((it) => it.kind === "classify").length;
+      const total = trackedChecklistItems(draft).length;
       const pct = progressPct(draft);
       const miss = missingItems(draft);
       html +=
         `<div class="vei-progress"><span id="veiProgressText">${esc(cfg.label)}: ${done}/${total} itens (${pct}%)</span>` +
         `<div class="vei-progress-bar" id="veiProgressBar"><i style="width:${pct}%"></i></div></div>` +
         `<p id="veiMissingWarn" class="notice" style="margin:0;color:${miss.length ? "#d97706" : "#16a34a"}">${
-          miss.length ? `Itens pendentes (${miss.length}). Toque B, R, D, S ou I em cada linha.` : "Checklist completo — role até o final para salvar."
+          miss.length ? `Itens pendentes (${miss.length}). Preencha todas as opções de cada seção.` : "Checklist completo — role até o final para salvar."
         }</p>`;
     }
 
@@ -1942,7 +2124,7 @@
     }
 
     const done = classifiedCount(draft);
-    const total = cfg.checklist.filter((it) => it.kind === "classify").length;
+    const total = trackedChecklistItems(draft).length;
     const pct = progressPct(draft);
     const miss = missingItems(draft);
     const cardHost = root.querySelector("#veiCardHost");
@@ -2051,14 +2233,14 @@
     if (progressText || progressBar || warn) {
       const cfg = draftCfg(draft);
       const done = classifiedCount(draft);
-      const total = cfg.checklist.filter((it) => it.kind === "classify").length;
+      const total = trackedChecklistItems(draft).length;
       const pct = progressPct(draft);
       const miss = missingItems(draft);
       if (progressText) progressText.textContent = `${cfg.label}: ${done}/${total} itens (${pct}%)`;
       if (progressBar) progressBar.style.width = `${pct}%`;
       if (warn) {
         warn.textContent = miss.length
-          ? `Itens pendentes (${miss.length}). Toque B, R, D, S ou I em cada linha.`
+          ? `Itens pendentes (${miss.length}). Preencha todas as opções de cada seção.`
           : "Checklist completo — role até o final para salvar.";
         warn.style.color = miss.length ? "#d97706" : "#16a34a";
       }
@@ -2354,7 +2536,7 @@
           storage_path: path,
           file_name: `avaria_item_${itemKey}.jpg`,
           photo_type: `avaria_item_${itemKey}`,
-          photo_label: `${label} — Danificado`,
+          photo_label: `${label} — Danificada`,
         });
         if (insErr) {
           await ctx.supabase.from("vehicle_entry_inspection_photos").insert({
@@ -2608,9 +2790,9 @@
     const miss = missingItems(draft);
     if (miss.length) {
       scrollToFirstMissingItem(root, draft);
-      const total = draftCfg(draft).checklist.filter((it) => it.kind === "classify").length;
+      const total = trackedChecklistItems(draft).length;
       alert(
-        `Classifique todos os ${total} itens do checklist antes de finalizar.\n\n` +
+        `Preencha todos os ${total} campos obrigatórios da vistoria antes de finalizar.\n\n` +
           `Pendentes (${miss.length}):\n${formatMissingAlert(miss)}`
       );
       return;
@@ -3092,5 +3274,9 @@
     inferVariantFromDetail,
     resumeActiveEdit,
     paintClassificationRow,
+    emptyDraftForVariant,
+    getDamagedClassifyItems,
+    isItemFilled,
+    parseFuelMark,
   };
 })(typeof window !== "undefined" ? window : globalThis);

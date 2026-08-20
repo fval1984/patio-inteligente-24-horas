@@ -57,186 +57,153 @@ function testChecklistItemReplacement() {
   }
 
   const leve = mod.getVariantConfig("LEVE");
-  assert.strictEqual(leve.cardCount, 8, "Leve mantém 8 cards");
+  assert.strictEqual(leve.cardCount, 17, "Leve tem as seções completas");
   assert.deepStrictEqual(clone(leve.cards.map((c) => c.title)), [
-    "INTERIOR",
-    "MECÂNICA",
-    "TRASEIRA",
-    "ACESSÓRIOS",
+    "INFORMAÇÕES INICIAIS",
+    "RETROVISOR",
+    "ESPELHO RETROVISOR",
+    "MAÇANETA EXTERNA",
+    "VIDROS",
     "DIANTEIRA",
+    "TRASEIRA",
     "LATERAL ESQUERDA",
     "LATERAL DIREITA",
-    "RODAS E PNEUS",
+    "MECÂNICA",
+    "PNEUS",
+    "RODA",
+    "CALOTA",
+    "INTERIOR DO VEÍCULO",
+    "PERTENCES DO FINANCIADO",
+    "EQUIPAMENTOS E ACESSÓRIOS",
+    "EQUIPAMENTOS DE SEGURANÇA",
   ]);
 
   const labelsByCard = {};
   leve.cards.forEach((card) => {
-    labelsByCard[card.id] = clone(card.blocks.flatMap((b) => b.items.map((it) => it.label)));
+    labelsByCard[card.id] = clone(card.blocks.flatMap((b) => (b.items || []).map((it) => it.label)));
   });
+
+  assert.deepStrictEqual(labelsByCard.geral, [
+    "Possui chave de ignição?",
+    "Possui chave reserva?",
+    "Possui manual?",
+    "Possui documento?",
+    "Veículo funcionando?",
+    "Veículo trancado?",
+    "Veículo travado?",
+    "Tipo de combustível:",
+    "KM",
+  ]);
+  assert.ok(leve.cards[0].blocks.some((b) => b.fuelGauge), "diagrama de combustível no card inicial");
+  const fuel = leve.checklist.find((it) => it.kind === "fuel_gauge");
+  assert.strictEqual(fuel.key, "ini_fuel_gauge");
+  assert.ok(mod.renderFuelGaugeSvg({ x: 62.5, y: 48 }).includes("vei-fuel-x"));
+  assert.ok(mod.renderFuelGaugeSvg(null).includes("NÍVEL DE COMBUSTÍVEL"));
+
+  const km = leve.cards[0].blocks.flatMap((b) => b.items || []).find((it) => it.key === "ini_km");
+  assert.strictEqual(km.kind, "number");
+  const fuelType = leve.cards[0].blocks.flatMap((b) => b.items || []).find((it) => it.key === "ini_combustivel");
+  assert.deepStrictEqual(clone(fuelType.choices.map((c) => c.label)), [
+    "Gasolina",
+    "Etanol",
+    "Diesel",
+    "Flex",
+    "Elétrico",
+    "Híbrido",
+  ]);
+
   assert.deepStrictEqual(labelsByCard.dianteira, [
     "Capô",
-    "Pára-choque",
-    "Parabrisa",
-    "Limp de Parabrisa",
-    "Faróis",
-    "Faróis Aux. (Qtd)",
-    "Lanternas",
+    "Para-choque",
+    "Limpador de para-brisa LD",
+    "Limpador de para-brisa LE",
+    "Farol LD",
+    "Farol LE",
+    "Farol auxiliar LD",
+    "Farol auxiliar LE",
     "Teto",
     "Saia",
     "Grade",
   ]);
-  assert.deepStrictEqual(labelsByCard.lado_direito, [
-    "Paralama Dianteiro",
-    "Paralama Traseiro",
-    "Porta Dianteira",
-    "Porta Traseira",
+  assert.deepStrictEqual(labelsByCard.lado_esquerdo, [
+    "Paralama dianteiro",
+    "Paralama traseiro",
+    "Porta dianteira",
+    "Friso porta dianteira",
+    "Porta traseira",
+    "Friso porta traseira",
+  ]);
+  assert.deepStrictEqual(labelsByCard.lado_direito, labelsByCard.lado_esquerdo);
+  assert.deepStrictEqual(labelsByCard.traseira, [
+    "Tampa de mala",
     "Maçaneta",
-    "Retrovisor",
-    "Vidros",
-    "Frisos",
+    "Limpador de para-brisa",
+    "Para-choque",
+    "Lanterna LD",
+    "Lanterna LE",
+    "Escapamento",
+    "Saia",
+    "Engate",
   ]);
-  assert.deepStrictEqual(labelsByCard.lado_esquerdo, labelsByCard.lado_direito);
-  assert.deepStrictEqual(labelsByCard.traseira, ["Capô", "Saia"]);
-  assert.deepStrictEqual(labelsByCard.interno, [
-    "Assoalho",
-    "Tapetes",
-    "Maçanetas",
-    "Painel/Console",
-    "Bancos Dianteiros",
-    "Banco Traseiro",
-    "Revestimentos",
-    "Porta Luvas",
-    "Para Sol",
-    "Acendedor de cig.",
-    "Retrovisor Intern.",
-    "Encosto de Cabeça",
-    "Cintos de Segurança",
-    "Macaco",
-    "Chave de Roda",
-    "Triângulo",
-    "Extintor",
+  assert.ok(labelsByCard.interior.includes("Tapete motorista"));
+  assert.ok(labelsByCard.interior.includes("Buzina"));
+  assert.ok(labelsByCard.seguranca.includes("Extintor"));
+  assert.ok(labelsByCard.mecanica.includes("Freio"));
+  assert.strictEqual(labelsByCard.mecanica.filter((x) => x === "Freio").length, 1);
+
+  const farolLd = leve.cards.find((c) => c.id === "dianteira").blocks[0].items.find((it) => it.key === "dian_farol_ld");
+  assert.strictEqual(farolLd.kind, "classify");
+  assert.ok(farolLd.classIds.includes("SEM_TESTE"));
+  const capo = leve.cards.find((c) => c.id === "dianteira").blocks[0].items.find((it) => it.key === "dian_capo");
+  assert.ok(!capo.classIds.includes("SEM_TESTE"));
+
+  const pneuDd = leve.cards.find((c) => c.id === "pneus").blocks[0].items.find((it) => it.key === "pneu_dd");
+  assert.strictEqual(pneuDd.kind, "pick");
+  assert.deepStrictEqual(clone(pneuDd.options.map((c) => c.label)), [
+    "Novo",
+    "Bom estado",
+    "Meia vida",
+    "Careca",
+    "Ausente",
   ]);
-  assert.strictEqual(leve.cards.find((c) => c.id === "interno").blocks[1].title, "EQUIPAMENTOS OBRIGATÓRIOS");
-  assert.deepStrictEqual(labelsByCard.mecanica, [
-    "Motor",
-    "Ignição Eletrônica",
-    "Injeção Elet./Carburad.",
-    "Radiador",
-    "Motor de Arranque",
-    "Diferencial",
-    "Câmbio - Tipo",
-    "Freios: ABS",
-    "Ar Condicionado",
-    "Direção Hidráulica",
-    "Embreagem",
-    "Buzina",
-    "Alarme",
-    "Bateria",
-  ]);
-  assert.ok(labelsByCard.equipamentos.includes("Rádio"));
-  assert.ok(labelsByCard.equipamentos.includes("Marca"));
-  assert.ok(labelsByCard.equipamentos.includes("Modelo"));
-  assert.ok(labelsByCard.equipamentos.includes("OBS."));
-  assert.ok(labelsByCard.equipamentos.includes("Alto Falantes Portas Dianteiras"));
-  assert.ok(labelsByCard.equipamentos.includes("Alto Falantes Portas Traseiras"));
-  assert.ok(labelsByCard.equipamentos.includes("Alto Falantes Tampão/Painel"));
-  assert.ok(labelsByCard.equipamentos.includes("Cabo Carregador (Se Hibr. ou Elétr.)"));
-  assert.ok(labelsByCard.equipamentos.includes("Turbo"));
-  assert.ok(labelsByCard.equipamentos.includes("Kit Gás"));
-  assert.ok(labelsByCard.equipamentos.includes("USB"));
-  const cabo = leve.cards
-    .find((c) => c.id === "equipamentos")
-    .blocks[0].items.find((it) => it.key === "eq_cabo_carregador");
-  assert.strictEqual(cabo.kind, "choice");
-  assert.deepStrictEqual(clone(cabo.choices.map((c) => c.label)), ["Sim", "Não"]);
-  assert.deepStrictEqual(labelsByCard.rodas, [
-    "Estepe",
-    "Marca/Tipo",
-    "Diant. Dir.",
-    "Marca/Tipo",
-    "Diant. Esq.",
-    "Marca/Tipo",
-    "Tras. Dir.",
-    "Marca/Tipo",
-    "Tras. Esq.",
-    "Marca/Tipo",
-    "Reparador Run Flat?",
-  ]);
+  assert.strictEqual(pneuDd.textKey, "pneu_dd_marca");
+  assert.strictEqual(pneuDd.textKey2, "pneu_dd_ref");
 
-  const farolAux = leve.cards
-    .find((c) => c.id === "dianteira")
-    .blocks[0].items.find((it) => it.key === "dian_farois_aux");
-  assert.strictEqual(farolAux.numberKey, "dian_farois_aux_qtd");
+  const roda = leve.cards.find((c) => c.id === "rodas").blocks[0].items.find((it) => it.key === "rod_estepe");
+  assert.strictEqual(roda.kind, "pick");
+  assert.deepStrictEqual(clone(roda.options.map((c) => c.label)), ["Liga", "Ferro", "Ausente"]);
+  assert.ok(!leve.classifyKeys.includes("rod_estepe"), "tipo de roda não vai para classification SQL");
 
-  const retroDir = leve.cards
-    .find((c) => c.id === "lado_direito")
-    .blocks[0].items.find((it) => it.key === "ldir_retrovisor");
-  assert.deepStrictEqual(clone(retroDir.choices.map((c) => c.label)), ["Elétrico", "Manual"]);
-  const retroEsq = leve.cards
-    .find((c) => c.id === "lado_esquerdo")
-    .blocks[0].items.find((it) => it.key === "lesq_retrovisor");
-  assert.deepStrictEqual(clone(retroEsq.choices.map((c) => c.label)), ["Elétrico", "Manual"]);
-  const vidrosDir = leve.cards
-    .find((c) => c.id === "lado_direito")
-    .blocks[0].items.find((it) => it.key === "ldir_vidros");
-  assert.deepStrictEqual(clone(vidrosDir.choices.map((c) => c.label)), ["Elétrico", "Manual"]);
-  const vidrosEsq = leve.cards
-    .find((c) => c.id === "lado_esquerdo")
-    .blocks[0].items.find((it) => it.key === "lesq_vidros");
-  assert.deepStrictEqual(clone(vidrosEsq.choices.map((c) => c.label)), ["Elétrico", "Manual"]);
+  const calotaTd = leve.cards.find((c) => c.id === "calota").blocks[0].items.find((it) => it.key === "calota_td");
+  assert.strictEqual(calotaTd.label, "Traseira Direita");
+  assert.deepStrictEqual(clone(calotaTd.classIds), ["BOM", "REGULAR", "DANIFICADO"]);
 
-  const estepe = leve.cards.find((c) => c.id === "rodas").blocks[0].items.find((it) => it.key === "rod_estepe");
-  assert.deepStrictEqual(clone(estepe.choices.map((c) => c.label)), ["Liga", "Ferro", "Ausente"]);
-  const estepeMarca = leve.cards
-    .find((c) => c.id === "rodas")
-    .blocks[0].items.find((it) => it.key === "rod_estepe_marca_tipo");
-  assert.strictEqual(estepeMarca.kind, "text");
-  assert.strictEqual(estepeMarca.label, "Marca/Tipo");
-  const pneuDd = leve.cards.find((c) => c.id === "rodas").blocks[0].items.find((it) => it.key === "rod_pneu_dd");
-  assert.ok(!pneuDd.textKey, "Marca/Tipo das rodas é item próprio");
-  const pneuDdMarca = leve.cards
-    .find((c) => c.id === "rodas")
-    .blocks[0].items.find((it) => it.key === "rod_pneu_dd_marca_tipo");
-  assert.strictEqual(pneuDdMarca.kind, "text");
-  const runFlat = leve.cards.find((c) => c.id === "rodas").blocks[0].items.find((it) => it.key === "rod_run_flat");
-  assert.strictEqual(runFlat.kind, "choice");
-  assert.deepStrictEqual(clone(runFlat.choices.map((c) => c.label)), ["Sim", "Não"]);
+  const pertences = leve.cards.find((c) => c.id === "pertences").blocks[0].items[0];
+  assert.strictEqual(pertences.textWhen, "SIM");
+  assert.strictEqual(pertences.textKey, "ini_pertences_quais");
 
-  const marca = leve.cards
-    .find((c) => c.id === "equipamentos")
-    .blocks[0].items.find((it) => it.key === "eq_marca");
-  assert.strictEqual(marca.kind, "text");
-  const modelo = leve.cards
-    .find((c) => c.id === "equipamentos")
-    .blocks[0].items.find((it) => it.key === "eq_modelo");
-  assert.strictEqual(modelo.kind, "text");
-
-  const removed = [
-    "interno_relogio",
-    "interno_air_bag",
-    "interno_teto_solar",
-    "tras_engate",
-    "rod_calotas",
-    "rod_liga_leve",
-    "eq_banco_couro",
-  ];
-  removed.forEach((key) => {
-    assert.ok(!leve.classifyKeys.includes(key), `${key} saiu do checklist novo`);
-  });
-  ["interno_painel", "dian_capo", "lesq_retrovisor", "rod_estepe", "eq_radio"].forEach((key) => {
+  ["interno_painel", "dian_capo", "lesq_retrovisor", "eq_radio", "mec_freio"].forEach((key) => {
     assert.ok(leve.classifyKeys.includes(key), `${key} permanece para preservar dados`);
   });
 
   const motos = mod.getVariantConfig("MOTOS");
   assert.deepStrictEqual(clone(motos.classifyKeys), json.MOTOS);
-  assert.strictEqual(motos.cards[0].id, "motos");
+  assert.strictEqual(motos.cards[1].id, "motos");
   const tratores = mod.getVariantConfig("TRATORES");
   assert.deepStrictEqual(clone(tratores.classifyKeys), json.TRATORES);
   const pesados = mod.getVariantConfig("PESADOS");
-  assert.strictEqual(pesados.cardCount, 10);
+  assert.strictEqual(pesados.cardCount, 19);
   assert.ok(pesados.classifyKeys.includes("eixo_toco"));
   assert.ok(pesados.classifyKeys.includes("car_tanque"));
-  assert.ok(pesados.classifyKeys.includes("dian_capo"));
+  assert.ok(pesados.classifyKeys.includes("dian_farol_ld"));
+
+  const insp = loadIife("public/vehicle-entry-inspection.js", {
+    vehicleEntryInspectionChecklist: mod,
+  });
+  const draft = insp.vehicleEntryInspection.emptyDraftForVariant("LEVE");
+  draft.classifications.dian_farol_ld = "DANIFICADO";
+  const damaged = insp.vehicleEntryInspection.getDamagedClassifyItems(draft);
+  assert.ok(damaged.some((it) => it.key === "dian_farol_ld" && it.label === "Farol LD"));
 
   const doc = loadIife("public/vehicle-entry-inspection-document.js", {
     vehicleEntryInspectionChecklist: mod,
@@ -255,23 +222,39 @@ function testChecklistItemReplacement() {
     },
     draft: {
       inspectionVariant: "LEVE",
-      classifications: { dian_capo: "BOM" },
-      formExtras: { dian_farois_aux_qtd: "2", rod_pneu_dd_marca_tipo: "Pirelli 175/70" },
+      classifications: { dian_capo: "BOM", dian_farol_ld: "DANIFICADO" },
+      formExtras: {
+        ini_chave_ignicao: "SIM",
+        ini_combustivel: "FLEX",
+        ini_km: "45210",
+        ini_fuel_gauge: { x: 62.5, y: 48 },
+        pneu_dd: "BOM_ESTADO",
+        pneu_dd_marca: "Pirelli",
+        pneu_dd_ref: "175/70",
+      },
     },
     helpers: {
       getVariantConfig: mod.getVariantConfig,
       INSPECTION_CARDS: mod.INSPECTION_CARDS,
       CHECKLIST: mod.CHECKLIST,
+      vehicleEntryInspectionChecklist: mod,
       fmtDateTime: () => "20/08/2026",
     },
   });
-  assert.match(printHtml, /Faróis Aux/);
-  assert.match(printHtml, /Paralama Dianteiro/);
-  assert.match(printHtml, /Reparador Run Flat/);
+  assert.match(printHtml, /Possui chave de ignição/);
+  assert.match(printHtml, /Tipo de combustível/);
+  assert.match(printHtml, /Flex/);
+  assert.match(printHtml, /45210/);
+  assert.match(printHtml, /vei-fuel-x/);
+  assert.match(printHtml, /Farol LD/);
+  assert.match(printHtml, /Paralama dianteiro/);
+  assert.match(printHtml, /Run Flat/);
   assert.match(printHtml, /Itens \(registro anterior\)/);
   assert.match(printHtml, /Relógio/);
-  assert.match(printHtml, /Pirelli 175\/70/);
+  assert.match(printHtml, /Pirelli/);
+  assert.match(printHtml, /175\/70/);
   assert.match(printHtml, /Cliente|Placa/);
+  assert.match(printHtml, /Danificada/);
 }
 
 function testPhotoLabels() {
