@@ -3931,7 +3931,7 @@
         min-height: 0 !important;
         max-height: none !important;
         margin: 0 !important;
-        padding: 20px !important;
+        padding: 10px !important;
         border: none !important;
         border-radius: 0 !important;
         background: rgba(15, 23, 42, 0.55) !important;
@@ -3940,7 +3940,7 @@
         overflow: visible !important;
         z-index: 190 !important;
         display: flex !important;
-        align-items: center;
+        align-items: stretch;
         justify-content: center;
         box-sizing: border-box;
       }
@@ -3951,8 +3951,10 @@
         background: rgba(15, 23, 42, 0.45) !important;
       }
       #patioContent.modal-backdrop.tab-view-modal > .modal.modal--wide {
-        width: min(1680px, 98vw);
-        max-height: calc(100vh - 40px);
+        width: calc(100vw - 20px);
+        max-width: none;
+        height: calc(100vh - 20px);
+        max-height: calc(100vh - 20px);
         overflow: hidden;
         display: flex;
         flex-direction: column;
@@ -3960,8 +3962,23 @@
       #patioContent.modal-backdrop.tab-view-modal .tab-modal-body {
         flex: 1 1 auto;
         min-height: 0;
+        overflow: hidden;
+        max-height: none;
+        display: flex;
+        flex-direction: column;
+      }
+      #patioContent.modal-backdrop.tab-view-modal .tab-modal-body > .section-card.patio-subview:not(.hidden) {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      #patioContent.modal-backdrop.tab-view-modal .tab-modal-body .table-wrap {
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none;
         overflow: auto;
-        max-height: calc(100vh - 140px);
       }
       #patioContent [data-subview="no_patio"] .table-wrap,
       #patioContent [data-subview="vlp"] .table-wrap,
@@ -3972,9 +3989,12 @@
       #patioContent [data-subview="no_patio"] .table,
       #patioContent [data-subview="vlp"] .table,
       #patioContent [data-subview="removidos"] .table {
-        min-width: 1280px;
-        width: 100%;
+        min-width: 100%;
+        width: max(100%, 1480px);
         table-layout: auto;
+      }
+      #patioContent [data-subview="no_patio"] .table td.actions {
+        min-width: 28rem;
       }
       #patioContent [data-subview="no_patio"] .table thead th,
       #patioContent [data-subview="no_patio"] .table tbody td,
@@ -6708,6 +6728,9 @@
           min-width: 0 !important;
           width: 100%;
         }
+        #patioContent [data-subview="no_patio"] .table td.actions {
+          min-width: 0;
+        }
         #patioContent [data-subview="no_patio"] .table-wrap,
         #patioContent [data-subview="vistoria"] .table-wrap,
         #patioContent [data-subview="vlp"] .table-wrap,
@@ -8756,7 +8779,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260818finact7"></script>
+    <script src="/finance-module.js?v=20260828rppprint"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
@@ -13114,19 +13137,63 @@
       }
 
       const OPEN_RECEIVABLES_GROUPED_PRINT_CSS = `
-  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 20px; color: #111; }
-  h1 { font-size: 1.25rem; margin: 0 0 4px; }
-  h2 { font-size: 1.08rem; margin: 22px 0 8px; page-break-after: avoid; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; color: #0f172a; background: #fff; }
+  .doc { max-width: 920px; margin: 0 auto; padding: 24px 28px 32px; }
+  .doc-head { text-align: center; border-bottom: 3px solid #dc2626; padding-bottom: 16px; margin-bottom: 18px; }
+  .doc-head img { max-height: 72px; max-width: 420px; object-fit: contain; background: transparent; }
+  .doc-title { margin: 14px 0 4px; font-size: 1.25rem; font-weight: 700; }
+  .doc-sub { margin: 0; color: #475569; font-size: 0.88rem; }
+  h2 { font-size: 1.08rem; margin: 22px 0 8px; page-break-after: avoid; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
   h3 { font-size: 0.95rem; margin: 14px 0 6px; page-break-after: avoid; }
-  h3 .count { font-weight: normal; color: #555; }
-  .meta { font-size: 0.8rem; color: #444; margin-bottom: 14px; }
-  table { width: 100%; border-collapse: collapse; font-size: 0.76rem; margin-bottom: 14px; }
-  th, td { border: 1px solid #bbb; padding: 6px; text-align: left; vertical-align: top; color: #111; }
-  th { background: #f0f0f0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .lista-export-brand { margin: 0 0 16px; background: transparent; overflow: visible; }
-  .lista-export-brand img { display: block; height: 64px; width: auto; max-width: 420px; object-fit: contain; background: transparent; }
-  @page { margin: 12mm; }
-  @media print { body { margin: 0; } }`;
+  h3 .count { font-weight: normal; color: #64748b; }
+  .doc-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin: 14px 0 18px; }
+  .doc-box h2 { margin: 0 0 8px; font-size: 0.78rem; letter-spacing: 0.04em; text-transform: uppercase; color: #64748b; border: 0; padding: 0; }
+  .doc-box p { margin: 4px 0; font-size: 0.95rem; }
+  .doc-meta { font-size: 0.82rem; color: #475569; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 14px; }
+  th, td { border: 1px solid #cbd5e1; padding: 8px 9px; text-align: left; vertical-align: top; }
+  th { background: #f1f5f9; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .muted { color: #64748b; font-size: 0.78rem; }
+  .total { margin-top: 14px; font-size: 1.05rem; font-weight: 700; text-align: right; }
+  .footer { margin-top: 22px; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 0.78rem; color: #64748b; text-align: center; }
+  @page { margin: 14mm; }
+  @media print { body { margin: 0; } .doc { padding: 0; max-width: none; } }`;
+
+      function listaReceivableRppNome(r, v) {
+        if (typeof window.financeReceberRppNome === "function") {
+          const n = window.financeReceberRppNome(r, v);
+          if (n && n !== "—") return n;
+        }
+        return vehicleRpfNome(v);
+      }
+
+      function listaReceivableRppBucketKey(r, v) {
+        if (typeof window.financeReceivableRppPartnerId === "function") {
+          const pid = window.financeReceivableRppPartnerId(r, v);
+          if (pid) return pid;
+        }
+        const pid = listaVehicleEffectiveRpfPartnerId(v);
+        if (pid) return pid;
+        const nome = String(listaReceivableRppNome(r, v) || "").trim();
+        if (nome && nome !== "—") return `__nome__:${nome}`;
+        return "__sem__";
+      }
+
+      function listaReceivableRppBucketTitle(key, partnerByIdMap) {
+        if (key === "__sem__") return "Responsável não informado";
+        if (String(key).startsWith("__nome__:")) return String(key).slice("__nome__:".length);
+        return partnerByIdMap.get(key) || "Parceiro não encontrado";
+      }
+
+      function listaPrintDocHeadHtml(headingTitle, subLine) {
+        const origin = window.location?.origin || "";
+        const logo = `${origin}/assets/ampliguard-header-trim.png?v=12`;
+        return `<header class="doc-head">
+    <img src="${escapeHtml(logo)}" alt="AMPLIGUARD" />
+    <h1 class="doc-title">${escapeHtml(headingTitle)}</h1>
+    ${subLine ? `<p class="doc-sub">${escapeHtml(subLine)}</p>` : ""}
+  </header>`;
+      }
 
       function buildOpenReceivablesGroupedPrintHtml({
         openRec,
@@ -13136,6 +13203,10 @@
         docTitle,
         headingTitle,
         metaLine,
+        destBoxHtml = "",
+        subLine = "",
+        totalLine = "",
+        footerLine = "",
       }) {
         const partnerByIdMap = new Map((state.partners || []).map((p) => [p.id, p.nome || "-"]));
         const partnerTitle = (k) =>
@@ -13156,14 +13227,14 @@
           return String(calcDays(v));
         };
         const theadLoc =
-          "<th>Veículo</th><th>RPF</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
+          "<th>Veículo</th><th>RPP</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
         const theadResp =
           "<th>Veículo</th><th>RPV</th><th>Entrada (pátio)</th><th>Saída</th><th>Valor</th><th>Diárias no pátio</th><th>Dias em aberto</th>";
         const rowLoc = (r) => {
           const v = vehicleById.get(r.vehicle_id);
           return `<tr>
             <td>${veiculoCell(v)}</td>
-            <td>${escapeHtml(financeReceivableDisplayText(r))}</td>
+            <td>${escapeHtml(listaReceivableRppNome(r, v))}</td>
             <td>${escapeHtml(formatReceberEntradaVeiculo(v, r))}</td>
             <td>${escapeHtml(formatReceberSaidaVeiculo(v, r))}</td>
             <td>${escapeHtml(formatCurrency(receivableValor(r)))}</td>
@@ -13184,6 +13255,18 @@
           </tr>`;
         };
         const subtotal = (recs) => formatCurrency(recs.reduce((s, r) => s + receivableValor(r), 0));
+        const sortRppKeys = (keys) => {
+          const sem = keys.filter((k) => k === "__sem__");
+          const rest = keys
+            .filter((k) => k !== "__sem__")
+            .sort((a, b) =>
+              listaReceivableRppBucketTitle(a, partnerByIdMap).localeCompare(
+                listaReceivableRppBucketTitle(b, partnerByIdMap),
+                "pt-BR"
+              )
+            );
+          return [...rest, ...sem];
+        };
         const blocks = [];
         if (byLoc) {
           blocks.push(`<h2>Por RPV (empresa de remoção)</h2>`);
@@ -13204,13 +13287,15 @@
           });
         }
         if (byResp) {
-          blocks.push(`<h2>Por RPF (responsável financeiro)</h2>`);
-          const map = bucketOpenReceivablesByKey(openRec, (r) => (r.responsavel_pagamento || "").trim() || "__sem__");
-          const keys = sortTextBucketKeys([...map.keys()]);
+          blocks.push(`<h2>Por RPP (responsável financeiro)</h2>`);
+          const map = bucketOpenReceivablesByKey(openRec, (r) =>
+            listaReceivableRppBucketKey(r, vehicleById.get(r.vehicle_id))
+          );
+          const keys = sortRppKeys([...map.keys()]);
           keys.forEach((key) => {
             const items = sortOpenReceivablesByPlaca(map.get(key) || [], vehicleById);
             const st = subtotal(items);
-            const title = key === "__sem__" ? "Responsável não informado" : key;
+            const title = listaReceivableRppBucketTitle(key, partnerByIdMap);
             blocks.push(
               `<h3>${escapeHtml(title)} <span class="count">(${items.length} · ${escapeHtml(st)})</span></h3>`
             );
@@ -13222,10 +13307,14 @@
         return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(
           docTitle
         )}</title><style>${OPEN_RECEIVABLES_GROUPED_PRINT_CSS}</style></head><body>
-  ${listaExportBrandHtml()}
-  <h1>${escapeHtml(headingTitle)}</h1>
-  <div class="meta">${escapeHtml(metaLine)}</div>
+  <div class="doc">
+  ${listaPrintDocHeadHtml(headingTitle, subLine)}
+  ${destBoxHtml || ""}
+  <div class="doc-meta">${escapeHtml(metaLine)}</div>
   ${blocks.join("")}
+  ${totalLine ? `<p class="total">${escapeHtml(totalLine)}</p>` : ""}
+  ${footerLine ? `<footer class="footer">${escapeHtml(footerLine)}</footer>` : ""}
+  </div>
 </body></html>`;
       }
 
@@ -13296,17 +13385,40 @@
         ];
         const filtroIndiv = [];
         if (filterLocId) filtroIndiv.push(`Somente RPV: ${partnerByIdMap.get(filterLocId) || "-"}`);
-        if (filterRpfId) filtroIndiv.push(`Somente RPF: ${partnerByIdMap.get(filterRpfId) || "-"}`);
+        if (filterRpfId) filtroIndiv.push(`Somente RPP: ${partnerByIdMap.get(filterRpfId) || "-"}`);
         if (listaFilterBanco) filtroIndiv.push(`Texto: ${listaFilterBanco}`);
         if (filtroIndiv.length) metaParts.unshift(filtroIndiv.join(" · "));
+        const cfg = state.settings || {};
+        const emitente =
+          typeof window.reciboEmitenteNome === "function" ? window.reciboEmitenteNome(cfg) : nomePatio;
+        const cnpjFmt =
+          typeof window.reciboCnpjExibicao === "function" ? window.reciboCnpjExibicao(cfg) : cfg.cnpj || "—";
+        const footerExtra =
+          typeof window.reciboFooterLine === "function" ? window.reciboFooterLine(cfg) : cfg.endereco || "";
+        const destLines = [];
+        if (filterRpfId) {
+          const rppNome = partnerByIdMap.get(filterRpfId) || "-";
+          destLines.push(`<p><strong>${escapeHtml(rppNome)}</strong></p>`);
+          const partner = (state.partners || []).find((p) => p.id === filterRpfId);
+          const docPartner = partner?.cpf || partner?.cnpj || "";
+          if (docPartner) destLines.push(`<p>CNPJ/CPF: ${escapeHtml(docPartner)}</p>`);
+          if (partner?.contato) destLines.push(`<p>Contato: ${escapeHtml(partner.contato)}</p>`);
+        }
+        const destBoxHtml = destLines.length
+          ? `<div class="doc-box"><h2>Destinatário</h2>${destLines.join("")}</div>`
+          : "";
         const html = buildOpenReceivablesGroupedPrintHtml({
           openRec,
           vehicleById,
           byLoc,
           byResp,
           docTitle: `Lista ${viewLabel}`,
-          headingTitle: `${nomePatio} — Lista · ${viewLabel}`,
+          headingTitle: "Contas a receber",
           metaLine: metaParts.join(" · "),
+          destBoxHtml,
+          subLine: `${nomePatio} · CNPJ ${cnpjFmt}`,
+          totalLine: `Total a receber: ${formatCurrency(totalGeral)}`,
+          footerLine: [emitente, footerExtra].filter(Boolean).join(" · "),
         });
         printHtmlInHiddenIframe(html, {
           iframeTitle: "Impressão lista receber",
@@ -13425,7 +13537,7 @@
           currentListaView;
         const filtros = [
           listaFilterLocatorId ? `Loc.: ${state.partners.find((p) => p.id === listaFilterLocatorId)?.nome || ""}` : "",
-          listaFilterRpfId ? `RPF: ${state.partners.find((p) => p.id === listaFilterRpfId)?.nome || ""}` : "",
+          listaFilterRpfId ? `RPP: ${state.partners.find((p) => p.id === listaFilterRpfId)?.nome || ""}` : "",
           listaFilterBanco ? `Texto: ${listaFilterBanco}` : "",
           listaFilterDataDe || listaFilterDataAte
             ? `Datas: ${listaFilterDataDe ? formatDate(listaFilterDataDe) : "…"} — ${listaFilterDataAte ? formatDate(listaFilterDataAte) : "…"}`
@@ -13809,7 +13921,7 @@
         const bodyHtml = document.getElementById("listaTableBody")?.innerHTML || "";
         const filtros = [
           listaFilterLocatorId ? `RPV: ${state.partners.find((p) => p.id === listaFilterLocatorId)?.nome || listaFilterLocatorId}` : "",
-          listaFilterRpfId ? `RPF: ${state.partners.find((p) => p.id === listaFilterRpfId)?.nome || listaFilterRpfId}` : "",
+          listaFilterRpfId ? `RPP: ${state.partners.find((p) => p.id === listaFilterRpfId)?.nome || listaFilterRpfId}` : "",
           listaFilterBanco ? `Texto: ${listaFilterBanco}` : "",
           listaFilterDataDe || listaFilterDataAte
             ? `Datas: ${listaFilterDataDe ? formatDate(listaFilterDataDe) : "…"} — ${listaFilterDataAte ? formatDate(listaFilterDataAte) : "…"}`
