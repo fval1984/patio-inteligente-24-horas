@@ -523,7 +523,15 @@
       ${renderChartsSection(m, formatCurrency, { includeFinance: true })}
       ${renderLongStayTable(m)}
       ${renderTopRecvTable(m, formatCurrency)}
+      <div id="hubDashAdvocacyOffices"></div>
     `;
+    if (typeof global.advocacyOfficesUi?.renderDashboardWidget === "function") {
+      global.advocacyOfficesUi.renderDashboardWidget(root.querySelector("#hubDashAdvocacyOffices"), {
+        vehicles: data.vehicles || [],
+        offices: data.advocacyOffices || global.__ampliState?.advocacyOffices || [],
+        partners: data.partners || [],
+      });
+    }
   }
 
   function amplipatioDashboardInit() {
