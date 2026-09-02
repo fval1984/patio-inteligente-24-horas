@@ -129,10 +129,10 @@
         gap: 10px; padding: 48px 24px; text-align: center;
         border-radius: 14px;
         border: 1px dashed rgba(56, 189, 248, 0.35);
-        background: linear-gradient(180deg, rgba(30,41,59,0.55), rgba(15,23,42,0.45));
+        background: var(--card, #fff);
         margin-bottom: 18px;
       }
-      .fp-exec-empty strong { font-size: 1.15rem; color: #e2e8f0; }
+      .fp-exec-empty strong { font-size: 1.15rem; color: var(--text); }
       .fp-exec-empty p { margin: 0; color: var(--muted); font-size: 0.9rem; max-width: 360px; }
       .fp-exec-empty-icon {
         width: 48px; height: 48px; border-radius: 12px;
@@ -146,7 +146,7 @@
         height: 8px; border-radius: 999px; background: rgba(148,163,184,0.15); overflow: hidden;
       }
       .fp-exec-bar-fill { height: 100%; border-radius: 999px; transition: width 0.45s ease; }
-      .fp-exec-bar-meta { font-size: 0.78rem; color: #e2e8f0; white-space: nowrap; text-align: right; min-width: 72px; }
+      .fp-exec-bar-meta { font-size: 0.78rem; color: var(--text); white-space: nowrap; text-align: right; min-width: 72px; }
       .fp-exec-mapa {
         display: flex; flex-wrap: wrap; gap: 0; align-items: stretch; justify-content: space-between;
       }
@@ -154,7 +154,7 @@
         flex: 1 1 140px; min-width: 110px;
         padding: 16px 12px; text-align: center;
         border: 1px solid rgba(148,163,184,0.16);
-        background: linear-gradient(180deg, rgba(30,41,59,0.65), rgba(15,23,42,0.55));
+        background: var(--card, #fff);
         position: relative;
       }
       .fp-exec-mapa-node:first-child { border-radius: 12px 0 0 12px; }
@@ -166,7 +166,7 @@
         background: linear-gradient(180deg, transparent, rgba(96,165,250,0.55), transparent);
       }
       .fp-exec-mapa-node span { display: block; font-size: 0.72rem; color: var(--muted); margin-bottom: 6px; }
-      .fp-exec-mapa-node strong { font-size: 1.45rem; color: #e2e8f0; display: block; }
+      .fp-exec-mapa-node strong { font-size: 1.45rem; color: var(--text); display: block; }
       .fp-exec-mapa-node small { font-size: 0.72rem; color: var(--muted); }
       .fp-exec-legend {
         display: flex; flex-wrap: wrap; gap: 10px 14px;
@@ -180,7 +180,7 @@
       .fp-exec-nome {
         margin: 0 0 14px; font-size: 0.95rem; color: #94a3b8;
       }
-      .fp-exec-nome strong { color: #e2e8f0; }
+      .fp-exec-nome strong { color: var(--text); }
       @media (max-width: 900px) {
         .fp-exec-mapa-node:first-child,
         .fp-exec-mapa-node:last-child,
