@@ -3538,11 +3538,11 @@
       :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .toolbar h2 {
         letter-spacing: -0.02em;
       }
-      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .module-lede,
-      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .subtitle {
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .module-lede,
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .subtitle {
         line-height: 1.55;
       }
-      :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) {
+      :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) {
         border: 1px solid rgba(148, 163, 184, 0.2);
         border-radius: 14px;
         padding: 10px 12px;
@@ -3550,14 +3550,14 @@
         background: linear-gradient(160deg, rgba(15, 23, 42, 0.36), rgba(2, 6, 23, 0.2));
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
       }
-      :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button {
+      :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) button {
         border-radius: 10px;
         padding: 7px 12px;
         font-size: 12px;
         font-weight: 700;
         letter-spacing: 0.01em;
       }
-      :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button.active {
+      :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) button.active {
         border-color: rgba(56, 189, 248, 0.75);
         background: linear-gradient(140deg, rgba(56, 189, 248, 0.22), rgba(14, 165, 233, 0.2));
         color: #e0f2fe;
@@ -3565,52 +3565,52 @@
           inset 0 1px 0 rgba(255, 255, 255, 0.1),
           0 6px 12px rgba(14, 165, 233, 0.16);
       }
-      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .section-card {
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .section-card {
         border-radius: 16px;
       }
-      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .filter-bar {
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .filter-bar {
         border-radius: 14px;
         border: 1px solid rgba(148, 163, 184, 0.2);
         background: linear-gradient(160deg, rgba(15, 23, 42, 0.35), rgba(2, 6, 23, 0.2));
         padding: 12px 14px;
       }
-      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .table-wrap {
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .table-wrap {
         border: 1px solid rgba(148, 163, 184, 0.2);
         border-radius: 14px;
         background: rgba(2, 6, 23, 0.25);
       }
-      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .table thead th {
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .table thead th {
         position: sticky;
         top: 0;
         z-index: 1;
         background: linear-gradient(180deg, rgba(11, 18, 32, 0.98), rgba(15, 23, 42, 0.96));
         border-bottom-color: rgba(148, 163, 184, 0.3);
       }
-      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .table tbody td {
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .table tbody td {
         font-size: 12px;
       }
-      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .table tbody tr:nth-child(even) {
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .table tbody tr:nth-child(even) {
         background: rgba(15, 23, 42, 0.2);
       }
-      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .table tbody tr:hover {
+      :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .table tbody tr:hover {
         background: rgba(56, 189, 248, 0.1);
       }
-      [data-theme="light"] :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) {
+      [data-theme="light"] :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) {
         background: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(241, 245, 249, 0.9));
       }
-      [data-theme="light"] :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button.active {
+      [data-theme="light"] :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) button.active {
         color: #075985;
       }
-      [data-theme="light"] :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .filter-bar {
+      [data-theme="light"] :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .filter-bar {
         background: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.88));
       }
-      [data-theme="light"] :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .table-wrap {
+      [data-theme="light"] :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .table-wrap {
         background: rgba(255, 255, 255, 0.95);
       }
-      [data-theme="light"] :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .table thead th {
+      [data-theme="light"] :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .table thead th {
         background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.96));
       }
-      [data-theme="light"] :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .table tbody tr:hover {
+      [data-theme="light"] :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .table tbody tr:hover {
         background: rgba(56, 189, 248, 0.08);
       }
       .form-grid {
@@ -7419,6 +7419,68 @@
           <div id="biExecRoot" class="bi-exec-root"></div>
         </div>
 
+        <div id="viewEscritorios" class="panel hidden escritorios-module-shell">
+          <div class="toolbar">
+            <div>
+              <h2 style="margin: 0">Escritórios de Advocacia</h2>
+              <p class="subtitle" style="margin: 4px 0 0">Origem jurídica das demandas e relatórios por escritório</p>
+            </div>
+            <div class="actions">
+              <button type="button" id="aoOpenCreate">Novo escritório</button>
+              <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
+            </div>
+          </div>
+          <div id="escritoriosSubnav" class="subnav">
+            <button type="button" data-ao-sub="cadastro" class="active">Cadastro</button>
+            <button type="button" data-ao-sub="relatorio">Relatórios → Demanda por Escritório</button>
+          </div>
+          <div id="aoCadastroPanel">
+            <p class="notice" style="margin: 0 0 12px">
+              Cadastro próprio de escritórios. O vínculo com o veículo guarda só o ID — os dados do escritório não são duplicados na demanda.
+            </p>
+            <div id="aoCadastroRoot"></div>
+          </div>
+          <div id="aoRelatorioPanel" class="hidden">
+            <div class="filter-bar" style="margin: 0 0 12px; flex-wrap: wrap; gap: 10px; align-items: flex-end">
+              <div>
+                <label for="aoRepFrom">Período inicial</label>
+                <input type="date" id="aoRepFrom" />
+              </div>
+              <div>
+                <label for="aoRepTo">Período final</label>
+                <input type="date" id="aoRepTo" />
+              </div>
+              <div>
+                <label for="aoRepOffice">Escritório</label>
+                <select id="aoRepOffice"><option value="">Todos</option></select>
+              </div>
+              <div>
+                <label for="aoRepFinanceira">Financeira</label>
+                <select id="aoRepFinanceira"><option value="">Todas</option></select>
+              </div>
+              <div>
+                <label for="aoRepStatus">Status do veículo</label>
+                <select id="aoRepStatus"><option value="">Todos</option></select>
+              </div>
+              <div>
+                <label for="aoRepTipo">Tipo de veículo</label>
+                <select id="aoRepTipo"><option value="">Todos</option></select>
+              </div>
+              <div>
+                <label for="aoRepSituacao">Situação no pátio</label>
+                <select id="aoRepSituacao">
+                  <option value="">Todas</option>
+                  <option value="no_patio">No pátio</option>
+                  <option value="baixado">Baixados</option>
+                  <option value="pendente">Pendentes</option>
+                </select>
+              </div>
+              <button type="button" id="aoGenerateReport">Gerar relatório</button>
+            </div>
+            <div id="aoRelatorioRoot"></div>
+          </div>
+        </div>
+
         <div id="viewFinanceiro" class="panel hidden finance-module-shell">
           <div class="toolbar fin-act-pagehead">
             <div>
@@ -7962,6 +8024,19 @@
                 <label>Leiloeiro</label>
                 <select id="vehicleAuctioneer"></select>
               </div>
+              <div>
+                <label for="vehicleAdvocacyOfficeSearch">Escritório de Advocacia</label>
+                <div class="ao-picker">
+                  <input
+                    id="vehicleAdvocacyOfficeSearch"
+                    type="search"
+                    placeholder="Pesquisar escritório..."
+                    autocomplete="off"
+                  />
+                  <input type="hidden" id="vehicleAdvocacyOfficeId" value="" />
+                  <div id="vehicleAdvocacyOfficeList" class="ao-suggest hidden"></div>
+                </div>
+              </div>
               <div class="full field-operador-hide">
                 <label>Observações</label>
                 <input id="vehicleNotes" type="text" placeholder="Observações importantes" />
@@ -8012,6 +8087,59 @@
             <div class="form-actions">
               <button type="submit">Salvar</button>
               <button type="button" class="secondary" id="cancelPartnerForm">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="aoOfficeModal" class="modal-backdrop hidden">
+        <div class="modal">
+          <div class="modal-header">
+            <h3 id="aoOfficeModalTitle">Novo escritório</h3>
+            <button class="modal-close" id="aoCloseOfficeModal" type="button">Fechar</button>
+          </div>
+          <form id="aoOfficeForm">
+            <div id="aoOfficeFormErrors" class="pc-form-errors hidden"></div>
+            <div class="form-grid">
+              <div>
+                <label for="aoFieldName">Nome do escritório</label>
+                <input id="aoFieldName" type="text" required />
+              </div>
+              <div>
+                <label for="aoFieldCnpj">CNPJ</label>
+                <input id="aoFieldCnpj" type="text" inputmode="numeric" placeholder="00.000.000/0000-00" />
+              </div>
+              <div>
+                <label for="aoFieldResponsible">Nome do responsável</label>
+                <input id="aoFieldResponsible" type="text" />
+              </div>
+              <div>
+                <label for="aoFieldPhone">Telefone</label>
+                <input id="aoFieldPhone" type="tel" />
+              </div>
+              <div>
+                <label for="aoFieldWhatsapp">WhatsApp</label>
+                <input id="aoFieldWhatsapp" type="tel" />
+              </div>
+              <div>
+                <label for="aoFieldEmail">E-mail</label>
+                <input id="aoFieldEmail" type="email" />
+              </div>
+              <div>
+                <label for="aoFieldActive">Status</label>
+                <select id="aoFieldActive">
+                  <option value="ATIVO">Ativo</option>
+                  <option value="INATIVO">Inativo</option>
+                </select>
+              </div>
+              <div class="full">
+                <label for="aoFieldNotes">Observações</label>
+                <textarea id="aoFieldNotes" rows="3"></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" id="aoOfficeSave">Salvar</button>
+              <button type="button" class="secondary" id="aoCancelOffice">Cancelar</button>
             </div>
           </form>
         </div>
@@ -8751,6 +8879,14 @@
           </div>
         </details>
 
+        <details class="header-menu-details" id="headerDetailsEscritorios">
+          <summary>Escritórios de Advocacia</summary>
+          <div class="header-menu-nested">
+            <button type="button" data-header-escritorio-sub="cadastro">Cadastro</button>
+            <button type="button" data-header-escritorio-sub="relatorio">Relatórios → Demanda por Escritório</button>
+          </div>
+        </details>
+
         <details class="header-menu-details" id="headerDetailsLista">
           <summary>Lista</summary>
           <div class="header-menu-nested">
@@ -8794,7 +8930,7 @@
     <script src="/partners-cadastro-service.js?v=20260727pcad3"></script>
     <script src="/partners-cadastro-ui.js?v=20260727pcad3"></script>
     <script src="/dashboard-metrics-service.js?v=20260819vnpvist1"></script>
-    <script src="/amplipatio-dashboard.js?v=20260812admpc1"></script>
+    <script src="/amplipatio-dashboard.js?v=20260902adv1"></script>
     <script src="/vehicle-entry-inspection-checklist.js?v=20260820vistoria5"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260818vistoria10"></script>
     <script src="/vehicle-entry-inspection-document.js?v=20260820vistoria5"></script>
@@ -8802,6 +8938,8 @@
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
+    <script src="/advocacy-offices-service.js?v=20260902adv1"></script>
+    <script src="/advocacy-offices-ui.js?v=20260902adv1"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -8877,6 +9015,8 @@
         });
         return jsPdfLoadPromise;
       }
+      window.loadJsPdf = loadJsPdf;
+      window.loadHtml2Canvas = loadHtml2Canvas;
 
       const authPanel = document.getElementById("authPanel");
       const authBackdrop = document.getElementById("authBackdrop");
@@ -9497,6 +9637,7 @@
         configuracoes: document.getElementById("viewConfiguracoes"),
         financeiro: document.getElementById("viewFinanceiro"),
         biExecutivo: document.getElementById("viewBiExecutivo"),
+        escritorios: document.getElementById("viewEscritorios"),
       };
       const patioFlyoutClose = document.getElementById("patioFlyoutClose");
       const patioMenuNewVehicle = document.getElementById("patioMenuNewVehicle");
@@ -9584,7 +9725,9 @@
         monthlyClosureLoadError: null,
         opsVehicleEvents: [],
         inspectionIndex: {},
+        advocacyOffices: [],
       };
+      window.__ampliState = state;
 
       function effectiveUserId() {
         return state.patioOwnerUserId || state.user?.id || null;
@@ -9767,7 +9910,7 @@
         const msg = String(err.message || "");
         const code = String(err.code || "");
         if (/PGRST205/i.test(code)) return true;
-        if (/patio_cycle_closures|does not exist|relation|schema cache|could not find the table/i.test(msg)) return true;
+        if (/patio_cycle_closures|advocacy_offices|advocacy_office_link_history|does not exist|relation|schema cache|could not find the table/i.test(msg)) return true;
         return false;
       }
 
@@ -9821,7 +9964,7 @@
         fechando_ciclo: { title: "Fechando ciclo", subtitle: "Triagem antes do financeiro" },
       };
 
-      const MODULE_VIEWS = ["patio", "lista", "parceiros", "configuracoes", "financeiro", "biExecutivo"];
+      const MODULE_VIEWS = ["patio", "lista", "parceiros", "configuracoes", "financeiro", "biExecutivo", "escritorios"];
 
       const MODULE_VIEW_IDS = {
         patio: "viewPatio",
@@ -9830,6 +9973,7 @@
         configuracoes: "viewConfiguracoes",
         financeiro: "viewFinanceiro",
         biExecutivo: "viewBiExecutivo",
+        escritorios: "viewEscritorios",
       };
 
       const MODULE_VIEW_LABELS = {
@@ -9839,6 +9983,7 @@
         configuracoes: { title: "Configurações", subtitle: "Parâmetros do sistema" },
         financeiro: { title: "Financeiro", subtitle: "Receitas, despesas, cobranças e caixa" },
         biExecutivo: { title: "BI Executivo", subtitle: "Análise estratégica" },
+        escritorios: { title: "Escritórios de Advocacia", subtitle: "Cadastro e demanda por escritório" },
       };
 
       let tabModalSystemReady = false;
@@ -15592,6 +15737,7 @@
           document.getElementById("headerDetailsConfig")?.classList.add("hidden");
           document.getElementById("headerDetailsFinance")?.classList.add("hidden");
           document.getElementById("headerDetailsParceiros")?.classList.add("hidden");
+          document.getElementById("headerDetailsEscritorios")?.classList.add("hidden");
           document.getElementById("headerDetailsLista")?.classList.add("hidden");
           document.getElementById("dashboardSystemEntry")?.classList.add("hidden");
           document.getElementById("dashboardOpenFinance")?.classList.add("hidden");
@@ -15640,6 +15786,7 @@
         document.getElementById("headerDetailsConfig")?.classList.add("hidden");
         document.getElementById("headerDetailsFinance")?.classList.add("hidden");
         document.getElementById("headerDetailsParceiros")?.classList.add("hidden");
+        document.getElementById("headerDetailsEscritorios")?.classList.add("hidden");
         document.querySelectorAll("#headerDetailsLista [data-lista-gestor-hide], #listaSubnav [data-lista-gestor-hide]").forEach((el) => {
           el.classList.add("hidden");
         });
@@ -15743,6 +15890,161 @@
         maybeRefreshListaPanel();
         if (typeof financePopulateFinanceRppFilters === "function") financePopulateFinanceRppFilters();
       }
+
+      let advocacyOfficePickerBound = false;
+      function syncAdvocacyOfficeState() {
+        window.__ampliState = state;
+        if (typeof window.advocacyOfficesUi?.renderCadastro === "function") {
+          const cadHidden = document.getElementById("aoCadastroPanel")?.classList.contains("hidden");
+          if (!cadHidden) window.advocacyOfficesUi.renderCadastro();
+        }
+      }
+
+      function bindVehicleAdvocacyPicker() {
+        if (advocacyOfficePickerBound) return;
+        const input = document.getElementById("vehicleAdvocacyOfficeSearch");
+        const hidden = document.getElementById("vehicleAdvocacyOfficeId");
+        const list = document.getElementById("vehicleAdvocacyOfficeList");
+        if (!input || !hidden || !list) return;
+        if (typeof window.advocacyOfficesUi?.bindPicker === "function") {
+          window.advocacyOfficesUi.bindPicker(input, hidden, list, { onlyActive: true });
+          advocacyOfficePickerBound = true;
+        }
+      }
+
+      function setVehicleAdvocacyOfficeField(officeId) {
+        const hidden = document.getElementById("vehicleAdvocacyOfficeId");
+        const input = document.getElementById("vehicleAdvocacyOfficeSearch");
+        if (hidden) hidden.value = officeId || "";
+        if (input) {
+          if (!officeId) input.value = "";
+          else {
+            const o = (state.advocacyOffices || []).find((x) => String(x.id) === String(officeId));
+            input.value = o?.name || "";
+          }
+        }
+      }
+
+      async function loadAdvocacyOffices() {
+        const uid = supabaseOwnerUserId();
+        if (!uid) return;
+        const { data, error } = await supabase
+          .from("advocacy_offices")
+          .select("*")
+          .eq("user_id", uid)
+          .order("name", { ascending: true });
+        if (error) {
+          if (isMissingRelationError(error) || /advocacy_offices|PGRST204|column/i.test(error.message || "")) {
+            state.advocacyOffices = [];
+            return;
+          }
+          logSupabaseLoadError("loadAdvocacyOffices", error);
+          return;
+        }
+        state.advocacyOffices = data || [];
+        syncAdvocacyOfficeState();
+        bindVehicleAdvocacyPicker();
+        if (typeof window.advocacyOfficesUi?.bindOnce === "function") window.advocacyOfficesUi.bindOnce();
+      }
+
+      async function saveAdvocacyOffice(editingId, payload) {
+        if (isGestorPista || isVistoriador) {
+          alert("Somente o administrador pode cadastrar ou editar escritórios.");
+          return false;
+        }
+        const uid = effectiveUserId();
+        const row = Object.assign({}, payload, { user_id: uid, updated_at: new Date().toISOString() });
+        const run = () =>
+          editingId
+            ? supabase.from("advocacy_offices").update(row).eq("id", editingId).eq("user_id", uid)
+            : supabase.from("advocacy_offices").insert(row);
+        const { error } = await runSupabaseWrite(run);
+        if (error) {
+          if (/advocacy_offices_user_cnpj|duplicate|unique/i.test(error.message || "")) {
+            alert("Já existe um escritório com este CNPJ.");
+            return false;
+          }
+          if (isMissingRelationError(error)) {
+            alert("A base ainda não tem a tabela de escritórios.\n\nNo Supabase → SQL Editor, execute supabase/advocacy_offices.sql e atualize a página.");
+            return false;
+          }
+          alert(error.message || "Não foi possível salvar o escritório.");
+          return false;
+        }
+        await loadAdvocacyOffices();
+        return true;
+      }
+
+      async function toggleAdvocacyOffice(id) {
+        if (isGestorPista || isVistoriador) return;
+        const o = (state.advocacyOffices || []).find((x) => String(x.id) === String(id));
+        if (!o) return;
+        const { error } = await runSupabaseWrite(() =>
+          supabase
+            .from("advocacy_offices")
+            .update({ active: !o.active, updated_at: new Date().toISOString() })
+            .eq("id", id)
+            .eq("user_id", effectiveUserId())
+        );
+        if (error) {
+          alert(error.message || "Não foi possível alterar o status.");
+          return;
+        }
+        await loadAdvocacyOffices();
+      }
+
+      async function deleteAdvocacyOffice(id) {
+        if (isGestorPista || isVistoriador) return;
+        const n = (state.vehicles || []).filter((v) => String(v.advocacy_office_id || "") === String(id)).length;
+        if (n) {
+          alert("Não é possível excluir: há veículos/demandas vinculados a este escritório.");
+          return;
+        }
+        if (!confirm("Excluir este escritório?")) return;
+        const { error } = await runSupabaseWrite(() =>
+          supabase.from("advocacy_offices").delete().eq("id", id).eq("user_id", effectiveUserId())
+        );
+        if (error) {
+          if (/foreign key|vehicles_advocacy_office/i.test(error.message || "")) {
+            alert("Não é possível excluir: há vínculos com demandas.");
+            return;
+          }
+          alert(error.message || "Não foi possível excluir.");
+          return;
+        }
+        await loadAdvocacyOffices();
+      }
+
+      async function recordAdvocacyOfficeLinkHistory(vehicleId, previousId, newId) {
+        const prev = String(previousId || "");
+        const next = String(newId || "");
+        if (prev === next) return;
+        const svc = window.advocacyOfficesService;
+        const { error } = await supabase.from("advocacy_office_link_history").insert({
+          user_id: effectiveUserId(),
+          vehicle_id: vehicleId,
+          previous_office_id: previousId || null,
+          previous_office_name: svc ? svc.officeName(previousId, state.advocacyOffices) : "",
+          new_office_id: newId || null,
+          new_office_name: svc ? svc.officeName(newId, state.advocacyOffices) : "",
+          changed_by_user_id: state.user?.id || null,
+          changed_by_name: displayManagerIdentity(state.user?.email || "") || "",
+        });
+        if (error && !isMissingRelationError(error)) {
+          console.warn("advocacy_office_link_history", error.message || error);
+        }
+      }
+
+      window.saveAdvocacyOffice = saveAdvocacyOffice;
+      window.toggleAdvocacyOffice = toggleAdvocacyOffice;
+      window.deleteAdvocacyOffice = deleteAdvocacyOffice;
+      window.openAdvocacyDemandReport = function openAdvocacyDemandReport(opts) {
+        if (isGestorPista || isVistoriador) return;
+        openEscritoriosSubview("relatorio");
+        if (typeof window.advocacyOfficesUi?.openReport === "function") {
+          window.advocacyOfficesUi.openReport(opts || {});
+        }
+      };
 
       async function loadFinanceContacts() {
         const uid = supabaseOwnerUserId();
@@ -16188,12 +16490,13 @@
 
       async function loadAll() {
         if (isGestorPista || isVistoriador) {
-          await Promise.all([loadPartners(), loadVehicles(), loadVehicleInspections()]);
+          await Promise.all([loadPartners(), loadVehicles(), loadVehicleInspections(), loadAdvocacyOffices()]);
           probeVehiclesRpfColumns().catch(() => {});
           return;
         }
         await Promise.all([
           loadPartners(),
+          loadAdvocacyOffices(),
           loadFinanceContacts(),
           loadVehicles(),
           loadVehicleInspections(),
@@ -16592,6 +16895,7 @@
             {
               vehicles: state.vehicles,
               partners: state.partners,
+              advocacyOffices: state.advocacyOffices,
               receivables: state.receivables,
               payables: state.payables,
               cash: state.cash,
@@ -18035,6 +18339,7 @@
             <div class="ficha-placa-visual" style="margin-bottom:10px">${plateVisualHtml(vehicle.placa, "md", true)}</div>
             ${escapeHtml([vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-")}<br />
             RPV: ${escapeHtml(locNome)}<br />
+            Escritório: ${escapeHtml((window.advocacyOfficesService && window.advocacyOfficesService.officeName(vehicle.advocacy_office_id, state.advocacyOffices)) || "Sem escritório informado")}<br />
             Entrada: ${formatDateTime(vehicle.data_entrada)}<br />
           `;
           if (fichaSectionSnf) {
@@ -18090,6 +18395,7 @@
           fichaResumo.innerHTML = `
           <div class="ficha-placa-visual" style="margin-bottom:10px">${plateVisualHtml(vehicle.placa, "md", true)}</div>
           ${escapeHtml([vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-")}<br />
+          Escritório: ${escapeHtml((window.advocacyOfficesService && window.advocacyOfficesService.officeName(vehicle.advocacy_office_id, state.advocacyOffices)) || "Sem escritório informado")}<br />
           Entrada: ${formatDateTime(vehicle.data_entrada)} • Saída: ${formatDateTime(vehicle.data_saida)}<br />
           Valor de referência (diárias): ${formatCurrency(calcTotal(vehicle))}<br />
           <span class="notice">Cobrança e pagamento: módulo Financeiro (após encerrar o ciclo no pátio).</span><br />
@@ -18350,6 +18656,7 @@
           if (vehicleFinancialResponsible)
             vehicleFinancialResponsible.value = vehicle.responsavel_financeiro_id || "";
           if (vehicleAuctioneer) vehicleAuctioneer.value = vehicle.leiloeiro_id || "";
+          setVehicleAdvocacyOfficeField(vehicle.advocacy_office_id || "");
           document.getElementById("vehicleNotes").value = vehicle.observacoes || "";
           const inspectionDateEl = document.getElementById("vehicleInspectionDate");
           const inspectionResponsibleEl = document.getElementById("vehicleInspectionResponsible");
@@ -18375,6 +18682,7 @@
           if (entryInput) entryInput.value = nowLocal;
           if (vehicleFinancialResponsible) vehicleFinancialResponsible.value = "";
           if (vehicleAuctioneer) vehicleAuctioneer.value = "";
+          setVehicleAdvocacyOfficeField("");
         }
         const vd = document.getElementById("vehicleDaily");
         const entryInput = document.getElementById("vehicleEntry");
@@ -20212,6 +20520,12 @@
         openPartnerSubview(button.getAttribute("data-subview"));
       });
 
+      document.getElementById("escritoriosSubnav")?.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-ao-sub]");
+        if (!button) return;
+        openEscritoriosSubview(button.getAttribute("data-ao-sub"));
+      });
+
       vehicleForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         if (!(await requireSupabaseSessionForWrite())) return;
@@ -20284,6 +20598,7 @@
           responsavel_financeiro_nome: gestorCreate ? null : rpfFields.responsavel_financeiro_nome,
           assessoria_id: null,
           leiloeiro_id: gestorCreate ? null : vehicleAuctioneer?.value || null,
+          advocacy_office_id: document.getElementById("vehicleAdvocacyOfficeId")?.value || null,
           observacoes: gestorCreate ? "" : document.getElementById("vehicleNotes").value.trim(),
           status: editingVehicleData?.status || "NO_PATIO",
           payment_status: editingVehicleData?.payment_status || "EM_ABERTO",
@@ -20357,9 +20672,15 @@
           delete o.vistoria_observacoes;
           return o;
         };
+        const previousOfficeId = editingVehicleData?.advocacy_office_id || null;
         const stripLeiloeiroFrom = (p) => {
           const o = { ...p };
           delete o.leiloeiro_id;
+          return o;
+        };
+        const stripAdvocacyFrom = (p) => {
+          const o = { ...p };
+          delete o.advocacy_office_id;
           return o;
         };
         const stripRpfFrom = (p) => {
@@ -20386,6 +20707,7 @@
           const kinds = [];
           if (/vistoria_/i.test(m)) kinds.push("vistoria");
           if (/leiloeiro_id/i.test(m)) kinds.push("leiloeiro");
+          if (/advocacy_office_id/i.test(m)) kinds.push("advocacy");
           if (/responsavel_financeiro_/i.test(m)) kinds.push("rpf");
           if (/entry_inspection_flow|(\bcor\b)/i.test(m)) kinds.push("entryflow");
           if (/pending_adm_review|registered_by_gestor|adm_reviewed_at/i.test(m)) kinds.push("admreview");
@@ -20415,6 +20737,7 @@
           for (const k of kinds) {
             if (k === "vistoria") tryPayload = stripVistoriaFrom(tryPayload);
             else if (k === "leiloeiro") tryPayload = stripLeiloeiroFrom(tryPayload);
+            else if (k === "advocacy") tryPayload = stripAdvocacyFrom(tryPayload);
             else if (k === "rpf") tryPayload = stripRpfFrom(tryPayload);
             else if (k === "entryflow") tryPayload = stripEntryFlowFrom(tryPayload);
             else if (k === "admreview") tryPayload = stripAdmReviewFrom(tryPayload);
@@ -20436,6 +20759,7 @@
           const partes = [];
           if (degradedGroups.includes("vistoria")) partes.push("laudo de vistoria");
           if (degradedGroups.includes("leiloeiro")) partes.push("leiloeiro");
+          if (degradedGroups.includes("advocacy")) partes.push("escritório de advocacia");
           if (degradedGroups.includes("rpf")) partes.push("RPF (responsável financeiro)");
           if (degradedGroups.includes("entryflow")) {
             partes.push("cor e fluxo de vistoria eletrônica (entry_inspection_flow)");
@@ -20452,6 +20776,9 @@
           }
           if (degradedGroups.includes("admreview")) {
             sqlHints.push("supabase/vehicles_gestor_adm_review.sql");
+          }
+          if (degradedGroups.includes("advocacy")) {
+            sqlHints.push("supabase/advocacy_offices.sql");
           }
           const sqlText =
             sqlHints.length === 1
@@ -20478,6 +20805,11 @@
             alertSupabaseError(error);
           }
           return;
+        }
+        const newOfficeId = tryPayload.advocacy_office_id || null;
+        const histVehicleId = editingVehicleId || savedNewVehicle?.id;
+        if (histVehicleId && !degradedGroups.includes("advocacy")) {
+          await recordAdvocacyOfficeLinkHistory(histVehicleId, previousOfficeId, newOfficeId);
         }
         const savedEditId = editingVehicleId;
         const wasNewVehicle = !savedEditId;
@@ -22235,6 +22567,7 @@
         else if (view === "lista") menu.querySelector("#headerDetailsLista")?.classList.add("header-menu-details--current");
         else if (view === "financeiro") menu.querySelector("#headerDetailsFinance")?.classList.add("header-menu-details--current");
         else if (view === "configuracoes") menu.querySelector("#headerDetailsConfig")?.classList.add("header-menu-details--current");
+        else if (view === "escritorios") menu.querySelector("#headerDetailsEscritorios")?.classList.add("header-menu-details--current");
       }
 
       function showMainView(view) {
@@ -22272,6 +22605,8 @@
           document.title = "AMPLIGUARD · Painel";
         } else if (view === "biExecutivo") {
           document.title = "AMPLIGUARD · BI Executivo";
+        } else if (view === "escritorios") {
+          document.title = "AMPLIGUARD · Escritórios de Advocacia";
         } else {
           document.title = "AMPLIGUARD";
         }
@@ -22298,7 +22633,14 @@
         if (view === "biExecutivo") {
           renderBiExecutivoDashboard();
         }
-        const headerModViews = ["dashboard", "patio", "parceiros", "lista", "configuracoes", "financeiro", "biExecutivo"];
+        if (view === "escritorios") {
+          if (typeof window.advocacyOfficesUi?.bindOnce === "function") window.advocacyOfficesUi.bindOnce();
+          const cadHidden = document.getElementById("aoCadastroPanel")?.classList.contains("hidden");
+          if (typeof window.advocacyOfficesUi?.setSubview === "function") {
+            window.advocacyOfficesUi.setSubview(cadHidden ? "relatorio" : "cadastro");
+          }
+        }
+        const headerModViews = ["dashboard", "patio", "parceiros", "lista", "configuracoes", "financeiro", "biExecutivo", "escritorios"];
         if (headerModViews.includes(view) && lastAppHeaderModuleView !== view) {
           document.querySelectorAll("#appHeaderMenu > .header-menu-details").forEach((d) => d.removeAttribute("open"));
           lastAppHeaderModuleView = view;
@@ -22507,6 +22849,34 @@
             renderBiExecutivoDashboard();
           }
         }
+        if (view === "escritorios") {
+          navStack.push("escritorios:cadastro");
+          if (typeof window.advocacyOfficesUi?.bindOnce === "function") window.advocacyOfficesUi.bindOnce();
+          if (typeof window.advocacyOfficesUi?.setSubview === "function") window.advocacyOfficesUi.setSubview("cadastro");
+        }
+      }
+
+      function openEscritoriosSubview(sub) {
+        if (isVistoriador || isGestorPista) {
+          showMainView("patio");
+          setPatioView(isVistoriador ? "vistoria" : "inicio");
+          return;
+        }
+        sub = sub === "relatorio" ? "relatorio" : "cadastro";
+        const top = navStack[navStack.length - 1];
+        if (top === `escritorios:${sub}`) {
+          showMainView("escritorios");
+          if (typeof window.advocacyOfficesUi?.setSubview === "function") window.advocacyOfficesUi.setSubview(sub);
+          return;
+        }
+        if (top && typeof top === "string" && top.startsWith("escritorios:")) navStack.pop();
+        if (!isNavOnModule("escritorios")) {
+          navStack.splice(0, navStack.length, "escritorios");
+        }
+        showMainView("escritorios");
+        navStack.push(`escritorios:${sub}`);
+        if (typeof window.advocacyOfficesUi?.bindOnce === "function") window.advocacyOfficesUi.bindOnce();
+        if (typeof window.advocacyOfficesUi?.setSubview === "function") window.advocacyOfficesUi.setSubview(sub);
       }
 
       function goToPatioForPlateSearch() {
@@ -22633,6 +23003,17 @@
         }
         if (top === "biExecutivo") {
           return showMainView("biExecutivo");
+        }
+        if (top === "escritorios") {
+          showMainView("escritorios");
+          if (typeof window.advocacyOfficesUi?.setSubview === "function") window.advocacyOfficesUi.setSubview("cadastro");
+          return;
+        }
+        if (top && typeof top === "string" && top.startsWith("escritorios:")) {
+          const sub = top.split(":")[1];
+          showMainView("escritorios");
+          if (typeof window.advocacyOfficesUi?.setSubview === "function") window.advocacyOfficesUi.setSubview(sub || "cadastro");
+          return;
         }
 
         if (top === "lista") {
@@ -22798,7 +23179,7 @@
       }
 
       function syncHeaderMenuHighlightFromDom() {
-        const order = ["dashboard", "biExecutivo", "patio", "financeiro", "parceiros", "lista", "configuracoes"];
+        const order = ["dashboard", "biExecutivo", "patio", "financeiro", "parceiros", "escritorios", "lista", "configuracoes"];
         for (const name of order) {
           const el = views[name];
           if (el && !el.classList.contains("hidden")) {
@@ -22875,6 +23256,13 @@
         if (partnerSub) {
           e.preventDefault();
           openPartnerSubview(partnerSub.getAttribute("data-header-partner-sub"));
+          closeAppHeaderMenu();
+          return;
+        }
+        const escSub = e.target.closest("[data-header-escritorio-sub]");
+        if (escSub) {
+          e.preventDefault();
+          openEscritoriosSubview(escSub.getAttribute("data-header-escritorio-sub"));
           closeAppHeaderMenu();
           return;
         }
