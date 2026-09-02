@@ -10,6 +10,7 @@
   let _lastState = null;
   let _lastCtx = null;
   let _filters = Object.assign({}, global.DEFAULT_PARTNER_FILTERS || { tipo: "", cidade: "", estado: "", status: "", search: "" });
+  let _category = "financeiras";
   let editingPartnerId = null;
   let _modalReadonly = false;
   let _activeTab = "dados";
@@ -185,11 +186,19 @@
 
   function hideLegacyTable() {
     const subview =
-      document.querySelector('#viewParceiros .partner-subview[data-subview="parceiros"]') ||
-      document.querySelector('.partner-subview[data-subview="parceiros"]');
+      document.querySelector('#viewParceiros .partner-subview[data-subview="cadastro"]') ||
+      document.querySelector('.partner-subview[data-subview="cadastro"]');
     if (!subview) return;
-    const legacyTable = subview.querySelector(".table-wrap");
+    const legacyTable = subview.querySelector(".table-wrap.hub-dash-legacy-hidden");
     if (legacyTable) legacyTable.classList.add("pc-legacy-hidden");
+  }
+
+  function fieldLabelOverrides() {
+    const id = categoryMeta().id;
+    if (id === "financeiras") return { nome: "Nome / Razão social", cpf: "CNPJ" };
+    if (id === "transportadoras") return { nome: "Nome / Razão social", cpf: "CNPJ" };
+    if (id === "prestadores") return { nome: "Nome / Razão social", cpf: "CPF/CNPJ" };
+    return { nome: "Nome", cpf: "CPF/CNPJ" };
   }
 
   function uniqueCidades(partners) {
@@ -203,6 +212,16 @@
     });
   }
 
+  function categoryMeta() {
+    const tabs = (svc() && svc().PARTNER_CATEGORY_TABS) || global.PARTNER_CATEGORY_TABS || {};
+    return tabs[_category] || tabs.financeiras || {};
+  }
+
+  function allowedTiposForCategory() {
+    const meta = categoryMeta();
+    return meta.tipos || [];
+  }
+
   function renderTipoBadge(tipo, ctx) {
     const badgeFn = global.partnerTipoBadge || (svc() && svc().partnerTipoBadge);
     const labelFn = global.partnerTipoLabel || (svc() && svc().partnerTipoLabel);
@@ -211,22 +230,52 @@
     return '<span class="partner-tipo-badge partner-tipo-badge--' + esc(badge, ctx) + '">' + esc(label, ctx) + "</span>";
   }
 
+  function categoryPartnersBase() {
+    const listFn = global.ListPartners || (svc() && svc().ListPartners);
+    const raw = (_lastState && _lastState.partners) || [];
+    const meta = categoryMeta();
+    if (!listFn) return raw;
+    return listFn(raw, {
+      tipos: meta.tipos || [],
+      includeUnknown: !!meta.includeUnknown,
+      search: "",
+      status: "",
+      tipo: "",
+      cidade: "",
+      estado: "",
+    });
+  }
+
   function renderFilters(partners, ctx) {
-    const cidades = uniqueCidades(partners);
-    const tipos = global.PARTNER_TIPOS || (svc() && svc().PARTNER_TIPOS) || [];
+    const base = categoryPartnersBase();
+    const cidades = uniqueCidades(base.length ? base : partners);
+    const meta = categoryMeta();
+    const allowed = allowedTiposForCategory();
+    const allTipos = global.PARTNER_TIPOS || (svc() && svc().PARTNER_TIPOS) || [];
+    const tipos = meta.lockTipo ? [] : allTipos.filter(function (t) {
+      return !allowed.length || allowed.indexOf(t.code) >= 0 || meta.includeUnknown;
+    });
     const ufs = global.UF_OPTIONS || (svc() && svc().UF_OPTIONS) || [];
 
-    let tipoOpts = '<option value="">Todos os tipos</option>';
-    for (let i = 0; i < tipos.length; i++) {
-      const t = tipos[i];
-      tipoOpts +=
-        '<option value="' +
-        esc(t.code, ctx) +
-        '"' +
-        (_filters.tipo === t.code ? " selected" : "") +
-        ">" +
-        esc(t.label, ctx) +
-        "</option>";
+    let tipoBlock = "";
+    if (!meta.lockTipo && tipos.length) {
+      let tipoOpts = '<option value="">Todos os tipos desta aba</option>';
+      for (let i = 0; i < tipos.length; i++) {
+        const t = tipos[i];
+        tipoOpts +=
+          '<option value="' +
+          esc(t.code, ctx) +
+          '"' +
+          (_filters.tipo === t.code ? " selected" : "") +
+          ">" +
+          esc(t.label, ctx) +
+          "</option>";
+      }
+      tipoBlock =
+        "<label for=\"pcFilterTipo\">Tipo</label>" +
+        '<select id="pcFilterTipo" title="Filtrar por tipo">' +
+        tipoOpts +
+        "</select>";
     }
 
     let cidadeOpts = '<option value="">Todas as cidades</option>';
@@ -257,10 +306,7 @@
 
     return (
       '<div class="filter-bar hub-dash-filters pc-filters" id="pcFilterBar">' +
-      "<label for=\"pcFilterTipo\">Tipo</label>" +
-      '<select id="pcFilterTipo" title="Filtrar por tipo">' +
-      tipoOpts +
-      "</select>" +
+      tipoBlock +
       "<label for=\"pcFilterCidade\">Cidade</label>" +
       '<select id="pcFilterCidade" title="Filtrar por cidade">' +
       cidadeOpts +
@@ -279,8 +325,10 @@
       (_filters.status === "INATIVO" ? " selected" : "") +
       ">Inativo</option>" +
       "</select>" +
-      "<label for=\"pcFilterSearch\">Busca</label>" +
-      '<input id="pcFilterSearch" type="search" placeholder="Nome, CPF, telefone…" value="' +
+      "<label for=\"pcFilterSearch\">Pesquisar</label>" +
+      '<input id="pcFilterSearch" type="search" placeholder="' +
+      esc(meta.searchPlaceholder || "Nome, CPF, telefone…", ctx) +
+      '" value="' +
       esc(_filters.search, ctx) +
       '" />' +
       "</div>"
@@ -288,8 +336,11 @@
   }
 
   function renderTableRows(list, ctx) {
+    const meta = categoryMeta();
+    const showTipo = !meta.lockTipo;
+    const colSpan = showTipo ? 7 : 6;
     if (!list.length) {
-      return '<tr><td colspan="7" class="pc-table-empty">Nenhum parceiro encontrado.</td></tr>';
+      return '<tr><td colspan="' + colSpan + '" class="pc-table-empty">Nenhum cadastro nesta aba.</td></tr>';
     }
     return list
       .map(function (p) {
@@ -297,6 +348,8 @@
         const st = String(p.status || "ATIVO").toUpperCase();
         const stClass = st === "INATIVO" ? "pc-status-inativo" : "pc-status-ativo";
         const stLabel = st === "INATIVO" ? "Inativo" : "Ativo";
+        const toggleLabel = st === "INATIVO" ? "Ativar" : "Inativar";
+        const tipoCell = showTipo ? "<td>" + renderTipoBadge(p.tipo, ctx) + "</td>" : "";
         return (
           "<tr data-partner-id=\"" +
           esc(p.id, ctx) +
@@ -304,9 +357,7 @@
           "<td>" +
           esc(p.nome || "—", ctx) +
           "</td>" +
-          "<td>" +
-          renderTipoBadge(p.tipo, ctx) +
-          "</td>" +
+          tipoCell +
           "<td>" +
           esc(p.cpf || "—", ctx) +
           "</td>" +
@@ -324,10 +375,15 @@
           '<td class="actions">' +
           '<button type="button" class="secondary" data-pc-action="detalhes" data-id="' +
           esc(p.id, ctx) +
-          '">Detalhes</button>' +
+          '">Visualizar</button>' +
           '<button type="button" class="secondary" data-pc-action="editar" data-id="' +
           esc(p.id, ctx) +
           '">Editar</button>' +
+          '<button type="button" class="secondary" data-pc-action="toggle" data-id="' +
+          esc(p.id, ctx) +
+          '">' +
+          toggleLabel +
+          "</button>" +
           '<button type="button" class="secondary" data-pc-action="apagar" data-id="' +
           esc(p.id, ctx) +
           '">Apagar</button>' +
@@ -339,17 +395,30 @@
   }
 
   function renderShell(list, ctx) {
+    const meta = categoryMeta();
+    const showTipo = !meta.lockTipo;
+    const tipoTh = showTipo ? "<th>Tipo</th>" : "";
     return (
       '<div class="pc-toolbar">' +
       renderFilters(_lastState && _lastState.partners ? _lastState.partners : list, ctx) +
-      '<button type="button" id="pcBtnNovo" class="primary">+ Novo parceiro</button>' +
+      '<button type="button" id="pcBtnNovo" class="primary">' +
+      esc(meta.novoLabel || "+ Novo parceiro", ctx) +
+      "</button>" +
       "</div>" +
       '<div class="pc-table-panel section-card">' +
-      '<h3 class="pc-table-title hub-table-title">Cadastro de parceiros</h3>' +
+      '<h3 class="pc-table-title hub-table-title">' +
+      esc(meta.title || "Cadastro de parceiros", ctx) +
+      "</h3>" +
       '<div class="table-wrap pc-table-wrap hub-table-wrap">' +
       '<table class="table pc-table hub-exec-table">' +
       "<thead><tr>" +
-      "<th>Nome</th><th>Tipo</th><th>CPF/CNPJ</th><th>Cidade</th><th>Telefone</th><th>Status</th><th>Ações</th>" +
+      "<th>" +
+      esc(fieldLabelOverrides().nome, ctx) +
+      "</th>" +
+      tipoTh +
+      "<th>" +
+      esc(fieldLabelOverrides().cpf, ctx) +
+      "</th><th>Cidade</th><th>Telefone</th><th>Status</th><th>Ações</th>" +
       "</tr></thead>" +
       "<tbody id=\"pcTableBody\">" +
       renderTableRows(list, ctx) +
@@ -374,7 +443,12 @@
     const listFn = global.ListPartners || (svc() && svc().ListPartners);
     const normFn = global.normalizePartnerRecord || (svc() && svc().normalizePartnerRecord);
     const raw = (_lastState && _lastState.partners) || [];
-    const list = listFn ? listFn(raw, _filters) : raw;
+    const meta = categoryMeta();
+    const filters = Object.assign({}, _filters, {
+      tipos: meta.tipos || [],
+      includeUnknown: !!meta.includeUnknown,
+    });
+    const list = listFn ? listFn(raw, filters) : raw;
     if (!listFn && normFn) {
       return raw.map(normFn);
     }
@@ -508,8 +582,11 @@
       return f.group === "common" && f.key !== "tipo";
     });
     let html = "";
+    const labels = fieldLabelOverrides();
     for (let i = 0; i < common.length; i++) {
-      html += renderFieldInput(common[i], partner[common[i].key], "pcCommon_", readonly);
+      const f = common[i];
+      const labeled = labels[f.key] ? Object.assign({}, f, { label: labels[f.key] }) : f;
+      html += renderFieldInput(labeled, partner[f.key], "pcCommon_", readonly);
     }
     return html;
   }
@@ -531,8 +608,15 @@
   }
 
   function renderTipoSelect(partner, readonly) {
-    const tipos = global.PARTNER_TIPOS || (svc() && svc().PARTNER_TIPOS) || [];
-    const val = partner.tipo || "LOCALIZADOR";
+    const meta = categoryMeta();
+    const allTipos = global.PARTNER_TIPOS || (svc() && svc().PARTNER_TIPOS) || [];
+    const allowed = allowedTiposForCategory();
+    const tipos = allTipos.filter(function (t) {
+      if (meta.includeUnknown) return allowed.indexOf(t.code) >= 0;
+      return !allowed.length || allowed.indexOf(t.code) >= 0;
+    });
+    const val = partner.tipo || meta.defaultTipo || "LOCALIZADOR";
+    const lock = readonly || meta.lockTipo;
     let opts = "";
     for (let i = 0; i < tipos.length; i++) {
       const t = tipos[i];
@@ -545,7 +629,7 @@
         escapeHtmlDefault(t.label) +
         "</option>";
     }
-    const ro = readonly ? " disabled" : "";
+    const ro = lock ? " disabled" : "";
     return (
       '<div><label for="pcCommon_tipo">Tipo de Parceiro *</label>' +
       '<select id="pcCommon_tipo" data-pc-field="tipo" data-pc-group="common"' +
@@ -1129,6 +1213,35 @@
     }
   }
 
+  async function togglePartnerStatus(partner, ctx) {
+    ctx = ctx || _lastCtx || {};
+    const next = String(partner.status || "ATIVO").toUpperCase() === "INATIVO" ? "ATIVO" : "INATIVO";
+    const supabaseClient = (ctx && ctx.supabase) || global.supabase;
+    const userId = effectiveUserId(ctx);
+    if (!supabaseClient || !userId) return;
+    const run = ctx.runSupabaseWrite
+      ? ctx.runSupabaseWrite
+      : function (fn) {
+          return fn();
+        };
+    const { error } = await run(function () {
+      return supabaseClient
+        .from("partners")
+        .update({ status: next })
+        .eq("id", partner.id)
+        .eq("user_id", userId);
+    });
+    if (error) {
+      alert(error.message || "Não foi possível alterar o status.");
+      return;
+    }
+    await reloadPartners(ctx);
+    if (_lastState) {
+      _lastState.partners = (global.state && global.state.partners) || _lastState.partners;
+      partnersCadastroRender(_lastState, ctx);
+    }
+  }
+
   function bindModalEvents(ctx) {
     const form = document.getElementById("partnerForm");
     const tipoEl = document.getElementById("pcCommon_tipo");
@@ -1236,6 +1349,8 @@
           openModal(partner, "detalhes", ctx);
         } else if (action === "editar") {
           partnersCadastroOpenEdit(partner);
+        } else if (action === "toggle") {
+          togglePartnerStatus(partner, ctx);
         } else if (action === "apagar") {
           deletePartner(id, ctx);
         }
@@ -1282,7 +1397,14 @@
 
   function partnersCadastroOpenCreate() {
     editingPartnerId = null;
-    openModal({ tipo: "LOCALIZADOR", status: "ATIVO", perfil: {} }, "create", _lastCtx || {});
+    const meta = categoryMeta();
+    openModal({ tipo: meta.defaultTipo || "LOCALIZADOR", status: "ATIVO", perfil: {} }, "create", _lastCtx || {});
+  }
+
+  function partnersCadastroSetCategory(id) {
+    _category = id || "financeiras";
+    _filters.tipo = "";
+    _filters.search = "";
   }
 
   function partnersCadastroOpenEdit(partner, opts) {
@@ -1306,6 +1428,7 @@
 
   global.partnersCadastroRender = partnersCadastroRender;
   global.partnersCadastroOpenCreate = partnersCadastroOpenCreate;
+  global.partnersCadastroSetCategory = partnersCadastroSetCategory;
   global.partnersCadastroOpenEdit = partnersCadastroOpenEdit;
   global.partnersCadastroSubmit = partnersCadastroSubmit;
   global.partnersCadastroUiInit = partnersCadastroUiInit;
