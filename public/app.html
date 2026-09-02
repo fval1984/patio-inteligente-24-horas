@@ -1,10 +1,10 @@
 ﻿<!DOCTYPE html>
-<!-- amplipatio-static build=partners-tabs-v1 -->
+<!-- amplipatio-static build=partners-tabs-v2 -->
 <html lang="pt-BR" data-theme="light">
   <head>
     <script>
       (function () {
-        var RESTORE_EPOCH = "20260902ptabs";
+        var RESTORE_EPOCH = "20260902contrast1";
         try {
           if (localStorage.getItem("amplipatio_restore_epoch") === RESTORE_EPOCH) return;
           Object.keys(localStorage).forEach(function (k) {
@@ -393,7 +393,34 @@
         text-transform: uppercase;
       }
 
-      /* Parceiros — shell e ribbon (padrão premium) */
+      #partnerCategoryKpis.ao-kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 10px;
+        margin: 12px 0 4px;
+      }
+      #partnerCategoryKpis .ao-kpi {
+        text-align: left;
+        cursor: pointer;
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        background: var(--card);
+        color: var(--text);
+      }
+      #partnerCategoryKpis .ao-kpi span {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        opacity: 0.8;
+      }
+      #partnerCategoryKpis .ao-kpi.ao-kpi-active {
+        border-color: rgba(56, 189, 248, 0.75);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 6px 12px rgba(14, 165, 233, 0.16);
+      }
       #viewParceiros.partners-module-shell {
         position: relative;
         overflow: hidden;
@@ -6768,7 +6795,7 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="/ampliguard-theme.css?v=20260820theme10" />
+    <link rel="stylesheet" href="/ampliguard-theme.css?v=20260902contrast1" />
     <link rel="stylesheet" href="/finance-action-ui.css?v=20260818finact6" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile17" />
@@ -7343,22 +7370,17 @@
               <button type="button" id="aoOpenCreate" class="hidden">Novo escritório</button>
             </div>
           </div>
+          <div id="partnerCategoryKpis" class="ao-kpis" aria-label="Resumo de parceiros"></div>
           <div id="partnerSubnav" class="subnav">
-            <button type="button" data-subview="dashboard" class="active">Dashboard</button>
-            <button type="button" data-subview="financeiras">Financeiras</button>
+            <button type="button" data-subview="financeiras" class="active">Financeiras</button>
             <button type="button" data-subview="escritorios">Escritórios de Advocacia</button>
             <button type="button" data-subview="transportadoras">Transportadoras</button>
             <button type="button" data-subview="prestadores">Prestadores de Serviço</button>
             <button type="button" data-subview="outros">Outros</button>
           </div>
 
-          <div class="partner-subview" data-subview="dashboard">
-            <div class="partner-dash-head" style="margin-bottom: 12px">
-              <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800">Dashboard de Parceiros</h3>
-              <p class="notice" style="margin: 6px 0 0">Resumo por tipo de parceiro e operação por financeira.</p>
-            </div>
-            <div id="partnerCategoryKpis" class="ao-kpis" style="margin: 0 0 16px"></div>
-            <div id="partnerFinDashRoot" class="fp-exec-root"></div>
+          <div class="partner-subview hidden" data-subview="dashboard" hidden aria-hidden="true">
+            <div id="partnerFinDashRoot" class="fp-exec-root hub-dash-legacy-hidden" hidden></div>
             <div class="filter-bar partner-dash-toolbar hub-dash-legacy-hidden" hidden aria-hidden="true">
               <label for="partnerDashFilterPeriod">Período</label>
               <select id="partnerDashFilterPeriod" title="Período de análise">
@@ -8873,7 +8895,6 @@
         <details class="header-menu-details" id="headerDetailsParceiros">
           <summary>Parceiros</summary>
           <div class="header-menu-nested">
-            <button type="button" data-header-partner-sub="dashboard">Dashboard</button>
             <button type="button" data-header-partner-sub="financeiras">Financeiras</button>
             <button type="button" data-header-partner-sub="escritorios">Escritórios de Advocacia</button>
             <button type="button" data-header-partner-sub="transportadoras">Transportadoras</button>
@@ -8921,9 +8942,9 @@
     <script src="/operational-dashboard-ui.js?v=20260813opscontrast"></script>
     <script src="/partners-dashboard.js?v=20260605partners601"></script>
     <script src="/financial-partner-metrics-service.js?v=20260727fpdash"></script>
-    <script src="/financial-partner-dashboard-ui.js?v=20260727parceiros"></script>
-    <script src="/partners-cadastro-service.js?v=20260902ptabs3"></script>
-    <script src="/partners-cadastro-ui.js?v=20260902ptabs3"></script>
+    <script src="/financial-partner-dashboard-ui.js?v=20260902contrast1"></script>
+    <script src="/partners-cadastro-service.js?v=20260902ptabs4"></script>
+    <script src="/partners-cadastro-ui.js?v=20260902ptabs5"></script>
     <script src="/dashboard-metrics-service.js?v=20260819vnpvist1"></script>
     <script src="/amplipatio-dashboard.js?v=20260902adv1"></script>
     <script src="/vehicle-entry-inspection-checklist.js?v=20260820vistoria5"></script>
@@ -8934,7 +8955,7 @@
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script src="/advocacy-offices-service.js?v=20260902adv2"></script>
-    <script src="/advocacy-offices-ui.js?v=20260902adv2"></script>
+    <script src="/advocacy-offices-ui.js?v=20260902adv3"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -16946,11 +16967,9 @@
         }
 
         if (
-          currentPartnerView === "dashboard" &&
-          !document.getElementById("viewParceiros")?.classList.contains("hidden") &&
-          typeof window.renderPartnersDashboard === "function"
+          !document.getElementById("viewParceiros")?.classList.contains("hidden")
         ) {
-          window.renderPartnersDashboard();
+          renderPartnerCategoryKpis();
         }
 
         if (!isGestorPista) {
@@ -17772,9 +17791,9 @@
         const offices = (state.advocacyOffices || []).length;
         const total = (counts.total || 0) + offices;
         const card = (id, label, n) =>
-          `<button type="button" class="ao-kpi" data-partner-kpi="${id}" style="text-align:left;cursor:pointer;width:100%"><span>${label}</span><strong>${n}</strong></button>`;
+          `<button type="button" class="ao-kpi" data-partner-kpi="${id}"><span>${label}</span><strong>${n}</strong></button>`;
         host.innerHTML =
-          card("dashboard", "Total de parceiros", total) +
+          `<div class="ao-kpi" style="cursor:default"><span>Total de parceiros</span><strong>${total}</strong></div>` +
           card("financeiras", "Financeiras", counts.financeiras || 0) +
           card("escritorios", "Escritórios", offices) +
           card("transportadoras", "Transportadoras", counts.transportadoras || 0) +
@@ -17804,7 +17823,7 @@
       function setPartnerView(view) {
         const show = view && view !== "none";
         const CADASTRO_TABS = { financeiras: 1, transportadoras: 1, prestadores: 1, outros: 1 };
-        if (view === "parceiros" || view === "cadastro") view = "financeiras";
+        if (view === "parceiros" || view === "cadastro" || view === "dashboard") view = "financeiras";
         const resolved = show ? view : null;
         currentPartnerView = resolved;
         partnerSubnav?.classList.toggle("hidden", !show);
@@ -17814,7 +17833,7 @@
         partnerSubviews.forEach((panel) => {
           const sub = panel.getAttribute("data-subview");
           let match = false;
-          if (sub === "dashboard") match = show && resolved === "dashboard";
+          if (sub === "dashboard") match = false;
           else if (sub === "cadastro") match = show && !!CADASTRO_TABS[resolved];
           else if (sub === "escritorios") match = show && resolved === "escritorios";
           else match = show && sub === resolved;
@@ -17835,7 +17854,12 @@
         }
         if (novoEsc) novoEsc.classList.toggle("hidden", resolved !== "escritorios");
         syncPartnerFormForCurrentView();
-        if (resolved === "dashboard") renderPartnersDashboard();
+        if (show) {
+          renderPartnerCategoryKpis();
+          document.querySelectorAll("#partnerCategoryKpis [data-partner-kpi]").forEach((el) => {
+            el.classList.toggle("ao-kpi-active", el.getAttribute("data-partner-kpi") === resolved);
+          });
+        }
         if (CADASTRO_TABS[resolved]) {
           if (typeof window.partnersCadastroSetCategory === "function") window.partnersCadastroSetCategory(resolved);
           renderPartners();
@@ -18630,7 +18654,7 @@
           }
         }
         renderPartnerOptions();
-        if (currentPartnerView === "dashboard" || !currentPartnerView) renderPartnersDashboard();
+        if (!document.getElementById("viewParceiros")?.classList.contains("hidden")) renderPartnerCategoryKpis();
       }
 
       function renderPartnerRankings() {
@@ -22555,7 +22579,7 @@
         const kpi = event.target.closest("[data-partner-kpi]");
         if (kpi) {
           const dest = kpi.getAttribute("data-partner-kpi");
-          if (dest && dest !== "dashboard") openPartnerSubview(dest);
+          if (dest) openPartnerSubview(dest);
           return;
         }
         const button = event.target.closest("button[data-action]");
@@ -22888,9 +22912,8 @@
           navStack.push("patio:inicio");
         }
         if (view === "parceiros") {
-          setPartnerView("dashboard");
-          navStack.push("parceiros:dashboard");
-          if (typeof window.partnersDashboardInit === "function") window.partnersDashboardInit();
+          setPartnerView("financeiras");
+          navStack.push("parceiros:financeiras");
           if (typeof window.partnersCadastroUiInit === "function") window.partnersCadastroUiInit();
         }
         if (view === "lista") {
@@ -22971,8 +22994,8 @@
           prestadores: 1,
           outros: 1,
         };
-        if (sub === "parceiros" || sub === "cadastro") sub = "financeiras";
-        if (!allowed[sub]) sub = "dashboard";
+        if (sub === "parceiros" || sub === "cadastro" || sub === "dashboard") sub = "financeiras";
+        if (!allowed[sub]) sub = "financeiras";
         const top = navStack[navStack.length - 1];
         if (top === `parceiros:${sub}`) {
           setPartnerView(sub);
@@ -23045,7 +23068,7 @@
         }
         if (top === "parceiros") {
           showMainView("parceiros");
-          return setPartnerView("dashboard");
+          return setPartnerView("financeiras");
         }
         if (top === "configuracoes") return showMainView("configuracoes");
         if (top === "financeiro") {
@@ -23096,7 +23119,7 @@
       document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
       document.getElementById("dashboardOpenLista")?.addEventListener("click", () => openMainView("lista"));
-      document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openPartnerSubview("dashboard"));
+      document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openPartnerSubview("financeiras"));
       document.getElementById("dashboardOpenConfiguracoes")?.addEventListener("click", () => openMainView("configuracoes"));
       document.getElementById("exitConfigToPatio")?.addEventListener("click", () => closeStackTop());
 
@@ -23306,7 +23329,7 @@
         const partnerSum = e.target.closest("#headerDetailsParceiros summary");
         if (partnerSum) {
           e.preventDefault();
-          openPartnerSubview("dashboard");
+          openPartnerSubview("financeiras");
           closeAppHeaderMenu();
           return;
         }
