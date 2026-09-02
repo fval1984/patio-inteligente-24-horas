@@ -166,6 +166,8 @@
     if (root) return root;
 
     const subview =
+      document.querySelector('#viewParceiros .partner-subview[data-subview="cadastro"]') ||
+      document.querySelector('.partner-subview[data-subview="cadastro"]') ||
       document.querySelector('#viewParceiros .partner-subview[data-subview="parceiros"]') ||
       document.querySelector('.partner-subview[data-subview="parceiros"]');
     if (!subview) return null;
