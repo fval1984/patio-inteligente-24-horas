@@ -1,10 +1,10 @@
 ﻿<!DOCTYPE html>
-<!-- amplipatio-static build=mobile-open-v1 -->
+<!-- amplipatio-static build=partners-tabs-v1 -->
 <html lang="pt-BR" data-theme="light">
   <head>
     <script>
       (function () {
-        var RESTORE_EPOCH = "27923ee9";
+        var RESTORE_EPOCH = "20260902ptabs";
         try {
           if (localStorage.getItem("amplipatio_restore_epoch") === RESTORE_EPOCH) return;
           Object.keys(localStorage).forEach(function (k) {
@@ -3547,6 +3547,9 @@
         border-radius: 14px;
         padding: 10px 12px;
         margin-top: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
         background: linear-gradient(160deg, rgba(15, 23, 42, 0.36), rgba(2, 6, 23, 0.2));
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
       }
@@ -8868,7 +8871,7 @@
         </details>
 
         <details class="header-menu-details" id="headerDetailsParceiros">
-          <summary>Rede de parceiros</summary>
+          <summary>Parceiros</summary>
           <div class="header-menu-nested">
             <button type="button" data-header-partner-sub="dashboard">Dashboard</button>
             <button type="button" data-header-partner-sub="financeiras">Financeiras</button>
@@ -8919,8 +8922,8 @@
     <script src="/partners-dashboard.js?v=20260605partners601"></script>
     <script src="/financial-partner-metrics-service.js?v=20260727fpdash"></script>
     <script src="/financial-partner-dashboard-ui.js?v=20260727parceiros"></script>
-    <script src="/partners-cadastro-service.js?v=20260902ptabs2"></script>
-    <script src="/partners-cadastro-ui.js?v=20260902ptabs2"></script>
+    <script src="/partners-cadastro-service.js?v=20260902ptabs3"></script>
+    <script src="/partners-cadastro-ui.js?v=20260902ptabs3"></script>
     <script src="/dashboard-metrics-service.js?v=20260819vnpvist1"></script>
     <script src="/amplipatio-dashboard.js?v=20260902adv1"></script>
     <script src="/vehicle-entry-inspection-checklist.js?v=20260820vistoria5"></script>
@@ -23300,6 +23303,13 @@
           return;
         }
 
+        const partnerSum = e.target.closest("#headerDetailsParceiros summary");
+        if (partnerSum) {
+          e.preventDefault();
+          openPartnerSubview("dashboard");
+          closeAppHeaderMenu();
+          return;
+        }
         const partnerSub = e.target.closest("[data-header-partner-sub]");
         if (partnerSub) {
           e.preventDefault();
