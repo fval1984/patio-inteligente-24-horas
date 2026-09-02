@@ -7,10 +7,57 @@
 
   const PARTNER_TIPOS = [
     { code: "INSTITUICAO_FINANCEIRA", label: "Instituição Financeira", badge: "green" },
-    { code: "ASSESSORIA", label: "Assessoria Jurídica", badge: "purple" },
+    { code: "TRANSPORTADORA", label: "Transportadora", badge: "orange" },
+    { code: "PRESTADOR_SERVICO", label: "Prestador de Serviço", badge: "blue" },
     { code: "GUINCHEIRO", label: "Guincheiro", badge: "orange" },
+    { code: "ASSESSORIA", label: "Assessoria Jurídica", badge: "purple" },
     { code: "LOCALIZADOR", label: "Localizador", badge: "blue" },
+    { code: "LEILOEIRO", label: "Leiloeiro", badge: "purple" },
   ];
+
+  const PARTNER_CATEGORY_TABS = {
+    financeiras: {
+      id: "financeiras",
+      label: "Financeiras",
+      tipos: ["INSTITUICAO_FINANCEIRA"],
+      defaultTipo: "INSTITUICAO_FINANCEIRA",
+      lockTipo: true,
+      novoLabel: "Nova financeira",
+      searchPlaceholder: "Nome, CNPJ, telefone…",
+      title: "Financeiras",
+    },
+    transportadoras: {
+      id: "transportadoras",
+      label: "Transportadoras",
+      tipos: ["TRANSPORTADORA", "GUINCHEIRO"],
+      defaultTipo: "TRANSPORTADORA",
+      lockTipo: false,
+      novoLabel: "Nova transportadora",
+      searchPlaceholder: "Nome, CNPJ, responsável, telefone…",
+      title: "Transportadoras",
+    },
+    prestadores: {
+      id: "prestadores",
+      label: "Prestadores de Serviço",
+      tipos: ["PRESTADOR_SERVICO"],
+      defaultTipo: "PRESTADOR_SERVICO",
+      lockTipo: true,
+      novoLabel: "Novo prestador",
+      searchPlaceholder: "Nome, CPF/CNPJ, serviço, responsável…",
+      title: "Prestadores de Serviço",
+    },
+    outros: {
+      id: "outros",
+      label: "Outros",
+      tipos: ["LOCALIZADOR", "ASSESSORIA", "LEILOEIRO"],
+      includeUnknown: true,
+      defaultTipo: "LOCALIZADOR",
+      lockTipo: false,
+      novoLabel: "Novo parceiro",
+      searchPlaceholder: "Nome, CPF/CNPJ, tipo, responsável…",
+      title: "Outros parceiros",
+    },
+  };
 
   const DEFAULT_PARTNER_FILTERS = {
     tipo: "",
@@ -119,6 +166,17 @@
       { key: "conta", label: "Conta", kind: "text", group: "tipo", span: "half" },
       { key: "chave_pix", label: "Chave PIX", kind: "text", group: "tipo", span: "half" },
     ],
+    TRANSPORTADORA: [
+      { key: "responsavel", label: "Responsável", kind: "text", group: "tipo", span: "half" },
+      { key: "regiao_atendimento", label: "Região de atendimento", kind: "text", group: "tipo", span: "half" },
+    ],
+    PRESTADOR_SERVICO: [
+      { key: "tipo_servico", label: "Tipo de serviço", kind: "text", required: true, group: "tipo", span: "half" },
+      { key: "responsavel", label: "Responsável", kind: "text", group: "tipo", span: "half" },
+    ],
+    LEILOEIRO: [
+      { key: "responsavel", label: "Responsável", kind: "text", group: "tipo", span: "half" },
+    ],
   };
 
   const PARTNER_META_RE = /\[\[partnermeta:([\s\S]*?)\]\]/;
@@ -156,8 +214,21 @@
     if (t === "INSTITUICAO_FINANCEIRA" || t === "FINANCEIRA") return "INSTITUICAO_FINANCEIRA";
     if (t === "ASSESSORIA" || t === "ASSESSORIA_JURIDICA") return "ASSESSORIA";
     if (t === "GUINCHEIRO" || t === "REMOCAO") return "GUINCHEIRO";
+    if (t === "TRANSPORTADORA") return "TRANSPORTADORA";
+    if (t === "PRESTADOR_SERVICO" || t === "PRESTADOR") return "PRESTADOR_SERVICO";
+    if (t === "LEILOEIRO") return "LEILOEIRO";
     if (t === "LOCALIZADOR" || t === "PARCEIRO" || !t) return "LOCALIZADOR";
-    return "LOCALIZADOR";
+    return t;
+  }
+
+  function partnerCategoryOfTipo(tipo) {
+    const code = normalizePartnerTipo(tipo);
+    const keys = Object.keys(PARTNER_CATEGORY_TABS);
+    for (let i = 0; i < keys.length; i++) {
+      const tab = PARTNER_CATEGORY_TABS[keys[i]];
+      if (tab.tipos.indexOf(code) >= 0) return tab.id;
+    }
+    return "outros";
   }
 
   function partnerTipoLabel(tipo) {
@@ -189,6 +260,12 @@
         return "Assessoria Jurídica";
       case "GUINCHEIRO":
         return "Guincheiro";
+      case "TRANSPORTADORA":
+        return "Transportadora";
+      case "PRESTADOR_SERVICO":
+        return "Prestador de Serviço";
+      case "LEILOEIRO":
+        return "Leiloeiro";
       default:
         return "Localizador";
     }
@@ -281,16 +358,33 @@
     return (list || [])
       .map(normalizePartnerRecord)
       .filter(function (p) {
-        if (f.tipo && normalizePartnerTipo(p.tipo) !== normalizePartnerTipo(f.tipo)) return false;
+        if (f.tipos && f.tipos.length) {
+          const code = normalizePartnerTipo(p.tipo);
+          if (f.includeUnknown) {
+            const other = [];
+            Object.keys(PARTNER_CATEGORY_TABS).forEach(function (k) {
+              if (k === "outros") return;
+              other.push.apply(other, PARTNER_CATEGORY_TABS[k].tipos);
+            });
+            if (other.indexOf(code) >= 0) return false;
+          } else if (f.tipos.indexOf(code) < 0) {
+            return false;
+          }
+        } else if (f.tipo && normalizePartnerTipo(p.tipo) !== normalizePartnerTipo(f.tipo)) {
+          return false;
+        }
         if (f.cidade && String(p.cidade || "").toLowerCase() !== f.cidade.toLowerCase()) return false;
         if (f.estado && String(p.estado || "").toUpperCase() !== f.estado.toUpperCase()) return false;
         if (f.status && String(p.status || "ATIVO").toUpperCase() !== f.status.toUpperCase()) return false;
         if (!q) return true;
         const tLabel = partnerTipoLabel(p.tipo).toLowerCase();
+        const perfil = p.perfil || {};
         const hay =
           String(p.nome || "") +
           " " +
           String(p.cpf || "") +
+          " " +
+          String(p.email || "") +
           " " +
           String(p.cidade || "") +
           " " +
@@ -302,7 +396,13 @@
           " " +
           String(p.tipo || "") +
           " " +
-          tLabel;
+          tLabel +
+          " " +
+          String(perfil.responsavel || "") +
+          " " +
+          String(perfil.gestor_conta || "") +
+          " " +
+          String(perfil.tipo_servico || "");
         const hayLower = hay.toLowerCase();
         const hayDigits = digits(String(p.cpf || "") + String(p.telefone || "") + String(p.whatsapp || ""));
         return hayLower.indexOf(q) >= 0 || (!!qDigits && hayDigits.indexOf(qDigits) >= 0);
@@ -609,13 +709,26 @@
     return filterPartners(resolvePartnerList(list), filters);
   }
 
+  function countPartnersByCategory(partners) {
+    const counts = { financeiras: 0, transportadoras: 0, prestadores: 0, outros: 0, total: 0 };
+    (partners || []).forEach(function (p) {
+      const cat = partnerCategoryOfTipo(p.tipo);
+      counts[cat] = (counts[cat] || 0) + 1;
+      counts.total += 1;
+    });
+    return counts;
+  }
+
   const partnersCadastroService = {
     PARTNER_TIPOS: PARTNER_TIPOS,
+    PARTNER_CATEGORY_TABS: PARTNER_CATEGORY_TABS,
     DEFAULT_PARTNER_FILTERS: DEFAULT_PARTNER_FILTERS,
     UF_OPTIONS: UF_OPTIONS,
     COMMON_FIELDS: COMMON_FIELDS,
     TIPO_FIELDS: TIPO_FIELDS,
     normalizePartnerTipo: normalizePartnerTipo,
+    partnerCategoryOfTipo: partnerCategoryOfTipo,
+    countPartnersByCategory: countPartnersByCategory,
     partnerTipoLabel: partnerTipoLabel,
     partnerTipoBadge: partnerTipoBadge,
     fieldsForTipo: fieldsForTipo,
@@ -634,6 +747,7 @@
   };
 
   global.PARTNER_TIPOS = PARTNER_TIPOS;
+  global.PARTNER_CATEGORY_TABS = PARTNER_CATEGORY_TABS;
   global.DEFAULT_PARTNER_FILTERS = DEFAULT_PARTNER_FILTERS;
   global.UF_OPTIONS = UF_OPTIONS;
   global.normalizePartnerTipo = normalizePartnerTipo;
