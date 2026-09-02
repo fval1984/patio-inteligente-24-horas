@@ -333,7 +333,7 @@
       Object.assign(r, { pct: Math.round((r.demandas / total) * 1000) / 10 })
     );
     rows.sort((a, b) => b.demandas - a.demandas || a.nome.localeCompare(b.nome, "pt-BR"));
-    return rows;
+    return rows.filter((r) => r.demandas > 0);
   }
 
   function monthlySeries(list, fromYmd, toYmd) {
