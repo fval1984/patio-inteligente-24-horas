@@ -7337,18 +7337,24 @@
             <div class="actions">
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
               <button id="openPartnerForm">Novo cadastro</button>
+              <button type="button" id="aoOpenCreate" class="hidden">Novo escritório</button>
             </div>
           </div>
           <div id="partnerSubnav" class="subnav">
             <button type="button" data-subview="dashboard" class="active">Dashboard</button>
-            <button type="button" data-subview="parceiros">Cadastro</button>
-            </div>
+            <button type="button" data-subview="financeiras">Financeiras</button>
+            <button type="button" data-subview="escritorios">Escritórios de Advocacia</button>
+            <button type="button" data-subview="transportadoras">Transportadoras</button>
+            <button type="button" data-subview="prestadores">Prestadores de Serviço</button>
+            <button type="button" data-subview="outros">Outros</button>
+          </div>
 
           <div class="partner-subview" data-subview="dashboard">
             <div class="partner-dash-head" style="margin-bottom: 12px">
               <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800">Dashboard de Parceiros</h3>
-              <p class="notice" style="margin: 6px 0 0">Acompanhe operação, permanência e receita por parceiro.</p>
+              <p class="notice" style="margin: 6px 0 0">Resumo por tipo de parceiro e operação por financeira.</p>
             </div>
+            <div id="partnerCategoryKpis" class="ao-kpis" style="margin: 0 0 16px"></div>
             <div id="partnerFinDashRoot" class="fp-exec-root"></div>
             <div class="filter-bar partner-dash-toolbar hub-dash-legacy-hidden" hidden aria-hidden="true">
               <label for="partnerDashFilterPeriod">Período</label>
@@ -7382,10 +7388,9 @@
             <div id="partnerDashDetail" class="hidden hub-dash-legacy-hidden" aria-hidden="true" aria-live="polite"></div>
           </div>
 
-          <div class="section-card partner-subview hidden" data-subview="parceiros">
+          <div class="section-card partner-subview hidden" data-subview="cadastro">
             <p class="notice" style="margin: 0 0 12px">
-              Cadastro inteligente de parceiros. O formulário adapta os campos conforme o Tipo de Parceiro.
-              RPV, RPP e demais papéis do pátio continuam sendo escolhidos nesta lista única.
+              Cadastro por tipo de parceiro. Cada aba lista somente a categoria selecionada. RPV, RPP e leiloeiro no pátio continuam usando o ID do parceiro.
             </p>
             <div id="partnerCadastroRoot"></div>
             <div class="table-wrap hub-dash-legacy-hidden" hidden aria-hidden="true">
@@ -7404,6 +7409,58 @@
               </table>
             </div>
           </div>
+
+          <div class="partner-subview hidden" data-subview="escritorios">
+            <p class="notice" style="margin: 0 0 12px">
+              Cadastro próprio de escritórios. O vínculo com o veículo/demanda guarda o ID do escritório, não o nome.
+            </p>
+            <div id="escritoriosSubnav" class="subnav">
+              <button type="button" data-ao-sub="cadastro" class="active">Cadastro</button>
+              <button type="button" data-ao-sub="relatorio">Relatório de demanda</button>
+            </div>
+            <div id="aoCadastroPanel">
+              <div id="aoCadastroRoot"></div>
+            </div>
+            <div id="aoRelatorioPanel" class="hidden">
+              <div class="filter-bar" style="margin: 0 0 12px; flex-wrap: wrap; gap: 10px; align-items: flex-end">
+                <div>
+                  <label for="aoRepFrom">Período inicial</label>
+                  <input type="date" id="aoRepFrom" />
+                </div>
+                <div>
+                  <label for="aoRepTo">Período final</label>
+                  <input type="date" id="aoRepTo" />
+                </div>
+                <div>
+                  <label for="aoRepOffice">Escritório</label>
+                  <select id="aoRepOffice"><option value="">Todos</option></select>
+                </div>
+                <div>
+                  <label for="aoRepFinanceira">Financeira</label>
+                  <select id="aoRepFinanceira"><option value="">Todas</option></select>
+                </div>
+                <div>
+                  <label for="aoRepStatus">Status do veículo</label>
+                  <select id="aoRepStatus"><option value="">Todos</option></select>
+                </div>
+                <div>
+                  <label for="aoRepTipo">Tipo de veículo</label>
+                  <select id="aoRepTipo"><option value="">Todos</option></select>
+                </div>
+                <div>
+                  <label for="aoRepSituacao">Situação no pátio</label>
+                  <select id="aoRepSituacao">
+                    <option value="">Todas</option>
+                    <option value="no_patio">No pátio</option>
+                    <option value="baixado">Baixados</option>
+                    <option value="pendente">Pendentes</option>
+                  </select>
+                </div>
+                <button type="button" id="aoGenerateReport">Gerar relatório</button>
+              </div>
+              <div id="aoRelatorioRoot"></div>
+            </div>
+          </div>
         </div>
 
         <div id="viewBiExecutivo" class="panel hidden bi-executivo-shell">
@@ -7417,68 +7474,6 @@
             </div>
           </div>
           <div id="biExecRoot" class="bi-exec-root"></div>
-        </div>
-
-        <div id="viewEscritorios" class="panel hidden escritorios-module-shell">
-          <div class="toolbar">
-            <div>
-              <h2 style="margin: 0">Escritórios de Advocacia</h2>
-              <p class="subtitle" style="margin: 4px 0 0">Origem jurídica das demandas e relatórios por escritório</p>
-            </div>
-            <div class="actions">
-              <button type="button" id="aoOpenCreate">Novo escritório</button>
-              <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
-            </div>
-          </div>
-          <div id="escritoriosSubnav" class="subnav">
-            <button type="button" data-ao-sub="cadastro" class="active">Cadastro</button>
-            <button type="button" data-ao-sub="relatorio">Relatórios → Demanda por Escritório</button>
-          </div>
-          <div id="aoCadastroPanel">
-            <p class="notice" style="margin: 0 0 12px">
-              Cadastro próprio de escritórios. O vínculo com o veículo guarda só o ID — os dados do escritório não são duplicados na demanda.
-            </p>
-            <div id="aoCadastroRoot"></div>
-          </div>
-          <div id="aoRelatorioPanel" class="hidden">
-            <div class="filter-bar" style="margin: 0 0 12px; flex-wrap: wrap; gap: 10px; align-items: flex-end">
-              <div>
-                <label for="aoRepFrom">Período inicial</label>
-                <input type="date" id="aoRepFrom" />
-              </div>
-              <div>
-                <label for="aoRepTo">Período final</label>
-                <input type="date" id="aoRepTo" />
-              </div>
-              <div>
-                <label for="aoRepOffice">Escritório</label>
-                <select id="aoRepOffice"><option value="">Todos</option></select>
-              </div>
-              <div>
-                <label for="aoRepFinanceira">Financeira</label>
-                <select id="aoRepFinanceira"><option value="">Todas</option></select>
-              </div>
-              <div>
-                <label for="aoRepStatus">Status do veículo</label>
-                <select id="aoRepStatus"><option value="">Todos</option></select>
-              </div>
-              <div>
-                <label for="aoRepTipo">Tipo de veículo</label>
-                <select id="aoRepTipo"><option value="">Todos</option></select>
-              </div>
-              <div>
-                <label for="aoRepSituacao">Situação no pátio</label>
-                <select id="aoRepSituacao">
-                  <option value="">Todas</option>
-                  <option value="no_patio">No pátio</option>
-                  <option value="baixado">Baixados</option>
-                  <option value="pendente">Pendentes</option>
-                </select>
-              </div>
-              <button type="button" id="aoGenerateReport">Gerar relatório</button>
-            </div>
-            <div id="aoRelatorioRoot"></div>
-          </div>
         </div>
 
         <div id="viewFinanceiro" class="panel hidden finance-module-shell">
@@ -8036,6 +8031,7 @@
                   <input type="hidden" id="vehicleAdvocacyOfficeId" value="" />
                   <div id="vehicleAdvocacyOfficeList" class="ao-suggest hidden"></div>
                 </div>
+                <button type="button" id="vehicleAdvocacyOfficeNew" class="secondary" style="margin-top:8px">Cadastrar escritório</button>
               </div>
               <div class="full field-operador-hide">
                 <label>Observações</label>
@@ -8874,16 +8870,12 @@
         <details class="header-menu-details" id="headerDetailsParceiros">
           <summary>Rede de parceiros</summary>
           <div class="header-menu-nested">
-            <button type="button" data-header-partner-sub="parceiros">Cadastro</button>
             <button type="button" data-header-partner-sub="dashboard">Dashboard</button>
-          </div>
-        </details>
-
-        <details class="header-menu-details" id="headerDetailsEscritorios">
-          <summary>Escritórios de Advocacia</summary>
-          <div class="header-menu-nested">
-            <button type="button" data-header-escritorio-sub="cadastro">Cadastro</button>
-            <button type="button" data-header-escritorio-sub="relatorio">Relatórios → Demanda por Escritório</button>
+            <button type="button" data-header-partner-sub="financeiras">Financeiras</button>
+            <button type="button" data-header-partner-sub="escritorios">Escritórios de Advocacia</button>
+            <button type="button" data-header-partner-sub="transportadoras">Transportadoras</button>
+            <button type="button" data-header-partner-sub="prestadores">Prestadores de Serviço</button>
+            <button type="button" data-header-partner-sub="outros">Outros</button>
           </div>
         </details>
 
@@ -8927,8 +8919,8 @@
     <script src="/partners-dashboard.js?v=20260605partners601"></script>
     <script src="/financial-partner-metrics-service.js?v=20260727fpdash"></script>
     <script src="/financial-partner-dashboard-ui.js?v=20260727parceiros"></script>
-    <script src="/partners-cadastro-service.js?v=20260727pcad3"></script>
-    <script src="/partners-cadastro-ui.js?v=20260727pcad3"></script>
+    <script src="/partners-cadastro-service.js?v=20260902ptabs2"></script>
+    <script src="/partners-cadastro-ui.js?v=20260902ptabs2"></script>
     <script src="/dashboard-metrics-service.js?v=20260819vnpvist1"></script>
     <script src="/amplipatio-dashboard.js?v=20260902adv1"></script>
     <script src="/vehicle-entry-inspection-checklist.js?v=20260820vistoria5"></script>
@@ -8938,8 +8930,8 @@
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
-    <script src="/advocacy-offices-service.js?v=20260902adv1"></script>
-    <script src="/advocacy-offices-ui.js?v=20260902adv1"></script>
+    <script src="/advocacy-offices-service.js?v=20260902adv2"></script>
+    <script src="/advocacy-offices-ui.js?v=20260902adv2"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -15956,9 +15948,9 @@
         const row = Object.assign({}, payload, { user_id: uid, updated_at: new Date().toISOString() });
         const run = () =>
           editingId
-            ? supabase.from("advocacy_offices").update(row).eq("id", editingId).eq("user_id", uid)
-            : supabase.from("advocacy_offices").insert(row);
-        const { error } = await runSupabaseWrite(run);
+            ? supabase.from("advocacy_offices").update(row).eq("id", editingId).eq("user_id", uid).select("id").maybeSingle()
+            : supabase.from("advocacy_offices").insert(row).select("id").maybeSingle();
+        const { data, error } = await runSupabaseWrite(run);
         if (error) {
           if (/advocacy_offices_user_cnpj|duplicate|unique/i.test(error.message || "")) {
             alert("Já existe um escritório com este CNPJ.");
@@ -15972,6 +15964,9 @@
           return false;
         }
         await loadAdvocacyOffices();
+        const newId = (data && data.id) || editingId;
+        const vehicleModalOpen = vehicleModal && !vehicleModal.classList.contains("hidden");
+        if (newId && vehicleModalOpen) setVehicleAdvocacyOfficeField(newId);
         return true;
       }
 
@@ -17766,7 +17761,26 @@
         }
       }
 
+      function renderPartnerCategoryKpis() {
+        const host = document.getElementById("partnerCategoryKpis");
+        if (!host) return;
+        const svc = window.partnersCadastroService;
+        const counts = svc && svc.countPartnersByCategory ? svc.countPartnersByCategory(state.partners || []) : { total: (state.partners || []).length, financeiras: 0, transportadoras: 0, prestadores: 0, outros: 0 };
+        const offices = (state.advocacyOffices || []).length;
+        const total = (counts.total || 0) + offices;
+        const card = (id, label, n) =>
+          `<button type="button" class="ao-kpi" data-partner-kpi="${id}" style="text-align:left;cursor:pointer;width:100%"><span>${label}</span><strong>${n}</strong></button>`;
+        host.innerHTML =
+          card("dashboard", "Total de parceiros", total) +
+          card("financeiras", "Financeiras", counts.financeiras || 0) +
+          card("escritorios", "Escritórios", offices) +
+          card("transportadoras", "Transportadoras", counts.transportadoras || 0) +
+          card("prestadores", "Prestadores", counts.prestadores || 0) +
+          card("outros", "Outros", counts.outros || 0);
+      }
+
       function renderPartnersDashboard() {
+        renderPartnerCategoryKpis();
         const dashData = {
           partners: state.partners || [],
           vehicles: state.vehicles || [],
@@ -17786,7 +17800,9 @@
 
       function setPartnerView(view) {
         const show = view && view !== "none";
-        const resolved = show ? (view === "parceiros" ? "parceiros" : "dashboard") : null;
+        const CADASTRO_TABS = { financeiras: 1, transportadoras: 1, prestadores: 1, outros: 1 };
+        if (view === "parceiros" || view === "cadastro") view = "financeiras";
+        const resolved = show ? view : null;
         currentPartnerView = resolved;
         partnerSubnav?.classList.toggle("hidden", !show);
         partnerSubnav?.querySelectorAll("[data-subview]").forEach((btn) => {
@@ -17794,7 +17810,11 @@
         });
         partnerSubviews.forEach((panel) => {
           const sub = panel.getAttribute("data-subview");
-          const match = show && sub === resolved;
+          let match = false;
+          if (sub === "dashboard") match = show && resolved === "dashboard";
+          else if (sub === "cadastro") match = show && !!CADASTRO_TABS[resolved];
+          else if (sub === "escritorios") match = show && resolved === "escritorios";
+          else match = show && sub === resolved;
           panel.classList.toggle("hidden", !match);
           if (match) {
             panel.classList.remove("air-open");
@@ -17802,10 +17822,26 @@
             panel.classList.add("air-open");
           }
         });
-        if (openPartnerForm) openPartnerForm.textContent = resolved === "parceiros" ? "Novo parceiro" : "Novo cadastro";
+        const novo = document.getElementById("openPartnerForm");
+        const novoEsc = document.getElementById("aoOpenCreate");
+        if (novo) {
+          const tabs = window.PARTNER_CATEGORY_TABS || window.partnersCadastroService?.PARTNER_CATEGORY_TABS || {};
+          const meta = tabs[resolved] || {};
+          novo.classList.toggle("hidden", !CADASTRO_TABS[resolved]);
+          novo.textContent = meta.novoLabel || "Novo cadastro";
+        }
+        if (novoEsc) novoEsc.classList.toggle("hidden", resolved !== "escritorios");
         syncPartnerFormForCurrentView();
         if (resolved === "dashboard") renderPartnersDashboard();
-        if (resolved === "parceiros") renderPartners();
+        if (CADASTRO_TABS[resolved]) {
+          if (typeof window.partnersCadastroSetCategory === "function") window.partnersCadastroSetCategory(resolved);
+          renderPartners();
+        }
+        if (resolved === "escritorios") {
+          if (typeof window.advocacyOfficesUi?.bindOnce === "function") window.advocacyOfficesUi.bindOnce();
+          if (typeof window.advocacyOfficesUi?.setSubview === "function") window.advocacyOfficesUi.setSubview("cadastro");
+          if (typeof window.advocacyOfficesUi?.renderCadastro === "function") window.advocacyOfficesUi.renderCadastro();
+        }
       }
 
       window.setPartnerView = setPartnerView;
@@ -18690,6 +18726,8 @@
         if (vd) vd.required = !gestorCreate;
         if (entryInput) entryInput.required = !gestorCreate;
         refreshVehiclePlatePreviewInput();
+        const novoEscBtn = document.getElementById("vehicleAdvocacyOfficeNew");
+        if (novoEscBtn) novoEscBtn.classList.toggle("hidden", !!(isGestorPista || isVistoriador));
         vehicleModal.classList.remove("hidden");
       }
 
@@ -18751,6 +18789,17 @@
         syncPartnerFormForCurrentView();
         partnerForm?.reset?.();
         partnerModal?.classList.remove("hidden");
+      });
+
+      document.getElementById("vehicleAdvocacyOfficeNew")?.addEventListener("click", () => {
+        if (isGestorPista || isVistoriador) {
+          alert("Somente o administrador pode cadastrar escritórios.");
+          return;
+        }
+        if (typeof window.advocacyOfficesUi?.bindOnce === "function") window.advocacyOfficesUi.bindOnce();
+        if (typeof window.advocacyOfficesUi?.fillOfficeForm === "function") {
+          window.advocacyOfficesUi.fillOfficeForm(null, false);
+        }
       });
 
       cancelPartnerForm.addEventListener("click", () => {
@@ -20523,7 +20572,9 @@
       document.getElementById("escritoriosSubnav")?.addEventListener("click", (event) => {
         const button = event.target.closest("button[data-ao-sub]");
         if (!button) return;
-        openEscritoriosSubview(button.getAttribute("data-ao-sub"));
+        if (typeof window.advocacyOfficesUi?.setSubview === "function") {
+          window.advocacyOfficesUi.setSubview(button.getAttribute("data-ao-sub"));
+        }
       });
 
       vehicleForm.addEventListener("submit", async (event) => {
@@ -22498,6 +22549,12 @@
       });
 
       document.getElementById("viewParceiros").addEventListener("click", async (event) => {
+        const kpi = event.target.closest("[data-partner-kpi]");
+        if (kpi) {
+          const dest = kpi.getAttribute("data-partner-kpi");
+          if (dest && dest !== "dashboard") openPartnerSubview(dest);
+          return;
+        }
         const button = event.target.closest("button[data-action]");
         if (!button) return;
         const id = button.getAttribute("data-id");
@@ -22828,11 +22885,10 @@
           navStack.push("patio:inicio");
         }
         if (view === "parceiros") {
-          setPartnerView("parceiros");
-          navStack.push("parceiros:parceiros");
+          setPartnerView("dashboard");
+          navStack.push("parceiros:dashboard");
           if (typeof window.partnersDashboardInit === "function") window.partnersDashboardInit();
           if (typeof window.partnersCadastroUiInit === "function") window.partnersCadastroUiInit();
-          renderPartners();
         }
         if (view === "lista") {
           syncListaFilterSelects();
@@ -22849,34 +22905,17 @@
             renderBiExecutivoDashboard();
           }
         }
-        if (view === "escritorios") {
-          navStack.push("escritorios:cadastro");
-          if (typeof window.advocacyOfficesUi?.bindOnce === "function") window.advocacyOfficesUi.bindOnce();
-          if (typeof window.advocacyOfficesUi?.setSubview === "function") window.advocacyOfficesUi.setSubview("cadastro");
-        }
       }
 
       function openEscritoriosSubview(sub) {
-        if (isVistoriador || isGestorPista) {
-          showMainView("patio");
-          setPatioView(isVistoriador ? "vistoria" : "inicio");
-          return;
-        }
-        sub = sub === "relatorio" ? "relatorio" : "cadastro";
-        const top = navStack[navStack.length - 1];
-        if (top === `escritorios:${sub}`) {
-          showMainView("escritorios");
-          if (typeof window.advocacyOfficesUi?.setSubview === "function") window.advocacyOfficesUi.setSubview(sub);
-          return;
-        }
-        if (top && typeof top === "string" && top.startsWith("escritorios:")) navStack.pop();
-        if (!isNavOnModule("escritorios")) {
-          navStack.splice(0, navStack.length, "escritorios");
-        }
-        showMainView("escritorios");
-        navStack.push(`escritorios:${sub}`);
+        openPartnerSubview("escritorios");
         if (typeof window.advocacyOfficesUi?.bindOnce === "function") window.advocacyOfficesUi.bindOnce();
-        if (typeof window.advocacyOfficesUi?.setSubview === "function") window.advocacyOfficesUi.setSubview(sub);
+        if (sub === "relatorio") {
+          if (typeof window.advocacyOfficesUi?.openReport === "function") window.advocacyOfficesUi.openReport({});
+          else if (typeof window.advocacyOfficesUi?.setSubview === "function") window.advocacyOfficesUi.setSubview("relatorio");
+        } else if (typeof window.advocacyOfficesUi?.setSubview === "function") {
+          window.advocacyOfficesUi.setSubview("cadastro");
+        }
       }
 
       function goToPatioForPlateSearch() {
@@ -22921,7 +22960,16 @@
           setPatioView("vistoria");
           return;
         }
-        sub = sub === "parceiros" ? "parceiros" : "dashboard";
+        const allowed = {
+          dashboard: 1,
+          financeiras: 1,
+          escritorios: 1,
+          transportadoras: 1,
+          prestadores: 1,
+          outros: 1,
+        };
+        if (sub === "parceiros" || sub === "cadastro") sub = "financeiras";
+        if (!allowed[sub]) sub = "dashboard";
         const top = navStack[navStack.length - 1];
         if (top === `parceiros:${sub}`) {
           setPartnerView(sub);
@@ -22994,7 +23042,7 @@
         }
         if (top === "parceiros") {
           showMainView("parceiros");
-          return setPartnerView("parceiros");
+          return setPartnerView("dashboard");
         }
         if (top === "configuracoes") return showMainView("configuracoes");
         if (top === "financeiro") {
@@ -23045,7 +23093,7 @@
       document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
       document.getElementById("dashboardOpenLista")?.addEventListener("click", () => openMainView("lista"));
-      document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openPartnerSubview("parceiros"));
+      document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openPartnerSubview("dashboard"));
       document.getElementById("dashboardOpenConfiguracoes")?.addEventListener("click", () => openMainView("configuracoes"));
       document.getElementById("exitConfigToPatio")?.addEventListener("click", () => closeStackTop());
 
