@@ -21,7 +21,10 @@ const nextConfig = {
     const htmlUtf8 = [{ key: "Content-Type", value: "text/html; charset=utf-8" }];
     return [
       { source: "/app.html", headers: [...htmlUtf8, ...noStore] },
-      { source: "/finance-module.js", headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }] },
+      { source: "/partners-cadastro-service.js", headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }] },
+      { source: "/partners-cadastro-ui.js", headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }] },
+      { source: "/advocacy-offices-service.js", headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }] },
+      { source: "/advocacy-offices-ui.js", headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }] },
       { source: "/finance-dashboard.js", headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }] },
       { source: "/patio-dashboard.js", headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }] },
       { source: "/manifest.json", headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }] },
