@@ -63,6 +63,14 @@ html[data-theme="dark"] {
   --primary-weak: rgba(59, 130, 246, 0.15);
   --border: rgba(148, 163, 184, 0.2);
   --ag-navy: #0f2744;
+  --ag-navy-deep: #020617;
+  --ag-text: #f1f5f9;
+  --ag-muted: #94a3b8;
+  --ag-surface: #1e293b;
+  --ag-bg: #0f172a;
+  --ag-border: rgba(148, 163, 184, 0.28);
+  --ag-blue-soft: rgba(59, 130, 246, 0.16);
+  --ag-neutral-bg: rgba(15, 23, 42, 0.65);
 }
 
 /* ---- Base ---- */
@@ -453,7 +461,7 @@ body.app-module-patio header {
 
 #viewPatio .patio-nav-inline,
 #viewPatio #patioSubnav.patio-nav-inline,
-:is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) {
+:is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) {
   display: flex !important;
   flex-wrap: wrap !important;
   align-items: center !important;
@@ -467,7 +475,7 @@ body.app-module-patio header {
 }
 
 #viewPatio .patio-nav-inline button,
-:is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button {
+:is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) button {
   border-radius: var(--ag-radius-sm) !important;
   border: 1px solid var(--ag-border) !important;
   background: var(--ag-surface) !important;
@@ -478,7 +486,7 @@ body.app-module-patio header {
 }
 
 #viewPatio .patio-nav-inline button.active,
-:is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button.active {
+:is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) button.active {
   background: var(--ag-blue) !important;
   border-color: var(--ag-blue-strong) !important;
   color: #fff !important;
@@ -486,7 +494,7 @@ body.app-module-patio header {
 }
 
 #viewPatio .patio-nav-inline button.secondary:hover,
-:is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav) button:hover:not(.active) {
+:is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) button:hover:not(.active) {
   background: var(--ag-neutral-bg) !important;
   border-color: var(--ag-border) !important;
   color: var(--ag-text) !important;
@@ -524,30 +532,33 @@ body.app-module-patio header {
   color: var(--ag-text) !important;
 }
 
-:is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .filter-bar {
+:is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .filter-bar {
   background: var(--ag-surface) !important;
   border: 1px solid var(--ag-border) !important;
   border-radius: var(--ag-radius-sm) !important;
   box-shadow: none !important;
 }
 
-:is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .table-wrap {
+:is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .table-wrap {
   background: var(--ag-surface) !important;
   border: 1px solid var(--ag-border) !important;
   border-radius: var(--ag-radius-sm) !important;
 }
 
-:is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .table thead th {
+:is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .table thead th {
   background: var(--ag-navy) !important;
   color: #fff !important;
   border-bottom-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-:is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .table tbody tr:nth-child(even) {
+:is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .table tbody tr:nth-child(even) {
   background: #fafbfc !important;
 }
+[data-theme="dark"] :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
 
-:is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista) .table tbody tr:hover {
+:is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .table tbody tr:hover {
   background: var(--ag-blue-soft) !important;
 }
 
@@ -562,7 +573,7 @@ body.app-module-patio header {
 }
 
 /* ---- Botões ---- */
-button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.subnav button):not(.patio-nav-inline button):not(.lista-toolbar-actions button):not(.close-view):not([data-extra-remove]):not(.vei-damage-photo-clear):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn) {
+button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.lista-toolbar-actions button):not(.close-view):not([data-extra-remove]):not(.vei-damage-photo-clear):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn) {
   background: var(--ag-blue) !important;
   color: #fff !important;
   border: 1px solid var(--ag-blue-strong) !important;
@@ -953,4 +964,133 @@ label {
   .brand-header-logo {
     height: 56px;
   }
+}
+
+/* ---- Legibilidade: texto sempre contrastado com o fundo ---- */
+html[data-theme="light"],
+html:not([data-theme="dark"]) {
+  --ag-on-primary: #ffffff;
+}
+
+.ao-kpi,
+#partnerCategoryKpis .ao-kpi {
+  background: var(--ag-surface) !important;
+  color: var(--ag-text) !important;
+  border: 1px solid var(--ag-border) !important;
+  box-shadow: var(--ag-shadow-soft) !important;
+  background-image: none !important;
+}
+.ao-kpi span,
+#partnerCategoryKpis .ao-kpi span {
+  color: var(--ag-muted) !important;
+  opacity: 1 !important;
+}
+.ao-kpi strong,
+#partnerCategoryKpis .ao-kpi strong {
+  color: var(--ag-text) !important;
+}
+#partnerCategoryKpis .ao-kpi.ao-kpi-active {
+  border-color: var(--ag-blue) !important;
+  background: var(--ag-blue-soft) !important;
+  color: var(--ag-text) !important;
+}
+
+.pc-table-panel,
+.pc-summary-card,
+.pc-contato-row,
+.pc-doc-row {
+  background: var(--ag-surface) !important;
+  border-color: var(--ag-border) !important;
+}
+.pc-table-title,
+.pc-table td,
+.pc-summary-card strong,
+.pc-hist-table td,
+#partnerModal .pc-modal-tab:hover {
+  color: var(--ag-text) !important;
+}
+.pc-table th,
+.pc-hist-table th,
+.pc-summary-card span,
+.pc-contato-row label,
+.pc-doc-row label,
+#partnerModal .pc-form-grid label,
+#partnerModal .pc-modal-tab {
+  color: var(--ag-muted) !important;
+}
+#partnerModal .pc-modal-tab.active,
+#partnerModal .pc-tipo-section h4 {
+  color: var(--ag-blue-strong) !important;
+}
+.pc-form-errors {
+  color: var(--ag-danger) !important;
+  background: var(--ag-danger-bg) !important;
+  border-color: rgba(220, 38, 38, 0.25) !important;
+}
+html[data-theme="light"] .partner-tipo-badge--green,
+html:not([data-theme="dark"]) .partner-tipo-badge--green {
+  color: #047857 !important;
+  background: #dcfce7 !important;
+}
+html[data-theme="light"] .partner-tipo-badge--orange,
+html:not([data-theme="dark"]) .partner-tipo-badge--orange {
+  color: #c2410c !important;
+  background: #ffedd5 !important;
+}
+html[data-theme="light"] .partner-tipo-badge--purple,
+html:not([data-theme="dark"]) .partner-tipo-badge--purple {
+  color: #6d28d9 !important;
+  background: #ede9fe !important;
+}
+html[data-theme="light"] .partner-tipo-badge--blue,
+html:not([data-theme="dark"]) .partner-tipo-badge--blue {
+  color: #075985 !important;
+  background: #e0f2fe !important;
+}
+html[data-theme="light"] .pc-status-ativo,
+html:not([data-theme="dark"]) .pc-status-ativo {
+  color: #15803d !important;
+}
+
+.fp-exec-empty,
+.fp-exec-mapa-node {
+  background: var(--ag-surface) !important;
+  border-color: var(--ag-border) !important;
+}
+.fp-exec-empty strong,
+.fp-exec-bar-meta,
+.fp-exec-mapa-node strong,
+.fp-exec-nome strong {
+  color: var(--ag-text) !important;
+}
+
+.panel,
+.section-card,
+.modal,
+.toolbar {
+  color: var(--ag-text);
+}
+.toolbar h2,
+.modal-header h3 {
+  color: var(--ag-text) !important;
+}
+
+#escritoriosSubnav button {
+  background: var(--ag-surface) !important;
+  color: var(--ag-text) !important;
+  border: 1px solid var(--ag-border) !important;
+}
+#escritoriosSubnav button.active {
+  background: var(--ag-blue) !important;
+  color: #fff !important;
+  border-color: var(--ag-blue-strong) !important;
+}
+
+[data-theme="dark"] .table tbody td {
+  color: var(--ag-text) !important;
+}
+[data-theme="dark"] .ao-kpi,
+[data-theme="dark"] #partnerCategoryKpis .ao-kpi {
+  background: var(--ag-surface) !important;
+  color: var(--ag-text) !important;
 }
