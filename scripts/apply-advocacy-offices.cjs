@@ -43,6 +43,8 @@ async function main() {
   const client = new Client({ connectionString: url, ssl: isLocal ? false : { rejectUnauthorized: false } });
   await client.connect();
   await client.query(sql);
+  const mgrPath = path.join(__dirname, "..", "supabase", "advocacy_office_managers.sql");
+  if (fs.existsSync(mgrPath)) await client.query(fs.readFileSync(mgrPath, "utf8"));
   const check = await client.query(`
     SELECT column_name
     FROM information_schema.columns
