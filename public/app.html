@@ -7253,6 +7253,7 @@
                     <th>Veículo</th>
                     <th>RPV</th>
                     <th>RPP</th>
+                    <th>Escritório</th>
                     <th>Entrada</th>
                     <th>Valor gerado</th>
                     <th>Ações</th>
@@ -7291,6 +7292,7 @@
                     <th>Veículo</th>
                     <th>RPV</th>
                     <th>RPP</th>
+                    <th>Escritório</th>
                     <th>Entrada</th>
                     <th>Valor gerado</th>
                     <th>Ações</th>
@@ -7321,6 +7323,7 @@
                     <th>Veículo</th>
                     <th>RPV</th>
                     <th>RPP</th>
+                    <th>Escritório</th>
                     <th>Entrada</th>
                     <th>Saída</th>
                     <th>Valor total</th>
@@ -8950,7 +8953,7 @@
     <script src="/vehicle-entry-inspection-checklist.js?v=20260820vistoria5"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260818vistoria10"></script>
     <script src="/vehicle-entry-inspection-document.js?v=20260820vistoria5"></script>
-    <script src="/vehicle-entry-inspection.js?v=20260820vistoria7"></script>
+    <script src="/vehicle-entry-inspection.js?v=20260903vistoriafeita"></script>
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
@@ -13129,6 +13132,17 @@
         return (nome || "").trim() || "—";
       }
 
+      function vehicleAdvocacyOfficeNome(v) {
+        const id = v?.advocacy_office_id;
+        if (!id) return "—";
+        if (window.advocacyOfficesService?.officeName) {
+          const n = window.advocacyOfficesService.officeName(id, state.advocacyOffices);
+          if (n && n !== "Sem escritório informado") return n;
+        }
+        const o = (state.advocacyOffices || []).find((x) => String(x.id) === String(id));
+        return (o?.name || "").trim() || "—";
+      }
+
       /** Identificação visual VNP (no pátio), VLP (liberação) vs VRP (removido). */
       function patioRegistoBadgeHtml(kind) {
         const isVrp = kind === "vrp";
@@ -13737,8 +13751,8 @@
         if (currentListaView === "vnp") {
           const ocultarValorColuna = semVal || listaPrintVnpSemValores;
           const items = buildListaVnpVehicleRows();
-          const colspan = ocultarValorColuna ? 7 : 8;
-          head.innerHTML = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>RPF</th><th>Entrada</th><th>Situação</th>${
+          const colspan = ocultarValorColuna ? 8 : 9;
+          head.innerHTML = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>RPF</th><th>Escritório</th><th>Entrada</th><th>Situação</th>${
             ocultarValorColuna ? "" : "<th>Valor estimado</th>"
           }</tr>`;
           if (!items.length) {
@@ -13750,7 +13764,7 @@
         }
 
         if (currentListaView === "vrp") {
-          head.innerHTML = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>RPF</th><th>Entrada</th><th>Saída</th>${
+          head.innerHTML = `<tr><th>Placa</th><th>Registo</th><th>Veículo</th><th>RPV</th><th>RPF</th><th>Escritório</th><th>Entrada</th><th>Saída</th>${
             semVal ? "" : "<th>Valor</th>"
           }</tr>`;
           const items = sortVehiclesByRegistroDesc(
@@ -13759,7 +13773,7 @@
               .filter((v) => listaDateMatchesYmd(v.data_saida))
           );
           if (!items.length) {
-            body.innerHTML = `<tr><td colspan="${semVal ? "7" : "8"}" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="${semVal ? "8" : "9"}" class="notice">Nenhum registo com os filtros atuais.</td></tr>`;
             return;
           }
           body.innerHTML = items
@@ -13771,6 +13785,7 @@
                 <td data-label="Veículo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</td>
                 <td data-label="RPV">${escapeHtml(locLabel(v.localizador_id))}</td>
                 <td data-label="RPF">${escapeHtml(vehicleRpfNome(v))}</td>
+                <td data-label="Escritório">${escapeHtml(vehicleAdvocacyOfficeNome(v))}</td>
                 <td data-label="Entrada">${escapeHtml(formatDateTime(v.data_entrada))}</td>
                 <td data-label="Saída">${escapeHtml(formatDateTime(v.data_saida))}</td>
                 ${val}
@@ -16390,11 +16405,43 @@
       }
 
 
+      function applyInspectionIndexRows(rows) {
+        const idx = {};
+        (rows || []).forEach((row) => {
+          if (row && row.vehicle_id) idx[String(row.vehicle_id)] = row;
+        });
+        state.inspectionIndex = idx;
+      }
+
+      function rememberCompletedInspection(vehicleId, row) {
+        if (!vehicleId || !row) return;
+        const idx = { ...(state.inspectionIndex || {}) };
+        idx[String(vehicleId)] = row;
+        state.inspectionIndex = idx;
+      }
+
       async function loadVehicleInspections() {
         const uid = supabaseOwnerUserId();
         if (!uid) {
           state.inspectionIndex = {};
           return;
+        }
+        try {
+          const token = await getAccessTokenForApi();
+          if (token) {
+            const resp = await fetch("/api/vehicles/list-entry-inspections", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ access_token: token }),
+            });
+            const json = await resp.json().catch(() => ({}));
+            if (resp.ok && json.ok && Array.isArray(json.inspections)) {
+              applyInspectionIndexRows(json.inspections);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn("loadVehicleInspections api", e);
         }
         const { data, error } = await supabase
           .from("vehicle_entry_inspections")
@@ -16403,14 +16450,9 @@
           .eq("status", "CONCLUIDA");
         if (error) {
           if (!isMissingRelationError(error)) logSupabaseLoadError("loadVehicleInspections", error);
-          state.inspectionIndex = {};
           return;
         }
-        const idx = {};
-        (data || []).forEach((row) => {
-          if (row.vehicle_id) idx[String(row.vehicle_id)] = row;
-        });
-        state.inspectionIndex = idx;
+        applyInspectionIndexRows(data);
       }
       window.loadVehicleInspections = loadVehicleInspections;
 
@@ -16486,6 +16528,7 @@
           loadVehicles,
           renderVehicles,
           loadVehicleInspections,
+          rememberCompletedInspection,
           onInspectionCompleted() {
             if (isVistoriador) {
               showMainView("patio");
@@ -16511,6 +16554,7 @@
         if (isGestorPista || isVistoriador) {
           await Promise.all([loadPartners(), loadVehicles(), loadVehicleInspections(), loadAdvocacyOffices()]);
           probeVehiclesRpfColumns().catch(() => {});
+          probeVehiclesAdvocacyColumn().catch(() => {});
           return;
         }
         await Promise.all([
@@ -16534,6 +16578,7 @@
           }
         }
         probeVehiclesRpfColumns().catch(() => {});
+        probeVehiclesAdvocacyColumn().catch(() => {});
         const userId = effectiveUserId();
         if (userId && !FINANCE_MANUAL_ONLY) {
           // Competência: tentativa automática diária (espelho contábil), sem bloquear o fluxo legado.
@@ -17222,6 +17267,7 @@
 
       /** null = ainda não verificado; true/false = colunas responsavel_financeiro_* na tabela vehicles */
       let vehiclesRpfColumnsOk = null;
+      let vehiclesAdvocacyColumnOk = null;
 
       async function probeVehiclesRpfColumns() {
         if (vehiclesRpfColumnsOk !== null) return vehiclesRpfColumnsOk;
@@ -17237,6 +17283,22 @@
         const msg = error.message || "";
         vehiclesRpfColumnsOk = !/responsavel_financeiro|PGRST204|column|schema cache/i.test(msg);
         return vehiclesRpfColumnsOk;
+      }
+
+      async function probeVehiclesAdvocacyColumn() {
+        if (vehiclesAdvocacyColumnOk !== null) return vehiclesAdvocacyColumnOk;
+        if (!supabase) {
+          vehiclesAdvocacyColumnOk = false;
+          return false;
+        }
+        const { error } = await supabase.from("vehicles").select("advocacy_office_id").limit(1);
+        if (!error) {
+          vehiclesAdvocacyColumnOk = true;
+          return true;
+        }
+        const msg = error.message || "";
+        vehiclesAdvocacyColumnOk = !/advocacy_office_id|PGRST204|column|schema cache/i.test(msg);
+        return vehiclesAdvocacyColumnOk;
       }
 
       function readVehicleRpfFields() {
@@ -17673,12 +17735,13 @@
 
         return `
           <tr class="${rowClass}" data-vehicle-row="${v.id}">
-            ${buildPatioMobileListCellsHtml(v, 8)}
+            ${buildPatioMobileListCellsHtml(v, 9)}
             <td class="patio-desk-only" data-label="Placa"><span class="vei-plate-with-status">${inspectionStatusIndicatorHtml(v)}${plateVisualHtml(v.placa, "sm")}</span>${situacaoHtml}</td>
             <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml(registoKind === "vnp" ? (isVlpStatus(v.status) ? "vlp" : "vnp") : registoKind)}</td>
             <td class="patio-desk-only" data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
             <td class="patio-desk-only" data-label="RPV">${localizador}</td>
             <td class="patio-desk-only" data-label="RPF">${escapeHtml(rpfNome)}</td>
+            <td class="patio-desk-only" data-label="Escritório">${escapeHtml(vehicleAdvocacyOfficeNome(v))}</td>
             <td class="patio-desk-only" data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
             <td class="patio-desk-only" data-label="Valor">${valorCell}</td>
             <td class="patio-desk-only actions" data-label="Ações">${actionsCell}</td>
@@ -17694,7 +17757,7 @@
             tbody.innerHTML = "";
             return;
           }
-          setEmptyRow(tbody, emptyText, 8);
+          setEmptyRow(tbody, emptyText, 9);
           return;
         }
         tbody.innerHTML = items.map((v) => buildVnpUnifiedRowHtml(v, opts)).join("");
@@ -17729,6 +17792,7 @@
           <td data-label="Veículo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</td>
           <td data-label="RPV">${escapeHtml(locLabel(v.localizador_id))}</td>
           <td data-label="RPF">${escapeHtml(vehicleRpfNome(v))}</td>
+          <td data-label="Escritório">${escapeHtml(vehicleAdvocacyOfficeNome(v))}</td>
           <td data-label="Entrada">${escapeHtml(formatDateTime(v.data_entrada))}</td>
           <td data-label="Situação">${escapeHtml(sit)}</td>
           ${val}
@@ -17939,7 +18003,7 @@
       }
       function renderRemovedVehicles(tbody, items) {
         if (!items.length) {
-          setEmptyRow(tbody, "Nenhum veículo removido.", 9);
+          setEmptyRow(tbody, "Nenhum veículo removido.", 10);
           return;
         }
         const semValores = isGestorPista;
@@ -17959,12 +18023,13 @@
 
             return `
               <tr data-vehicle-row="${v.id}">
-                ${buildPatioMobileListCellsHtml(v, 9)}
+                ${buildPatioMobileListCellsHtml(v, 10)}
                 <td class="patio-desk-only" data-label="Placa">${plateVisualHtml(v.placa, "sm")}</td>
                 <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td class="patio-desk-only" data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
                 <td class="patio-desk-only" data-label="RPV">${localizador}</td>
                 <td class="patio-desk-only" data-label="RPF">${escapeHtml(rpfNome)}</td>
+                <td class="patio-desk-only" data-label="Escritório">${escapeHtml(vehicleAdvocacyOfficeNome(v))}</td>
                 <td class="patio-desk-only" data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
                 <td class="patio-desk-only" data-label="Saída">${formatDateTime(v.data_saida)}</td>
                 <td class="patio-desk-only" data-label="Valor">${valorCell}</td>
@@ -20662,6 +20727,15 @@
             return;
           }
         }
+        const advocacyOfficeId = document.getElementById("vehicleAdvocacyOfficeId")?.value || null;
+        const advocacyColsOk = await probeVehiclesAdvocacyColumn();
+        if (advocacyOfficeId && !advocacyColsOk) {
+          alert(
+            "Não foi possível gravar o escritório de advocacia: a tabela vehicles ainda não tem a coluna advocacy_office_id.\n\n" +
+              "No Supabase → SQL Editor, execute supabase/advocacy_offices.sql (ou só supabase/vehicles_advocacy_office_id.sql) e atualize a página."
+          );
+          return;
+        }
         const payload = {
           user_id: effectiveUserId(),
           placa: document.getElementById("vehiclePlate").value.trim(),
@@ -20676,7 +20750,6 @@
           responsavel_financeiro_nome: gestorCreate ? null : rpfFields.responsavel_financeiro_nome,
           assessoria_id: null,
           leiloeiro_id: gestorCreate ? null : vehicleAuctioneer?.value || null,
-          advocacy_office_id: document.getElementById("vehicleAdvocacyOfficeId")?.value || null,
           observacoes: gestorCreate ? "" : document.getElementById("vehicleNotes").value.trim(),
           status: editingVehicleData?.status || "NO_PATIO",
           payment_status: editingVehicleData?.payment_status || "EM_ABERTO",
@@ -20695,6 +20768,7 @@
           },
           vistoria_observacoes: inspectionDamageEl?.value?.trim() || "",
         };
+        if (advocacyColsOk) payload.advocacy_office_id = advocacyOfficeId;
         if (!normalizePlateSearch(payload.placa)) {
           alert("Informe uma placa válida.");
           return;
