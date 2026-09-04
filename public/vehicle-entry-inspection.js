@@ -2991,8 +2991,32 @@
         postWarn += "\n\nAviso: algumas fotos do registro fotográfico podem não ter sido enviadas.";
       }
       try {
+        const markDone = () => {
+          if (!completedVehicle?.id || !json.inspection_id) return;
+          if (typeof ctx.rememberCompletedInspection === "function") {
+            ctx.rememberCompletedInspection(completedVehicle.id, {
+              id: json.inspection_id,
+              vehicle_id: completedVehicle.id,
+              inspection_number: json.inspection_number,
+              status: "CONCLUIDA",
+              completed_at: json.completed_at || new Date().toISOString(),
+              completed_by_name: json.inspector_name || "",
+              inspection_type: "ENTRADA",
+            });
+          } else if (ctx.inspectionIndex) {
+            ctx.inspectionIndex[String(completedVehicle.id)] = {
+              id: json.inspection_id,
+              vehicle_id: completedVehicle.id,
+              inspection_number: json.inspection_number,
+              status: "CONCLUIDA",
+            };
+          }
+        };
+        markDone();
+        if (wasEntryFlow && completedVehicle) completedVehicle.status = "NO_PATIO";
         if (typeof ctx.loadVehicles === "function") await ctx.loadVehicles();
         if (typeof ctx.loadVehicleInspections === "function") await ctx.loadVehicleInspections();
+        markDone();
         if (typeof ctx.renderVehicles === "function") ctx.renderVehicles();
       } catch (reloadErr) {
         console.warn("vei reload after finalize", reloadErr);
