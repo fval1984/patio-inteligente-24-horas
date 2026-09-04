@@ -198,8 +198,10 @@
   function fieldLabelOverrides() {
     const id = categoryMeta().id;
     if (id === "financeiras") return { nome: "Nome / Razão social", cpf: "CNPJ" };
-    if (id === "transportadoras") return { nome: "Nome / Razão social", cpf: "CNPJ" };
-    if (id === "prestadores") return { nome: "Nome / Razão social", cpf: "CPF/CNPJ" };
+    if (id === "reboqueiros") return { nome: "Nome / Razão social", cpf: "CPF/CNPJ" };
+    if (id === "leiloeiros") return { nome: "Nome / Razão social", cpf: "CNPJ" };
+    if (id === "patios") return { nome: "Nome do pátio", cpf: "CNPJ" };
+    if (id === "oficiais") return { nome: "Nome completo", cpf: "CPF" };
     return { nome: "Nome", cpf: "CPF/CNPJ" };
   }
 
@@ -617,8 +619,15 @@
       if (meta.includeUnknown) return allowed.indexOf(t.code) >= 0;
       return !allowed.length || allowed.indexOf(t.code) >= 0;
     });
-    const val = partner.tipo || meta.defaultTipo || "LOCALIZADOR";
+    const val = partner.tipo || meta.defaultTipo || "GUINCHEIRO";
     const lock = readonly || meta.lockTipo;
+    if (lock) {
+      return (
+        '<input type="hidden" id="pcCommon_tipo" data-pc-field="tipo" data-pc-group="common" value="' +
+        escapeHtmlDefault(val) +
+        '" />'
+      );
+    }
     let opts = "";
     for (let i = 0; i < tipos.length; i++) {
       const t = tipos[i];
@@ -1400,11 +1409,12 @@
   function partnersCadastroOpenCreate() {
     editingPartnerId = null;
     const meta = categoryMeta();
-    openModal({ tipo: meta.defaultTipo || "LOCALIZADOR", status: "ATIVO", perfil: {} }, "create", _lastCtx || {});
+    openModal({ tipo: meta.defaultTipo || "GUINCHEIRO", status: "ATIVO", perfil: {} }, "create", _lastCtx || {});
   }
 
   function partnersCadastroSetCategory(id) {
-    _category = id || "financeiras";
+    const resolve = svc() && svc().resolvePartnerCategoryId;
+    _category = resolve ? resolve(id) : id || "financeiras";
     _filters.tipo = "";
     _filters.search = "";
   }
