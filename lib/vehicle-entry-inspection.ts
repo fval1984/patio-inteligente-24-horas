@@ -78,6 +78,45 @@ export function isMissingInspectionSchemaError(message: string): boolean {
   );
 }
 
+export type ListedEntryInspection = {
+  id: string;
+  vehicle_id: string;
+  inspection_number: number | null;
+  status: string;
+  completed_at: string | null;
+  completed_by_name: string | null;
+  inspection_type: string | null;
+};
+
+export async function listCompletedEntryInspections(
+  admin: SupabaseClient,
+  ownerUserId: string
+): Promise<{ data: ListedEntryInspection[] | null; error: string | null }> {
+  const owner = String(ownerUserId || "").trim();
+  if (!owner) return { data: [], error: null };
+
+  const rows: ListedEntryInspection[] = [];
+  const pageSize = 1000;
+  let from = 0;
+  for (;;) {
+    const { data, error } = await admin
+      .from("vehicle_entry_inspections")
+      .select("id, vehicle_id, inspection_number, status, completed_at, completed_by_name, inspection_type")
+      .eq("user_id", owner)
+      .eq("status", "CONCLUIDA")
+      .order("inspection_number", { ascending: false })
+      .range(from, from + pageSize - 1);
+    if (error) {
+      return { data: null, error: error.message || "Erro ao listar vistorias." };
+    }
+    const chunk = (data || []) as ListedEntryInspection[];
+    rows.push(...chunk);
+    if (chunk.length < pageSize) break;
+    from += pageSize;
+  }
+  return { data: rows, error: null };
+}
+
 export async function resolveVehicleOwnerUserId(
   admin: SupabaseClient,
   authUserId: string
