@@ -7,55 +7,66 @@
 
   const PARTNER_TIPOS = [
     { code: "INSTITUICAO_FINANCEIRA", label: "Instituição Financeira", badge: "green" },
-    { code: "TRANSPORTADORA", label: "Transportadora", badge: "orange" },
-    { code: "PRESTADOR_SERVICO", label: "Prestador de Serviço", badge: "blue" },
-    { code: "GUINCHEIRO", label: "Guincheiro", badge: "orange" },
-    { code: "ASSESSORIA", label: "Assessoria Jurídica", badge: "purple" },
-    { code: "LOCALIZADOR", label: "Localizador", badge: "blue" },
+    { code: "GUINCHEIRO", label: "Reboqueiro", badge: "orange" },
     { code: "LEILOEIRO", label: "Leiloeiro", badge: "purple" },
+    { code: "PATIO_APREENSAO", label: "Pátio de Apreensão", badge: "blue" },
+    { code: "OFICIAL_JUSTICA", label: "Oficial de Justiça", badge: "purple" },
+    { code: "TRANSPORTADORA", label: "Reboqueiro", badge: "orange" },
+    { code: "LOCALIZADOR", label: "Reboqueiro", badge: "orange" },
+    { code: "PRESTADOR_SERVICO", label: "Reboqueiro", badge: "orange" },
+    { code: "ASSESSORIA", label: "Oficial de Justiça", badge: "purple" },
   ];
 
   const PARTNER_CATEGORY_TABS = {
     financeiras: {
       id: "financeiras",
-      label: "Financeiras",
+      label: "Instituição Financeira",
       tipos: ["INSTITUICAO_FINANCEIRA"],
       defaultTipo: "INSTITUICAO_FINANCEIRA",
       lockTipo: true,
-      novoLabel: "Nova financeira",
+      novoLabel: "Nova instituição financeira",
       searchPlaceholder: "Nome, CNPJ, telefone…",
-      title: "Financeiras",
+      title: "Instituições financeiras",
     },
-    transportadoras: {
-      id: "transportadoras",
-      label: "Transportadoras",
-      tipos: ["TRANSPORTADORA", "GUINCHEIRO"],
-      defaultTipo: "TRANSPORTADORA",
-      lockTipo: false,
-      novoLabel: "Nova transportadora",
-      searchPlaceholder: "Nome, CNPJ, responsável, telefone…",
-      title: "Transportadoras",
-    },
-    prestadores: {
-      id: "prestadores",
-      label: "Prestadores de Serviço",
-      tipos: ["PRESTADOR_SERVICO"],
-      defaultTipo: "PRESTADOR_SERVICO",
+    reboqueiros: {
+      id: "reboqueiros",
+      label: "Reboqueiro",
+      tipos: ["GUINCHEIRO", "TRANSPORTADORA", "LOCALIZADOR", "PRESTADOR_SERVICO"],
+      defaultTipo: "GUINCHEIRO",
       lockTipo: true,
-      novoLabel: "Novo prestador",
-      searchPlaceholder: "Nome, CPF/CNPJ, serviço, responsável…",
-      title: "Prestadores de Serviço",
+      novoLabel: "Novo reboqueiro",
+      searchPlaceholder: "Nome, CNPJ, responsável, telefone…",
+      title: "Reboqueiros",
     },
-    outros: {
-      id: "outros",
-      label: "Outros",
-      tipos: ["LOCALIZADOR", "ASSESSORIA", "LEILOEIRO"],
-      includeUnknown: true,
-      defaultTipo: "LOCALIZADOR",
-      lockTipo: false,
-      novoLabel: "Novo parceiro",
-      searchPlaceholder: "Nome, CPF/CNPJ, tipo, responsável…",
-      title: "Outros parceiros",
+    leiloeiros: {
+      id: "leiloeiros",
+      label: "Leiloeiro",
+      tipos: ["LEILOEIRO"],
+      defaultTipo: "LEILOEIRO",
+      lockTipo: true,
+      novoLabel: "Novo leiloeiro",
+      searchPlaceholder: "Nome, CNPJ, responsável, telefone…",
+      title: "Leiloeiros",
+    },
+    patios: {
+      id: "patios",
+      label: "Pátio de Apreensão",
+      tipos: ["PATIO_APREENSAO"],
+      defaultTipo: "PATIO_APREENSAO",
+      lockTipo: true,
+      novoLabel: "Novo pátio de apreensão",
+      searchPlaceholder: "Nome, CNPJ, cidade, telefone…",
+      title: "Pátios de apreensão",
+    },
+    oficiais: {
+      id: "oficiais",
+      label: "Oficial de Justiça",
+      tipos: ["OFICIAL_JUSTICA", "ASSESSORIA"],
+      defaultTipo: "OFICIAL_JUSTICA",
+      lockTipo: true,
+      novoLabel: "Novo oficial de justiça",
+      searchPlaceholder: "Nome, CPF, comarca, telefone…",
+      title: "Oficiais de justiça",
     },
   };
 
@@ -176,6 +187,20 @@
     ],
     LEILOEIRO: [
       { key: "responsavel", label: "Responsável", kind: "text", group: "tipo", span: "half" },
+      { key: "junta_comercial", label: "Registro / Junta comercial", kind: "text", group: "tipo", span: "half" },
+      { key: "regiao_atuacao", label: "Região de atuação", kind: "text", group: "tipo", span: "half" },
+    ],
+    PATIO_APREENSAO: [
+      { key: "responsavel", label: "Responsável", kind: "text", group: "tipo", span: "half" },
+      { key: "capacidade", label: "Capacidade (vagas)", kind: "text", group: "tipo", span: "half" },
+      { key: "horario_funcionamento", label: "Horário de funcionamento", kind: "text", group: "tipo", span: "half" },
+      { key: "tipos_veiculo", label: "Tipos de veículo", kind: "text", group: "tipo", span: "half" },
+    ],
+    OFICIAL_JUSTICA: [
+      { key: "comarca", label: "Comarca", kind: "text", group: "tipo", span: "half" },
+      { key: "vara", label: "Vara", kind: "text", group: "tipo", span: "half" },
+      { key: "matricula", label: "Matrícula / Identificação", kind: "text", group: "tipo", span: "half" },
+      { key: "orgao", label: "Órgão", kind: "text", group: "tipo", span: "half" },
     ],
   };
 
@@ -213,12 +238,36 @@
       .toUpperCase();
     if (t === "INSTITUICAO_FINANCEIRA" || t === "FINANCEIRA") return "INSTITUICAO_FINANCEIRA";
     if (t === "ASSESSORIA" || t === "ASSESSORIA_JURIDICA") return "ASSESSORIA";
-    if (t === "GUINCHEIRO" || t === "REMOCAO") return "GUINCHEIRO";
+    if (t === "GUINCHEIRO" || t === "REMOCAO" || t === "REBOQUEIRO") return "GUINCHEIRO";
     if (t === "TRANSPORTADORA") return "TRANSPORTADORA";
     if (t === "PRESTADOR_SERVICO" || t === "PRESTADOR") return "PRESTADOR_SERVICO";
     if (t === "LEILOEIRO") return "LEILOEIRO";
+    if (t === "PATIO_APREENSAO" || t === "PATIO") return "PATIO_APREENSAO";
+    if (t === "OFICIAL_JUSTICA" || t === "OFICIAL") return "OFICIAL_JUSTICA";
     if (t === "LOCALIZADOR" || t === "PARCEIRO" || !t) return "LOCALIZADOR";
     return t;
+  }
+
+  function resolvePartnerCategoryId(id) {
+    const raw = String(id || "")
+      .trim()
+      .toLowerCase();
+    if (raw === "financeiras" || raw === "financeira") return "financeiras";
+    if (
+      raw === "reboqueiros" ||
+      raw === "reboqueiro" ||
+      raw === "transportadoras" ||
+      raw === "transportadora" ||
+      raw === "prestadores" ||
+      raw === "outros"
+    ) {
+      return "reboqueiros";
+    }
+    if (raw === "leiloeiros" || raw === "leiloeiro") return "leiloeiros";
+    if (raw === "patios" || raw === "patio" || raw === "patio_apreensao") return "patios";
+    if (raw === "oficiais" || raw === "oficial" || raw === "oficial_justica") return "oficiais";
+    if (PARTNER_CATEGORY_TABS[raw]) return raw;
+    return "financeiras";
   }
 
   function partnerCategoryOfTipo(tipo) {
@@ -228,7 +277,7 @@
       const tab = PARTNER_CATEGORY_TABS[keys[i]];
       if (tab.tipos.indexOf(code) >= 0) return tab.id;
     }
-    return "outros";
+    return "reboqueiros";
   }
 
   function partnerTipoLabel(tipo) {
@@ -259,15 +308,19 @@
       case "ASSESSORIA":
         return "Assessoria Jurídica";
       case "GUINCHEIRO":
-        return "Guincheiro";
+        return "Reboqueiro";
       case "TRANSPORTADORA":
-        return "Transportadora";
+        return "Reboqueiro";
       case "PRESTADOR_SERVICO":
-        return "Prestador de Serviço";
+        return "Reboqueiro";
       case "LEILOEIRO":
         return "Leiloeiro";
+      case "PATIO_APREENSAO":
+        return "Pátio de Apreensão";
+      case "OFICIAL_JUSTICA":
+        return "Oficial de Justiça";
       default:
-        return "Localizador";
+        return partnerTipoLabel(t);
     }
   }
 
@@ -363,8 +416,7 @@
           if (f.includeUnknown) {
             const other = [];
             Object.keys(PARTNER_CATEGORY_TABS).forEach(function (k) {
-              if (k === "outros") return;
-              other.push.apply(other, PARTNER_CATEGORY_TABS[k].tipos);
+              other.push.apply(other, PARTNER_CATEGORY_TABS[k].tipos || []);
             });
             if (other.indexOf(code) >= 0) return false;
           } else if (f.tipos.indexOf(code) < 0) {
@@ -710,7 +762,7 @@
   }
 
   function countPartnersByCategory(partners) {
-    const counts = { financeiras: 0, transportadoras: 0, prestadores: 0, outros: 0, total: 0 };
+    const counts = { financeiras: 0, reboqueiros: 0, leiloeiros: 0, patios: 0, oficiais: 0, total: 0 };
     (partners || []).forEach(function (p) {
       const cat = partnerCategoryOfTipo(p.tipo);
       counts[cat] = (counts[cat] || 0) + 1;
@@ -727,6 +779,7 @@
     COMMON_FIELDS: COMMON_FIELDS,
     TIPO_FIELDS: TIPO_FIELDS,
     normalizePartnerTipo: normalizePartnerTipo,
+    resolvePartnerCategoryId: resolvePartnerCategoryId,
     partnerCategoryOfTipo: partnerCategoryOfTipo,
     countPartnersByCategory: countPartnersByCategory,
     partnerTipoLabel: partnerTipoLabel,
