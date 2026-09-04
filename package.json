@@ -14,6 +14,7 @@
     "db:apply-patio-cycle-closures": "node scripts/apply-patio-cycle-closures.cjs",
     "db:apply-user-authorization": "node scripts/apply-user-authorization.cjs",
     "db:apply-vehicle-entry-inspections": "node scripts/apply-vehicle-entry-inspections.cjs",
+    "db:apply-advocacy-offices": "node scripts/apply-advocacy-offices.cjs",
     "db:apply-finance-june-migration": "node scripts/apply-finance-june-migration.cjs",
     "dev": "next dev",
     "vercel-build": "next build",
