@@ -8061,6 +8061,12 @@
                 </div>
                 <button type="button" id="vehicleAdvocacyOfficeNew" class="secondary" style="margin-top:8px">Cadastrar escritório</button>
               </div>
+              <div>
+                <label for="vehicleAdvocacyManagerId">Gestor de Carteira</label>
+                <select id="vehicleAdvocacyManagerId">
+                  <option value="">Sem gestor informado</option>
+                </select>
+              </div>
               <div class="full field-operador-hide">
                 <label>Observações</label>
                 <input id="vehicleNotes" type="text" placeholder="Observações importantes" />
@@ -8161,9 +8167,63 @@
                 <textarea id="aoFieldNotes" rows="3"></textarea>
               </div>
             </div>
+            <p id="aoOfficeFormNotice" class="notice hidden" style="margin:12px 0 0"></p>
+            <section id="aoManagersSection" class="section-card" style="margin:16px 0 0;padding:14px">
+              <div id="aoManagersRoot"></div>
+            </section>
             <div class="form-actions">
               <button type="submit" id="aoOfficeSave">Salvar</button>
               <button type="button" class="secondary" id="aoCancelOffice">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="aoManagerModal" class="modal-backdrop hidden">
+        <div class="modal">
+          <div class="modal-header">
+            <h3 id="aoManagerModalTitle">Novo gestor de carteira</h3>
+            <button class="modal-close" id="aoCloseManagerModal" type="button">Fechar</button>
+          </div>
+          <form id="aoManagerForm">
+            <div id="aoManagerFormErrors" class="pc-form-errors hidden"></div>
+            <p class="notice" style="margin:0 0 12px">Este gestor fica vinculado automaticamente ao escritório aberto. Não é um cadastro geral.</p>
+            <div class="form-grid">
+              <div>
+                <label for="aoMgrName">Nome completo</label>
+                <input id="aoMgrName" type="text" required />
+              </div>
+              <div>
+                <label for="aoMgrCpf">CPF</label>
+                <input id="aoMgrCpf" type="text" inputmode="numeric" placeholder="000.000.000-00" />
+              </div>
+              <div>
+                <label for="aoMgrPhone">Telefone</label>
+                <input id="aoMgrPhone" type="tel" />
+              </div>
+              <div>
+                <label for="aoMgrEmail">E-mail</label>
+                <input id="aoMgrEmail" type="email" />
+              </div>
+              <div>
+                <label for="aoMgrRole">Cargo/Função</label>
+                <input id="aoMgrRole" type="text" />
+              </div>
+              <div>
+                <label for="aoMgrActive">Status</label>
+                <select id="aoMgrActive">
+                  <option value="ATIVO">Ativo</option>
+                  <option value="INATIVO">Inativo</option>
+                </select>
+              </div>
+              <div class="full">
+                <label for="aoMgrNotes">Observações</label>
+                <textarea id="aoMgrNotes" rows="3"></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" id="aoManagerSave">Salvar</button>
+              <button type="button" class="secondary" id="aoCancelManager">Cancelar</button>
             </div>
           </form>
         </div>
@@ -8957,8 +9017,8 @@
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
-    <script src="/advocacy-offices-service.js?v=20260902adv2"></script>
-    <script src="/advocacy-offices-ui.js?v=20260902adv3"></script>
+    <script src="/advocacy-offices-service.js?v=20260904mgr1"></script>
+    <script src="/advocacy-offices-ui.js?v=20260904mgr1"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -9745,6 +9805,7 @@
         opsVehicleEvents: [],
         inspectionIndex: {},
         advocacyOffices: [],
+        advocacyOfficeManagers: [],
       };
       window.__ampliState = state;
 
@@ -15929,6 +15990,13 @@
           const cadHidden = document.getElementById("aoCadastroPanel")?.classList.contains("hidden");
           if (!cadHidden) window.advocacyOfficesUi.renderCadastro();
         }
+        if (
+          typeof window.advocacyOfficesUi?.renderManagersSection === "function" &&
+          document.getElementById("aoOfficeModal") &&
+          !document.getElementById("aoOfficeModal").classList.contains("hidden")
+        ) {
+          window.advocacyOfficesUi.renderManagersSection();
+        }
       }
 
       function bindVehicleAdvocacyPicker() {
@@ -15938,9 +16006,34 @@
         const list = document.getElementById("vehicleAdvocacyOfficeList");
         if (!input || !hidden || !list) return;
         if (typeof window.advocacyOfficesUi?.bindPicker === "function") {
-          window.advocacyOfficesUi.bindPicker(input, hidden, list, { onlyActive: true });
+          window.advocacyOfficesUi.bindPicker(input, hidden, list, {
+            onlyActive: true,
+            onChange: () => fillVehicleAdvocacyManagerSelect(),
+          });
           advocacyOfficePickerBound = true;
         }
+      }
+
+      function fillVehicleAdvocacyManagerSelect(preferredId) {
+        const sel = document.getElementById("vehicleAdvocacyManagerId");
+        const officeId = document.getElementById("vehicleAdvocacyOfficeId")?.value || "";
+        if (!sel) return;
+        const keep = preferredId != null ? preferredId : sel.value || "";
+        const svc = window.advocacyOfficesService;
+        const list = svc
+          ? svc.activeManagersForOffice(state.advocacyOfficeManagers || [], officeId, keep)
+          : [];
+        const opts = [`<option value="">Sem gestor informado</option>`].concat(
+          list.map((m) => {
+            const label = m.active ? m.name : `${m.name} (inativo)`;
+            const selAttr = String(m.id) === String(keep) ? " selected" : "";
+            return `<option value="${escapeHtml(m.id)}"${selAttr}>${escapeHtml(label)}</option>`;
+          })
+        );
+        sel.innerHTML = opts.join("");
+        if (keep && list.some((m) => String(m.id) === String(keep))) sel.value = keep;
+        else sel.value = "";
+        sel.disabled = !officeId;
       }
 
       function setVehicleAdvocacyOfficeField(officeId) {
@@ -15954,6 +16047,29 @@
             input.value = o?.name || "";
           }
         }
+        fillVehicleAdvocacyManagerSelect();
+      }
+
+      async function loadAdvocacyOfficeManagers() {
+        const uid = supabaseOwnerUserId();
+        if (!uid) return;
+        const { data, error } = await supabase
+          .from("advocacy_office_managers")
+          .select("*")
+          .eq("user_id", uid)
+          .order("name", { ascending: true });
+        if (error) {
+          if (isMissingRelationError(error) || /advocacy_office_managers|PGRST204|column/i.test(error.message || "")) {
+            state.advocacyOfficeManagers = [];
+            syncAdvocacyOfficeState();
+            return;
+          }
+          logSupabaseLoadError("loadAdvocacyOfficeManagers", error);
+          return;
+        }
+        state.advocacyOfficeManagers = data || [];
+        syncAdvocacyOfficeState();
+        fillVehicleAdvocacyManagerSelect();
       }
 
       async function loadAdvocacyOffices() {
@@ -15967,12 +16083,14 @@
         if (error) {
           if (isMissingRelationError(error) || /advocacy_offices|PGRST204|column/i.test(error.message || "")) {
             state.advocacyOffices = [];
+            state.advocacyOfficeManagers = [];
             return;
           }
           logSupabaseLoadError("loadAdvocacyOffices", error);
           return;
         }
         state.advocacyOffices = data || [];
+        await loadAdvocacyOfficeManagers();
         syncAdvocacyOfficeState();
         bindVehicleAdvocacyPicker();
         if (typeof window.advocacyOfficesUi?.bindOnce === "function") window.advocacyOfficesUi.bindOnce();
@@ -16006,7 +16124,7 @@
         const newId = (data && data.id) || editingId;
         const vehicleModalOpen = vehicleModal && !vehicleModal.classList.contains("hidden");
         if (newId && vehicleModalOpen) setVehicleAdvocacyOfficeField(newId);
-        return true;
+        return newId || true;
       }
 
       async function toggleAdvocacyOffice(id) {
@@ -16025,6 +16143,82 @@
           return;
         }
         await loadAdvocacyOffices();
+      }
+
+      async function saveAdvocacyOfficeManager(officeId, editingId, payload) {
+        if (isGestorPista || isVistoriador) {
+          alert("Somente o administrador pode cadastrar ou editar gestores de carteira.");
+          return false;
+        }
+        if (!officeId) {
+          alert("Salve o escritório antes de cadastrar gestores.");
+          return false;
+        }
+        const uid = effectiveUserId();
+        if (editingId) {
+          const current = (state.advocacyOfficeManagers || []).find((x) => String(x.id) === String(editingId));
+          if (!current || String(current.office_id) !== String(officeId)) {
+            alert("Este gestor não pertence a este escritório.");
+            return false;
+          }
+        }
+        const row = Object.assign({}, payload, {
+          user_id: uid,
+          office_id: officeId,
+          updated_at: new Date().toISOString(),
+        });
+        const run = () =>
+          editingId
+            ? supabase
+                .from("advocacy_office_managers")
+                .update(row)
+                .eq("id", editingId)
+                .eq("user_id", uid)
+                .eq("office_id", officeId)
+                .select("id")
+                .maybeSingle()
+            : supabase.from("advocacy_office_managers").insert(row).select("id").maybeSingle();
+        const { error } = await runSupabaseWrite(run);
+        if (error) {
+          if (/advocacy_office_managers_user_cpf|duplicate|unique/i.test(error.message || "")) {
+            alert("Já existe um gestor de carteira com este CPF.");
+            return false;
+          }
+          if (isMissingRelationError(error) || /advocacy_office_managers|PGRST204|column/i.test(error.message || "")) {
+            alert(
+              "A base ainda não tem a tabela de gestores de carteira.\n\nNo Supabase → SQL Editor, execute supabase/advocacy_office_managers.sql e atualize a página."
+            );
+            return false;
+          }
+          alert(error.message || "Não foi possível salvar o gestor.");
+          return false;
+        }
+        await loadAdvocacyOfficeManagers();
+        return true;
+      }
+
+      async function toggleAdvocacyOfficeManager(id, officeId) {
+        if (isGestorPista || isVistoriador) return;
+        const m = (state.advocacyOfficeManagers || []).find((x) => String(x.id) === String(id));
+        if (!m || String(m.office_id) !== String(officeId || m.office_id)) {
+          alert("Este gestor não pertence a este escritório.");
+          return;
+        }
+        const nextActive = !m.active;
+        if (m.active && !confirm("Inativar este gestor? O registro permanece no histórico do escritório.")) return;
+        const { error } = await runSupabaseWrite(() =>
+          supabase
+            .from("advocacy_office_managers")
+            .update({ active: nextActive, updated_at: new Date().toISOString() })
+            .eq("id", id)
+            .eq("user_id", effectiveUserId())
+            .eq("office_id", m.office_id)
+        );
+        if (error) {
+          alert(error.message || "Não foi possível alterar o status do gestor.");
+          return;
+        }
+        await loadAdvocacyOfficeManagers();
       }
 
       async function deleteAdvocacyOffice(id) {
@@ -16072,6 +16266,8 @@
       window.saveAdvocacyOffice = saveAdvocacyOffice;
       window.toggleAdvocacyOffice = toggleAdvocacyOffice;
       window.deleteAdvocacyOffice = deleteAdvocacyOffice;
+      window.saveAdvocacyOfficeManager = saveAdvocacyOfficeManager;
+      window.toggleAdvocacyOfficeManager = toggleAdvocacyOfficeManager;
       window.openAdvocacyDemandReport = function openAdvocacyDemandReport(opts) {
         if (isGestorPista || isVistoriador) return;
         openEscritoriosSubview("relatorio");
@@ -18468,6 +18664,7 @@
             ${escapeHtml([vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-")}<br />
             RPV: ${escapeHtml(locNome)}<br />
             Escritório: ${escapeHtml((window.advocacyOfficesService && window.advocacyOfficesService.officeName(vehicle.advocacy_office_id, state.advocacyOffices)) || "Sem escritório informado")}<br />
+            Gestor de carteira: ${escapeHtml((window.advocacyOfficesService && window.advocacyOfficesService.managerName(vehicle.advocacy_office_manager_id, state.advocacyOfficeManagers)) || "Sem gestor informado")}<br />
             Entrada: ${formatDateTime(vehicle.data_entrada)}<br />
           `;
           if (fichaSectionSnf) {
@@ -18524,6 +18721,7 @@
           <div class="ficha-placa-visual" style="margin-bottom:10px">${plateVisualHtml(vehicle.placa, "md", true)}</div>
           ${escapeHtml([vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-")}<br />
           Escritório: ${escapeHtml((window.advocacyOfficesService && window.advocacyOfficesService.officeName(vehicle.advocacy_office_id, state.advocacyOffices)) || "Sem escritório informado")}<br />
+          Gestor de carteira: ${escapeHtml((window.advocacyOfficesService && window.advocacyOfficesService.managerName(vehicle.advocacy_office_manager_id, state.advocacyOfficeManagers)) || "Sem gestor informado")}<br />
           Entrada: ${formatDateTime(vehicle.data_entrada)} • Saída: ${formatDateTime(vehicle.data_saida)}<br />
           Valor de referência (diárias): ${formatCurrency(calcTotal(vehicle))}<br />
           <span class="notice">Cobrança e pagamento: módulo Financeiro (após encerrar o ciclo no pátio).</span><br />
@@ -18785,6 +18983,7 @@
             vehicleFinancialResponsible.value = vehicle.responsavel_financeiro_id || "";
           if (vehicleAuctioneer) vehicleAuctioneer.value = vehicle.leiloeiro_id || "";
           setVehicleAdvocacyOfficeField(vehicle.advocacy_office_id || "");
+          fillVehicleAdvocacyManagerSelect(vehicle.advocacy_office_manager_id || "");
           document.getElementById("vehicleNotes").value = vehicle.observacoes || "";
           const inspectionDateEl = document.getElementById("vehicleInspectionDate");
           const inspectionResponsibleEl = document.getElementById("vehicleInspectionResponsible");
@@ -18811,6 +19010,7 @@
           if (vehicleFinancialResponsible) vehicleFinancialResponsible.value = "";
           if (vehicleAuctioneer) vehicleAuctioneer.value = "";
           setVehicleAdvocacyOfficeField("");
+          fillVehicleAdvocacyManagerSelect("");
         }
         const vd = document.getElementById("vehicleDaily");
         const entryInput = document.getElementById("vehicleEntry");
@@ -20736,6 +20936,24 @@
           );
           return;
         }
+        let advocacyManagerId = document.getElementById("vehicleAdvocacyManagerId")?.value || null;
+        const svcAo = window.advocacyOfficesService;
+        if (!advocacyOfficeId || (svcAo && !svcAo.managerBelongsToOffice(advocacyManagerId, advocacyOfficeId, state.advocacyOfficeManagers))) {
+          advocacyManagerId = null;
+        }
+        const { error: mgrColErr } = await supabase.from("vehicles").select("advocacy_office_manager_id").limit(1);
+        const managerColOk =
+          !mgrColErr ||
+          !/advocacy_office_manager_id|PGRST204|PGRST205|column|schema cache|does not exist|relation/i.test(
+            mgrColErr.message || ""
+          );
+        if (advocacyManagerId && !managerColOk) {
+          alert(
+            "Não foi possível gravar o gestor de carteira: a tabela vehicles ainda não tem a coluna advocacy_office_manager_id.\n\n" +
+              "No Supabase → SQL Editor, execute supabase/advocacy_office_managers.sql e atualize a página."
+          );
+          return;
+        }
         const payload = {
           user_id: effectiveUserId(),
           placa: document.getElementById("vehiclePlate").value.trim(),
@@ -20769,6 +20987,7 @@
           vistoria_observacoes: inspectionDamageEl?.value?.trim() || "",
         };
         if (advocacyColsOk) payload.advocacy_office_id = advocacyOfficeId;
+        if (managerColOk) payload.advocacy_office_manager_id = advocacyManagerId || null;
         if (!normalizePlateSearch(payload.placa)) {
           alert("Informe uma placa válida.");
           return;
@@ -20833,6 +21052,7 @@
         const stripAdvocacyFrom = (p) => {
           const o = { ...p };
           delete o.advocacy_office_id;
+          delete o.advocacy_office_manager_id;
           return o;
         };
         const stripRpfFrom = (p) => {
@@ -20859,7 +21079,7 @@
           const kinds = [];
           if (/vistoria_/i.test(m)) kinds.push("vistoria");
           if (/leiloeiro_id/i.test(m)) kinds.push("leiloeiro");
-          if (/advocacy_office_id/i.test(m)) kinds.push("advocacy");
+          if (/advocacy_office_id|advocacy_office_manager_id/i.test(m)) kinds.push("advocacy");
           if (/responsavel_financeiro_/i.test(m)) kinds.push("rpf");
           if (/entry_inspection_flow|(\bcor\b)/i.test(m)) kinds.push("entryflow");
           if (/pending_adm_review|registered_by_gestor|adm_reviewed_at/i.test(m)) kinds.push("admreview");
@@ -20911,7 +21131,7 @@
           const partes = [];
           if (degradedGroups.includes("vistoria")) partes.push("laudo de vistoria");
           if (degradedGroups.includes("leiloeiro")) partes.push("leiloeiro");
-          if (degradedGroups.includes("advocacy")) partes.push("escritório de advocacia");
+          if (degradedGroups.includes("advocacy")) partes.push("escritório / gestor de carteira");
           if (degradedGroups.includes("rpf")) partes.push("RPF (responsável financeiro)");
           if (degradedGroups.includes("entryflow")) {
             partes.push("cor e fluxo de vistoria eletrônica (entry_inspection_flow)");
@@ -20930,7 +21150,7 @@
             sqlHints.push("supabase/vehicles_gestor_adm_review.sql");
           }
           if (degradedGroups.includes("advocacy")) {
-            sqlHints.push("supabase/advocacy_offices.sql");
+            sqlHints.push("supabase/advocacy_offices.sql e supabase/advocacy_office_managers.sql");
           }
           const sqlText =
             sqlHints.length === 1
