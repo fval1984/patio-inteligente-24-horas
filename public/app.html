@@ -7375,11 +7375,12 @@
           </div>
           <div id="partnerCategoryKpis" class="ao-kpis" aria-label="Resumo de parceiros"></div>
           <div id="partnerSubnav" class="subnav">
-            <button type="button" data-subview="financeiras" class="active">Financeiras</button>
-            <button type="button" data-subview="escritorios">Escritórios de Advocacia</button>
-            <button type="button" data-subview="transportadoras">Transportadoras</button>
-            <button type="button" data-subview="prestadores">Prestadores de Serviço</button>
-            <button type="button" data-subview="outros">Outros</button>
+            <button type="button" data-subview="escritorios" class="active">Escritório de Advocacia</button>
+            <button type="button" data-subview="financeiras">Instituição Financeira</button>
+            <button type="button" data-subview="reboqueiros">Reboqueiro</button>
+            <button type="button" data-subview="leiloeiros">Leiloeiro</button>
+            <button type="button" data-subview="patios">Pátio de Apreensão</button>
+            <button type="button" data-subview="oficiais">Oficial de Justiça</button>
           </div>
 
           <div class="partner-subview hidden" data-subview="dashboard" hidden aria-hidden="true">
@@ -7418,7 +7419,7 @@
 
           <div class="section-card partner-subview hidden" data-subview="cadastro">
             <p class="notice" style="margin: 0 0 12px">
-              Cadastro por tipo de parceiro. Cada aba lista somente a categoria selecionada. RPV, RPP e leiloeiro no pátio continuam usando o ID do parceiro.
+              Cadastro independente por tipo de parceiro. Cada módulo lista somente aquele tipo. Gestor de Carteira existe só dentro do escritório. RPV, RPP e leiloeiro no pátio usam o ID do parceiro.
             </p>
             <div id="partnerCadastroRoot"></div>
             <div class="table-wrap hub-dash-legacy-hidden" hidden aria-hidden="true">
@@ -8958,11 +8959,12 @@
         <details class="header-menu-details" id="headerDetailsParceiros">
           <summary>Parceiros</summary>
           <div class="header-menu-nested">
-            <button type="button" data-header-partner-sub="financeiras">Financeiras</button>
-            <button type="button" data-header-partner-sub="escritorios">Escritórios de Advocacia</button>
-            <button type="button" data-header-partner-sub="transportadoras">Transportadoras</button>
-            <button type="button" data-header-partner-sub="prestadores">Prestadores de Serviço</button>
-            <button type="button" data-header-partner-sub="outros">Outros</button>
+            <button type="button" data-header-partner-sub="escritorios">Escritório de Advocacia</button>
+            <button type="button" data-header-partner-sub="financeiras">Instituição Financeira</button>
+            <button type="button" data-header-partner-sub="reboqueiros">Reboqueiro</button>
+            <button type="button" data-header-partner-sub="leiloeiros">Leiloeiro</button>
+            <button type="button" data-header-partner-sub="patios">Pátio de Apreensão</button>
+            <button type="button" data-header-partner-sub="oficiais">Oficial de Justiça</button>
           </div>
         </details>
 
@@ -9006,8 +9008,8 @@
     <script src="/partners-dashboard.js?v=20260605partners601"></script>
     <script src="/financial-partner-metrics-service.js?v=20260727fpdash"></script>
     <script src="/financial-partner-dashboard-ui.js?v=20260902contrast1"></script>
-    <script src="/partners-cadastro-service.js?v=20260902ptabs4"></script>
-    <script src="/partners-cadastro-ui.js?v=20260902ptabs5"></script>
+    <script src="/partners-cadastro-service.js?v=20260904modulos1"></script>
+    <script src="/partners-cadastro-ui.js?v=20260904modulos1"></script>
     <script src="/dashboard-metrics-service.js?v=20260819vnpvist1"></script>
     <script src="/amplipatio-dashboard.js?v=20260902adv1"></script>
     <script src="/vehicle-entry-inspection-checklist.js?v=20260820vistoria5"></script>
@@ -18047,18 +18049,19 @@
         const host = document.getElementById("partnerCategoryKpis");
         if (!host) return;
         const svc = window.partnersCadastroService;
-        const counts = svc && svc.countPartnersByCategory ? svc.countPartnersByCategory(state.partners || []) : { total: (state.partners || []).length, financeiras: 0, transportadoras: 0, prestadores: 0, outros: 0 };
+        const counts = svc && svc.countPartnersByCategory ? svc.countPartnersByCategory(state.partners || []) : { total: (state.partners || []).length, financeiras: 0, reboqueiros: 0, leiloeiros: 0, patios: 0, oficiais: 0 };
         const offices = (state.advocacyOffices || []).length;
         const total = (counts.total || 0) + offices;
         const card = (id, label, n) =>
           `<button type="button" class="ao-kpi" data-partner-kpi="${id}"><span>${label}</span><strong>${n}</strong></button>`;
         host.innerHTML =
           `<div class="ao-kpi" style="cursor:default"><span>Total de parceiros</span><strong>${total}</strong></div>` +
-          card("financeiras", "Financeiras", counts.financeiras || 0) +
           card("escritorios", "Escritórios", offices) +
-          card("transportadoras", "Transportadoras", counts.transportadoras || 0) +
-          card("prestadores", "Prestadores", counts.prestadores || 0) +
-          card("outros", "Outros", counts.outros || 0);
+          card("financeiras", "Instituições financeiras", counts.financeiras || 0) +
+          card("reboqueiros", "Reboqueiros", counts.reboqueiros || 0) +
+          card("leiloeiros", "Leiloeiros", counts.leiloeiros || 0) +
+          card("patios", "Pátios", counts.patios || 0) +
+          card("oficiais", "Oficiais", counts.oficiais || 0);
       }
 
       function renderPartnersDashboard() {
@@ -18080,10 +18083,29 @@
       }
       window.renderPartnersDashboard = renderPartnersDashboard;
 
+      function resolvePartnerModule(sub) {
+        const raw = String(sub || "").trim().toLowerCase();
+        if (raw === "escritorios" || raw === "escritorio") return "escritorios";
+        const svc = window.partnersCadastroService;
+        if (svc && typeof svc.resolvePartnerCategoryId === "function") {
+          if (
+            raw === "parceiros" ||
+            raw === "cadastro" ||
+            raw === "dashboard" ||
+            raw === ""
+          ) {
+            return "escritorios";
+          }
+          return svc.resolvePartnerCategoryId(raw);
+        }
+        return "escritorios";
+      }
+
       function setPartnerView(view) {
         const show = view && view !== "none";
-        const CADASTRO_TABS = { financeiras: 1, transportadoras: 1, prestadores: 1, outros: 1 };
-        if (view === "parceiros" || view === "cadastro" || view === "dashboard") view = "financeiras";
+        const CADASTRO_TABS = { financeiras: 1, reboqueiros: 1, leiloeiros: 1, patios: 1, oficiais: 1 };
+        if (view === "parceiros" || view === "cadastro" || view === "dashboard") view = "escritorios";
+        if (show) view = resolvePartnerModule(view);
         const resolved = show ? view : null;
         currentPartnerView = resolved;
         partnerSubnav?.classList.toggle("hidden", !show);
@@ -23206,8 +23228,8 @@
           navStack.push("patio:inicio");
         }
         if (view === "parceiros") {
-          setPartnerView("financeiras");
-          navStack.push("parceiros:financeiras");
+          setPartnerView("escritorios");
+          navStack.push("parceiros:escritorios");
           if (typeof window.partnersCadastroUiInit === "function") window.partnersCadastroUiInit();
         }
         if (view === "lista") {
@@ -23284,12 +23306,17 @@
           dashboard: 1,
           financeiras: 1,
           escritorios: 1,
+          reboqueiros: 1,
+          leiloeiros: 1,
+          patios: 1,
+          oficiais: 1,
           transportadoras: 1,
           prestadores: 1,
           outros: 1,
         };
-        if (sub === "parceiros" || sub === "cadastro" || sub === "dashboard") sub = "financeiras";
-        if (!allowed[sub]) sub = "financeiras";
+        if (sub === "parceiros" || sub === "cadastro" || sub === "dashboard") sub = "escritorios";
+        sub = resolvePartnerModule(sub);
+        if (!allowed[sub] && sub !== "escritorios") sub = "escritorios";
         const top = navStack[navStack.length - 1];
         if (top === `parceiros:${sub}`) {
           setPartnerView(sub);
@@ -23362,7 +23389,7 @@
         }
         if (top === "parceiros") {
           showMainView("parceiros");
-          return setPartnerView("financeiras");
+          return setPartnerView("escritorios");
         }
         if (top === "configuracoes") return showMainView("configuracoes");
         if (top === "financeiro") {
@@ -23413,7 +23440,7 @@
       document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
       document.getElementById("dashboardOpenLista")?.addEventListener("click", () => openMainView("lista"));
-      document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openPartnerSubview("financeiras"));
+      document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openPartnerSubview("escritorios"));
       document.getElementById("dashboardOpenConfiguracoes")?.addEventListener("click", () => openMainView("configuracoes"));
       document.getElementById("exitConfigToPatio")?.addEventListener("click", () => closeStackTop());
 
@@ -23623,7 +23650,7 @@
         const partnerSum = e.target.closest("#headerDetailsParceiros summary");
         if (partnerSum) {
           e.preventDefault();
-          openPartnerSubview("financeiras");
+          openPartnerSubview("escritorios");
           closeAppHeaderMenu();
           return;
         }
