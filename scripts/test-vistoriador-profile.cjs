@@ -92,6 +92,23 @@ function testCreateTrackManagerRole() {
   assert.match(handler, /Apenas a conta principal \(ADM\) pode criar utilizadores/);
 }
 
+function testGestorSeesCompletedInspections() {
+  const html = read("public/app.html");
+  assert.match(html, /\/api\/vehicles\/list-entry-inspections/);
+  assert.match(html, /rememberCompletedInspection/);
+  const js = read("public/vehicle-entry-inspection.js");
+  assert.match(js, /rememberCompletedInspection/);
+  const route = read("app/api/vehicles/list-entry-inspections/route.ts");
+  assert.match(route, /listCompletedEntryInspections/);
+  assert.match(route, /actorCanInspect/);
+  const lib = read("lib/vehicle-entry-inspection.ts");
+  assert.match(lib, /export async function listCompletedEntryInspections/);
+  const sql = read("supabase/vehicle_entry_inspections_gestor_rls.sql");
+  assert.match(sql, /auth_is_patio_delegate_of/);
+  assert.match(sql, /vehicle_entry_inspections_delegate_select/);
+  assert.doesNotMatch(sql, /DELETE FROM/i);
+}
+
 function testFrontendIdentification() {
   const js = read("public/vehicle-entry-inspection.js");
   assert.match(js, /IDENTIFICAÇÃO DO VISTORIADOR/);
@@ -114,7 +131,7 @@ function testAppHtmlRoleRestrictions() {
   assert.match(html, /requiresInspectorIdentification: !!isVistoriador/);
   assert.match(html, /if \(isVistoriador\) \{\s*view = "patio";/s);
   assert.match(html, /Este perfil só pode realizar vistorias/);
-  assert.match(html, /vehicle-entry-inspection\.js\?v=20260820vistoria7/);
+  assert.match(html, /vehicle-entry-inspection\.js\?v=20260903vistoriafeita/);
   assert.match(html, /ampliguard-vistoria-ui\.css\?v=20260820vistoria7/);
   assert.match(html, /if \(isVistoriador\) \{\s*unwrapTabModalShell\(patioContent\)/s);
   assert.match(html, /function returnToPainelFromPatioFlyout\(\) \{\s*if \(isVistoriador\)/s);
@@ -155,6 +172,7 @@ const tests = [
   ["API de identificação", testIdentifyApi],
   ["finalização grava o vistoriador autenticado", testCompleteUsesInspectorToken],
   ["criação de utilizador com perfil", testCreateTrackManagerRole],
+  ["gestor vê vistoria concluída na lista", testGestorSeesCompletedInspections],
   ["modal de identificação na vistoria", testFrontendIdentification],
   ["restrições do app.html", testAppHtmlRoleRestrictions],
   ["scripts inline de app.html parseiam", testInlineAppScriptsParse],
