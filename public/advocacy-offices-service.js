@@ -174,6 +174,12 @@
     return "Sem financeira";
   }
 
+  function formatCpf(v) {
+    const d = digits(v).slice(0, 11);
+    if (d.length !== 11) return d;
+    return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+  }
+
   function officeName(id, offices) {
     if (!id) return "Sem escritório informado";
     const o = (offices || []).find((x) => String(x.id) === String(id));
@@ -214,6 +220,71 @@
       if (dup) errors.push("Já existe um escritório com este CNPJ.");
     }
     return errors;
+  }
+
+  function normalizeManagerPayload(raw) {
+    const cpfDigits = digits(raw?.cpf).slice(0, 11);
+    return {
+      name: String(raw?.name || "").trim(),
+      cpf: cpfDigits ? formatCpf(cpfDigits) : "",
+      cpf_digits: cpfDigits,
+      phone: String(raw?.phone || "").trim(),
+      email: String(raw?.email || "").trim(),
+      role_title: String(raw?.role_title || "").trim(),
+      notes: String(raw?.notes || "").trim(),
+      active: raw?.active === false || raw?.active === "INATIVO" ? false : true,
+    };
+  }
+
+  function validateManager(payload, managers, officeId, editingId) {
+    const errors = [];
+    if (!officeId) errors.push("Salve o escritório antes de cadastrar gestores.");
+    if (!payload.name) errors.push("Informe o nome completo do gestor.");
+    if (payload.cpf_digits && payload.cpf_digits.length !== 11) {
+      errors.push("CPF deve ter 11 dígitos.");
+    }
+    if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+      errors.push("E-mail inválido.");
+    }
+    if (payload.cpf_digits) {
+      const dup = (managers || []).find(
+        (m) =>
+          String(m.id) !== String(editingId || "") &&
+          digits(m.cpf_digits || m.cpf) === payload.cpf_digits
+      );
+      if (dup) errors.push("Já existe um gestor de carteira com este CPF.");
+    }
+    return errors;
+  }
+
+  function managersForOffice(managers, officeId) {
+    const oid = String(officeId || "");
+    if (!oid) return [];
+    return (managers || [])
+      .filter((m) => String(m.office_id) === oid)
+      .slice()
+      .sort((a, b) => {
+        if (!!a.active !== !!b.active) return a.active ? -1 : 1;
+        return String(a.name || "").localeCompare(String(b.name || ""), "pt-BR");
+      });
+  }
+
+  function activeManagersForOffice(managers, officeId, keepId) {
+    return managersForOffice(managers, officeId).filter(
+      (m) => m.active || (keepId && String(m.id) === String(keepId))
+    );
+  }
+
+  function managerName(id, managers) {
+    if (!id) return "Sem gestor informado";
+    const m = (managers || []).find((x) => String(x.id) === String(id));
+    return m?.name || "Gestor removido";
+  }
+
+  function managerBelongsToOffice(managerId, officeId, managers) {
+    if (!managerId || !officeId) return false;
+    const m = (managers || []).find((x) => String(x.id) === String(managerId));
+    return !!(m && String(m.office_id) === String(officeId));
   }
 
   function filterOffices(offices, filters) {
@@ -467,6 +538,7 @@
   global.advocacyOfficesService = {
     digits,
     formatCnpj,
+    formatCpf,
     toLocalYmd,
     todayYmd,
     STATUS_LABELS,
@@ -475,8 +547,14 @@
     stayDays,
     resolveTipoVeiculo,
     officeName,
+    managerName,
     normalizeOfficePayload,
     validateOffice,
+    normalizeManagerPayload,
+    validateManager,
+    managersForOffice,
+    activeManagersForOffice,
+    managerBelongsToOffice,
     filterOffices,
     searchOffices,
     linkedVehicleCount,
