@@ -26,3 +26,8 @@ alter table public.vehicles add column if not exists responsavel_financeiro_id u
 alter table public.vehicles add column if not exists responsavel_financeiro_nome text;
 comment on column public.vehicles.responsavel_financeiro_id is 'Parceiro RPF (pagamento); pode coincidir com o RPV ou ser outro.';
 comment on column public.vehicles.responsavel_financeiro_nome is 'Nome gravado com o RPF (espelho do parceiro selecionado).';
+
+-- Escritório de advocacia (FK e tabela em supabase/advocacy_offices.sql)
+alter table public.vehicles add column if not exists advocacy_office_id uuid;
+comment on column public.vehicles.advocacy_office_id is 'Escritório de advocacia da demanda. NULL = sem escritório informado.';
+create index if not exists vehicles_advocacy_office_id_idx on public.vehicles (advocacy_office_id);
