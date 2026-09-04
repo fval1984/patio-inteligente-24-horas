@@ -9,6 +9,7 @@
   let _cadastroFilters = { search: "", status: "" };
   let _editingId = null;
   let _readonly = false;
+  let _editingManagerId = null;
   let _reportFilters = null;
   let _reportSort = { by: "demandas", dir: "desc" };
   let _reportChartPreset = "6m";
@@ -77,8 +78,15 @@
       .ao-toolbar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
       #aoOfficeModal .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
       #aoOfficeModal .form-grid .full { grid-column: 1 / -1; }
+      #aoOfficeModal .modal { width: min(860px, 96vw); max-height: 92vh; overflow: auto; }
+      #aoOfficeModal .ao-mgr-head { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; margin: 0 0 10px; }
+      #aoOfficeModal .ao-mgr-head h4 { margin:0; font-size:1rem; }
+      #aoManagerModal { z-index: 210; }
+      #aoManagerModal .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+      #aoManagerModal .form-grid .full { grid-column: 1 / -1; }
       @media (max-width: 720px) {
         #aoOfficeModal .form-grid { grid-template-columns: 1fr; }
+        #aoManagerModal .form-grid { grid-template-columns: 1fr; }
       }
     `;
     document.head.appendChild(style);
@@ -186,7 +194,109 @@
     }
     const save = document.getElementById("aoOfficeSave");
     if (save) save.classList.toggle("hidden", !!readonly);
+    const notice = document.getElementById("aoOfficeFormNotice");
+    if (notice) {
+      notice.classList.add("hidden");
+      notice.textContent = "";
+    }
+    renderManagersSection();
     document.getElementById("aoOfficeModal")?.classList.remove("hidden");
+  }
+
+  function showOfficeNotice(msg) {
+    const notice = document.getElementById("aoOfficeFormNotice");
+    if (!notice) return;
+    notice.textContent = msg || "";
+    notice.classList.toggle("hidden", !msg);
+  }
+
+  function renderManagersSection() {
+    const host = document.getElementById("aoManagersRoot");
+    if (!host || !svc()) return;
+    const officeId = _editingId;
+    const managers = svc().managersForOffice(global.__ampliState?.advocacyOfficeManagers || [], officeId);
+    const manage = canManage();
+    const n = managers.length;
+    if (!officeId) {
+      host.innerHTML = `<p class="notice" style="margin:0">Salve o escritório para cadastrar gestores de carteira. O vínculo é automático com este escritório.</p>`;
+      return;
+    }
+    const rows = n
+      ? managers
+          .map((m) => {
+            const st = m.active
+              ? '<span class="pc-status-ativo">Ativo</span>'
+              : '<span class="pc-status-inativo">Inativo</span>';
+            const tog = m.active ? "Inativar" : "Reativar";
+            const acts = manage
+              ? `<button type="button" class="secondary" data-ao-mgr-edit="${esc(m.id)}">Editar</button>
+                 <button type="button" class="secondary" data-ao-mgr-toggle="${esc(m.id)}">${tog}</button>`
+              : "";
+            return `<tr>
+              <td data-label="Nome">${esc(m.name)}</td>
+              <td data-label="Telefone">${esc(m.phone || "—")}</td>
+              <td data-label="E-mail">${esc(m.email || "—")}</td>
+              <td data-label="Cargo">${esc(m.role_title || "—")}</td>
+              <td data-label="Status">${st}</td>
+              <td data-label="Ações" class="actions">${acts || "—"}</td>
+            </tr>`;
+          })
+          .join("")
+      : `<tr><td colspan="6" class="notice" style="text-align:center;padding:16px">Nenhum gestor de carteira neste escritório.</td></tr>`;
+    host.innerHTML = `
+      <div class="ao-mgr-head">
+        <h4>Gestores de Carteira — ${n}</h4>
+        ${manage ? `<button type="button" class="secondary" id="aoAddManager">+ Adicionar Gestor de Carteira</button>` : ""}
+      </div>
+      <div class="table-wrap">
+        <table class="table stacked">
+          <thead><tr>
+            <th>Nome</th><th>Telefone</th><th>E-mail</th><th>Cargo/Função</th><th>Status</th><th>Ações</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  function fillManagerForm(manager) {
+    _editingManagerId = manager?.id || null;
+    const title = document.getElementById("aoManagerModalTitle");
+    if (title) title.textContent = manager?.id ? "Editar gestor de carteira" : "Novo gestor de carteira";
+    const set = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = val || "";
+    };
+    set("aoMgrName", manager?.name);
+    set("aoMgrCpf", manager?.cpf);
+    set("aoMgrPhone", manager?.phone);
+    set("aoMgrEmail", manager?.email);
+    set("aoMgrRole", manager?.role_title);
+    set("aoMgrNotes", manager?.notes);
+    const st = document.getElementById("aoMgrActive");
+    if (st) st.value = manager && manager.active === false ? "INATIVO" : "ATIVO";
+    const err = document.getElementById("aoManagerFormErrors");
+    if (err) {
+      err.classList.add("hidden");
+      err.innerHTML = "";
+    }
+    document.getElementById("aoManagerModal")?.classList.remove("hidden");
+  }
+
+  function readManagerForm() {
+    return svc().normalizeManagerPayload({
+      name: document.getElementById("aoMgrName")?.value,
+      cpf: document.getElementById("aoMgrCpf")?.value,
+      phone: document.getElementById("aoMgrPhone")?.value,
+      email: document.getElementById("aoMgrEmail")?.value,
+      role_title: document.getElementById("aoMgrRole")?.value,
+      notes: document.getElementById("aoMgrNotes")?.value,
+      active: document.getElementById("aoMgrActive")?.value !== "INATIVO",
+    });
+  }
+
+  function closeManagerModal() {
+    document.getElementById("aoManagerModal")?.classList.add("hidden");
+    _editingManagerId = null;
   }
 
   function readOfficeForm() {
@@ -203,6 +313,7 @@
   }
 
   function closeOfficeModal() {
+    closeManagerModal();
     document.getElementById("aoOfficeModal")?.classList.add("hidden");
     _editingId = null;
     _readonly = false;
@@ -694,11 +805,72 @@
       }
       if (typeof global.saveAdvocacyOffice === "function") {
         const ok = await global.saveAdvocacyOffice(_editingId, payload);
-        if (ok) closeOfficeModal();
+        if (ok) {
+          const id = typeof ok === "string" ? ok : _editingId;
+          const vehicleOpen = !document.getElementById("vehicleModal")?.classList.contains("hidden");
+          if (vehicleOpen) closeOfficeModal();
+          else {
+            const o = (global.__ampliState?.advocacyOffices || []).find((x) => String(x.id) === String(id));
+            if (o) fillOfficeForm(o, false);
+            showOfficeNotice("Escritório salvo. Pode adicionar gestores de carteira.");
+          }
+        }
       }
     });
     document.getElementById("aoCancelOffice")?.addEventListener("click", closeOfficeModal);
     document.getElementById("aoCloseOfficeModal")?.addEventListener("click", closeOfficeModal);
+    document.getElementById("aoManagersRoot")?.addEventListener("click", async (e) => {
+      if (e.target.closest("#aoAddManager")) {
+        if (!canManage()) return;
+        if (!_editingId) {
+          alert("Salve o escritório antes de adicionar gestores.");
+          return;
+        }
+        fillManagerForm(null);
+        return;
+      }
+      const edit = e.target.closest("[data-ao-mgr-edit]");
+      const tog = e.target.closest("[data-ao-mgr-toggle]");
+      const list = global.__ampliState?.advocacyOfficeManagers || [];
+      if (edit && canManage()) {
+        const m = list.find((x) => String(x.id) === edit.getAttribute("data-ao-mgr-edit"));
+        if (m && String(m.office_id) === String(_editingId)) fillManagerForm(m);
+      }
+      if (tog && canManage() && typeof global.toggleAdvocacyOfficeManager === "function") {
+        await global.toggleAdvocacyOfficeManager(tog.getAttribute("data-ao-mgr-toggle"), _editingId);
+        renderManagersSection();
+      }
+    });
+    document.getElementById("aoManagerForm")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!canManage()) return;
+      const payload = readManagerForm();
+      const errors = svc().validateManager(
+        payload,
+        global.__ampliState?.advocacyOfficeManagers || [],
+        _editingId,
+        _editingManagerId
+      );
+      const errBox = document.getElementById("aoManagerFormErrors");
+      if (errors.length) {
+        if (errBox) {
+          errBox.classList.remove("hidden");
+          errBox.innerHTML = `<ul>${errors.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+        }
+        return;
+      }
+      if (typeof global.saveAdvocacyOfficeManager === "function") {
+        const ok = await global.saveAdvocacyOfficeManager(_editingId, _editingManagerId, payload);
+        if (ok) {
+          const wasEdit = !!_editingManagerId;
+          closeManagerModal();
+          renderManagersSection();
+          showOfficeNotice(wasEdit ? "Gestor atualizado." : "Gestor cadastrado neste escritório.");
+        }
+      }
+    });
+    document.getElementById("aoCancelManager")?.addEventListener("click", closeManagerModal);
+    document.getElementById("aoCloseManagerModal")?.addEventListener("click", closeManagerModal);
     document.getElementById("aoCadastroRoot")?.addEventListener("input", (e) => {
       if (e.target.id === "aoCadastroSearch") {
         _cadastroFilters.search = e.target.value || "";
@@ -850,6 +1022,7 @@
     openReport,
     bindPicker,
     fillOfficeForm,
+    renderManagersSection,
     renderDashboardWidget,
   };
 })(typeof window !== "undefined" ? window : globalThis);
