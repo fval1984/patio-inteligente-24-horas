@@ -3387,8 +3387,22 @@
         background: rgba(56, 189, 248, 0.14);
         box-shadow: inset 4px 0 0 0 rgba(14, 165, 233, 0.95);
       }
-      body.adm-desktop-pc-restricted [data-adm-pc-hide="1"] {
+      #vehicleForm.initial-register-simplified .field-operador-hide,
+      #vehicleForm.initial-register-simplified .field-cr-only {
         display: none !important;
+      }
+      #vehicleForm.initial-register-simplified .gestor-entry-auto-note {
+        display: block;
+      }
+      #vehicleForm.registro-cr-only .field-create-only,
+      #vehicleForm.registro-cr-only .gestor-entry-auto-note {
+        display: none !important;
+      }
+      #vehicleForm.registro-cr-only .field-operador-hide:not(.field-cr-only) {
+        display: none !important;
+      }
+      #vehicleForm.registro-cr-only .field-cr-only {
+        display: block;
       }
       [data-theme="light"] #viewPatio tr.vnp-row-pending-adm-review,
       [data-theme="light"] #viewLista tr.vnp-row-pending-adm-review {
@@ -8000,26 +8014,26 @@
           </div>
           <form id="vehicleForm">
             <div class="form-grid">
-              <div class="vp-field-wrap">
+              <div class="vp-field-wrap field-create-only">
                 <label for="vehiclePlate">Placa</label>
                 <div class="vp-input-row">
                   <input id="vehiclePlate" type="text" placeholder="ABC1D23" required data-vp-live autocapitalize="characters" spellcheck="false" />
                   <div class="vp-preview-slot" id="vehiclePlatePreview" aria-live="polite"></div>
                 </div>
               </div>
-              <div>
+              <div class="field-create-only">
                 <label>Marca</label>
                 <input id="vehicleBrand" type="text" placeholder="Fiat" />
               </div>
-              <div>
+              <div class="field-create-only">
                 <label>Modelo</label>
                 <input id="vehicleModel" type="text" placeholder="Argo" />
               </div>
-              <div>
+              <div class="field-create-only">
                 <label>Cor</label>
                 <input id="vehicleColor" type="text" placeholder="Prata" />
               </div>
-              <div class="field-operador-hide">
+              <div class="field-operador-hide field-cr-only">
                 <label>Valor da diária</label>
                 <input id="vehicleDaily" type="number" step="0.01" placeholder="150.00" required />
               </div>
@@ -8035,19 +8049,23 @@
                 <input id="vehicleExit" type="datetime-local" />
               </div>
               <div>
-                <label>RPV — quem trouxe o veículo</label>
+                <label>RPV / Localizador</label>
                 <select id="vehicleLocator" title="Parceiro que trouxe o veículo ao pátio"></select>
               </div>
               <div class="field-operador-hide">
                 <label>RPP — responsável financeiro / pagamento</label>
                 <select id="vehicleFinancialResponsible" title="Parceiro cadastrado; pode coincidir com o RPV ou ser outro"></select>
               </div>
-              <div class="field-operador-hide">
+              <div class="field-operador-hide field-cr-only">
                 <label>Leiloeiro</label>
                 <select id="vehicleAuctioneer"></select>
               </div>
-              <div>
-                <label for="vehicleAdvocacyOfficeSearch">Escritório de Advocacia</label>
+              <div class="field-cr-only">
+                <label for="vehiclePatioPartner">Pátio</label>
+                <select id="vehiclePatioPartner" title="Parceiro tipo pátio"></select>
+              </div>
+              <div class="field-cr-only">
+                <label for="vehicleAdvocacyOfficeSearch">Escritório</label>
                 <div class="ao-picker">
                   <input
                     id="vehicleAdvocacyOfficeSearch"
@@ -8060,13 +8078,13 @@
                 </div>
                 <button type="button" id="vehicleAdvocacyOfficeNew" class="secondary" style="margin-top:8px">Cadastrar escritório</button>
               </div>
-              <div>
+              <div class="field-cr-only">
                 <label for="vehicleAdvocacyManagerId">Gestor de Carteira</label>
                 <select id="vehicleAdvocacyManagerId">
                   <option value="">Sem gestor informado</option>
                 </select>
               </div>
-              <div class="full field-operador-hide">
+              <div class="full field-create-only">
                 <label>Observações</label>
                 <input id="vehicleNotes" type="text" placeholder="Observações importantes" />
               </div>
@@ -9805,6 +9823,7 @@
       let listaFilterDataAte = "";
       let currentListaView = "vnp";
       let editingVehicleId = null;
+      let vehicleFormMode = "create";
       let editingVehicleData = null;
       let nfseVehicleId = null;
       let nfseStatusBeforeOpen = null;
@@ -12808,6 +12827,23 @@
         );
       }
 
+      /** Aguardando Concluir Registro (CR). NULL legado = já concluído. */
+      function isRegistroPendente(v) {
+        if (!v || !isVehicleOnPatio(v)) return false;
+        const flag = v.registro_concluido;
+        if (flag === true || flag === 1 || flag === "1" || flag === "t" || flag === "true" || flag === "TRUE") {
+          return false;
+        }
+        if (flag === false || flag === 0 || flag === "0" || flag === "f" || flag === "false" || flag === "FALSE") {
+          return true;
+        }
+        return isPendingAdmReview(v);
+      }
+
+      function isSystemManagerUser() {
+        return !isGestorPista && !isVistoriador;
+      }
+
       /** Veículo liberado com remoção solicitada — gestor de pista pode efetivar baixa/saída. */
       function isGestorAguardandoRemocao(vehicle) {
         return !!vehicle && canEfetivarRemocaoVrp(vehicle) && isRemocaoSolicitada(vehicle);
@@ -12989,12 +13025,13 @@
       }
 
       function isVnpSemValorDiaria(v) {
-        return !!v && (!v.valor_diaria || Number(v.valor_diaria) <= 0) && !isPendingAdmReview(v);
+        return !!v && (!v.valor_diaria || Number(v.valor_diaria) <= 0) && !isPendingAdmReview(v) && !isRegistroPendente(v);
       }
 
       function patioVehicleDisplayRank(v) {
         if (!v) return 100;
         if (isPendingAdmReview(v)) return -1;
+        if (isRegistroPendente(v)) return -1;
         if (isVnpAcaoPrioritaria(v)) return 0;
         if (vehicleNeedsEntryInspection(v)) return 1;
         if (isVnpSemValorDiaria(v)) return 2;
@@ -13002,11 +13039,11 @@
       }
 
       function isVehiclePatioDestaque(v) {
-        return !!v && (isPendingAdmReview(v) || isVnpAcaoPrioritaria(v) || vehicleNeedsEntryInspection(v));
+        return !!v && (isPendingAdmReview(v) || isRegistroPendente(v) || isVnpAcaoPrioritaria(v) || vehicleNeedsEntryInspection(v));
       }
 
       function patioVehicleDestaqueRowClass(v) {
-        if (isPendingAdmReview(v)) return "vnp-row-pending-adm-review";
+        if (isPendingAdmReview(v) || isRegistroPendente(v)) return "vnp-row-pending-adm-review";
         const st = String(v?.status || "");
         if (st === "LIBERACAO_SOLICITADA") return "vnp-row-acao-prioritaria vnp-row-liberacao-solicitada";
         if (st === "LIBERACAO_CONFIRMADA") return "vnp-row-acao-prioritaria vnp-row-liberacao-confirmada";
@@ -16856,6 +16893,7 @@
 
       function vnpShouldShowVistoriaStartButton(v) {
         if (!v || isAdmDesktopPc()) return false;
+        if (isRegistroPendente(v)) return false;
         if (getInspectionIndexEntry(v.id)) return false;
         return window.vehicleEntryInspection?.canStartInspection
           ? window.vehicleEntryInspection.canStartInspection(v, buildVehicleInspectionCtx())
@@ -17624,6 +17662,25 @@
         selectEl.innerHTML = partnerSelectOptionsHtml(cur, emptyLabel);
       }
 
+      function fillPartnerSelectByTipos(selectEl, emptyLabel, tipoCodes) {
+        if (!selectEl) return;
+        const cur = selectEl.value;
+        const norm = window.normalizePartnerTipo || (window.partnersCadastroService && window.partnersCadastroService.normalizePartnerTipo);
+        const codes = (tipoCodes || []).map((c) => (norm ? norm(c) : String(c || "").toUpperCase()));
+        const list = allPartnersSorted().filter((p) => {
+          const t = norm ? norm(p.tipo) : String(p.tipo || "").toUpperCase();
+          return codes.indexOf(t) >= 0;
+        });
+        const use = list.length ? list : allPartnersSorted();
+        const opts = use
+          .map((p) => {
+            const id = String(p.id);
+            return `<option value="${escapeHtml(id)}"${id === String(cur || "") ? " selected" : ""}>${escapeHtml(p.nome || "-")}</option>`;
+          })
+          .join("");
+        selectEl.innerHTML = `<option value="">${escapeHtml(emptyLabel)}</option>${opts}`;
+      }
+
       function partnerNomeById(partnerId) {
         const id = String(partnerId || "").trim();
         if (!id) return "";
@@ -17886,7 +17943,18 @@
         });
       }
 
+      function crActionButtonHtml(v) {
+        if (!isRegistroPendente(v)) return "";
+        return `<button class="secondary" data-action="concluir_registro" data-id="${v.id}">CR — Concluir registro</button>`;
+      }
+
       function buildGestorPistaVnpActions(v) {
+        if (isRegistroPendente(v)) {
+          return (
+            crActionButtonHtml(v) +
+            (isPendingAdmReview(v) ? ` <span class="notice">Aguardando CR / revisão do ADM</span>` : "")
+          );
+        }
         if (isPendingAdmReview(v)) {
           return `<span class="notice">Aguardando revisão do ADM</span>`;
         }
@@ -18021,17 +18089,17 @@
               <span class="tag success">Removido</span>
             `;
         }
-        let fluxoBtn = "";
+        let fluxoBtn = crActionButtonHtml(v);
         if (isPendingAdmReview(v)) {
-          fluxoBtn =
+          fluxoBtn +=
             `<button class="secondary" data-action="editar" data-id="${v.id}">Revisar registro</button>` +
             `<button class="secondary" data-action="validar_adm_review" data-id="${v.id}">Validar registro</button>`;
-        } else if (v.status === "NO_PATIO" || v.status === "AGUARDANDO_VISTORIA") {
-          fluxoBtn = `<button class="secondary" data-action="solicitar" data-id="${v.id}">Liberação solicitada</button>`;
+        } else if (!isRegistroPendente(v) && (v.status === "NO_PATIO" || v.status === "AGUARDANDO_VISTORIA")) {
+          fluxoBtn += `<button class="secondary" data-action="solicitar" data-id="${v.id}">Liberação solicitada</button>`;
         } else if (v.status === "LIBERACAO_SOLICITADA") {
-          fluxoBtn = `<button class="secondary" data-action="confirmar_liberacao" data-id="${v.id}">Confirmar liberação</button>`;
+          fluxoBtn += `<button class="secondary" data-action="confirmar_liberacao" data-id="${v.id}">Confirmar liberação</button>`;
         } else if (canEfetivarRemocaoVrp(v)) {
-          fluxoBtn = `<button class="secondary" data-action="confirmar" data-id="${v.id}">VRP</button>`;
+          fluxoBtn += `<button class="secondary" data-action="confirmar" data-id="${v.id}">VRP</button>`;
         }
         const veiBtn = vnpShouldShowVistoriaViewButton(v)
           ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>` +
@@ -18050,8 +18118,12 @@
               <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
               ${nfseActionButtonHtml(v)}
               <button class="secondary" data-action="voltar" data-id="${v.id}" title="Volta um passo no fluxo">Voltar</button>
-              <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
-              <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
+              ${
+                isSystemManagerUser()
+                  ? `<button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
+              <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>`
+                  : ""
+              }
             `;
       }
 
@@ -18078,6 +18150,8 @@
             `<span class="tag warning">Aguardando revisão do ADM</span>` +
               `<span class="tag notice">Cadastro gestor de pista</span>`
           );
+        } else if (isRegistroPendente(v)) {
+          situacaoTags.push(`<span class="tag warning">Aguardando CR</span>`);
         }
         if (vehicleNeedsEntryInspection(v)) {
           situacaoTags.push(`<span class="tag warning">Aguardando vistoria</span>`);
@@ -18860,9 +18934,15 @@
           if (fichaSectionSlv) {
             let sit = VLS_STATUS_LABELS[vehicle.status] || vehicle.status || "-";
             if (isPendingAdmReview(vehicle)) sit = "Aguardando revisão do ADM";
+            else if (isRegistroPendente(vehicle)) sit = "Aguardando concluir registro (CR)";
             else if (isGestorAguardandoRemocao(vehicle)) sit = "Aguardando remoção";
             else if (isRemocaoSolicitada(vehicle)) sit += " · remoção solicitada";
             const botoes = [];
+            if (isRegistroPendente(vehicle)) {
+              botoes.push(
+                `<button type="button" class="secondary" data-action="concluir_registro" data-id="${vehicle.id}">CR — Concluir registro</button>`
+              );
+            }
             if (!isPendingAdmReview(vehicle)) {
               if (vehicle.status === "LIBERACAO_SOLICITADA") {
                 botoes.push(
@@ -18941,6 +19021,9 @@
             if (isPendingAdmReview(vehicle)) {
               situacao =
                 '<p class="notice" style="margin:0"><strong>Aguardando revisão do ADM</strong> — cadastro feito pelo gestor de pista. Revise os dados, complemente valores se necessário e valide o registro.</p>';
+            } else if (isRegistroPendente(vehicle)) {
+              situacao =
+                '<p class="notice" style="margin:0"><strong>Aguardando CR</strong> — conclua o registro (escritório, leiloeiro, pátio, localizador e diária). O veículo permanece no VNP.</p>';
             } else if (vehicle.status === "NO_PATIO") {
               situacao =
                 '<p class="notice" style="margin:0">Veículo <strong>no pátio</strong>. Pode registar <strong>liberação solicitada</strong>.</p>';
@@ -18959,15 +19042,17 @@
               )}</p>`;
             }
             const botoes = [];
+            if (isRegistroPendente(vehicle)) {
+              botoes.push(
+                `<button type="button" class="secondary" data-action="concluir_registro" data-id="${vehicle.id}">CR — Concluir registro</button>`
+              );
+            }
             if (isPendingAdmReview(vehicle)) {
               botoes.push(
                 `<button type="button" class="secondary" data-action="editar" data-id="${vehicle.id}">Revisar registro</button>`,
                 `<button type="button" class="secondary" data-action="validar_adm_review" data-id="${vehicle.id}">Validar registro</button>`
               );
-            } else if (vehicle.status === "NO_PATIO") {
-              botoes.push(
-                `<button type="button" class="secondary" data-action="solicitar" data-id="${vehicle.id}">Liberação solicitada</button>`
-              );
+            } else if (vehicle.status === "NO_PATIO" && !isRegistroPendente(vehicle)) {
             } else if (vehicle.status === "LIBERACAO_SOLICITADA") {
               botoes.push(
                 `<button type="button" class="secondary" data-action="confirmar_liberacao" data-id="${vehicle.id}">Confirmar liberação</button>`
@@ -19112,9 +19197,10 @@
       }
 
       function renderPartnerOptions() {
-        appendPartnerOptionsToSelect(vehicleLocator, "Sem RPV");
+        appendPartnerOptionsToSelect(vehicleLocator, "Sem RPV / localizador");
         appendPartnerOptionsToSelect(vehicleFinancialResponsible, "Sem RPP");
-        appendPartnerOptionsToSelect(vehicleAuctioneer, "Sem leiloeiro");
+        fillPartnerSelectByTipos(vehicleAuctioneer, "Sem leiloeiro", ["LEILOEIRO"]);
+        fillPartnerSelectByTipos(document.getElementById("vehiclePatioPartner"), "Sem pátio", ["PATIO_APREENSAO", "PATIO"]);
       }
 
       function openPartnerRegistrationFlow() {
@@ -19139,19 +19225,23 @@
           alert("O gestor de pista não pode editar veículos.");
           return;
         }
-        editingVehicleId = mode === "edit" ? vehicle.id : null;
-        editingVehicleData = mode === "edit" ? vehicle : null;
-        vehicleModalTitle.textContent = mode === "edit" ? "Editar veículo" : "Registrar veículo";
+        vehicleFormMode = mode === "cr" ? "cr" : mode === "edit" ? "edit" : "create";
+        editingVehicleId = mode === "edit" || mode === "cr" ? vehicle.id : null;
+        editingVehicleData = mode === "edit" || mode === "cr" ? vehicle : null;
+        vehicleModalTitle.textContent =
+          mode === "cr" ? "Concluir registro (CR)" : mode === "edit" ? "Editar veículo" : "Registrar veículo";
         vehicleModalSubtitle.textContent =
-          mode === "edit"
-            ? "Atualize os dados do veículo"
-            : isGestorPista
-              ? "Cadastro simplificado — entrada registrada automaticamente"
-              : "Cadastro de entrada no pátio";
+          mode === "cr"
+            ? "Complemente escritório, leiloeiro, pátio, localizador e valor da diária"
+            : mode === "edit"
+              ? "Atualize os dados do veículo"
+              : "Cadastro de entrada no pátio — placa, marca, modelo, cor, RPV e observações";
         vehicleForm.classList.toggle("operador-simplified", !!(isGestorPista && mode === "create"));
+        vehicleForm.classList.toggle("initial-register-simplified", mode === "create");
+        vehicleForm.classList.toggle("registro-cr-only", mode === "cr");
         vehicleForm.reset();
         vehicleExit.value = "";
-        if (mode === "edit" && vehicle) {
+        if ((mode === "edit" || mode === "cr") && vehicle) {
           document.getElementById("vehiclePlate").value = vehicle.placa || "";
           document.getElementById("vehicleBrand").value = vehicle.marca || "";
           document.getElementById("vehicleModel").value = vehicle.modelo || "";
@@ -19163,6 +19253,8 @@
           if (vehicleFinancialResponsible)
             vehicleFinancialResponsible.value = vehicle.responsavel_financeiro_id || "";
           if (vehicleAuctioneer) vehicleAuctioneer.value = vehicle.leiloeiro_id || "";
+          const patioSel = document.getElementById("vehiclePatioPartner");
+          if (patioSel) patioSel.value = vehicle.patio_parceiro_id || "";
           setVehicleAdvocacyOfficeField(vehicle.advocacy_office_id || "");
           fillVehicleAdvocacyManagerSelect(vehicle.advocacy_office_manager_id || "");
           document.getElementById("vehicleNotes").value = vehicle.observacoes || "";
@@ -19190,14 +19282,17 @@
           if (entryInput) entryInput.value = nowLocal;
           if (vehicleFinancialResponsible) vehicleFinancialResponsible.value = "";
           if (vehicleAuctioneer) vehicleAuctioneer.value = "";
+          const patioSel = document.getElementById("vehiclePatioPartner");
+          if (patioSel) patioSel.value = "";
           setVehicleAdvocacyOfficeField("");
           fillVehicleAdvocacyManagerSelect("");
         }
         const vd = document.getElementById("vehicleDaily");
         const entryInput = document.getElementById("vehicleEntry");
         const gestorCreate = isGestorPista && mode === "create";
-        if (vd) vd.required = !gestorCreate;
-        if (entryInput) entryInput.required = !gestorCreate;
+        const crMode = mode === "cr";
+        if (vd) vd.required = !gestorCreate && mode !== "create";
+        if (entryInput) entryInput.required = !gestorCreate && mode !== "create" && !crMode;
         refreshVehiclePlatePreviewInput();
         const novoEscBtn = document.getElementById("vehicleAdvocacyOfficeNew");
         if (novoEscBtn) novoEscBtn.classList.toggle("hidden", !!(isGestorPista || isVistoriador));
@@ -19250,6 +19345,8 @@
       cancelVehicleForm.addEventListener("click", () => {
         vehicleForm.reset();
         editingVehicleId = null;
+        vehicleFormMode = "create";
+        vehicleForm.classList.remove("registro-cr-only", "initial-register-simplified");
         vehicleModal.classList.add("hidden");
       });
 
@@ -21053,18 +21150,32 @@
       vehicleForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         if (!(await requireSupabaseSessionForWrite())) return;
-        if (isGestorPista && editingVehicleId) {
+        if (isGestorPista && editingVehicleId && vehicleFormMode !== "cr") {
           alert("O gestor de pista não pode editar veículos.");
           return;
         }
+        const crMode = vehicleFormMode === "cr";
         const gestorCreate = isGestorPista && !editingVehicleId;
+        const initialCreate = !editingVehicleId;
         const vehicleDailyEl = document.getElementById("vehicleDaily");
         const vehicleEntryEl = document.getElementById("vehicleEntry");
         let vehicleDailyValue = 0;
         let dataEntradaIso = new Date().toISOString();
-        if (gestorCreate) {
+        if (initialCreate) {
           vehicleDailyValue = 0;
           dataEntradaIso = new Date().toISOString();
+        } else if (crMode) {
+          const vehicleDailyRaw = (vehicleDailyEl?.value || "").toString().trim();
+          if (!vehicleDailyRaw) {
+            alert("Informe o valor da diária.");
+            return;
+          }
+          vehicleDailyValue = Number(vehicleDailyRaw.replace(",", "."));
+          if (!Number.isFinite(vehicleDailyValue) || vehicleDailyValue < 0) {
+            alert("Valor da diária inválido.");
+            return;
+          }
+          dataEntradaIso = editingVehicleData?.data_entrada || new Date().toISOString();
         } else {
           const vehicleDailyRaw = (vehicleDailyEl?.value || "").toString().trim();
           if (!vehicleDailyRaw) {
@@ -21137,13 +21248,13 @@
           cor: document.getElementById("vehicleColor")?.value?.trim() || null,
           valor_diaria: vehicleDailyValue,
           data_entrada: dataEntradaIso,
-          data_saida: gestorCreate ? null : vehicleExit.value ? new Date(vehicleExit.value).toISOString() : null,
+          data_saida: initialCreate || crMode ? editingVehicleData?.data_saida || null : vehicleExit.value ? new Date(vehicleExit.value).toISOString() : null,
           localizador_id: vehicleLocator.value || null,
-          responsavel_financeiro_id: gestorCreate ? null : rpfFields.responsavel_financeiro_id,
-          responsavel_financeiro_nome: gestorCreate ? null : rpfFields.responsavel_financeiro_nome,
+          responsavel_financeiro_id: initialCreate ? null : rpfFields.responsavel_financeiro_id,
+          responsavel_financeiro_nome: initialCreate ? null : rpfFields.responsavel_financeiro_nome,
           assessoria_id: null,
-          leiloeiro_id: gestorCreate ? null : vehicleAuctioneer?.value || null,
-          observacoes: gestorCreate ? "" : document.getElementById("vehicleNotes").value.trim(),
+          leiloeiro_id: initialCreate ? null : vehicleAuctioneer?.value || null,
+          observacoes: document.getElementById("vehicleNotes").value.trim(),
           status: editingVehicleData?.status || "NO_PATIO",
           payment_status: editingVehicleData?.payment_status || "EM_ABERTO",
           nfse_status: editingVehicleData?.nfse_status || "NAO_SOLICITADA",
@@ -21161,8 +21272,10 @@
           },
           vistoria_observacoes: inspectionDamageEl?.value?.trim() || "",
         };
-        if (advocacyColsOk) payload.advocacy_office_id = advocacyOfficeId;
-        if (managerColOk) payload.advocacy_office_manager_id = advocacyManagerId || null;
+        if (advocacyColsOk) payload.advocacy_office_id = initialCreate ? null : advocacyOfficeId;
+        if (managerColOk) payload.advocacy_office_manager_id = initialCreate ? null : advocacyManagerId || null;
+        const patioParceiroId = document.getElementById("vehiclePatioPartner")?.value || null;
+        if (!initialCreate) payload.patio_parceiro_id = patioParceiroId || null;
         if (!normalizePlateSearch(payload.placa)) {
           alert("Informe uma placa válida.");
           return;
@@ -21185,7 +21298,8 @@
         }
         if (!editingVehicleId) {
           payload.status = "NO_PATIO";
-          payload.entry_inspection_flow = true;
+          payload.entry_inspection_flow = false;
+          payload.registro_concluido = false;
           payload.data_saida = null;
           payload.payment_status = "EM_ABERTO";
           payload.nfse_status = "NAO_SOLICITADA";
@@ -21196,6 +21310,13 @@
             payload.registered_by_gestor = true;
             payload.adm_reviewed_at = null;
           }
+        }
+        if (crMode) {
+          payload.registro_concluido = true;
+          payload.entry_inspection_flow = true;
+          payload.pending_adm_review = false;
+          payload.adm_reviewed_at = new Date().toISOString();
+          payload.status = editingVehicleData?.status || "NO_PATIO";
         }
         const runVehicleSave = (p) =>
           editingVehicleId
@@ -21249,6 +21370,12 @@
           delete o.adm_reviewed_at;
           return o;
         };
+        const stripRegCrFrom = (p) => {
+          const o = { ...p };
+          delete o.registro_concluido;
+          delete o.patio_parceiro_id;
+          return o;
+        };
         const advancedKindsFromError = (msg) => {
           const m = msg || "";
           const kinds = [];
@@ -21258,10 +21385,11 @@
           if (/responsavel_financeiro_/i.test(m)) kinds.push("rpf");
           if (/entry_inspection_flow|(\bcor\b)/i.test(m)) kinds.push("entryflow");
           if (/pending_adm_review|registered_by_gestor|adm_reviewed_at/i.test(m)) kinds.push("admreview");
+          if (/registro_concluido|patio_parceiro_id/i.test(m)) kinds.push("regcr");
           if (/AGUARDANDO_VISTORIA|check constraint|vehicles_status/i.test(m)) kinds.push("status");
           return kinds;
         };
-        for (let guard = 0; error && guard < 8; guard++) {
+        for (let guard = 0; error && guard < 10; guard++) {
           const kinds = advancedKindsFromError(error.message || "");
           if (!kinds.length) break;
           if (kinds.includes("rpf") && rpfFields.responsavel_financeiro_id) {
@@ -21288,6 +21416,10 @@
             else if (k === "rpf") tryPayload = stripRpfFrom(tryPayload);
             else if (k === "entryflow") tryPayload = stripEntryFlowFrom(tryPayload);
             else if (k === "admreview") tryPayload = stripAdmReviewFrom(tryPayload);
+            else if (k === "regcr") {
+              tryPayload = stripRegCrFrom(tryPayload);
+              if (!editingVehicleId) tryPayload.pending_adm_review = true;
+            }
             else if (k === "status" && !editingVehicleId) {
               alert(
                 "Não foi possível cadastrar o veículo no pátio (status No pátio).\n\n" +
@@ -21314,6 +21446,9 @@
           if (degradedGroups.includes("admreview")) {
             partes.push("revisão ADM do gestor de pista (pending_adm_review)");
           }
+          if (degradedGroups.includes("regcr")) {
+            partes.push("concluir registro / pátio parceiro (registro_concluido)");
+          }
           const sqlHints = [];
           if (degradedGroups.some((k) => ["vistoria", "leiloeiro", "rpf"].includes(k))) {
             sqlHints.push("supabase/vehicles_recursos_avancados.sql");
@@ -21323,6 +21458,9 @@
           }
           if (degradedGroups.includes("admreview")) {
             sqlHints.push("supabase/vehicles_gestor_adm_review.sql");
+          }
+          if (degradedGroups.includes("regcr")) {
+            sqlHints.push("supabase/vehicles_registro_complementar.sql");
           }
           if (degradedGroups.includes("advocacy")) {
             sqlHints.push("supabase/advocacy_offices.sql e supabase/advocacy_office_managers.sql");
@@ -21360,19 +21498,32 @@
         }
         const savedEditId = editingVehicleId;
         const wasNewVehicle = !savedEditId;
+        const wasCr = crMode;
         vehicleForm.reset();
         editingVehicleId = null;
         editingVehicleData = null;
+        vehicleFormMode = "create";
+        vehicleForm.classList.remove("registro-cr-only", "initial-register-simplified");
         vehicleModal.classList.add("hidden");
+        if (wasCr && histVehicleId) {
+          await supabase.from("vehicle_events").insert({
+            vehicle_id: histVehicleId,
+            tipo: "REGISTRO_CONCLUIDO_CR",
+            responsavel: state.user?.email || "Operador",
+            descricao: "Registro complementar (CR) gravado. Veículo permanece no VNP e entra na fila de vistoria.",
+          });
+        }
         await loadVehicles();
         await refreshFichaIfOpen(savedEditId);
-        if (wasNewVehicle) {
+        if (wasCr) {
+          openMainView("patio");
+          openPatioSubview("no_patio");
+          alert("Registro concluído. O veículo permanece no VNP e fica disponível no módulo Vistoria.");
+        } else if (wasNewVehicle) {
           openMainView("patio");
           openPatioSubview("no_patio");
           alert(
-            gestorCreate
-              ? "Veículo cadastrado pelo gestor de pista. Fica no VNP em destaque, aguardando revisão do ADM e a vistoria de entrada."
-              : "Veículo cadastrado. Fica no VNP em destaque, aguardando vistoria de entrada."
+            "Veículo cadastrado. Fica no VNP. Use «CR — Concluir registro» para escritório, leiloeiro, pátio, localizador e diária. Depois disso entra na fila de vistoria."
           );
         }
       });
@@ -21997,6 +22148,7 @@
             "vistoria",
             "ver_vistoria",
             "editar_vistoria",
+            "concluir_registro",
           ]);
           if (!gestorAllowed.has(action)) {
             alert("O gestor de pista não pode executar esta ação.");
@@ -22016,6 +22168,25 @@
           alert(
             "No acesso pelo PC, o administrador não inicia vistorias novas. Use o botão Vistoria para consultar vistorias já concluídas."
           );
+          return;
+        }
+
+        if (isRegistroPendente(vehicle) && (action === "solicitar" || action === "confirmar_liberacao" || action === "confirmar")) {
+          alert("Conclua o registro (CR) antes de seguir o fluxo operacional.");
+          return;
+        }
+
+        if (action === "concluir_registro") {
+          if (!isRegistroPendente(vehicle)) {
+            alert("Este registro já está concluído.");
+            return;
+          }
+          openVehicleModal("cr", vehicle);
+          return;
+        }
+
+        if ((action === "editar" || action === "apagar") && !isSystemManagerUser()) {
+          alert("Somente o gestor do sistema pode editar ou excluir o registro.");
           return;
         }
 
