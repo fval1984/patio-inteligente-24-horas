@@ -4550,6 +4550,19 @@
         border-color: rgba(100, 116, 139, 0.55);
         background: #f8fafc;
       }
+      .patio-aguardando-total {
+        margin: 0 0 12px;
+        padding: 12px 14px;
+        border: 1px solid var(--ag-border, #9a948a);
+        background: var(--ag-surface-2, #ebe6de);
+        color: var(--ag-text, #121314);
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .patio-aguardando-total strong {
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
       .patio-inicio-panel {
         margin-bottom: 20px;
         padding: 20px 22px 22px;
@@ -7606,6 +7619,7 @@
                 Ciclo do pátio já concluído (VRP). O título <strong>não</strong> entra em Contas a receber enquanto a nota fiscal ou a cobrança não for emitida.
                 Informe o destinatário (nome e contato) e finalize o faturamento nesta tela.
               </p>
+              <p class="patio-aguardando-total" id="patioAguardandoFaturamentoTotal" aria-live="polite">Total: —</p>
               <div class="table-wrap">
                 <table class="table stacked">
                   <thead>
@@ -18998,6 +19012,19 @@
 
       function renderFechamentoCicloTable(tbody, items) {
         if (!tbody) return;
+        const list = items || [];
+        const rows = list.filter((r) => state.vehicles.some((v) => v.id === r.vehicle_id));
+        const totalEl = document.getElementById("patioAguardandoFaturamentoTotal");
+        if (totalEl) {
+          const n = rows.length;
+          const label = n === 1 ? "ciclo" : "ciclos";
+          if (isGestorPista) {
+            totalEl.textContent = `Total: ${n} ${label}`;
+          } else {
+            const sum = rows.reduce((s, r) => s + Number(r.valor || 0), 0);
+            totalEl.innerHTML = `<strong>Total</strong> · ${n} ${label} · ${escapeHtml(formatCurrency(sum))}`;
+          }
+        }
         if (!items.length) {
           setEmptyRow(
             tbody,
