@@ -438,7 +438,7 @@
     const canPay = opts.canPay === true;
     const canCaixa = opts.canCaixa === true;
     const payBtn = canPay
-      ? `<button type="button" class="secondary fin-btn-${kind}-pg" data-fin-${kind}-pg="${safeId}">PG</button>`
+      ? `<button type="button" class="secondary fin-btn-${kind}-pg" data-fin-${kind}-pg="${safeId}">${kind === "pagar" ? "Pagar" : "Receber"}</button>`
       : "";
     const caixaBtn =
       canCaixa && (kind === "pagar" || kind === "receber")
@@ -1309,7 +1309,7 @@
     const due = financeContaDueYmd(p, "payable");
     const today = financeTodayYmd();
     if (due && today && due < today) return "Vencido";
-    return "Pendente";
+    return "A pagar";
   }
 
   function financePayableStatusClass(st) {
@@ -1370,9 +1370,13 @@
 
   /** Veículos no pátio gerando receita (não é conta a receber ainda). */
   function financeVehiclesEmGeracao() {
-    const statuses = ["NO_PATIO", "LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA"];
     return (state.vehicles || [])
-      .filter((v) => statuses.includes(v.status))
+      .filter((v) => {
+        if (typeof isVehicleOnPatio === "function" && isVehicleOnPatio(v)) return true;
+        return ["NO_PATIO", "AGUARDANDO_VISTORIA", "LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMOCAO_CONFIRMADA", "REMocao_CONFIRMADA"].includes(
+          String(v.status || "")
+        );
+      })
       .map((v) => {
         const dias = Math.max(
           1,
@@ -1398,13 +1402,13 @@
     if (financeReceivableIsDuplicateOfPaidCycle(r)) return "Recebido";
     const due = financeContaDueYmd(r, "receivable");
     const today = financeTodayYmd();
-    if (due && today && due < today) return "Atrasado";
-    return "Pendente";
+    if (due && today && due < today) return "Vencido";
+    return "A receber";
   }
 
   function financeReceivableStatusClass(st) {
     if (st === "Recebido") return "fin-tag fin-tag--ok";
-    if (st === "Atrasado") return "fin-tag fin-tag--late";
+    if (st === "Vencido" || st === "Atrasado") return "fin-tag fin-tag--late";
     return "fin-tag fin-tag--open";
   }
 
@@ -1781,10 +1785,10 @@
     const due = financeContaDueYmd(r, "receivable");
     const st = financeReceivableDisplayStatus(r);
     if (finReceberQuick === "hoje") return due === today;
-    if (finReceberQuick === "vencidos") return st === "Atrasado";
-    if (finReceberQuick === "a_vencer") return st === "Pendente";
+    if (finReceberQuick === "vencidos") return st === "Vencido" || st === "Atrasado";
+    if (finReceberQuick === "a_vencer") return st === "A receber" || st === "Pendente";
     if (finReceberQuick === "vencendo_7") {
-      if (st === "Recebido" || st === "Atrasado" || !due) return false;
+      if (st === "Recebido" || st === "Vencido" || st === "Atrasado" || !due) return false;
       const limit = financeYmdPlusDays(today, 7);
       return due > today && due <= limit;
     }
@@ -1802,7 +1806,7 @@
     const st = financePayableDisplayStatus(p);
     if (finPagarQuick === "hoje") return due === today;
     if (finPagarQuick === "vencidos") return st === "Vencido";
-    if (finPagarQuick === "a_vencer") return st === "Pendente" || st === "Parcial";
+    if (finPagarQuick === "a_vencer") return st === "A pagar" || st === "Pendente" || st === "Parcial";
     if (finPagarQuick === "pagos") return st === "Pago";
     return true;
   }
@@ -2409,7 +2413,12 @@
       settings: state.settings || {},
       partners: state.partners || [],
     };
-    const ctx = { formatCurrency, escapeHtml, filters: financeDashFiltersFromDom() };
+    const ctx = {
+      formatCurrency,
+      escapeHtml,
+      filters: financeDashFiltersFromDom(),
+      metrics: financeMetrics(),
+    };
     if (typeof window.financeDashboardRender === "function") {
       window.financeDashboardRender(dashData, ctx);
       financeFillDashboardPreviews();
@@ -2431,25 +2440,70 @@
     `;
   }
 
+  function financeDiariaStatusLabel(vehicle, receivable) {
+    if (receivable) {
+      if (typeof receivableIsAguardandoFaturamentoFinanceiro === "function" && receivableIsAguardandoFaturamentoFinanceiro(receivable)) {
+        return "Aguardando faturamento";
+      }
+      return financeReceivableDisplayStatus(receivable);
+    }
+    if (String(vehicle?.status || "") === "REMOVIDO") return "Ciclo encerrado";
+    return "Gerando diárias";
+  }
+
   function financeRenderEmPatio() {
     const body = document.getElementById("finEmPatioBody");
     const totalEl = document.getElementById("finEmPatioTotal");
     if (!body) return;
-    const rows = financeVehiclesEmGeracao();
-    if (totalEl) totalEl.textContent = formatCurrency(rows.reduce((s, x) => s + x.valor, 0));
+    const gerando = financeVehiclesEmGeracao();
+    const vmap = financeVehicleById();
+    const recs = (state.receivables || []).filter((r) => r.vehicle_id);
+    const seen = new Set(gerando.map((x) => String(x.vehicle.id)));
+    const historico = recs
+      .filter((r) => r.vehicle_id && !seen.has(String(r.vehicle_id)))
+      .map((r) => {
+        const v = vmap.get(r.vehicle_id);
+        if (!v) return null;
+        seen.add(String(v.id));
+        const dias = Number(r.diarias || 0) || (typeof calcDays === "function" ? calcDays({ ...v, data_saida: r.period_end || v.data_saida }) : 0);
+        return {
+          vehicle: v,
+          dias: dias || "—",
+          valor: Number(r.valor || 0),
+          instituicao: financeInstituicaoNome(v),
+          receivable: r,
+        };
+      })
+      .filter(Boolean);
+    const removidos = (state.vehicles || [])
+      .filter((v) => String(v.status || "") === "REMOVIDO" && !seen.has(String(v.id)))
+      .map((v) => ({
+        vehicle: v,
+        dias: typeof calcDays === "function" ? calcDays(v) : "—",
+        valor: typeof calcTotal === "function" ? calcTotal(v) : 0,
+        instituicao: financeInstituicaoNome(v),
+        receivable: null,
+      }));
+    const rows = [...gerando.map((x) => ({ ...x, receivable: null })), ...historico, ...removidos];
+    if (totalEl) totalEl.textContent = formatCurrency(rows.reduce((s, x) => s + Number(x.valor || 0), 0));
     if (!rows.length) {
-      body.innerHTML = `<tr><td colspan="6" class="notice">Nenhum veículo gerando receita no pátio.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="9" class="notice">Nenhum veículo com diária no pátio. Os dados vêm do cadastro do veículo (entrada, diária e placa).</td></tr>`;
       return;
     }
     body.innerHTML = rows
-      .map(({ vehicle: v, dias, valor, instituicao }) => {
+      .map(({ vehicle: v, dias, valor, instituicao, receivable }) => {
+        const vd = Number(v.valor_diaria || 0);
+        const st = financeDiariaStatusLabel(v, receivable);
         return `<tr>
           <td data-label="Veículo">${financePlateVisualHtml(v.placa)}<br /><span class="notice">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "—")}</span></td>
-          <td data-label="Financeira / banco">${escapeHtml(instituicao)}</td>
-          <td data-label="Entrada">${escapeHtml(formatDateTime(v.data_entrada))}</td>
-          <td data-label="Dias">${dias}</td>
-          <td data-label="Valor acumulado">${escapeHtml(formatCurrency(valor))}</td>
-          <td data-label="Situação"><span class="fin-tag fin-tag--gen">Em geração</span></td>
+          <td data-label="Placa">${escapeHtml(v.placa || "—")}</td>
+          <td data-label="Cliente/Financeira">${escapeHtml(instituicao)}</td>
+          <td data-label="Entrada">${escapeHtml(v.data_entrada ? formatDate(v.data_entrada) : "—")}</td>
+          <td data-label="Saída">${escapeHtml(v.data_saida ? formatDate(v.data_saida) : "—")}</td>
+          <td data-label="Diárias">${escapeHtml(String(dias))}</td>
+          <td data-label="Valor da diária">${escapeHtml(formatCurrency(vd))}</td>
+          <td data-label="Valor total">${escapeHtml(formatCurrency(valor))}</td>
+          <td data-label="Status"><span class="fin-tag fin-tag--gen">${escapeHtml(st)}</span></td>
         </tr>`;
       })
       .join("");
@@ -2509,7 +2563,7 @@
       body.innerHTML = `<tr><td colspan="8" class="notice">${
         hasOtherFilters
           ? "Nenhuma conta a receber com os filtros informados (placa, RPP, busca, tipo, status e/ou datas)."
-          : "Nenhuma conta a receber pendente. Cadastre mensalistas em «+ Nova receita» (tipo Recorrente) ou veja «Aguardando faturamento»."
+          : "Nenhuma conta a receber pendente. As diárias do pátio entram aqui depois do faturamento (Pátio → Aguardando faturamento) ou de um lançamento em «+ Novo lançamento»."
       }</td></tr>`;
       return;
     }
@@ -4471,6 +4525,7 @@
   const FINANCE_SUBVIEWS = [
     "dashboard",
     "em_patio",
+    "contas",
     "aguardando",
     "receber",
     "pagar",
@@ -5344,15 +5399,14 @@
     const ui = globalThis.financeActionUi;
     if (!host || !ui?.renderReportCards) return;
     ui.renderReportCards(host, [
-      { id: "receber", title: "Contas a receber", detail: "Títulos em aberto e recebidos no filtro atual." },
-      { id: "pagar", title: "Contas a pagar", detail: "Despesas abertas, vencidas e pagas." },
-      { id: "caixa", title: "Fluxo de caixa", detail: "Entradas e saídas do caixa no período." },
-      { id: "recebimentos", title: "Recebimentos", detail: "Valores efetivamente recebidos." },
-      { id: "pagamentos", title: "Pagamentos", detail: "Valores efetivamente pagos." },
-      { id: "financeiras", title: "Valores por financeira", detail: "A receber, recebido e em aberto por instituição." },
-      { id: "aberto", title: "Valores em aberto", detail: "Contas ainda não recebidas ou pagas." },
-      { id: "vencidos", title: "Valores vencidos", detail: "Cobranças e despesas atrasadas." },
-      { id: "resultado", title: "Resultado por período", detail: "Entradas menos saídas no período selecionado." },
+      { id: "caixa", title: "Fluxo de caixa", detail: "Entradas, saídas e resultado." },
+      { id: "diarias", title: "Diárias", detail: "Diárias geradas pelos veículos no período." },
+      { id: "receber", title: "Faturamento / a receber", detail: "Valores faturados e ainda em aberto." },
+      { id: "recebimentos", title: "Recebimentos", detail: "Total efetivamente recebido." },
+      { id: "aberto", title: "A receber", detail: "Valores em aberto." },
+      { id: "vencidos", title: "Inadimplência", detail: "Valores vencidos." },
+      { id: "pagar", title: "Despesas", detail: "Despesas por categoria e situação." },
+      { id: "resultado", title: "Resultado", detail: "Recebido menos despesas pagas no período." },
     ]);
   }
 
@@ -5455,6 +5509,14 @@
         ["Recebido", formatCurrency(m.kpis?.recebidoPeriodo?.valor || 0)],
         ["Em atraso", formatCurrency(m.kpis?.inadimplencia?.valor || 0)],
       ],
+      diarias: () =>
+        financeVehiclesEmGeracao().map((x) => [
+          x.vehicle.placa || "—",
+          financeInstituicaoNome(x.vehicle),
+          String(x.dias),
+          formatCurrency(Number(x.vehicle.valor_diaria || 0)),
+          formatCurrency(x.valor),
+        ]),
     };
     const headersMap = {
       pagar: ["Fornecedor", "Descrição", "Valor", "Vencimento", "Status"],
@@ -5465,6 +5527,7 @@
       aberto: ["Tipo", "Referência", "Valor", "Vencimento"],
       vencidos: ["Tipo", "Referência", "Valor", "Vencimento"],
       resultado: ["Indicador", "Valor"],
+      diarias: ["Placa", "Cliente/Financeira", "Diárias", "Valor da diária", "Total"],
     };
     const titleMap = {
       pagar: "Contas a pagar",
@@ -5523,6 +5586,11 @@
   function financeNormalizeFinanceView(view) {
     if (view === "recebidos") return "caixa";
     if (view === "recorrentes") return "pagar";
+    if (view === "diarias") return "em_patio";
+    if (view === "movimentacoes") return "caixa";
+    if (view === "configuracoes") return "cadastros";
+    if (view === "financeiras") return "receber";
+    if (view === "lancamentos") return "caixa";
     return view;
   }
 
@@ -5552,6 +5620,9 @@
     else if (view === "aguardando") financeRenderAguardando();
     else if (view === "pagar") financeRenderPagar();
     else if (view === "caixa") financeRenderCaixa();
+    else if (view === "contas") {
+      if (typeof window.financeRenderContas === "function") window.financeRenderContas();
+    }
     else if (view === "cadastros") financeRenderCadastros();
     else if (view === "financeiras") financeRenderFinanceiras();
     else if (view === "lancamentos") financeRenderLancamentos();
@@ -6661,6 +6732,7 @@
   window.financeCaixaMovsHistorico = financeCaixaMovsHistorico;
   window.financeSaldoCaixa = financeSaldoCaixa;
   window.financeCashMovValor = financeCashMovValor;
+  window.financeCashIsEntrada = financeCashIsEntrada;
   window.financeDedupeCaixaMovs = financeDedupeCaixaMovs;
   window.financeCaixaMovsMerged = financeCaixaMovsMerged;
   window.financeCaixaMovsForPeriod = financeCaixaMovsForPeriod;
@@ -6677,8 +6749,14 @@
   window.financeReceivableMatchesRppFilter = financeReceivableMatchesRppFilter;
   window.financePartnerNomeById = financePartnerNomeById;
   window.financeMetricsSnapshot = financeMetrics;
+  window.financeMetrics = financeMetrics;
+  window.financeOpenReceitaModal = financeOpenReceitaModal;
+  window.financeOpenDespesaModal = financeOpenDespesaModal;
+  window.financeMovContaLabel = financeMovContaLabel;
   window.financeContasAguardandoList = financeContasAguardandoList;
   window.financeContasReceberList = financeContasReceberList;
+  window.financeReceivablePaidList = financeReceivablePaidList;
+  window.financeReceivableDisplayStatus = financeReceivableDisplayStatus;
   window.financePayablesAbertas = financePayablesAbertas;
   window.financeRenderDashboard = financeRenderDashboard;
   window.financeActivateSubview = financeActivateSubview;
