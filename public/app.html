@@ -6769,7 +6769,8 @@
         #patioContent [data-subview="vistoria"] .table,
         #patioContent [data-subview="vlp"] .table,
         #patioContent [data-subview="removidos"] .table,
-        #patioContent [data-subview="fechando_ciclo"] .table {
+        #patioContent [data-subview="fechando_ciclo"] .table,
+        #patioContent [data-subview="aguardando_faturamento"] .table {
           min-width: 0 !important;
           width: 100%;
         }
@@ -6780,7 +6781,8 @@
         #patioContent [data-subview="vistoria"] .table-wrap,
         #patioContent [data-subview="vlp"] .table-wrap,
         #patioContent [data-subview="removidos"] .table-wrap,
-        #patioContent [data-subview="fechando_ciclo"] .table-wrap {
+        #patioContent [data-subview="fechando_ciclo"] .table-wrap,
+        #patioContent [data-subview="aguardando_faturamento"] .table-wrap {
           overflow-x: visible;
         }
         .lista-toolbar-actions {
@@ -7136,6 +7138,7 @@
                 <button type="button" class="secondary" data-subview="no_patio">VNP</button>
                 <button type="button" class="secondary" data-subview="vlp">VLP</button>
                 <button type="button" class="secondary" data-subview="removidos">VRP</button>
+                <button type="button" class="secondary" data-subview="aguardando_faturamento">Aguardando faturamento</button>
               </nav>
             </div>
             <div class="actions">
@@ -7348,11 +7351,11 @@
                 </table>
               </div>
             </div>
-            <div class="section-card patio-subview hidden" data-subview="fechando_ciclo">
-              <div class="pill">Fechando ciclo</div>
+            <div class="section-card patio-subview hidden" data-subview="aguardando_faturamento">
+              <div class="pill">Aguardando faturamento</div>
               <p class="notice" style="margin: 0 0 12px">
-                Triagem antes do Financeiro: confira o <strong>RPF</strong> (responsável financeiro / pagamento; mesma origem de cadastro que o RPV), se a NF foi emitida e se já foi enviada.
-                Marque os três itens e confirme OK para o ciclo entrar em Financeiro → Contas a receber.
+                Ciclo do pátio já concluído (VRP). O título <strong>não</strong> entra em Contas a receber enquanto a nota fiscal ou a cobrança não for emitida.
+                Informe o destinatário (nome e contato) e finalize o faturamento nesta tela.
               </p>
               <div class="table-wrap">
                 <table class="table stacked">
@@ -7362,11 +7365,10 @@
                       <th>Registo</th>
                       <th>Veículo</th>
                       <th>RPF</th>
-                      <th>NF emitida</th>
-                      <th>NF enviada</th>
-                      <th>Diárias / período</th>
-                      <th>Valor do ciclo</th>
-                      <th>Triagem</th>
+                      <th>Saída / ciclo</th>
+                      <th>Valor</th>
+                      <th>Destinatário</th>
+                      <th>Faturamento</th>
                     </tr>
                   </thead>
                   <tbody id="tableFechamentoCiclo"></tbody>
@@ -7540,7 +7542,6 @@
             <button type="button" data-finance-subview-btn="lancamentos">Lançamentos</button>
             <button type="button" data-finance-subview-btn="relatorios">Relatórios</button>
             <button type="button" data-finance-subview-btn="em_patio">Veículos no pátio</button>
-            <button type="button" data-finance-subview-btn="aguardando">Aguardando faturamento</button>
             <button type="button" data-finance-subview-btn="caixa">Caixa</button>
             <button type="button" data-finance-subview-btn="cadastros">Cadastros</button>
           </div>
@@ -8269,6 +8270,38 @@
         </div>
       </div>
 
+      <div id="patioFaturamentoModal" class="modal-backdrop hidden">
+        <div class="modal">
+          <div class="modal-header">
+            <div>
+              <h3>Finalizar faturamento</h3>
+              <p class="subtitle" id="patioFaturamentoModalSub">Informe o destinatário e o documento emitido</p>
+            </div>
+            <button type="button" class="modal-close" id="patioFaturamentoModalClose">Fechar</button>
+          </div>
+          <form id="patioFaturamentoForm">
+            <p id="patioFaturamentoModalHint" class="notice" style="margin: 0 0 12px"></p>
+            <label for="patioFatDestNome">Destinatário da cobrança — nome</label>
+            <input id="patioFatDestNome" name="destNome" type="text" required maxlength="180" autocomplete="name" />
+            <label for="patioFatDestContato">Destinatário da cobrança — contato</label>
+            <input id="patioFatDestContato" name="destContato" type="text" required maxlength="180" autocomplete="tel" placeholder="Telefone, e-mail ou WhatsApp" />
+            <fieldset style="margin: 12px 0; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px">
+              <legend>Documento emitido</legend>
+              <label style="display:block;margin-bottom:6px">
+                <input type="radio" name="patioFatTipo" value="NF" required /> Nota fiscal
+              </label>
+              <label style="display:block">
+                <input type="radio" name="patioFatTipo" value="COBRANCA" /> Cobrança
+              </label>
+            </fieldset>
+            <div class="modal-actions">
+              <button type="submit" id="patioFaturamentoModalConfirm">Concluir e enviar a Contas a receber</button>
+              <button type="button" class="secondary" id="patioFaturamentoModalCancel">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div id="dateModal" class="modal-backdrop hidden">
         <div class="modal">
           <div class="modal-header">
@@ -8979,6 +9012,7 @@
             <button type="button" data-header-patio-sub="no_patio">VNP</button>
             <button type="button" data-header-patio-sub="vlp">VLP</button>
             <button type="button" data-header-patio-sub="removidos">VRP</button>
+            <button type="button" data-header-patio-sub="aguardando_faturamento">Aguardando faturamento</button>
           </div>
         </details>
 
@@ -8987,7 +9021,6 @@
           <div class="header-menu-nested">
             <button type="button" data-finance-subview="dashboard">Dashboard</button>
             <button type="button" data-finance-subview="em_patio">Veículos no pátio</button>
-            <button type="button" data-finance-subview="aguardando">Aguardando faturamento</button>
             <button type="button" data-finance-subview="receber">Contas a receber</button>
             <button type="button" data-finance-subview="pagar">Contas a pagar</button>
             <button type="button" data-finance-subview="caixa">Caixa</button>
@@ -9034,7 +9067,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260828rppprint"></script>
+    <script src="/finance-module.js?v=20260909patiofat"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
@@ -10083,7 +10116,8 @@
         no_patio: { title: "VNP", subtitle: "Veículos no pátio" },
         vlp: { title: "VLP", subtitle: "Veículos em liberação" },
         removidos: { title: "VRP", subtitle: "Veículos removidos do pátio" },
-        fechando_ciclo: { title: "Fechando ciclo", subtitle: "Triagem antes do financeiro" },
+        fechando_ciclo: { title: "Aguardando faturamento", subtitle: "Ciclo concluído, aguardando NF ou cobrança" },
+        aguardando_faturamento: { title: "Aguardando faturamento", subtitle: "Ciclo concluído, aguardando NF ou cobrança" },
       };
 
       const MODULE_VIEWS = ["patio", "lista", "parceiros", "configuracoes", "financeiro", "biExecutivo", "escritorios"];
@@ -11348,16 +11382,51 @@
         if (receivableIsContaReceberFinanceiro(r)) return true;
 
         const promovidoEm = new Date().toISOString();
+        const metaAtual = receivableObservacoesMeta(r);
+        const fat = opts.faturamento || {};
+        const destNome = String(
+          fat.destinatarioNome || r.cobranca_destinatario_nome || metaAtual.cobranca_destinatario_nome || ""
+        ).trim();
+        const destContato = String(
+          fat.destinatarioContato || r.cobranca_destinatario_contato || metaAtual.cobranca_destinatario_contato || ""
+        ).trim();
+        const tipoFat = String(
+          fat.tipoFaturamento || r.tipo_faturamento || metaAtual.tipo_faturamento || ""
+        )
+          .trim()
+          .toUpperCase();
         const metaExtra = {
           financeiro_aprovado_contas_receber: true,
           patio_liberado_financeiro: true,
           promovido_contas_receber_em: promovidoEm,
         };
+        const isPatioCiclo =
+          !!r.vehicle_id &&
+          !(typeof receivableIsManualControleReceitas === "function" && receivableIsManualControleReceitas(r));
+        if (isPatioCiclo && (!destNome || !destContato || (tipoFat !== "NF" && tipoFat !== "COBRANCA"))) {
+          if (!opts.silent) {
+            alert(
+              "Para enviar a Contas a receber, finalize em Pátio → Aguardando faturamento: destinatário (nome e contato) e emissão de nota fiscal ou cobrança."
+            );
+          }
+          return false;
+        }
+        if (destNome) metaExtra.cobranca_destinatario_nome = destNome;
+        if (destContato) metaExtra.cobranca_destinatario_contato = destContato;
+        if (tipoFat === "NF" || tipoFat === "COBRANCA") metaExtra.tipo_faturamento = tipoFat;
+        metaExtra.cobranca_emitida = tipoFat === "COBRANCA" ? true : metaExtra.cobranca_emitida === true;
+        if (tipoFat === "NF") metaExtra.nf_emitida = true;
         const patch = {
           financeiro_aprovado_contas_receber: true,
           patio_liberado_financeiro: true,
+          contas_receber_em: promovidoEm,
+          faturado_em: promovidoEm,
           ...receivableObservacoesPatchFields(r, metaExtra),
         };
+        if (destNome) patch.cobranca_destinatario_nome = destNome;
+        if (destContato) patch.cobranca_destinatario_contato = destContato;
+        if (tipoFat === "NF" || tipoFat === "COBRANCA") patch.tipo_faturamento = tipoFat;
+        if (tipoFat === "COBRANCA") patch.cobranca_emitida = true;
         if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) patch.status = "EM_ABERTO";
 
         const runUpdate = () =>
@@ -11365,11 +11434,23 @@
         let { error } =
           typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runUpdate) : await runUpdate();
         if (error && supabaseSchemaColumnError(error)) {
-          const lean = { ...receivableObservacoesPatchFields(r, metaExtra) };
+          const lean = {
+            financeiro_aprovado_contas_receber: true,
+            patio_liberado_financeiro: true,
+            ...receivableObservacoesPatchFields(r, metaExtra),
+          };
           if (patch.status) lean.status = patch.status;
           const runLean = () =>
             supabase.from("receivables").update(lean).eq("id", receivableId).eq("user_id", effectiveUserId());
           ({ error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runLean) : await runLean());
+          if (error && supabaseSchemaColumnError(error)) {
+            const metaOnly = { ...receivableObservacoesPatchFields(r, metaExtra) };
+            if (patch.status) metaOnly.status = patch.status;
+            const runMetaOnly = () =>
+              supabase.from("receivables").update(metaOnly).eq("id", receivableId).eq("user_id", effectiveUserId());
+            ({ error } =
+              typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runMetaOnly) : await runMetaOnly());
+          }
         }
         if (error) {
           if (!opts.silent) {
@@ -11390,7 +11471,13 @@
 
         removePatioFinanceiroBloqueadoReceivableId(receivableId);
         removeReceberTriagemId(receivableId);
-        financeAuditAppend(receivableId, "Enviado para Contas a Receber", { valor: r.valor, persisted: true });
+        financeAuditAppend(receivableId, "Enviado para Contas a Receber", {
+          valor: r.valor,
+          persisted: true,
+          note: destNome
+            ? `Destinatário: ${destNome}${destContato ? ` · ${destContato}` : ""}${tipoFat ? ` · ${tipoFat}` : ""}`
+            : undefined,
+        });
         const idx = (state.receivables || []).findIndex((x) => String(x.id) === String(receivableId));
         if (idx >= 0) state.receivables[idx] = verified;
         else if (typeof loadReceivables === "function") await loadReceivables();
@@ -11770,6 +11857,7 @@
             aplicar_remocao: hadRemocao,
             origem_modulo: "PATIO_VRP",
             gerado_em: dataSaida,
+            aguardando_faturamento_em: dataSaida,
             sem_cobranca: result.vrpSemCobranca,
           },
           result.vrpSemCobranca
@@ -11932,7 +12020,7 @@
           });
         } else {
           removeReceberTriagemId(receivableId);
-          financeAuditAppend(receivableId, "Enviado para Aguardando Faturamento", {
+          financeAuditAppend(receivableId, "Enviado para Pátio → Aguardando Faturamento", {
             valor: valorFechamento,
             note: `${breakdown.dias} dia(s), remoção: ${formatCurrency(breakdown.taxaRemocao)}`,
           });
@@ -12590,6 +12678,32 @@
         return false;
       }
       window.receivableIsAguardandoFaturamentoFinanceiro = receivableIsAguardandoFaturamentoFinanceiro;
+
+      function receivableDestinatarioCobranca(r) {
+        const meta = receivableObservacoesMeta(r) || {};
+        return {
+          nome: String(r?.cobranca_destinatario_nome || meta.cobranca_destinatario_nome || "").trim(),
+          contato: String(r?.cobranca_destinatario_contato || meta.cobranca_destinatario_contato || "").trim(),
+          tipo: String(r?.tipo_faturamento || meta.tipo_faturamento || "").trim().toUpperCase(),
+        };
+      }
+
+      function collectPatioAguardandoFaturamentoReceivables() {
+        const byId = new Map();
+        const fromFin =
+          typeof window.financeContasAguardandoList === "function"
+            ? window.financeContasAguardandoList()
+            : (state.receivables || []).filter((r) => receivableIsAguardandoFaturamentoFinanceiro(r));
+        for (const r of fromFin || []) {
+          if (r?.id) byId.set(String(r.id), r);
+        }
+        for (const r of state.receivables || []) {
+          if (receivableNaFilaFechamentoCicloPatio(r) && r.id) byId.set(String(r.id), r);
+        }
+        return [...byId.values()];
+      }
+      window.collectPatioAguardandoFaturamentoReceivables = collectPatioAguardandoFaturamentoReceivables;
+
 
       /**
        * Registros exibidos em «Contas a receber» (Receber).
@@ -13378,9 +13492,11 @@
       function collectListaAguardandoFaturamento(vehicleById) {
         const vmap = vehicleById || new Map((state.vehicles || []).map((v) => [v.id, v]));
         const base =
-          typeof window.financeContasAguardandoList === "function"
+          typeof collectPatioAguardandoFaturamentoReceivables === "function"
+            ? collectPatioAguardandoFaturamentoReceivables()
+            : typeof window.financeContasAguardandoList === "function"
             ? window.financeContasAguardandoList()
-            : (state.receivables || []).filter((r) => receivableNaFilaAguardandoTriagem(r));
+            : (state.receivables || []).filter((r) => receivableIsAguardandoFaturamentoFinanceiro(r));
         return base
           .filter((r) => listaReceivableMatches(r, vmap.get(r.vehicle_id)))
           .filter((r) => listaReceivableDateMatches(r, vmap.get(r.vehicle_id)));
@@ -15866,6 +15982,7 @@
         if (patioTitleReset) patioTitleReset.textContent = "Gestão de Pátio";
         patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.remove("hidden");
         patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.remove("hidden");
+        patioSubnav?.querySelector('[data-subview="aguardando_faturamento"]')?.classList.remove("hidden");
         const vehicleDailyReset = document.getElementById("vehicleDaily");
         const vehicleDailyWrap = vehicleDailyReset?.closest("div");
         if (vehicleDailyWrap) vehicleDailyWrap.style.display = "";
@@ -15944,7 +16061,7 @@
         });
         document
           .querySelectorAll(
-            '#headerDetailsPatio [data-header-patio-sub="removidos"], #headerDetailsPatio [data-header-patio-sub="fechando_ciclo"]'
+            '#headerDetailsPatio [data-header-patio-sub="removidos"], #headerDetailsPatio [data-header-patio-sub="fechando_ciclo"], #headerDetailsPatio [data-header-patio-sub="aguardando_faturamento"]'
           )
           .forEach((el) => el.classList.add("hidden"));
         document.getElementById("dashboardSystemEntry")?.classList.add("dashboard-system-entry--single");
@@ -15957,6 +16074,7 @@
 
         patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.add("hidden");
         patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.add("hidden");
+        patioSubnav?.querySelector('[data-subview="aguardando_faturamento"]')?.classList.add("hidden");
 
         const style = document.createElement("style");
         style.id = "track-manager-hide-values-style";
@@ -15971,8 +16089,10 @@
           #viewPatio [data-subview="removidos"] table tbody td:nth-child(7) {
             display: none !important;
           }
-          #viewPatio [data-subview="fechando_ciclo"] table thead th:nth-child(7),
-          #viewPatio [data-subview="fechando_ciclo"] table tbody td:nth-child(7) {
+          #viewPatio [data-subview="fechando_ciclo"] table thead th:nth-child(6),
+          #viewPatio [data-subview="fechando_ciclo"] table tbody td:nth-child(6),
+          #viewPatio [data-subview="aguardando_faturamento"] table thead th:nth-child(6),
+          #viewPatio [data-subview="aguardando_faturamento"] table tbody td:nth-child(6) {
             display: none !important;
           }
         `;
@@ -17798,9 +17918,8 @@
             byStatus[v.status].push(v);
           }
         });
-        const fechamentoCicloReceivables = (state.receivables || []).filter(
-          (r) =>
-            receivableNaFilaFechamentoCicloPatio(r) && filteredVehicles.some((v) => v.id === r.vehicle_id)
+        const fechamentoCicloReceivables = collectPatioAguardandoFaturamentoReceivables().filter((r) =>
+          filteredVehicles.some((v) => v.id === r.vehicle_id)
         );
 
         const vlsMerged = mergeVlsItems(byStatus);
@@ -17845,8 +17964,8 @@
           if (patioCardMeta2)
             patioCardMeta2.textContent = isGestorPista ? "mês atual" : "soma dos removidos";
           if (patioCardMeta3) patioCardMeta3.textContent = "com data de saída";
-        } else if (currentPatioView === "fechando_ciclo") {
-          if (patioCardTitle1) patioCardTitle1.textContent = "Fechando ciclo";
+        } else if (currentPatioView === "fechando_ciclo" || currentPatioView === "aguardando_faturamento") {
+          if (patioCardTitle1) patioCardTitle1.textContent = "Aguardando faturamento";
           if (patioCardTitle2) patioCardTitle2.textContent = "Valor aguardando faturamento";
           if (patioCardTitle3) patioCardTitle3.textContent = "Próximo passo";
           if (patioCardValue1) patioCardValue1.textContent = String(fechamentoCicloReceivables.length);
@@ -17854,10 +17973,10 @@
             patioCardValue2.textContent = formatCurrency(
               fechamentoCicloReceivables.reduce((s, r) => s + (isGestorPista ? 0 : Number(r.valor || 0)), 0)
             );
-          if (patioCardValue3) patioCardValue3.textContent = "Financeiro";
+          if (patioCardValue3) patioCardValue3.textContent = "Contas a receber";
           if (patioCardMeta1) patioCardMeta1.textContent = "ciclos nesta fila";
           if (patioCardMeta2) patioCardMeta2.textContent = isGestorPista ? "valores ocultos" : "soma dos ciclos";
-          if (patioCardMeta3) patioCardMeta3.textContent = "Vai para Receber após OK";
+          if (patioCardMeta3) patioCardMeta3.textContent = "após NF ou cobrança";
         } else {
           if (patioCardTitle1) patioCardTitle1.textContent = "VNP";
           if (patioCardTitle2) patioCardTitle2.textContent = "VLP";
@@ -17913,8 +18032,9 @@
           vlp: vlsCount,
           removidos: byStatus.REMOVIDO.length,
           fechando_ciclo: nFech,
+          aguardando_faturamento: nFech,
         };
-        const total = vistoriaCount + onPatioCount + counts.removidos + counts.fechando_ciclo;
+        const total = vistoriaCount + onPatioCount + counts.removidos + counts.aguardando_faturamento;
 
         setPlateSearchHints(total === 0 ? "Nenhum veículo com esta placa." : "", total === 0);
 
@@ -18244,6 +18364,7 @@
         const silent = opts.silent === true;
         if (view === "liberacao_solicitada") view = "vlp";
         if (view === "nfse_pendente") view = "no_patio";
+        if (view === "fechando_ciclo") view = "aguardando_faturamento";
         currentPatioView = view;
         const isNone = !view || view === "none";
         const isDashboard = view === "dashboard";
@@ -18405,53 +18526,219 @@
         if (partnerEmailWrap) partnerEmailWrap.classList.remove("hidden");
       }
 
+      function closePatioFaturamentoModal() {
+        const modal = document.getElementById("patioFaturamentoModal");
+        modal?.classList.add("hidden");
+        if (modal) delete modal.dataset.receivableId;
+      }
+
+      function openPatioFaturamentoModal(receivableId) {
+        const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
+        if (!r) {
+          alert("Título não encontrado. Atualize o pátio.");
+          return;
+        }
+        const v = (state.vehicles || []).find((x) => String(x.id) === String(r.vehicle_id));
+        const dest = receivableDestinatarioCobranca(r);
+        const modal = document.getElementById("patioFaturamentoModal");
+        const hint = document.getElementById("patioFaturamentoModalHint");
+        const nomeEl = document.getElementById("patioFatDestNome");
+        const contatoEl = document.getElementById("patioFatDestContato");
+        const form = document.getElementById("patioFaturamentoForm");
+        if (!modal || !form) return;
+        modal.dataset.receivableId = String(r.id);
+        if (hint) {
+          hint.textContent = `${v?.placa || "Veículo"} · ${formatCurrency(Number(r.valor || 0))} · informe para quem a cobrança foi direcionada.`;
+        }
+        if (nomeEl) nomeEl.value = dest.nome;
+        if (contatoEl) contatoEl.value = dest.contato;
+        const tipo = dest.tipo === "COBRANCA" ? "COBRANCA" : dest.tipo === "NF" ? "NF" : "";
+        form.querySelectorAll('input[name="patioFatTipo"]').forEach((el) => {
+          el.checked = el.value === tipo;
+        });
+        modal.classList.remove("hidden");
+        nomeEl?.focus();
+      }
+
+      async function submitPatioFaturamentoForm(e) {
+        e.preventDefault();
+        const modal = document.getElementById("patioFaturamentoModal");
+        const receivableId = modal?.dataset.receivableId;
+        const nome = String(document.getElementById("patioFatDestNome")?.value || "").trim();
+        const contato = String(document.getElementById("patioFatDestContato")?.value || "").trim();
+        const tipo = String(
+          document.querySelector('#patioFaturamentoForm input[name="patioFatTipo"]:checked')?.value || ""
+        ).toUpperCase();
+        if (!nome || !contato) {
+          alert("Informe o nome e o contato de quem recebeu a cobrança.");
+          return;
+        }
+        if (tipo !== "NF" && tipo !== "COBRANCA") {
+          alert("Selecione se foi emitida a nota fiscal ou a cobrança.");
+          return;
+        }
+        if (!(await requireSupabaseSessionForWrite())) return;
+        const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
+        const vehicle = (state.vehicles || []).find((x) => String(x.id) === String(r?.vehicle_id));
+        const closure = (state.cycleClosures || []).find((c) => String(c.receivable_id) === String(receivableId));
+        const agora = new Date().toISOString();
+
+        if (tipo === "NF" && vehicle?.id) {
+          let nfErr = (
+            await supabase
+              .from("vehicles")
+              .update({ nfse_status: "EMITIDA", nfse_issued_at: agora, nfse_enviada: true })
+              .eq("id", vehicle.id)
+              .eq("user_id", effectiveUserId())
+          ).error;
+          if (nfErr && /nfse_|column|schema cache|PGRST204/i.test(nfErr.message || "")) {
+            nfErr = (
+              await supabase
+                .from("vehicles")
+                .update({ nfse_status: "EMITIDA", nfse_issued_at: agora })
+                .eq("id", vehicle.id)
+                .eq("user_id", effectiveUserId())
+            ).error;
+          }
+          if (nfErr && /nfse_|column|schema cache|PGRST204/i.test(nfErr.message || "")) {
+            addNfseEnviadaVehicleId(vehicle.id);
+          } else if (nfErr) {
+            alert(nfErr.message);
+            return;
+          }
+        }
+
+        if (closure?.id) {
+          const cloPatch = {
+            triagem_ok: true,
+            sent_to_finance: true,
+            triaged_at: agora,
+            updated_at: agora,
+            cobranca_destinatario_nome: nome,
+            cobranca_destinatario_contato: contato,
+            tipo_faturamento: tipo,
+            cobranca_emitida: tipo === "COBRANCA",
+            nf_emitida: tipo === "NF" ? true : closure.nf_emitida === true,
+            nf_enviada: tipo === "NF" ? true : closure.nf_enviada === true,
+            faturado_em: agora,
+          };
+          let { error: cloErr } = await supabase
+            .from("patio_cycle_closures")
+            .update(cloPatch)
+            .eq("id", closure.id)
+            .eq("user_id", effectiveUserId());
+          if (cloErr && supabaseSchemaColumnError(cloErr)) {
+            ({ error: cloErr } = await supabase
+              .from("patio_cycle_closures")
+              .update({
+                triagem_ok: true,
+                sent_to_finance: true,
+                triaged_at: agora,
+                updated_at: agora,
+                nf_emitida: tipo === "NF" ? true : closure.nf_emitida === true,
+                nf_enviada: tipo === "NF" ? true : closure.nf_enviada === true,
+              })
+              .eq("id", closure.id)
+              .eq("user_id", effectiveUserId()));
+          }
+          if (cloErr && !isMissingRelationError(cloErr)) {
+            alert(cloErr.message);
+            return;
+          }
+        }
+
+        const ok = await ensureReceivablePromotedToContasReceber(receivableId, {
+          faturamento: {
+            destinatarioNome: nome,
+            destinatarioContato: contato,
+            tipoFaturamento: tipo,
+          },
+        });
+        if (!ok) return;
+        if (vehicle?.id) {
+          try {
+            await supabase.from("vehicle_events").insert({
+              vehicle_id: vehicle.id,
+              tipo: "FATURAMENTO_CONCLUIDO",
+              responsavel: nome,
+              descricao: `Faturamento no Pátio (${tipo === "NF" ? "nota fiscal" : "cobrança"}). Destinatário: ${nome}. Contato: ${contato}. Título enviado a Contas a receber.`,
+            });
+          } catch (e) {
+            console.warn("vehicle_events faturamento", e);
+          }
+        }
+        closePatioFaturamentoModal();
+        await Promise.all([loadVehicles(), loadReceivables(), loadCycleClosures()]);
+        renderVehicles();
+        updateDashboard();
+        openMainView("financeiro");
+        if (typeof openFinanceSubview === "function") openFinanceSubview("receber", { skipRefresh: true });
+        else if (typeof setFinanceView === "function") setFinanceView("receber");
+        alert("Faturamento concluído. O título entrou em Financeiro → Contas a receber.");
+      }
+
+      function bindPatioFaturamentoModalOnce() {
+        if (bindPatioFaturamentoModalOnce._done) return;
+        bindPatioFaturamentoModalOnce._done = true;
+        document.getElementById("patioFaturamentoForm")?.addEventListener("submit", (ev) => {
+          submitPatioFaturamentoForm(ev);
+        });
+        document.getElementById("patioFaturamentoModalClose")?.addEventListener("click", closePatioFaturamentoModal);
+        document.getElementById("patioFaturamentoModalCancel")?.addEventListener("click", closePatioFaturamentoModal);
+        document.getElementById("patioFaturamentoModal")?.addEventListener("click", (ev) => {
+          if (ev.target.id === "patioFaturamentoModal") closePatioFaturamentoModal();
+        });
+      }
+      bindPatioFaturamentoModalOnce();
+      window.openPatioFaturamentoModal = openPatioFaturamentoModal;
+
       function renderFechamentoCicloTable(tbody, items) {
         if (!tbody) return;
         if (!items.length) {
           setEmptyRow(
             tbody,
-            "Nenhum ciclo aguardando esta triagem. Depois do VRP (saída efetiva), o registro aparece aqui até confirmar OK para o financeiro.",
-            9
+            "Nenhum veículo aguardando faturamento. Depois de concluir o ciclo no pátio (VRP), o registro aparece aqui até emitir a nota fiscal ou a cobrança.",
+            8
           );
           return;
         }
         const semValores = isGestorPista;
         tbody.innerHTML = items
-          .map((c) => {
-            const vehicle = state.vehicles.find((v) => v.id === c.vehicle_id);
+          .map((r) => {
+            const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
             if (!vehicle) return "";
+            const closure = (state.cycleClosures || []).find((c) => String(c.receivable_id) === String(r.id));
             const rpfNome =
-              String(c.responsavel_financeiro || "").trim() ||
-              state.partners.find((p) => p.id === vehicle.responsavel_financeiro_id)?.nome ||
-              vehicle.responsavel_financeiro_nome ||
+              String(r.responsavel_pagamento || "").trim() ||
+              String(closure?.responsavel_financeiro || "").trim() ||
+              vehicleRpfNome(vehicle) ||
               "-";
-            const nfEmitida = c.nf_emitida === true || vehicle.nfse_status === "EMITIDA";
-            const nfEmitTag = nfEmitida
-              ? `<span class="tag success">Emitida</span>`
-              : `<span class="tag warning">${escapeHtml(vehicle.nfse_status || "-")}</span>`;
-            const valorCiclo = semValores ? "-" : formatCurrency(Number(c.valor || 0));
-            const nfEmitChecked = nfEmitida ? " checked" : "";
-            const nfEnvChecked = c.nf_enviada === true || vehicleNfseEnviadaFlag(vehicle) ? " checked" : "";
-            const pIni = c.period_start ? formatDate(c.period_start) : "-";
-            const pFim = c.period_end ? formatDate(c.period_end) : vehicle.data_saida ? formatDate(vehicle.data_saida) : "-";
-            const diarias = Number(c.diarias || 0);
+            const dest = receivableDestinatarioCobranca(r);
+            const destTxt = dest.nome
+              ? `${dest.nome}${dest.contato ? ` · ${dest.contato}` : ""}`
+              : "Não informado";
+            const pIni = r.period_start ? formatDate(r.period_start) : closure?.period_start ? formatDate(closure.period_start) : "-";
+            const pFim = r.period_end
+              ? formatDate(r.period_end)
+              : vehicle.data_saida
+              ? formatDate(vehicle.data_saida)
+              : "-";
+            const valorCiclo = semValores ? "-" : formatCurrency(Number(r.valor || 0));
+            const closureAttr = closure?.id ? ` data-closure-id="${closure.id}"` : "";
             return `
-              <tr data-closure-row="${c.id}" data-vehicle-row="${vehicle.id}">
+              <tr data-receivable-row="${r.id}" data-vehicle-row="${vehicle.id}">
                 <td data-label="Placa">${plateVisualHtml(vehicle.placa, "sm")}</td>
                 <td data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td data-label="Veículo">${escapeHtml([vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-")}</td>
-                <td data-label="RPF">${escapeHtml(rpfNome)}</td>
-                <td data-label="NF emitida">${nfEmitTag}<label class="notice" style="display:block;margin-top:6px"><input type="checkbox" class="fechamento-check-nf-emitida"${nfEmitChecked}/> confirmo</label></td>
-                <td data-label="NF enviada"><label><input type="checkbox" class="fechamento-check-nf-enviada"${nfEnvChecked}/> NF já enviada</label></td>
-                <td data-label="Diárias / período">${diarias > 0 ? `${diarias} diária(s)` : "-"}<span class="notice" style="display:block">${escapeHtml(pIni)} -> ${escapeHtml(pFim)}</span></td>
-                <td data-label="Valor do ciclo">${valorCiclo}</td>
-                <td data-label="Triagem">
-                  <label style="display:block;margin-bottom:6px"><input type="checkbox" class="fechamento-check-rpf"/> RPF conferido</label>
-                  <button type="button" class="secondary" data-action="editar_fechamento_ciclo" data-id="${vehicle.id}" data-closure-id="${c.id}">Editar triagem</button>
+                <td data-label="RPF">${escapeHtml(financeStripFinmetaText(rpfNome) || "-")}</td>
+                <td data-label="Saída / ciclo"><span class="notice" style="display:block">${escapeHtml(pIni)} → ${escapeHtml(pFim)}</span></td>
+                <td data-label="Valor">${valorCiclo}</td>
+                <td data-label="Destinatário">${escapeHtml(destTxt)}</td>
+                <td data-label="Faturamento">
                   ${
-                    FINANCE_MANUAL_ONLY
-                      ? `<span class="notice" style="display:block;margin-top:6px">Financeiro manual — registre em Lançamentos.</span>`
-                      : `<button type="button" class="secondary" data-action="patio_liberar_financeiro" data-id="${vehicle.id}" data-closure-id="${c.id}">OK -> Financeiro</button>`
+                    FINANCE_MANUAL_ONLY || isGestorPista
+                      ? `<span class="notice">Faturamento no perfil do gestor do sistema.</span>`
+                      : `<button type="button" class="secondary" data-action="patio_finalizar_faturamento" data-id="${vehicle.id}" data-receivable-id="${r.id}"${closureAttr}>Finalizar faturamento</button>`
                   }
                 </td>
               </tr>`;
@@ -21972,6 +22259,7 @@
           "trocar-responsavel",
           "editar_fechamento_ciclo",
           "patio_liberar_financeiro",
+          "patio_finalizar_faturamento",
         ]);
         if (patioWriteActions.has(action)) {
           if (!(await requireSupabaseSessionForWrite())) return;
@@ -22051,89 +22339,22 @@
           return;
         }
 
-        if (action === "patio_liberar_financeiro") {
+        if (action === "patio_liberar_financeiro" || action === "patio_finalizar_faturamento") {
           if (FINANCE_MANUAL_ONLY) {
             alert("O financeiro é lançado manualmente. Use Financeiro → Lançamentos para registrar receitas e despesas.");
             return;
           }
           if (isGestorPista) return;
-          const closureId = button.getAttribute("data-closure-id");
-          const closure = (state.cycleClosures || []).find((x) => x.id === closureId);
-          const vehicle = state.vehicles.find((v) => v.id === id);
-          if (!closure || !vehicle || closure.sent_to_finance) {
-            alert("Este registro já não está nesta fila. Atualize o pátio.");
+          const receivableId =
+            button.getAttribute("data-receivable-id") ||
+            (state.cycleClosures || []).find((x) => String(x.id) === String(button.getAttribute("data-closure-id")))
+              ?.receivable_id ||
+            null;
+          if (!receivableId) {
+            alert("Não foi possível localizar o título deste ciclo. Atualize o pátio.");
             return;
           }
-          const tr = button.closest("tr");
-          const rpfOk = !!tr?.querySelector(".fechamento-check-rpf")?.checked;
-          const nfEmitOk = !!tr?.querySelector(".fechamento-check-nf-emitida")?.checked;
-          const nfEnvOk = !!tr?.querySelector(".fechamento-check-nf-enviada")?.checked;
-          if (!rpfOk || !nfEmitOk || !nfEnvOk) {
-            alert("Marque os três itens: RPF conferido, NF emitida confirmada e NF já enviada.");
-            return;
-          }
-          const { error: cloErr } = await supabase
-            .from("patio_cycle_closures")
-            .update({
-              triagem_ok: true,
-              nf_emitida: true,
-              nf_enviada: true,
-              sent_to_finance: true,
-              triaged_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", closure.id)
-            .eq("user_id", effectiveUserId());
-          if (cloErr) {
-            alert(
-              isMissingRelationError(cloErr)
-                ? "A tabela patio_cycle_closures não existe neste Supabase. Execute supabase/patio_cycle_closures.sql no SQL Editor."
-                : cloErr.message
-            );
-            return;
-          }
-
-          let nfErr = (
-            await supabase
-              .from("vehicles")
-              .update({ nfse_enviada: true })
-              .eq("id", vehicle.id)
-              .eq("user_id", effectiveUserId())
-          ).error;
-          if (nfErr && /nfse_enviada|column|schema cache|PGRST204/i.test(nfErr.message || "")) {
-            nfErr = null;
-            addNfseEnviadaVehicleId(vehicle.id);
-          } else if (nfErr) {
-            alert(nfErr.message);
-            return;
-          }
-
-          if (closure.receivable_id) {
-            let libErr = (
-              await supabase
-                .from("receivables")
-                .update({ patio_liberado_financeiro: true })
-                .eq("id", closure.receivable_id)
-                .eq("user_id", effectiveUserId())
-            ).error;
-            if (libErr && /patio_liberado|column|schema cache|PGRST204/i.test(libErr.message || "")) {
-              libErr = null;
-            } else if (libErr) {
-              alert(libErr.message);
-              return;
-            }
-            removePatioFinanceiroBloqueadoReceivableId(closure.receivable_id);
-          }
-
-          await Promise.all([loadVehicles(), loadReceivables(), loadCycleClosures()]);
-          renderVehicles();
-          updateDashboard();
-          openMainView("financeiro");
-          if (typeof openFinanceSubview === "function") openFinanceSubview("aguardando", { skipRefresh: true });
-          else if (typeof setFinanceView === "function") setFinanceView("aguardando");
-          alert(
-            "Ciclo liberado para o financeiro. O título aparece em Financeiro → Aguardando faturamento. Use «Contas a receber» para enviá-lo à cobrança."
-          );
+          openPatioFaturamentoModal(receivableId);
           return;
         }
 
@@ -23030,8 +23251,9 @@
             alert(
               vrpSemCobranca
                 ? "Veículo removido do pátio (VRP). Valor R$ 0,00 — encerrado sem cobrança."
-                : "Veículo removido (VRP). O valor foi calculado e enviado para Financeiro → Aguardando faturamento."
+                : "Veículo removido (VRP). O ciclo foi concluído e o registro está em Pátio → Aguardando faturamento. Só após a nota ou cobrança ele entra em Financeiro → Contas a receber."
             );
+            if (!vrpSemCobranca && !financeWarning) openPatioSubview("aguardando_faturamento");
           }
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
@@ -23602,7 +23824,7 @@
         }
         if (sub === "liberacao_solicitada") sub = "vlp";
         if (sub === "nfse_pendente") sub = "no_patio";
-        if (sub === "fechando_ciclo") sub = "removidos";
+        if (sub === "fechando_ciclo" || sub === "aguardando") sub = "aguardando_faturamento";
         if (isAdmDesktopPc() && sub === "vistoria") {
           sub = "no_patio";
         }
