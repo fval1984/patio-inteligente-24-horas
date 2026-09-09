@@ -7117,7 +7117,7 @@
               <h2>Gestão de Pátio</h2>
               <nav id="patioSubnav" class="subnav patio-nav-inline" aria-label="Secções do pátio">
                 <button type="button" class="secondary" data-subview="inicio">Dashboard</button>
-                <button type="button" class="secondary" id="patioMenuNewVehicle" data-adm-pc-hide="1">Registrar veículo</button>
+                <button type="button" class="secondary" id="patioMenuNewVehicle">Registrar veículo</button>
                 <button type="button" class="secondary" data-subview="vistoria" data-adm-pc-hide="1">Vistoria</button>
                 <button type="button" class="secondary" data-subview="no_patio">VNP</button>
                 <button type="button" class="secondary" data-subview="vlp">VLP</button>
@@ -8935,7 +8935,7 @@
           <summary>Gestão de pátio</summary>
           <div class="header-menu-nested">
             <button type="button" data-header-patio-sub="inicio">Dashboard</button>
-            <button type="button" data-header-patio="new-vehicle" data-adm-pc-hide="1">Registrar veículo</button>
+            <button type="button" data-header-patio="new-vehicle">Registrar veículo</button>
             <button type="button" data-header-patio-sub="vistoria" data-adm-pc-hide="1">Vistoria</button>
             <button type="button" data-header-patio-sub="no_patio">VNP</button>
             <button type="button" data-header-patio-sub="vlp">VLP</button>
@@ -18974,12 +18974,6 @@
           alert("O gestor de pista não pode editar veículos.");
           return;
         }
-        if (isAdmDesktopPc() && mode === "create") {
-          alert(
-            "No acesso pelo PC, o administrador não registra veículos. Cadastros e vistorias são feitos pelo gestor de pista no mobile. Revise os registros pendentes na VNP."
-          );
-          return;
-        }
         editingVehicleId = mode === "edit" ? vehicle.id : null;
         editingVehicleData = mode === "edit" ? vehicle : null;
         vehicleModalTitle.textContent = mode === "edit" ? "Editar veículo" : "Registrar veículo";
@@ -20896,12 +20890,6 @@
         if (!(await requireSupabaseSessionForWrite())) return;
         if (isGestorPista && editingVehicleId) {
           alert("O gestor de pista não pode editar veículos.");
-          return;
-        }
-        if (isAdmDesktopPc() && !editingVehicleId) {
-          alert(
-            "No acesso pelo PC, o administrador não registra veículos. Cadastros e vistorias são feitos pelo gestor de pista no mobile."
-          );
           return;
         }
         const gestorCreate = isGestorPista && !editingVehicleId;
