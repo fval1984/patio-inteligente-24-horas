@@ -388,17 +388,20 @@
     const dailyLabels = [];
     const dailyEntradas = [];
     const dailySaidas = [];
-    for (let i = 29; i >= 0; i--) {
-      const ymd = addDaysYmd(asOfYmd, -i);
-      dailyLabels.push(`${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`);
+    let cursor = range.from;
+    let guard = 0;
+    while (cursor && range.to && cursor <= range.to && guard < 93) {
+      dailyLabels.push(`${cursor.slice(8, 10)}/${cursor.slice(5, 7)}`);
       let e = 0;
       let s = 0;
       for (const v of vehicles) {
-        if (toLocalYmd(v.data_entrada) === ymd) e++;
-        if (toLocalYmd(v.data_saida) === ymd) s++;
+        if (toLocalYmd(v.data_entrada) === cursor) e++;
+        if (toLocalYmd(v.data_saida) === cursor) s++;
       }
       dailyEntradas.push(e);
       dailySaidas.push(s);
+      cursor = addDaysYmd(cursor, 1);
+      guard += 1;
     }
 
     const months = [];
@@ -440,6 +443,7 @@
       topReceivablesByFinanceira,
       vehiclesByFinanceira,
       dailyFlow30d: { labels: dailyLabels, entradas: dailyEntradas, saidas: dailySaidas },
+      dailyFlow: { labels: dailyLabels, entradas: dailyEntradas, saidas: dailySaidas },
       receitaMensal: { months, values: receitaValues },
       auditOk,
     };
