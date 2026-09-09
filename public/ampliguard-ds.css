@@ -110,9 +110,13 @@ body.app-module-lista {
   box-shadow: none;
 }
 
+html header,
+html[data-theme="light"] header,
+html[data-theme="dark"] header,
+[data-theme="light"] header,
 header {
   position: relative;
-  background: var(--ag-surface) !important;
+  background: #2a2c2e !important;
   border-bottom: 0 !important;
   backdrop-filter: none !important;
   justify-content: flex-start !important;
@@ -162,7 +166,7 @@ header .brand-header-logo {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--ag-iron);
+  color: #f3f1ec;
 }
 
 .app-subheader {
