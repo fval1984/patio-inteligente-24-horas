@@ -64,6 +64,9 @@
       .cmd-ops-kpi span { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ag-muted, #3a4046); }
       .cmd-ops-kpi strong { font-size: 1.85rem; line-height: 1.05; color: #121314; }
       .cmd-ops-kpi--alert { border-left: 3px solid #a15c12; }
+      .cmd-ops-kpi--money { grid-column: 1 / -1; min-height: 96px; border-left: 3px solid #2f6b3a; }
+      .cmd-ops-kpi--money small { margin-top: 2px; font-size: 12px; color: var(--ag-muted, #3a4046); font-weight: 500; letter-spacing: 0; text-transform: none; }
+      .cmd-ops-kpi--money strong { font-variant-numeric: tabular-nums; }
       .cmd-ops-block h3 { margin: 0 0 10px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; }
       .cmd-ops-attn { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
       .cmd-ops-attn li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--ag-border, #9a948a); background: var(--ag-card, #fbf8f3); }
@@ -154,6 +157,57 @@
     return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   }
 
+  function toLocalYmd(value) {
+    if (typeof global.toLocalYmd === "function") return global.toLocalYmd(value);
+    if (!value) return null;
+    if (value instanceof Date) {
+      if (Number.isNaN(value.getTime())) return null;
+      const y = value.getFullYear();
+      const m = String(value.getMonth() + 1).padStart(2, "0");
+      const d = String(value.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+    const s = String(value).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const d = new Date(s.includes("T") ? s : `${s.slice(0, 10)}T12:00:00`);
+    if (Number.isNaN(d.getTime())) return null;
+    return toLocalYmd(d);
+  }
+
+  function todayYmd() {
+    return toLocalYmd(new Date()) || "";
+  }
+
+  /** 1 diária do dia (valor_diaria), não o acúmulo da permanência. */
+  function diariaValorNoDia(vehicle, dayYmd) {
+    if (typeof global.calcDiariaValorGeradoNoDiaLocal === "function") {
+      return Number(global.calcDiariaValorGeradoNoDiaLocal(vehicle, dayYmd) || 0);
+    }
+    if (!vehicle?.data_entrada || !dayYmd) return 0;
+    const start = toLocalYmd(vehicle.data_entrada);
+    if (!start || dayYmd < start) return 0;
+    if (vehicle.data_saida) {
+      const end = toLocalYmd(vehicle.data_saida);
+      if (end && dayYmd > end) return 0;
+    }
+    const vd = Number(vehicle.valor_diaria);
+    return Number.isFinite(vd) && vd > 0 ? vd : 0;
+  }
+
+  function diariasGeradasHoje(vehicles) {
+    const day = todayYmd();
+    let amount = 0;
+    let count = 0;
+    (vehicles || []).forEach((v) => {
+      const val = diariaValorNoDia(v, day);
+      if (val > 0) {
+        amount += val;
+        count += 1;
+      }
+    });
+    return { amount, count };
+  }
+
   function computeMetrics(data) {
     const service = getService();
     if (!service || typeof service.getMetricsFromSnapshot !== "function") {
@@ -197,6 +251,18 @@
     const vehicles = _lastData.vehicles || [];
     const k = m.kpis || {};
     const onPatio = vehicles.filter(isOnPatio).length;
+    const isGestorPista = !!(ctx?.isGestorPista || global.isGestorPista);
+    const fmtMoney =
+      typeof ctx?.formatCurrency === "function"
+        ? ctx.formatCurrency
+        : (n) =>
+            Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const diariasHoje = diariasGeradasHoje(vehicles);
+    const diariasLabel = diariasHoje.count === 1 ? "veículo gerando diária hoje" : "veículos gerando diária hoje";
+    const diariasValue = isGestorPista ? "—" : fmtMoney(diariasHoje.amount);
+    const diariasHint = isGestorPista
+      ? "Valores no perfil do gestor do sistema"
+      : `${diariasHoje.count} ${diariasLabel} · só o dia de hoje, sem acúmulo`;
     const entradas = Number(k.entradasHoje || 0);
     const saidas = Number(k.saidasHoje || 0);
     const saldo = entradas - saidas;
@@ -250,6 +316,11 @@
     root.innerHTML = `
       <div class="cmd-ops">
         <section class="cmd-ops-kpis" aria-label="Indicadores principais">
+          <button type="button" class="cmd-ops-kpi cmd-ops-kpi--money" data-hub-nav="patio:no_patio">
+            <span>Diárias geradas hoje</span>
+            <strong>${esc(diariasValue, ctx)}</strong>
+            <small>${esc(diariasHint, ctx)}</small>
+          </button>
           <button type="button" class="cmd-ops-kpi" data-hub-nav="patio:no_patio">
             <span>Veículos no pátio</span>
             <strong>${esc(String(onPatio), ctx)}</strong>
