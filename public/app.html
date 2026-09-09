@@ -5181,6 +5181,54 @@
         background: var(--primary-weak);
         outline: none;
       }
+      .fin-simple-dash { margin-bottom: 8px; }
+      .fin-simple-h { font-size: 1.05rem; margin: 22px 0 10px; }
+      .fin-simple-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .fin-simple-card {
+        text-align: left;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px 14px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        cursor: pointer;
+        min-height: 92px;
+      }
+      .fin-simple-card strong { font-size: 1.15rem; }
+      .fin-simple-attn-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+      }
+      .fin-simple-attn {
+        text-align: left;
+        border-radius: 12px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        cursor: pointer;
+      }
+      .fin-simple-attn--red { border-color: #fca5a5; }
+      .fin-simple-attn--yellow { border-color: #fcd34d; }
+      .fin-simple-attn--blue { border-color: #93c5fd; }
+      .fin-simple-attn--green { border-color: #86efac; }
+      .fin-simple-recent { list-style: none; margin: 10px 0 0; padding: 0; }
+      .fin-simple-recent button { background: none; border: 0; padding: 4px 0; cursor: pointer; color: inherit; }
+      @media (max-width: 720px) {
+        #viewFinanceiro .finance-subnav { overflow-x: auto; flex-wrap: nowrap; }
+        #viewFinanceiro .finance-subnav button { flex: 0 0 auto; }
+        .fin-simple-card, .fin-simple-attn { min-height: 84px; }
+      }
       .fin-cards {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -7523,10 +7571,11 @@
           <div class="toolbar fin-act-pagehead">
             <div>
               <h2 style="margin: 0">Financeiro</h2>
-              <p class="fin-act-subtitle">Visão geral da situação financeira</p>
+              <p class="fin-act-subtitle">Saldo, diárias, a receber, a pagar e movimentações</p>
               <p class="fin-act-period-range" id="finPeriodRangeLabel"></p>
             </div>
             <div class="actions fin-act-head-actions">
+              <button type="button" id="finBtnNovoLancamento">+ Novo lançamento</button>
               <label class="fin-act-search-wrap" for="finGlobalSearch">
                 <span class="fin-act-sr">Pesquisar</span>
                 <input type="search" id="finGlobalSearch" placeholder="Placa, financeira, fornecedor, valor ou data" autocomplete="off" />
@@ -7535,15 +7584,14 @@
             </div>
           </div>
           <div class="finance-subnav" id="finSubnav">
-            <button type="button" data-finance-subview-btn="dashboard" class="active">Início</button>
-            <button type="button" data-finance-subview-btn="receber">Contas a receber</button>
-            <button type="button" data-finance-subview-btn="pagar">Contas a pagar</button>
-            <button type="button" data-finance-subview-btn="financeiras">Financeiras</button>
-            <button type="button" data-finance-subview-btn="lancamentos">Lançamentos</button>
+            <button type="button" data-finance-subview-btn="dashboard" class="active">Dashboard</button>
+            <button type="button" data-finance-subview-btn="em_patio">Diárias</button>
+            <button type="button" data-finance-subview-btn="receber">A Receber</button>
+            <button type="button" data-finance-subview-btn="pagar">A Pagar</button>
+            <button type="button" data-finance-subview-btn="contas">Contas</button>
+            <button type="button" data-finance-subview-btn="caixa">Movimentações</button>
             <button type="button" data-finance-subview-btn="relatorios">Relatórios</button>
-            <button type="button" data-finance-subview-btn="em_patio">Veículos no pátio</button>
-            <button type="button" data-finance-subview-btn="caixa">Caixa</button>
-            <button type="button" data-finance-subview-btn="cadastros">Cadastros</button>
+            <button type="button" data-finance-subview-btn="cadastros">Configurações</button>
           </div>
           <p id="finRecebidosRecoverHint" class="notice hidden" style="margin: 0 0 10px"></p>
 
@@ -7589,11 +7637,29 @@
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="em_patio">
-            <p><strong>Total acumulado:</strong> <span id="finEmPatioTotal">R$ 0,00</span></p>
+            <p class="notice">Diárias dos veículos no pátio e ciclos já encerrados. O valor usa a diária cadastrada no veículo (quantidade × valor da diária). Títulos já faturados aparecem com o valor gravado, sem recálculo.</p>
+            <p><strong>Total:</strong> <span id="finEmPatioTotal">R$ 0,00</span></p>
             <div class="table-wrap section-card">
               <table class="table">
-                <thead><tr><th>Veículo</th><th>Financeira / banco</th><th>Entrada</th><th>Dias</th><th>Valor acumulado</th><th>Situação</th></tr></thead>
+                <thead><tr><th>Veículo</th><th>Placa</th><th>Cliente/Financeira</th><th>Entrada</th><th>Saída</th><th>Diárias</th><th>Valor da diária</th><th>Valor total</th><th>Status</th></tr></thead>
                 <tbody id="finEmPatioBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="finance-subview hidden" data-finance-subview="contas" id="finContasRoot">
+            <p class="notice">Bancos e caixa já usados nas movimentações. O extrato só lê o histórico existente.</p>
+            <div class="table-wrap section-card">
+              <table class="table">
+                <thead><tr><th>Nome da conta</th><th>Entradas</th><th>Saídas</th><th>Saldo atual</th><th>Movimentos</th></tr></thead>
+                <tbody id="finContasBody"></tbody>
+              </table>
+            </div>
+            <h3 id="finContasExtractTitle" class="fin-simple-h">Extrato</h3>
+            <div class="table-wrap section-card">
+              <table class="table">
+                <thead><tr><th>Data</th><th>Descrição</th><th>Entrada</th><th>Saída</th><th>Saldo após</th></tr></thead>
+                <tbody id="finContasExtractBody"></tbody>
               </table>
             </div>
           </div>
@@ -7655,7 +7721,7 @@
 
           <div class="finance-subview hidden" data-finance-subview="receber">
             <div class="fin-toolbar">
-              <div><button type="button" id="finBtnNovaReceita">+ Nova receita</button></div>
+              <div><button type="button" id="finBtnNovaReceita">+ Receita avulsa</button></div>
               <div>
                 <label for="finReceberRpp">RPP</label>
                 <select id="finReceberRpp" title="Responsável financeiro / pagamento">
@@ -8844,6 +8910,24 @@
         </div>
       </div>
 
+      <div id="finNovoLancamentoModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 420px">
+          <div class="modal-header">
+            <div>
+              <h3>Novo lançamento</h3>
+              <p class="subtitle">O que você deseja lançar?</p>
+            </div>
+            <button type="button" class="modal-close" id="finNovoLancamentoClose">Fechar</button>
+          </div>
+          <p class="notice">A receita principal do pátio são as diárias. Use Receita para diária/faturamento avulso. Despesa lança um valor a pagar.</p>
+          <div class="form-actions" style="flex-direction: column; align-items: stretch; gap: 10px">
+            <button type="button" id="finNovoLancReceita">Receita (diária / faturamento)</button>
+            <button type="button" class="secondary" id="finNovoLancDespesa">Despesa</button>
+            <button type="button" class="secondary" id="finNovoLancamentoCancel">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
       <div id="finReceitaModal" class="modal-backdrop hidden">
         <div class="modal" style="max-width: 520px">
           <div class="modal-header">
@@ -9020,11 +9104,13 @@
           <summary>Financeiro</summary>
           <div class="header-menu-nested">
             <button type="button" data-finance-subview="dashboard">Dashboard</button>
-            <button type="button" data-finance-subview="em_patio">Veículos no pátio</button>
-            <button type="button" data-finance-subview="receber">Contas a receber</button>
-            <button type="button" data-finance-subview="pagar">Contas a pagar</button>
-            <button type="button" data-finance-subview="caixa">Caixa</button>
-            <button type="button" data-finance-subview="cadastros">Cadastros</button>
+            <button type="button" data-finance-subview="em_patio">Diárias</button>
+            <button type="button" data-finance-subview="receber">A Receber</button>
+            <button type="button" data-finance-subview="pagar">A Pagar</button>
+            <button type="button" data-finance-subview="contas">Contas</button>
+            <button type="button" data-finance-subview="caixa">Movimentações</button>
+            <button type="button" data-finance-subview="relatorios">Relatórios</button>
+            <button type="button" data-finance-subview="cadastros">Configurações</button>
           </div>
         </details>
 
@@ -9067,10 +9153,11 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260909patiofat"></script>
+    <script src="/finance-module.js?v=20260909finsimple1"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
+    <script src="/finance-simple-ui.js?v=20260909finsimple1"></script>
     <script src="/finance-action-ui.js?v=20260818finact6"></script>
     <script src="/patio-dashboard.js?v=20260715gestor"></script>
     <script src="/operational-metrics-service.js?v=20260727opsdash"></script>
@@ -10386,6 +10473,9 @@
         { value: "TELEFONE_INTERNET", label: "Telefone / Internet" },
         { value: "COMBUSTIVEL", label: "Combustível" },
         { value: "FUNCIONARIO", label: "Funcionários" },
+        { value: "SALARIOS", label: "Salários" },
+        { value: "SERVICOS", label: "Serviços" },
+        { value: "MATERIAL", label: "Material" },
         { value: "MANUTENCAO", label: "Manutenção" },
         { value: "SEGURANCA", label: "Segurança" },
         { value: "LIMPEZA", label: "Limpeza" },
@@ -15694,16 +15784,17 @@
       };
 
       const APP_FIN_SUBVIEW_LABELS = {
-        dashboard: "Início",
-        financeiras: "Financeiras",
-        em_patio: "Veículos no pátio",
+        dashboard: "Dashboard",
+        financeiras: "A Receber",
+        em_patio: "Diárias",
         aguardando: "Aguardando faturamento",
-        receber: "Contas a receber",
-        pagar: "Contas a pagar",
-        lancamentos: "Lançamentos",
+        receber: "A Receber",
+        pagar: "A Pagar",
+        lancamentos: "Movimentações",
         relatorios: "Relatórios",
-        caixa: "Caixa",
-        cadastros: "Cadastros",
+        caixa: "Movimentações",
+        cadastros: "Configurações",
+        contas: "Contas",
       };
 
       function bindAppContextMenuOnce() {
