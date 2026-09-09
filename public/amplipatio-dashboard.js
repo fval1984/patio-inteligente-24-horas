@@ -9,7 +9,7 @@
   let _bound = false;
   const CAPACITY_WARN_PCT = 85;
 
-  let _filterPeriod = "30d";
+  let _filterPeriod = "today";
   let _filterPartnerId = "";
   let _filterStatus = "";
   let _filterSearch = "";
@@ -27,7 +27,7 @@
     const partnerEl = document.getElementById("hubDashFilterPartner");
     const statusEl = document.getElementById("hubDashFilterStatus");
     const searchEl = document.getElementById("hubDashFilterSearch");
-    if (periodEl) _filterPeriod = periodEl.value || "30d";
+    if (periodEl) _filterPeriod = periodEl.value || "today";
     if (partnerEl) _filterPartnerId = partnerEl.value || "";
     if (statusEl) _filterStatus = statusEl.value || "";
     if (searchEl) _filterSearch = (searchEl.value || "").trim().toLowerCase();
@@ -157,9 +157,9 @@
       },
       months: result.receitaMensal.months,
       billingByMonth: result.receitaMensal.values,
-      dailyLabels: result.dailyFlow30d.labels,
-      dailyEntradas: result.dailyFlow30d.entradas,
-      dailySaidas: result.dailyFlow30d.saidas,
+      dailyLabels: (result.dailyFlow || result.dailyFlow30d).labels,
+      dailyEntradas: (result.dailyFlow || result.dailyFlow30d).entradas,
+      dailySaidas: (result.dailyFlow || result.dailyFlow30d).saidas,
       vehiclesByFinanceira: result.vehiclesByFinanceira,
       longStay: result.longStay.map((x) => ({
         placa: x.placa,
@@ -173,8 +173,9 @@
         valor: x.valor,
       })),
       alerts,
-      periodEntradas: result.dailyFlow30d.entradas.reduce((a, b) => a + b, 0),
-      periodSaidas: result.dailyFlow30d.saidas.reduce((a, b) => a + b, 0),
+      periodEntradas: (result.dailyFlow || result.dailyFlow30d).entradas.reduce((a, b) => a + b, 0),
+      periodSaidas: (result.dailyFlow || result.dailyFlow30d).saidas.reduce((a, b) => a + b, 0),
+      periodLabel: result.range?.label || "Hoje",
     };
   }
 
@@ -207,6 +208,7 @@
       alerts: [],
       periodEntradas: 0,
       periodSaidas: 0,
+      periodLabel: "Hoje",
     };
   }
 
@@ -301,66 +303,137 @@
     </article>`;
   }
 
-  function renderOpsSituation(ops, opts = {}) {
-    const admPc = !!opts.isAdmDesktopPc;
-    const rows = [
-      { key: "conferencia", label: "Veículos aguardando conferência", value: ops.aguardandoConferencia, nav: "patio:no_patio" },
-      {
-        key: "vistoria",
-        label: "Veículos aguardando vistoria",
-        value: ops.aguardandoVistoria,
-        nav: admPc ? "patio:no_patio" : "patio:vistoria",
-      },
-      { key: "autorizacao", label: "Veículos aguardando autorização", value: ops.aguardandoAutorizacao, nav: "patio:vlp" },
-      { key: "retirada", label: "Veículos liberados aguardando retirada", value: ops.liberadosAguardandoRetirada, nav: "patio:vlp" },
-      { key: "pendencias", label: "Veículos com pendências", value: ops.comPendencias, nav: "patio:no_patio" },
-    ];
-    return `<section class="hub-dash-section">
-      <article class="hub-ops-situation section-card">
-        <h3 class="hub-ops-situation-title">Situação Operacional</h3>
-        <ul class="hub-ops-situation-list">
-          ${rows
-            .map(
-              (r) => `<li class="hub-ops-situation-item hub-ops-situation-item--${r.key}" data-hub-nav="${escapeHtml(r.nav)}" tabindex="0" role="button">
-                <span class="hub-ops-situation-label">${escapeHtml(r.label)}</span>
-                <strong class="hub-ops-situation-value">${escapeHtml(String(r.value))}</strong>
-              </li>`
-            )
-            .join("")}
-        </ul>
-      </article>
-    </section>`;
-  }
-
-  function renderDataTable(title, headers, bodyHtml, emptyText) {
-    return `<section class="hub-dash-section">
-      <div class="hub-table-panel section-card">
-        <h3 class="hub-table-title">${escapeHtml(title)}</h3>
-        <div class="table-wrap hub-table-wrap">
-          <table class="table hub-exec-table">
-            <thead><tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead>
-            <tbody>${bodyHtml || `<tr><td colspan="${headers.length}" class="hub-table-empty">${escapeHtml(emptyText)}</td></tr>`}</tbody>
-          </table>
-        </div>
-      </div>
-    </section>`;
-  }
-
-  function renderAlerts(alerts) {
-    const el = document.getElementById("hubDashAlerts");
-    if (!el) return;
-    if (!alerts?.length) {
-      el.innerHTML = `<div class="hub-alert hub-alert--ok"><span class="hub-alert-icon">✓</span><span>Operação estável — nenhum alerta crítico.</span></div>`;
-      return;
+  function countAguardandoFaturamento(data) {
+    if (typeof global.collectPatioAguardandoFaturamentoReceivables === "function") {
+      return global.collectPatioAguardandoFaturamentoReceivables().length;
     }
-    el.innerHTML = alerts
-      .map(
-        (a) => `<button type="button" class="hub-alert hub-alert--${a.level}" data-hub-nav="${escapeHtml(a.nav || "")}">
-          <span class="hub-alert-icon">${iconSvg(a.icon)}</span>
-          <span class="hub-alert-body"><strong>${escapeHtml(a.title)}</strong><small>${escapeHtml(a.detail)}</small></span>
-        </button>`
-      )
-      .join("");
+    if (typeof global.receivableIsAguardandoFaturamentoFinanceiro === "function") {
+      return (data.receivables || []).filter((r) => global.receivableIsAguardandoFaturamentoFinanceiro(r)).length;
+    }
+    return 0;
+  }
+
+  function countAguardandoVistoria(vehicles) {
+    if (typeof global.vehicleNeedsEntryInspection === "function") {
+      return (vehicles || []).filter((v) => global.vehicleNeedsEntryInspection(v)).length;
+    }
+    return 0;
+  }
+
+  function countRegistroPendente(vehicles) {
+    if (typeof global.isRegistroPendente === "function") {
+      return (vehicles || []).filter((v) => global.isRegistroPendente(v)).length;
+    }
+    return 0;
+  }
+
+  function recentPatioMovements(vehicles, limit) {
+    const rows = [];
+    (vehicles || []).forEach((v) => {
+      const placa = String(v.placa || "—");
+      if (v.data_entrada) rows.push({ at: v.data_entrada, tipo: "Entrada", placa });
+      if (v.data_saida) rows.push({ at: v.data_saida, tipo: "Saída", placa });
+    });
+    rows.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+    return rows.slice(0, limit);
+  }
+
+  function formatClock(iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  }
+
+  function formatLongDate() {
+    try {
+      return new Date().toLocaleDateString("pt-BR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    } catch (e) {
+      return new Date().toLocaleDateString("pt-BR");
+    }
+  }
+
+  function greetingName(ctx) {
+    const raw = String(ctx?.userName || global.state?.user?.email || "").trim();
+    if (!raw) return "Olá";
+    const local = raw.includes("@") ? raw.split("@")[0] : raw;
+    const first = local.split(/[._-]/)[0];
+    const nice = first ? first.charAt(0).toUpperCase() + first.slice(1) : "Olá";
+    return `Olá, ${nice}`;
+  }
+
+  function periodCaption(period) {
+    if (period === "today") return "hoje";
+    if (period === "7d") return "nos últimos 7 dias";
+    return "nos últimos 30 dias";
+  }
+
+  function syncPeriodChips() {
+    document.querySelectorAll("[data-exec-period]").forEach((btn) => {
+      btn.classList.toggle("is-active", btn.getAttribute("data-exec-period") === _filterPeriod);
+    });
+    const sel = document.getElementById("hubDashFilterPeriod");
+    if (sel && sel.value !== _filterPeriod) sel.value = _filterPeriod;
+  }
+
+  function renderAttention(items) {
+    const visible = items.filter((x) => x.count > 0);
+    if (!visible.length) {
+      return `<section class="exec-ops-section" id="execOpsAttention">
+        <h3>O que precisa da minha atenção</h3>
+        <p class="exec-ops-empty">Nenhuma pendência operacional no momento.</p>
+      </section>`;
+    }
+    return `<section class="exec-ops-section" id="execOpsAttention">
+      <h3>O que precisa da minha atenção</h3>
+      <ul class="exec-ops-attn">
+        ${visible
+          .map(
+            (x) => `<li>
+              <button type="button" data-hub-nav="${escapeHtml(x.nav)}">
+                <strong>${escapeHtml(String(x.count))}</strong>
+                <span>${escapeHtml(x.label)}</span>
+              </button>
+            </li>`
+          )
+          .join("")}
+      </ul>
+    </section>`;
+  }
+
+  function renderSituation(ops, onPatio) {
+    const rows = [
+      { label: "Em custódia", value: ops.aguardandoConferencia },
+      { label: "Aguardando vistoria", value: ops.aguardandoVistoria },
+      { label: "Aguardando autorização", value: ops.aguardandoAutorizacao },
+      { label: "Aguardando retirada", value: ops.liberadosAguardandoRetirada },
+      { label: "Com pendência", value: ops.comPendencias },
+    ].filter((r) => r.value > 0);
+    if (!rows.length) {
+      return `<section class="exec-ops-section">
+        <h3>Situação dos veículos</h3>
+        <p class="exec-ops-empty">${onPatio ? `${onPatio} no pátio.` : "Nenhum veículo no pátio agora."}</p>
+      </section>`;
+    }
+    const max = Math.max(1, ...rows.map((r) => r.value));
+    return `<section class="exec-ops-section">
+      <h3>Situação dos veículos</h3>
+      <ul class="exec-ops-sit">
+        ${rows
+          .map(
+            (r) => `<li>
+              <span>${escapeHtml(r.label)}</span>
+              <span class="exec-ops-sit-bar"><i style="width:${Math.max(8, (r.value / max) * 100)}%"></i></span>
+              <strong>${escapeHtml(String(r.value))}</strong>
+            </li>`
+          )
+          .join("")}
+      </ul>
+    </section>`;
   }
 
   function hubNavigate(target) {
@@ -370,6 +443,26 @@
       route = "patio:no_patio";
     }
     const [view, sub] = route.split(":");
+    if (route === "exec:attention") {
+      document.getElementById("execOpsAttention")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    if (view === "patio") {
+      if (typeof global.openPatioSubview === "function") {
+        global.openPatioSubview(sub || "inicio");
+        return;
+      }
+    }
+    if (view === "lista" && typeof global.openListaSubview === "function") {
+      global.openListaSubview(sub || "vnp");
+      return;
+    }
+    if (view === "financeiro") {
+      if (typeof global.openFinanceSubview === "function") {
+        global.openFinanceSubview(sub || "dashboard");
+        return;
+      }
+    }
     const btn = document.querySelector(`#appHeaderMenu button[data-view="${view}"]`);
     if (btn) btn.click();
     if (view === "patio" && sub) {
@@ -379,6 +472,100 @@
     }
   }
 
+  function amplipatioDashboardRender(data, ctx) {
+    const root = document.getElementById("hubDashRoot");
+    if (!root) return;
+    syncFiltersFromDom();
+    syncPeriodChips();
+    const isGestorPista = !!(ctx?.isGestorPista || global.isGestorPista);
+    const isAdmDesktopPc = !!(ctx?.isAdmDesktopPc || global.isAdmDesktopPc?.());
+    const m = getMetrics(data);
+    const vehicles = data.vehicles || [];
+    const vistoria = countAguardandoVistoria(vehicles) || m.ops.aguardandoVistoria;
+    const faturamento = isGestorPista ? 0 : countAguardandoFaturamento(data);
+    const cr = countRegistroPendente(vehicles);
+    const attention = [
+      { count: vistoria, label: "veículos aguardando vistoria", nav: isAdmDesktopPc ? "patio:no_patio" : "patio:vistoria" },
+      { count: faturamento, label: "veículos aguardando faturamento", nav: "patio:aguardando_faturamento" },
+      { count: m.ops.comPendencias, label: "veículos com documentação pendente", nav: "patio:no_patio" },
+      { count: m.ops.liberadosAguardandoRetirada, label: "veículos aguardando retirada", nav: "patio:vlp" },
+      { count: m.ops.aguardandoAutorizacao, label: "veículos aguardando autorização", nav: "patio:vlp" },
+      { count: cr, label: "veículos com registro complementar pendente", nav: "patio:no_patio" },
+    ];
+    const pendenciasTotal = attention.reduce((s, x) => s + Number(x.count || 0), 0);
+    const recent = recentPatioMovements(vehicles, 8);
+    const greetEl = document.getElementById("execOpsGreeting");
+    const dateEl = document.getElementById("execOpsDate");
+    const rangeEl = document.getElementById("execOpsRange");
+    if (greetEl) greetEl.textContent = greetingName(ctx);
+    if (dateEl) dateEl.textContent = formatLongDate();
+    if (rangeEl) rangeEl.textContent = m.periodLabel || periodCaption(_filterPeriod);
+    const alertsEl = document.getElementById("hubDashAlerts");
+    if (alertsEl) {
+      alertsEl.innerHTML = "";
+      alertsEl.hidden = true;
+    }
+
+    const entradaLabel = _filterPeriod === "today" ? "Entradas hoje" : "Entradas";
+    const saidaLabel = _filterPeriod === "today" ? "Saídas hoje" : "Saídas";
+    const cap = periodCaption(_filterPeriod);
+
+    root.innerHTML = `
+      <section class="exec-ops-kpis" aria-label="Indicadores principais">
+        <button type="button" class="exec-ops-kpi" data-hub-nav="patio:no_patio">
+          <span>Veículos no pátio</span>
+          <strong>${escapeHtml(String(m.onPatioCount))}</strong>
+          <small>agora na operação</small>
+        </button>
+        <button type="button" class="exec-ops-kpi" data-hub-nav="patio:no_patio">
+          <span>${escapeHtml(entradaLabel)}</span>
+          <strong>${escapeHtml(String(m.periodEntradas))}</strong>
+          <small>${escapeHtml(cap)}</small>
+        </button>
+        <button type="button" class="exec-ops-kpi" data-hub-nav="patio:removidos">
+          <span>${escapeHtml(saidaLabel)}</span>
+          <strong>${escapeHtml(String(m.periodSaidas))}</strong>
+          <small>${escapeHtml(cap)}</small>
+        </button>
+        <button type="button" class="exec-ops-kpi exec-ops-kpi--alert" data-hub-nav="exec:attention">
+          <span>Pendências</span>
+          <strong>${escapeHtml(String(pendenciasTotal))}</strong>
+          <small>itens que pedem ação</small>
+        </button>
+      </section>
+      ${renderAttention(attention)}
+      <section class="exec-ops-section">
+        <h3>Movimento do pátio</h3>
+        <p class="exec-ops-chart-legend"><span class="exec-ops-dot exec-ops-dot--in"></span> Entradas · <span class="exec-ops-dot exec-ops-dot--out"></span> Saídas</p>
+        ${barChartSvg(
+          m.dailyLabels,
+          [
+            { name: "Entradas", values: m.dailyEntradas },
+            { name: "Saídas", values: m.dailySaidas },
+          ],
+          ["#0f766e", "#b45309"],
+          180
+        )}
+      </section>
+      ${renderSituation(m.ops, m.onPatioCount)}
+      <section class="exec-ops-section">
+        <div class="exec-ops-mov-head">
+          <h3>Últimas movimentações</h3>
+          <button type="button" class="exec-ops-link" data-hub-nav="lista:vrp">Ver todas as movimentações →</button>
+        </div>
+        ${
+          recent.length
+            ? `<ul class="exec-ops-mov">${recent
+                .map(
+                  (r) => `<li><time>${escapeHtml(formatClock(r.at))}</time><span>${escapeHtml(r.tipo)}</span><strong>${escapeHtml(r.placa)}</strong></li>`
+                )
+                .join("")}</ul>`
+            : `<p class="exec-ops-empty">Ainda não há entradas ou saídas registradas.</p>`
+        }
+      </section>
+    `;
+  }
+
   function filterAlertsForGestor(alerts) {
     return (alerts || []).filter((a) => {
       const nav = String(a.nav || "");
@@ -386,152 +573,6 @@
       if (nav.startsWith("parceiros")) return false;
       return nav.startsWith("patio");
     });
-  }
-
-  function renderChartsSection(m, formatCurrency, { includeFinance }) {
-    const monthLabels = m.months.map((ym) => ym.slice(5));
-    const vehItems = (m.vehiclesByFinanceira || []).map((r) => ({
-      label: r.nome,
-      value: r.count,
-      color: "#22d3ee",
-    }));
-
-    const financeChart = includeFinance
-      ? `<div class="hub-chart-panel section-card">
-          <h4>Receita Mensal</h4>
-          ${barChartSvg(monthLabels, [{ name: "Receita", values: m.billingByMonth }], ["#38bdf8"], 200)}
-        </div>`
-      : "";
-
-    return `<section class="hub-dash-charts hub-dash-charts--exec">
-      <div class="hub-chart-panel section-card">
-        <h4>Entradas × Saídas (30 dias)</h4>
-        ${barChartSvg(
-          m.dailyLabels,
-          [
-            { name: "Entradas", values: m.dailyEntradas },
-            { name: "Saídas", values: m.dailySaidas },
-          ],
-          ["#34d399", "#f87171"],
-          200
-        )}
-      </div>
-      ${financeChart}
-      <div class="hub-chart-panel section-card">
-        <h4>Veículos por Financeira</h4>
-        ${hBarChartSvg(vehItems, (n) => String(n))}
-      </div>
-    </section>`;
-  }
-
-  function renderLongStayTable(m) {
-    const body = (m.longStay || [])
-      .map(
-        (x) => `<tr>
-          <td>${escapeHtml(x.placa)}</td>
-          <td>${escapeHtml(x.financeira)}</td>
-          <td>${escapeHtml(String(x.days))}</td>
-        </tr>`
-      )
-      .join("");
-    return renderDataTable(
-      "Veículos com maior permanência",
-      ["Placa", "Financeira", "Dias no pátio"],
-      body,
-      "Nenhum veículo no pátio."
-    );
-  }
-
-  function renderTopRecvTable(m, formatCurrency) {
-    const body = (m.topPendingByFinanceira || [])
-      .map(
-        (x) => `<tr>
-          <td>${escapeHtml(x.financeira)}</td>
-          <td>${escapeHtml(String(x.veiculos))}</td>
-          <td>${escapeHtml(formatCurrency(x.valor))}</td>
-        </tr>`
-      )
-      .join("");
-    return renderDataTable(
-      "Maiores contas a receber",
-      ["Financeira", "Quantidade de veículos", "Valor"],
-      body,
-      "Nenhum título pendente."
-    );
-  }
-
-  function amplipatioDashboardRender(data, ctx) {
-    const root = document.getElementById("hubDashRoot");
-    if (!root) return;
-    syncFiltersFromDom();
-    populatePartnerFilter(data.partners);
-    const isGestorPista = !!(ctx?.isGestorPista || global.isGestorPista);
-    const isAdmDesktopPc = !!(ctx?.isAdmDesktopPc || global.isAdmDesktopPc?.());
-    const formatCurrency = ctx?.formatCurrency || ((n) => `R$ ${Number(n || 0).toFixed(2)}`);
-    const m = getMetrics(data);
-    const fin = m.finSnap || {};
-
-    const dashShell = document.getElementById("viewDashboard");
-    dashShell?.classList.toggle("hub-dash--gestor-pista", isGestorPista);
-    const dashSubtitle = dashShell?.querySelector(".dashboard-subtitle");
-    if (dashSubtitle) {
-      dashSubtitle.textContent = isGestorPista
-        ? "Resumo operacional — veículos no pátio em tempo real."
-        : "Visão executiva para tomada de decisão — pátio, ocupação e recebíveis.";
-    }
-    const dashTitle = dashShell?.querySelector(".dashboard-toolbar h2");
-    if (dashTitle && !isGestorPista) dashTitle.textContent = "Dashboard Executivo";
-    if (dashTitle && isGestorPista) dashTitle.textContent = "Dashboard operacional";
-    const dashPill = dashShell?.querySelector(".pill--premium");
-    if (dashPill) dashPill.textContent = isGestorPista ? "Pátio" : "Executivo";
-    const dashSearch = document.getElementById("hubDashFilterSearch");
-    if (dashSearch) dashSearch.placeholder = isGestorPista ? "Placa ou parceiro…" : "Placa, parceiro, valor…";
-
-    renderAlerts(isGestorPista ? filterAlertsForGestor(m.alerts) : m.alerts);
-
-    const ocupacaoMeta = `${m.onPatioCount} de ${m.capacity} vagas`;
-    const kpiPatio = `
-      ${renderKpiCard({ theme: "vnp", icon: "vehicle", label: "Veículos no Pátio", value: m.onPatioCount, meta: `VLP: ${m.vlpCount}`, nav: "patio:no_patio" })}
-      ${renderKpiCard({ theme: "in", icon: "vehicle", label: "Entradas Hoje", value: m.entradasDia, meta: "data de entrada", nav: "patio:no_patio" })}
-      ${renderKpiCard({ theme: "out", icon: "vehicle", label: "Saídas Hoje", value: m.saidasDia, meta: "data de saída", nav: "patio:removidos" })}
-      ${renderKpiCard({ theme: "occupancy", icon: "occupancy", label: "Ocupação do Pátio", value: m.ocupacaoPct, valueType: "pct", meta: ocupacaoMeta, nav: "patio:no_patio" })}
-    `;
-
-    if (isGestorPista) {
-      root.innerHTML = `
-        <section class="hub-dash-section">
-          <div class="hub-ops-cards hub-ops-cards--kpi hub-ops-cards--kpi-gestor">
-            ${kpiPatio}
-            ${renderKpiCard({ theme: "active", icon: "partners", label: "Financeiras Ativas", value: m.financeirasAtivas, meta: "com veículos no pátio", nav: "patio:no_patio" })}
-          </div>
-        </section>
-        ${renderOpsSituation(m.ops, { isAdmDesktopPc })}
-        ${renderChartsSection(m, formatCurrency, { includeFinance: false })}
-      `;
-      return;
-    }
-
-    root.innerHTML = `
-      <section class="hub-dash-section">
-        <div class="hub-ops-cards hub-ops-cards--kpi">
-          ${kpiPatio}
-          ${renderKpiCard({ theme: "recv", icon: "recv", label: "Contas a Receber", value: fin.totalReceber, valueType: "currency", formatCurrency, meta: `${fin.pendentes || 0} pendente(s)`, nav: "financeiro" })}
-          ${renderKpiCard({ theme: "active", icon: "partners", label: "Financeiras Ativas", value: m.financeirasAtivas, meta: "com veículos no pátio", nav: "parceiros" })}
-        </div>
-      </section>
-      ${renderOpsSituation(m.ops, { isAdmDesktopPc })}
-      ${renderChartsSection(m, formatCurrency, { includeFinance: true })}
-      ${renderLongStayTable(m)}
-      ${renderTopRecvTable(m, formatCurrency)}
-      <div id="hubDashAdvocacyOffices"></div>
-    `;
-    if (typeof global.advocacyOfficesUi?.renderDashboardWidget === "function") {
-      global.advocacyOfficesUi.renderDashboardWidget(root.querySelector("#hubDashAdvocacyOffices"), {
-        vehicles: data.vehicles || [],
-        offices: data.advocacyOffices || global.__ampliState?.advocacyOffices || [],
-        partners: data.partners || [],
-      });
-    }
   }
 
   function amplipatioDashboardInit() {
@@ -553,8 +594,16 @@
       document.getElementById(id)?.addEventListener("change", refresh);
     });
     document.getElementById("hubDashFilterSearch")?.addEventListener("input", refresh);
-
     document.getElementById("viewDashboard")?.addEventListener("click", (e) => {
+      const periodBtn = e.target.closest("[data-exec-period]");
+      if (periodBtn) {
+        _filterPeriod = periodBtn.getAttribute("data-exec-period") || "today";
+        const sel = document.getElementById("hubDashFilterPeriod");
+        if (sel) sel.value = _filterPeriod;
+        syncPeriodChips();
+        refresh();
+        return;
+      }
       const nav = e.target.closest("[data-hub-nav]");
       if (nav) hubNavigate(nav.getAttribute("data-hub-nav"));
     });
