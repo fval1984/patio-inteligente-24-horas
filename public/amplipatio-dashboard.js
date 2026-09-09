@@ -543,7 +543,7 @@
             { name: "Entradas", values: m.dailyEntradas },
             { name: "Saídas", values: m.dailySaidas },
           ],
-          ["#0f766e", "#b45309"],
+          ["#0b1f33", "#b45309"],
           180
         )}
       </section>
