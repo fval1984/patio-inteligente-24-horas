@@ -68,29 +68,29 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap"
       rel="stylesheet"
     />
     <style>
       :root {
         color-scheme: light;
-        --bg: #eef2ec;
-        --card: #ffffff;
-        --text: #122033;
-        --muted: #4b5c6e;
-        --gold: #1d4ed8;
-        --gold-strong: #1e40af;
-        --gold-light: #60a5fa;
-        --silver: #94a3b8;
-        --primary: #1d4ed8;
-        --primary-strong: #1e40af;
-        --primary-weak: #eff6ff;
-        --border: #d8d3cc;
-        --shadow: 0 10px 28px rgba(12, 28, 46, 0.08);
-        --shadow-soft: 0 1px 2px rgba(12, 28, 46, 0.05), 0 8px 20px rgba(12, 28, 46, 0.05);
-        --success: #15803d;
-        --error: #b91c1c;
-        --radius: 14px;
+        --bg: #d9d4cc;
+        --card: #fbf8f3;
+        --text: #121314;
+        --muted: #3a4046;
+        --gold: #8a5a32;
+        --gold-strong: #6f4324;
+        --gold-light: #c4a06a;
+        --silver: #6f7478;
+        --primary: #161719;
+        --primary-strong: #000000;
+        --primary-weak: rgba(22, 23, 25, 0.08);
+        --border: #9a948a;
+        --shadow: 0 10px 24px rgba(18, 19, 20, 0.12);
+        --shadow-soft: 0 8px 18px rgba(22, 23, 25, 0.08);
+        --success: #2f6b3a;
+        --error: #9b2c2c;
+        --radius: 4px;
         /* Margens globais: lateral alinhada ao espaço cabeçalho ↔ conteúdo */
         --app-gutter-x: 28px;
         --app-gutter-y: 28px;
@@ -98,20 +98,20 @@
       }
       [data-theme="light"] {
         color-scheme: light;
-        --bg: #eef2ec;
-        --card: #ffffff;
-        --text: #122033;
-        --muted: #4b5c6e;
-        --gold: #1d4ed8;
-        --gold-strong: #1e40af;
-        --gold-light: #60a5fa;
-        --silver: #94a3b8;
-        --primary: #1d4ed8;
-        --primary-strong: #1e40af;
-        --primary-weak: #eff6ff;
-        --border: #d8d3cc;
-        --shadow: 0 10px 28px rgba(12, 28, 46, 0.08);
-        --shadow-soft: 0 1px 2px rgba(12, 28, 46, 0.05), 0 8px 20px rgba(12, 28, 46, 0.05);
+        --bg: #d9d4cc;
+        --card: #fbf8f3;
+        --text: #121314;
+        --muted: #3a4046;
+        --gold: #8a5a32;
+        --gold-strong: #6f4324;
+        --gold-light: #c4a06a;
+        --silver: #6f7478;
+        --primary: #161719;
+        --primary-strong: #000000;
+        --primary-weak: rgba(22, 23, 25, 0.08);
+        --border: #9a948a;
+        --shadow: 0 10px 24px rgba(18, 19, 20, 0.12);
+        --shadow-soft: 0 8px 18px rgba(22, 23, 25, 0.08);
       }
       [data-theme="dark"] {
         color-scheme: dark;
@@ -7044,7 +7044,7 @@
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile17" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20260909ds1" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20260909ind1" />
   </head>
   <body class="auth-screen-active">
     <noscript>
@@ -7062,10 +7062,20 @@
             class="brand-header-logo"
           />
         </div>
+        <div class="ag-header-context" aria-live="polite">
+          <p class="ag-header-kicker" id="agModuleKicker">Sistema</p>
+          <h1 class="ag-header-title" id="agPageTitle">AMPLIGUARD</h1>
+        </div>
       </header>
       <div id="appSubheader" class="app-subheader hidden">
         <div class="app-subheader-row">
           <nav class="dashboard-system-entry header-module-nav" id="dashboardSystemEntry" aria-label="Módulos do sistema">
+            <button type="button" class="dashboard-system-btn" id="dashboardOpenHome">
+              <span class="dashboard-system-btn__kicker">Painel</span>
+              <span class="dashboard-system-btn__title">Dashboard</span>
+              <span class="dashboard-system-btn__desc">Visão operacional do pátio.</span>
+              <span class="dashboard-system-btn__go">Abrir dashboard →</span>
+            </button>
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenPatio">
               <span class="dashboard-system-btn__kicker">Operação</span>
               <span class="dashboard-system-btn__title">PATIO</span>
@@ -9353,7 +9363,7 @@
     <script src="/partner-managers-service.js?v=20260909partners2"></script>
     <script src="/partners-cadastro-ui.js?v=20260909partners2"></script>
     <script src="/dashboard-metrics-service.js?v=20260909execops1"></script>
-    <script src="/amplipatio-dashboard.js?v=20260909execops2"></script>
+    <script src="/amplipatio-dashboard.js?v=20260909ind1"></script>
     <script src="/vehicle-entry-inspection-checklist.js?v=20260820vistoria5"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260818vistoria10"></script>
     <script src="/vehicle-entry-inspection-document.js?v=20260820vistoria5"></script>
@@ -16196,6 +16206,7 @@
         const gestorVisible = new Set(["dashboardOpenPatio", "dashboardOpenLista"]);
         const vistoriadorVisible = new Set();
         [
+          "dashboardOpenHome",
           "dashboardOpenPatio",
           "dashboardOpenFinance",
           "dashboardOpenParceiros",
@@ -16204,15 +16215,16 @@
         ].forEach((id) => {
           const btn = document.getElementById(id);
           if (!btn) return;
-          const show = isVistoriador ? vistoriadorVisible.has(id) : !isGestorPista || gestorVisible.has(id);
+          let show = isVistoriador ? vistoriadorVisible.has(id) : !isGestorPista || gestorVisible.has(id);
+          if (id === "dashboardOpenHome") show = !isGestorPista && !isVistoriador;
           btn.classList.toggle("hidden", !show);
           btn.style.display = show ? "" : "none";
         });
       }
 
       function syncMobileModuleNavHighlight(view) {
-        if (!isMobileLayout()) return;
         const viewToId = {
+          dashboard: "dashboardOpenHome",
           patio: "dashboardOpenPatio",
           financeiro: "dashboardOpenFinance",
           parceiros: "dashboardOpenParceiros",
@@ -23841,6 +23853,21 @@
         } else {
           document.title = "AMPLIGUARD";
         }
+        const kickerEl = document.getElementById("agModuleKicker");
+        const titleEl = document.getElementById("agPageTitle");
+        const chrome = {
+          dashboard: ["Operação", "Dashboard"],
+          patio: ["Operação", "Gestão de pátio"],
+          lista: ["Relatórios", "Lista"],
+          financeiro: ["Financeiro", "Financeiro"],
+          parceiros: ["Relacionamento", "Parceiros"],
+          escritorios: ["Relacionamento", "Escritórios"],
+          configuracoes: ["Administração", "Configurações"],
+          biExecutivo: ["Operação", "BI executivo"],
+        };
+        const pair = chrome[view] || ["Sistema", "AMPLIGUARD"];
+        if (kickerEl) kickerEl.textContent = pair[0];
+        if (titleEl) titleEl.textContent = pair[1];
         Object.values(views).forEach((panel) => panel?.classList.add("hidden"));
         if (views[view]) {
           views[view].classList.remove("hidden");
@@ -24271,6 +24298,10 @@
         }
       }
 
+      document.getElementById("dashboardOpenHome")?.addEventListener("click", () => {
+        if (isGestorPista || isVistoriador) return openMainView("patio");
+        openMainView("dashboard");
+      });
       document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
       document.getElementById("dashboardOpenLista")?.addEventListener("click", () => openMainView("lista"));
