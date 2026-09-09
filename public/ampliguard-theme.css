@@ -573,7 +573,7 @@ body.app-module-patio header {
 }
 
 /* ---- Botões ---- */
-button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.lista-toolbar-actions button):not(.close-view):not([data-extra-remove]):not(.vei-damage-photo-clear):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn) {
+button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.lista-toolbar-actions button):not(.close-view):not([data-extra-remove]):not(.vei-damage-photo-clear):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn):not(.exec-ops-kpi):not(.exec-ops-link):not(.exec-ops-attn button):not(.exec-ops-period button):not(.cmd-ops-kpi):not(.cmd-ops-attn button):not(.cmd-ops-link):not(.fin-act-kpi):not(.fin-simple-card):not(.fin-simple-attn):not(.fin-simple-recent button):not(.dashboard-system-btn):not(.header-menu-dropdown button) {
   background: var(--ag-blue) !important;
   color: #fff !important;
   border: 1px solid var(--ag-blue-strong) !important;
@@ -582,7 +582,7 @@ button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab
   border-radius: var(--ag-radius-sm);
 }
 
-button:not(.secondary):not(.modal-close):not(.vei-choice-btn):hover {
+button:not(.secondary):not(.modal-close):not(.vei-choice-btn):not(.exec-ops-kpi):not(.cmd-ops-kpi):not(.fin-act-kpi):not(.ao-kpi):not(.fin-simple-card):hover {
   background: var(--ag-blue-strong) !important;
   transform: translateY(-1px);
 }
