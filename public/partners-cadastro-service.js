@@ -9,64 +9,45 @@
     { code: "INSTITUICAO_FINANCEIRA", label: "Instituição Financeira", badge: "green" },
     { code: "GUINCHEIRO", label: "Reboqueiro", badge: "orange" },
     { code: "LEILOEIRO", label: "Leiloeiro", badge: "purple" },
-    { code: "PATIO_APREENSAO", label: "Pátio de Apreensão", badge: "blue" },
+    { code: "PATIO_APREENSAO", label: "Pátio", badge: "blue" },
     { code: "OFICIAL_JUSTICA", label: "Oficial de Justiça", badge: "purple" },
     { code: "TRANSPORTADORA", label: "Reboqueiro", badge: "orange" },
-    { code: "LOCALIZADOR", label: "Reboqueiro", badge: "orange" },
+    { code: "LOCALIZADOR", label: "Localizador", badge: "blue" },
     { code: "PRESTADOR_SERVICO", label: "Reboqueiro", badge: "orange" },
     { code: "ASSESSORIA", label: "Oficial de Justiça", badge: "purple" },
   ];
 
   const PARTNER_CATEGORY_TABS = {
-    financeiras: {
-      id: "financeiras",
-      label: "Instituição Financeira",
-      tipos: ["INSTITUICAO_FINANCEIRA"],
-      defaultTipo: "INSTITUICAO_FINANCEIRA",
-      lockTipo: true,
-      novoLabel: "Nova instituição financeira",
-      searchPlaceholder: "Nome, CNPJ, telefone…",
-      title: "Instituições financeiras",
-    },
-    reboqueiros: {
-      id: "reboqueiros",
-      label: "Reboqueiro",
-      tipos: ["GUINCHEIRO", "TRANSPORTADORA", "LOCALIZADOR", "PRESTADOR_SERVICO"],
-      defaultTipo: "GUINCHEIRO",
-      lockTipo: true,
-      novoLabel: "Novo reboqueiro",
-      searchPlaceholder: "Nome, CNPJ, responsável, telefone…",
-      title: "Reboqueiros",
-    },
     leiloeiros: {
       id: "leiloeiros",
       label: "Leiloeiro",
       tipos: ["LEILOEIRO"],
       defaultTipo: "LEILOEIRO",
       lockTipo: true,
-      novoLabel: "Novo leiloeiro",
-      searchPlaceholder: "Nome, CNPJ, responsável, telefone…",
+      novoLabel: "+ Novo leiloeiro",
+      searchPlaceholder: "Nome, CNPJ/CPF, cidade…",
       title: "Leiloeiros",
     },
     patios: {
       id: "patios",
-      label: "Pátio de Apreensão",
+      label: "Pátio",
       tipos: ["PATIO_APREENSAO"],
       defaultTipo: "PATIO_APREENSAO",
       lockTipo: true,
-      novoLabel: "Novo pátio de apreensão",
-      searchPlaceholder: "Nome, CNPJ, cidade, telefone…",
-      title: "Pátios de apreensão",
+      novoLabel: "+ Novo pátio",
+      searchPlaceholder: "Nome, CNPJ/CPF, cidade…",
+      title: "Pátios",
     },
-    oficiais: {
-      id: "oficiais",
-      label: "Oficial de Justiça",
-      tipos: ["OFICIAL_JUSTICA", "ASSESSORIA"],
-      defaultTipo: "OFICIAL_JUSTICA",
+    localizadores: {
+      id: "localizadores",
+      label: "Localizador",
+      tipos: ["LOCALIZADOR"],
+      defaultTipo: "LOCALIZADOR",
       lockTipo: true,
-      novoLabel: "Novo oficial de justiça",
-      searchPlaceholder: "Nome, CPF, comarca, telefone…",
-      title: "Oficiais de justiça",
+      includeUnknown: true,
+      novoLabel: "+ Novo localizador",
+      searchPlaceholder: "Nome, CNPJ/CPF, cidade…",
+      title: "Localizadores",
     },
   };
 
@@ -76,6 +57,7 @@
     estado: "",
     status: "",
     search: "",
+    sort: "nome",
   };
 
   const UF_OPTIONS = [
@@ -86,7 +68,8 @@
   });
 
   const COMMON_FIELDS = [
-    { key: "nome", label: "Nome", kind: "text", required: true, group: "common", span: "half" },
+    { key: "nome", label: "Nome / Razão Social", kind: "text", required: true, group: "common", span: "half" },
+    { key: "nome_fantasia", label: "Nome fantasia", kind: "text", group: "common", span: "half" },
     {
       key: "tipo",
       label: "Tipo de Parceiro",
@@ -208,7 +191,7 @@
   const JSONB_KEYS = ["perfil", "contatos", "documentos", "historico"];
   const ADDRESS_KEYS = ["cep", "endereco", "numero", "complemento", "bairro", "cidade", "estado", "whatsapp", "telefone"];
   /** Colunas novas — podem não existir até rodar partners_cadastro_inteligente.sql */
-  const EXTENDED_KEYS = ADDRESS_KEYS.concat(JSONB_KEYS).concat(["status", "observacoes"]);
+  const EXTENDED_KEYS = ADDRESS_KEYS.concat(JSONB_KEYS).concat(["status", "observacoes", "nome_fantasia"]);
   const CORE_KEYS = ["user_id", "nome", "cpf", "email", "contato", "tipo"];
 
   function digits(v) {
@@ -252,32 +235,34 @@
     const raw = String(id || "")
       .trim()
       .toLowerCase();
-    if (raw === "financeiras" || raw === "financeira") return "financeiras";
+    if (raw === "leiloeiros" || raw === "leiloeiro") return "leiloeiros";
+    if (raw === "patios" || raw === "patio" || raw === "patio_apreensao") return "patios";
     if (
+      raw === "localizadores" ||
+      raw === "localizador" ||
+      raw === "financeiras" ||
+      raw === "financeira" ||
       raw === "reboqueiros" ||
       raw === "reboqueiro" ||
       raw === "transportadoras" ||
       raw === "transportadora" ||
       raw === "prestadores" ||
-      raw === "outros"
+      raw === "outros" ||
+      raw === "oficiais" ||
+      raw === "oficial" ||
+      raw === "oficial_justica"
     ) {
-      return "reboqueiros";
+      return "localizadores";
     }
-    if (raw === "leiloeiros" || raw === "leiloeiro") return "leiloeiros";
-    if (raw === "patios" || raw === "patio" || raw === "patio_apreensao") return "patios";
-    if (raw === "oficiais" || raw === "oficial" || raw === "oficial_justica") return "oficiais";
     if (PARTNER_CATEGORY_TABS[raw]) return raw;
-    return "financeiras";
+    return "localizadores";
   }
 
   function partnerCategoryOfTipo(tipo) {
     const code = normalizePartnerTipo(tipo);
-    const keys = Object.keys(PARTNER_CATEGORY_TABS);
-    for (let i = 0; i < keys.length; i++) {
-      const tab = PARTNER_CATEGORY_TABS[keys[i]];
-      if (tab.tipos.indexOf(code) >= 0) return tab.id;
-    }
-    return "reboqueiros";
+    if (code === "LEILOEIRO") return "leiloeiros";
+    if (code === "PATIO_APREENSAO") return "patios";
+    return "localizadores";
   }
 
   function partnerTipoLabel(tipo) {
@@ -316,7 +301,7 @@
       case "LEILOEIRO":
         return "Leiloeiro";
       case "PATIO_APREENSAO":
-        return "Pátio de Apreensão";
+        return "Pátio";
       case "OFICIAL_JUSTICA":
         return "Oficial de Justiça";
       default:
@@ -386,6 +371,7 @@
       tipo: normalizePartnerTipo(raw.tipo),
       status: status,
       observacoes: extracted.cleanObs || null,
+      nome_fantasia: raw.nome_fantasia || meta.nome_fantasia || perfil.nome_fantasia || "",
       perfil: Object.keys(perfil).length ? perfil : meta.perfil || {},
       contatos: contatos.length ? contatos : asArray(meta.contatos),
       documentos: documentos.length ? documentos : asArray(meta.documentos),
@@ -416,9 +402,10 @@
           if (f.includeUnknown) {
             const other = [];
             Object.keys(PARTNER_CATEGORY_TABS).forEach(function (k) {
+              if (k === "localizadores") return;
               other.push.apply(other, PARTNER_CATEGORY_TABS[k].tipos || []);
             });
-            if (other.indexOf(code) >= 0) return false;
+            if (f.tipos.indexOf(code) < 0 && other.indexOf(code) >= 0) return false;
           } else if (f.tipos.indexOf(code) < 0) {
             return false;
           }
@@ -437,6 +424,8 @@
           String(p.cpf || "") +
           " " +
           String(p.email || "") +
+          " " +
+          String(p.nome_fantasia || "") +
           " " +
           String(p.cidade || "") +
           " " +
@@ -458,6 +447,23 @@
         const hayLower = hay.toLowerCase();
         const hayDigits = digits(String(p.cpf || "") + String(p.telefone || "") + String(p.whatsapp || ""));
         return hayLower.indexOf(q) >= 0 || (!!qDigits && hayDigits.indexOf(qDigits) >= 0);
+      })
+      .sort(function (a, b) {
+        const sort = String(f.sort || "nome");
+        const dir = String(f.sortDir || "asc") === "desc" ? -1 : 1;
+        let av;
+        let bv;
+        if (sort === "cidade") {
+          av = String(a.cidade || "") + " " + String(a.estado || "");
+          bv = String(b.cidade || "") + " " + String(b.estado || "");
+        } else if (sort === "status") {
+          av = String(a.status || "");
+          bv = String(b.status || "");
+        } else {
+          av = String(a.nome || "");
+          bv = String(b.nome || "");
+        }
+        return av.localeCompare(bv, "pt-BR") * dir;
       });
   }
 
@@ -553,6 +559,7 @@
     return {
       user_id: userId,
       nome: String(input.nome || "").trim() || null,
+      nome_fantasia: String(input.nome_fantasia || "").trim() || null,
       tipo: tipo,
       cpf: String(input.cpf || "").trim() || null,
       email: String(input.email || "").trim() || null,
@@ -604,6 +611,7 @@
       bairro: fullPayload.bairro || null,
       cidade: fullPayload.cidade || null,
       estado: fullPayload.estado || null,
+      nome_fantasia: fullPayload.nome_fantasia || null,
     };
     const lean = omitKeys(fullPayload, EXTENDED_KEYS);
     return packPartnerMeta(lean, meta);
@@ -762,7 +770,7 @@
   }
 
   function countPartnersByCategory(partners) {
-    const counts = { financeiras: 0, reboqueiros: 0, leiloeiros: 0, patios: 0, oficiais: 0, total: 0 };
+    const counts = { localizadores: 0, leiloeiros: 0, patios: 0, total: 0 };
     (partners || []).forEach(function (p) {
       const cat = partnerCategoryOfTipo(p.tipo);
       counts[cat] = (counts[cat] || 0) + 1;
