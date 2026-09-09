@@ -2426,7 +2426,7 @@
       <div class="fin-card fin-card--saldo"><span class="fin-card-label">Saldo atual</span><strong>${escapeHtml(formatCurrency(m.saldo))}</strong><small>entradas − saídas</small></div>
       <div class="fin-card fin-card--gen"><span class="fin-card-label">Receita em geração</span><strong>${escapeHtml(formatCurrency(m.totalGeracao))}</strong><small>${m.veiculosPatio} no pátio</small></div>
       <div class="fin-card fin-card--late"><span class="fin-card-label">Contas vencidas</span><strong>${m.vencidas}</strong><small>${escapeHtml(formatCurrency(m.totalVencidas))}</small></div>
-      <div class="fin-card fin-card--open"><span class="fin-card-label">Aguardando faturamento</span><strong>${m.aguardandoFaturamento}</strong><small>veículo(s) pós-saída</small></div>
+      <div class="fin-card fin-card--open"><span class="fin-card-label">Aguardando faturamento (Pátio)</span><strong>${m.aguardandoFaturamento}</strong><small>ciclo concluído, ainda sem NF/cobrança</small></div>
       <div class="fin-card fin-card--today"><span class="fin-card-label">Vencendo hoje</span><strong>${m.venceHoje}</strong><small>${m.proximas} nos próximos 7 dias</small></div>
     `;
   }
@@ -5526,6 +5526,25 @@
     return view;
   }
 
+  function financeRedirectAguardandoToPatio() {
+    if (typeof window.openPatioSubview === "function") {
+      window.openPatioSubview("aguardando_faturamento");
+      return true;
+    }
+    return false;
+  }
+
+  function financeHideAguardandoModuleUi() {
+    document
+      .querySelectorAll(
+        '[data-finance-subview-btn="aguardando"], .finance-subview[data-finance-subview="aguardando"], #headerDetailsFinance [data-finance-subview="aguardando"]'
+      )
+      .forEach((el) => {
+        el.classList.add("hidden");
+        if (el.classList.contains("finance-subview")) el.hidden = true;
+      });
+  }
+
   function financeRenderSubviewContent(view) {
     if (view === "dashboard") financeRenderDashboard();
     else if (view === "em_patio") financeRenderEmPatio();
@@ -5542,6 +5561,10 @@
   function financeActivateSubview(view, opts = {}) {
     if (!view || view === "none") return;
     const resolved = financeNormalizeFinanceView(view);
+    if (resolved === "aguardando") {
+      financeHideAguardandoModuleUi();
+      if (financeRedirectAguardandoToPatio()) return;
+    }
     if (!FINANCE_SUBVIEWS.includes(resolved)) return;
     currentFinanceView = resolved;
     if (view === "recorrentes") {
@@ -5575,6 +5598,7 @@
   window.renderFinance = function renderFinance() {
     financePopulateFinanceRppFilters();
     financePurgeRecebidosUi();
+    financeHideAguardandoModuleUi();
     try {
       financeActivateSubview(currentFinanceView, { skipRender: true });
       if (currentFinanceView === "caixa") {
@@ -5811,6 +5835,11 @@
   }
 
   async function financeApproveReceivable(receivableId) {
+    if (typeof window.openPatioFaturamentoModal === "function") {
+      financeRedirectAguardandoToPatio();
+      window.openPatioFaturamentoModal(receivableId);
+      return;
+    }
     const stayView = currentFinanceView;
     if (typeof requireSupabaseSessionForWrite === "function") {
       if (!(await requireSupabaseSessionForWrite())) return;
