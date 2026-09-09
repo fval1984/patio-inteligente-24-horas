@@ -9,8 +9,8 @@
   let _bound = false;
   let _lastState = null;
   let _lastCtx = null;
-  let _filters = Object.assign({}, global.DEFAULT_PARTNER_FILTERS || { tipo: "", cidade: "", estado: "", status: "", search: "" });
-  let _category = "financeiras";
+  let _filters = Object.assign({}, global.DEFAULT_PARTNER_FILTERS || { tipo: "", cidade: "", estado: "", status: "", search: "", sort: "nome" });
+  let _category = "localizadores";
   let editingPartnerId = null;
   let _modalReadonly = false;
   let _activeTab = "dados";
@@ -77,6 +77,14 @@
       }
       .pc-table-wrap { margin: 0; overflow-x: auto; }
       .pc-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+      .pc-table th, .pc-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border, #e2e8f0); color: var(--text, #0f2744); }
+      .pc-section { margin: 0 0 16px; padding: 14px; border: 1px solid var(--border, #e2e8f0); border-radius: 12px; background: var(--card, #fff); }
+      .pc-section h4 { margin: 0 0 10px; font-size: 0.95rem; color: var(--text, #0f2744); }
+      .pc-section-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin: 0 0 10px; }
+      .pc-section-head h4 { margin: 0; }
+      #pcManagerModal { z-index: 220; }
+      #pcManagerModal .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      #pcManagerModal .form-grid .full { grid-column: 1 / -1; }
       .pc-table th, .pc-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border, #e2e8f0); }
       .pc-table th { color: var(--muted, #64748b); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
       .pc-table td { color: var(--text, #0f2744); }
@@ -156,6 +164,8 @@
       @media (max-width: 720px) {
         #partnerModal .pc-form-grid { grid-template-columns: 1fr; }
         .pc-toolbar { flex-direction: column; align-items: stretch; }
+        #pcManagerModal .form-grid { grid-template-columns: 1fr; }
+      }
       }
     `;
     document.head.appendChild(style);
@@ -195,14 +205,16 @@
     if (legacyTable) legacyTable.classList.add("pc-legacy-hidden");
   }
 
+  function canManagePartners() {
+    return !global.isGestorPista && !global.isVistoriador;
+  }
+
   function fieldLabelOverrides() {
     const id = categoryMeta().id;
-    if (id === "financeiras") return { nome: "Nome / Razão social", cpf: "CNPJ" };
-    if (id === "reboqueiros") return { nome: "Nome / Razão social", cpf: "CPF/CNPJ" };
-    if (id === "leiloeiros") return { nome: "Nome / Razão social", cpf: "CNPJ" };
-    if (id === "patios") return { nome: "Nome do pátio", cpf: "CNPJ" };
-    if (id === "oficiais") return { nome: "Nome completo", cpf: "CPF" };
-    return { nome: "Nome", cpf: "CPF/CNPJ" };
+    if (id === "leiloeiros") return { nome: "Nome / Razão social", cpf: "CNPJ/CPF" };
+    if (id === "patios") return { nome: "Nome / Razão social", cpf: "CNPJ/CPF" };
+    if (id === "localizadores") return { nome: "Nome / Razão social", cpf: "CNPJ/CPF" };
+    return { nome: "Nome / Razão social", cpf: "CNPJ/CPF" };
   }
 
   function uniqueCidades(partners) {
@@ -218,7 +230,7 @@
 
   function categoryMeta() {
     const tabs = (svc() && svc().PARTNER_CATEGORY_TABS) || global.PARTNER_CATEGORY_TABS || {};
-    return tabs[_category] || tabs.financeiras || {};
+    return tabs[_category] || tabs.localizadores || {};
   }
 
   function allowedTiposForCategory() {
@@ -329,6 +341,18 @@
       (_filters.status === "INATIVO" ? " selected" : "") +
       ">Inativo</option>" +
       "</select>" +
+      "<label for=\"pcFilterSort\">Ordenar</label>" +
+      '<select id="pcFilterSort" title="Ordenação">' +
+      '<option value="nome"' +
+      (_filters.sort === "nome" ? " selected" : "") +
+      ">Nome</option>" +
+      '<option value="cidade"' +
+      (_filters.sort === "cidade" ? " selected" : "") +
+      ">Cidade</option>" +
+      '<option value="status"' +
+      (_filters.sort === "status" ? " selected" : "") +
+      ">Status</option>" +
+      "</select>" +
       "<label for=\"pcFilterSearch\">Pesquisar</label>" +
       '<input id="pcFilterSearch" type="search" placeholder="' +
       esc(meta.searchPlaceholder || "Nome, CPF, telefone…", ctx) +
@@ -339,10 +363,18 @@
     );
   }
 
+  function partnerManagerCounts(partnerId) {
+    const mgrSvc = global.partnerManagersService;
+    const list = (global.__ampliState && global.__ampliState.partnerManagers) || [];
+    if (!mgrSvc || !partnerId) return { carteira: 0, cobranca: 0 };
+    return mgrSvc.countsForPartner(list, partnerId);
+  }
+
   function renderTableRows(list, ctx) {
     const meta = categoryMeta();
-    const showTipo = !meta.lockTipo;
-    const colSpan = showTipo ? 7 : 6;
+    const showTipo = !meta.lockTipo || !!meta.includeUnknown;
+    const colSpan = showTipo ? 10 : 9;
+    const manage = canManagePartners();
     if (!list.length) {
       return '<tr><td colspan="' + colSpan + '" class="pc-table-empty">Nenhum cadastro nesta aba.</td></tr>';
     }
@@ -352,45 +384,53 @@
         const st = String(p.status || "ATIVO").toUpperCase();
         const stClass = st === "INATIVO" ? "pc-status-inativo" : "pc-status-ativo";
         const stLabel = st === "INATIVO" ? "Inativo" : "Ativo";
-        const toggleLabel = st === "INATIVO" ? "Ativar" : "Inativar";
-        const tipoCell = showTipo ? "<td>" + renderTipoBadge(p.tipo, ctx) + "</td>" : "";
+        const toggleLabel = st === "INATIVO" ? "Reativar" : "Inativar";
+        const cidadeUf = [p.cidade, p.estado].filter(Boolean).join("/") || "—";
+        const counts = partnerManagerCounts(p.id);
+        const tipoCell = showTipo ? "<td data-label=\"Tipo\">" + renderTipoBadge(p.tipo, ctx) + "</td>" : "";
+        const edits = manage
+          ? '<button type="button" class="secondary" data-pc-action="editar" data-id="' +
+            esc(p.id, ctx) +
+            '">Editar</button>' +
+            '<button type="button" class="secondary" data-pc-action="toggle" data-id="' +
+            esc(p.id, ctx) +
+            '">' +
+            toggleLabel +
+            "</button>"
+          : "";
         return (
           "<tr data-partner-id=\"" +
           esc(p.id, ctx) +
           "\">" +
-          "<td>" +
+          "<td data-label=\"Nome\">" +
           esc(p.nome || "—", ctx) +
           "</td>" +
           tipoCell +
-          "<td>" +
+          "<td data-label=\"CNPJ/CPF\">" +
           esc(p.cpf || "—", ctx) +
           "</td>" +
-          "<td>" +
-          esc(p.cidade || "—", ctx) +
+          "<td data-label=\"Cidade/UF\">" +
+          esc(cidadeUf, ctx) +
           "</td>" +
-          "<td>" +
+          "<td data-label=\"Telefone\">" +
           esc(tel, ctx) +
           "</td>" +
-          "<td><span class=\"" +
+          "<td data-label=\"Carteira\">" +
+          String(counts.carteira) +
+          "</td>" +
+          "<td data-label=\"Cobrança\">" +
+          String(counts.cobranca) +
+          "</td>" +
+          "<td data-label=\"Status\"><span class=\"" +
           stClass +
           "\">" +
           esc(stLabel, ctx) +
           "</span></td>" +
-          '<td class="actions">' +
+          '<td data-label="Ações" class="actions">' +
           '<button type="button" class="secondary" data-pc-action="detalhes" data-id="' +
           esc(p.id, ctx) +
           '">Visualizar</button>' +
-          '<button type="button" class="secondary" data-pc-action="editar" data-id="' +
-          esc(p.id, ctx) +
-          '">Editar</button>' +
-          '<button type="button" class="secondary" data-pc-action="toggle" data-id="' +
-          esc(p.id, ctx) +
-          '">' +
-          toggleLabel +
-          "</button>" +
-          '<button type="button" class="secondary" data-pc-action="apagar" data-id="' +
-          esc(p.id, ctx) +
-          '">Apagar</button>' +
+          edits +
           "</td>" +
           "</tr>"
         );
@@ -400,21 +440,24 @@
 
   function renderShell(list, ctx) {
     const meta = categoryMeta();
-    const showTipo = !meta.lockTipo;
+    const showTipo = !meta.lockTipo || !!meta.includeUnknown;
     const tipoTh = showTipo ? "<th>Tipo</th>" : "";
+    const novo = canManagePartners()
+      ? '<button type="button" id="pcBtnNovo" class="primary">' +
+        esc(meta.novoLabel || "+ Novo parceiro", ctx) +
+        "</button>"
+      : "";
     return (
       '<div class="pc-toolbar">' +
       renderFilters(_lastState && _lastState.partners ? _lastState.partners : list, ctx) +
-      '<button type="button" id="pcBtnNovo" class="primary">' +
-      esc(meta.novoLabel || "+ Novo parceiro", ctx) +
-      "</button>" +
+      novo +
       "</div>" +
       '<div class="pc-table-panel section-card">' +
       '<h3 class="pc-table-title hub-table-title">' +
       esc(meta.title || "Cadastro de parceiros", ctx) +
       "</h3>" +
       '<div class="table-wrap pc-table-wrap hub-table-wrap">' +
-      '<table class="table pc-table hub-exec-table">' +
+      '<table class="table pc-table hub-exec-table stacked">' +
       "<thead><tr>" +
       "<th>" +
       esc(fieldLabelOverrides().nome, ctx) +
@@ -422,7 +465,7 @@
       tipoTh +
       "<th>" +
       esc(fieldLabelOverrides().cpf, ctx) +
-      "</th><th>Cidade</th><th>Telefone</th><th>Status</th><th>Ações</th>" +
+      "</th><th>Cidade/Estado</th><th>Telefone</th><th>Gestores de Carteira</th><th>Gestores de Cobrança</th><th>Status</th><th>Ações</th>" +
       "</tr></thead>" +
       "<tbody id=\"pcTableBody\">" +
       renderTableRows(list, ctx) +
@@ -441,6 +484,8 @@
     if (estado) _filters.estado = estado.value || "";
     if (status) _filters.status = status.value || "";
     if (search) _filters.search = String(search.value || "").trim();
+    const sort = document.getElementById("pcFilterSort");
+    if (sort) _filters.sort = sort.value || "nome";
   }
 
   function getFilteredList() {
@@ -451,6 +496,7 @@
     const filters = Object.assign({}, _filters, {
       tipos: meta.tipos || [],
       includeUnknown: !!meta.includeUnknown,
+      sort: _filters.sort || "nome",
     });
     const list = listFn ? listFn(raw, filters) : raw;
     if (!listFn && normFn) {
@@ -619,7 +665,7 @@
       if (meta.includeUnknown) return allowed.indexOf(t.code) >= 0;
       return !allowed.length || allowed.indexOf(t.code) >= 0;
     });
-    const val = partner.tipo || meta.defaultTipo || "GUINCHEIRO";
+      const val = partner.tipo || meta.defaultTipo || "LOCALIZADOR";
     const lock = readonly || meta.lockTipo;
     if (lock) {
       return (
@@ -829,9 +875,114 @@
     );
   }
 
+  function renderManagersKind(kind, title, addLabel) {
+    const mgrSvc = global.partnerManagersService;
+    const parentId = editingPartnerId;
+    const list = (global.__ampliState && global.__ampliState.partnerManagers) || [];
+    const searchId = kind === "CARTEIRA" ? "pcMgrSearchCarteira" : "pcMgrSearchCobranca";
+    const searchVal = (document.getElementById(searchId) && document.getElementById(searchId).value) || "";
+    const rows = parentId && mgrSvc
+      ? mgrSvc.listForParent(list, { partner_id: parentId }, kind, searchVal)
+      : [];
+    const manage = canManagePartners() && !_modalReadonly;
+    const addBtn =
+      manage && parentId
+        ? '<button type="button" class="secondary" data-pc-mgr-add="' +
+          kind +
+          '">' +
+          addLabel +
+          "</button>"
+        : "";
+    const notice = !parentId
+      ? '<p class="notice" style="margin:0">Salve o parceiro para cadastrar gestores. O vínculo é 1 para N neste cadastro.</p>'
+      : "";
+    const body = !parentId
+      ? ""
+      : '<div class="filter-bar" style="margin:0 0 10px"><label for="' +
+        searchId +
+        '">Pesquisar gestor</label><input id="' +
+        searchId +
+        '" type="search" data-pc-mgr-search="' +
+        kind +
+        '" placeholder="Nome do gestor" value="' +
+        escapeHtmlDefault(searchVal) +
+        '" /></div>' +
+        '<div class="table-wrap"><table class="table stacked"><thead><tr>' +
+        "<th>Nome</th><th>CPF</th><th>Telefone</th><th>WhatsApp</th><th>E-mail</th><th>Cargo</th><th>Status</th><th>Ações</th>" +
+        "</tr></thead><tbody>" +
+        (rows.length
+          ? rows
+              .map(function (m) {
+                const st = m.status === "INATIVO" ? "Inativo" : "Ativo";
+                const stClass = m.status === "INATIVO" ? "pc-status-inativo" : "pc-status-ativo";
+                const tog = m.status === "INATIVO" ? "Reativar" : "Inativar";
+                const acts = manage
+                  ? '<button type="button" class="secondary" data-pc-mgr-edit="' +
+                    escapeHtmlDefault(m.id) +
+                    '">Editar</button>' +
+                    '<button type="button" class="secondary" data-pc-mgr-toggle="' +
+                    escapeHtmlDefault(m.id) +
+                    '">' +
+                    tog +
+                    "</button>" +
+                    '<button type="button" class="secondary" data-pc-mgr-del="' +
+                    escapeHtmlDefault(m.id) +
+                    '">Excluir</button>'
+                  : "—";
+                return (
+                  "<tr>" +
+                  "<td data-label=\"Nome\">" +
+                  escapeHtmlDefault(m.name) +
+                  "</td>" +
+                  "<td data-label=\"CPF\">" +
+                  escapeHtmlDefault(m.cpf || "—") +
+                  "</td>" +
+                  "<td data-label=\"Telefone\">" +
+                  escapeHtmlDefault(m.phone || "—") +
+                  "</td>" +
+                  "<td data-label=\"WhatsApp\">" +
+                  escapeHtmlDefault(m.whatsapp || "—") +
+                  "</td>" +
+                  "<td data-label=\"E-mail\">" +
+                  escapeHtmlDefault(m.email || "—") +
+                  "</td>" +
+                  "<td data-label=\"Cargo\">" +
+                  escapeHtmlDefault(m.role_title || "—") +
+                  "</td>" +
+                  "<td data-label=\"Status\"><span class=\"" +
+                  stClass +
+                  "\">" +
+                  st +
+                  "</span></td>" +
+                  '<td data-label="Ações" class="actions">' +
+                  acts +
+                  "</td></tr>"
+                );
+              })
+              .join("")
+          : '<tr><td colspan="8" class="notice" style="text-align:center;padding:16px">Nenhum gestor neste setor.</td></tr>') +
+        "</tbody></table></div>";
+    return (
+      '<div class="pc-section" data-pc-mgr-kind="' +
+      kind +
+      '"><div class="pc-section-head"><h4>' +
+      title +
+      " — " +
+      rows.length +
+      "</h4>" +
+      addBtn +
+      "</div>" +
+      notice +
+      body +
+      "</div>"
+    );
+  }
+
   function renderModalForm(partner, ctx) {
     const tabs = [
-      { id: "dados", label: "Dados" },
+      { id: "dados", label: "Dados do parceiro" },
+      { id: "retomados", label: "Setor de Retomados" },
+      { id: "financeiro", label: "Financeiro" },
       { id: "resumo", label: "Resumo" },
       { id: "contatos", label: "Contatos" },
       { id: "documentos", label: "Documentos" },
@@ -867,6 +1018,16 @@
       '<div class="pc-form-grid" id="pcTipoFields">' +
       renderTipoFields(partner, ro) +
       "</div></div>" +
+      "</div>" +
+      '<div class="pc-tab-panel' +
+      (_activeTab === "retomados" ? " active" : "") +
+      '" data-pc-panel="retomados">' +
+      renderManagersKind("CARTEIRA", "Gestores de Carteira", "+ Adicionar Gestor de Carteira") +
+      "</div>" +
+      '<div class="pc-tab-panel' +
+      (_activeTab === "financeiro" ? " active" : "") +
+      '" data-pc-panel="financeiro">' +
+      renderManagersKind("COBRANCA", "Gestores de Cobrança", "+ Adicionar Gestor de Cobrança") +
       "</div>" +
       '<div class="pc-tab-panel' +
       (_activeTab === "resumo" ? " active" : "") +
@@ -1022,6 +1183,7 @@
 
   function openModal(partner, mode, ctx) {
     const modal = ensureModalShell();
+    ensurePartnerManagerModal();
     const title = document.getElementById("partnerModalTitle");
     const inner = document.getElementById("partnerFormInner") || document.getElementById("partnerForm");
     const formInner = document.getElementById("partnerFormInner");
@@ -1055,11 +1217,89 @@
   }
 
   function closeModal() {
+    closePartnerManagerModal();
     const modal = document.getElementById("partnerModal");
     if (modal) modal.classList.add("hidden");
     editingPartnerId = null;
     _modalReadonly = false;
     showFormErrors(null);
+  }
+
+  function ensurePartnerManagerModal() {
+    let modal = document.getElementById("pcManagerModal");
+    if (modal) return modal;
+    modal = document.createElement("div");
+    modal.id = "pcManagerModal";
+    modal.className = "modal-backdrop hidden";
+    modal.innerHTML =
+      '<div class="modal"><div class="modal-header"><h3 id="pcManagerModalTitle">Gestor</h3>' +
+      '<button type="button" class="modal-close" id="pcCloseManagerModal">Fechar</button></div>' +
+      '<form id="pcManagerForm"><div id="pcManagerFormErrors" class="pc-form-errors hidden"></div>' +
+      '<input type="hidden" id="pcMgrKind" />' +
+      '<p class="notice" style="margin:0 0 12px">Este gestor fica vinculado a este parceiro (vários gestores por setor).</p>' +
+      '<div class="form-grid">' +
+      '<div><label for="pcMgrName">Nome completo</label><input id="pcMgrName" type="text" required /></div>' +
+      '<div><label for="pcMgrCpf">CPF</label><input id="pcMgrCpf" type="text" inputmode="numeric" /></div>' +
+      '<div><label for="pcMgrPhone">Telefone</label><input id="pcMgrPhone" type="tel" /></div>' +
+      '<div><label for="pcMgrWhatsapp">WhatsApp</label><input id="pcMgrWhatsapp" type="tel" /></div>' +
+      '<div><label for="pcMgrEmail">E-mail</label><input id="pcMgrEmail" type="email" /></div>' +
+      '<div><label for="pcMgrRole">Cargo/Função</label><input id="pcMgrRole" type="text" /></div>' +
+      '<div><label for="pcMgrStatus">Status</label><select id="pcMgrStatus"><option value="ATIVO">Ativo</option><option value="INATIVO">Inativo</option></select></div>' +
+      '<div class="full"><label for="pcMgrNotes">Observações</label><textarea id="pcMgrNotes" rows="3"></textarea></div>' +
+      "</div>" +
+      '<div class="form-actions"><button type="submit" id="pcMgrSave">Salvar</button>' +
+      '<button type="button" class="secondary" id="pcMgrCancel">Cancelar</button></div></form></div>';
+    document.body.appendChild(modal);
+    return modal;
+  }
+
+  let _editingMgrId = null;
+
+  function closePartnerManagerModal() {
+    document.getElementById("pcManagerModal")?.classList.add("hidden");
+    _editingMgrId = null;
+  }
+
+  function fillPartnerManagerForm(kind, manager) {
+    ensurePartnerManagerModal();
+    _editingMgrId = manager && manager.id ? manager.id : null;
+    const title = document.getElementById("pcManagerModalTitle");
+    const isCobranca = kind === "COBRANCA";
+    if (title) {
+      title.textContent = manager && manager.id
+        ? isCobranca
+          ? "Editar gestor de cobrança"
+          : "Editar gestor de carteira"
+        : isCobranca
+          ? "Novo gestor de cobrança"
+          : "Novo gestor de carteira";
+    }
+    const set = function (id, val) {
+      const el = document.getElementById(id);
+      if (el) el.value = val || "";
+    };
+    set("pcMgrKind", kind);
+    set("pcMgrName", manager && manager.name);
+    set("pcMgrCpf", manager && manager.cpf);
+    set("pcMgrPhone", manager && manager.phone);
+    set("pcMgrWhatsapp", manager && manager.whatsapp);
+    set("pcMgrEmail", manager && manager.email);
+    set("pcMgrRole", manager && manager.role_title);
+    set("pcMgrNotes", manager && manager.notes);
+    set("pcMgrStatus", manager && manager.status === "INATIVO" ? "INATIVO" : "ATIVO");
+    const err = document.getElementById("pcManagerFormErrors");
+    if (err) {
+      err.classList.add("hidden");
+      err.innerHTML = "";
+    }
+    document.getElementById("pcManagerModal")?.classList.remove("hidden");
+  }
+
+  function refreshManagerPanels() {
+    const ret = document.querySelector('#partnerForm [data-pc-panel="retomados"]');
+    const fin = document.querySelector('#partnerForm [data-pc-panel="financeiro"]');
+    if (ret) ret.innerHTML = renderManagersKind("CARTEIRA", "Gestores de Carteira", "+ Adicionar Gestor de Carteira");
+    if (fin) fin.innerHTML = renderManagersKind("COBRANCA", "Gestores de Cobrança", "+ Adicionar Gestor de Cobrança");
   }
 
   function effectiveUserId(ctx) {
@@ -1123,6 +1363,7 @@
     syncContatosFromDom();
     syncDocumentosFromDom();
     const payload = collectFormPayload();
+    const wasCreate = !editingPartnerId;
 
     if (ctx && typeof ctx.requireSupabaseSessionForWrite === "function") {
       const okSession = await ctx.requireSupabaseSessionForWrite();
@@ -1190,6 +1431,16 @@
     if (_lastState) {
       _lastState.partners = (global.state && global.state.partners) || _lastState.partners;
       partnersCadastroRender(_lastState, ctx);
+    }
+    if (wasCreate && savedId) {
+      const getFn = global.GetPartner || (svc() && svc().GetPartner);
+      const partner = getFn ? getFn(_lastState, savedId) : result.data;
+      if (partner) {
+        partnersCadastroOpenEdit(partner);
+        setTimeout(function () {
+          setActiveTab("retomados");
+        }, 0);
+      }
     }
     if (result.lean) {
       console.warn("[partners-cadastro] Gravação em modo compatível (colunas limitadas).");
@@ -1325,6 +1576,86 @@
       });
     }
 
+    if (form && !form.dataset.pcMgrClickBound) {
+      form.dataset.pcMgrClickBound = "1";
+      form.addEventListener("click", async function (e) {
+        const add = e.target.closest("[data-pc-mgr-add]");
+        if (add) {
+          fillPartnerManagerForm(add.getAttribute("data-pc-mgr-add"), null);
+          return;
+        }
+        const edit = e.target.closest("[data-pc-mgr-edit]");
+        const tog = e.target.closest("[data-pc-mgr-toggle]");
+        const del = e.target.closest("[data-pc-mgr-del]");
+        const mgrSvc = global.partnerManagersService;
+        const list = (global.__ampliState && global.__ampliState.partnerManagers) || [];
+        if (edit && mgrSvc) {
+          const m = mgrSvc.listForParent(list, { partner_id: editingPartnerId }).find(function (x) {
+            return String(x.id) === String(edit.getAttribute("data-pc-mgr-edit"));
+          });
+          if (m) fillPartnerManagerForm(m.kind, m);
+          return;
+        }
+        if (tog && typeof global.togglePartnerManager === "function") {
+          await global.togglePartnerManager(tog.getAttribute("data-pc-mgr-toggle"));
+          refreshManagerPanels();
+          return;
+        }
+        if (del && typeof global.deletePartnerManager === "function") {
+          await global.deletePartnerManager(del.getAttribute("data-pc-mgr-del"));
+          refreshManagerPanels();
+        }
+      });
+      form.addEventListener("input", function (e) {
+        if (e.target && e.target.getAttribute("data-pc-mgr-search")) refreshManagerPanels();
+      });
+    }
+
+    const mgrForm = document.getElementById("pcManagerForm");
+    if (mgrForm && !mgrForm.dataset.pcBound) {
+      mgrForm.dataset.pcBound = "1";
+      mgrForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const mgrSvc = global.partnerManagersService;
+        if (!mgrSvc || typeof global.savePartnerManager !== "function") return;
+        const payload = mgrSvc.normalizeManagerPayload({
+          name: document.getElementById("pcMgrName")?.value,
+          cpf: document.getElementById("pcMgrCpf")?.value,
+          phone: document.getElementById("pcMgrPhone")?.value,
+          whatsapp: document.getElementById("pcMgrWhatsapp")?.value,
+          email: document.getElementById("pcMgrEmail")?.value,
+          role_title: document.getElementById("pcMgrRole")?.value,
+          notes: document.getElementById("pcMgrNotes")?.value,
+          status: document.getElementById("pcMgrStatus")?.value,
+          kind: document.getElementById("pcMgrKind")?.value,
+        });
+        const parent = { partner_id: editingPartnerId };
+        const errors = mgrSvc.validateManager(
+          payload,
+          (global.__ampliState && global.__ampliState.partnerManagers) || [],
+          parent,
+          _editingMgrId
+        );
+        const errBox = document.getElementById("pcManagerFormErrors");
+        if (errors.length) {
+          if (errBox) {
+            errBox.classList.remove("hidden");
+            errBox.innerHTML = "<ul>" + errors.map(function (x) {
+              return "<li>" + escapeHtmlDefault(x) + "</li>";
+            }).join("") + "</ul>";
+          }
+          return;
+        }
+        const ok = await global.savePartnerManager(parent, _editingMgrId, payload);
+        if (ok) {
+          closePartnerManagerModal();
+          refreshManagerPanels();
+        }
+      });
+      document.getElementById("pcMgrCancel")?.addEventListener("click", closePartnerManagerModal);
+      document.getElementById("pcCloseManagerModal")?.addEventListener("click", closePartnerManagerModal);
+    }
+
     const closeBtn = document.getElementById("closePartnerModal");
     const cancelBtn = document.getElementById("cancelPartnerForm");
     if (closeBtn && !closeBtn.dataset.pcBound) {
@@ -1385,6 +1716,11 @@
     _bound = true;
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") {
+        const mgr = document.getElementById("pcManagerModal");
+        if (mgr && !mgr.classList.contains("hidden")) {
+          closePartnerManagerModal();
+          return;
+        }
         const modal = document.getElementById("partnerModal");
         if (modal && !modal.classList.contains("hidden")) closeModal();
       }
@@ -1409,12 +1745,12 @@
   function partnersCadastroOpenCreate() {
     editingPartnerId = null;
     const meta = categoryMeta();
-    openModal({ tipo: meta.defaultTipo || "GUINCHEIRO", status: "ATIVO", perfil: {} }, "create", _lastCtx || {});
+    openModal({ tipo: meta.defaultTipo || "LOCALIZADOR", status: "ATIVO", perfil: {} }, "create", _lastCtx || {});
   }
 
   function partnersCadastroSetCategory(id) {
     const resolve = svc() && svc().resolvePartnerCategoryId;
-    _category = resolve ? resolve(id) : id || "financeiras";
+    _category = resolve ? resolve(id) : id || "localizadores";
     _filters.tipo = "";
     _filters.search = "";
   }
@@ -1436,6 +1772,7 @@
     injectStylesOnce();
     bindGlobalOnce();
     ensureModalShell();
+    ensurePartnerManagerModal();
   }
 
   global.partnersCadastroRender = partnersCadastroRender;
