@@ -6836,7 +6836,7 @@
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
               <span class="dashboard-system-btn__kicker">Relacionamento</span>
               <span class="dashboard-system-btn__title">Parceiros</span>
-              <span class="dashboard-system-btn__desc">Cadastro único de parceiros (RPV, RPP, etc.).</span>
+              <span class="dashboard-system-btn__desc">Escritório, leiloeiro, pátio e localizador.</span>
               <span class="dashboard-system-btn__go">Abrir parceiros →</span>
             </button>
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenLista">
@@ -7375,12 +7375,10 @@
           </div>
           <div id="partnerCategoryKpis" class="ao-kpis" aria-label="Resumo de parceiros"></div>
           <div id="partnerSubnav" class="subnav">
-            <button type="button" data-subview="escritorios" class="active">Escritório de Advocacia</button>
-            <button type="button" data-subview="financeiras">Instituição Financeira</button>
-            <button type="button" data-subview="reboqueiros">Reboqueiro</button>
+            <button type="button" data-subview="escritorios" class="active">Escritório</button>
             <button type="button" data-subview="leiloeiros">Leiloeiro</button>
-            <button type="button" data-subview="patios">Pátio de Apreensão</button>
-            <button type="button" data-subview="oficiais">Oficial de Justiça</button>
+            <button type="button" data-subview="patios">Pátio</button>
+            <button type="button" data-subview="localizadores">Localizador</button>
           </div>
 
           <div class="partner-subview hidden" data-subview="dashboard" hidden aria-hidden="true">
@@ -7419,7 +7417,7 @@
 
           <div class="section-card partner-subview hidden" data-subview="cadastro">
             <p class="notice" style="margin: 0 0 12px">
-              Cadastro independente por tipo de parceiro. Cada módulo lista somente aquele tipo. Gestor de Carteira existe só dentro do escritório. RPV, RPP e leiloeiro no pátio usam o ID do parceiro.
+              Cadastro único de parceiros por tipo: Escritório, Leiloeiro, Pátio e Localizador. Cada um tem Setor de Retomados (gestores de carteira) e Financeiro (gestores de cobrança). RPV, RPP e leiloeiro no pátio continuam usando o ID do parceiro.
             </p>
             <div id="partnerCadastroRoot"></div>
             <div class="table-wrap hub-dash-legacy-hidden" hidden aria-hidden="true">
@@ -8133,11 +8131,15 @@
             <div id="aoOfficeFormErrors" class="pc-form-errors hidden"></div>
             <div class="form-grid">
               <div>
-                <label for="aoFieldName">Nome do escritório</label>
+                <label for="aoFieldName">Nome / Razão Social</label>
                 <input id="aoFieldName" type="text" required />
               </div>
               <div>
-                <label for="aoFieldCnpj">CNPJ</label>
+                <label for="aoFieldTradeName">Nome fantasia</label>
+                <input id="aoFieldTradeName" type="text" />
+              </div>
+              <div>
+                <label for="aoFieldCnpj">CNPJ/CPF</label>
                 <input id="aoFieldCnpj" type="text" inputmode="numeric" placeholder="00.000.000/0000-00" />
               </div>
               <div>
@@ -8157,6 +8159,18 @@
                 <input id="aoFieldEmail" type="email" />
               </div>
               <div>
+                <label for="aoFieldAddress">Endereço</label>
+                <input id="aoFieldAddress" type="text" />
+              </div>
+              <div>
+                <label for="aoFieldCity">Cidade</label>
+                <input id="aoFieldCity" type="text" />
+              </div>
+              <div>
+                <label for="aoFieldState">Estado</label>
+                <input id="aoFieldState" type="text" maxlength="2" placeholder="UF" />
+              </div>
+              <div>
                 <label for="aoFieldActive">Status</label>
                 <select id="aoFieldActive">
                   <option value="ATIVO">Ativo</option>
@@ -8171,6 +8185,9 @@
             <p id="aoOfficeFormNotice" class="notice hidden" style="margin:12px 0 0"></p>
             <section id="aoManagersSection" class="section-card" style="margin:16px 0 0;padding:14px">
               <div id="aoManagersRoot"></div>
+            </section>
+            <section id="aoBillingManagersSection" class="section-card" style="margin:16px 0 0;padding:14px">
+              <div id="aoBillingManagersRoot"></div>
             </section>
             <div class="form-actions">
               <button type="submit" id="aoOfficeSave">Salvar</button>
@@ -8201,6 +8218,10 @@
               <div>
                 <label for="aoMgrPhone">Telefone</label>
                 <input id="aoMgrPhone" type="tel" />
+              </div>
+              <div>
+                <label for="aoMgrWhatsapp">WhatsApp</label>
+                <input id="aoMgrWhatsapp" type="tel" />
               </div>
               <div>
                 <label for="aoMgrEmail">E-mail</label>
@@ -8959,12 +8980,10 @@
         <details class="header-menu-details" id="headerDetailsParceiros">
           <summary>Parceiros</summary>
           <div class="header-menu-nested">
-            <button type="button" data-header-partner-sub="escritorios">Escritório de Advocacia</button>
-            <button type="button" data-header-partner-sub="financeiras">Instituição Financeira</button>
-            <button type="button" data-header-partner-sub="reboqueiros">Reboqueiro</button>
+            <button type="button" data-header-partner-sub="escritorios">Escritório</button>
             <button type="button" data-header-partner-sub="leiloeiros">Leiloeiro</button>
-            <button type="button" data-header-partner-sub="patios">Pátio de Apreensão</button>
-            <button type="button" data-header-partner-sub="oficiais">Oficial de Justiça</button>
+            <button type="button" data-header-partner-sub="patios">Pátio</button>
+            <button type="button" data-header-partner-sub="localizadores">Localizador</button>
           </div>
         </details>
 
@@ -9008,8 +9027,9 @@
     <script src="/partners-dashboard.js?v=20260605partners601"></script>
     <script src="/financial-partner-metrics-service.js?v=20260727fpdash"></script>
     <script src="/financial-partner-dashboard-ui.js?v=20260902contrast1"></script>
-    <script src="/partners-cadastro-service.js?v=20260904modulos1"></script>
-    <script src="/partners-cadastro-ui.js?v=20260904modulos1"></script>
+    <script src="/partners-cadastro-service.js?v=20260909partners2"></script>
+    <script src="/partner-managers-service.js?v=20260909partners2"></script>
+    <script src="/partners-cadastro-ui.js?v=20260909partners2"></script>
     <script src="/dashboard-metrics-service.js?v=20260819vnpvist1"></script>
     <script src="/amplipatio-dashboard.js?v=20260902adv1"></script>
     <script src="/vehicle-entry-inspection-checklist.js?v=20260820vistoria5"></script>
@@ -9019,8 +9039,8 @@
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
-    <script src="/advocacy-offices-service.js?v=20260904mgr1"></script>
-    <script src="/advocacy-offices-ui.js?v=20260904mgr1"></script>
+    <script src="/advocacy-offices-service.js?v=20260909partners2"></script>
+    <script src="/advocacy-offices-ui.js?v=20260909partners2"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -9808,6 +9828,7 @@
         inspectionIndex: {},
         advocacyOffices: [],
         advocacyOfficeManagers: [],
+        partnerManagers: [],
       };
       window.__ampliState = state;
 
@@ -15985,6 +16006,107 @@
         if (typeof financePopulateFinanceRppFilters === "function") financePopulateFinanceRppFilters();
       }
 
+      async function loadPartnerManagers() {
+        const uid = supabaseOwnerUserId();
+        if (!uid) return;
+        const { data, error } = await supabase
+          .from("partner_managers")
+          .select("*")
+          .eq("user_id", uid)
+          .order("name", { ascending: true });
+        if (error) {
+          if (isMissingRelationError(error) || /partner_managers|PGRST204|column/i.test(error.message || "")) {
+            state.partnerManagers = [];
+            return;
+          }
+          logSupabaseLoadError("loadPartnerManagers", error);
+          return;
+        }
+        state.partnerManagers = data || [];
+        window.__ampliState = state;
+      }
+
+      async function savePartnerManager(parent, editingId, payload) {
+        if (isGestorPista || isVistoriador) {
+          alert("Somente o administrador pode cadastrar ou editar gestores.");
+          return false;
+        }
+        if (!parent || (!parent.partner_id && !parent.advocacy_office_id)) {
+          alert("Salve o cadastro antes de adicionar gestores.");
+          return false;
+        }
+        const uid = effectiveUserId();
+        const row = Object.assign({}, payload, {
+          user_id: uid,
+          partner_id: parent.partner_id || null,
+          advocacy_office_id: parent.advocacy_office_id || null,
+          updated_at: new Date().toISOString(),
+        });
+        const run = () =>
+          editingId
+            ? supabase.from("partner_managers").update(row).eq("id", editingId).eq("user_id", uid).select("id").maybeSingle()
+            : supabase.from("partner_managers").insert(row).select("id").maybeSingle();
+        const { error } = await runSupabaseWrite(run);
+        if (error) {
+          if (/partner_managers_.*cpf|duplicate|unique/i.test(error.message || "")) {
+            alert("Já existe um gestor com este CPF neste cadastro.");
+            return false;
+          }
+          if (isMissingRelationError(error) || /partner_managers|PGRST204|column/i.test(error.message || "")) {
+            alert(
+              "A base ainda não tem a tabela de gestores de parceiro.\n\nNo Supabase → SQL Editor, execute supabase/partner_managers.sql e atualize a página."
+            );
+            return false;
+          }
+          alert(error.message || "Não foi possível salvar o gestor.");
+          return false;
+        }
+        await loadPartnerManagers();
+        return true;
+      }
+
+      async function togglePartnerManager(id) {
+        if (isGestorPista || isVistoriador) return;
+        const m = (state.partnerManagers || []).find((x) => String(x.id) === String(id));
+        if (!m) return;
+        const next = String(m.status || "ATIVO").toUpperCase() === "INATIVO" ? "ATIVO" : "INATIVO";
+        if (m.status !== "INATIVO" && !confirm("Inativar este gestor? O registro permanece vinculado ao parceiro.")) return;
+        const { error } = await runSupabaseWrite(() =>
+          supabase
+            .from("partner_managers")
+            .update({ status: next, updated_at: new Date().toISOString() })
+            .eq("id", id)
+            .eq("user_id", effectiveUserId())
+        );
+        if (error) {
+          alert(error.message || "Não foi possível alterar o status do gestor.");
+          return;
+        }
+        await loadPartnerManagers();
+      }
+
+      async function deletePartnerManager(id) {
+        if (isGestorPista || isVistoriador) return;
+        if (!confirm("Excluir este gestor? Esta ação não desfaz vínculos futuros, apenas remove o cadastro.")) return;
+        const { error } = await runSupabaseWrite(() =>
+          supabase.from("partner_managers").delete().eq("id", id).eq("user_id", effectiveUserId())
+        );
+        if (error) {
+          if (/foreign key/i.test(error.message || "")) {
+            alert("Não é possível excluir: há vínculos que impedem a exclusão. Inative o gestor.");
+            return;
+          }
+          alert(error.message || "Não foi possível excluir o gestor.");
+          return;
+        }
+        await loadPartnerManagers();
+      }
+
+      window.loadPartnerManagers = loadPartnerManagers;
+      window.savePartnerManager = savePartnerManager;
+      window.togglePartnerManager = togglePartnerManager;
+      window.deletePartnerManager = deletePartnerManager;
+
       let advocacyOfficePickerBound = false;
       function syncAdvocacyOfficeState() {
         window.__ampliState = state;
@@ -15998,6 +16120,9 @@
           !document.getElementById("aoOfficeModal").classList.contains("hidden")
         ) {
           window.advocacyOfficesUi.renderManagersSection();
+          if (typeof window.advocacyOfficesUi.renderBillingManagersSection === "function") {
+            window.advocacyOfficesUi.renderBillingManagersSection();
+          }
         }
       }
 
@@ -16105,11 +16230,19 @@
         }
         const uid = effectiveUserId();
         const row = Object.assign({}, payload, { user_id: uid, updated_at: new Date().toISOString() });
-        const run = () =>
+        const extraOfficeKeys = ["trade_name", "address", "city", "state"];
+        const run = (body) =>
           editingId
-            ? supabase.from("advocacy_offices").update(row).eq("id", editingId).eq("user_id", uid).select("id").maybeSingle()
-            : supabase.from("advocacy_offices").insert(row).select("id").maybeSingle();
-        const { data, error } = await runSupabaseWrite(run);
+            ? supabase.from("advocacy_offices").update(body).eq("id", editingId).eq("user_id", uid).select("id").maybeSingle()
+            : supabase.from("advocacy_offices").insert(body).select("id").maybeSingle();
+        let { data, error } = await runSupabaseWrite(() => run(row));
+        if (error && /PGRST204|column|schema cache/i.test(error.message || "")) {
+          const lean = Object.assign({}, row);
+          extraOfficeKeys.forEach((k) => delete lean[k]);
+          const retry = await runSupabaseWrite(() => run(lean));
+          data = retry.data;
+          error = retry.error;
+        }
         if (error) {
           if (/advocacy_offices_user_cnpj|duplicate|unique/i.test(error.message || "")) {
             alert("Já existe um escritório com este CNPJ.");
@@ -16180,7 +16313,12 @@
                 .select("id")
                 .maybeSingle()
             : supabase.from("advocacy_office_managers").insert(row).select("id").maybeSingle();
-        const { error } = await runSupabaseWrite(run);
+        let { error } = await runSupabaseWrite(run);
+        if (error && /whatsapp/i.test(error.message || "")) {
+          delete row.whatsapp;
+          const retry = await runSupabaseWrite(run);
+          error = retry.error;
+        }
         if (error) {
           if (/advocacy_office_managers_user_cpf|duplicate|unique/i.test(error.message || "")) {
             alert("Já existe um gestor de carteira com este CPF.");
@@ -16218,6 +16356,33 @@
         );
         if (error) {
           alert(error.message || "Não foi possível alterar o status do gestor.");
+          return;
+        }
+        await loadAdvocacyOfficeManagers();
+      }
+
+      async function deleteAdvocacyOfficeManager(id, officeId) {
+        if (isGestorPista || isVistoriador) return;
+        const m = (state.advocacyOfficeManagers || []).find((x) => String(x.id) === String(id));
+        if (!m || String(m.office_id) !== String(officeId || m.office_id)) {
+          alert("Este gestor não pertence a este escritório.");
+          return;
+        }
+        const n = (state.vehicles || []).filter((v) => String(v.advocacy_office_manager_id || "") === String(id)).length;
+        if (n) {
+          alert("Não é possível excluir: há demandas vinculadas a este gestor. Inative o cadastro.");
+          return;
+        }
+        if (!confirm("Excluir este gestor de carteira?")) return;
+        const { error } = await runSupabaseWrite(() =>
+          supabase.from("advocacy_office_managers").delete().eq("id", id).eq("user_id", effectiveUserId()).eq("office_id", m.office_id)
+        );
+        if (error) {
+          if (/foreign key/i.test(error.message || "")) {
+            alert("Não é possível excluir: há vínculos. Inative o gestor.");
+            return;
+          }
+          alert(error.message || "Não foi possível excluir o gestor.");
           return;
         }
         await loadAdvocacyOfficeManagers();
@@ -16270,6 +16435,7 @@
       window.deleteAdvocacyOffice = deleteAdvocacyOffice;
       window.saveAdvocacyOfficeManager = saveAdvocacyOfficeManager;
       window.toggleAdvocacyOfficeManager = toggleAdvocacyOfficeManager;
+      window.deleteAdvocacyOfficeManager = deleteAdvocacyOfficeManager;
       window.openAdvocacyDemandReport = function openAdvocacyDemandReport(opts) {
         if (isGestorPista || isVistoriador) return;
         openEscritoriosSubview("relatorio");
@@ -16750,13 +16916,14 @@
 
       async function loadAll() {
         if (isGestorPista || isVistoriador) {
-          await Promise.all([loadPartners(), loadVehicles(), loadVehicleInspections(), loadAdvocacyOffices()]);
+        await Promise.all([loadPartners(), loadPartnerManagers(), loadVehicles(), loadVehicleInspections(), loadAdvocacyOffices()]);
           probeVehiclesRpfColumns().catch(() => {});
           probeVehiclesAdvocacyColumn().catch(() => {});
           return;
         }
         await Promise.all([
           loadPartners(),
+          loadPartnerManagers(),
           loadAdvocacyOffices(),
           loadFinanceContacts(),
           loadVehicles(),
@@ -18049,7 +18216,7 @@
         const host = document.getElementById("partnerCategoryKpis");
         if (!host) return;
         const svc = window.partnersCadastroService;
-        const counts = svc && svc.countPartnersByCategory ? svc.countPartnersByCategory(state.partners || []) : { total: (state.partners || []).length, financeiras: 0, reboqueiros: 0, leiloeiros: 0, patios: 0, oficiais: 0 };
+        const counts = svc && svc.countPartnersByCategory ? svc.countPartnersByCategory(state.partners || []) : { total: (state.partners || []).length, localizadores: 0, leiloeiros: 0, patios: 0 };
         const offices = (state.advocacyOffices || []).length;
         const total = (counts.total || 0) + offices;
         const card = (id, label, n) =>
@@ -18057,11 +18224,9 @@
         host.innerHTML =
           `<div class="ao-kpi" style="cursor:default"><span>Total de parceiros</span><strong>${total}</strong></div>` +
           card("escritorios", "Escritórios", offices) +
-          card("financeiras", "Instituições financeiras", counts.financeiras || 0) +
-          card("reboqueiros", "Reboqueiros", counts.reboqueiros || 0) +
           card("leiloeiros", "Leiloeiros", counts.leiloeiros || 0) +
           card("patios", "Pátios", counts.patios || 0) +
-          card("oficiais", "Oficiais", counts.oficiais || 0);
+          card("localizadores", "Localizadores", counts.localizadores || 0);
       }
 
       function renderPartnersDashboard() {
@@ -18103,7 +18268,7 @@
 
       function setPartnerView(view) {
         const show = view && view !== "none";
-        const CADASTRO_TABS = { financeiras: 1, reboqueiros: 1, leiloeiros: 1, patios: 1, oficiais: 1 };
+        const CADASTRO_TABS = { leiloeiros: 1, patios: 1, localizadores: 1 };
         if (view === "parceiros" || view === "cadastro" || view === "dashboard") view = "escritorios";
         if (show) view = resolvePartnerModule(view);
         const resolved = show ? view : null;
@@ -23292,11 +23457,12 @@
         }
         const allowed = {
           dashboard: 1,
-          financeiras: 1,
           escritorios: 1,
-          reboqueiros: 1,
           leiloeiros: 1,
           patios: 1,
+          localizadores: 1,
+          financeiras: 1,
+          reboqueiros: 1,
           oficiais: 1,
           transportadoras: 1,
           prestadores: 1,
