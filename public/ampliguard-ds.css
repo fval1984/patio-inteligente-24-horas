@@ -326,7 +326,11 @@ body.auth-screen-active .ag-header-context {
 .patio-inicio-panel,
 .finance-receitas-section,
 .fin-simple-card,
-.exec-ops-kpi {
+.exec-ops-kpi,
+.cmd-ops-kpi,
+.fin-act-kpi,
+.cmd-ops-attn li,
+.cmd-ops-today div {
   background: var(--ag-card) !important;
   border: 1px solid var(--ag-border) !important;
   border-radius: var(--ag-radius) !important;
@@ -368,16 +372,10 @@ body.auth-screen-active .ag-header-context {
 .fin-simple-h,
 .modal-header h3 {
   font-family: var(--ag-font-display) !important;
-  color: var(--ag-iron) !important;
+  color: var(--ag-text) !important;
   font-weight: 700 !important;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-}
-
-html[data-theme="dark"] .toolbar h2,
-html[data-theme="dark"] .exec-ops-header h2,
-html[data-theme="dark"] .modal-header h3 {
-  color: var(--ag-text) !important;
 }
 
 .dashboard-kicker,
@@ -403,7 +401,7 @@ button {
   transition: background var(--ag-ease), border-color var(--ag-ease), color var(--ag-ease);
 }
 
-button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.close-view):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn):not(.exec-ops-kpi):not(.exec-ops-link):not(.exec-ops-attn button):not(.exec-ops-period button):not(.fin-simple-card):not(.fin-simple-attn):not(.fin-simple-recent button):not(.dashboard-system-btn):not(.header-menu-dropdown button) {
+button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.close-view):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn):not(.exec-ops-kpi):not(.exec-ops-link):not(.exec-ops-attn button):not(.exec-ops-period button):not(.fin-simple-card):not(.fin-simple-attn):not(.fin-simple-recent button):not(.dashboard-system-btn):not(.header-menu-dropdown button):not(.cmd-ops-kpi):not(.cmd-ops-attn button):not(.cmd-ops-link):not(.fin-act-kpi) {
   background: var(--ag-iron) !important;
   color: #f6f3ee !important;
   border: 1px solid #000 !important;
@@ -630,23 +628,65 @@ html[data-theme="dark"] .table tbody tr:nth-child(even) {
   color: var(--ag-text) !important;
 }
 
-/* Dashboard operacional */
-.exec-ops-kpi {
+/* Dashboard operacional — cards clicáveis (não herdam o botão grafite) */
+.exec-ops-kpi,
+.cmd-ops-kpi,
+.fin-act-kpi {
   border-radius: 2px !important;
-  border-left: 3px solid var(--ag-iron) !important;
+  border-left: 3px solid var(--ag-wood) !important;
+  background: var(--ag-card) !important;
+  color: var(--ag-text) !important;
+}
+
+.exec-ops-kpi {
   min-height: 124px !important;
 }
 
-.exec-ops-kpi strong {
-  font-family: var(--ag-font-display);
-  font-size: 2.2rem !important;
-  letter-spacing: -0.03em;
-  color: var(--ag-iron) !important;
+.cmd-ops-kpi span,
+.cmd-ops-kpi small,
+.exec-ops-kpi span,
+.exec-ops-kpi small,
+.cmd-ops-today span,
+.ao-kpi span {
+  color: var(--ag-muted) !important;
 }
 
-.exec-ops-kpi--alert {
+.exec-ops-kpi strong,
+.cmd-ops-kpi strong,
+.ao-kpi strong,
+.cmd-ops-today strong,
+.cmd-ops-attn strong {
+  font-family: var(--ag-font-display);
+  color: var(--ag-text) !important;
+}
+
+.exec-ops-kpi strong {
+  font-size: 2.2rem !important;
+  letter-spacing: -0.03em;
+}
+
+.exec-ops-kpi--alert,
+.cmd-ops-kpi--alert {
   border-left-color: var(--ag-warning) !important;
   background: var(--ag-warning-bg) !important;
+  color: var(--ag-text) !important;
+}
+
+.cmd-ops-kpi--money {
+  border-left-color: var(--ag-success) !important;
+  background: var(--ag-success-bg) !important;
+  color: var(--ag-text) !important;
+}
+
+.cmd-ops-today div {
+  background: var(--ag-surface-2) !important;
+  color: var(--ag-text) !important;
+}
+
+.cmd-ops-attn button {
+  background: var(--ag-field) !important;
+  color: var(--ag-text) !important;
+  border: 1px solid var(--ag-border) !important;
 }
 
 .exec-ops-period {
