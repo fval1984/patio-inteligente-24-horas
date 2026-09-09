@@ -1,0 +1,784 @@
+/**
+ * AMPLIGUARD — Design System (camada visual única)
+ * Só apresentação. Tokens centralizados: altere aqui para mudar o sistema inteiro.
+ */
+
+:root {
+  --ag-navy: #0b1f33;
+  --ag-navy-deep: #061422;
+  --ag-blue: #1d4ed8;
+  --ag-blue-strong: #1e40af;
+  --ag-blue-soft: #eff6ff;
+  --ag-bg: #eef2ec;
+  --ag-surface: #ffffff;
+  --ag-surface-2: #f7f5f2;
+  --ag-border: #d8d3cc;
+  --ag-text: #122033;
+  --ag-muted: #4b5c6e;
+  --ag-success: #15803d;
+  --ag-success-bg: #ecfdf3;
+  --ag-warning: #b45309;
+  --ag-warning-bg: #fff7e6;
+  --ag-danger: #b91c1c;
+  --ag-danger-bg: #fef2f2;
+  --ag-info: #1d4ed8;
+  --ag-info-bg: #eff6ff;
+  --ag-neutral: #64748b;
+  --ag-neutral-bg: #f4f1ec;
+  --ag-radius: 14px;
+  --ag-radius-sm: 10px;
+  --ag-radius-xs: 8px;
+  --ag-shadow: 0 10px 28px rgba(12, 28, 46, 0.08);
+  --ag-shadow-soft: 0 1px 2px rgba(12, 28, 46, 0.05), 0 8px 20px rgba(12, 28, 46, 0.05);
+  --ag-space-1: 4px;
+  --ag-space-2: 8px;
+  --ag-space-3: 12px;
+  --ag-space-4: 16px;
+  --ag-space-5: 20px;
+  --ag-space-6: 24px;
+  --ag-space-8: 32px;
+  --ag-font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --ag-ease: 140ms ease;
+  --ag-control-h: 40px;
+
+  --bg: var(--ag-bg);
+  --card: var(--ag-surface);
+  --text: var(--ag-text);
+  --muted: var(--ag-muted);
+  --primary: var(--ag-blue);
+  --primary-strong: var(--ag-blue-strong);
+  --primary-weak: var(--ag-blue-soft);
+  --border: var(--ag-border);
+  --shadow: var(--ag-shadow);
+  --shadow-soft: var(--ag-shadow-soft);
+  --radius: var(--ag-radius);
+  --gold: var(--ag-blue);
+  --gold-strong: var(--ag-blue-strong);
+  --gold-light: #60a5fa;
+  --success: var(--ag-success);
+  --error: var(--ag-danger);
+}
+
+html[data-theme="dark"] {
+  --ag-bg: #0b1220;
+  --ag-surface: #132033;
+  --ag-surface-2: #0f1a2b;
+  --ag-border: rgba(186, 198, 214, 0.28);
+  --ag-text: #f1f5f9;
+  --ag-muted: #b8c4d4;
+  --ag-blue: #60a5fa;
+  --ag-blue-strong: #3b82f6;
+  --ag-blue-soft: rgba(96, 165, 250, 0.16);
+  --ag-navy: #0f2744;
+  --ag-success-bg: rgba(21, 128, 61, 0.18);
+  --ag-warning-bg: rgba(180, 83, 9, 0.18);
+  --ag-danger-bg: rgba(185, 28, 28, 0.18);
+  --ag-info-bg: rgba(96, 165, 250, 0.16);
+  --ag-neutral-bg: rgba(15, 23, 42, 0.65);
+}
+
+/* ---- Base ---- */
+html,
+body {
+  font-family: var(--ag-font);
+  color: var(--ag-text);
+  background: var(--ag-bg) !important;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body.app-module-patio,
+body.app-module-finance,
+body.app-module-lista,
+body.app-module-partners {
+  background: var(--ag-bg) !important;
+}
+
+::placeholder {
+  color: var(--ag-muted) !important;
+  opacity: 0.92 !important;
+}
+
+::selection {
+  background: var(--ag-blue-soft);
+  color: var(--ag-text);
+}
+
+/* ---- Superfícies ---- */
+main {
+  padding-top: 18px;
+}
+
+.panel,
+.section-card,
+.card,
+.dashboard-stat-card,
+.hub-ops-card,
+.hub-chart-panel,
+.finance-chart-card,
+.ops-exec-panel,
+.patio-inicio-panel,
+.finance-receitas-section,
+.fin-simple-card,
+.exec-ops-kpi {
+  background: var(--ag-surface) !important;
+  border: 1px solid var(--ag-border) !important;
+  border-radius: var(--ag-radius) !important;
+  box-shadow: var(--ag-shadow-soft) !important;
+  backdrop-filter: none !important;
+  color: var(--ag-text);
+}
+
+.panel {
+  padding: var(--ag-space-6);
+}
+
+.section-card {
+  padding: var(--ag-space-5);
+}
+
+#viewPatio.patio-module-shell,
+#viewParceiros.partners-module-shell,
+#viewConfiguracoes.config-module-shell,
+#viewLista.lista-module-shell,
+#viewFinanceiro.finance-module-shell,
+#viewDashboard.dashboard-shell,
+#viewBiExecutivo.bi-executivo-shell,
+#viewEscritorios {
+  background: var(--ag-surface) !important;
+  border: 1px solid var(--ag-border) !important;
+  box-shadow: var(--ag-shadow-soft) !important;
+}
+
+#viewPatio.patio-module-shell::before,
+#viewParceiros.partners-module-shell::before,
+#viewConfiguracoes.config-module-shell::before,
+#viewDashboard.dashboard-shell::before {
+  display: none !important;
+}
+
+/* ---- Cabeçalho ---- */
+.app-top-shell {
+  background: var(--ag-surface) !important;
+  box-shadow: 0 1px 0 var(--ag-border);
+}
+
+header {
+  background: var(--ag-surface) !important;
+  border-bottom: 0 !important;
+  backdrop-filter: none !important;
+  padding-top: 10px !important;
+  padding-bottom: 8px !important;
+}
+
+header .brand-header-logo {
+  height: 64px !important;
+  max-width: min(440px, 72vw) !important;
+  filter: none !important;
+}
+
+.app-subheader {
+  background: var(--ag-surface) !important;
+  border-bottom: 1px solid var(--ag-border) !important;
+  box-shadow: none !important;
+  padding-top: 8px !important;
+  padding-bottom: 10px !important;
+}
+
+.app-subheader .user {
+  color: var(--ag-muted) !important;
+  font-size: 13px !important;
+  font-weight: 600;
+}
+
+#dashboardSystemEntry .dashboard-system-btn,
+.header-module-nav .dashboard-system-btn {
+  min-height: 36px !important;
+  padding: 8px 14px !important;
+  border-radius: 999px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--ag-muted) !important;
+  box-shadow: none !important;
+  font-weight: 650 !important;
+}
+
+#dashboardSystemEntry .dashboard-system-btn__title {
+  font-size: 12px !important;
+  letter-spacing: 0.04em;
+}
+
+#dashboardSystemEntry .dashboard-system-btn:hover {
+  background: var(--ag-neutral-bg) !important;
+  color: var(--ag-text) !important;
+  transform: none !important;
+}
+
+body.app-module-patio:has(#viewPatio:not(.hidden)) #dashboardOpenPatio,
+body.app-module-finance #dashboardOpenFinance,
+body.app-module-lista #dashboardOpenLista,
+body:has(#viewParceiros:not(.hidden)) #dashboardOpenParceiros,
+body:has(#viewConfiguracoes:not(.hidden)) #dashboardOpenConfiguracoes {
+  background: var(--ag-navy) !important;
+  color: #fff !important;
+  border-color: var(--ag-navy) !important;
+}
+
+.header-plate-search button[type="submit"] {
+  min-height: 36px !important;
+  background: var(--ag-navy) !important;
+  border-color: var(--ag-navy) !important;
+  color: #fff !important;
+}
+
+.header-plate-search button.secondary {
+  min-height: 36px !important;
+  font-size: 12px !important;
+  color: var(--ag-text) !important;
+}
+
+/* Menu (drawer) */
+.header-menu-dropdown {
+  background: var(--ag-navy) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  border-radius: var(--ag-radius) !important;
+  box-shadow: var(--ag-shadow) !important;
+}
+
+.header-menu-dropdown button,
+.header-menu-details > summary {
+  color: rgba(255, 255, 255, 0.94) !important;
+  border-radius: var(--ag-radius-xs) !important;
+}
+
+.header-menu-top.header-menu-top--current,
+.header-menu-details.header-menu-details--current > summary,
+.header-menu-dropdown button.active {
+  background: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: inset 3px 0 0 #93c5fd;
+  color: #fff !important;
+}
+
+.patio-side-menu {
+  background: var(--ag-navy) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.patio-side-menu button {
+  border-radius: var(--ag-radius-xs) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.patio-side-menu button.active {
+  background: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: inset 3px 0 0 #93c5fd !important;
+}
+
+/* ---- Tipografia ---- */
+.toolbar h2,
+.dashboard-toolbar h2,
+.exec-ops-header h2,
+.patio-inicio-head h3,
+.fin-simple-h {
+  color: var(--ag-text) !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.dashboard-kicker,
+.module-kicker--patio,
+.module-kicker--finance,
+.module-kicker--partners,
+.module-kicker--config {
+  color: var(--ag-muted) !important;
+  font-size: 11px !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.dashboard-subtitle,
+.subtitle,
+.module-lede,
+.patio-inicio-lede,
+.exec-ops-range-label,
+.notice,
+.hub-table-empty,
+.exec-ops-empty {
+  color: var(--ag-muted) !important;
+  line-height: 1.5;
+}
+
+/* ---- Botões ---- */
+button {
+  font-family: inherit;
+  transition: background var(--ag-ease), border-color var(--ag-ease), box-shadow var(--ag-ease), transform var(--ag-ease);
+}
+
+button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.lista-toolbar-actions button):not(.close-view):not([data-extra-remove]):not(.vei-damage-photo-clear):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn):not(.exec-ops-kpi):not(.exec-ops-link):not(.exec-ops-attn button):not(.exec-ops-period button):not(.fin-simple-card):not(.fin-simple-attn):not(.fin-simple-recent button):not(.dashboard-system-btn):not(.header-menu-dropdown button):not(.hub-alert):not([data-hub-nav]) {
+  background: var(--ag-navy) !important;
+  color: #fff !important;
+  border: 1px solid var(--ag-navy) !important;
+  box-shadow: none !important;
+  font-weight: 650;
+  border-radius: var(--ag-radius-sm);
+  min-height: var(--ag-control-h);
+}
+
+button:not(.secondary):not(.modal-close):not(.vei-choice-btn):not(.exec-ops-kpi):not(.fin-simple-card):not(.dashboard-system-btn):hover {
+  background: var(--ag-blue-strong) !important;
+  transform: none;
+}
+
+button.secondary,
+.modal-close,
+.vei-card-prev,
+.vei-photo-btn-secondary,
+.vei-damage-photo-btn {
+  background: var(--ag-surface) !important;
+  color: var(--ag-text) !important;
+  border: 1px solid var(--ag-border) !important;
+  box-shadow: none !important;
+  min-height: var(--ag-control-h);
+}
+
+button.secondary:hover {
+  background: var(--ag-neutral-bg) !important;
+}
+
+button:disabled,
+button[disabled] {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+button.header-menu-item--danger,
+button[data-action*="apagar"],
+.table td.actions button[data-action*="apagar"] {
+  background: var(--ag-danger-bg) !important;
+  color: var(--ag-danger) !important;
+  border: 1px solid rgba(185, 28, 28, 0.28) !important;
+}
+
+.table td.actions button {
+  min-height: 32px !important;
+  padding: 6px 10px !important;
+  font-size: 12px !important;
+  color: var(--ag-text) !important;
+  background: var(--ag-neutral-bg) !important;
+  border: 1px solid var(--ag-border) !important;
+}
+
+.table td.actions button[data-action*="editar"] {
+  background: var(--ag-info-bg) !important;
+  color: var(--ag-blue-strong) !important;
+  border-color: rgba(29, 78, 216, 0.22) !important;
+}
+
+.table td.actions button[data-action="pagar"],
+.table td.actions button[data-action="receber"],
+.table td.actions button[data-action="pagamento"] {
+  background: var(--ag-success-bg) !important;
+  color: var(--ag-success) !important;
+  border-color: rgba(21, 128, 61, 0.25) !important;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--ag-blue) !important;
+  outline-offset: 2px !important;
+}
+
+/* ---- Formulários ---- */
+input,
+select,
+textarea {
+  background: var(--ag-surface) !important;
+  border: 1px solid var(--ag-border) !important;
+  border-radius: var(--ag-radius-sm) !important;
+  color: var(--ag-text) !important;
+  min-height: var(--ag-control-h);
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--ag-blue) !important;
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.16) !important;
+}
+
+label {
+  color: var(--ag-text) !important;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ag-space-3);
+  align-items: end;
+  background: var(--ag-surface-2) !important;
+  border: 1px solid var(--ag-border) !important;
+  border-radius: var(--ag-radius) !important;
+  padding: 14px !important;
+}
+
+/* ---- Abas ---- */
+:is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav, #finSubnav),
+.subnav,
+.patio-nav-inline {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  padding: 6px !important;
+  background: var(--ag-surface-2) !important;
+  border: 1px solid var(--ag-border) !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+}
+
+:is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) button,
+.subnav button,
+.patio-nav-inline button {
+  border-radius: 999px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--ag-muted) !important;
+  font-weight: 650 !important;
+  min-height: 34px !important;
+  padding: 6px 14px !important;
+  box-shadow: none !important;
+}
+
+:is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) button.active,
+.subnav button.active,
+.patio-nav-inline button.active {
+  background: var(--ag-navy) !important;
+  color: #fff !important;
+  border-color: var(--ag-navy) !important;
+}
+
+/* ---- Tabelas ---- */
+.table-wrap {
+  border: 1px solid var(--ag-border) !important;
+  border-radius: var(--ag-radius) !important;
+  background: var(--ag-surface) !important;
+  overflow: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table thead th {
+  background: var(--ag-surface-2) !important;
+  color: var(--ag-muted) !important;
+  border-bottom: 1px solid var(--ag-border) !important;
+  font-size: 11px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 12px 12px !important;
+  white-space: nowrap;
+}
+
+.table tbody td {
+  border-bottom: 1px solid var(--ag-border) !important;
+  padding: 12px 12px !important;
+  color: var(--ag-text) !important;
+  font-size: 13.5px !important;
+  vertical-align: middle;
+}
+
+.table tbody tr:nth-child(even) {
+  background: var(--ag-surface-2) !important;
+}
+
+.table tbody tr:hover {
+  background: var(--ag-blue-soft) !important;
+}
+
+/* ---- Modais ---- */
+.modal-backdrop,
+.vei-modal-backdrop {
+  background: rgba(6, 20, 34, 0.46) !important;
+  backdrop-filter: blur(8px);
+}
+
+.modal,
+.vei-modal {
+  background: var(--ag-surface) !important;
+  border: 1px solid var(--ag-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--ag-shadow) !important;
+  padding: 22px 22px 18px !important;
+}
+
+.modal-header h3,
+.vei-modal-head h3 {
+  color: var(--ag-text) !important;
+  font-size: 1.15rem;
+}
+
+.modal-header .subtitle {
+  color: var(--ag-muted) !important;
+  font-size: 13px !important;
+}
+
+/* ---- Badges ---- */
+.tag,
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px !important;
+  padding: 3px 10px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+}
+
+.tag,
+.pill:not(.pill--premium):not(.pill--ok):not(.pill--warn):not(.pill--danger) {
+  background: var(--ag-neutral-bg) !important;
+  color: var(--ag-text) !important;
+  border: 1px solid var(--ag-border) !important;
+}
+
+.tag.success,
+.pill--ok,
+.fin-tag--ok,
+.status.success,
+.pc-status-ativo {
+  background: var(--ag-success-bg) !important;
+  color: var(--ag-success) !important;
+  border: 1px solid rgba(21, 128, 61, 0.22) !important;
+}
+
+.tag.warning,
+.pill--warn,
+.fin-tag--warn,
+.status.warn {
+  background: var(--ag-warning-bg) !important;
+  color: var(--ag-warning) !important;
+  border: 1px solid rgba(180, 83, 9, 0.22) !important;
+}
+
+.tag.danger,
+.pill--danger,
+.fin-tag--danger,
+.status.error {
+  background: var(--ag-danger-bg) !important;
+  color: var(--ag-danger) !important;
+  border: 1px solid rgba(185, 28, 28, 0.22) !important;
+}
+
+.notice {
+  background: var(--ag-info-bg) !important;
+  border: 1px solid rgba(29, 78, 216, 0.18) !important;
+  color: var(--ag-text) !important;
+}
+
+.status.success,
+.status.error {
+  color: var(--ag-text) !important;
+}
+
+.status.success {
+  background: var(--ag-success-bg) !important;
+}
+
+.status.error {
+  background: var(--ag-danger-bg) !important;
+}
+
+/* ---- Dashboard operacional ---- */
+.exec-ops-header {
+  border-bottom-color: var(--ag-border) !important;
+}
+
+.exec-ops-period {
+  background: var(--ag-surface-2) !important;
+  border: 1px solid var(--ag-border) !important;
+}
+
+.exec-ops-period button {
+  color: var(--ag-muted) !important;
+  min-height: 34px !important;
+}
+
+.exec-ops-period button.is-active {
+  background: var(--ag-navy) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+.exec-ops-kpi {
+  min-height: 128px !important;
+  gap: 8px !important;
+}
+
+.exec-ops-kpi span,
+.exec-ops-kpi small {
+  color: var(--ag-muted) !important;
+  font-size: 13px !important;
+}
+
+.exec-ops-kpi strong {
+  color: var(--ag-text) !important;
+  font-size: 2.05rem !important;
+}
+
+.exec-ops-kpi--alert {
+  border-color: rgba(180, 83, 9, 0.35) !important;
+  background: linear-gradient(180deg, #fffdf8, var(--ag-surface)) !important;
+}
+
+.exec-ops-attn button,
+.fin-simple-attn {
+  background: var(--ag-surface) !important;
+  border: 1px solid var(--ag-border) !important;
+  border-radius: 12px !important;
+  color: var(--ag-text) !important;
+}
+
+.exec-ops-attn button:hover,
+.fin-simple-attn:hover,
+.exec-ops-kpi:hover,
+.fin-simple-card:hover {
+  border-color: #b9c0cc !important;
+  box-shadow: var(--ag-shadow-soft) !important;
+}
+
+.exec-ops-sit-bar {
+  background: var(--ag-neutral-bg) !important;
+}
+
+.exec-ops-sit-bar i {
+  background: var(--ag-navy) !important;
+}
+
+.exec-ops-mov li {
+  border-bottom-color: var(--ag-border) !important;
+}
+
+.exec-ops-link {
+  color: var(--ag-blue-strong) !important;
+  font-weight: 650;
+}
+
+.hub-chart,
+.hub-chart text {
+  color: var(--ag-muted);
+  fill: currentColor;
+}
+
+/* ---- Financeiro simples ---- */
+.fin-simple-card {
+  text-align: left;
+  min-height: 108px;
+  padding: 16px 18px !important;
+  color: var(--ag-text) !important;
+  background: var(--ag-surface) !important;
+}
+
+.fin-simple-card strong {
+  font-size: 1.35rem;
+  color: var(--ag-text) !important;
+}
+
+.fin-card-label,
+.fin-simple-card small {
+  color: var(--ag-muted) !important;
+}
+
+.fin-simple-attn--red {
+  border-color: rgba(185, 28, 28, 0.28) !important;
+}
+.fin-simple-attn--yellow {
+  border-color: rgba(180, 83, 9, 0.3) !important;
+}
+.fin-simple-attn--blue {
+  border-color: rgba(29, 78, 216, 0.25) !important;
+}
+.fin-simple-attn--green {
+  border-color: rgba(21, 128, 61, 0.28) !important;
+}
+
+.fin-simple-recent button {
+  background: none !important;
+  border: 0 !important;
+  color: var(--ag-text) !important;
+  min-height: auto !important;
+}
+
+/* ---- Gráficos / empty ---- */
+.hub-chart-empty,
+.fp-exec-empty,
+.exec-ops-empty {
+  color: var(--ag-muted) !important;
+  font-size: 14px;
+}
+
+/* ---- Auth ---- */
+.panel.auth,
+.auth-screen__card,
+body.auth-screen-active #authorizationPanel:not(.hidden) {
+  background: var(--ag-surface) !important;
+  border: 1px solid var(--ag-border) !important;
+  color: var(--ag-text) !important;
+}
+
+.auth-tab.active {
+  background: var(--ag-navy) !important;
+  color: #fff !important;
+}
+
+/* ---- Parceiros KPIs ---- */
+.ao-kpi {
+  background: var(--ag-surface) !important;
+  color: var(--ag-text) !important;
+}
+
+/* ---- Responsivo ---- */
+@media (max-width: 900px) {
+  :root {
+    --ag-control-h: 36px;
+  }
+  header .brand-header-logo {
+    height: 48px !important;
+  }
+  .panel,
+  .section-card {
+    padding: 16px !important;
+  }
+  .table tbody td {
+    font-size: 13px !important;
+  }
+  :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav),
+  .subnav {
+    border-radius: 14px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .exec-ops-kpi strong {
+    font-size: 1.7rem !important;
+  }
+}
+
+@media (max-width: 900px) {
+  button.secondary,
+  .modal-close {
+    min-height: 36px;
+  }
+}
