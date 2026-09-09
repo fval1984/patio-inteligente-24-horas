@@ -177,77 +177,85 @@ header .brand-header-logo {
   font-weight: 600;
 }
 
-/* Trilho de navegação (desktop) — mesma nav existente */
-@media (min-width: 1100px) {
-  body:not(.auth-screen-active) {
-    --app-gutter-x: 22px;
+/* Navegação no topo — nunca sobrepõe o conteúdo */
+body:not(.auth-screen-active) .app-top-shell,
+body:not(.auth-screen-active) main {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100%;
+}
+
+body:not(.auth-screen-active) #dashboardSystemEntry {
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: auto !important;
+  height: auto !important;
+  z-index: auto !important;
+}
+
+body:not(.auth-screen-active) #dashboardSystemEntry::before {
+  content: none !important;
+  display: none !important;
+}
+
+@media (min-width: 901px) {
+  .app-top-shell {
+    position: sticky;
+    top: 0;
+    z-index: 20;
   }
 
-  body:not(.auth-screen-active) .app-top-shell,
-  body:not(.auth-screen-active) main {
-    margin-left: var(--ag-rail-w);
-    width: calc(100% - var(--ag-rail-w));
+  header {
+    min-height: 64px;
+    padding: 8px 24px 6px !important;
+  }
+
+  .app-subheader {
+    background: var(--ag-iron) !important;
+    border-bottom: 3px solid var(--ag-wood) !important;
+    padding: 8px 24px !important;
+  }
+
+  .app-subheader-row {
+    align-items: center;
+    gap: 16px;
+  }
+
+  .app-subheader .user {
+    color: #d8d4cc !important;
   }
 
   body:not(.auth-screen-active) #dashboardSystemEntry {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: var(--ag-rail-w);
-    z-index: 50;
     display: flex !important;
-    flex-direction: column !important;
+    flex-direction: row !important;
     flex-wrap: nowrap !important;
-    align-items: stretch !important;
-    justify-content: flex-start !important;
-    gap: 6px !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    padding: 22px 14px 18px !important;
-    margin: 0 !important;
-    background: var(--ag-iron) !important;
-    border-right: 1px solid #3c3e40;
-    box-shadow: inset -1px 0 0 rgba(196, 160, 106, 0.35);
-  }
-
-  body:not(.auth-screen-active) #dashboardSystemEntry::before {
-    content: "AMPLIGUARD";
-    display: block;
-    margin: 0 8px 18px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-    color: var(--ag-wood-light);
-    font-family: var(--ag-font-display);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.22em;
+    align-items: center !important;
+    gap: 4px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
   }
 
   body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn {
-    width: 100% !important;
-    min-height: 46px !important;
-    justify-content: flex-start !important;
-    align-items: flex-start !important;
-    flex-direction: column !important;
-    gap: 2px !important;
-    padding: 10px 12px !important;
+    width: auto !important;
+    min-height: 38px !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 8px 14px !important;
     border-radius: 2px !important;
     border: 1px solid transparent !important;
     background: transparent !important;
-    color: #eceae6 !important;
+    color: #e8e4dc !important;
     box-shadow: none !important;
-    white-space: normal !important;
   }
 
-  body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn__kicker {
-    display: block !important;
-    font-size: 9px !important;
-    letter-spacing: 0.16em !important;
-    color: var(--ag-wood-light) !important;
-    text-transform: uppercase;
-  }
-
+  body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn__kicker,
   body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn__desc,
   body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn__go {
     display: none !important;
@@ -255,43 +263,46 @@ header .brand-header-logo {
 
   body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn__title {
     font-family: var(--ag-font-display);
-    font-size: 13px !important;
-    font-weight: 650 !important;
-    letter-spacing: 0.08em !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.1em !important;
     color: inherit !important;
   }
 
   body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn:hover {
-    background: rgba(255, 255, 255, 0.06) !important;
-    color: #fff !important;
-  }
-
-  body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn.active {
     background: rgba(255, 255, 255, 0.08) !important;
-    border-color: rgba(196, 160, 106, 0.45) !important;
-    box-shadow: inset 3px 0 0 var(--ag-wood-light) !important;
     color: #fff !important;
   }
 
+  body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn.active,
   body:not(.auth-screen-active).app-module-patio:has(#viewPatio:not(.hidden)) #dashboardOpenPatio,
   body:not(.auth-screen-active).app-module-finance #dashboardOpenFinance,
   body:not(.auth-screen-active).app-module-lista #dashboardOpenLista,
   body:not(.auth-screen-active):has(#viewParceiros:not(.hidden)) #dashboardOpenParceiros,
   body:not(.auth-screen-active):has(#viewConfiguracoes:not(.hidden)) #dashboardOpenConfiguracoes,
   body:not(.auth-screen-active):has(#viewDashboard:not(.hidden)) #dashboardOpenHome {
-    background: rgba(255, 255, 255, 0.08) !important;
-    border-color: rgba(196, 160, 106, 0.45) !important;
-    box-shadow: inset 3px 0 0 var(--ag-wood-light) !important;
+    background: var(--ag-wood) !important;
+    border-color: var(--ag-wood) !important;
+    box-shadow: none !important;
     color: #fff !important;
   }
 
-  body:not(.auth-screen-active):has(#dashboardSystemEntry.hidden) .app-top-shell,
-  body:not(.auth-screen-active):has(#dashboardSystemEntry.hidden) main {
-    margin-left: 0;
-    width: 100%;
+  .header-plate-search button,
+  .header-plate-search button.secondary {
+    color: #f4f1ea !important;
+    border-color: rgba(255, 255, 255, 0.22) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
   }
-  body:not(.auth-screen-active) #dashboardSystemEntry.hidden {
-    display: none !important;
+
+  .header-plate-search button[type="submit"] {
+    background: var(--ag-wood) !important;
+    border-color: var(--ag-wood) !important;
+    color: #fff !important;
+  }
+
+  main {
+    margin-left: 0 !important;
+    padding-top: 20px !important;
   }
 }
 
