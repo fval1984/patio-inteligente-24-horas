@@ -198,6 +198,10 @@
       whatsapp: String(raw?.whatsapp || "").trim(),
       email: String(raw?.email || "").trim(),
       notes: String(raw?.notes || "").trim(),
+      trade_name: String(raw?.trade_name || "").trim(),
+      address: String(raw?.address || "").trim(),
+      city: String(raw?.city || "").trim(),
+      state: String(raw?.state || "").trim().toUpperCase(),
       active: raw?.active === false || raw?.active === "INATIVO" ? false : true,
     };
   }
@@ -229,6 +233,7 @@
       cpf: cpfDigits ? formatCpf(cpfDigits) : "",
       cpf_digits: cpfDigits,
       phone: String(raw?.phone || "").trim(),
+      whatsapp: String(raw?.whatsapp || "").trim(),
       email: String(raw?.email || "").trim(),
       role_title: String(raw?.role_title || "").trim(),
       notes: String(raw?.notes || "").trim(),
@@ -296,7 +301,7 @@
       if (st === "ATIVO" && !o.active) return false;
       if (st === "INATIVO" && o.active) return false;
       if (!q) return true;
-      const hay = [o.name, o.cnpj, o.responsible_name, o.phone, o.whatsapp, o.email, o.notes]
+      const hay = [o.name, o.cnpj, o.responsible_name, o.phone, o.whatsapp, o.email, o.notes, o.city, o.trade_name]
         .map((x) => String(x || "").toLowerCase())
         .join(" ");
       return hay.includes(q);
