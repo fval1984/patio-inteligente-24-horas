@@ -60,11 +60,11 @@
       .cmd-ops-head p { margin: 4px 0 0; color: var(--ag-muted, #3a4046); font-size: 14px; }
       .cmd-ops-meta { text-align: right; color: var(--ag-muted, #3a4046); font-size: 13px; line-height: 1.45; }
       .cmd-ops-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-      .cmd-ops-kpi { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; min-height: 88px; text-align: left; border-radius: 2px; border: 1px solid var(--ag-border, #9a948a); background: var(--ag-card, #fbf8f3); color: inherit; font: inherit; cursor: pointer; }
+      .cmd-ops-kpi { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; min-height: 88px; text-align: left; border-radius: 2px; border: 1px solid var(--ag-border, #9a948a); background: var(--ag-card, #fbf8f3); color: var(--ag-text, #121314); font: inherit; cursor: pointer; }
       .cmd-ops-kpi span { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ag-muted, #3a4046); }
-      .cmd-ops-kpi strong { font-size: 1.85rem; line-height: 1.05; color: #121314; }
-      .cmd-ops-kpi--alert { border-left: 3px solid #a15c12; }
-      .cmd-ops-kpi--money { grid-column: 1 / -1; min-height: 96px; border-left: 3px solid #2f6b3a; }
+      .cmd-ops-kpi strong { font-size: 1.85rem; line-height: 1.05; color: var(--ag-text, #121314); }
+      .cmd-ops-kpi--alert { border-left: 3px solid #a15c12; background: var(--ag-warning-bg, #f6ead4); }
+      .cmd-ops-kpi--money { grid-column: 1 / -1; min-height: 96px; border-left: 3px solid #2f6b3a; background: var(--ag-success-bg, #e5f0e4); }
       .cmd-ops-kpi--money small { margin-top: 2px; font-size: 12px; color: var(--ag-muted, #3a4046); font-weight: 500; letter-spacing: 0; text-transform: none; }
       .cmd-ops-kpi--money strong { font-variant-numeric: tabular-nums; }
       .cmd-ops-block h3 { margin: 0 0 10px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; }
@@ -80,7 +80,7 @@
       .cmd-ops-today { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
       .cmd-ops-today div { padding: 12px 14px; border: 1px solid var(--ag-border, #9a948a); background: var(--ag-surface-2, #ebe6de); }
       .cmd-ops-today span { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ag-muted, #3a4046); }
-      .cmd-ops-today strong { font-size: 1.5rem; }
+      .cmd-ops-today strong { font-size: 1.5rem; color: var(--ag-text, #121314); }
       .cmd-ops-today--pos strong { color: #2f6b3a; }
       .cmd-ops-today--neg strong { color: #9b2c2c; }
       .cmd-ops-mov-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
