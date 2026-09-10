@@ -7028,7 +7028,10 @@
         #patioContent [data-subview="removidos"] .table-wrap,
         #patioContent [data-subview="fechando_ciclo"] .table-wrap,
         #patioContent [data-subview="aguardando_faturamento"] .table-wrap {
-          overflow-x: visible;
+          overflow-x: hidden;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          max-height: none;
         }
         .lista-toolbar-actions {
           flex-wrap: wrap;
@@ -7059,7 +7062,7 @@
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260909contrast1" />
     <link rel="stylesheet" href="/finance-action-ui.css?v=20260818finact6" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
-    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile17" />
+    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260910scroll1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20260909contrast1" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260910cob4" />
