@@ -177,7 +177,7 @@
 
     const rows =
       slice.length === 0
-        ? `<tr><td colspan="8">Nenhum registro em aberto com os filtros atuais.</td></tr>`
+        ? `<tr><td colspan="9">Nenhum registro em aberto com os filtros atuais.</td></tr>`
         : slice
             .map((line) => {
               const checked = selectedIds.has(line.receivableId) ? "checked" : "";
@@ -190,6 +190,7 @@
                 <td class="num" data-label="Dias">${esc(line.dias === "" ? "—" : line.dias)}</td>
                 <td class="num" data-label="Valor">${esc(money(line.valor))}</td>
                 <td data-label="Status"><span class="cob-tag ${statusClass(line.statusLabel)}">${esc(line.statusLabel)}</span></td>
+                <td data-label="Ações"><button type="button" class="cob-btn danger" data-cob-hide="${esc(line.receivableId)}">Apagar</button></td>
               </tr>`;
             })
             .join("");
@@ -224,6 +225,7 @@
         <button type="button" class="cob-btn secondary" data-cob-sel="all">Selecionar todos</button>
         <button type="button" class="cob-btn secondary" data-cob-sel="none">Desmarcar todos</button>
         <span>${selectedIds.size} selecionado(s)${selectedOnPage ? ` · ${selectedOnPage} nesta página` : ""}</span>
+        <button type="button" class="cob-btn danger" data-cob-hide-sel="1">Apagar selecionados</button>
         <button type="button" class="cob-btn" data-cob-gerar="1">GERAR COBRANÇA</button>
       </div>
       <div class="cob-table-wrap">
@@ -231,7 +233,7 @@
           <thead>
             <tr>
               <th></th><th>Veículo</th><th>Placa</th><th>Entrada</th><th>Saída</th>
-              <th class="num">Dias</th><th class="num">Valor</th><th>Status</th>
+              <th class="num">Dias</th><th class="num">Valor</th><th>Status</th><th>Ações</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -636,6 +638,23 @@
     render();
   }
 
+  function hideLines(ids) {
+    const list = svc().dedupeReceivableIds(ids);
+    if (!list.length) {
+      alert("Selecione pelo menos um registro para apagar.");
+      return;
+    }
+    const ok = window.confirm(
+      list.length === 1
+        ? "Apagar este registro da lista de Cobrança?\nO título no Financeiro não será alterado."
+        : `Apagar ${list.length} registros da lista de Cobrança?\nOs títulos no Financeiro não serão alterados.`
+    );
+    if (!ok) return;
+    svc().hideReceivableIds(list);
+    list.forEach((id) => selectedIds.delete(id));
+    render();
+  }
+
   async function deleteHistory(row) {
     const num = String(row.numero_cobranca || 0).padStart(6, "0");
     const ok = window.confirm(
@@ -698,6 +717,17 @@
       goGerar();
       return;
     }
+    const hideOne = e.target.closest("[data-cob-hide]");
+    if (hideOne) {
+      e.preventDefault();
+      e.stopPropagation();
+      hideLines([hideOne.getAttribute("data-cob-hide")]);
+      return;
+    }
+    if (e.target.closest("[data-cob-hide-sel]")) {
+      hideLines([...selectedIds]);
+      return;
+    }
     if (e.target.closest("[data-cob-pdf]")) {
       onPdf();
       return;
@@ -728,7 +758,7 @@
       return;
     }
     const tr = e.target.closest("tr[data-cob-line]");
-    if (tr && !e.target.closest("input")) {
+    if (tr && !e.target.closest("input") && !e.target.closest("button")) {
       showLineModal(tr.getAttribute("data-cob-line"));
     }
   }

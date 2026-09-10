@@ -62,6 +62,37 @@
     return toLocalYmd(new Date().toISOString());
   }
 
+  function ownerId() {
+    if (typeof global.effectiveUserId === "function") return global.effectiveUserId();
+    return state().patioOwnerUserId || state().user?.id || "anon";
+  }
+
+  function hiddenKey() {
+    return "ampliauto_cobranca_hidden_receivables_" + String(ownerId() || "anon");
+  }
+
+  function hiddenReceivableIds() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(hiddenKey()) || "[]");
+      return new Set((Array.isArray(raw) ? raw : []).map(String));
+    } catch (_e) {
+      return new Set();
+    }
+  }
+
+  function hideReceivableIds(ids) {
+    const set = hiddenReceivableIds();
+    (ids || []).forEach(function (id) {
+      if (id) set.add(String(id));
+    });
+    try {
+      localStorage.setItem(hiddenKey(), JSON.stringify([...set]));
+    } catch (e) {
+      console.warn("cobranca hide", e);
+    }
+    return set;
+  }
+
   function vehicleById(id) {
     if (!id) return null;
     const list = state().vehicles || [];
@@ -274,12 +305,13 @@
 
   function openLines() {
     const recs = state().receivables || [];
+    const hidden = hiddenReceivableIds();
     const out = [];
     const seen = new Set();
     for (const r of recs) {
       if (!r?.id) continue;
       const id = String(r.id);
-      if (seen.has(id)) continue;
+      if (seen.has(id) || hidden.has(id)) continue;
       if (!isReceivableEmAberto(r)) continue;
       seen.add(id);
       out.push(buildLine(r));
@@ -643,6 +675,8 @@
     dedupeReceivableIds,
     loadHistory,
     loadHistoryItems,
+    hideReceivableIds,
+    hiddenReceivableIds,
     persistCobranca,
     deleteCobranca,
     snapshotLinesFromItems,
