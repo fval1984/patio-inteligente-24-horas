@@ -603,7 +603,14 @@
   #patioContent [data-subview="no_patio"] .table-wrap,
   #patioContent [data-subview="vlp"] .table-wrap,
   #patioContent [data-subview="removidos"] .table-wrap {
-    overflow: visible !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
@@ -855,6 +862,48 @@
     min-height: var(--mob-btn-h, 36px) !important;
     font-size: var(--mob-btn-font, 11px) !important;
     padding: var(--mob-btn-pad-y, 6px) var(--mob-btn-pad-x, 10px) !important;
+  }
+}
+
+/* VNP/VLP/VRP no telemóvel: a lista tem de rolar até ao último cartão.
+   overflow:visible no table-wrap + overflow:hidden nos pais cortava o fundo. */
+@media (max-width: 900px) {
+  #patioContent.modal-backdrop.tab-view-modal > .modal.modal--wide {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+  }
+
+  #patioContent.modal-backdrop.tab-view-modal .tab-modal-body,
+  #patioContent.modal-backdrop.tab-view-modal .tab-modal-body > .section-card.patio-subview:not(.hidden) {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  #patioContent.modal-backdrop.tab-view-modal .tab-modal-body .table-wrap,
+  .tab-modal-body .table-wrap {
+    max-height: none !important;
+  }
+
+  #viewLista.lista-module-shell,
+  #viewLista .table-wrap {
+    max-height: none !important;
+  }
+
+  #viewLista .table-wrap {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.app-module-patio main,
+  body.app-module-lista main {
+    padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
   }
 }
 
