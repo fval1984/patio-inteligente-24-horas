@@ -7062,6 +7062,7 @@
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260813mobile17" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20260909contrast1" />
+    <link rel="stylesheet" href="/cobranca-module.css?v=20260910cob1" />
   </head>
   <body class="auth-screen-active">
     <noscript>
@@ -7780,6 +7781,19 @@
             </div>
           </div>
           <div id="biExecRoot" class="bi-exec-root"></div>
+        </div>
+
+        <div id="viewCobranca" class="panel hidden cob-module-shell">
+          <div class="toolbar">
+            <div>
+              <h2 style="margin: 0">Cobrança</h2>
+              <p class="subtitle cob-sub" style="margin: 4px 0 0">Controle de valores em aberto por parceiro</p>
+            </div>
+            <div class="actions">
+              <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
+            </div>
+          </div>
+          <div id="cobrancaRoot" class="cob-shell"></div>
         </div>
 
         <div id="viewFinanceiro" class="panel hidden finance-module-shell">
@@ -9329,6 +9343,8 @@
           </div>
         </details>
 
+        <button type="button" class="header-menu-top" data-view="cobranca">Cobrança</button>
+
         <details class="header-menu-details" id="headerDetailsParceiros">
           <summary>Parceiros</summary>
           <div class="header-menu-nested">
@@ -9394,6 +9410,8 @@
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script src="/advocacy-offices-service.js?v=20260909partners2"></script>
     <script src="/advocacy-offices-ui.js?v=20260909partners2"></script>
+    <script src="/cobranca-service.js?v=20260910cob1"></script>
+    <script src="/cobranca-ui.js?v=20260910cob1"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -10092,6 +10110,7 @@
         financeiro: document.getElementById("viewFinanceiro"),
         biExecutivo: document.getElementById("viewBiExecutivo"),
         escritorios: document.getElementById("viewEscritorios"),
+        cobranca: document.getElementById("viewCobranca"),
       };
       const patioFlyoutClose = document.getElementById("patioFlyoutClose");
       const patioMenuNewVehicle = document.getElementById("patioMenuNewVehicle");
@@ -10422,7 +10441,7 @@
         aguardando_faturamento: { title: "Aguardando faturamento", subtitle: "Ciclo concluído, aguardando NF ou cobrança" },
       };
 
-      const MODULE_VIEWS = ["patio", "lista", "parceiros", "configuracoes", "financeiro", "biExecutivo", "escritorios"];
+      const MODULE_VIEWS = ["patio", "lista", "parceiros", "configuracoes", "financeiro", "biExecutivo", "escritorios", "cobranca"];
 
       const MODULE_VIEW_IDS = {
         patio: "viewPatio",
@@ -10432,6 +10451,7 @@
         financeiro: "viewFinanceiro",
         biExecutivo: "viewBiExecutivo",
         escritorios: "viewEscritorios",
+        cobranca: "viewCobranca",
       };
 
       const MODULE_VIEW_LABELS = {
@@ -10442,6 +10462,7 @@
         financeiro: { title: "Financeiro", subtitle: "Receitas, despesas, cobranças e caixa" },
         biExecutivo: { title: "BI Executivo", subtitle: "Análise estratégica" },
         escritorios: { title: "Escritórios de Advocacia", subtitle: "Cadastro e demanda por escritório" },
+        cobranca: { title: "Cobrança", subtitle: "Valores em aberto por parceiro" },
       };
 
       let tabModalSystemReady = false;
@@ -12766,6 +12787,7 @@
         if (kind === "receivable") return String(record.period_end || record.created_at || "").slice(0, 10);
         return String(record.data_vencimento || record.created_at || "").slice(0, 10);
       }
+      window.financeContaDueYmd = financeContaDueYmd;
 
       function financeContaDueDays(dueYmd, todayYmd) {
         if (!dueYmd || !todayYmd) return null;
@@ -12922,6 +12944,7 @@
         if (!r || r.status !== "EM_ABERTO") return false;
         return r.period_end == null || r.period_end === "";
       }
+      window.receivableIsCicloPatioAberto = receivableIsCicloPatioAberto;
 
       /** Ciclo já encerrado no pátio: period_end OU veículo removido (VRP), mesmo sem period_end em dados antigos. Pagamento ainda não quitado no financeiro. */
       function receivableCicloEncerradoParaFinanceiro(r) {
@@ -12939,6 +12962,7 @@
         if (meta?.sem_cobranca === true) return true;
         return false;
       }
+      window.receivableSemCobrancaFinanceira = receivableSemCobrancaFinanceira;
 
       /**
        * Fila «Aguardando lançamento»: status AGUARDANDO no Supabase OU EM_ABERTO com ciclo encerrado
@@ -23838,7 +23862,7 @@
         menu.querySelectorAll(".header-menu-details").forEach((d) => d.classList.remove("header-menu-details--current"));
         menu.querySelectorAll(".header-menu-top[data-view]").forEach((btn) => {
           const v = btn.getAttribute("data-view");
-          btn.classList.toggle("header-menu-top--current", v === view && (v === "dashboard" || v === "biExecutivo"));
+          btn.classList.toggle("header-menu-top--current", v === view && (v === "dashboard" || v === "biExecutivo" || v === "cobranca"));
         });
         if (view === "patio") menu.querySelector("#headerDetailsPatio")?.classList.add("header-menu-details--current");
         else if (view === "parceiros") menu.querySelector("#headerDetailsParceiros")?.classList.add("header-menu-details--current");
@@ -23879,6 +23903,8 @@
         } else if (view === "financeiro") {
           document.body.classList.add("app-module-finance");
           document.title = "AMPLIGUARD · Financeiro";
+        } else if (view === "cobranca") {
+          document.title = "AMPLIGUARD · Cobrança";
         } else if (view === "dashboard") {
           document.title = "AMPLIGUARD · Painel";
         } else if (view === "biExecutivo") {
@@ -23895,6 +23921,7 @@
           patio: ["Operação", "Gestão de pátio"],
           lista: ["Relatórios", "Lista"],
           financeiro: ["Financeiro", "Financeiro"],
+          cobranca: ["Financeiro", "Cobrança"],
           parceiros: ["Relacionamento", "Parceiros"],
           escritorios: ["Relacionamento", "Escritórios"],
           configuracoes: ["Administração", "Configurações"],
@@ -23926,6 +23953,9 @@
         if (view === "biExecutivo") {
           renderBiExecutivoDashboard();
         }
+        if (view === "cobranca") {
+          if (typeof window.cobrancaUi?.mount === "function") window.cobrancaUi.mount();
+        }
         if (view === "escritorios") {
           if (typeof window.advocacyOfficesUi?.bindOnce === "function") window.advocacyOfficesUi.bindOnce();
           const cadHidden = document.getElementById("aoCadastroPanel")?.classList.contains("hidden");
@@ -23933,7 +23963,7 @@
             window.advocacyOfficesUi.setSubview(cadHidden ? "relatorio" : "cadastro");
           }
         }
-        const headerModViews = ["dashboard", "patio", "parceiros", "lista", "configuracoes", "financeiro", "biExecutivo", "escritorios"];
+        const headerModViews = ["dashboard", "patio", "parceiros", "lista", "configuracoes", "financeiro", "biExecutivo", "escritorios", "cobranca"];
         if (headerModViews.includes(view) && lastAppHeaderModuleView !== view) {
           document.querySelectorAll("#appHeaderMenu > .header-menu-details").forEach((d) => d.removeAttribute("open"));
           lastAppHeaderModuleView = view;
@@ -24139,6 +24169,9 @@
           } else {
             renderBiExecutivoDashboard();
           }
+        }
+        if (view === "cobranca") {
+          if (typeof window.cobrancaUi?.mount === "function") window.cobrancaUi.mount();
         }
       }
 
@@ -24470,11 +24503,21 @@
           }
           return;
         }
+        if (view === "cobranca") {
+          if (isGestorPista || isVistoriador) {
+            openMainView("patio");
+            return;
+          }
+          navStack.splice(0, navStack.length, "cobranca");
+          showMainView("cobranca");
+          if (typeof window.cobrancaUi?.mount === "function") window.cobrancaUi.mount();
+          return;
+        }
         openMainView(view);
       }
 
       function syncHeaderMenuHighlightFromDom() {
-        const order = ["dashboard", "biExecutivo", "patio", "financeiro", "parceiros", "escritorios", "lista", "configuracoes"];
+        const order = ["dashboard", "biExecutivo", "patio", "financeiro", "cobranca", "parceiros", "escritorios", "lista", "configuracoes"];
         for (const name of order) {
           const el = views[name];
           if (el && !el.classList.contains("hidden")) {
