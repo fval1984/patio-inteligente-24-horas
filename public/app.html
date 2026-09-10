@@ -7106,6 +7106,12 @@
               <span class="dashboard-system-btn__desc">Receita em geração, contas a receber, pagamentos e caixa.</span>
               <span class="dashboard-system-btn__go">Abrir financeiro →</span>
             </button>
+            <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenCobranca">
+              <span class="dashboard-system-btn__kicker">Financeiro</span>
+              <span class="dashboard-system-btn__title">Cobrança</span>
+              <span class="dashboard-system-btn__desc">Valores em aberto por parceiro e documento de cobrança.</span>
+              <span class="dashboard-system-btn__go">Abrir cobrança →</span>
+            </button>
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
               <span class="dashboard-system-btn__kicker">Relacionamento</span>
               <span class="dashboard-system-btn__title">Parceiros</span>
@@ -7815,6 +7821,7 @@
           <div class="finance-subnav" id="finSubnav">
             <button type="button" data-finance-subview-btn="dashboard" class="active">Dashboard</button>
             <button type="button" data-finance-subview-btn="em_patio">Diárias</button>
+            <button type="button" id="finSubnavOpenCobranca">Cobrança</button>
             <button type="button" data-finance-subview-btn="receber">A Receber</button>
             <button type="button" data-finance-subview-btn="pagar">A Pagar</button>
             <button type="button" data-finance-subview-btn="contas">Contas</button>
@@ -16261,6 +16268,7 @@
           "dashboardOpenHome",
           "dashboardOpenPatio",
           "dashboardOpenFinance",
+          "dashboardOpenCobranca",
           "dashboardOpenParceiros",
           "dashboardOpenLista",
           "dashboardOpenConfiguracoes",
@@ -16279,6 +16287,7 @@
           dashboard: "dashboardOpenHome",
           patio: "dashboardOpenPatio",
           financeiro: "dashboardOpenFinance",
+          cobranca: "dashboardOpenCobranca",
           parceiros: "dashboardOpenParceiros",
           lista: "dashboardOpenLista",
           configuracoes: "dashboardOpenConfiguracoes",
@@ -16352,6 +16361,7 @@
           document.getElementById("headerDetailsLista")?.classList.add("hidden");
           document.getElementById("dashboardSystemEntry")?.classList.add("hidden");
           document.getElementById("dashboardOpenFinance")?.classList.add("hidden");
+          document.getElementById("dashboardOpenCobranca")?.classList.add("hidden");
           patioSubnav?.querySelectorAll("button[data-subview]").forEach((btn) => {
             btn.classList.toggle("hidden", btn.getAttribute("data-subview") !== "vistoria");
           });
@@ -16372,6 +16382,7 @@
         if (!isGestorPista) {
           document.getElementById("dashboardSystemEntry")?.classList.remove("dashboard-system-entry--single");
           document.getElementById("dashboardOpenFinance")?.classList.remove("hidden");
+          document.getElementById("dashboardOpenCobranca")?.classList.remove("hidden");
           document.getElementById("headerDetailsFinance")?.classList.remove("hidden");
           window.isGestorPista = false;
           window.isVistoriador = false;
@@ -16409,6 +16420,7 @@
           .forEach((el) => el.classList.add("hidden"));
         document.getElementById("dashboardSystemEntry")?.classList.add("dashboard-system-entry--single");
         document.getElementById("dashboardOpenFinance")?.classList.add("hidden");
+        document.getElementById("dashboardOpenCobranca")?.classList.add("hidden");
 
         if (!opts.skipDefaultView) {
           showMainView("patio");
@@ -24380,6 +24392,8 @@
         openMainView("dashboard");
       });
       document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
+      document.getElementById("dashboardOpenCobranca")?.addEventListener("click", () => openMainView("cobranca"));
+      document.getElementById("finSubnavOpenCobranca")?.addEventListener("click", () => openMainView("cobranca"));
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
       document.getElementById("dashboardOpenLista")?.addEventListener("click", () => openMainView("lista"));
       document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openPartnerSubview("escritorios"));
