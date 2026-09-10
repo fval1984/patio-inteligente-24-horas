@@ -103,6 +103,13 @@ CREATE POLICY cobrancas_insert_own
   TO authenticated
   WITH CHECK (public.patio_data_owner_match(user_id));
 
+DROP POLICY IF EXISTS cobrancas_delete_own ON public.cobrancas;
+CREATE POLICY cobrancas_delete_own
+  ON public.cobrancas
+  FOR DELETE
+  TO authenticated
+  USING (public.patio_data_owner_match(user_id));
+
 DROP POLICY IF EXISTS cobranca_itens_select_own ON public.cobranca_itens;
 CREATE POLICY cobranca_itens_select_own
   ON public.cobranca_itens
@@ -131,8 +138,22 @@ CREATE POLICY cobranca_itens_insert_own
     )
   );
 
-GRANT SELECT, INSERT ON public.cobrancas TO authenticated;
-GRANT SELECT, INSERT ON public.cobranca_itens TO authenticated;
+DROP POLICY IF EXISTS cobranca_itens_delete_own ON public.cobranca_itens;
+CREATE POLICY cobranca_itens_delete_own
+  ON public.cobranca_itens
+  FOR DELETE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.cobrancas c
+      WHERE c.id = cobranca_id
+        AND public.patio_data_owner_match(c.user_id)
+    )
+  );
+
+GRANT SELECT, INSERT, DELETE ON public.cobrancas TO authenticated;
+GRANT SELECT, INSERT, DELETE ON public.cobranca_itens TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.cobrancas TO service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.cobranca_itens TO service_role;
 

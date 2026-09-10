@@ -587,6 +587,22 @@
     return created;
   }
 
+  async function deleteCobranca(cobrancaId, uid, supabase) {
+    if (!supabase || !uid || !cobrancaId) throw new Error("Não foi possível apagar o registro.");
+    const { error: itemErr } = await supabase.from("cobranca_itens").delete().eq("cobranca_id", cobrancaId);
+    if (itemErr && !/schema cache|does not exist|relation/i.test(itemErr.message || "")) throw itemErr;
+    const { error } = await supabase.from("cobrancas").delete().eq("id", cobrancaId).eq("user_id", uid);
+    if (error) {
+      if (/permission|rls|policy/i.test(error.message || "")) {
+        throw new Error(
+          "Sem permissão para apagar. Execute supabase/cobrancas_delete.sql no SQL Editor (não altera o financeiro)."
+        );
+      }
+      throw error;
+    }
+    return true;
+  }
+
   function snapshotLinesFromItems(items) {
     return (items || []).map((it) => {
       const s = it.snapshot || {};
@@ -628,6 +644,7 @@
     loadHistory,
     loadHistoryItems,
     persistCobranca,
+    deleteCobranca,
     snapshotLinesFromItems,
     vehicleById,
     displayStatus,

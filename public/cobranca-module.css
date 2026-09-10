@@ -156,6 +156,18 @@ html[data-theme="dark"] .cob-btn {
   border: 1px solid var(--cob-line);
 }
 
+.cob-btn.danger {
+  background: #9b2c2c;
+  color: #fff;
+  border: 1px solid #7a1f1f;
+}
+
+html[data-theme="dark"] .cob-btn.danger {
+  background: #c45c5c;
+  color: #101114;
+  border-color: #c45c5c;
+}
+
 .cob-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;

@@ -168,6 +168,7 @@
                     <button type="button" class="cob-btn secondary" data-cob-hist="${esc(h.id)}" data-act="view">Visualizar</button>
                     <button type="button" class="cob-btn secondary" data-cob-hist="${esc(h.id)}" data-act="pdf">Baixar PDF</button>
                     <button type="button" class="cob-btn secondary" data-cob-hist="${esc(h.id)}" data-act="print">Imprimir</button>
+                    <button type="button" class="cob-btn danger" data-cob-hist="${esc(h.id)}" data-act="delete">Apagar</button>
                   </td>
                 </tr>`;
               })
@@ -601,6 +602,10 @@
   async function openHistory(id, act) {
     const row = historyRows.find((h) => String(h.id) === String(id));
     if (!row) return;
+    if (act === "delete") {
+      await deleteHistory(row);
+      return;
+    }
     const items = await svc().loadHistoryItems(id, supabase());
     const lines = svc().snapshotLinesFromItems(items);
     const doc = {
@@ -629,6 +634,25 @@
     }
     screen = "preview";
     render();
+  }
+
+  async function deleteHistory(row) {
+    const num = String(row.numero_cobranca || 0).padStart(6, "0");
+    const ok = window.confirm(
+      `Apagar a cobrança Nº ${num}?\n\nIsto remove só o documento do histórico. Não altera contas a receber, baixas nem veículos.`
+    );
+    if (!ok) return;
+    try {
+      await svc().deleteCobranca(row.id, uid(), supabase());
+      historyRows = historyRows.filter((h) => String(h.id) !== String(row.id));
+      if (previewDoc?.cobrancaId && String(previewDoc.cobrancaId) === String(row.id)) {
+        previewDoc = null;
+        screen = "partner";
+      }
+      render();
+    } catch (e) {
+      alert(e.message || "Não foi possível apagar o registro.");
+    }
   }
 
   function onRootClick(e) {
