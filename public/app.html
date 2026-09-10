@@ -9334,6 +9334,7 @@
           <div class="header-menu-nested">
             <button type="button" data-finance-subview="dashboard">Dashboard</button>
             <button type="button" data-finance-subview="em_patio">Diárias</button>
+            <button type="button" data-header-cobranca="1">Cobrança</button>
             <button type="button" data-finance-subview="receber">A Receber</button>
             <button type="button" data-finance-subview="pagar">A Pagar</button>
             <button type="button" data-finance-subview="contas">Contas</button>
@@ -9343,7 +9344,12 @@
           </div>
         </details>
 
-        <button type="button" class="header-menu-top" data-view="cobranca">Cobrança</button>
+        <details class="header-menu-details" id="headerDetailsCobranca">
+          <summary>Cobrança</summary>
+          <div class="header-menu-nested">
+            <button type="button" data-header-cobranca="1">Abrir cobrança</button>
+          </div>
+        </details>
 
         <details class="header-menu-details" id="headerDetailsParceiros">
           <summary>Parceiros</summary>
@@ -16340,6 +16346,7 @@
           goDashboardFromPlate?.classList.add("hidden");
           document.getElementById("headerDetailsConfig")?.classList.add("hidden");
           document.getElementById("headerDetailsFinance")?.classList.add("hidden");
+          document.getElementById("headerDetailsCobranca")?.classList.add("hidden");
           document.getElementById("headerDetailsParceiros")?.classList.add("hidden");
           document.getElementById("headerDetailsEscritorios")?.classList.add("hidden");
           document.getElementById("headerDetailsLista")?.classList.add("hidden");
@@ -16389,6 +16396,7 @@
         goDashboardFromPlate?.classList.add("hidden");
         document.getElementById("headerDetailsConfig")?.classList.add("hidden");
         document.getElementById("headerDetailsFinance")?.classList.add("hidden");
+        document.getElementById("headerDetailsCobranca")?.classList.add("hidden");
         document.getElementById("headerDetailsParceiros")?.classList.add("hidden");
         document.getElementById("headerDetailsEscritorios")?.classList.add("hidden");
         document.querySelectorAll("#headerDetailsLista [data-lista-gestor-hide], #listaSubnav [data-lista-gestor-hide]").forEach((el) => {
@@ -23862,12 +23870,13 @@
         menu.querySelectorAll(".header-menu-details").forEach((d) => d.classList.remove("header-menu-details--current"));
         menu.querySelectorAll(".header-menu-top[data-view]").forEach((btn) => {
           const v = btn.getAttribute("data-view");
-          btn.classList.toggle("header-menu-top--current", v === view && (v === "dashboard" || v === "biExecutivo" || v === "cobranca"));
+          btn.classList.toggle("header-menu-top--current", v === view && (v === "dashboard" || v === "biExecutivo"));
         });
         if (view === "patio") menu.querySelector("#headerDetailsPatio")?.classList.add("header-menu-details--current");
         else if (view === "parceiros") menu.querySelector("#headerDetailsParceiros")?.classList.add("header-menu-details--current");
         else if (view === "lista") menu.querySelector("#headerDetailsLista")?.classList.add("header-menu-details--current");
         else if (view === "financeiro") menu.querySelector("#headerDetailsFinance")?.classList.add("header-menu-details--current");
+        else if (view === "cobranca") menu.querySelector("#headerDetailsCobranca")?.classList.add("header-menu-details--current");
         else if (view === "configuracoes") menu.querySelector("#headerDetailsConfig")?.classList.add("header-menu-details--current");
         else if (view === "escritorios") menu.querySelector("#headerDetailsEscritorios")?.classList.add("header-menu-details--current");
       }
@@ -24617,6 +24626,13 @@
           openMainView("configuracoes");
           setConfigSubview(cfgSub.getAttribute("data-header-config-sub"));
           closeAppHeaderMenu();
+          return;
+        }
+        const cobHdr = e.target.closest("[data-header-cobranca], #headerDetailsCobranca summary");
+        if (cobHdr) {
+          e.preventDefault();
+          closeAppHeaderMenu();
+          navigateMainViewFromNav("cobranca");
           return;
         }
         const finSub = e.target.closest("[data-finance-subview]");
