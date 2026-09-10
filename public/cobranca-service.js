@@ -107,17 +107,38 @@
     return "localizadores";
   }
 
+  function hasCaixaBaixa(r) {
+    if (!r?.id) return false;
+    if (typeof global.receivableCashMovementExists === "function" && global.receivableCashMovementExists(r.id)) {
+      return true;
+    }
+    const id = String(r.id);
+    return (state().cash || []).some(function (m) {
+      if (String(m.conta_id) !== id) return false;
+      const t = String(m.tipo_conta || "").toUpperCase();
+      return t === "RECEBER" || t === "ENTRADA";
+    });
+  }
+
   function isPaidOrSettled(r) {
     if (!r) return true;
     const st = String(r.status || "").toUpperCase();
-    if (st === "PAGO") return true;
+    if (st === "PAGO" || st === "RECEBIDO" || st === "BAIXADO" || st === "CANCELADO") return true;
+    if (typeof global.receivableFinanceStatus === "function" && global.receivableFinanceStatus(r) === "PAGO") {
+      return true;
+    }
     if (typeof global.receivableFluxoFinanceiroQuitado === "function" && global.receivableFluxoFinanceiroQuitado(r)) {
       return true;
     }
+    if (hasCaixaBaixa(r)) return true;
     if (typeof global.receivableHasPaidSiblingCycle === "function" && global.receivableHasPaidSiblingCycle(r)) {
       return true;
     }
     if (typeof global.financeReceivableIsDuplicateOfPaidCycle === "function" && global.financeReceivableIsDuplicateOfPaidCycle(r)) {
+      return true;
+    }
+    const v = vehicleById(r.vehicle_id);
+    if (v && typeof global.vehicleFinanceiroQuitadoParaSaida === "function" && global.vehicleFinanceiroQuitadoParaSaida(v)) {
       return true;
     }
     return false;
@@ -130,25 +151,19 @@
     return Number(r?.valor || 0) <= 0;
   }
 
-  /** Fonte oficial: mesmos critérios do Financeiro (receber / aguardando / ciclo em pátio). */
+  /** Somente títulos em Contas a receber do Financeiro. Pago/baixado não entra. */
   function isReceivableEmAberto(r) {
     if (!r) return false;
     if (isPaidOrSettled(r)) return false;
     if (isSemCobranca(r)) return false;
-    if (typeof global.receivableIsContaReceberFinanceiro === "function" && global.receivableIsContaReceberFinanceiro(r)) {
-      return true;
+    if (typeof global.financeReceivableIsDuplicateOfPaidCycle === "function" && global.financeReceivableIsDuplicateOfPaidCycle(r)) {
+      return false;
     }
-    if (
-      typeof global.receivableIsAguardandoFaturamentoFinanceiro === "function" &&
-      global.receivableIsAguardandoFaturamentoFinanceiro(r)
-    ) {
-      return true;
-    }
-    if (typeof global.receivableIsCicloPatioAberto === "function" && global.receivableIsCicloPatioAberto(r)) {
-      return Number(r.valor || 0) > 0;
+    if (typeof global.receivableIsContaReceberFinanceiro === "function") {
+      return global.receivableIsContaReceberFinanceiro(r);
     }
     const st = String(r.status || "").toUpperCase();
-    return st === "EM_ABERTO" && Number(r.valor || 0) > 0;
+    return st === "EM_ABERTO" && Number(r.valor || 0) > 0 && !hasCaixaBaixa(r);
   }
 
   function dueYmd(r) {

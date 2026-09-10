@@ -7106,12 +7106,6 @@
               <span class="dashboard-system-btn__desc">Receita em geração, contas a receber, pagamentos e caixa.</span>
               <span class="dashboard-system-btn__go">Abrir financeiro →</span>
             </button>
-            <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenCobranca">
-              <span class="dashboard-system-btn__kicker">Financeiro</span>
-              <span class="dashboard-system-btn__title">Cobrança</span>
-              <span class="dashboard-system-btn__desc">Valores em aberto por parceiro e documento de cobrança.</span>
-              <span class="dashboard-system-btn__go">Abrir cobrança →</span>
-            </button>
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
               <span class="dashboard-system-btn__kicker">Relacionamento</span>
               <span class="dashboard-system-btn__title">Parceiros</span>
@@ -9351,13 +9345,6 @@
           </div>
         </details>
 
-        <details class="header-menu-details" id="headerDetailsCobranca">
-          <summary>Cobrança</summary>
-          <div class="header-menu-nested">
-            <button type="button" data-header-cobranca="1">Abrir cobrança</button>
-          </div>
-        </details>
-
         <details class="header-menu-details" id="headerDetailsParceiros">
           <summary>Parceiros</summary>
           <div class="header-menu-nested">
@@ -9423,8 +9410,8 @@
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script src="/advocacy-offices-service.js?v=20260909partners2"></script>
     <script src="/advocacy-offices-ui.js?v=20260909partners2"></script>
-    <script src="/cobranca-service.js?v=20260910cob1"></script>
-    <script src="/cobranca-ui.js?v=20260910cob1"></script>
+    <script src="/cobranca-service.js?v=20260910cob2"></script>
+    <script src="/cobranca-ui.js?v=20260910cob2"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -16268,7 +16255,6 @@
           "dashboardOpenHome",
           "dashboardOpenPatio",
           "dashboardOpenFinance",
-          "dashboardOpenCobranca",
           "dashboardOpenParceiros",
           "dashboardOpenLista",
           "dashboardOpenConfiguracoes",
@@ -16287,7 +16273,7 @@
           dashboard: "dashboardOpenHome",
           patio: "dashboardOpenPatio",
           financeiro: "dashboardOpenFinance",
-          cobranca: "dashboardOpenCobranca",
+          cobranca: "dashboardOpenFinance",
           parceiros: "dashboardOpenParceiros",
           lista: "dashboardOpenLista",
           configuracoes: "dashboardOpenConfiguracoes",
@@ -16355,13 +16341,11 @@
           goDashboardFromPlate?.classList.add("hidden");
           document.getElementById("headerDetailsConfig")?.classList.add("hidden");
           document.getElementById("headerDetailsFinance")?.classList.add("hidden");
-          document.getElementById("headerDetailsCobranca")?.classList.add("hidden");
           document.getElementById("headerDetailsParceiros")?.classList.add("hidden");
           document.getElementById("headerDetailsEscritorios")?.classList.add("hidden");
           document.getElementById("headerDetailsLista")?.classList.add("hidden");
           document.getElementById("dashboardSystemEntry")?.classList.add("hidden");
           document.getElementById("dashboardOpenFinance")?.classList.add("hidden");
-          document.getElementById("dashboardOpenCobranca")?.classList.add("hidden");
           patioSubnav?.querySelectorAll("button[data-subview]").forEach((btn) => {
             btn.classList.toggle("hidden", btn.getAttribute("data-subview") !== "vistoria");
           });
@@ -16382,7 +16366,6 @@
         if (!isGestorPista) {
           document.getElementById("dashboardSystemEntry")?.classList.remove("dashboard-system-entry--single");
           document.getElementById("dashboardOpenFinance")?.classList.remove("hidden");
-          document.getElementById("dashboardOpenCobranca")?.classList.remove("hidden");
           document.getElementById("headerDetailsFinance")?.classList.remove("hidden");
           window.isGestorPista = false;
           window.isVistoriador = false;
@@ -16407,7 +16390,6 @@
         goDashboardFromPlate?.classList.add("hidden");
         document.getElementById("headerDetailsConfig")?.classList.add("hidden");
         document.getElementById("headerDetailsFinance")?.classList.add("hidden");
-        document.getElementById("headerDetailsCobranca")?.classList.add("hidden");
         document.getElementById("headerDetailsParceiros")?.classList.add("hidden");
         document.getElementById("headerDetailsEscritorios")?.classList.add("hidden");
         document.querySelectorAll("#headerDetailsLista [data-lista-gestor-hide], #listaSubnav [data-lista-gestor-hide]").forEach((el) => {
@@ -16420,7 +16402,6 @@
           .forEach((el) => el.classList.add("hidden"));
         document.getElementById("dashboardSystemEntry")?.classList.add("dashboard-system-entry--single");
         document.getElementById("dashboardOpenFinance")?.classList.add("hidden");
-        document.getElementById("dashboardOpenCobranca")?.classList.add("hidden");
 
         if (!opts.skipDefaultView) {
           showMainView("patio");
@@ -23887,8 +23868,7 @@
         if (view === "patio") menu.querySelector("#headerDetailsPatio")?.classList.add("header-menu-details--current");
         else if (view === "parceiros") menu.querySelector("#headerDetailsParceiros")?.classList.add("header-menu-details--current");
         else if (view === "lista") menu.querySelector("#headerDetailsLista")?.classList.add("header-menu-details--current");
-        else if (view === "financeiro") menu.querySelector("#headerDetailsFinance")?.classList.add("header-menu-details--current");
-        else if (view === "cobranca") menu.querySelector("#headerDetailsCobranca")?.classList.add("header-menu-details--current");
+        else if (view === "financeiro" || view === "cobranca") menu.querySelector("#headerDetailsFinance")?.classList.add("header-menu-details--current");
         else if (view === "configuracoes") menu.querySelector("#headerDetailsConfig")?.classList.add("header-menu-details--current");
         else if (view === "escritorios") menu.querySelector("#headerDetailsEscritorios")?.classList.add("header-menu-details--current");
       }
@@ -24392,7 +24372,6 @@
         openMainView("dashboard");
       });
       document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
-      document.getElementById("dashboardOpenCobranca")?.addEventListener("click", () => openMainView("cobranca"));
       document.getElementById("finSubnavOpenCobranca")?.addEventListener("click", () => openMainView("cobranca"));
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
       document.getElementById("dashboardOpenLista")?.addEventListener("click", () => openMainView("lista"));
@@ -24642,7 +24621,7 @@
           closeAppHeaderMenu();
           return;
         }
-        const cobHdr = e.target.closest("[data-header-cobranca], #headerDetailsCobranca summary");
+        const cobHdr = e.target.closest("[data-header-cobranca]");
         if (cobHdr) {
           e.preventDefault();
           closeAppHeaderMenu();
