@@ -15,7 +15,17 @@
     { id: "INEXISTENTE", label: "Inexistente", short: "I" },
   ];
 
-  const CLASS_SHORT = { BOM: "B", REGULAR: "R", DANIFICADO: "D", SEM_TESTE: "S", INEXISTENTE: "I" };
+  const CLASS_SHORT = {
+    BOM: "B",
+    REGULAR: "R",
+    DANIFICADO: "D",
+    SEM_TESTE: "S",
+    INEXISTENTE: "I",
+    SEM_ACESSO_TRANCADO: "SA",
+  };
+  const LOCKED_CLASSIFICATION = "SEM_ACESSO_TRANCADO";
+  const INTERIOR_UNLOCK_BACKUP_KEY = "__unlocked_interior_cls";
+  const CALOTA_BACKUP_KEY = "__calota_cls_backup";
 
   const checklistMod = global.vehicleEntryInspectionChecklist || {};
 
@@ -87,6 +97,8 @@
       el.closest("#veiPhotoGalleryBtn") ||
       el.closest("[data-damage-photo-capture]") ||
       el.closest("[data-damage-photo-add]") ||
+      el.closest("[data-extra-avaria-capture]") ||
+      el.closest("[data-extra-avaria-add]") ||
       el.closest(".vei-photo-native-input")
     );
   }
@@ -417,9 +429,7 @@
     let idx = order.indexOf(current);
     while (idx < order.length - 1) {
       idx += 1;
-      const step = order[idx];
-      if (step === "damage_photos" && !getDamagedClassifyItems(draft).length) continue;
-      return step;
+      return order[idx];
     }
     return "finalize";
   }
@@ -429,18 +439,17 @@
     let idx = order.indexOf(current);
     while (idx > 0) {
       idx -= 1;
-      const step = order[idx];
-      if (step === "damage_photos" && !getDamagedClassifyItems(draft).length) continue;
-      return step;
+      return order[idx];
     }
     return "card";
   }
 
   function pruneItemDamagePhotos(draft) {
     if (!draft?.itemDamagePhotos) return;
-    const damagedKeys = new Set(getDamagedClassifyItems(draft).map((it) => it.key));
     Object.keys(draft.itemDamagePhotos).forEach((key) => {
-      if (!damagedKeys.has(key)) delete draft.itemDamagePhotos[key];
+      const list = itemDamagePhotoList(draft, key);
+      if (!list.length) delete draft.itemDamagePhotos[key];
+      else draft.itemDamagePhotos[key] = list;
     });
   }
 
@@ -588,6 +597,84 @@
     return CLASSIFICATIONS.map((c) => c.id);
   }
 
+  function isVehicleLocked(draft) {
+    return String(draft?.formExtras?.ini_trancado || "").toUpperCase() === "SIM";
+  }
+
+  function hasCalotas(draft) {
+    return String(draft?.formExtras?.calota_possui || "").toUpperCase() === "SIM";
+  }
+
+  function isInteriorLocked(draft, it) {
+    return !!(it?.interiorAccess && isVehicleLocked(draft));
+  }
+
+  function itemDamagePhotoList(draft, key) {
+    const raw = draft?.itemDamagePhotos?.[key];
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.filter((p) => p && (p.preview || p.storage_path || p.file));
+    if (raw.preview || raw.storage_path || raw.file) return [raw];
+    return [];
+  }
+
+  function setItemDamagePhotoList(draft, key, list) {
+    if (!draft.itemDamagePhotos) draft.itemDamagePhotos = {};
+    if (!list || !list.length) delete draft.itemDamagePhotos[key];
+    else draft.itemDamagePhotos[key] = list;
+  }
+
+  function applyVehicleLockedState(draft, locked) {
+    if (!draft) return;
+    if (!draft.formExtras) draft.formExtras = {};
+    if (!draft.classifications) draft.classifications = {};
+    const items = draftCfg(draft).checklist.filter((it) => it.kind === "classify" && it.interiorAccess);
+    if (locked) {
+      const backup = { ...(draft.formExtras[INTERIOR_UNLOCK_BACKUP_KEY] || {}) };
+      items.forEach((it) => {
+        const current = draft.classifications[it.key];
+        if (current && current !== LOCKED_CLASSIFICATION && backup[it.key] == null) {
+          backup[it.key] = current;
+        }
+        draft.classifications[it.key] = LOCKED_CLASSIFICATION;
+      });
+      draft.formExtras[INTERIOR_UNLOCK_BACKUP_KEY] = backup;
+      return;
+    }
+    const backup = draft.formExtras[INTERIOR_UNLOCK_BACKUP_KEY] || {};
+    items.forEach((it) => {
+      if (draft.classifications[it.key] !== LOCKED_CLASSIFICATION) return;
+      const prev = backup[it.key];
+      draft.classifications[it.key] = prev || null;
+    });
+    delete draft.formExtras[INTERIOR_UNLOCK_BACKUP_KEY];
+  }
+
+  function applyCalotasState(draft, possui) {
+    if (!draft) return;
+    if (!draft.formExtras) draft.formExtras = {};
+    if (!draft.classifications) draft.classifications = {};
+    const items = draftCfg(draft).checklist.filter((it) => it.kind === "classify" && it.requiresCalotas);
+    if (!possui) {
+      const backup = { ...(draft.formExtras[CALOTA_BACKUP_KEY] || {}) };
+      items.forEach((it) => {
+        const current = draft.classifications[it.key];
+        if (current && current !== "INEXISTENTE" && backup[it.key] == null) {
+          backup[it.key] = current;
+        }
+        draft.classifications[it.key] = "INEXISTENTE";
+      });
+      draft.formExtras[CALOTA_BACKUP_KEY] = backup;
+      return;
+    }
+    const backup = draft.formExtras[CALOTA_BACKUP_KEY] || {};
+    items.forEach((it) => {
+      if (draft.classifications[it.key] !== "INEXISTENTE") return;
+      const prev = backup[it.key];
+      draft.classifications[it.key] = prev || null;
+    });
+    delete draft.formExtras[CALOTA_BACKUP_KEY];
+  }
+
   function parseFuelMark(raw) {
     return checklistMod.parseFuelMark ? checklistMod.parseFuelMark(raw) : null;
   }
@@ -596,7 +683,11 @@
     if (!it) return true;
     const extras = draft.formExtras || {};
     const kind = it.kind || "classify";
-    if (kind === "classify") return !!draft.classifications[it.key];
+    if (kind === "classify") {
+      if (it.requiresCalotas && !hasCalotas(draft)) return true;
+      if (isInteriorLocked(draft, it) && draft.classifications[it.key] === LOCKED_CLASSIFICATION) return true;
+      return !!draft.classifications[it.key];
+    }
     if (kind === "choice" || kind === "pick") {
       if (it.required && !extras[it.key]) return false;
       if (it.textWhen && it.textKey && extras[it.key] === it.textWhen) {
@@ -622,7 +713,10 @@
   function trackedChecklistItems(draft) {
     return draftCfg(draft).checklist.filter((it) => {
       const kind = it.kind || "classify";
-      if (kind === "classify") return true;
+      if (kind === "classify") {
+        if (it.requiresCalotas && !hasCalotas(draft)) return false;
+        return true;
+      }
       if (kind === "choice" || kind === "pick" || kind === "number" || kind === "fuel_gauge") return !!it.required;
       return false;
     });
@@ -764,6 +858,25 @@
         0%, 100% { background: rgba(251, 191, 36, 0.06); }
         50% { background: rgba(251, 191, 36, 0.22); }
       }
+      .vei-item.vei-item-locked td { background: #f1f5f9; color: #64748b; }
+      .vei-item.vei-item-locked .vei-class-btn { pointer-events: none; opacity: 0.35; }
+      .vei-locked-hint {
+        margin: 4px 0 0; font-size: 11px; font-weight: 700; color: #b45309; letter-spacing: 0.02em;
+      }
+      .vei-damage-photo-thumbs {
+        display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0;
+      }
+      .vei-damage-photo-thumbs figure {
+        position: relative; margin: 0; width: 92px;
+      }
+      .vei-damage-photo-thumbs img {
+        width: 92px; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; display: block;
+      }
+      .vei-damage-photo-thumbs button {
+        position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; border: none;
+        border-radius: 999px; background: rgba(185, 28, 28, 0.92); color: #fff; font-size: 13px; cursor: pointer;
+      }
+      .vei-extra-avaria-section { margin-top: 16px; }
       .vei-damage-host-hidden { display: none !important; }
       @media print { .vei-no-print { display: none !important; } }
     `;
@@ -1178,10 +1291,12 @@
     const draft = _session?.draft;
     if (!draft || !input || input.type !== "file") return;
     const file = input.files?.[0];
+    const files = input.files ? Array.from(input.files).filter(Boolean) : [];
     const inputId = input.id;
     const damageItem = input.getAttribute?.("data-damage-item");
+    const extraAvaria = input.getAttribute?.("data-extra-avaria") || inputId === "veiExtraAvariaCaptureInput" || inputId === "veiExtraAvariaGalleryInput";
     input.value = "";
-    if (!file) return;
+    if (!file && !files.length) return;
     armCameraUiGuard(1800);
     persistOpenDraft();
     const root = document.getElementById("veiModalBody");
@@ -1199,16 +1314,45 @@
     if (damageItem || inputId === "veiDamagePhotoCaptureInput" || inputId === "veiDamagePhotoGalleryInput") {
       const key = damageItem || _session?.pendingDamagePhotoKey;
       if (!key) return;
-      const preview = await readFileAsDataUrl(file);
-      if (!preview) return;
-      if (!draft.itemDamagePhotos) draft.itemDamagePhotos = {};
-      draft.itemDamagePhotos[key] = { file, preview, capturedAt: new Date().toISOString() };
+      const toRead = files.length ? files : file ? [file] : [];
+      for (const f of toRead) {
+        const preview = await readFileAsDataUrl(f);
+        if (!preview) continue;
+        const list = itemDamagePhotoList(draft, key);
+        list.push({ file: f, preview, capturedAt: new Date().toISOString() });
+        setItemDamagePhotoList(draft, key, list);
+      }
       _session.pendingDamagePhotoKey = null;
       if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
       if (root) {
         window.setTimeout(() => {
           if (_session?.draft !== draft) return;
           refreshDamagePhotosHost(root, draft, _session.ctx);
+          if (_session?.ctx) refreshCurrentEditUI(root, draft, _session.ctx);
+        }, 400);
+      }
+      return;
+    }
+
+    if (extraAvaria) {
+      const toRead = files.length ? files : file ? [file] : [];
+      if (!Array.isArray(draft.extraDamagePhotos)) draft.extraDamagePhotos = [];
+      for (const f of toRead) {
+        const preview = await readFileAsDataUrl(f);
+        if (!preview) continue;
+        draft.extraDamagePhotos.push({
+          file: f,
+          preview,
+          capturedAt: new Date().toISOString(),
+          label: "Foto adicional de avaria",
+        });
+      }
+      if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+      if (root) {
+        window.setTimeout(() => {
+          if (_session?.draft !== draft) return;
+          refreshDamagePhotosHost(root, draft, _session.ctx);
+          if (_session?.ctx) refreshCurrentEditUI(root, draft, _session.ctx);
         }, 400);
       }
     }
@@ -1363,6 +1507,7 @@
       const value = choiceBtn.getAttribute("data-choice");
       if (extraKey && value) {
         if (!draft.formExtras) draft.formExtras = {};
+        const prev = draft.formExtras[extraKey];
         draft.formExtras[extraKey] = value;
         root.querySelectorAll(`.vei-choice-btn[data-extra-key="${extraKey}"]`).forEach((btn) => {
           const on = btn.getAttribute("data-choice") === value;
@@ -1373,8 +1518,17 @@
           const when = el.getAttribute("data-text-when-value");
           el.style.display = when && when !== value ? "none" : "";
         });
+        if (extraKey === "ini_trancado" && prev !== value) {
+          applyVehicleLockedState(draft, value === "SIM");
+        }
+        if (extraKey === "calota_possui" && prev !== value) {
+          applyCalotasState(draft, value === "SIM");
+        }
         updateChecklistProgressChrome(root, draft);
         if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+        if (extraKey === "ini_trancado" || extraKey === "calota_possui") {
+          refreshCurrentEditUI(root, draft, ctx);
+        }
       }
       return;
     }
@@ -1385,16 +1539,15 @@
       const itemKey = classBtn.getAttribute("data-item");
       const cls = classBtn.getAttribute("data-class");
       if (itemKey && cls) {
+        const item = draftCfg(draft).checklist.find((x) => x.key === itemKey);
+        if (isInteriorLocked(draft, item)) return;
         const prev = draft.classifications[itemKey];
         draft.classifications[itemKey] = cls;
-        if (cls !== "DANIFICADO" && draft.itemDamagePhotos?.[itemKey]) {
-          delete draft.itemDamagePhotos[itemKey];
-        }
-        pruneItemDamagePhotos(draft);
         paintClassificationRow(classBtn.closest(".vei-item"), cls);
         updateChecklistProgressChrome(root, draft);
         if (prev === "DANIFICADO" || cls === "DANIFICADO") {
           refreshDamagePhotosHost(root, draft, ctx);
+          refreshCurrentEditUI(root, draft, ctx);
         }
         if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
       }
@@ -1605,6 +1758,7 @@
       '<span class="vei-leg vei-leg--d"><i>D</i> Danificada</span>' +
       '<span class="vei-leg vei-leg--s"><i>S</i> Sem teste</span>' +
       '<span class="vei-leg vei-leg--i"><i>I</i> Inexistente</span>' +
+      '<span class="vei-leg vei-leg--sa"><i>SA</i> Sem acesso – veículo trancado</span>' +
       "</div>"
     );
   }
@@ -1811,13 +1965,23 @@
           return;
         }
         if (kind !== "classify") return;
+        if (it.requiresCalotas && !hasCalotas(draft)) return;
         const sel = draft.classifications[it.key];
         const allowed = allowedClassIds(it);
-        html += `<tr class="vei-item${!readOnly && !sel ? " vei-item-pending" : ""}" data-item-key="${esc(it.key)}">`;
-        html += `<td class="vei-td-label">${esc(it.label)}</td>`;
+        const locked = isInteriorLocked(draft, it);
+        html += `<tr class="vei-item${locked ? " vei-item-locked" : ""}${!readOnly && !sel && !locked ? " vei-item-pending" : ""}" data-item-key="${esc(it.key)}">`;
+        html += `<td class="vei-td-label">${esc(it.label)}${
+          locked
+            ? '<div class="vei-locked-hint">VEÍCULO TRANCADO – ITEM NÃO LIBERADO PARA VISTORIA</div>'
+            : ""
+        }</td>`;
         CLASSIFICATIONS.forEach((c) => {
           const short = CLASS_SHORT[c.id] || c.label.charAt(0);
           if (!allowed.includes(c.id)) {
+            html += '<td class="vei-td-cls vei-td-cls-na"></td>';
+            return;
+          }
+        if (locked) {
             html += '<td class="vei-td-cls vei-td-cls-na"></td>';
             return;
           }
@@ -1830,6 +1994,12 @@
           }
         });
         html += "</tr>";
+        if (locked) {
+          html += `<tr class="vei-extra-row vei-locked-status-row"><td colspan="${colSpan}"><strong>SEM ACESSO – VEÍCULO TRANCADO</strong></td></tr>`;
+        }
+        if (!locked && sel === "DANIFICADO") {
+          html += `<tr class="vei-extra-row vei-item-photos-row"><td colspan="${colSpan}">${renderItemDamagePhotosForKey(draft, it, readOnly)}</td></tr>`;
+        }
         html += renderItemExtraRows(it, draft, readOnly, colSpan);
       });
       html += "</tbody></table>";
@@ -1846,36 +2016,83 @@
     return html;
   }
 
+  function renderItemDamagePhotosForKey(draft, it, readOnly) {
+    const photos = itemDamagePhotoList(draft, it.key);
+    let html = `<div class="vei-item-inline-photos" data-damage-photo-key="${esc(it.key)}">`;
+    html += `<strong>Fotos de ${esc(it.label)} — DANIFICADO</strong>`;
+    if (photos.length) {
+      html += '<div class="vei-damage-photo-thumbs">';
+      photos.forEach((photo, idx) => {
+        if (!photo?.preview) return;
+        html += `<figure><img src="${esc(photo.preview)}" alt="${esc(it.label)} ${idx + 1}"/>`;
+        if (!readOnly) {
+          html += `<button type="button" class="vei-damage-photo-clear" data-damage-photo-clear="${esc(it.key)}" data-damage-photo-index="${idx}" aria-label="Excluir foto">×</button>`;
+        }
+        html += "</figure>";
+      });
+      html += "</div>";
+    }
+    if (!readOnly) {
+      html +=
+        `<label class="secondary vei-damage-photo-btn" data-damage-photo-capture="${esc(it.key)}">` +
+        `<span class="vei-photo-btn-text">Tirar foto</span>` +
+        `<input type="file" accept="image/*" capture="environment" class="vei-photo-native-input" data-damage-photo-file="capture" data-damage-item="${esc(it.key)}"/>` +
+        "</label>" +
+        `<label class="secondary vei-damage-photo-btn" data-damage-photo-add="${esc(it.key)}">` +
+        '<span class="vei-photo-btn-text">Galeria</span>' +
+        `<input type="file" accept="image/*" multiple class="vei-photo-native-input" data-damage-photo-file="gallery" data-damage-item="${esc(it.key)}"/>` +
+        "</label>";
+    }
+    html += "</div>";
+    return html;
+  }
+
   function renderItemDamagePhotosSection(draft, readOnly) {
     const damaged = getDamagedClassifyItems(draft);
-    if (!damaged.length) return "";
     if (!draft.itemDamagePhotos) draft.itemDamagePhotos = {};
-    let html =
-      '<div class="vei-damage-photos-section" id="veiDamagePhotosSection">' +
-      "<h4>Fotos adicionais de avarias</h4>";
-    damaged.forEach((it) => {
-      const photo = draft.itemDamagePhotos[it.key];
-      html += '<div class="vei-damage-photo-item" data-damage-photo-key="' + esc(it.key) + '">';
-      html += `<strong>${esc(it.label)} — Danificada</strong>`;
-      if (photo?.preview) {
-        html += `<img class="vei-damage-photo-preview" src="${esc(photo.preview)}" alt="${esc(it.label)}"/>`;
-      }
-      if (!readOnly) {
-        html +=
-          `<label class="secondary vei-damage-photo-btn" data-damage-photo-capture="${esc(it.key)}">` +
-          `<span class="vei-photo-btn-text">${photo?.preview ? "Refazer foto" : "Tirar foto"}</span>` +
-          `<input type="file" accept="image/*" capture="environment" class="vei-photo-native-input" data-damage-photo-file="capture" data-damage-item="${esc(it.key)}"/>` +
-          "</label>" +
-          `<label class="secondary vei-damage-photo-btn" data-damage-photo-add="${esc(it.key)}">` +
-          '<span class="vei-photo-btn-text">Galeria</span>' +
-          `<input type="file" accept="image/*" class="vei-photo-native-input" data-damage-photo-file="gallery" data-damage-item="${esc(it.key)}"/>` +
-          "</label>";
-        if (photo?.preview) {
-          html += `<button type="button" class="secondary vei-damage-photo-clear" data-damage-photo-clear="${esc(it.key)}">Remover</button>`;
+    let html = '<div class="vei-damage-photos-section" id="veiDamagePhotosSection">';
+    if (damaged.length) {
+      html += "<h4>Fotos dos itens danificados</h4>";
+      damaged.forEach((it) => {
+        html += '<div class="vei-damage-photo-item" data-damage-photo-key="' + esc(it.key) + '">';
+        html += renderItemDamagePhotosForKey(draft, it, readOnly);
+        html += "</div>";
+      });
+    }
+    html += renderExtraAvariaPhotosSection(draft, readOnly);
+    html += "</div>";
+    return html;
+  }
+
+  function renderExtraAvariaPhotosSection(draft, readOnly) {
+    if (!Array.isArray(draft.extraDamagePhotos)) draft.extraDamagePhotos = [];
+    const extras = draft.extraDamagePhotos;
+    let html = '<div class="vei-extra-avaria-section" id="veiExtraAvariaSection">';
+    html += "<h4>Fotos adicionais de avarias</h4>";
+    html += "<p class=\"notice\" style=\"margin:0 0 8px\">Fotos gerais ou complementares, sem vínculo com um item específico.</p>";
+    if (extras.length) {
+      html += '<div class="vei-damage-photo-thumbs">';
+      extras.forEach((photo, idx) => {
+        if (!photo?.preview) return;
+        html += `<figure><img src="${esc(photo.preview)}" alt="Avaria adicional ${idx + 1}"/>`;
+        if (!readOnly) {
+          html += `<button type="button" class="vei-extra-avaria-clear" data-extra-avaria-clear="${idx}" aria-label="Excluir foto">×</button>`;
         }
-      }
+        html += "</figure>";
+      });
       html += "</div>";
-    });
+    }
+    if (!readOnly) {
+      html +=
+        '<label class="secondary vei-damage-photo-btn" data-extra-avaria-capture="1">' +
+        '<span class="vei-photo-btn-text">Tirar foto</span>' +
+        '<input type="file" accept="image/*" capture="environment" class="vei-photo-native-input" id="veiExtraAvariaCaptureInput" data-extra-avaria="1"/>' +
+        "</label>" +
+        '<label class="secondary vei-damage-photo-btn" data-extra-avaria-add="1">' +
+        '<span class="vei-photo-btn-text">Galeria</span>' +
+        '<input type="file" accept="image/*" multiple class="vei-photo-native-input" id="veiExtraAvariaGalleryInput" data-extra-avaria="1"/>' +
+        "</label>";
+    }
     html += "</div>";
     return html;
   }
@@ -1883,7 +2100,7 @@
   function renderClosingNav(draft, step) {
     const labels = {
       photos: "Registro fotográfico",
-      damage_photos: "Fotos adicionais de avarias",
+      damage_photos: "Fotos de avarias",
       diagram: "Diagrama do veículo",
       finalize: "Finalização",
     };
@@ -1919,7 +2136,21 @@
     section.querySelectorAll("[data-damage-photo-clear]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const key = btn.getAttribute("data-damage-photo-clear");
-        if (key && draft.itemDamagePhotos) delete draft.itemDamagePhotos[key];
+        const idx = Number(btn.getAttribute("data-damage-photo-index"));
+        if (!key || !draft.itemDamagePhotos) return;
+        const list = itemDamagePhotoList(draft, key);
+        if (Number.isFinite(idx)) list.splice(idx, 1);
+        else list.length = 0;
+        setItemDamagePhotoList(draft, key, list);
+        if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
+        onRefresh();
+      });
+    });
+    section.querySelectorAll("[data-extra-avaria-clear]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.getAttribute("data-extra-avaria-clear"));
+        if (!Array.isArray(draft.extraDamagePhotos) || !Number.isFinite(idx)) return;
+        draft.extraDamagePhotos.splice(idx, 1);
         if (_session?.vehicle?.id) persistDraftToStorage(_session.vehicle.id, draft);
         onRefresh();
       });
@@ -2014,7 +2245,7 @@
       renderMobilePhotosSection(draft) +
       "</div></div></div>" +
       '<div class="vei-card-panel">' +
-      '<div class="vei-section-head">Fotos adicionais de avarias</div>' +
+      '<div class="vei-section-head">Fotos dos itens danificados e fotos adicionais de avarias</div>' +
       '<div class="vei-section-body" id="veiDocItemDamagePhotosHost">' +
       renderItemDamagePhotosSection(draft, false) +
       "</div></div>" +
@@ -2198,10 +2429,6 @@
     const isLast = cardIdx === cfg.cardCount - 1;
     let closingStep = isLast ? getClosingStep(draft) : "card";
     if (!isLast) draft.closingStep = "card";
-    else if (closingStep === "damage_photos" && !getDamagedClassifyItems(draft).length) {
-      draft.closingStep = "diagram";
-      closingStep = "diagram";
-    }
 
     const done = classifiedCount(draft);
     const total = trackedChecklistItems(draft).length;
@@ -2215,7 +2442,7 @@
     const stepLabels = {
       card: `card ${cardIdx + 1}/${cfg.cardCount}`,
       photos: "registro fotográfico",
-      damage_photos: "fotos adicionais de avarias",
+      damage_photos: "fotos de avarias",
       diagram: "diagrama",
       finalize: "finalização",
     };
@@ -2227,6 +2454,9 @@
     if (progressBar) progressBar.style.width = `${pct}%`;
     if (cardHost) {
       cardHost.innerHTML = isLast && closingStep !== "card" ? "" : renderCardStep(cardIdx, draft, false);
+      if (!(isLast && closingStep !== "card")) {
+        bindItemDamagePhotoEvents(cardHost, draft, () => refreshEditUI(root, draft, ctx));
+      }
     }
     if (extrasHost) {
       extrasHost.innerHTML = isLast ? renderLastCardExtras(draft) : "";
@@ -2293,6 +2523,7 @@
         allCardsVisible: true,
         docStyleCells: true,
       });
+      bindItemDamagePhotoEvents(checklistHost, draft, () => refreshEditChecklistUI(root, draft, ctx));
     }
     const diagramHost = root.querySelector("#veiDiagramHost");
     if (diagramHost) diagramHost.innerHTML = renderDiagram(draft, false);
@@ -2361,7 +2592,23 @@
       .replace(/\s+/g, "_")
       .replace(/-/g, "_");
     if (s === "SEMTESTE") return "SEM_TESTE";
-    if (s === "BOM" || s === "REGULAR" || s === "DANIFICADO" || s === "SEM_TESTE" || s === "INEXISTENTE") return s;
+    if (
+      s === "SEM_ACESSO" ||
+      s === "SEM_ACESSO_TRANCADO" ||
+      s === "SEM_ACESSO_VEICULO_TRANCADO"
+    ) {
+      return "SEM_ACESSO_TRANCADO";
+    }
+    if (
+      s === "BOM" ||
+      s === "REGULAR" ||
+      s === "DANIFICADO" ||
+      s === "SEM_TESTE" ||
+      s === "INEXISTENTE" ||
+      s === "SEM_ACESSO_TRANCADO"
+    ) {
+      return s;
+    }
     return "";
   }
 
@@ -2561,10 +2808,15 @@
         }
         return;
       }
-      if (type.startsWith("avaria_item_") || p.damage_id) {
-        const key = p.item_key || String(type).replace("avaria_item_", "");
-        if (key && url && !draft.itemDamagePhotos[key]) {
-          draft.itemDamagePhotos[key] = { preview: url, capturedAt: p.captured_at, storage_path: p.storage_path };
+      if (type.startsWith("avaria_item_") || p.photo_category === "ITEM_DANIFICADO" || (p.damage_id && !/^avaria_extra/i.test(type))) {
+        const key = p.item_key || String(type).replace(/^avaria_item_/, "");
+        if (key && url) {
+          const list = itemDamagePhotoList(draft, key);
+          const exists = list.some((x) => x.preview === url || x.storage_path === p.storage_path);
+          if (!exists) {
+            list.push({ preview: url, capturedAt: p.captured_at, storage_path: p.storage_path, item_key: key });
+            setItemDamagePhotoList(draft, key, list);
+          }
         }
         return;
       }
@@ -2592,41 +2844,54 @@
     if (!ctx.supabase || !uid || !inspectionId) return;
     const photos = draft.itemDamagePhotos || {};
     const damageByKey = new Map((damageRows || []).map((d) => [d.item_key, d]));
-    for (const [itemKey, photo] of Object.entries(photos)) {
-      if (!photo?.file && !photo?.preview) continue;
-      if (!photo.file && (photo.storage_path || /^https?:/i.test(String(photo.preview || "")))) continue;
-      try {
-        let blob;
-        if (photo.file) blob = photo.file;
-        else {
-          const res = await fetch(photo.preview);
-          blob = await res.blob();
-        }
-        const label = labelForItemKey(draft, itemKey);
-        const path = `${uid}/inspections/${inspectionId}/avaria/${Date.now()}_${itemKey}.jpg`;
-        const { error: upErr } = await ctx.supabase.storage.from(STORAGE_BUCKET).upload(path, blob, {
-          upsert: true,
-          contentType: blob.type || "image/jpeg",
-        });
-        if (upErr) continue;
-        const damageId = damageByKey.get(itemKey)?.id || null;
-        const { error: insErr } = await ctx.supabase.from("vehicle_entry_inspection_photos").insert({
-          inspection_id: inspectionId,
-          damage_id: damageId,
-          storage_path: path,
-          file_name: `avaria_item_${itemKey}.jpg`,
-          photo_type: `avaria_item_${itemKey}`,
-          photo_label: `${label} — Danificada`,
-        });
-        if (insErr) {
-          await ctx.supabase.from("vehicle_entry_inspection_photos").insert({
-            inspection_id: inspectionId,
-            storage_path: path,
-            file_name: `avaria_item_${itemKey}.jpg`,
+    for (const [itemKey, raw] of Object.entries(photos)) {
+      const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
+      for (let i = 0; i < list.length; i++) {
+        const photo = list[i];
+        if (!photo?.file && !photo?.preview) continue;
+        if (!photo.file && (photo.storage_path || /^https?:/i.test(String(photo.preview || "")))) continue;
+        try {
+          let blob;
+          if (photo.file) blob = photo.file;
+          else {
+            const res = await fetch(photo.preview);
+            blob = await res.blob();
+          }
+          const label = labelForItemKey(draft, itemKey);
+          const path = `${uid}/inspections/${inspectionId}/avaria/${Date.now()}_${itemKey}_${i}.jpg`;
+          const { error: upErr } = await ctx.supabase.storage.from(STORAGE_BUCKET).upload(path, blob, {
+            upsert: true,
+            contentType: blob.type || "image/jpeg",
           });
+          if (upErr) continue;
+          const damageId = damageByKey.get(itemKey)?.id || null;
+          const row = {
+            inspection_id: inspectionId,
+            damage_id: damageId,
+            storage_path: path,
+            file_name: `avaria_item_${itemKey}_${i + 1}.jpg`,
+            photo_type: `avaria_item_${itemKey}`,
+            photo_label: `${label} — Danificado`,
+            photo_category: "ITEM_DANIFICADO",
+            item_key: itemKey,
+          };
+          const { error: insErr } = await ctx.supabase.from("vehicle_entry_inspection_photos").insert(row);
+          if (insErr) {
+            const fallback = { ...row };
+            delete fallback.item_key;
+            delete fallback.photo_category;
+            const retry = await ctx.supabase.from("vehicle_entry_inspection_photos").insert(fallback);
+            if (retry.error) {
+              await ctx.supabase.from("vehicle_entry_inspection_photos").insert({
+                inspection_id: inspectionId,
+                storage_path: path,
+                file_name: `avaria_item_${itemKey}_${i + 1}.jpg`,
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("vei item damage photo", itemKey, e);
         }
-      } catch (e) {
-        console.warn("vei item damage photo", itemKey, e);
       }
     }
   }
@@ -3352,6 +3617,7 @@
     CARD_COUNT: checklistMod.CARD_COUNT || 8,
     CLASSIFICATIONS,
     CLASS_SHORT,
+    labelForItemKey,
     INSPECTION_ITEM_COUNT: checklistMod.ITEM_COUNT || 0,
     probeSchema,
     openForVehicle,
