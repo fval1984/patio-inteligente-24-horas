@@ -371,10 +371,15 @@
     return mgrSvc.countsForPartner(list, partnerId);
   }
 
+  function categoryHasCarteiraManagers() {
+    return categoryMeta().hasCarteiraManagers !== false;
+  }
+
   function renderTableRows(list, ctx) {
     const meta = categoryMeta();
+    const showCarteira = categoryHasCarteiraManagers();
     const showTipo = !meta.lockTipo || !!meta.includeUnknown;
-    const colSpan = showTipo ? 10 : 9;
+    const colSpan = (showTipo ? 9 : 8) + (showCarteira ? 1 : 0);
     const manage = canManagePartners();
     if (!list.length) {
       return '<tr><td colspan="' + colSpan + '" class="pc-table-empty">Nenhum cadastro nesta aba.</td></tr>';
@@ -416,9 +421,9 @@
           "<td data-label=\"Telefone\">" +
           esc(tel, ctx) +
           "</td>" +
-          "<td data-label=\"Carteira\">" +
-          String(counts.carteira) +
-          "</td>" +
+          (showCarteira
+            ? "<td data-label=\"Carteira\">" + String(counts.carteira) + "</td>"
+            : "") +
           "<td data-label=\"Cobrança\">" +
           String(counts.cobranca) +
           "</td>" +
@@ -466,7 +471,9 @@
       tipoTh +
       "<th>" +
       esc(fieldLabelOverrides().cpf, ctx) +
-      "</th><th>Cidade/Estado</th><th>Telefone</th><th>Gestores de Carteira</th><th>Gestores de Cobrança</th><th>Status</th><th>Ações</th>" +
+      "</th><th>Cidade/Estado</th><th>Telefone</th>" +
+      (categoryHasCarteiraManagers() ? "<th>Gestores de Carteira</th>" : "") +
+      "<th>Gestores de Cobrança</th><th>Status</th><th>Ações</th>" +
       "</tr></thead>" +
       "<tbody id=\"pcTableBody\">" +
       renderTableRows(list, ctx) +
@@ -982,13 +989,15 @@
   function renderModalForm(partner, ctx) {
     const tabs = [
       { id: "dados", label: "Dados do parceiro" },
-      { id: "retomados", label: "Setor de Retomados" },
+      { id: "retomados", label: "Setor de Retomados", hide: !categoryHasCarteiraManagers() },
       { id: "financeiro", label: "Financeiro" },
       { id: "resumo", label: "Resumo" },
       { id: "contatos", label: "Contatos" },
       { id: "documentos", label: "Documentos" },
       { id: "historico", label: "Histórico" },
-    ];
+    ].filter(function (t) {
+      return !t.hide;
+    });
     let tabsHtml = "";
     for (let i = 0; i < tabs.length; i++) {
       const t = tabs[i];
@@ -1020,11 +1029,13 @@
       renderTipoFields(partner, ro) +
       "</div></div>" +
       "</div>" +
-      '<div class="pc-tab-panel' +
-      (_activeTab === "retomados" ? " active" : "") +
-      '" data-pc-panel="retomados">' +
-      renderManagersKind("CARTEIRA", "Gestores de Carteira", "+ Adicionar Gestor de Carteira") +
-      "</div>" +
+      (categoryHasCarteiraManagers()
+        ? '<div class="pc-tab-panel' +
+          (_activeTab === "retomados" ? " active" : "") +
+          '" data-pc-panel="retomados">' +
+          renderManagersKind("CARTEIRA", "Gestores de Carteira", "+ Adicionar Gestor de Carteira") +
+          "</div>"
+        : "") +
       '<div class="pc-tab-panel' +
       (_activeTab === "financeiro" ? " active" : "") +
       '" data-pc-panel="financeiro">' +
@@ -1173,6 +1184,7 @@
   }
 
   function setActiveTab(tabId) {
+    if (tabId === "retomados" && !categoryHasCarteiraManagers()) tabId = "dados";
     _activeTab = tabId;
     document.querySelectorAll("#partnerForm .pc-modal-tab").forEach(function (btn) {
       btn.classList.toggle("active", btn.getAttribute("data-pc-tab") === tabId);
@@ -1439,7 +1451,7 @@
       if (partner) {
         partnersCadastroOpenEdit(partner);
         setTimeout(function () {
-          setActiveTab("retomados");
+          setActiveTab(categoryHasCarteiraManagers() ? "retomados" : "dados");
         }, 0);
       }
     }
