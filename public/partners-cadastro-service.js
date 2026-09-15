@@ -128,7 +128,6 @@
   const TIPO_FIELDS = {
     INSTITUICAO_FINANCEIRA: [
       { key: "nome_fantasia", label: "Nome Fantasia", kind: "text", group: "tipo", span: "half" },
-      { key: "gestor_conta", label: "Gestor da Conta", kind: "text", required: true, group: "tipo", span: "half" },
       { key: "telefone_comercial", label: "Telefone Comercial", kind: "tel", group: "tipo", span: "half" },
       { key: "email_financeiro", label: "E-mail Financeiro", kind: "email", group: "tipo", span: "half" },
       { key: "departamento", label: "Departamento", kind: "text", group: "tipo", span: "half" },
