@@ -213,6 +213,7 @@
     const id = categoryMeta().id;
     if (id === "leiloeiros") return { nome: "Nome / Razão social", cpf: "CNPJ/CPF" };
     if (id === "patios") return { nome: "Nome / Razão social", cpf: "CNPJ/CPF" };
+    if (id === "financeiras") return { nome: "Nome / Razão social", cpf: "CNPJ/CPF" };
     if (id === "localizadores") return { nome: "Nome / Razão social", cpf: "CNPJ/CPF" };
     return { nome: "Nome / Razão social", cpf: "CNPJ/CPF" };
   }
