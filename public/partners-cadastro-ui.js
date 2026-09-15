@@ -402,7 +402,10 @@
             esc(p.id, ctx) +
             '">' +
             toggleLabel +
-            "</button>"
+            "</button>" +
+            '<button type="button" class="secondary" data-pc-action="apagar" data-id="' +
+            esc(p.id, ctx) +
+            '">Apagar</button>'
           : "";
         return (
           "<tr data-partner-id=\"" +
@@ -1462,24 +1465,27 @@
   }
 
   async function deletePartner(id, ctx) {
-    if (!confirm("Deseja apagar este parceiro?")) return;
+    if (!confirm("Deseja apagar este cadastro?")) return;
     ctx = ctx || _lastCtx || {};
+    const supabaseClient = (ctx && ctx.supabase) || global.supabase;
+    const userId = effectiveUserId(ctx);
     if (ctx && typeof ctx.deletePartner === "function") {
       await ctx.deletePartner(id);
-    } else {
-      const supabaseClient = (ctx && ctx.supabase) || global.supabase;
-      const userId = effectiveUserId(ctx);
-      if (supabaseClient && userId) {
-        const { error } = await supabaseClient.from("partners").delete().eq("id", id).eq("user_id", userId);
-        if (error) {
-          alert(error.message || String(error));
-          return;
-        }
-      } else {
-        document.dispatchEvent(
-          new CustomEvent("partners-cadastro:delete", { detail: { id: id } })
-        );
+    } else if (supabaseClient && userId) {
+      const run = ctx.runSupabaseWrite
+        ? ctx.runSupabaseWrite
+        : function (fn) {
+            return fn();
+          };
+      const { error } = await run(function () {
+        return supabaseClient.from("partners").delete().eq("id", id).eq("user_id", userId);
+      });
+      if (error) {
+        alert(error.message || String(error));
+        return;
       }
+    } else {
+      document.dispatchEvent(new CustomEvent("partners-cadastro:delete", { detail: { id: id } }));
     }
     await reloadPartners(ctx);
     if (_lastState) {
