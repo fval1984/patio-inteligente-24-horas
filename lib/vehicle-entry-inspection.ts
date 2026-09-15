@@ -6,7 +6,8 @@ export type InspectionClassification =
   | "REGULAR"
   | "DANIFICADO"
   | "SEM_TESTE"
-  | "INEXISTENTE";
+  | "INEXISTENTE"
+  | "SEM_ACESSO_TRANCADO";
 
 export type InspectionVariant = "LEVE" | "PESADOS" | "TRATORES" | "MOTOS";
 
@@ -160,6 +161,7 @@ const VALID_CLASSIFICATIONS = new Set([
   "DANIFICADO",
   "SEM_TESTE",
   "INEXISTENTE",
+  "SEM_ACESSO_TRANCADO",
 ]);
 
 /** Cópia das classificações em form_extras — recupera a vistoria se a tabela de itens falhar ou vier vazia. */
@@ -173,6 +175,14 @@ export function normalizeInspectionClassification(raw: unknown): InspectionClass
     .replace(/\s+/g, "_")
     .replace(/-/g, "_");
   if (s === "SEMTESTE") return "SEM_TESTE";
+  if (
+    s === "SEM_ACESSO" ||
+    s === "SEM_ACESSO_VEICULO_TRANCADO" ||
+    s === "SEM_ACESSO_TRANCADO" ||
+    s === "SEMACESSO"
+  ) {
+    return "SEM_ACESSO_TRANCADO";
+  }
   if (VALID_CLASSIFICATIONS.has(s)) return s as InspectionClassification;
   return "";
 }
@@ -450,6 +460,8 @@ export async function persistInspectionPhoto(
     contentType?: string;
     bytes: Uint8Array;
     capturedAt?: string;
+    itemKey?: string;
+    damageId?: string;
   }
 ): Promise<{ data: { storage_path: string; url: string } | null; error: string | null }> {
   const inspectionId = String(input.inspectionId || "").trim();
@@ -489,7 +501,9 @@ export async function persistInspectionPhoto(
     return { data: null, error: upErr.message || "Erro ao enviar a foto." };
   }
 
-  if (!/^avaria_extra/i.test(photoType)) {
+  const keepMultiple =
+    /^avaria_extra/i.test(photoType) || /^avaria_item_/i.test(photoType);
+  if (!keepMultiple) {
     await admin
       .from("vehicle_entry_inspection_photos")
       .delete()
@@ -497,7 +511,8 @@ export async function persistInspectionPhoto(
       .eq("photo_type", photoType);
   }
 
-  const fullRow = {
+  const itemKey = String(input.itemKey || "").trim() || null;
+  const fullRow: Record<string, unknown> = {
     inspection_id: inspectionId,
     storage_path: path,
     file_name: safeName,
@@ -509,8 +524,10 @@ export async function persistInspectionPhoto(
     captured_by_name: input.inspectorName || null,
     captured_at: input.capturedAt || new Date().toISOString(),
   };
+  if (itemKey) fullRow.item_key = itemKey;
+  if (input.damageId) fullRow.damage_id = input.damageId;
   let { error: insErr } = await admin.from("vehicle_entry_inspection_photos").insert(fullRow);
-  if (insErr && /column|schema cache|photo_type|vehicle_id|captured/i.test(insErr.message || "")) {
+  if (insErr && /column|schema cache|photo_type|vehicle_id|captured|item_key/i.test(insErr.message || "")) {
     const basic = { inspection_id: inspectionId, storage_path: path, file_name: safeName };
     ({ error: insErr } = await admin.from("vehicle_entry_inspection_photos").insert(basic));
   }
@@ -551,7 +568,7 @@ export function validateInspectionItems(
 
   if (missing.length) {
     if (missing.length >= requiredKeys.length) {
-      return `Todos os ${requiredKeys.length} itens do checklist devem ser classificados (BOM, REGULAR, DANIFICADO, SEM TESTE ou INEXISTENTE).`;
+      return `Todos os ${requiredKeys.length} itens do checklist devem ser classificados (BOM, REGULAR, DANIFICADO, SEM TESTE, INEXISTENTE ou SEM ACESSO – VEÍCULO TRANCADO).`;
     }
     const preview = missing.slice(0, 10).join(", ");
     const suffix = missing.length > 10 ? `… (+${missing.length - 10})` : "";
