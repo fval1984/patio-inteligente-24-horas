@@ -7112,7 +7112,7 @@
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
               <span class="dashboard-system-btn__kicker">Relacionamento</span>
               <span class="dashboard-system-btn__title">Parceiros</span>
-              <span class="dashboard-system-btn__desc">Escritório, leiloeiro, pátio e localizador.</span>
+              <span class="dashboard-system-btn__desc">Escritório, financeira, leiloeiro, pátio e localizador.</span>
               <span class="dashboard-system-btn__go">Abrir parceiros →</span>
             </button>
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenLista">
@@ -7659,6 +7659,7 @@
           <div id="partnerCategoryKpis" class="ao-kpis" aria-label="Resumo de parceiros"></div>
           <div id="partnerSubnav" class="subnav">
             <button type="button" data-subview="escritorios" class="active">Escritório</button>
+            <button type="button" data-subview="financeiras">Financeira</button>
             <button type="button" data-subview="leiloeiros">Leiloeiro</button>
             <button type="button" data-subview="patios">Pátio</button>
             <button type="button" data-subview="localizadores">Localizador</button>
@@ -7700,7 +7701,7 @@
 
           <div class="section-card partner-subview hidden" data-subview="cadastro">
             <p class="notice" style="margin: 0 0 12px">
-              Cadastro único de parceiros por tipo: Escritório, Leiloeiro, Pátio e Localizador. Cada um tem Setor de Retomados (gestores de carteira) e Financeiro (gestores de cobrança). RPV, RPP e leiloeiro no pátio continuam usando o ID do parceiro.
+              Cadastro único de parceiros por tipo: Escritório, Financeira, Leiloeiro, Pátio e Localizador. Cada um tem Setor de Retomados (gestores de carteira) e Financeiro (gestores de cobrança). RPV, RPP e leiloeiro no pátio continuam usando o ID do parceiro.
             </p>
             <div id="partnerCadastroRoot"></div>
             <div class="table-wrap hub-dash-legacy-hidden" hidden aria-hidden="true">
@@ -8372,6 +8373,10 @@
               <div class="field-cr-only">
                 <label for="vehiclePatioPartner">Pátio</label>
                 <select id="vehiclePatioPartner" title="Parceiro tipo pátio"></select>
+              </div>
+              <div class="field-cr-only">
+                <label for="vehicleFinanceira">Financeira</label>
+                <select id="vehicleFinanceira" title="Instituição financeira a que o veículo pertence"></select>
               </div>
               <div class="field-cr-only">
                 <label for="vehicleAdvocacyOfficeSearch">Escritório</label>
@@ -9361,6 +9366,7 @@
           <summary>Parceiros</summary>
           <div class="header-menu-nested">
             <button type="button" data-header-partner-sub="escritorios">Escritório</button>
+            <button type="button" data-header-partner-sub="financeiras">Financeira</button>
             <button type="button" data-header-partner-sub="leiloeiros">Leiloeiro</button>
             <button type="button" data-header-partner-sub="patios">Pátio</button>
             <button type="button" data-header-partner-sub="localizadores">Localizador</button>
@@ -18391,7 +18397,11 @@
           const t = norm ? norm(p.tipo) : String(p.tipo || "").toUpperCase();
           return codes.indexOf(t) >= 0;
         });
-        const use = list.length ? list : allPartnersSorted();
+        let use = list.slice();
+        if (cur && !use.some((p) => String(p.id) === String(cur))) {
+          const extra = allPartnersSorted().find((p) => String(p.id) === String(cur));
+          if (extra) use = [extra].concat(use);
+        }
         const opts = use
           .map((p) => {
             const id = String(p.id);
@@ -19011,7 +19021,7 @@
         const host = document.getElementById("partnerCategoryKpis");
         if (!host) return;
         const svc = window.partnersCadastroService;
-        const counts = svc && svc.countPartnersByCategory ? svc.countPartnersByCategory(state.partners || []) : { total: (state.partners || []).length, localizadores: 0, leiloeiros: 0, patios: 0 };
+        const counts = svc && svc.countPartnersByCategory ? svc.countPartnersByCategory(state.partners || []) : { total: (state.partners || []).length, localizadores: 0, leiloeiros: 0, patios: 0, financeiras: 0 };
         const offices = (state.advocacyOffices || []).length;
         const total = (counts.total || 0) + offices;
         const card = (id, label, n) =>
@@ -19019,6 +19029,7 @@
         host.innerHTML =
           `<div class="ao-kpi" style="cursor:default"><span>Total de parceiros</span><strong>${total}</strong></div>` +
           card("escritorios", "Escritórios", offices) +
+          card("financeiras", "Financeiras", counts.financeiras || 0) +
           card("leiloeiros", "Leiloeiros", counts.leiloeiros || 0) +
           card("patios", "Pátios", counts.patios || 0) +
           card("localizadores", "Localizadores", counts.localizadores || 0);
@@ -19063,7 +19074,7 @@
 
       function setPartnerView(view) {
         const show = view && view !== "none";
-        const CADASTRO_TABS = { leiloeiros: 1, patios: 1, localizadores: 1 };
+        const CADASTRO_TABS = { leiloeiros: 1, patios: 1, localizadores: 1, financeiras: 1 };
         if (view === "parceiros" || view === "cadastro" || view === "dashboard") view = "escritorios";
         if (show) view = resolvePartnerModule(view);
         const resolved = show ? view : null;
@@ -19824,6 +19835,7 @@
             <div class="ficha-placa-visual" style="margin-bottom:10px">${plateVisualHtml(vehicle.placa, "md", true)}</div>
             ${escapeHtml([vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-")}<br />
             RPV: ${escapeHtml(locNome)}<br />
+            Financeira: ${escapeHtml(partnerNomeById(vehicle.financeira_id) || "Sem financeira informada")}<br />
             Escritório: ${escapeHtml((window.advocacyOfficesService && window.advocacyOfficesService.officeName(vehicle.advocacy_office_id, state.advocacyOffices)) || "Sem escritório informado")}<br />
             Gestor de carteira: ${escapeHtml((window.advocacyOfficesService && window.advocacyOfficesService.managerName(vehicle.advocacy_office_manager_id, state.advocacyOfficeManagers)) || "Sem gestor informado")}<br />
             Entrada: ${formatDateTime(vehicle.data_entrada)}<br />
@@ -19887,6 +19899,7 @@
           fichaResumo.innerHTML = `
           <div class="ficha-placa-visual" style="margin-bottom:10px">${plateVisualHtml(vehicle.placa, "md", true)}</div>
           ${escapeHtml([vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-")}<br />
+          Financeira: ${escapeHtml(partnerNomeById(vehicle.financeira_id) || "Sem financeira informada")}<br />
           Escritório: ${escapeHtml((window.advocacyOfficesService && window.advocacyOfficesService.officeName(vehicle.advocacy_office_id, state.advocacyOffices)) || "Sem escritório informado")}<br />
           Gestor de carteira: ${escapeHtml((window.advocacyOfficesService && window.advocacyOfficesService.managerName(vehicle.advocacy_office_manager_id, state.advocacyOfficeManagers)) || "Sem gestor informado")}<br />
           Entrada: ${formatDateTime(vehicle.data_entrada)} • Saída: ${formatDateTime(vehicle.data_saida)}<br />
@@ -20101,6 +20114,7 @@
         fillRppSelect(vehicleFinancialResponsible, "Sem RPP");
         fillPartnerSelectByTipos(vehicleAuctioneer, "Sem leiloeiro", ["LEILOEIRO"]);
         fillPartnerSelectByTipos(document.getElementById("vehiclePatioPartner"), "Sem pátio", ["PATIO_APREENSAO", "PATIO"]);
+        fillPartnerSelectByTipos(document.getElementById("vehicleFinanceira"), "Sem financeira", ["INSTITUICAO_FINANCEIRA", "FINANCEIRA"]);
       }
 
       function openPartnerRegistrationFlow() {
@@ -20132,7 +20146,7 @@
           mode === "cr" ? "Concluir registro (CR)" : mode === "edit" ? "Editar veículo" : "Registrar veículo";
         vehicleModalSubtitle.textContent =
           mode === "cr"
-            ? "Complemente escritório, leiloeiro, pátio, localizador e valor da diária"
+            ? "Complemente financeira, escritório, leiloeiro, pátio, localizador e valor da diária"
             : mode === "edit"
               ? "Atualize os dados do veículo"
               : "Cadastro de entrada no pátio — placa, marca, modelo, cor, RPV e observações";
@@ -20158,6 +20172,8 @@
           if (vehicleAuctioneer) vehicleAuctioneer.value = vehicle.leiloeiro_id || "";
           const patioSel = document.getElementById("vehiclePatioPartner");
           if (patioSel) patioSel.value = vehicle.patio_parceiro_id || "";
+          const finSel = document.getElementById("vehicleFinanceira");
+          if (finSel) finSel.value = vehicle.financeira_id || "";
           setVehicleAdvocacyOfficeField(vehicle.advocacy_office_id || "");
           fillVehicleAdvocacyManagerSelect(vehicle.advocacy_office_manager_id || "");
           const rppMgr = findCarteiraManagerById(vehicle.responsavel_financeiro_id);
@@ -20189,6 +20205,8 @@
           if (vehicleAuctioneer) vehicleAuctioneer.value = "";
           const patioSel = document.getElementById("vehiclePatioPartner");
           if (patioSel) patioSel.value = "";
+          const finSel = document.getElementById("vehicleFinanceira");
+          if (finSel) finSel.value = "";
           setVehicleAdvocacyOfficeField("");
           fillVehicleAdvocacyManagerSelect("");
           bindVehicleRppPicker();
@@ -22206,7 +22224,11 @@
         if (advocacyColsOk) payload.advocacy_office_id = initialCreate ? null : advocacyOfficeId;
         if (managerColOk) payload.advocacy_office_manager_id = initialCreate ? null : advocacyManagerId || null;
         const patioParceiroId = document.getElementById("vehiclePatioPartner")?.value || null;
-        if (!initialCreate) payload.patio_parceiro_id = patioParceiroId || null;
+        const financeiraId = document.getElementById("vehicleFinanceira")?.value || null;
+        if (!initialCreate) {
+          payload.patio_parceiro_id = patioParceiroId || null;
+          payload.financeira_id = financeiraId || null;
+        }
         if (!normalizePlateSearch(payload.placa)) {
           alert("Informe uma placa válida.");
           return;
@@ -22305,6 +22327,7 @@
           const o = { ...p };
           delete o.registro_concluido;
           delete o.patio_parceiro_id;
+          delete o.financeira_id;
           return o;
         };
         const advancedKindsFromError = (msg) => {
@@ -22316,7 +22339,7 @@
           if (/responsavel_financeiro_/i.test(m)) kinds.push("rpf");
           if (/entry_inspection_flow|(\bcor\b)/i.test(m)) kinds.push("entryflow");
           if (/pending_adm_review|registered_by_gestor|adm_reviewed_at/i.test(m)) kinds.push("admreview");
-          if (/registro_concluido|patio_parceiro_id/i.test(m)) kinds.push("regcr");
+          if (/registro_concluido|patio_parceiro_id|financeira_id/i.test(m)) kinds.push("regcr");
           if (/AGUARDANDO_VISTORIA|check constraint|vehicles_status/i.test(m)) kinds.push("status");
           return kinds;
         };
@@ -22326,6 +22349,14 @@
           if (kinds.includes("rpf") && rpfFields.responsavel_financeiro_id) {
             alert(
               "Não foi possível gravar o RPF neste veículo. Confirme no Supabase que existem as colunas responsavel_financeiro_id e responsavel_financeiro_nome (execute supabase/vehicles_recursos_avancados.sql) e tente novamente.\n\n" +
+                (error.message || "")
+            );
+            return;
+          }
+          if (kinds.includes("regcr") && financeiraId && /financeira_id/i.test(error.message || "")) {
+            alert(
+              "Não foi possível gravar a financeira: a tabela vehicles ainda não tem a coluna financeira_id.\n\n" +
+                "No Supabase → SQL Editor, execute supabase/vehicles_financeira_id.sql e atualize a página.\n\n" +
                 (error.message || "")
             );
             return;
@@ -22392,6 +22423,7 @@
           }
           if (degradedGroups.includes("regcr")) {
             sqlHints.push("supabase/vehicles_registro_complementar.sql");
+            sqlHints.push("supabase/vehicles_financeira_id.sql");
           }
           if (degradedGroups.includes("advocacy")) {
             sqlHints.push("supabase/advocacy_offices.sql e supabase/advocacy_office_managers.sql");
