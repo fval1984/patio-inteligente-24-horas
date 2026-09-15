@@ -49,6 +49,16 @@
       searchPlaceholder: "Nome, CNPJ/CPF, cidade…",
       title: "Localizadores",
     },
+    financeiras: {
+      id: "financeiras",
+      label: "Financeira",
+      tipos: ["INSTITUICAO_FINANCEIRA"],
+      defaultTipo: "INSTITUICAO_FINANCEIRA",
+      lockTipo: true,
+      novoLabel: "+ Nova financeira",
+      searchPlaceholder: "Nome, CNPJ/CPF, cidade…",
+      title: "Financeiras",
+    },
   };
 
   const DEFAULT_PARTNER_FILTERS = {
@@ -237,11 +247,10 @@
       .toLowerCase();
     if (raw === "leiloeiros" || raw === "leiloeiro") return "leiloeiros";
     if (raw === "patios" || raw === "patio" || raw === "patio_apreensao") return "patios";
+    if (raw === "financeiras" || raw === "financeira" || raw === "instituicao_financeira") return "financeiras";
     if (
       raw === "localizadores" ||
       raw === "localizador" ||
-      raw === "financeiras" ||
-      raw === "financeira" ||
       raw === "reboqueiros" ||
       raw === "reboqueiro" ||
       raw === "transportadoras" ||
@@ -262,6 +271,7 @@
     const code = normalizePartnerTipo(tipo);
     if (code === "LEILOEIRO") return "leiloeiros";
     if (code === "PATIO_APREENSAO") return "patios";
+    if (code === "INSTITUICAO_FINANCEIRA") return "financeiras";
     return "localizadores";
   }
 
@@ -770,7 +780,7 @@
   }
 
   function countPartnersByCategory(partners) {
-    const counts = { localizadores: 0, leiloeiros: 0, patios: 0, total: 0 };
+    const counts = { localizadores: 0, leiloeiros: 0, patios: 0, financeiras: 0, total: 0 };
     (partners || []).forEach(function (p) {
       const cat = partnerCategoryOfTipo(p.tipo);
       counts[cat] = (counts[cat] || 0) + 1;
