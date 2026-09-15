@@ -58,6 +58,7 @@
       novoLabel: "+ Nova financeira",
       searchPlaceholder: "Nome, CNPJ/CPF, cidade…",
       title: "Financeiras",
+      hasCarteiraManagers: false,
     },
   };
 
