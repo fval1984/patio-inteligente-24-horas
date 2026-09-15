@@ -17,6 +17,7 @@ ALTER TABLE partners ADD COLUMN IF NOT EXISTS perfil jsonb DEFAULT '{}'::jsonb;
 ALTER TABLE partners ADD COLUMN IF NOT EXISTS contatos jsonb DEFAULT '[]'::jsonb;
 ALTER TABLE partners ADD COLUMN IF NOT EXISTS documentos jsonb DEFAULT '[]'::jsonb;
 ALTER TABLE partners ADD COLUMN IF NOT EXISTS historico jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE partners ADD COLUMN IF NOT EXISTS nome_fantasia text;
 
 -- Normaliza tipos legados
 UPDATE partners
