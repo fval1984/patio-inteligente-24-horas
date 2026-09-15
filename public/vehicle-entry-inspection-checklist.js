@@ -6,7 +6,7 @@
 
   const BODY = ["BOM", "REGULAR", "DANIFICADO", "INEXISTENTE"];
   const FULL = ["BOM", "REGULAR", "DANIFICADO", "SEM_TESTE", "INEXISTENTE"];
-  const CALOTA = ["BOM", "REGULAR", "DANIFICADO"];
+  const CALOTA = ["BOM", "REGULAR", "DANIFICADO", "SEM_TESTE", "INEXISTENTE"];
 
   const SIM_NAO = [
     { value: "SIM", label: "Sim" },
@@ -69,7 +69,13 @@
     return pick(key, label, WHEEL_TYPES);
   }
   function calota(key, label) {
-    return cls(key, label, { classIds: CALOTA });
+    return cls(key, label, { classIds: CALOTA, requiresCalotas: true });
+  }
+  function intBody(key, label, opts) {
+    return body(key, label, { interiorAccess: true, ...(opts || {}) });
+  }
+  function intCls(key, label, opts) {
+    return cls(key, label, { interiorAccess: true, ...(opts || {}) });
   }
 
   const DIAGRAMS = {
@@ -108,7 +114,7 @@
           title: "Situação do veículo",
           items: [
             choice("ini_funcionando", "Veículo funcionando?", SIM_NAO),
-            choice("ini_trancado", "Veículo trancado?", SIM_NAO),
+            choice("ini_trancado", "Veículo trancado", SIM_NAO),
             choice("ini_travado", "Veículo travado?", SIM_NAO),
           ],
         },
@@ -284,7 +290,7 @@
       blocks: [
         {
           items: [
-            choice("calota_possui", "Possui calota?", SIM_NAO),
+            choice("calota_possui", "Possui calotas?", SIM_NAO),
             calota("calota_estepe", "Estepe"),
             calota("calota_de", "Dianteira Esquerda"),
             calota("calota_te", "Traseira Esquerda"),
@@ -300,26 +306,26 @@
       blocks: [
         {
           items: [
-            body("interno_assoalho", "Assoalho"),
-            body("int_tapete_motorista", "Tapete motorista"),
-            body("int_tapete_passageiro", "Tapete passageiro"),
-            body("int_tapete_tld", "Tapete TLD"),
-            body("int_tapete_tle", "Tapete TLE"),
-            body("interno_painel", "Painel/console"),
-            body("int_banco_motorista", "Banco dianteiro motorista"),
-            body("int_banco_passageiro", "Banco dianteiro passageiro"),
-            body("interno_bancos_baixos", "Banco traseiro"),
-            body("interno_encosto_cabeca", "Encosto de cabeça"),
-            body("int_rev_dld", "Revestimento de porta DLD"),
-            body("int_rev_dle", "Revestimento de porta DLE"),
-            body("int_rev_tld", "Revestimento de porta TLD"),
-            body("int_rev_tle", "Revestimento de porta TLE"),
-            body("int_teto", "Teto"),
-            body("interno_porta_luvas", "Porta-luvas"),
-            body("int_parasol_motorista", "Para-sol motorista"),
-            body("int_parasol_passageiro", "Para-sol passageiro"),
-            cls("interno_acendedor", "Acendedor de cigarro"),
-            cls("eq_buzina", "Buzina"),
+            intBody("interno_assoalho", "Assoalho"),
+            intBody("int_tapete_motorista", "Tapete motorista"),
+            intBody("int_tapete_passageiro", "Tapete passageiro"),
+            intBody("int_tapete_tld", "Tapete TLD"),
+            intBody("int_tapete_tle", "Tapete TLE"),
+            intBody("interno_painel", "Painel/console"),
+            intBody("int_banco_motorista", "Banco dianteiro motorista"),
+            intBody("int_banco_passageiro", "Banco dianteiro passageiro"),
+            intBody("interno_bancos_baixos", "Banco traseiro"),
+            intBody("interno_encosto_cabeca", "Encosto de cabeça"),
+            intBody("int_rev_dld", "Revestimento de porta DLD"),
+            intBody("int_rev_dle", "Revestimento de porta DLE"),
+            intBody("int_rev_tld", "Revestimento de porta TLD"),
+            intBody("int_rev_tle", "Revestimento de porta TLE"),
+            intBody("int_teto", "Teto"),
+            intBody("interno_porta_luvas", "Porta-luvas"),
+            intBody("int_parasol_motorista", "Para-sol motorista"),
+            intBody("int_parasol_passageiro", "Para-sol passageiro"),
+            intCls("interno_acendedor", "Acendedor de cigarro"),
+            intCls("eq_buzina", "Buzina"),
           ],
         },
       ],
@@ -346,18 +352,18 @@
       blocks: [
         {
           items: [
-            cls("eq_multimidia", "Central multimídia"),
-            cls("eq_cd", "Toca CD"),
-            cls("eq_toca_fitas", "Toca fita"),
-            cls("eq_radio", "Rádio"),
-            cls("eq_alto_falantes", "Auto falante"),
-            cls("eq_modulo_som", "Módulo"),
+            intCls("eq_multimidia", "Central multimídia"),
+            intCls("eq_cd", "Toca CD"),
+            intCls("eq_toca_fitas", "Toca fita"),
+            intCls("eq_radio", "Rádio"),
+            intCls("eq_alto_falantes", "Auto falante"),
+            intCls("eq_modulo_som", "Módulo"),
             cls("eq_teto_solar", "Teto solar"),
             cls("eq_bagageiro_teto", "Bagageiro de teto"),
-            cls("eq_camera_re", "Câmera de ré"),
+            intCls("eq_camera_re", "Câmera de ré"),
             cls("eq_kit_gas", "Kit GNV"),
-            body("eq_banco_couro", "Banco de couro"),
-            body("eq_antena", "Antena interna"),
+            intBody("eq_banco_couro", "Banco de couro"),
+            intBody("eq_antena", "Antena interna"),
             txt("eq_marca", "Marca"),
           ],
         },
@@ -369,11 +375,11 @@
       blocks: [
         {
           items: [
-            cls("interno_extintor", "Extintor"),
-            cls("interno_chave_roda", "Chave de rodas"),
-            cls("interno_macaco", "Macaco"),
-            cls("interno_triangulo", "Triângulo"),
-            cls("interno_cinto_seguranca", "Cintos de segurança"),
+            intCls("interno_extintor", "Extintor"),
+            intCls("interno_chave_roda", "Chave de rodas"),
+            intCls("interno_macaco", "Macaco"),
+            intCls("interno_triangulo", "Triângulo"),
+            intCls("interno_cinto_seguranca", "Cintos de segurança"),
           ],
         },
       ],
@@ -478,8 +484,8 @@
           items: [
             cls("trat_eletrica", "Elétrica"),
             cls("trat_barra_tracao", "Barra de Tração"),
-            cls("trat_assento_operador", "Assento Operador"),
-            cls("trat_cabine", "Cabine"),
+            intCls("trat_assento_operador", "Assento Operador"),
+            intCls("trat_cabine", "Cabine"),
             cls("trat_para_choque", "Para-Choque"),
             cls("trat_bracos_hidraulicos", "Braços Hidráulicos"),
           ],
@@ -619,6 +625,8 @@
       choices: it.choices || null,
       options: it.options || null,
       classIds: it.classIds || null,
+      interiorAccess: !!it.interiorAccess,
+      requiresCalotas: !!it.requiresCalotas,
       required: !!it.required,
       textKey: it.textKey || null,
       textLabel: it.textLabel || null,
