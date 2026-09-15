@@ -8353,8 +8353,17 @@
                 <select id="vehicleLocator" title="Parceiro que trouxe o veículo ao pátio"></select>
               </div>
               <div class="field-operador-hide">
-                <label>RPP — responsável financeiro / pagamento</label>
-                <select id="vehicleFinancialResponsible" title="Parceiro ou gestor de carteira; se for gestor, o registro vai automaticamente para o escritório"></select>
+                <label for="vehicleFinancialResponsibleSearch">RPP — responsável financeiro / pagamento</label>
+                <div class="ao-picker">
+                  <input
+                    id="vehicleFinancialResponsibleSearch"
+                    type="search"
+                    placeholder="Pesquisar RPP (parceiro ou gestor de carteira)..."
+                    autocomplete="off"
+                  />
+                  <input type="hidden" id="vehicleFinancialResponsible" value="" />
+                  <div id="vehicleFinancialResponsibleList" class="ao-suggest hidden"></div>
+                </div>
               </div>
               <div class="field-operador-hide field-cr-only">
                 <label>Leiloeiro</label>
@@ -16525,6 +16534,9 @@
         }
         state.partnerManagers = data || [];
         window.__ampliState = state;
+        fillRppSelect(vehicleFinancialResponsible, "Sem RPP");
+        syncListaFilterSelects();
+        if (typeof window.financePopulateFinanceRppFilters === "function") window.financePopulateFinanceRppFilters();
       }
 
       async function savePartnerManager(parent, editingId, payload) {
@@ -16609,6 +16621,7 @@
       window.deletePartnerManager = deletePartnerManager;
 
       let advocacyOfficePickerBound = false;
+      let vehicleRppPickerBound = false;
       function syncAdvocacyOfficeState() {
         window.__ampliState = state;
         if (typeof window.advocacyOfficesUi?.renderCadastro === "function") {
@@ -16640,6 +16653,70 @@
           });
           advocacyOfficePickerBound = true;
         }
+      }
+
+      function syncVehicleRppPickerDisplay() {
+        const hidden = document.getElementById("vehicleFinancialResponsible");
+        const input = document.getElementById("vehicleFinancialResponsibleSearch");
+        if (!hidden || !input) return;
+        const id = String(hidden.value || "").trim();
+        if (!id) {
+          if (document.activeElement !== input) input.value = "";
+          return;
+        }
+        const hit = rppChoices(id).find((x) => String(x.id) === id);
+        if (document.activeElement !== input) input.value = hit?.label || rppNomeById(id) || "";
+      }
+
+      function bindVehicleRppPicker() {
+        if (vehicleRppPickerBound) return;
+        const input = document.getElementById("vehicleFinancialResponsibleSearch");
+        const hidden = document.getElementById("vehicleFinancialResponsible");
+        const list = document.getElementById("vehicleFinancialResponsibleList");
+        if (!input || !hidden || !list) return;
+        const renderList = () => {
+          const keep = String(hidden.value || "").trim();
+          const hits = searchRppChoices(input.value, keep);
+          const empty = `<button type="button" data-rpp-pick="">Sem RPP</button>`;
+          if (!hits.length) {
+            list.innerHTML = empty + `<button type="button" disabled>Nenhum RPP encontrado</button>`;
+            list.classList.remove("hidden");
+            return;
+          }
+          let html = empty;
+          let lastGroup = "";
+          hits.forEach((item) => {
+            if (item.group && item.group !== lastGroup) {
+              lastGroup = item.group;
+              html += `<button type="button" disabled>${escapeHtml(item.group)}</button>`;
+            }
+            const sel = String(item.id) === keep ? ' aria-selected="true"' : "";
+            html += `<button type="button" data-rpp-pick="${escapeHtml(item.id)}"${sel}>${escapeHtml(item.label)}</button>`;
+          });
+          list.innerHTML = html;
+          list.classList.remove("hidden");
+        };
+        const apply = (id) => {
+          hidden.value = id || "";
+          const hit = id ? rppChoices(id).find((x) => String(x.id) === String(id)) : null;
+          input.value = hit?.label || rppNomeById(id) || "";
+          list.classList.add("hidden");
+          hidden.dispatchEvent(new Event("change", { bubbles: true }));
+        };
+        input.addEventListener("focus", renderList);
+        input.addEventListener("input", () => {
+          if (!String(input.value || "").trim()) hidden.value = "";
+          renderList();
+        });
+        input.addEventListener("blur", () => setTimeout(() => list.classList.add("hidden"), 180));
+        list.addEventListener("mousedown", (e) => {
+          const btn = e.target.closest("[data-rpp-pick]");
+          if (!btn) return;
+          e.preventDefault();
+          apply(btn.getAttribute("data-rpp-pick") || "");
+        });
+        vehicleRppPickerBound = true;
+        syncVehicleRppPickerDisplay();
       }
 
       function fillVehicleAdvocacyManagerSelect(preferredId) {
@@ -16724,6 +16801,7 @@
         await loadAdvocacyOfficeManagers();
         syncAdvocacyOfficeState();
         bindVehicleAdvocacyPicker();
+        bindVehicleRppPicker();
         if (typeof window.advocacyOfficesUi?.bindOnce === "function") window.advocacyOfficesUi.bindOnce();
       }
 
@@ -18102,22 +18180,95 @@
 
       function carteiraManagersForRpp(keepId) {
         const keep = String(keepId || "").trim();
-        const partnerIds = new Set((state.partners || []).map((p) => String(p.id)));
-        return (state.advocacyOfficeManagers || [])
-          .filter((m) => {
-            if (!m || !m.id) return false;
-            if (partnerIds.has(String(m.id))) return false;
-            return m.active !== false || String(m.id) === keep;
-          })
-          .slice()
-          .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR"));
+        const used = new Set((state.partners || []).map((p) => String(p.id)));
+        const out = [];
+        const push = (row) => {
+          if (!row || !row.id) return;
+          const id = String(row.id);
+          if (used.has(id) && id !== keep) return;
+          used.add(id);
+          out.push(row);
+        };
+        (state.advocacyOfficeManagers || []).forEach((m) => {
+          if (!m || !m.id) return;
+          if (m.active === false && String(m.id) !== keep) return;
+          push({
+            id: String(m.id),
+            name: String(m.name || "").trim(),
+            office_id: m.office_id || null,
+            partner_id: null,
+            officeManagerId: String(m.id),
+            active: m.active !== false,
+          });
+        });
+        const mgrSvc = window.partnerManagersService;
+        (state.partnerManagers || []).forEach((raw) => {
+          const rec = mgrSvc && mgrSvc.normalizeManagerRecord ? mgrSvc.normalizeManagerRecord(raw) : raw;
+          if (!rec || !rec.id) return;
+          const kind = String(rec.kind || "CARTEIRA").toUpperCase();
+          if (kind !== "CARTEIRA") return;
+          if (String(rec.status || "ATIVO").toUpperCase() === "INATIVO" && String(rec.id) !== keep) return;
+          push({
+            id: String(rec.id),
+            name: String(rec.name || "").trim(),
+            office_id: rec.advocacy_office_id || null,
+            partner_id: rec.partner_id || null,
+            officeManagerId: null,
+            active: String(rec.status || "ATIVO").toUpperCase() !== "INATIVO",
+          });
+        });
+        return out.sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR"));
+      }
+
+      function rppParentLabel(m) {
+        if (!m) return "";
+        if (m.office_id) {
+          const o = (state.advocacyOffices || []).find((x) => String(x.id) === String(m.office_id));
+          return (o?.name || "").trim();
+        }
+        if (m.partner_id) return partnerNomeById(m.partner_id);
+        return "";
+      }
+
+      function rppManagerLabel(m) {
+        const parent = rppParentLabel(m);
+        const base = parent ? `${m.name || "-"} · ${parent}` : m.name || "-";
+        return m.active === false ? `${base} (inativo)` : base;
+      }
+
+      function rppChoices(keepId) {
+        const items = [];
+        allPartnersSorted().forEach((p) => {
+          items.push({
+            id: String(p.id),
+            label: String(p.nome || "-").trim() || "-",
+            group: "Parceiros",
+            search: partnerNomeNorm(`${p.nome || ""} ${p.cpf || ""} ${p.nome_fantasia || ""}`),
+          });
+        });
+        carteiraManagersForRpp(keepId).forEach((m) => {
+          items.push({
+            id: String(m.id),
+            label: rppManagerLabel(m),
+            group: "Gestores de carteira",
+            search: partnerNomeNorm(`${m.name || ""} ${rppParentLabel(m)}`),
+          });
+        });
+        return items;
+      }
+
+      function searchRppChoices(query, keepId) {
+        const q = partnerNomeNorm(query);
+        const all = rppChoices(keepId);
+        if (!q) return all;
+        return all.filter((x) => x.search.indexOf(q) >= 0 || partnerNomeNorm(x.label).indexOf(q) >= 0);
       }
 
       function findCarteiraManagerById(id) {
         const sid = String(id || "").trim();
         if (!sid) return null;
         if ((state.partners || []).some((p) => String(p.id) === sid)) return null;
-        return (state.advocacyOfficeManagers || []).find((m) => String(m.id) === sid) || null;
+        return carteiraManagersForRpp(sid).find((m) => String(m.id) === sid) || null;
       }
 
       function rppNomeById(id) {
@@ -18125,33 +18276,26 @@
         if (!sid) return "";
         const partnerNome = partnerNomeById(sid);
         if (partnerNome) return partnerNome;
-        const m = (state.advocacyOfficeManagers || []).find((x) => String(x.id) === sid);
+        const m = findCarteiraManagerById(sid);
         return (m?.name || "").trim();
       }
 
       function rppChoiceExists(id) {
         const sid = String(id || "").trim();
         if (!sid) return false;
-        if ((state.partners || []).some((p) => String(p.id) === sid)) return true;
-        return (state.advocacyOfficeManagers || []).some((m) => String(m.id) === sid);
+        return rppChoices(sid).some((x) => String(x.id) === sid);
       }
 
       function rppSelectOptionsHtml(selectedId, emptyLabel = "Selecione o RPP…") {
         const sel = String(selectedId || "").trim();
-        const partnerOpts = allPartnersSorted()
-          .map((p) => {
-            const id = String(p.id);
-            return `<option value="${escapeHtml(id)}"${id === sel ? " selected" : ""}>${escapeHtml(p.nome || "-")}</option>`;
-          })
+        const items = rppChoices(sel);
+        const partnerOpts = items
+          .filter((x) => x.group === "Parceiros")
+          .map((x) => `<option value="${escapeHtml(x.id)}"${x.id === sel ? " selected" : ""}>${escapeHtml(x.label)}</option>`)
           .join("");
-        const mgrOpts = carteiraManagersForRpp(sel)
-          .map((m) => {
-            const id = String(m.id);
-            const office = (state.advocacyOffices || []).find((o) => String(o.id) === String(m.office_id));
-            const label = office?.name ? `${m.name || "-"} · ${office.name}` : m.name || "-";
-            const inactive = m.active === false ? " (inativo)" : "";
-            return `<option value="${escapeHtml(id)}"${id === sel ? " selected" : ""}>${escapeHtml(label + inactive)}</option>`;
-          })
+        const mgrOpts = items
+          .filter((x) => x.group === "Gestores de carteira")
+          .map((x) => `<option value="${escapeHtml(x.id)}"${x.id === sel ? " selected" : ""}>${escapeHtml(x.label)}</option>`)
           .join("");
         let html = `<option value="">${escapeHtml(emptyLabel)}</option>`;
         if (partnerOpts) html += `<optgroup label="Parceiros">${partnerOpts}</optgroup>`;
@@ -18160,10 +18304,13 @@
       }
 
       function fillRppSelect(selectEl, emptyLabel) {
-        if (!selectEl) return;
-        const cur = selectEl.value;
-        selectEl.innerHTML = rppSelectOptionsHtml(cur, emptyLabel);
-        if (cur && [...selectEl.options].some((o) => o.value === cur)) selectEl.value = cur;
+        bindVehicleRppPicker();
+        if (selectEl && selectEl.tagName === "SELECT") {
+          const cur = selectEl.value;
+          selectEl.innerHTML = rppSelectOptionsHtml(cur, emptyLabel);
+          if (cur && [...selectEl.options].some((o) => o.value === cur)) selectEl.value = cur;
+        }
+        syncVehicleRppPickerDisplay();
       }
 
       window.rppSelectOptionsHtml = rppSelectOptionsHtml;
@@ -18175,7 +18322,7 @@
         const m = findCarteiraManagerById(vehicleFinancialResponsible?.value);
         if (!m || !m.office_id) return;
         setVehicleAdvocacyOfficeField(m.office_id);
-        fillVehicleAdvocacyManagerSelect(m.id);
+        fillVehicleAdvocacyManagerSelect(m.officeManagerId || "");
       }
 
       function resolvePartnerIdFromStored(stored) {
@@ -18196,7 +18343,7 @@
         const byId = findCarteiraManagerById(s);
         if (byId) return String(byId.id);
         const norm = partnerNomeNorm(s);
-        const byName = (state.advocacyOfficeManagers || []).find((m) => partnerNomeNorm(m.name) === norm);
+        const byName = carteiraManagersForRpp().find((m) => partnerNomeNorm(m.name) === norm);
         return byName ? String(byName.id) : "";
       }
 
@@ -19994,6 +20141,7 @@
         vehicleForm.classList.toggle("registro-cr-only", mode === "cr");
         vehicleForm.reset();
         vehicleExit.value = "";
+        bindVehicleRppPicker();
         if ((mode === "edit" || mode === "cr") && vehicle) {
           document.getElementById("vehiclePlate").value = vehicle.placa || "";
           document.getElementById("vehicleBrand").value = vehicle.marca || "";
@@ -20005,6 +20153,8 @@
           vehicleLocator.value = vehicle.localizador_id || "";
           if (vehicleFinancialResponsible)
             vehicleFinancialResponsible.value = vehicle.responsavel_financeiro_id || "";
+          bindVehicleRppPicker();
+          syncVehicleRppPickerDisplay();
           if (vehicleAuctioneer) vehicleAuctioneer.value = vehicle.leiloeiro_id || "";
           const patioSel = document.getElementById("vehiclePatioPartner");
           if (patioSel) patioSel.value = vehicle.patio_parceiro_id || "";
@@ -20041,6 +20191,8 @@
           if (patioSel) patioSel.value = "";
           setVehicleAdvocacyOfficeField("");
           fillVehicleAdvocacyManagerSelect("");
+          bindVehicleRppPicker();
+          syncVehicleRppPickerDisplay();
         }
         const vd = document.getElementById("vehicleDaily");
         const entryInput = document.getElementById("vehicleEntry");
@@ -21987,7 +22139,7 @@
         const rppCarteira = findCarteiraManagerById(rpfFields.responsavel_financeiro_id);
         if (rppCarteira) {
           advocacyOfficeId = rppCarteira.office_id || advocacyOfficeId;
-          advocacyManagerId = rppCarteira.id;
+          if (rppCarteira.officeManagerId) advocacyManagerId = rppCarteira.officeManagerId;
         }
         const advocacyColsOk = await probeVehiclesAdvocacyColumn();
         if (advocacyOfficeId && !advocacyColsOk) {
@@ -21999,11 +22151,12 @@
         }
         const svcAo = window.advocacyOfficesService;
         if (
-          !rppCarteira &&
-          (!advocacyOfficeId ||
-            (svcAo && !svcAo.managerBelongsToOffice(advocacyManagerId, advocacyOfficeId, state.advocacyOfficeManagers)))
+          !advocacyOfficeId ||
+          (advocacyManagerId &&
+            svcAo &&
+            !svcAo.managerBelongsToOffice(advocacyManagerId, advocacyOfficeId, state.advocacyOfficeManagers))
         ) {
-          advocacyManagerId = null;
+          advocacyManagerId = rppCarteira?.officeManagerId || null;
         }
         const { error: mgrColErr } = await supabase.from("vehicles").select("advocacy_office_manager_id").limit(1);
         const managerColOk =
@@ -23312,8 +23465,8 @@
             vehiclePatch.responsavel_financeiro_nome = responsavel || rppNomeById(rppPartnerId) || null;
             const rppMgr = findCarteiraManagerById(rppPartnerId);
             if (rppMgr) {
-              vehiclePatch.advocacy_office_id = rppMgr.office_id;
-              vehiclePatch.advocacy_office_manager_id = rppMgr.id;
+              if (rppMgr.office_id) vehiclePatch.advocacy_office_id = rppMgr.office_id;
+              if (rppMgr.officeManagerId) vehiclePatch.advocacy_office_manager_id = rppMgr.officeManagerId;
             }
           }
           const { error: upErr } = await supabase
