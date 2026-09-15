@@ -220,9 +220,10 @@
     const map = {
       BOM: "BOM",
       REGULAR: "REGULAR",
-      DANIFICADO: "DANIFICADA",
+      DANIFICADO: "DANIFICADO",
       SEM_TESTE: "SEM TESTE",
       INEXISTENTE: "INEXISTENTE",
+      SEM_ACESSO_TRANCADO: "SEM ACESSO – VEÍCULO TRANCADO",
     };
     return map[id] || id || "—";
   }
@@ -294,6 +295,9 @@
       }
       .vei-doc-photo-cell { break-inside: avoid; page-break-inside: avoid; text-align: center; min-width: 0; }
       .vei-doc-photo-label { margin: 0 0 4px; font-size: 8pt; font-weight: 700; line-height: 1.2; min-height: 2.4em; display: flex; align-items: flex-end; justify-content: center; break-after: avoid; page-break-after: avoid; }
+      .vei-doc-photo-group { margin: 10px 0 14px; break-inside: avoid; page-break-inside: avoid; border: 1px solid #e2e8f0; padding: 8px; }
+      .vei-doc-photo-group h5 { margin: 0 0 4px; font-size: 9.5pt; }
+      .vei-doc-photo-group p { margin: 0 0 8px; font-size: 8.5pt; color: #334155; }
       .vei-doc-photo-frame { width: 100%; height: auto; aspect-ratio: 4 / 3; max-width: none; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; }
       .vei-doc-photo-frame img { width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; object-position: center; display: block; }
       .vei-doc-photo-empty { font-size: 8pt; color: #94a3b8; padding: 8px; }
@@ -418,7 +422,7 @@
   }
 
   function classificationShort(id) {
-    const map = { BOM: "B", REGULAR: "R", DANIFICADO: "D", SEM_TESTE: "S", INEXISTENTE: "I" };
+    const map = { BOM: "B", REGULAR: "R", DANIFICADO: "D", SEM_TESTE: "S", INEXISTENTE: "I", SEM_ACESSO_TRANCADO: "SA" };
     return map[id] || "";
   }
 
@@ -535,6 +539,15 @@
     const classShort = helpers.CLASS_SHORT || classificationShort;
     const allowed = Array.isArray(it.classIds) && it.classIds.length ? it.classIds : classifications.map((c) => c.id);
     const sel = draft.classifications?.[it.key];
+    const locked = !!(it.interiorAccess && String(draft.formExtras?.ini_trancado || "").toUpperCase() === "SIM");
+    if (locked || sel === "SEM_ACESSO_TRANCADO") {
+      return (
+        `<tr class="vei-item vei-item-locked" data-item-key="${esc(it.key)}">` +
+        `<td class="vei-td-label">${esc(it.label)}</td>` +
+        `<td class="vei-doc-cls-cell" colspan="5" style="text-align:left;font-weight:700">SEM ACESSO – VEÍCULO TRANCADO</td>` +
+        `</tr>`
+      );
+    }
     let html = `<tr class="vei-item${editable && !sel ? " vei-item-pending" : ""}" data-item-key="${esc(it.key)}">`;
     html += `<td class="vei-td-label">${esc(it.label)}</td>`;
     classifications.forEach((c) => {
@@ -607,6 +620,9 @@
         return;
       }
       if (kind !== "classify") return;
+      if (it.requiresCalotas && String(formExtras.calota_possui || "").toUpperCase() !== "SIM") {
+        return;
+      }
       html += renderDocClassifyRow(it, draft, helpers, editable);
       html += renderDocItemExtras(it, formExtras, editable);
     });
@@ -623,7 +639,15 @@
 
     let html =
       '<p class="vei-doc-legend" style="margin:0 0 10px;font-size:8.5pt;text-align:center;border:1px solid #cbd5e1;padding:6px;background:#f8fafc">' +
-      "<strong>Legenda:</strong> B — Bom · R — Regular · D — Danificada · S — Sem Teste · I — Inexistente</p>";
+      "<strong>Legenda:</strong> B — Bom · R — Regular · D — Danificado · S — Sem Teste · I — Inexistente · SA — Sem acesso – veículo trancado</p>";
+    if (String(formExtras.ini_trancado || "").toUpperCase() === "SIM") {
+      html +=
+        '<p class="vei-doc-locked-banner" style="margin:0 0 10px;padding:8px;background:#fff7ed;border:1px solid #fdba74;font-weight:700">VEÍCULO TRANCADO: SIM</p>';
+    }
+    if (String(formExtras.calota_possui || "").toUpperCase() === "NAO") {
+      html +=
+        '<p style="margin:0 0 10px;padding:8px;background:#f8fafc;border:1px solid #cbd5e1;font-weight:700">CALOTAS: INEXISTENTE</p>';
+    }
 
     cards.forEach((card, cardIdx) => {
       html += `<div class="vei-doc-card">`;
@@ -669,7 +693,7 @@
 
     let html =
       '<p class="vei-doc-legend" style="margin:0 0 10px;font-size:8.5pt;text-align:center;border:1px solid #cbd5e1;padding:6px;background:#f8fafc">' +
-      "<strong>Legenda:</strong> B — Bom · R — Regular · D — Danificada · S — Sem Teste · I — Inexistente</p>";
+      "<strong>Legenda:</strong> B — Bom · R — Regular · D — Danificado · S — Sem Teste · I — Inexistente · SA — Sem acesso – veículo trancado</p>";
 
     cards.forEach((card, cardIdx) => {
       html += `<div class="vei-doc-card">`;
@@ -688,16 +712,50 @@
     return html;
   }
 
-  function buildItemDamagePhotosSection(detail) {
-    const photos = (detail?.photos || []).filter(
-      (p) => p.photo_type?.startsWith("avaria_item_") || (p.item_key && p.photo_label?.toLowerCase().includes("avaria"))
-    );
-    if (!photos.length) return "";
-    return (
-      `<section class="vei-doc-section"><h3>Fotos adicionais de avarias</h3>` +
-      buildPhotoGrid(photos.map((p) => ({ label: formatDamagePhotoLabel(p, null), url: p.url }))) +
-      `</section>`
-    );
+  function itemKeyFromDamagePhoto(p) {
+    if (p?.item_key) return String(p.item_key);
+    const type = String(p?.photo_type || p?.type || "");
+    const m = type.match(/^avaria_item_(.+)$/i);
+    return m ? m[1] : "";
+  }
+
+  function buildGroupedItemDamagePhotosHtml(photos, draft) {
+    const groups = new Map();
+    (photos || []).forEach((p) => {
+      const key = itemKeyFromDamagePhoto(p);
+      if (!key) return;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(p);
+    });
+    if (!groups.size) return "";
+    let html = '<section class="vei-doc-section"><h3>Fotos dos itens danificados</h3>';
+    groups.forEach((list, key) => {
+      const label =
+        (draft && global.vehicleEntryInspection?.labelForItemKey?.(draft, key)) ||
+        checklistItemLabel(key) ||
+        key;
+      html += '<div class="vei-doc-photo-group">';
+      html += `<h5>ITEM: ${esc(String(label).toUpperCase())}</h5>`;
+      html += "<p>STATUS: DANIFICADO</p>";
+      html += buildPhotoGrid(
+        list.map((p, idx) => ({
+          label: `Foto ${idx + 1}`,
+          url: p.url,
+        }))
+      );
+      html += "</div>";
+    });
+    html += "</section>";
+    return html;
+  }
+
+  function buildItemDamagePhotosSection(detail, draft) {
+    const photos = (detail?.photos || []).filter((p) => {
+      const type = String(p.photo_type || "");
+      if (type === "avaria_extra" || /^avaria_extra/i.test(type)) return false;
+      return type.startsWith("avaria_item_") || p.item_key || p.photo_category === "ITEM_DANIFICADO";
+    });
+    return buildGroupedItemDamagePhotosHtml(photos, draft);
   }
 
   function buildDamagesSection(draft, photosByDamage) {
@@ -772,7 +830,11 @@
       };
       if (entry.type === "avaria_extra" || /^avaria_extra/i.test(entry.type)) {
         extraDamage.push({ ...entry, label: formatDamagePhotoLabel(entry) });
-      } else if (entry.damage_id || String(entry.type || "").startsWith("avaria_item_")) {
+      } else if (
+        entry.damage_id ||
+        String(entry.type || "").startsWith("avaria_item_") ||
+        entry.item_key
+      ) {
         checklistDamage.push(entry);
       } else {
         const inferredType = inferPhotoType(entry.type, entry.label, entry);
@@ -792,12 +854,16 @@
     standard.sort((a, b) => (a.order < 0 ? 999 : a.order) - (b.order < 0 ? 999 : b.order));
 
     const photosByDamage = {};
+    const photosByItem = {};
     checklistDamage.forEach((p) => {
-      const key = p.damage_id;
-      const damage = (damages || []).find((d) => d.id === p.damage_id);
+      const itemKey = itemKeyFromDamagePhoto(p);
+      const key = itemKey || p.damage_id || "item";
+      const damage = (damages || []).find((d) => d.id === p.damage_id || d.item_key === itemKey);
       const labeled = { ...p, label: formatDamagePhotoLabel(p, damage) };
-      if (!photosByDamage[key]) photosByDamage[key] = [];
-      photosByDamage[key].push(labeled);
+      if (!photosByDamage[p.damage_id || key]) photosByDamage[p.damage_id || key] = [];
+      if (p.damage_id) photosByDamage[p.damage_id].push(labeled);
+      if (!photosByItem[key]) photosByItem[key] = [];
+      photosByItem[key].push(labeled);
     });
 
     (damages || []).forEach((d, idx) => {
@@ -822,17 +888,17 @@
         '<p class="vei-doc-subsection-title" style="margin:12px 0 6px;font-size:11px;font-weight:700;color:#475569">Outras fotografias</p>' +
         buildPhotoGrid(other);
     }
-    const itemPhotos = (detail?.photos || []).filter(
-      (p) => p.photo_type?.startsWith("avaria_item_") || (p.item_key && p.photo_label?.toLowerCase().includes("avaria"))
-    );
+    const itemPhotos = (detail?.photos || []).filter((p) => {
+      const type = String(p.photo_type || "");
+      if (type === "avaria_extra" || /^avaria_extra/i.test(type)) return false;
+      return type.startsWith("avaria_item_") || p.item_key || p.photo_category === "ITEM_DANIFICADO";
+    });
     if (itemPhotos.length) {
-      html +=
-        '<p class="vei-doc-subsection-title" style="margin:12px 0 6px;font-size:11px;font-weight:700;color:#475569">Fotos adicionais de avarias</p>' +
-        buildPhotoGrid(itemPhotos.map((p) => ({ label: formatDamagePhotoLabel(p, null), url: p.url })));
+      html += buildGroupedItemDamagePhotosHtml(itemPhotos, null);
     }
     if (extraDamage.length) {
       html +=
-        '<p class="vei-doc-subsection-title" style="margin:12px 0 6px;font-size:11px;font-weight:700;color:#475569">Avarias — registro fotográfico</p>' +
+        '<p class="vei-doc-subsection-title" style="margin:12px 0 6px;font-size:11px;font-weight:700;color:#475569">Fotos adicionais de avarias</p>' +
         buildPhotoGrid(extraDamage);
     }
     return html;
@@ -889,7 +955,10 @@
       metaField("Data da vistoria", fmt(inspection?.completed_at)) +
       metaField("Responsável pela vistoria", inspection?.completed_by_name) +
       metaField("Tipo", inspection?.inspection_type || "ENTRADA") +
-      metaField("Status", "CONCLUÍDA");
+      metaField("Status", "CONCLUÍDA") +
+      (String(normalizedDraft.formExtras?.ini_trancado || "").toUpperCase() === "SIM"
+        ? metaField("Veículo trancado", "SIM")
+        : "");
 
     const checklistHtml = buildChecklistSection(h, normalizedDraft, detail?.items);
     const damagesHtml = buildDamagesSection(normalizedDraft, photosByDamage);
@@ -923,9 +992,9 @@
       (standardPhotosHtml || otherPhotosHtml
         ? `<section class="vei-doc-section"><h3>Registro fotográfico</h3>${standardPhotosHtml}${otherPhotosHtml ? `<h4 style="margin-top:12px">Outras fotografias</h4>${otherPhotosHtml}` : ""}</section>`
         : "") +
-      buildItemDamagePhotosSection(detail) +
+      buildItemDamagePhotosSection(detail, normalizedDraft) +
       (extraPhotosHtml
-        ? `<section class="vei-doc-section"><h3>Avarias — registro fotográfico</h3>${extraPhotosHtml}</section>`
+        ? `<section class="vei-doc-section"><h3>Fotos adicionais de avarias</h3>${extraPhotosHtml}</section>`
         : "") +
       `<section class="vei-doc-section vei-doc-withdrawal">` +
       `<h3>Termo de retirada do veículo</h3>` +
@@ -990,7 +1059,10 @@
       metaField("Data da vistoria", fmt(inspection?.completed_at)) +
       metaField("Responsável pela vistoria", inspection?.completed_by_name) +
       metaField("Tipo", inspection?.inspection_type || "ENTRADA") +
-      metaField("Status", "CONCLUÍDA");
+      metaField("Status", "CONCLUÍDA") +
+      (String(normalizedDraft.formExtras?.ini_trancado || "").toUpperCase() === "SIM"
+        ? metaField("Veículo trancado", "SIM")
+        : "");
 
     const checklistHtml = `<div id="veiDocChecklistHost">${buildChecklistSectionEditable(h, normalizedDraft)}</div>`;
     const damagesHtml = buildDamagesSection(normalizedDraft, photosByDamage);
@@ -1026,11 +1098,11 @@
           ? `<section class="vei-doc-section"><h3>Registro fotográfico</h3>${standardPhotosHtml}${otherPhotosHtml ? `<h4 style="margin-top:12px">Outras fotografias</h4>${otherPhotosHtml}` : ""}</section>`
           : "") +
       (itemDamagePhotosHtml
-        ? `<section class="vei-doc-section"><h3>Fotos adicionais de avarias</h3><div id="veiDocItemDamagePhotosHost">${itemDamagePhotosHtml}</div></section>`
-        : buildItemDamagePhotosSection(detail)) +
-      (extraPhotosHtml
-        ? `<section class="vei-doc-section"><h3>Avarias — registro fotográfico</h3>${extraPhotosHtml}</section>`
-        : "") +
+        ? `<section class="vei-doc-section"><h3>Fotos dos itens danificados e fotos adicionais de avarias</h3><div id="veiDocItemDamagePhotosHost">${itemDamagePhotosHtml}</div></section>`
+        : buildItemDamagePhotosSection(detail, normalizedDraft) +
+          (extraPhotosHtml
+            ? `<section class="vei-doc-section"><h3>Fotos adicionais de avarias</h3>${extraPhotosHtml}</section>`
+            : "")) +
       `<section class="vei-doc-section vei-doc-withdrawal">` +
       `<h3>Termo de retirada do veículo</h3>` +
       `<p>Declaro, para os devidos fins, que estou retirando o veículo identificado nesta vistoria, responsabilizando-me pelo recebimento do veículo na data abaixo indicada.</p>` +
