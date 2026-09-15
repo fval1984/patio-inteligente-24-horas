@@ -1079,6 +1079,10 @@
 
   function financePartnerNomeById(partnerId) {
     if (!partnerId) return "";
+    if (typeof window.rppNomeById === "function") {
+      const n = String(window.rppNomeById(partnerId) || "").trim();
+      if (n) return n;
+    }
     return String((state.partners || []).find((p) => String(p.id) === String(partnerId))?.nome || "").trim();
   }
 
@@ -1115,6 +1119,15 @@
   function financePopulateRppFilterSelect(selectId, currentValue) {
     const sel = document.getElementById(selectId);
     if (!sel) return;
+    if (typeof window.rppSelectOptionsHtml === "function") {
+      sel.innerHTML = window.rppSelectOptionsHtml(currentValue, "Todos os RPP");
+      if (currentValue && typeof window.rppChoiceExists === "function" && window.rppChoiceExists(currentValue)) {
+        sel.value = currentValue;
+      } else {
+        sel.value = "";
+      }
+      return;
+    }
     const parceiros = [...(state.partners || [])].sort((a, b) =>
       String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR")
     );
@@ -2369,6 +2382,12 @@
       const current = sel.value || "";
       const emptyLabel =
         id === "finDashFilterFinanceira" ? "Todas" : id === "finDashPeriodPartner" ? "Todos os parceiros" : "Todos";
+      if (id === "finDashFilterPartner" && typeof window.rppSelectOptionsHtml === "function") {
+        sel.innerHTML = window.rppSelectOptionsHtml(current, emptyLabel);
+        if (current && typeof window.rppChoiceExists === "function" && window.rppChoiceExists(current)) sel.value = current;
+        else sel.value = "";
+        continue;
+      }
       sel.innerHTML =
         `<option value="">${emptyLabel}</option>` +
         parceiros
