@@ -14,6 +14,8 @@ type Body = {
   content_type?: string;
   data_base64?: string;
   captured_at?: string;
+  item_key?: string;
+  damage_id?: string;
 };
 
 function decodeBase64(raw: string): Uint8Array | null {
@@ -88,6 +90,8 @@ export async function POST(request: NextRequest) {
     contentType: body.content_type || "image/jpeg",
     bytes,
     capturedAt: body.captured_at || "",
+    itemKey: body.item_key || "",
+    damageId: body.damage_id || "",
   });
 
   if (error || !data) {
