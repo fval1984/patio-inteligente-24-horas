@@ -7318,6 +7318,21 @@
                 <option value="">Todos</option>
               </select>
             </div>
+            <div>
+              <label for="listaFilterPlaca">Busca por placa</label>
+              <input
+                id="listaFilterPlaca"
+                type="text"
+                inputmode="text"
+                placeholder="Ex.: ABC1D23"
+                maxlength="20"
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="characters"
+                spellcheck="false"
+                style="width: 9rem"
+              />
+            </div>
             <div style="flex: 1; min-width: 12rem">
               <label for="listaFilterBanco">Banco / texto</label>
               <input
@@ -10190,6 +10205,7 @@
       let vlsListFilterLocatorId = "";
       let listaFilterLocatorId = "";
       let listaFilterRpfId = "";
+      let listaFilterPlaca = "";
       let listaFilterBanco = "";
       let listaFilterDataDe = "";
       let listaFilterDataAte = "";
@@ -13634,6 +13650,7 @@
       function readListaFiltersFromDom() {
         listaFilterLocatorId = document.getElementById("listaFilterLocator")?.value || "";
         listaFilterRpfId = document.getElementById("listaFilterRpf")?.value || "";
+        listaFilterPlaca = (document.getElementById("listaFilterPlaca")?.value || "").trim();
         listaFilterBanco = (document.getElementById("listaFilterBanco")?.value || "").trim();
         listaFilterDataDe = document.getElementById("listaFilterDataDe")?.value || "";
         listaFilterDataAte = document.getElementById("listaFilterDataAte")?.value || "";
@@ -13781,16 +13798,49 @@
         return blob.includes(q);
       }
 
+      function listaPlateQueryMatches(placa, extraText) {
+        const q =
+          typeof normalizePlateSearch === "function"
+            ? normalizePlateSearch(listaFilterPlaca)
+            : String(listaFilterPlaca || "")
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, "");
+        if (!q) return true;
+        const stored =
+          typeof normalizePlateSearch === "function"
+            ? normalizePlateSearch(placa)
+            : String(placa || "")
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, "");
+        if (typeof plateNormMatchesQuery === "function") {
+          if (plateNormMatchesQuery(stored, q)) return true;
+        } else if (stored && (stored.includes(q) || q.includes(stored))) {
+          return true;
+        }
+        if (extraText) {
+          const extra =
+            typeof normalizePlateSearch === "function"
+              ? normalizePlateSearch(extraText)
+              : String(extraText || "")
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]/g, "");
+          if (extra && extra.includes(q)) return true;
+        }
+        return false;
+      }
+
       function listaVehicleMatches(v) {
         if (!v) return false;
         if (listaFilterLocatorId && v.localizador_id !== listaFilterLocatorId) return false;
         if (listaFilterRpfId && listaVehicleEffectiveRpfPartnerId(v) !== String(listaFilterRpfId)) return false;
+        if (!listaPlateQueryMatches(v.placa)) return false;
         return listaTextoBancoMatch(v.observacoes, v.placa, state.settings?.conta_bancaria);
       }
 
       function listaReceivableMatches(r, vehicle) {
         if (listaFilterLocatorId && (vehicle?.localizador_id || "") !== listaFilterLocatorId) return false;
         if (listaFilterRpfId && listaVehicleEffectiveRpfPartnerId(vehicle) !== String(listaFilterRpfId)) return false;
+        if (!listaPlateQueryMatches(vehicle?.placa)) return false;
         return listaTextoBancoMatch(
           r.responsavel_pagamento,
           r.receivable_category,
@@ -13809,6 +13859,7 @@
         if (listaFilterLocatorId && locName && !desc.includes(String(locName).toLowerCase())) return false;
         if (listaFilterRpfId && rpfName && !desc.includes(String(rpfName).toLowerCase())) return false;
         if (listaFilterRpfId && !rpfName) return false;
+        if (!listaPlateQueryMatches("", p.descricao)) return false;
         return listaTextoBancoMatch(p.descricao, p.payable_category, state.settings?.conta_bancaria);
       }
 
@@ -13831,6 +13882,7 @@
         if (pay && !listaPayableMatches(pay)) return false;
         if (!rec && !pay) {
           if (listaFilterLocatorId || listaFilterRpfId) return false;
+          if (!listaPlateQueryMatches("", mov.descricao)) return false;
           return listaTextoBancoMatch(mov.descricao, state.settings?.conta_bancaria);
         }
         return listaTextoBancoMatch(mov.descricao);
@@ -14123,7 +14175,7 @@
         });
         if (!openRec.length) {
           alert(
-            filterLocId || filterRpfId || listaFilterBanco
+            filterLocId || filterRpfId || listaFilterBanco || listaFilterPlaca
               ? "Nenhuma conta em aberto com os filtros escolhidos."
                 : "Não há títulos em aberto para receber."
           );
@@ -14146,6 +14198,7 @@
         const filtroIndiv = [];
         if (filterLocId) filtroIndiv.push(`Somente RPV: ${partnerByIdMap.get(filterLocId) || "-"}`);
         if (filterRpfId) filtroIndiv.push(`Somente RPP: ${rppNomeById(filterRpfId) || partnerByIdMap.get(filterRpfId) || "-"}`);
+        if (listaFilterPlaca) filtroIndiv.push(`Placa: ${listaFilterPlaca}`);
         if (listaFilterBanco) filtroIndiv.push(`Texto: ${listaFilterBanco}`);
         if (filtroIndiv.length) metaParts.unshift(filtroIndiv.join(" · "));
         const cfg = state.settings || {};
@@ -14298,6 +14351,7 @@
         const filtros = [
           listaFilterLocatorId ? `Loc.: ${state.partners.find((p) => p.id === listaFilterLocatorId)?.nome || ""}` : "",
           listaFilterRpfId ? `RPP: ${rppNomeById(listaFilterRpfId) || ""}` : "",
+          listaFilterPlaca ? `Placa: ${listaFilterPlaca}` : "",
           listaFilterBanco ? `Texto: ${listaFilterBanco}` : "",
           listaFilterDataDe || listaFilterDataAte
             ? `Datas: ${listaFilterDataDe ? formatDate(listaFilterDataDe) : "…"} — ${listaFilterDataAte ? formatDate(listaFilterDataAte) : "…"}`
@@ -14683,6 +14737,7 @@
         const filtros = [
           listaFilterLocatorId ? `RPV: ${state.partners.find((p) => p.id === listaFilterLocatorId)?.nome || listaFilterLocatorId}` : "",
           listaFilterRpfId ? `RPP: ${rppNomeById(listaFilterRpfId) || listaFilterRpfId}` : "",
+          listaFilterPlaca ? `Placa: ${listaFilterPlaca}` : "",
           listaFilterBanco ? `Texto: ${listaFilterBanco}` : "",
           listaFilterDataDe || listaFilterDataAte
             ? `Datas: ${listaFilterDataDe ? formatDate(listaFilterDataDe) : "…"} — ${listaFilterDataAte ? formatDate(listaFilterDataAte) : "…"}`
@@ -22016,6 +22071,12 @@
         readListaFiltersFromDom();
         renderListaPanel();
       });
+      document.getElementById("listaFilterPlaca")?.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        readListaFiltersFromDom();
+        renderListaPanel();
+      });
       document.getElementById("listaFiltersPrint")?.addEventListener("click", () => {
         runListaPrintDocument();
       });
@@ -22047,17 +22108,20 @@
       document.getElementById("listaFiltersClear")?.addEventListener("click", () => {
         listaFilterLocatorId = "";
         listaFilterRpfId = "";
+        listaFilterPlaca = "";
         listaFilterBanco = "";
         listaFilterDataDe = "";
         listaFilterDataAte = "";
         const loc = document.getElementById("listaFilterLocator");
         const rpf = document.getElementById("listaFilterRpf");
+        const placa = document.getElementById("listaFilterPlaca");
         const banco = document.getElementById("listaFilterBanco");
         const dataBusca = document.getElementById("listaFilterDataBusca");
         const dataDe = document.getElementById("listaFilterDataDe");
         const dataAte = document.getElementById("listaFilterDataAte");
         if (loc) loc.value = "";
         if (rpf) rpf.value = "";
+        if (placa) placa.value = "";
         if (banco) banco.value = "";
         if (dataBusca) dataBusca.value = "";
         if (dataDe) dataDe.value = "";
