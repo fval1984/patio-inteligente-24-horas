@@ -764,7 +764,7 @@
   async function exportPdfOrPrint(mode) {
     const capture = document.getElementById("aoReportCapture");
     if (!capture) return;
-    const logo = document.getElementById("brandLogo")?.src || "/assets/ampliguard-header-trim.png";
+    const logo = "/assets/ampliguard-marca.png?v=20260917logo2";
     const now = new Date().toLocaleString("pt-BR");
     const k = svc().computeReport({
       vehicles: ctxData().vehicles,
