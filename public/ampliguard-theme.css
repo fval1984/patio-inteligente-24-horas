@@ -284,8 +284,8 @@ header .user {
   }
 
   header .brand-header-logo {
-    height: 56px !important;
-    max-width: min(360px, 88vw) !important;
+    height: 48px !important;
+    max-width: min(380px, 90vw) !important;
   }
 
   .app-subheader {
