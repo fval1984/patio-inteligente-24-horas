@@ -4169,12 +4169,12 @@
 
   function financeReceberClienteLogoUrl() {
     const base = window.location?.origin || "";
-    return `${base}/assets/ampliguard-header-trim.png?v=12`;
+    return `${base}/assets/ampliguard-header-trim.png?v=13`;
   }
 
   function financeReceberClienteLogoFallbackUrl() {
     const base = window.location?.origin || "";
-    return `${base}/assets/ampliguard-header-trim.png?v=12`;
+    return `${base}/assets/ampliguard-header-trim.png?v=13`;
   }
 
   function financeReceberClientePartnerFromQuery(query) {
