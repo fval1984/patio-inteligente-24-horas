@@ -344,8 +344,12 @@ html[data-theme="dark"] .cob-btn.danger {
 
 .cob-preview-logo {
   display: block;
+  height: auto;
+  width: auto;
+  max-width: 100%;
   max-height: 52px;
   margin: 0 auto 8px;
+  object-fit: contain;
 }
 
 .cob-preview-meta p,
