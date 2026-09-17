@@ -259,7 +259,7 @@
         </tr>`
       )
       .join("");
-    const logo = "/assets/ampliguard-header-trim.png?v=13";
+    const logo = "/assets/ampliguard-marca.png?v=20260917logo2";
     const num = String(doc.numero || 0).padStart(6, "0");
     return `<div class="cob-preview-paper" id="cobPaper">
       <img class="cob-preview-logo" src="${esc(logo)}" alt="AMPLIAUTO" />
