@@ -116,7 +116,7 @@ html[data-theme="dark"] header,
 [data-theme="light"] header,
 header {
   position: relative;
-  background: #0d3a32 !important;
+  background: #01261e !important;
   border-bottom: 0 !important;
   backdrop-filter: none !important;
   justify-content: flex-start !important;
@@ -125,14 +125,7 @@ header {
 }
 
 header::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #1f6b57 0 28%, #0d3a32 28% 32%, #145c4d 32% 100%);
-  pointer-events: none;
+  display: none;
 }
 
 header .brand {
