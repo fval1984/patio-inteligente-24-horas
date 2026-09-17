@@ -58,8 +58,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>AMPLIGUARD</title>
-    <link rel="icon" type="image/png" href="/assets/ampliguard-icon.png?v=11" />
-    <link rel="apple-touch-icon" href="/assets/ampliguard-icon.png?v=11" />
+    <link rel="icon" type="image/png" href="/assets/ampliguard-icon.png?v=13" />
+    <link rel="apple-touch-icon" href="/assets/ampliguard-icon.png?v=13" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#001529" media="(prefers-color-scheme: dark)" />
@@ -7059,12 +7059,12 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="/ampliguard-theme.css?v=20260909contrast1" />
+    <link rel="stylesheet" href="/ampliguard-theme.css?v=20260917header1" />
     <link rel="stylesheet" href="/finance-action-ui.css?v=20260818finact6" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
-    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260910scroll1" />
+    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260917header1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20260909contrast1" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20260917header1" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260910cob4" />
   </head>
   <body class="auth-screen-active">
@@ -7078,8 +7078,8 @@
         <div class="brand">
           <img
             id="brandLogo"
-            src="/assets/ampliguard-header-trim.png?v=12"
-            alt="AMPLIGUARD — Segurança, Confiança, Compromisso"
+            src="/assets/ampliguard-header-system-trim.png?v=1"
+            alt="AMPLIGUARD — Pátio de guarda de veículos"
             class="brand-header-logo"
           />
         </div>
@@ -7210,7 +7210,7 @@
 
       <section id="authorizationPanel" class="panel auth auth-authorization hidden">
         <div class="auth-brand">
-          <img src="/assets/ampliguard-header.png?v=12" alt="AMPLIGUARD — Segurança, Confiança, Compromisso" class="auth-brand-logo" />
+          <img src="/assets/ampliguard-header.png?v=13" alt="AMPLIGUARD — Remoção, Custódia, Gestão de Veículos" class="auth-brand-logo" />
         </div>
         <h2>Acesso exclusivo</h2>
         <p class="auth-authorization-message">
@@ -7379,7 +7379,7 @@
             <div class="lista-capture-heading-row">
               <div id="listaCaptureHeading"></div>
               <div class="lista-capture-logo-mark" aria-label="AMPLIGUARD">
-                <img src="/assets/ampliguard-header-trim.png?v=12" alt="AMPLIGUARD" />
+                <img src="/assets/ampliguard-header-trim.png?v=13" alt="AMPLIGUARD" />
               </div>
             </div>
             <div class="section-card" style="margin: 0; border: 0; box-shadow: none; padding: 0">
@@ -13999,7 +13999,7 @@
 
       function listaPrintDocHeadHtml(headingTitle, subLine) {
         const origin = window.location?.origin || "";
-        const logo = `${origin}/assets/ampliguard-header-trim.png?v=12`;
+        const logo = `${origin}/assets/ampliguard-header-trim.png?v=13`;
         return `<header class="doc-head">
     <img src="${escapeHtml(logo)}" alt="AMPLIGUARD" />
     <h1 class="doc-title">${escapeHtml(headingTitle)}</h1>
@@ -14623,7 +14623,7 @@
 
       function listaExportBrandHtml() {
         return `<div class="lista-export-brand">
-    <img src="/assets/ampliguard-header-trim.png?v=12" alt="AMPLIGUARD" />
+    <img src="/assets/ampliguard-header-trim.png?v=13" alt="AMPLIGUARD" />
   </div>`;
       }
 
