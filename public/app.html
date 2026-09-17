@@ -7066,7 +7066,7 @@
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260917header1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20260917header5" />
-    <link rel="stylesheet" href="/cobranca-module.css?v=20260910cob4" />
+    <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
   </head>
   <body class="auth-screen-active">
     <noscript>
@@ -7211,7 +7211,7 @@
 
       <section id="authorizationPanel" class="panel auth auth-authorization hidden">
         <div class="auth-brand">
-          <img src="/assets/ampliguard-header.png?v=13" alt="AMPLIGUARD — Remoção, Custódia, Gestão de Veículos" class="auth-brand-logo" />
+          <img src="/assets/ampliguard-marca.png?v=20260917logo2" alt="AMPLIGUARD — Pátio de guarda de veículos" class="auth-brand-logo" />
         </div>
         <h2>Acesso exclusivo</h2>
         <p class="auth-authorization-message">
@@ -7380,7 +7380,7 @@
             <div class="lista-capture-heading-row">
               <div id="listaCaptureHeading"></div>
               <div class="lista-capture-logo-mark" aria-label="AMPLIGUARD">
-                <img src="/assets/ampliguard-header-trim.png?v=13" alt="AMPLIGUARD" />
+                <img src="/assets/ampliguard-marca.png?v=20260917logo2" alt="AMPLIGUARD" />
               </div>
             </div>
             <div class="section-card" style="margin: 0; border: 0; box-shadow: none; padding: 0">
@@ -9418,7 +9418,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260909finsimple1"></script>
+    <script src="/finance-module.js?v=20260917logo1"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
@@ -9437,15 +9437,15 @@
     <script src="/amplipatio-dashboard.js?v=20260909ind1"></script>
     <script src="/vehicle-entry-inspection-checklist.js?v=20260915vistoria1"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260915vistoria1"></script>
-    <script src="/vehicle-entry-inspection-document.js?v=20260915vistoria1"></script>
+    <script src="/vehicle-entry-inspection-document.js?v=20260917logo1"></script>
     <script src="/vehicle-entry-inspection.js?v=20260915vistoria1"></script>
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script src="/advocacy-offices-service.js?v=20260909partners2"></script>
-    <script src="/advocacy-offices-ui.js?v=20260909partners2"></script>
+    <script src="/advocacy-offices-ui.js?v=20260917logo1"></script>
     <script src="/cobranca-service.js?v=20260910cob4"></script>
-    <script src="/cobranca-ui.js?v=20260910cob4"></script>
+    <script src="/cobranca-ui.js?v=20260917logo1"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -14000,7 +14000,7 @@
 
       function listaPrintDocHeadHtml(headingTitle, subLine) {
         const origin = window.location?.origin || "";
-        const logo = `${origin}/assets/ampliguard-header-trim.png?v=13`;
+        const logo = `${origin}/assets/ampliguard-marca.png?v=20260917logo2`;
         return `<header class="doc-head">
     <img src="${escapeHtml(logo)}" alt="AMPLIGUARD" />
     <h1 class="doc-title">${escapeHtml(headingTitle)}</h1>
@@ -14624,7 +14624,7 @@
 
       function listaExportBrandHtml() {
         return `<div class="lista-export-brand">
-    <img src="/assets/ampliguard-header-trim.png?v=13" alt="AMPLIGUARD" />
+    <img src="/assets/ampliguard-marca.png?v=20260917logo2" alt="AMPLIGUARD" />
   </div>`;
       }
 
@@ -19567,7 +19567,7 @@
       }
 
       async function loadReciboLogoDataUrl() {
-        const paths = ["/assets/ampliguard-header-trim.png", "/assets/ampliguard-header.png"];
+        const paths = ["/assets/ampliguard-marca.png"];
         for (const path of paths) {
           try {
             const r = await fetch(path, { cache: "force-cache" });
