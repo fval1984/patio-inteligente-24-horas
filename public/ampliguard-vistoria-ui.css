@@ -1126,3 +1126,41 @@ body.role-visualizador #trackManagerBtnNovo {
   display: none !important;
 }
 
+body.role-gestor-pista #headerDetailsFinance,
+body.role-gestor-pista #headerDetailsConfig,
+body.role-gestor-pista #dashboardOpenFinance,
+body.role-gestor-pista #dashboardOpenConfiguracoes,
+body.role-gestor-pista .cmd-ops-kpi--money,
+body.role-gestor-pista [data-hub-nav="patio:aguardando_faturamento"],
+body.role-gestor-pista [data-header-patio-sub="aguardando_faturamento"],
+body.role-gestor-pista [data-lista-gestor-hide],
+body.role-gestor-pista #appHeaderMenu button[data-view="biExecutivo"],
+body.role-gestor-pista #finBtnNovoLancamento,
+body.role-gestor-pista [data-fin-batch-action],
+body.role-gestor-pista button[data-action="editar"],
+body.role-gestor-pista button[data-action="apagar"],
+body.role-gestor-pista button[data-action="apagar-parceiro"],
+body.role-gestor-pista button[data-action="editar-parceiro"],
+body.role-gestor-pista button[data-action="apagar-track-manager"],
+body.role-gestor-pista button[data-action="concluir_registro"],
+body.role-gestor-pista button[data-action="confirmar_liberacao"],
+body.role-gestor-pista button[data-action="solicitar"],
+body.role-gestor-pista button[data-action="voltar"],
+body.role-gestor-pista button[data-action="editar_vistoria"],
+body.role-gestor-pista button[data-action="apagar_vistoria"],
+body.role-gestor-pista button[data-action="remocao_solicitada"],
+body.role-gestor-pista button[data-action="trocar-responsavel"],
+body.role-gestor-pista button[data-action="editar_fechamento_ciclo"],
+body.role-gestor-pista button[data-action="patio_liberar_financeiro"],
+body.role-gestor-pista button[data-action="patio_finalizar_faturamento"],
+body.role-gestor-pista button[data-action="validar_adm_review"],
+body.role-gestor-pista button[data-action="pagar"],
+body.role-gestor-pista button[data-action="receber"],
+body.role-gestor-pista button[data-action="pagamento"],
+body.role-gestor-pista button[data-action="cobranca"],
+body.role-gestor-pista button[data-action="nfse"],
+body.role-gestor-pista #openPartnerForm,
+body.role-gestor-pista #trackManagerBtnNovo {
+  display: none !important;
+}
+
