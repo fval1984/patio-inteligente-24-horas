@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { forbidViewerFinance } from "@/lib/viewer-access-guard";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { SupabaseFinanceCompetencyRepository } from "@/lib/finance-competency/supabase-repository";
 import { FinanceCompetencyService } from "@/lib/finance-competency/service";
@@ -120,6 +121,8 @@ async function runLegacyFallback(userId: string, vehicleId: string, referenceDat
 }
 
 export async function POST(request: NextRequest) {
+  const __viewerDenied = await forbidViewerFinance(request);
+  if (__viewerDenied) return __viewerDenied;
   try {
     const body = await request.json();
     const userId = String(body?.userId || "").trim();
