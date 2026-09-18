@@ -47,14 +47,30 @@ export function actorRequiresInspectorIdentification(actor: PatioActor): boolean
   return actor.role === "VISTORIADOR";
 }
 
-/** Visualizador: consulta o pátio; não altera dados. ADM/Gestor/Vistoriador inalterados. */
+/** Escrita geral (não inclui as 3 operações do Gestor de pista). */
 export function actorCanWrite(actor: PatioActor): boolean {
-  return actor.role !== "VISUALIZADOR";
+  return actor.role !== "VISUALIZADOR" && actor.role !== "GESTOR_PISTA";
 }
 
-/** Visualizador não vê nem muta financeiro. Os demais papéis mantêm o comportamento actual. */
+export function actorCanInspectWrite(actor: PatioActor): boolean {
+  return actor.role === "ADM" || actor.role === "GESTOR_PISTA" || actor.role === "VISTORIADOR";
+}
+
+export function actorCanRegisterVehicleEntry(actor: PatioActor): boolean {
+  return actor.role === "ADM" || actor.role === "GESTOR_PISTA";
+}
+
+export function actorCanConfirmPhysicalExit(actor: PatioActor): boolean {
+  return actor.role === "ADM" || actor.role === "GESTOR_PISTA";
+}
+
+export function actorCanMutateOperationalFlow(actor: PatioActor): boolean {
+  return actor.role === "ADM";
+}
+
+/** Visualizador e Gestor de pista não vêem nem mutam financeiro. Vistoriador e ADM inalterados. */
 export function actorCanAccessFinance(actor: PatioActor): boolean {
-  return actor.role !== "VISUALIZADOR";
+  return actor.role !== "VISUALIZADOR" && actor.role !== "GESTOR_PISTA";
 }
 
 export function actorCanViewInspections(actor: PatioActor): boolean {
