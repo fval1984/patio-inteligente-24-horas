@@ -10579,14 +10579,14 @@
 
       /** Dashboard/BI Executivo: somente desktop. No mobile abre o pátio. */
       function resolveViewForDevice(view) {
-        if (!isGestorPista && isMobileLayout() && isExecutiveDashboardView(view)) return "patio";
+        if (isMobileLayout() && isExecutiveDashboardView(view)) return "patio";
         return view;
       }
 
       function defaultHomeViewForRole() {
         if (isVistoriador) return "patio";
-        if (isVisualizador) return isMobileLayout() ? "patio" : "dashboard";
-        if (isGestorPista || isMobileLayout()) return "patio";
+        if (isVisualizador || isGestorPista) return isMobileLayout() ? "patio" : "dashboard";
+        if (isMobileLayout()) return "patio";
         return "dashboard";
       }
 
@@ -13598,6 +13598,13 @@
       }
 
       async function ensureVehicleReadyForVrp(vehicleId, vehicle, liveVehicle) {
+        if (isGestorPista) {
+          if (canEfetivarRemocaoVrp(liveVehicle)) return liveVehicle;
+          if (canEfetivarRemocaoVrp(vehicle)) {
+            return { ...liveVehicle, ...vehicle, status: vehicle.status };
+          }
+          return null;
+        }
         if (canEfetivarRemocaoVrp(liveVehicle)) return liveVehicle;
         if (canEfetivarRemocaoVrp(vehicle)) {
           return { ...liveVehicle, ...vehicle, status: vehicle.status };
@@ -16304,7 +16311,7 @@
           setPatioView("vistoria");
           return;
         }
-        if (isVisualizador && (cfg.view === "financeiro" || cfg.fin || isViewerForbiddenView(cfg.view))) {
+        if ((isVisualizador || isGestorPista) && (cfg.view === "financeiro" || cfg.fin || isViewerForbiddenView(cfg.view))) {
           showMainView("patio");
           setPatioView("inicio");
           return;
@@ -16585,7 +16592,6 @@
       }
 
       function applyMobileModuleNavRestrictions() {
-        const gestorVisible = new Set(["dashboardOpenPatio", "dashboardOpenLista"]);
         const vistoriadorVisible = new Set();
         const visualizadorVisible = new Set(["dashboardOpenHome", "dashboardOpenPatio", "dashboardOpenLista", "dashboardOpenParceiros"]);
         [
@@ -16598,10 +16604,10 @@
         ].forEach((id) => {
           const btn = document.getElementById(id);
           if (!btn) return;
-          let show = isVistoriador ? vistoriadorVisible.has(id) : !isGestorPista || gestorVisible.has(id);
-          if (isVisualizador) show = visualizadorVisible.has(id);
-          if (id === "dashboardOpenHome") show = (!isGestorPista && !isVistoriador) || isVisualizador;
-          if (id === "dashboardOpenFinance") show = show && !isVisualizador;
+          let show = !isVistoriador;
+          if (isVistoriador) show = vistoriadorVisible.has(id);
+          if (isVisualizador || isGestorPista) show = visualizadorVisible.has(id);
+          if (id === "dashboardOpenFinance") show = show && !isVisualizador && !isGestorPista;
           btn.classList.toggle("hidden", !show);
           btn.style.display = show ? "" : "none";
         });
@@ -16778,42 +16784,34 @@
         }
 
         try {
-          navStack.splice(0, navStack.length, "patio", "patio:inicio");
+          navStack.splice(0, navStack.length, defaultHomeViewForRole());
         } catch (e) {
           console.warn("navStack", e);
         }
-
-        document.querySelectorAll("#appHeaderMenu button[data-view]").forEach((btn) => {
-          btn.style.display = "none";
-        });
-        goDashboardFromPlate?.classList.add("hidden");
         document.getElementById("headerDetailsConfig")?.classList.add("hidden");
         document.getElementById("headerDetailsFinance")?.classList.add("hidden");
-        document.getElementById("headerDetailsParceiros")?.classList.add("hidden");
-        document.getElementById("headerDetailsEscritorios")?.classList.add("hidden");
+        document.getElementById("dashboardOpenFinance")?.classList.add("hidden");
+        document.getElementById("dashboardOpenConfiguracoes")?.classList.add("hidden");
+        document.querySelectorAll("#appHeaderMenu button[data-view='biExecutivo']").forEach((btn) => {
+          btn.style.display = "none";
+        });
         document.querySelectorAll("#headerDetailsLista [data-lista-gestor-hide], #listaSubnav [data-lista-gestor-hide]").forEach((el) => {
           el.classList.add("hidden");
         });
         document
           .querySelectorAll(
-            '#headerDetailsPatio [data-header-patio-sub="removidos"], #headerDetailsPatio [data-header-patio-sub="fechando_ciclo"], #headerDetailsPatio [data-header-patio-sub="aguardando_faturamento"]'
+            '#headerDetailsPatio [data-header-patio-sub="aguardando_faturamento"]'
           )
           .forEach((el) => el.classList.add("hidden"));
-        document.getElementById("dashboardSystemEntry")?.classList.add("dashboard-system-entry--single");
-        document.getElementById("dashboardOpenFinance")?.classList.add("hidden");
-
-        if (!opts.skipDefaultView) {
-          showMainView("patio");
-          setPatioView("inicio");
-        }
-
-        patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.add("hidden");
         patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.add("hidden");
         patioSubnav?.querySelector('[data-subview="aguardando_faturamento"]')?.classList.add("hidden");
-
+        const vehicleDailyHideG = document.getElementById("vehicleDaily");
+        const vehicleDailyWrapHideG = vehicleDailyHideG?.closest("div");
+        if (vehicleDailyWrapHideG) vehicleDailyWrapHideG.style.display = "none";
+        if (vehicleDailyHideG) vehicleDailyHideG.required = false;
         const style = document.createElement("style");
         style.id = "track-manager-hide-values-style";
-        let css = `
+        style.textContent = `
           #viewPatio [data-subview="no_patio"] table thead th:nth-child(6),
           #viewPatio [data-subview="no_patio"] table tbody td:nth-child(6),
           #viewPatio [data-subview="vlp"] table thead th:nth-child(6),
@@ -16828,27 +16826,17 @@
           #viewPatio [data-subview="removidos"] table tbody td:nth-child(7) {
             display: none !important;
           }
-          #viewPatio [data-subview="fechando_ciclo"] table thead th:nth-child(6),
-          #viewPatio [data-subview="fechando_ciclo"] table tbody td:nth-child(6),
-          #viewPatio [data-subview="aguardando_faturamento"] table thead th:nth-child(6),
-          #viewPatio [data-subview="aguardando_faturamento"] table tbody td:nth-child(6) {
-            display: none !important;
-          }
-        `;
-        css += `
           #vehicleForm.operador-simplified .field-operador-hide { display: none !important; }
           #vehicleForm .gestor-entry-auto-note { display: none; }
           #vehicleForm.operador-simplified .gestor-entry-auto-note { display: block; }
         `;
-        style.textContent = css;
         document.head.appendChild(style);
-
+        document.body.classList.add("role-gestor-pista");
         window.isGestorPista = true;
         window.isVistoriador = false;
         window.isVisualizador = false;
-        const patioOpsHead = document.querySelector("#patioInicioPanel .patio-inicio-ops-section h4");
-        if (patioOpsHead) patioOpsHead.textContent = "Indicadores do pátio";
         applyMobileModuleNavRestrictions();
+        if (!opts.skipDefaultView) openDefaultHomeView();
         applyRegisteredUserGreeting();
       }
 
@@ -17825,7 +17813,7 @@
 
       function vnpShouldShowVistoriaStartButton(v) {
         if (!v || isAdmDesktopPc() || isVisualizador) return false;
-        if (isRegistroPendente(v)) return false;
+        if (isRegistroPendente(v) && !isGestorPista) return false;
         if (getInspectionIndexEntry(v.id)) return false;
         return window.vehicleEntryInspection?.canStartInspection
           ? window.vehicleEntryInspection.canStartInspection(v, buildVehicleInspectionCtx())
@@ -17833,7 +17821,7 @@
       }
 
       function vnpShouldShowVistoriaEditButton(v) {
-        if (!v || isAdmDesktopPc() || isVisualizador) return false;
+        if (!v || isAdmDesktopPc() || isVisualizador || isGestorPista) return false;
         return !!getInspectionIndexEntry(v.id);
       }
 
@@ -18289,7 +18277,6 @@
         if (elNfse) elNfse.textContent = String(saidasHoje);
 
         if (
-          !isGestorPista &&
           !document.getElementById("viewDashboard")?.classList.contains("hidden") &&
           typeof window.amplipatioDashboardRender === "function"
         ) {
@@ -19082,36 +19069,18 @@
       }
 
       function buildGestorPistaVnpActions(v) {
-        if (isRegistroPendente(v)) {
-          return (
-            crActionButtonHtml(v) +
-            (isPendingAdmReview(v) ? ` <span class="notice">Aguardando CR / revisão do ADM</span>` : "")
-          );
-        }
-        if (isPendingAdmReview(v)) {
-          return `<span class="notice">Aguardando revisão do ADM</span>`;
-        }
         const parts = [];
         if (vnpShouldShowVistoriaViewButton(v)) {
           parts.push(
             `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
           );
-          if (vnpShouldShowVistoriaEditButton(v)) {
-            parts.push(
-              `<button class="secondary" data-action="editar_vistoria" data-id="${v.id}">Editar vistoria</button>`
-            );
-          }
         } else if (vnpShouldShowVistoriaStartButton(v)) {
           parts.push(`<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`);
         }
         parts.push(`<button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>`);
-        if (v.status === "LIBERACAO_SOLICITADA") {
+        if (isVscStatus(v.status)) {
           parts.push(
-            `<button class="secondary" data-action="confirmar_liberacao" data-id="${v.id}">Liberação confirmada</button>`
-          );
-        } else if (isGestorAguardandoRemocao(v)) {
-          parts.push(
-            `<button class="secondary" data-action="confirmar" data-id="${v.id}">Baixa / Remoção</button>`
+            `<button class="secondary" data-action="confirmar" data-id="${v.id}">Confirmar saída</button>`
           );
         }
         return parts.join(" ");
@@ -20256,32 +20225,26 @@
           if (fichaSectionSlv) {
             let sit = VLS_STATUS_LABELS[vehicle.status] || vehicle.status || "-";
             if (isPendingAdmReview(vehicle)) sit = "Aguardando revisão do ADM";
-            else if (isRegistroPendente(vehicle)) sit = "Aguardando concluir registro (CR)";
-            else if (isGestorAguardandoRemocao(vehicle)) sit = "Aguardando remoção";
-            else if (isRemocaoSolicitada(vehicle)) sit += " · remoção solicitada";
+            else if (isVscStatus(vehicle.status)) sit = "VSC — liberação confirmada (ainda no pátio)";
+            else if (isVslStatus(vehicle.status)) sit = "VSL — solicitação de liberação";
+            else if (isRegistroPendente(vehicle)) sit = "Registro de entrada no pátio";
             const botoes = [];
-            if (isRegistroPendente(vehicle)) {
+            if (vnpShouldShowVistoriaViewButton(vehicle)) {
               botoes.push(
-                `<button type="button" class="secondary" data-action="concluir_registro" data-id="${vehicle.id}">CR — Concluir registro</button>`
+                `<button type="button" class="secondary" data-action="ver_vistoria" data-id="${vehicle.id}">Consultar vistoria</button>`
+              );
+            } else if (vnpShouldShowVistoriaStartButton(vehicle)) {
+              botoes.push(
+                `<button type="button" class="secondary" data-action="vistoria" data-id="${vehicle.id}">Vistoria</button>`
               );
             }
-            if (!isPendingAdmReview(vehicle)) {
-              if (vehicle.status === "LIBERACAO_SOLICITADA") {
-                botoes.push(
-                  `<button type="button" class="secondary" data-action="confirmar_liberacao" data-id="${vehicle.id}">Liberação confirmada</button>`
-                );
-              } else if (isGestorAguardandoRemocao(vehicle)) {
-                botoes.push(
-                  `<button type="button" class="secondary" data-action="confirmar" data-id="${vehicle.id}">Baixa / Remoção</button>`
-                );
-              }
+            if (isVscStatus(vehicle.status)) {
+              botoes.push(
+                `<button type="button" class="secondary" data-action="confirmar" data-id="${vehicle.id}">Confirmar saída</button>`
+              );
             }
             fichaSectionSlv.innerHTML =
-              `<p class="notice" style="margin:0">Situação: <strong>${escapeHtml(sit)}</strong>.` +
-              (isPendingAdmReview(vehicle)
-                ? " Cadastro aguardando revisão do ADM."
-                : " Edição e exclusão só pelo administrador.") +
-              `</p>` +
+              `<p class="notice" style="margin:0">Situação: <strong>${escapeHtml(sit)}</strong>. Consulta operacional; sem valores financeiros. Edição e exclusão só pelo administrador.</p>` +
               (botoes.length ? `<div class="ficha-inline-actions">${botoes.join("")}</div>` : "");
           }
         } else {
@@ -20546,8 +20509,8 @@
           alert("Este perfil só pode realizar vistorias.");
           return;
         }
-        if (isGestorPista && mode === "edit") {
-          alert("O gestor de pista não pode editar veículos.");
+        if (isGestorPista && (mode === "edit" || mode === "cr")) {
+          alert("O gestor de pista não pode editar nem concluir o registro (CR) de veículos já cadastrados.");
           return;
         }
         vehicleFormMode = mode === "cr" ? "cr" : mode === "edit" ? "edit" : "create";
@@ -20670,6 +20633,7 @@
       patioFlyoutBackdrop?.addEventListener("click", returnToPainelFromPatioFlyout);
 
       openVehicleForm?.addEventListener("click", () => {
+        if (isVistoriador || isVisualizador) return;
         openVehicleModal("create");
       });
       patioMenuNewVehicle?.addEventListener("click", () => {
@@ -22512,8 +22476,8 @@
       vehicleForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         if (!(await requireSupabaseSessionForWrite())) return;
-        if (isGestorPista && editingVehicleId && vehicleFormMode !== "cr") {
-          alert("O gestor de pista não pode editar veículos.");
+        if (isGestorPista && editingVehicleId) {
+          alert("O gestor de pista não pode editar veículos já registrados.");
           return;
         }
         const crMode = vehicleFormMode === "cr";
@@ -23467,25 +23431,17 @@
         if (!vehicle) return;
 
         if (isGestorPista) {
-          const gestorAllowed = new Set([
-            "confirmar_liberacao",
-            "confirmar",
-            "ficha",
-            "vistoria",
-            "ver_vistoria",
-            "editar_vistoria",
-            "concluir_registro",
-          ]);
+          const gestorAllowed = new Set(["ficha", "vistoria", "ver_vistoria", "patio_acoes", "confirmar"]);
           if (!gestorAllowed.has(action)) {
             alert("O gestor de pista não pode executar esta ação.");
             return;
           }
-          if (isPendingAdmReview(vehicle) && (action === "confirmar_liberacao" || action === "confirmar")) {
+          if (action === "confirmar" && isPendingAdmReview(vehicle)) {
             alert("Este veículo aguarda revisão do ADM antes de seguir no fluxo operacional.");
             return;
           }
-          if (action === "confirmar" && !isGestorAguardandoRemocao(vehicle)) {
-            alert("A baixa só pode ser feita em veículos com status «Aguardando remoção» (liberação confirmada e remoção solicitada).");
+          if (action === "confirmar" && !isVscStatus(vehicle.status)) {
+            alert("A saída física só pode ser confirmada quando o veículo estiver no VSC (liberação confirmada).");
             return;
           }
         }
@@ -24264,6 +24220,62 @@
           } catch (e) {
             console.warn("vrp_refresh_vehicle", e);
           }
+          if (isGestorPista) {
+            const st = liveVehicle.status || vehicle.status;
+            if (!isVscStatus(st)) {
+              alert("A saída física só pode ser confirmada quando o veículo estiver no VSC (liberação confirmada).");
+              return;
+            }
+            if (!confirm("Confirma a saída física deste veículo do pátio?")) return;
+            const dataSaida = new Date().toISOString();
+            const responsavel = `${currentPatioOperatorLabel()} (Gestor de pista)`;
+            const previousStatus = liveVehicle.status;
+            const saidaLocal = typeof formatDateTime === "function" ? formatDateTime(dataSaida) : dataSaida;
+            const { error: eventError } = await runSupabaseWrite(() =>
+              supabase.from("vehicle_events").insert({
+                vehicle_id: id,
+                tipo: "REMOVIDO",
+                responsavel,
+                descricao: `Saída física confirmada no pátio (VSC → VRP) em ${saidaLocal}. PREV_STATUS=${previousStatus}`,
+              })
+            );
+            if (eventError) {
+              alertSupabaseError(eventError, "Não foi possível registrar a saída física.");
+              return;
+            }
+            const runVrpVehicleUpdate = (payload) =>
+              runSupabaseWrite(() =>
+                supabase.from("vehicles").update(payload).eq("id", id).eq("user_id", effectiveUserId()).select("id")
+              );
+            let { data: updatedVehicle, error: vehicleError } = await runVrpVehicleUpdate({
+              status: "REMOVIDO",
+              data_saida: dataSaida,
+              remocao_solicitada: false,
+              remocao_solicitada_por: null,
+              remocao_solicitada_em: null,
+            });
+            if (vehicleError && /column|schema cache|PGRST204/i.test(vehicleError.message || "")) {
+              const updMin = await runVrpVehicleUpdate({ status: "REMOVIDO", data_saida: dataSaida });
+              updatedVehicle = updMin.data;
+              vehicleError = updMin.error;
+            }
+            if (vehicleError) {
+              alertSupabaseError(vehicleError, "Não foi possível confirmar a saída física do veículo.");
+              return;
+            }
+            if (!updatedVehicle || updatedVehicle.length === 0) {
+              alert("Não foi possível atualizar o veículo. Verifique se o registro está no pátio deste usuário.");
+              return;
+            }
+            await loadVehicles();
+            renderVehicles();
+            updateDashboard();
+            await refreshFichaIfOpen(id);
+            fichaModal.classList.add("hidden");
+            delete fichaModal.dataset.openVehicleId;
+            alert("Saída física confirmada. O veículo saiu do pátio (VRP).");
+            return;
+          }
           const readyVehicle = await ensureVehicleReadyForVrp(id, vehicle, liveVehicle);
           if (!readyVehicle) {
             const sitAtual =
@@ -24645,14 +24657,8 @@
         if (isVistoriador) {
           view = "patio";
         }
-        if (isVisualizador && isViewerForbiddenView(view)) {
+        if ((isVisualizador || isGestorPista) && isViewerForbiddenView(view)) {
           view = "patio";
-        }
-        if (isGestorPista && view === "dashboard") {
-          navStack.splice(0, navStack.length, "patio", "patio:inicio");
-          showMainView("patio");
-          setPatioView("inicio");
-          return;
         }
         if (view !== "patio") {
           patioSubnav?.classList.remove("open");
@@ -24905,12 +24911,7 @@
           setPatioView("vistoria");
           return;
         }
-        if (isVisualizador && isViewerForbiddenView(view)) {
-          showMainView("patio");
-          setPatioView("inicio");
-          return;
-        }
-        if (isGestorPista && view !== "patio" && view !== "lista") {
+        if ((isVisualizador || isGestorPista) && isViewerForbiddenView(view)) {
           showMainView("patio");
           setPatioView("inicio");
           return;
@@ -25049,15 +25050,15 @@
         if (!sub) return;
         if (sub === "aguardando_lancamento") sub = "aguardando_faturamento";
         if (sub === "historico_receber" || sub === "receber_alerta") sub = "receber";
-        if (isVisualizador && ["aguardando_faturamento", "receber", "pagar", "caixa"].includes(sub)) {
-          alert("Com o perfil Visualizador as listas financeiras não estão disponíveis.");
-          sub = "vnp";
-        }
         if (
-          isGestorPista &&
+          (isVisualizador || isGestorPista) &&
           ["aguardando_faturamento", "receber", "pagar", "caixa"].includes(sub)
         ) {
-          alert("Com o perfil de gestor de pista só estão disponíveis as listas VNP e VRP.");
+          alert(
+            isVisualizador
+              ? "Com o perfil Visualizador as listas financeiras não estão disponíveis."
+              : "Com o perfil Gestor de pista as listas financeiras não estão disponíveis."
+          );
           sub = "vnp";
         }
         const top = navStack[navStack.length - 1];
@@ -25149,7 +25150,7 @@
       }
 
       document.getElementById("dashboardOpenHome")?.addEventListener("click", () => {
-        if (isGestorPista || isVistoriador) return openMainView("patio");
+        if (isVistoriador) return openMainView("patio");
         openMainView("dashboard");
       });
       document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => {
@@ -25178,7 +25179,7 @@
         });
       }
       goDashboardFromPlate?.addEventListener("click", () => {
-        if (isGestorPista || isMobileLayout()) {
+        if (isVistoriador || isMobileLayout()) {
           openMainView("patio");
           closeAppHeaderMenu();
           return;
@@ -25263,13 +25264,9 @@
           closeAppHeaderMenu();
           return;
         }
-        if (isVisualizador && isViewerForbiddenView(view)) {
+        if ((isVisualizador || isGestorPista) && isViewerForbiddenView(view)) {
           openMainView("patio");
           closeAppHeaderMenu();
-          return;
-        }
-        if (isGestorPista && view === "dashboard") {
-          openMainView("patio");
           return;
         }
         if (view === "dashboard") {
@@ -25281,7 +25278,7 @@
           return;
         }
         if (view === "biExecutivo") {
-          if (isGestorPista) {
+          if (isGestorPista || isVisualizador) {
             openMainView("patio");
             return;
           }
