@@ -68,7 +68,15 @@ export async function forbidViewerWrite(request: NextRequest): Promise<NextRespo
   const body = await parseJsonBodyClone(request);
   const fromToken = await resolveActorFromRequest(request, body);
   if (fromToken && !actorCanWrite(fromToken)) {
-    return NextResponse.json({ error: VIEWER_WRITE_ERROR }, { status: 403 });
+    return NextResponse.json(
+      {
+        error:
+          fromToken.role === "GESTOR_PISTA"
+            ? "O perfil Gestor de pista não pode alterar estes dados."
+            : VIEWER_WRITE_ERROR,
+      },
+      { status: 403 }
+    );
   }
   return null;
 }
