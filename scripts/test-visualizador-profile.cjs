@@ -49,11 +49,11 @@ function testFinanceGuard() {
 
 function testInspectionApis() {
   const complete = read("app/api/vehicles/complete-entry-inspection/route.ts");
-  assert.match(complete, /actorCanWrite/);
+  assert.match(complete, /actorCanInspectWrite/);
   const update = read("app/api/vehicles/update-entry-inspection/route.ts");
-  assert.match(update, /actorCanWrite/);
+  assert.match(update, /actorCanInspectWrite/);
   const photo = read("app/api/vehicles/entry-inspection-photo/route.ts");
-  assert.match(photo, /actorCanWrite/);
+  assert.match(photo, /actorCanInspectWrite/);
   const list = read("app/api/vehicles/list-entry-inspections/route.ts");
   assert.match(list, /actorCanInspect/);
   assert.match(list, /VISUALIZADOR/);
@@ -73,7 +73,7 @@ function testFrontend() {
   assert.match(html, /role === "VISUALIZADOR"/);
   assert.match(html, /!opts.skipAuthorizationCheck && !isVisualizador/);
   assert.match(html, /await loadPatioDelegatedRole\(\)/);
-  assert.match(html, /if \(isVisualizador\) return isMobileLayout\(\) \? "patio" : "dashboard"/);
+  assert.match(html, /if \(isVisualizador \|\| isGestorPista\) return isMobileLayout\(\) \? "patio" : "dashboard"/);
   assert.match(html, /body.classList.add\("role-visualizador"\)/);
   assert.match(html, /hidesFinancialValues/);
   assert.match(html, /isViewerForbiddenView/);
