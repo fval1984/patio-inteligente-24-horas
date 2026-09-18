@@ -7243,12 +7243,12 @@
         </div>
         <div id="vistoriadorWelcomeBanner" class="gestor-pista-welcome hidden" role="status">
           <p class="notice gestor-pista-welcome-text">
-            <strong>Terminal de vistoria.</strong> Toque em <strong>INICIAR VISTORIA</strong> e identifique-se com o seu usuário e senha antes de cada vistoria. O tablet pode permanecer logado.
+            <strong class="js-user-ops-greeting">Olá</strong>
           </p>
         </div>
         <div id="gestorPistaWelcomeBanner" class="gestor-pista-welcome hidden" role="status">
           <p class="notice gestor-pista-welcome-text">
-            <strong>Gestor de pista.</strong> Cadastre veículos, faça vistorias e consulte o pátio. Novos cadastros ficam <strong>aguardando revisão do ADM</strong>. Valores, diárias e dias no pátio não são exibidos neste perfil.
+            <strong class="js-user-ops-greeting">Olá</strong>
           </p>
           <button type="button" class="secondary" id="gestorPistaWelcomeDismiss">Entendi</button>
         </div>
@@ -7258,7 +7258,7 @@
           <div class="exec-ops-header">
             <div>
               <p class="dashboard-kicker">Operação do pátio</p>
-              <h2 id="execOpsGreeting">Olá</h2>
+              <h2 id="execOpsGreeting" class="js-user-ops-greeting">Olá</h2>
               <p class="dashboard-subtitle" id="execOpsDate"></p>
               <p class="exec-ops-range-label">Período de análise: <span id="execOpsRange">Hoje</span></p>
             </div>
@@ -7431,7 +7431,8 @@
           <div id="patioInicioPanel" class="patio-inicio-panel hidden">
             <div class="patio-inicio-head">
               <div>
-                <h3>Operação do Pátio</h3>
+                <p class="dashboard-kicker">Operação do pátio</p>
+                <h3 id="patioInicioGreeting" class="js-user-ops-greeting">Olá</h3>
                 <p class="patio-inicio-lede">Visão geral da operação</p>
               </div>
               <div class="cmd-ops-meta" id="patioOpsMeta"></div>
@@ -15944,6 +15945,23 @@
         return s;
       }
 
+      function formatOpsUserGreeting(emailOrLogin) {
+        const raw = displayManagerIdentity(emailOrLogin || state.user?.email || "").trim();
+        if (!raw || raw === "—") return "Olá";
+        const local = raw.includes("@") ? raw.split("@")[0] : raw;
+        const first = local.split(/[._-]/)[0];
+        const nice = first ? first.charAt(0).toUpperCase() + first.slice(1) : "";
+        return nice ? `Olá, ${nice}` : "Olá";
+      }
+
+      function applyRegisteredUserGreeting() {
+        const text = formatOpsUserGreeting(state.user?.email || "");
+        document.querySelectorAll(".js-user-ops-greeting").forEach((el) => {
+          el.textContent = text;
+        });
+      }
+      window.formatOpsUserGreeting = formatOpsUserGreeting;
+
       loginForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         if (!supabase) {
@@ -16490,6 +16508,7 @@
             showMainView("patio");
             setPatioView("vistoria");
           }
+          applyRegisteredUserGreeting();
           document.getElementById("vistoriadorWelcomeBanner")?.classList.remove("hidden");
           return;
         }
@@ -16542,6 +16561,7 @@
           window.isVisualizador = true;
           applyMobileModuleNavRestrictions();
           if (!opts.skipDefaultView) openDefaultHomeView();
+          applyRegisteredUserGreeting();
           return;
         }
         if (!isGestorPista) {
@@ -16557,6 +16577,7 @@
           applyMobileExecutiveDashboardRestrictions();
           applyMobileModuleNavRestrictions();
           if (!opts.skipDefaultView) openDefaultHomeView();
+          applyRegisteredUserGreeting();
           return;
         }
 
@@ -16622,13 +16643,13 @@
         style.textContent = css;
         document.head.appendChild(style);
 
-        document.getElementById("gestorPistaWelcomeBanner")?.classList.remove("hidden");
         window.isGestorPista = true;
         window.isVistoriador = false;
         window.isVisualizador = false;
         const patioOpsHead = document.querySelector("#patioInicioPanel .patio-inicio-ops-section h4");
         if (patioOpsHead) patioOpsHead.textContent = "Indicadores do pátio";
         applyMobileModuleNavRestrictions();
+        applyRegisteredUserGreeting();
       }
 
       async function bootstrap() {
@@ -17669,7 +17690,7 @@
         await Promise.all([loadPartners(), loadPartnerManagers(), loadVehicles(), loadVehicleInspections(), loadAdvocacyOffices()]);
           probeVehiclesRpfColumns().catch(() => {});
           probeVehiclesAdvocacyColumn().catch(() => {});
-          if (isVisualizador) updateDashboard();
+          updateDashboard();
           return;
         }
         await Promise.all([
@@ -18014,6 +18035,7 @@
       }
 
       function updateDashboard() {
+        applyRegisteredUserGreeting();
         const onPatio = state.vehicles.filter(isVehicleOnPatio);
         const vls = state.vehicles.filter((v) => isVlpStatus(v.status));
         const todayYmd = toLocalYmd(new Date().toISOString());
