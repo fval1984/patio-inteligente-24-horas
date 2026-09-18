@@ -3523,6 +3523,10 @@
   }
 
   async function resumeActiveEdit(ctx, vehicles) {
+    if (ctx?.isVisualizador) {
+      clearActiveEdit();
+      return false;
+    }
     if (_session && _modalEl && !_modalEl.classList.contains("hidden")) return false;
     const active = readActiveEdit();
     if (!active || !ctx) return false;
