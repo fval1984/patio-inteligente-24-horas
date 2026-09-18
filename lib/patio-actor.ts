@@ -1,8 +1,8 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
-export type TrackManagerRole = "GESTOR_PISTA" | "VISTORIADOR" | "OPERADOR_CADASTRO";
+export type TrackManagerRole = "GESTOR_PISTA" | "VISTORIADOR" | "OPERADOR_CADASTRO" | "VISUALIZADOR";
 
-export type PatioActorRole = "ADM" | "GESTOR_PISTA" | "VISTORIADOR";
+export type PatioActorRole = "ADM" | "GESTOR_PISTA" | "VISTORIADOR" | "VISUALIZADOR";
 
 export type PatioActor = {
   authUserId: string;
@@ -19,6 +19,7 @@ export function normalizeTrackManagerRole(raw: unknown): TrackManagerRole {
     .toUpperCase()
     .replace(/\s+/g, "_");
   if (s === "VISTORIADOR") return "VISTORIADOR";
+  if (s === "VISUALIZADOR" || s === "VIEWER") return "VISUALIZADOR";
   if (s === "OPERADOR_CADASTRO") return "OPERADOR_CADASTRO";
   return "GESTOR_PISTA";
 }
@@ -26,6 +27,7 @@ export function normalizeTrackManagerRole(raw: unknown): TrackManagerRole {
 export function trackManagerRoleLabel(role: string | null | undefined): string {
   const n = normalizeTrackManagerRole(role);
   if (n === "VISTORIADOR") return "Vistoriador";
+  if (n === "VISUALIZADOR") return "Visualizador";
   return "Gestor de pista";
 }
 
@@ -43,6 +45,20 @@ export function actorCanInspect(actor: PatioActor): boolean {
 
 export function actorRequiresInspectorIdentification(actor: PatioActor): boolean {
   return actor.role === "VISTORIADOR";
+}
+
+/** Visualizador: consulta o pátio; não altera dados. ADM/Gestor/Vistoriador inalterados. */
+export function actorCanWrite(actor: PatioActor): boolean {
+  return actor.role !== "VISUALIZADOR";
+}
+
+/** Visualizador não vê nem muta financeiro. Os demais papéis mantêm o comportamento actual. */
+export function actorCanAccessFinance(actor: PatioActor): boolean {
+  return actor.role !== "VISUALIZADOR";
+}
+
+export function actorCanViewInspections(actor: PatioActor): boolean {
+  return actorCanInspect(actor) || actor.role === "VISUALIZADOR";
 }
 
 function isMissingTableError(msg: string): boolean {
@@ -66,7 +82,12 @@ export async function resolvePatioActor(
 
   if (data?.owner_user_id) {
     const delegatedRole = normalizeTrackManagerRole(data.role);
-    const role: PatioActorRole = delegatedRole === "VISTORIADOR" ? "VISTORIADOR" : "GESTOR_PISTA";
+    const role: PatioActorRole =
+      delegatedRole === "VISTORIADOR"
+        ? "VISTORIADOR"
+        : delegatedRole === "VISUALIZADOR"
+          ? "VISUALIZADOR"
+          : "GESTOR_PISTA";
     return {
       authUserId: uid,
       ownerUserId: String(data.owner_user_id),
