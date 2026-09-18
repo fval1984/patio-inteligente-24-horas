@@ -7252,12 +7252,6 @@
           </p>
           <button type="button" class="secondary" id="gestorPistaWelcomeDismiss">Entendi</button>
         </div>
-        <div id="visualizadorWelcomeBanner" class="gestor-pista-welcome hidden" role="status">
-          <p class="notice gestor-pista-welcome-text">
-            <strong>Visualizador.</strong> Consulta do pátio, veículos, vistorias e parceiros. Este perfil é <strong>somente leitura</strong> e <strong>não acessa o financeiro</strong>.
-          </p>
-          <button type="button" class="secondary" id="visualizadorWelcomeDismiss">Entendi</button>
-        </div>
         <button type="button" id="logoutBtn" class="hidden" aria-hidden="true" tabindex="-1">Sair</button>
 
         <div id="viewDashboard" class="panel dashboard-shell exec-ops-shell">
@@ -16295,7 +16289,6 @@
         document.body.classList.remove("role-vistoriador", "role-gestor-pista", "role-visualizador");
         document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
         document.getElementById("vistoriadorWelcomeBanner")?.classList.add("hidden");
-        document.getElementById("visualizadorWelcomeBanner")?.classList.add("hidden");
         appInitUserId = null;
         appInitPromise = null;
         appLaunchConfigConsumed = false;
@@ -16462,7 +16455,6 @@
 
         document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
         document.getElementById("vistoriadorWelcomeBanner")?.classList.add("hidden");
-        document.getElementById("visualizadorWelcomeBanner")?.classList.add("hidden");
         document.body.classList.remove("role-vistoriador", "role-gestor-pista", "role-visualizador");
         goDashboardFromPlate?.classList.remove("hidden");
         if (isVistoriador) {
@@ -16550,7 +16542,6 @@
           window.isVisualizador = true;
           applyMobileModuleNavRestrictions();
           if (!opts.skipDefaultView) openDefaultHomeView();
-          document.getElementById("visualizadorWelcomeBanner")?.classList.remove("hidden");
           return;
         }
         if (!isGestorPista) {
@@ -22833,9 +22824,6 @@
 
       document.getElementById("gestorPistaWelcomeDismiss")?.addEventListener("click", () => {
         document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
-      });
-      document.getElementById("visualizadorWelcomeDismiss")?.addEventListener("click", () => {
-        document.getElementById("visualizadorWelcomeBanner")?.classList.add("hidden");
       });
 
       trackManagerBtnNovo?.addEventListener("click", () => {
