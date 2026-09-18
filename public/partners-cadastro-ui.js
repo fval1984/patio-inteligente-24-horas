@@ -206,7 +206,7 @@
   }
 
   function canManagePartners() {
-    return !global.isGestorPista && !global.isVistoriador;
+    return !global.isGestorPista && !global.isVistoriador && !global.isVisualizador;
   }
 
   function fieldLabelOverrides() {
