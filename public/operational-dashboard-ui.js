@@ -251,7 +251,9 @@
     const vehicles = _lastData.vehicles || [];
     const k = m.kpis || {};
     const onPatio = vehicles.filter(isOnPatio).length;
-    const isGestorPista = !!(ctx?.isGestorPista || global.isGestorPista || ctx?.isVisualizador || global.isVisualizador);
+    const isGestorPista = !!(ctx?.isGestorPista || global.isGestorPista);
+    const isVisualizador = !!(ctx?.isVisualizador || global.isVisualizador);
+    const hideMoney = isGestorPista || isVisualizador;
     const fmtMoney =
       typeof ctx?.formatCurrency === "function"
         ? ctx.formatCurrency
@@ -259,10 +261,12 @@
             Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     const diariasHoje = diariasGeradasHoje(vehicles);
     const diariasLabel = diariasHoje.count === 1 ? "veículo gerando diária hoje" : "veículos gerando diária hoje";
-    const diariasValue = isGestorPista ? "—" : fmtMoney(diariasHoje.amount);
-    const diariasHint = isGestorPista
-      ? "Valores no perfil do gestor do sistema"
-      : `${diariasHoje.count} ${diariasLabel} · só o dia de hoje, sem acúmulo`;
+    const diariasValue = hideMoney ? "—" : fmtMoney(diariasHoje.amount);
+    const diariasHint = isVisualizador
+      ? "Valores financeiros ocultos neste perfil"
+      : isGestorPista
+        ? "Valores no perfil do gestor do sistema"
+        : `${diariasHoje.count} ${diariasLabel} · só o dia de hoje, sem acúmulo`;
     const entradas = Number(k.entradasHoje || 0);
     const saidas = Number(k.saidasHoje || 0);
     const saldo = entradas - saidas;
@@ -316,11 +320,15 @@
     root.innerHTML = `
       <div class="cmd-ops">
         <section class="cmd-ops-kpis" aria-label="Indicadores principais">
-          <button type="button" class="cmd-ops-kpi cmd-ops-kpi--money" data-hub-nav="patio:no_patio">
+          ${
+            isVisualizador
+              ? ""
+              : `<button type="button" class="cmd-ops-kpi cmd-ops-kpi--money" data-hub-nav="patio:no_patio">
             <span>Diárias geradas hoje</span>
             <strong>${esc(diariasValue, ctx)}</strong>
             <small>${esc(diariasHint, ctx)}</small>
-          </button>
+          </button>`
+          }
           <button type="button" class="cmd-ops-kpi" data-hub-nav="patio:no_patio">
             <span>Veículos no pátio</span>
             <strong>${esc(String(onPatio), ctx)}</strong>
