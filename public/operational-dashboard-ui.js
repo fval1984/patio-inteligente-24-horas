@@ -280,9 +280,9 @@
     const attention = [
       { count: remocao, tone: "red", label: "veículos aguardando remoção", nav: "patio:no_patio" },
       { count: vistoria, tone: "yellow", label: "veículos aguardando vistoria", nav: isAdm ? "patio:no_patio" : "patio:vistoria" },
-      { count: autorizacao, tone: "yellow", label: "veículos aguardando autorização", nav: "patio:vlp" },
+      { count: autorizacao, tone: "yellow", label: "veículos aguardando autorização", nav: "patio:vsl" },
       { count: conferencia, tone: "yellow", label: "veículos aguardando conferência", nav: "patio:no_patio" },
-      { count: retirada, tone: "yellow", label: "veículos aguardando retirada", nav: "patio:vlp" },
+      { count: retirada, tone: "yellow", label: "veículos aguardando retirada", nav: "patio:vsc" },
     ].filter((x) => x.count > 0);
 
     const pendencias = attention.reduce((s, x) => s + x.count, 0);
