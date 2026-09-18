@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { forbidViewerFinance } from "@/lib/viewer-access-guard";
 import {
   applyCashFlagsToDescricao,
   cashMovementIsLegacyNeutralized,
@@ -203,6 +204,8 @@ async function upsertCashForPayable(
 }
 
 export async function POST(req: NextRequest) {
+  const __viewerDenied = await forbidViewerFinance(req);
+  if (__viewerDenied) return __viewerDenied;
   try {
     const body = await req.json().catch(() => ({}));
     const userId = String(body?.userId || "").trim();
