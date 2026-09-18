@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { actorCanWrite, resolvePatioActor } from "@/lib/patio-actor";
+import { actorCanInspectWrite, resolvePatioActor } from "@/lib/patio-actor";
 import { identifyInspectorForPatio } from "@/lib/identify-inspector";
 import { extractBearerToken, getUserIdFromAccessToken } from "@/lib/user-authorization";
 
@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
   try {
     const admin = getSupabaseAdmin();
     const actor = await resolvePatioActor(admin, userId);
-    if (!actorCanWrite(actor)) {
+    if (!actorCanInspectWrite(actor)) {
       return NextResponse.json(
-        { error: "O perfil Visualizador não pode realizar vistorias." },
+        { error: "Este perfil não pode realizar vistorias." },
         { status: 403 }
       );
     }
