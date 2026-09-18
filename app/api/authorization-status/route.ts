@@ -54,7 +54,15 @@ export async function POST(request: NextRequest) {
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (!direct.error && !direct.data) {
+  const { data: delegateRows } = await admin
+    .from("track_managers")
+    .select("owner_user_id")
+    .eq("user_id", userId)
+    .limit(1);
+  const isPatioDelegate = !!(Array.isArray(delegateRows) ? delegateRows[0] : delegateRows)?.owner_user_id;
+
+  // Delegados (inclui Visualizador) herdam o acesso do dono — não criar AGUARDANDO.
+  if (!direct.error && !direct.data && !isPatioDelegate) {
     await createPendingUserAccount(admin, userId);
   }
 
