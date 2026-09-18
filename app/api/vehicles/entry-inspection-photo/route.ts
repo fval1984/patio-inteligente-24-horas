@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { actorCanWrite, resolvePatioActor } from "@/lib/patio-actor";
 import { extractBearerToken, getUserIdFromAccessToken } from "@/lib/user-authorization";
 import { persistInspectionPhoto, resolveInspectorDisplayName, resolveVehicleOwnerUserId } from "@/lib/vehicle-entry-inspection";
 
@@ -75,6 +76,13 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = getSupabaseAdmin();
+  const actor = await resolvePatioActor(admin, userId);
+  if (!actorCanWrite(actor)) {
+    return NextResponse.json(
+      { error: "O perfil Visualizador não pode adicionar ou excluir fotos." },
+      { status: 403 }
+    );
+  }
   const { ownerUserId, inspectorUserId } = await resolveVehicleOwnerUserId(admin, userId);
   const inspectorName = await resolveInspectorDisplayName(admin, inspectorUserId);
   const { data, error } = await persistInspectionPhoto(admin, {
