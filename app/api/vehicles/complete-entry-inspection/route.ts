@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { verifyInspectorSessionToken } from "@/lib/inspector-session";
-import { actorRequiresInspectorIdentification, resolvePatioActor } from "@/lib/patio-actor";
+import { actorCanWrite, actorRequiresInspectorIdentification, resolvePatioActor } from "@/lib/patio-actor";
 import { extractBearerToken, getUserIdFromAccessToken } from "@/lib/user-authorization";
 import {
   completeVehicleEntryInspection,
@@ -92,6 +92,12 @@ export async function POST(request: NextRequest) {
 
   const admin = getSupabaseAdmin();
   const actor = await resolvePatioActor(admin, userId);
+  if (!actorCanWrite(actor)) {
+    return NextResponse.json(
+      { error: "O perfil Visualizador não pode realizar ou alterar vistorias." },
+      { status: 403 }
+    );
+  }
   const { ownerUserId } = await resolveVehicleOwnerUserId(admin, userId);
 
   let inspectorUserId = actor.authUserId;
