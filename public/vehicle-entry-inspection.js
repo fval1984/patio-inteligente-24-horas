@@ -951,7 +951,7 @@
   }
 
   function canDeleteCompletedInspection(ctx) {
-    return !!(ctx && !ctx.isGestorPista && !ctx.isVistoriador);
+    return !!(ctx && !ctx.isGestorPista && !ctx.isVistoriador && !ctx.isVisualizador);
   }
 
   async function deleteCompletedInspection(vehicle, ctx, inspection, opts) {
@@ -3492,6 +3492,10 @@
       await openViewModal(vehicle, ctx, insp.id);
       return;
     }
+    if (ctx?.isVisualizador) {
+      alert("O perfil Visualizador é somente consulta. Não é possível realizar ou alterar vistorias.");
+      return;
+    }
     if (opts?.mode === "edit_existing") {
       if (ctx?.isVistoriador) {
         alert("O perfil Vistoriador não pode alterar uma vistoria já finalizada.");
@@ -3570,9 +3574,12 @@
         const loc = partnerName(ctx, v.localizador_id);
         const isGp = !!ctx.isGestorPista;
         const isVistoriador = !!ctx.isVistoriador;
+        const isVisualizador = !!ctx.isVisualizador;
         const isAdmPc = !!ctx.isAdmDesktopPc;
         let actions = "";
-        if (isVistoriador) {
+        if (isVisualizador) {
+          actions = "";
+        } else if (isVistoriador) {
           actions = `<button class="vei-start-btn" data-action="vistoria" data-id="${v.id}">INICIAR VISTORIA</button>`;
         } else if (isGp) {
           actions = `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`;
