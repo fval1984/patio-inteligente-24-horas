@@ -10495,7 +10495,7 @@
 
       function defaultHomeViewForRole() {
         if (isVistoriador) return "patio";
-        if (isVisualizador) return "patio";
+        if (isVisualizador) return isMobileLayout() ? "patio" : "dashboard";
         if (isGestorPista || isMobileLayout()) return "patio";
         return "dashboard";
       }
@@ -15974,6 +15974,10 @@
           return;
         }
         setStatus("Login realizado com sucesso.", "success");
+        const session = await ensureValidSupabaseSession();
+        if (session?.user) {
+          await showApp(session.user);
+        }
       });
 
       logoutBtn.addEventListener("click", () => forceSignOutAndLogin());
@@ -16006,12 +16010,13 @@
             return;
           }
           user = session.user;
+          state.user = user;
+          await loadPatioDelegatedRole();
 
-          if (!opts.skipAuthorizationCheck) {
+          if (!opts.skipAuthorizationCheck && !isVisualizador) {
             const authz = await fetchAuthorizationStatus();
             if (!authz.authorized) {
               showAuthorizationPanel(user);
-              state.user = user;
               if (authz.error && !authz.table_missing) {
                 setAuthorizationStatus(authz.error, "error");
               }
@@ -16030,7 +16035,6 @@
           userInfo.textContent = user ? `Logado como ${displayManagerIdentity(user.email || "")}` : "Logado";
           state.user = user;
           const pendingLaunch = captureAppLaunchConfigFromUrl();
-          await loadPatioDelegatedRole();
           if (!alreadyInApp) {
             try {
               applyRoleRestrictions({ skipDefaultView: !!pendingLaunch });
@@ -16306,18 +16310,19 @@
         state.patioOwnerUserId = null;
         try {
           if (!supabase || !state?.user?.id) return false;
-          let { data, error } = await supabase
+          let { data: rows, error } = await supabase
             .from("track_managers")
             .select("owner_user_id, role")
             .eq("user_id", state.user.id)
-            .maybeSingle();
+            .limit(1);
+          let data = Array.isArray(rows) ? rows[0] : rows;
           if (error && /role|column|schema cache|PGRST204/i.test(error.message || "")) {
             const r2 = await supabase
               .from("track_managers")
               .select("owner_user_id")
               .eq("user_id", state.user.id)
-              .maybeSingle();
-            data = r2.data || null;
+              .limit(1);
+            data = Array.isArray(r2.data) ? r2.data[0] : r2.data;
             error = r2.error;
           }
           if (error || !data || !data.owner_user_id) {
@@ -16424,7 +16429,7 @@
         }
         const view = defaultHomeViewForRole();
         showMainView(view);
-        if (view === "patio") setPatioView("inicio");
+        if (resolveViewForDevice(view) === "patio") setPatioView("inicio");
       }
 
       function navigateDefaultViewForRole() {
@@ -16498,7 +16503,7 @@
         }
         if (isVisualizador) {
           try {
-            navStack.splice(0, navStack.length, "patio", "patio:inicio");
+            navStack.splice(0, navStack.length, defaultHomeViewForRole());
           } catch (e) {
             console.warn("navStack", e);
           }
@@ -16544,10 +16549,7 @@
           window.isVistoriador = false;
           window.isVisualizador = true;
           applyMobileModuleNavRestrictions();
-          if (!opts.skipDefaultView) {
-            showMainView("patio");
-            setPatioView("inicio");
-          }
+          if (!opts.skipDefaultView) openDefaultHomeView();
           document.getElementById("visualizadorWelcomeBanner")?.classList.remove("hidden");
           return;
         }
@@ -17676,6 +17678,7 @@
         await Promise.all([loadPartners(), loadPartnerManagers(), loadVehicles(), loadVehicleInspections(), loadAdvocacyOffices()]);
           probeVehiclesRpfColumns().catch(() => {});
           probeVehiclesAdvocacyColumn().catch(() => {});
+          if (isVisualizador) updateDashboard();
           return;
         }
         await Promise.all([
