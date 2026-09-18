@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
   const admin = getSupabaseAdmin();
   const actor = await resolvePatioActor(admin, userId);
-  if (!actorCanInspect(actor)) {
+  if (!actorCanInspect(actor) && actor.role !== "VISUALIZADOR") {
     return NextResponse.json({ error: "Sem permissão para consultar vistorias." }, { status: 403 });
   }
 
