@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { forbidViewerFinance } from "@/lib/viewer-access-guard";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { clearCaixaResetYm, restoreCashMovementsFromArchive } from "@/lib/finance-caixa-repair";
 import {
@@ -793,6 +794,8 @@ async function processReceivableBatch(
 }
 
 export async function POST(request: NextRequest) {
+  const __viewerDenied = await forbidViewerFinance(request);
+  if (__viewerDenied) return __viewerDenied;
   try {
     const body = await request.json();
     const userId = String(body?.userId || "").trim();
