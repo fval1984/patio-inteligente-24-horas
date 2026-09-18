@@ -3984,12 +3984,16 @@
       }
       #patioContent [data-subview="no_patio"] .table-wrap,
       #patioContent [data-subview="vlp"] .table-wrap,
+      #patioContent [data-subview="vsl"] .table-wrap,
+      #patioContent [data-subview="vsc"] .table-wrap,
       #patioContent [data-subview="removidos"] .table-wrap {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
       }
       #patioContent [data-subview="no_patio"] .table,
       #patioContent [data-subview="vlp"] .table,
+      #patioContent [data-subview="vsl"] .table,
+      #patioContent [data-subview="vsc"] .table,
       #patioContent [data-subview="removidos"] .table {
         min-width: 100%;
         width: max(100%, 1480px);
@@ -4002,6 +4006,10 @@
       #patioContent [data-subview="no_patio"] .table tbody td,
       #patioContent [data-subview="vlp"] .table thead th,
       #patioContent [data-subview="vlp"] .table tbody td,
+      #patioContent [data-subview="vsl"] .table thead th,
+      #patioContent [data-subview="vsl"] .table tbody td,
+      #patioContent [data-subview="vsc"] .table thead th,
+      #patioContent [data-subview="vsc"] .table tbody td,
       #patioContent [data-subview="removidos"] .table thead th,
       #patioContent [data-subview="removidos"] .table tbody td {
         white-space: nowrap;
@@ -4012,6 +4020,8 @@
       }
       #patioContent [data-subview="no_patio"] .table tbody td[data-label="Ações"],
       #patioContent [data-subview="vlp"] .table tbody td[data-label="Ações"],
+      #patioContent [data-subview="vsl"] .table tbody td[data-label="Ações"],
+      #patioContent [data-subview="vsc"] .table tbody td[data-label="Ações"],
       #patioContent [data-subview="removidos"] .table tbody td[data-label="Situação / ações"] {
         white-space: normal;
       }
@@ -7017,6 +7027,8 @@
         #patioContent [data-subview="no_patio"] .table,
         #patioContent [data-subview="vistoria"] .table,
         #patioContent [data-subview="vlp"] .table,
+        #patioContent [data-subview="vsl"] .table,
+        #patioContent [data-subview="vsc"] .table,
         #patioContent [data-subview="removidos"] .table,
         #patioContent [data-subview="fechando_ciclo"] .table,
         #patioContent [data-subview="aguardando_faturamento"] .table {
@@ -7029,6 +7041,8 @@
         #patioContent [data-subview="no_patio"] .table-wrap,
         #patioContent [data-subview="vistoria"] .table-wrap,
         #patioContent [data-subview="vlp"] .table-wrap,
+        #patioContent [data-subview="vsl"] .table-wrap,
+        #patioContent [data-subview="vsc"] .table-wrap,
         #patioContent [data-subview="removidos"] .table-wrap,
         #patioContent [data-subview="fechando_ciclo"] .table-wrap,
         #patioContent [data-subview="aguardando_faturamento"] .table-wrap {
@@ -7281,7 +7295,9 @@
             <select id="hubDashFilterStatus">
               <option value="">Todos</option>
               <option value="no_patio">No pátio (VNP)</option>
-              <option value="vlp">Liberação (VLP)</option>
+              <option value="vsl">Solicitação (VSL)</option>
+              <option value="vsc">Liberação confirmada (VSC)</option>
+              <option value="vlp">Liberação (VSL+VSC)</option>
               <option value="removido">Removidos (VRP)</option>
             </select>
             <label for="hubDashFilterSearch">Busca rápida</label>
@@ -7418,7 +7434,8 @@
                 <button type="button" class="secondary" id="patioMenuNewVehicle">Registrar veículo</button>
                 <button type="button" class="secondary" data-subview="vistoria" data-adm-pc-hide="1">Vistoria</button>
                 <button type="button" class="secondary" data-subview="no_patio">VNP</button>
-                <button type="button" class="secondary" data-subview="vlp">VLP</button>
+                <button type="button" class="secondary" data-subview="vsl">VSL</button>
+                <button type="button" class="secondary" data-subview="vsc">VSC</button>
                 <button type="button" class="secondary" data-subview="removidos">VRP</button>
                 <button type="button" class="secondary" data-subview="aguardando_faturamento">Aguardando faturamento</button>
               </nav>
@@ -7566,9 +7583,79 @@
                 </table>
               </div>
             </div>
+            <div class="section-card patio-subview hidden" data-subview="vsl">
+              <div class="pill">VSL</div>
+              <p class="notice" style="margin: 0 0 12px">
+                Solicitação de liberação registada. O veículo <strong>ainda não está autorizado a sair</strong>.
+                As diárias <strong>continuam a contar</strong> enquanto permanecer no pátio.
+              </p>
+              <div class="table-wrap">
+                <table class="table stacked patio-vehicle-table">
+                <thead class="patio-mob-thead">
+                  <tr>
+                    <th>Placa</th>
+                    <th>Marca</th>
+                    <th>Modelo</th>
+                    <th>Cor</th>
+                    <th>Dias no pátio</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <thead class="patio-desk-thead">
+                  <tr>
+                    <th>Placa</th>
+                    <th>Registo</th>
+                    <th>Veículo</th>
+                    <th>RPV</th>
+                    <th>RPP</th>
+                    <th>Escritório</th>
+                    <th>Entrada</th>
+                    <th>Valor gerado</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tableVsl"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="section-card patio-subview hidden" data-subview="vsc">
+              <div class="pill">VSC</div>
+              <p class="notice" style="margin: 0 0 12px">
+                Liberação confirmada: o veículo está <strong>autorizado a sair</strong>, mas continua fisicamente no pátio
+                até a retirada. As diárias <strong>continuam a contar</strong>.
+              </p>
+              <div class="table-wrap">
+                <table class="table stacked patio-vehicle-table">
+                <thead class="patio-mob-thead">
+                  <tr>
+                    <th>Placa</th>
+                    <th>Marca</th>
+                    <th>Modelo</th>
+                    <th>Cor</th>
+                    <th>Dias no pátio</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <thead class="patio-desk-thead">
+                  <tr>
+                    <th>Placa</th>
+                    <th>Registo</th>
+                    <th>Veículo</th>
+                    <th>RPV</th>
+                    <th>RPP</th>
+                    <th>Escritório</th>
+                    <th>Entrada</th>
+                    <th>Valor gerado</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tableVsc"></tbody>
+                </table>
+              </div>
+            </div>
             <div class="section-card patio-subview hidden" data-subview="vlp">
-              <div class="pill">VLP</div>
-              <p class="notice" style="margin: 0 0 12px">Veículos em fluxo de liberação — também contam no VNP enquanto estiverem no pátio.</p>
+              <div class="pill">VLP (legado)</div>
+              <p class="notice" style="margin: 0 0 12px">Esta lista foi substituída por VSL e VSC.</p>
               <div id="vlsToolbarFilters" class="filter-bar hidden" style="margin-bottom: 10px">
                 <label for="vlsFilterLocator">RPV</label>
                 <select id="vlsFilterLocator">
@@ -8745,6 +8832,11 @@
                 <p class="wf-field-hint" id="libRemoveuHint">Parceiro que efetivou a saída do pátio.</p>
                 <select id="libRemoveu"></select>
               </div>
+              <div id="libRowObservacao" class="wf-field">
+                <label for="libObservacao">Observação</label>
+                <p class="wf-field-hint">Opcional. Fica no histórico do veículo.</p>
+                <textarea id="libObservacao" rows="3" maxlength="500" placeholder="Observação desta etapa"></textarea>
+              </div>
             </div>
           </div>
           <div class="form-actions workflow-step-actions">
@@ -9362,7 +9454,8 @@
             <button type="button" data-header-patio="new-vehicle">Registrar veículo</button>
             <button type="button" data-header-patio-sub="vistoria" data-adm-pc-hide="1">Vistoria</button>
             <button type="button" data-header-patio-sub="no_patio">VNP</button>
-            <button type="button" data-header-patio-sub="vlp">VLP</button>
+            <button type="button" data-header-patio-sub="vsl">VSL</button>
+            <button type="button" data-header-patio-sub="vsc">VSC</button>
             <button type="button" data-header-patio-sub="removidos">VRP</button>
             <button type="button" data-header-patio-sub="aguardando_faturamento">Aguardando faturamento</button>
           </div>
@@ -10082,6 +10175,8 @@
       const tableNoPatio = document.getElementById("tableNoPatio");
       const tableVistoria = document.getElementById("tableVistoria");
       const tableVlp = document.getElementById("tableVlp");
+      const tableVsl = document.getElementById("tableVsl");
+      const tableVsc = document.getElementById("tableVsc");
       const tableConfirmada = document.getElementById("tableConfirmada");
       const tableRemocaoConfirmada = document.getElementById("tableRemocaoConfirmada");
       const tableRemovidos = document.getElementById("tableRemovidos");
@@ -10500,8 +10595,10 @@
 
       const PATIO_TAB_LABELS = {
         vistoria: { title: "Vistoria", subtitle: "Aguardando vistoria de entrada" },
-        no_patio: { title: "VNP", subtitle: "Veículos no pátio" },
-        vlp: { title: "VLP", subtitle: "Veículos em liberação" },
+        no_patio: { title: "VNP", subtitle: "Veículos no pátio (custódia)" },
+        vsl: { title: "VSL", subtitle: "Veículo com solicitação de liberação" },
+        vsc: { title: "VSC", subtitle: "Liberação confirmada — ainda no pátio" },
+        vlp: { title: "VSL", subtitle: "Veículo com solicitação de liberação" },
         removidos: { title: "VRP", subtitle: "Veículos removidos do pátio" },
         fechando_ciclo: { title: "Aguardando faturamento", subtitle: "Ciclo concluído, aguardando NF ou cobrança" },
         aguardando_faturamento: { title: "Aguardando faturamento", subtitle: "Ciclo concluído, aguardando NF ou cobrança" },
@@ -13299,11 +13396,12 @@
         if (el) el.dispatchEvent(new Event("input", { bubbles: true }));
       }
 
-      const VLS_PRINT_STATUSES = ["LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA"];
+      const VLS_PRINT_STATUSES = ["LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA", "REMOCAO_CONFIRMADA"];
       const VLS_STATUS_LABELS = {
-        LIBERACAO_SOLICITADA: "Liberação solicitada",
-        LIBERACAO_CONFIRMADA: "Liberação confirmada",
-        REMocao_CONFIRMADA: "Remoção solicitada (legado)",
+        LIBERACAO_SOLICITADA: "VSL — Solicitação de liberação",
+        LIBERACAO_CONFIRMADA: "VSC — Liberação confirmada",
+        REMocao_CONFIRMADA: "VSC — Liberação confirmada (legado)",
+        REMOCAO_CONFIRMADA: "VSC — Liberação confirmada (legado)",
       };
 
       function isRemocaoSolicitada(v) {
@@ -13449,10 +13547,37 @@
         });
       }
 
-      const VLP_STATUSES = ["LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA"];
+      const VLP_STATUSES = ["LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMocao_CONFIRMADA", "REMOCAO_CONFIRMADA"];
+
+      function vehicleStatusKey(status) {
+        return String(status || "")
+          .trim()
+          .toUpperCase();
+      }
+
+      function isVslStatus(status) {
+        return vehicleStatusKey(status) === "LIBERACAO_SOLICITADA";
+      }
+
+      function isVscStatus(status) {
+        const u = vehicleStatusKey(status);
+        return u === "LIBERACAO_CONFIRMADA" || u === "REMOCAO_CONFIRMADA";
+      }
 
       function isVlpStatus(status) {
-        return VLP_STATUSES.includes(status);
+        return isVslStatus(status) || isVscStatus(status);
+      }
+
+      function patioStageOfVehicle(v) {
+        if (!v) return "vnp";
+        if (vehicleStatusKey(v.status) === "REMOVIDO") return "vrp";
+        if (isVslStatus(v.status)) return "vsl";
+        if (isVscStatus(v.status)) return "vsc";
+        return "vnp";
+      }
+
+      function isVnpStageVehicle(v) {
+        return isVehicleOnPatio(v) && patioStageOfVehicle(v) === "vnp";
       }
 
       const VRP_READY_STATUSES = new Set(["LIBERACAO_CONFIRMADA", "REMOCAO_CONFIRMADA", "REMocao_CONFIRMADA"]);
@@ -13636,9 +13761,10 @@
       const REMOVAL_FLOW_LABELS = {
         AGUARDANDO_VISTORIA: "Aguardando vistoria",
         NO_PATIO: "No pátio (VNP)",
-        LIBERACAO_SOLICITADA: "Liberação solicitada",
-        LIBERACAO_CONFIRMADA: "Liberação confirmada",
-        REMocao_CONFIRMADA: "Remoção solicitada (legado)",
+        LIBERACAO_SOLICITADA: "Solicitação de liberação (VSL)",
+        LIBERACAO_CONFIRMADA: "Liberação confirmada (VSC)",
+        REMocao_CONFIRMADA: "Liberação confirmada (VSC · legado)",
+        REMOCAO_CONFIRMADA: "Liberação confirmada (VSC · legado)",
         REMOVIDO: "Removido (VRP)",
       };
 
@@ -13651,6 +13777,18 @@
 
       function mergeVlsItems(byStatus) {
         return VLP_STATUSES.flatMap((status) => byStatus[status] || []);
+      }
+
+      function mergeVslItems(byStatus) {
+        return (byStatus.LIBERACAO_SOLICITADA || []).slice();
+      }
+
+      function mergeVscItems(byStatus) {
+        return [
+          ...(byStatus.LIBERACAO_CONFIRMADA || []),
+          ...(byStatus.REMocao_CONFIRMADA || []),
+          ...(byStatus.REMOCAO_CONFIRMADA || []),
+        ];
       }
 
       function filterVlsToolbarItems(items) {
@@ -13778,16 +13916,15 @@
 
       /** Identificação visual VNP (no pátio), VLP (liberação) vs VRP (removido). */
       function patioRegistoBadgeHtml(kind) {
-        const isVrp = kind === "vrp";
-        const isVlp = kind === "vlp";
-        const label = isVrp ? "VRP" : isVlp ? "VLP" : "VNP";
-        const cls = isVrp ? "tag success" : isVlp ? "tag notice" : "tag warning";
-        const title = isVrp
-          ? "Veículo removido (VRP)"
-          : isVlp
-            ? "Veículo em liberação (VLP)"
-            : "Veículo no pátio (VNP)";
-        return `<span class="${cls}" style="margin-right:6px;vertical-align:middle;white-space:nowrap" title="${title}">${label}</span>`;
+        const map = {
+          vrp: { label: "VRP", cls: "tag success", title: "Veículo removido (VRP)" },
+          vsl: { label: "VSL", cls: "tag notice", title: "Solicitação de liberação (VSL)" },
+          vsc: { label: "VSC", cls: "tag notice", title: "Liberação confirmada (VSC)" },
+          vlp: { label: "VSL", cls: "tag notice", title: "Solicitação de liberação (VSL)" },
+          vnp: { label: "VNP", cls: "tag warning", title: "Veículo no pátio (VNP)" },
+        };
+        const m = map[kind] || map.vnp;
+        return `<span class="${m.cls}" style="margin-right:6px;vertical-align:middle;white-space:nowrap" title="${m.title}">${m.label}</span>`;
       }
 
       function syncListaFilterSelects() {
@@ -15962,6 +16099,61 @@
       }
       window.formatOpsUserGreeting = formatOpsUserGreeting;
 
+      function formatPatioEventTitle(tipo) {
+        const t = String(tipo || "");
+        if (t === "LIBERACAO_SOLICITADA") return "Solicitação de liberação (VSL)";
+        if (t === "LIBERACAO_CONFIRMADA") return "Liberação confirmada (VSC)";
+        if (t === "REMOVIDO") return "Retirada/remoção confirmada (VRP)";
+        if (t === "REMOCAO_SOLICITADA") return "Remoção solicitada";
+        if (t === "REMOCAO_DESFEITA") return "Remoção desfeita";
+        return t
+          .replace("LIBERACAO_", "Liberação ")
+          .replace("REMocao_", "Remoção ")
+          .replace("REMOCAO_", "Remoção ")
+          .replace("REMOVIDO", "Removido");
+      }
+
+      function currentPatioOperatorLabel() {
+        if (typeof displayManagerIdentity === "function") {
+          return displayManagerIdentity(state.user?.email || "") || state.user?.email || "Utilizador";
+        }
+        return state.user?.email || "Utilizador";
+      }
+
+      function syncPatioStageTabCounts(counts) {
+        const keys = ["no_patio", "vsl", "vsc", "removidos"];
+        patioSubnav?.querySelectorAll("button[data-subview]").forEach((btn) => {
+          const key = btn.getAttribute("data-subview");
+          if (!keys.includes(key)) return;
+          if (!btn.dataset.baseLabel) btn.dataset.baseLabel = String(btn.textContent || "").replace(/\s*\(\d+\)\s*$/, "").trim();
+          const n = counts[key];
+          btn.textContent = typeof n === "number" ? `${btn.dataset.baseLabel} (${n})` : btn.dataset.baseLabel;
+        });
+        document.querySelectorAll("#headerDetailsPatio [data-header-patio-sub]").forEach((btn) => {
+          const key = btn.getAttribute("data-header-patio-sub");
+          if (!keys.includes(key)) return;
+          if (!btn.dataset.baseLabel) btn.dataset.baseLabel = String(btn.textContent || "").replace(/\s*\(\d+\)\s*$/, "").trim();
+          const n = counts[key];
+          btn.textContent = typeof n === "number" ? `${btn.dataset.baseLabel} (${n})` : btn.dataset.baseLabel;
+        });
+      }
+
+      async function updateVehiclePatioFields(vehicleId, patch) {
+        const uid = effectiveUserId();
+        let { error } = await supabase.from("vehicles").update(patch).eq("id", vehicleId).eq("user_id", uid);
+        if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
+          const lean = { ...patch };
+          delete lean.liberacao_solicitada_em;
+          delete lean.liberacao_solicitada_por;
+          delete lean.liberacao_solicitada_obs;
+          delete lean.liberacao_confirmada_em;
+          delete lean.liberacao_confirmada_por;
+          delete lean.liberacao_confirmada_obs;
+          ({ error } = await supabase.from("vehicles").update(lean).eq("id", vehicleId).eq("user_id", uid));
+        }
+        return error;
+      }
+
       loginForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         if (!supabase) {
@@ -16546,7 +16738,11 @@
           #viewPatio [data-subview="no_patio"] table thead th:nth-child(6),
           #viewPatio [data-subview="no_patio"] table tbody td:nth-child(6),
           #viewPatio [data-subview="vlp"] table thead th:nth-child(6),
-          #viewPatio [data-subview="vlp"] table tbody td:nth-child(6) {
+          #viewPatio [data-subview="vlp"] table tbody td:nth-child(6),
+          #viewPatio [data-subview="vsl"] table thead th:nth-child(6),
+          #viewPatio [data-subview="vsl"] table tbody td:nth-child(6),
+          #viewPatio [data-subview="vsc"] table thead th:nth-child(6),
+          #viewPatio [data-subview="vsc"] table tbody td:nth-child(6) {
             display: none !important;
           }
           #viewPatio [data-subview="removidos"] table thead th:nth-child(7),
@@ -16621,7 +16817,11 @@
           #viewPatio [data-subview="no_patio"] table thead th:nth-child(6),
           #viewPatio [data-subview="no_patio"] table tbody td:nth-child(6),
           #viewPatio [data-subview="vlp"] table thead th:nth-child(6),
-          #viewPatio [data-subview="vlp"] table tbody td:nth-child(6) {
+          #viewPatio [data-subview="vlp"] table tbody td:nth-child(6),
+          #viewPatio [data-subview="vsl"] table thead th:nth-child(6),
+          #viewPatio [data-subview="vsl"] table tbody td:nth-child(6),
+          #viewPatio [data-subview="vsc"] table thead th:nth-child(6),
+          #viewPatio [data-subview="vsc"] table tbody td:nth-child(6) {
             display: none !important;
           }
           #viewPatio [data-subview="removidos"] table thead th:nth-child(7),
@@ -18266,7 +18466,9 @@
           if (r && receivableNaFilaFechamentoCicloPatio(r)) return "removidos";
           return "removidos";
         }
-        if (isVlpStatus(v.status)) return "vlp";
+        if (isVslStatus(v.status)) return "vsl";
+        if (isVscStatus(v.status)) return "vsc";
+        if (isVlpStatus(v.status)) return "vsl";
         return "no_patio";
       }
 
@@ -18706,11 +18908,16 @@
           LIBERACAO_SOLICITADA: [],
           LIBERACAO_CONFIRMADA: [],
           REMocao_CONFIRMADA: [],
+          REMOCAO_CONFIRMADA: [],
           REMOVIDO: [],
         };
         filteredVehicles.forEach((v) => {
           if (byStatus[v.status]) {
             byStatus[v.status].push(v);
+          } else if (isVscStatus(v.status)) {
+            byStatus.LIBERACAO_CONFIRMADA.push(v);
+          } else if (isVslStatus(v.status)) {
+            byStatus.LIBERACAO_SOLICITADA.push(v);
           }
         });
         const fechamentoCicloReceivables = collectPatioAguardandoFaturamentoReceivables().filter((r) =>
@@ -18727,7 +18934,9 @@
           }
         }
 
-        const vnpOnPatio = sortVnpOnPatioForDisplay(filteredVehicles.filter((v) => isVehicleOnPatio(v)));
+        const vnpOnPatio = sortVnpOnPatioForDisplay(filteredVehicles.filter((v) => isVnpStageVehicle(v)));
+        const vslItems = sortVnpUnifiedForDisplay(mergeVslItems(byStatus));
+        const vscItems = sortVnpUnifiedForDisplay(mergeVscItems(byStatus));
         const vlpItems = sortVnpUnifiedForDisplay(vlsForTable);
         const patioCardTitle1 = document.getElementById("patioCardTitle1");
         const patioCardTitle2 = document.getElementById("patioCardTitle2");
@@ -18774,15 +18983,14 @@
           if (patioCardMeta3) patioCardMeta3.textContent = "após NF ou cobrança";
         } else {
           if (patioCardTitle1) patioCardTitle1.textContent = "VNP";
-          if (patioCardTitle2) patioCardTitle2.textContent = "VLP";
-          if (patioCardTitle3) patioCardTitle3.textContent = "Remoção solicitada";
+          if (patioCardTitle2) patioCardTitle2.textContent = "VSL";
+          if (patioCardTitle3) patioCardTitle3.textContent = "VSC";
           if (patioCardValue1) patioCardValue1.textContent = String(vnpOnPatio.length);
-          if (patioCardValue2) patioCardValue2.textContent = String(vlsForTable.length);
-          if (patioCardValue3)
-            patioCardValue3.textContent = String(filteredVehicles.filter((v) => v.status === "NO_PATIO" && isRemocaoSolicitada(v)).length);
-          if (patioCardMeta1) patioCardMeta1.textContent = "no pátio";
-          if (patioCardMeta2) patioCardMeta2.textContent = "em liberação";
-          if (patioCardMeta3) patioCardMeta3.textContent = "antes da efetivação";
+          if (patioCardValue2) patioCardValue2.textContent = String(vslItems.length);
+          if (patioCardValue3) patioCardValue3.textContent = String(vscItems.length);
+          if (patioCardMeta1) patioCardMeta1.textContent = "custodiados no pátio";
+          if (patioCardMeta2) patioCardMeta2.textContent = "solicitação de liberação";
+          if (patioCardMeta3) patioCardMeta3.textContent = "liberação confirmada";
         }
 
         renderVnpUnifiedTable(tableNoPatio, vnpOnPatio, {
@@ -18792,10 +19000,18 @@
         if (window.vehicleEntryInspection?.renderAwaitingTable) {
           window.vehicleEntryInspection.renderAwaitingTable(tableVistoria, state.vehicles, buildVehicleInspectionCtx());
         }
-        renderVnpUnifiedTable(tableVlp, vlpItems, { registoKind: "vlp", emptyText: "Nenhum veículo em liberação." });
+        renderVnpUnifiedTable(tableVsl, vslItems, { registoKind: "vsl", emptyText: "Nenhuma solicitação de liberação." });
+        renderVnpUnifiedTable(tableVsc, vscItems, { registoKind: "vsc", emptyText: "Nenhum veículo com liberação confirmada." });
+        renderVnpUnifiedTable(tableVlp, vlpItems, { registoKind: "vsl", emptyText: "Nenhum veículo em liberação." });
         renderRemovedVehicles(tableRemovidos, byStatus.REMOVIDO);
         renderFechamentoCicloTable(tableFechamentoCiclo, fechamentoCicloReceivables);
         updateDashboard();
+        syncPatioStageTabCounts({
+          no_patio: vnpOnPatio.length,
+          vsl: vslItems.length,
+          vsc: vscItems.length,
+          removidos: byStatus.REMOVIDO.length,
+        });
 
         if (qNorm) {
           applyGlobalPlateSearchLayout(byStatus, vlsForTable.length, fechamentoCicloReceivables.length);
@@ -18810,13 +19026,13 @@
       }
 
       function applyGlobalPlateSearchLayout(byStatus, vlsFilteredCount, fechandoCicloCount) {
+        const vslCount = mergeVslItems(byStatus).length;
+        const vscCount = mergeVscItems(byStatus).length;
         const vlsCount =
-          typeof vlsFilteredCount === "number"
-            ? vlsFilteredCount
-            : mergeVlsItems(byStatus).length;
+          typeof vlsFilteredCount === "number" ? vlsFilteredCount : mergeVlsItems(byStatus).length;
         const nFech = typeof fechandoCicloCount === "number" ? fechandoCicloCount : 0;
         const onPatioCount =
-          byStatus.NO_PATIO.length + (byStatus.AGUARDANDO_VISTORIA || []).length + mergeVlsItems(byStatus).length;
+          byStatus.NO_PATIO.length + (byStatus.AGUARDANDO_VISTORIA || []).length;
         const qPlate = normalizePlateSearch(plateQuery);
         const vistoriaCount = (state.vehicles || []).filter(
           (v) => vehicleNeedsEntryInspection(v) && (!qPlate || normalizePlateSearch(v.placa) === qPlate)
@@ -18824,12 +19040,14 @@
         const counts = {
           vistoria: vistoriaCount,
           no_patio: onPatioCount,
+          vsl: vslCount,
+          vsc: vscCount,
           vlp: vlsCount,
           removidos: byStatus.REMOVIDO.length,
           fechando_ciclo: nFech,
           aguardando_faturamento: nFech,
         };
-        const total = vistoriaCount + onPatioCount + counts.removidos + counts.aguardando_faturamento;
+        const total = vistoriaCount + onPatioCount + vslCount + vscCount + counts.removidos + counts.aguardando_faturamento;
 
         setPlateSearchHints(total === 0 ? "Nenhum veículo com esta placa." : "", total === 0);
 
@@ -19097,7 +19315,7 @@
           <tr class="${rowClass}" data-vehicle-row="${v.id}">
             ${buildPatioMobileListCellsHtml(v, 9)}
             <td class="patio-desk-only" data-label="Placa"><span class="vei-plate-with-status">${inspectionStatusIndicatorHtml(v)}${plateVisualHtml(v.placa, "sm")}</span>${situacaoHtml}</td>
-            <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml(registoKind === "vnp" ? (isVlpStatus(v.status) ? "vlp" : "vnp") : registoKind)}</td>
+            <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml(registoKind === "vnp" ? patioStageOfVehicle(v) : registoKind)}</td>
             <td class="patio-desk-only" data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
             <td class="patio-desk-only" data-label="RPV">${localizador}</td>
             <td class="patio-desk-only" data-label="RPF">${escapeHtml(rpfNome)}</td>
@@ -19148,7 +19366,7 @@
         const rowCls = rowClsParts.join(" ");
         return `<tr${rowCls ? ` class="${rowCls}"` : ""} data-vehicle-row="${v.id}">
           <td data-label="Placa">${plateVisualHtml(v.placa, "sm")}${pendingTag}</td>
-          <td data-label="Registo">${patioRegistoBadgeHtml(isVlpStatus(v.status) ? "vlp" : "vnp")}</td>
+          <td data-label="Registo">${patioRegistoBadgeHtml(patioStageOfVehicle(v))}</td>
           <td data-label="Veículo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</td>
           <td data-label="RPV">${escapeHtml(locLabel(v.localizador_id))}</td>
           <td data-label="RPF">${escapeHtml(vehicleRpfNome(v))}</td>
@@ -19164,7 +19382,7 @@
         if (isVistoriador) view = "vistoria";
         if (isAdmDesktopPc() && view === "vistoria") view = "no_patio";
         const silent = opts.silent === true;
-        if (view === "liberacao_solicitada") view = "vlp";
+        if (view === "liberacao_solicitada" || view === "vlp") view = "vsl";
         if (view === "nfse_pendente") view = "no_patio";
         if (view === "fechando_ciclo") view = "aguardando_faturamento";
         currentPatioView = view;
@@ -20221,10 +20439,7 @@
         } else {
           fichaTimeline.innerHTML = data
             .map((evt) => {
-              const title = evt.tipo
-                .replace("LIBERACAO_", "Liberação ")
-                .replace("REMocao_", "Remoção ")
-                .replace("REMOVIDO", "Removido");
+              const title = formatPatioEventTitle(evt.tipo);
               return `
                 <div class="timeline-item">
                   <div class="timeline-title">${title}</div>
@@ -20833,6 +21048,7 @@
             solicitanteRemocaoPartnerId: solRem.id,
             removeu: rem.nome,
             removeuPartnerId: rem.id,
+            observacao: String(document.getElementById("libObservacao")?.value || "").trim(),
           });
           liberacaoModalResolver = null;
         }
@@ -20961,10 +21177,10 @@
         const isSolicitacao = requiredFields.includes("solicitante") && requiredFields.length === 1;
         const isRemocao = requiredFields.includes("solicitanteRemocao");
         if (liberacaoModalBadge) {
-          liberacaoModalBadge.textContent = isVrp ? "VRP" : isLiberacao || isRemocao ? "VLP" : "VNP";
+          liberacaoModalBadge.textContent = isVrp ? "VRP" : isLiberacao ? "VSC" : isRemocao ? "VSC" : isSolicitacao ? "VSL" : "VNP";
           liberacaoModalBadge.className =
             "workflow-step-badge" +
-            (isVrp ? " workflow-step-badge--vrp" : isLiberacao || isRemocao ? " workflow-step-badge--vlp" : "");
+            (isVrp ? " workflow-step-badge--vrp" : isLiberacao || isRemocao || isSolicitacao ? " workflow-step-badge--vlp" : "");
         }
         if (liberacaoModalSubtitle) {
           liberacaoModalSubtitle.textContent = isVrp
@@ -22171,6 +22387,8 @@
           setRppSel(libResponsavelPagamento, values.responsavelFinanceiro, readonly.responsavelFinanceiro);
           setPartnerSel(libSolicitanteRemocao, values.solicitanteRemocao, readonly.solicitanteRemocao);
           setPartnerSel(libRemoveu, values.removeu, readonly.removeu);
+          const obsEl = document.getElementById("libObservacao");
+          if (obsEl) obsEl.value = values.observacao || "";
           if (requiredFields.includes("removeu") && libRemoveu && !libRemoveu.value) {
             const firstRemoveu = [...libRemoveu.options].find((o) => o.value);
             if (firstRemoveu) libRemoveu.value = firstRemoveu.value;
@@ -23682,13 +23900,13 @@
         }
 
         if (action === "confirmar_liberacao") {
-          if (vehicle.status !== "LIBERACAO_SOLICITADA") {
-            alert("Esta ação só pode ser usada quando o veículo está em «Liberação solicitada».");
+          if (!isVslStatus(vehicle.status)) {
+            alert("Esta ação só pode ser usada quando o veículo está em VSL (solicitação de liberação).");
             return;
           }
           const actors = await getVehicleWorkflowActors(id);
           const libData = await openWorkflowStepModal({
-            title: "Confirmar liberação",
+            title: "Confirmar liberação (VSC)",
             submitLabel: "Confirmar liberação",
             requiredFields: ["confirmador", "responsavelFinanceiro"],
             values: {
@@ -23702,7 +23920,15 @@
           const responsavel = String(libData.responsavelFinanceiro || "").trim();
           const confirmador = String(libData.confirmador || "").trim();
           const rppPartnerId = libData.responsavelFinanceiroPartnerId || "";
-          const vehiclePatch = { status: "LIBERACAO_CONFIRMADA" };
+          const obs = String(libData.observacao || "").trim();
+          const operador = currentPatioOperatorLabel();
+          const agora = new Date().toISOString();
+          const vehiclePatch = {
+            status: "LIBERACAO_CONFIRMADA",
+            liberacao_confirmada_em: agora,
+            liberacao_confirmada_por: operador,
+            liberacao_confirmada_obs: obs || null,
+          };
           if (rppPartnerId) {
             vehiclePatch.responsavel_financeiro_id = rppPartnerId;
             vehiclePatch.responsavel_financeiro_nome = responsavel || rppNomeById(rppPartnerId) || null;
@@ -23712,11 +23938,7 @@
               if (rppMgr.officeManagerId) vehiclePatch.advocacy_office_manager_id = rppMgr.officeManagerId;
             }
           }
-          const { error: upErr } = await supabase
-            .from("vehicles")
-            .update(vehiclePatch)
-            .eq("id", id)
-            .eq("user_id", effectiveUserId());
+          const upErr = await updateVehiclePatioFields(id, vehiclePatch);
           if (upErr) {
             alert(upErr.message);
             return;
@@ -23774,14 +23996,18 @@
           await supabase.from("vehicle_events").insert({
             vehicle_id: id,
             tipo: "LIBERACAO_CONFIRMADA",
-            responsavel: confirmador || responsavel,
-            descricao: `Liberação confirmada por ${confirmador || "-"}. RPP: ${responsavel}.`,
+            responsavel: confirmador || operador,
+            descricao:
+              `Liberação confirmada (VSC). Confirmador: ${confirmador || "-"}. RPP: ${responsavel}. ` +
+              `Registado por ${operador}. As diárias continuam a contar até a retirada física (VRP).` +
+              (obs ? ` Observação: ${obs}` : ""),
           });
           await loadVehicles();
           if (!FINANCE_MANUAL_ONLY) await Promise.all([loadReceivables(), loadCycleClosures()]);
           else await loadCycleClosures();
           renderVehicles();
           updateDashboard();
+          openPatioSubview("vsc");
           await refreshFichaIfOpen(id);
           return;
         }
@@ -23985,8 +24211,8 @@
             return;
           }
           const libData = await openWorkflowStepModal({
-            title: "Liberação solicitada",
-            submitLabel: "OK",
+            title: "Solicitação de liberação (VSL)",
+            submitLabel: "Registar solicitação",
             requiredFields: ["solicitante"],
           });
           if (!libData) return;
@@ -23995,19 +24221,24 @@
             alert("Selecione quem solicitou a liberação (parceiro cadastrado).");
             return;
           }
+          const obs = String(libData.observacao || "").trim();
+          const operador = currentPatioOperatorLabel();
+          const agora = new Date().toISOString();
           await supabase.from("vehicle_events").insert({
             vehicle_id: id,
             tipo: "LIBERACAO_SOLICITADA",
             responsavel: solicitante,
-            descricao: "Liberação solicitada.",
+            descricao:
+              `Solicitação de liberação registada (VSL). Solicitante: ${solicitante}. ` +
+              `Registado por ${operador}. O veículo continua no pátio e as diárias seguem a contar.` +
+              (obs ? ` Observação: ${obs}` : ""),
           });
-          const { error: upErr } = await supabase
-            .from("vehicles")
-            .update({
-              status: "LIBERACAO_SOLICITADA",
-            })
-            .eq("id", id)
-            .eq("user_id", effectiveUserId());
+          const upErr = await updateVehiclePatioFields(id, {
+            status: "LIBERACAO_SOLICITADA",
+            liberacao_solicitada_em: agora,
+            liberacao_solicitada_por: operador,
+            liberacao_solicitada_obs: obs || null,
+          });
           if (upErr) {
             alert(upErr.message);
             return;
@@ -24015,6 +24246,7 @@
 
           await loadVehicles();
           updateDashboard();
+          openPatioSubview("vsl");
           await refreshFichaIfOpen(id);
           return;
         }
@@ -24748,7 +24980,7 @@
           setPatioView("vistoria");
           return;
         }
-        if (sub === "liberacao_solicitada") sub = "vlp";
+        if (sub === "liberacao_solicitada" || sub === "vlp") sub = "vsl";
         if (sub === "nfse_pendente") sub = "no_patio";
         if (sub === "fechando_ciclo" || sub === "aguardando") sub = "aguardando_faturamento";
         if (isAdmDesktopPc() && sub === "vistoria") {
