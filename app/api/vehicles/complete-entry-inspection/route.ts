@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { verifyInspectorSessionToken } from "@/lib/inspector-session";
-import { actorCanWrite, actorRequiresInspectorIdentification, resolvePatioActor } from "@/lib/patio-actor";
+import { actorCanInspectWrite, actorRequiresInspectorIdentification, resolvePatioActor } from "@/lib/patio-actor";
 import { extractBearerToken, getUserIdFromAccessToken } from "@/lib/user-authorization";
 import {
   completeVehicleEntryInspection,
@@ -92,9 +92,9 @@ export async function POST(request: NextRequest) {
 
   const admin = getSupabaseAdmin();
   const actor = await resolvePatioActor(admin, userId);
-  if (!actorCanWrite(actor)) {
+  if (!actorCanInspectWrite(actor)) {
     return NextResponse.json(
-      { error: "O perfil Visualizador não pode realizar ou alterar vistorias." },
+      { error: "Este perfil não pode realizar ou alterar vistorias." },
       { status: 403 }
     );
   }
