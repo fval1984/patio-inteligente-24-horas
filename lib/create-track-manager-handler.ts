@@ -349,6 +349,16 @@ export async function runCreateTrackManager(
             },
           };
         }
+        if (requestedRole === "VISUALIZADOR") {
+          return {
+            status: 400,
+            body: {
+              error:
+                "O perfil VISUALIZADOR ainda não está na base. Execute supabase/track_managers_visualizador_role.sql no SQL Editor do Supabase e tente de novo.",
+              user_id: newUserId,
+            },
+          };
+        }
         insertResp = await insertTrackManager({ ...baseRow });
         insertJson = await insertResp.json().catch(() => ({}));
       } else if (/check constraint|track_managers_role_check|invalid input/i.test(errText) && requestedRole === "VISTORIADOR") {
@@ -357,6 +367,15 @@ export async function runCreateTrackManager(
           body: {
             error:
               "O perfil VISTORIADOR ainda não está na base. Execute supabase/track_managers_vistoriador_role.sql no SQL Editor do Supabase e tente de novo.",
+            user_id: newUserId,
+          },
+        };
+      } else if (/check constraint|track_managers_role_check|invalid input/i.test(errText) && requestedRole === "VISUALIZADOR") {
+        return {
+          status: 400,
+          body: {
+            error:
+              "O perfil VISUALIZADOR ainda não está na base. Execute supabase/track_managers_visualizador_role.sql no SQL Editor do Supabase e tente de novo.",
             user_id: newUserId,
           },
         };
