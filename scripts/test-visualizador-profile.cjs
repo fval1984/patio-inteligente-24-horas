@@ -71,6 +71,9 @@ function testFrontend() {
   assert.match(html, /option value="VISUALIZADOR"/);
   assert.match(html, /let isVisualizador = false/);
   assert.match(html, /role === "VISUALIZADOR"/);
+  assert.match(html, /!opts.skipAuthorizationCheck && !isVisualizador/);
+  assert.match(html, /await loadPatioDelegatedRole\(\)/);
+  assert.match(html, /if \(isVisualizador\) return isMobileLayout\(\) \? "patio" : "dashboard"/);
   assert.match(html, /body.classList.add\("role-visualizador"\)/);
   assert.match(html, /hidesFinancialValues/);
   assert.match(html, /isViewerForbiddenView/);
