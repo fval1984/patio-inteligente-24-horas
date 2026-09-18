@@ -251,7 +251,7 @@
     const vehicles = _lastData.vehicles || [];
     const k = m.kpis || {};
     const onPatio = vehicles.filter(isOnPatio).length;
-    const isGestorPista = !!(ctx?.isGestorPista || global.isGestorPista);
+    const isGestorPista = !!(ctx?.isGestorPista || global.isGestorPista || ctx?.isVisualizador || global.isVisualizador);
     const fmtMoney =
       typeof ctx?.formatCurrency === "function"
         ? ctx.formatCurrency
