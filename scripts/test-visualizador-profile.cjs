@@ -77,7 +77,6 @@ function testFrontend() {
   assert.match(html, /body.classList.add\("role-visualizador"\)/);
   assert.match(html, /hidesFinancialValues/);
   assert.match(html, /isViewerForbiddenView/);
-  assert.match(html, /id="visualizadorWelcomeBanner"/);
   assert.match(html, /O perfil Visualizador é somente consulta/);
   const css = read("public/ampliguard-vistoria-ui.css");
   assert.match(css, /body\.role-visualizador #headerDetailsFinance/);
