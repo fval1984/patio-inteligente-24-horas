@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { actorCanWrite, resolvePatioActor } from "@/lib/patio-actor";
+import { actorCanInspectWrite, resolvePatioActor } from "@/lib/patio-actor";
 import { extractBearerToken, getUserIdFromAccessToken } from "@/lib/user-authorization";
 import { persistInspectionPhoto, resolveInspectorDisplayName, resolveVehicleOwnerUserId } from "@/lib/vehicle-entry-inspection";
 
@@ -77,9 +77,23 @@ export async function POST(request: NextRequest) {
 
   const admin = getSupabaseAdmin();
   const actor = await resolvePatioActor(admin, userId);
-  if (!actorCanWrite(actor)) {
+  if (!actorCanInspectWrite(actor)) {
     return NextResponse.json(
-      { error: "O perfil Visualizador não pode adicionar ou excluir fotos." },
+      { error: "Este perfil não pode adicionar ou excluir fotos da vistoria." },
+      { status: 403 }
+    );
+  }
+  const { data: inspRow } = await admin
+    .from("vehicle_entry_inspections")
+    .select("status")
+    .eq("id", inspectionId)
+    .maybeSingle();
+  if (
+    String(inspRow?.status || "").toUpperCase() === "CONCLUIDA" &&
+    actor.role !== "ADM"
+  ) {
+    return NextResponse.json(
+      { error: "Este perfil não pode alterar fotos de uma vistoria já finalizada." },
       { status: 403 }
     );
   }
