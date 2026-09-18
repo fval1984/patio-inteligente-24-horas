@@ -7252,6 +7252,12 @@
           </p>
           <button type="button" class="secondary" id="gestorPistaWelcomeDismiss">Entendi</button>
         </div>
+        <div id="visualizadorWelcomeBanner" class="gestor-pista-welcome hidden" role="status">
+          <p class="notice gestor-pista-welcome-text">
+            <strong>Visualizador.</strong> Consulta do pátio, veículos, vistorias e parceiros. Este perfil é <strong>somente leitura</strong> e <strong>não acessa o financeiro</strong>.
+          </p>
+          <button type="button" class="secondary" id="visualizadorWelcomeDismiss">Entendi</button>
+        </div>
         <button type="button" id="logoutBtn" class="hidden" aria-hidden="true" tabindex="-1">Sair</button>
 
         <div id="viewDashboard" class="panel dashboard-shell exec-ops-shell">
@@ -8278,6 +8284,7 @@
                     <select id="trackManagerRole">
                       <option value="GESTOR_PISTA">Gestor de pista</option>
                       <option value="VISTORIADOR">Vistoriador</option>
+                      <option value="VISUALIZADOR">Visualizador</option>
                     </select>
                   </div>
                 </div>
@@ -10301,6 +10308,10 @@
       }
 
       async function requireSupabaseSessionForWrite() {
+        if (typeof isVisualizador !== "undefined" && isVisualizador) {
+          alert("O perfil Visualizador é somente consulta. Não é possível alterar dados.");
+          return null;
+        }
         const session = await ensureValidSupabaseSession();
         if (session?.access_token) return session;
         showAppSessionBanner("Sessão expirada. Saia e entre novamente para continuar a gravar.");
@@ -10405,10 +10416,17 @@
       }
 
       async function callFinanceCompetencyApi(path, payload) {
+        if (typeof isVisualizador !== "undefined" && isVisualizador) {
+          throw new Error("O perfil Visualizador não tem acesso ao financeiro.");
+        }
+        const token = typeof getAccessTokenForApi === "function" ? await getAccessTokenForApi() : null;
         const resp = await fetch(path, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload || {}),
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: "Bearer " + token } : {}),
+          },
+          body: JSON.stringify({ ...(payload || {}), access_token: token || undefined }),
         });
         const json = await resp.json().catch(() => ({}));
         if (!resp.ok) {
@@ -10430,10 +10448,24 @@
 
       let isGestorPista = false;
       let isVistoriador = false;
+      let isVisualizador = false;
       const ADM_PC_MIN_WIDTH_PX = 901;
 
+      function hidesFinancialValues() {
+        return !!(isGestorPista || isVisualizador);
+      }
+
+      function isViewerForbiddenView(view) {
+        return (
+          view === "financeiro" ||
+          view === "cobranca" ||
+          view === "configuracoes" ||
+          view === "biExecutivo"
+        );
+      }
+
       function isAdmDesktopPc() {
-        if (isGestorPista || isVistoriador) return false;
+        if (isGestorPista || isVistoriador || isVisualizador) return false;
         try {
           return window.matchMedia(`(min-width: ${ADM_PC_MIN_WIDTH_PX}px)`).matches;
         } catch (e) {
@@ -10463,6 +10495,7 @@
 
       function defaultHomeViewForRole() {
         if (isVistoriador) return "patio";
+        if (isVisualizador) return "patio";
         if (isGestorPista || isMobileLayout()) return "patio";
         return "dashboard";
       }
@@ -13323,7 +13356,7 @@
       window.isRegistroPendente = isRegistroPendente;
 
       function isSystemManagerUser() {
-        return !isGestorPista && !isVistoriador;
+        return !isGestorPista && !isVistoriador && !isVisualizador;
       }
 
       /** Veículo liberado com remoção solicitada — gestor de pista pode efetivar baixa/saída. */
@@ -14274,7 +14307,7 @@
       function computeListaGrandTotalForCurrentView() {
         readListaFiltersFromDom();
         const vehicleById = new Map((state.vehicles || []).map((v) => [v.id, v]));
-        const semVal = isGestorPista;
+        const semVal = hidesFinancialValues();
 
         if (currentListaView === "vnp") {
           const items = buildListaVnpVehicleRows();
@@ -14382,7 +14415,7 @@
         if (!head || !body) return;
         syncListaSubnavActive();
         const vehicleById = new Map((state.vehicles || []).map((v) => [v.id, v]));
-        const semVal = isGestorPista;
+        const semVal = hidesFinancialValues();
         const locLabel = (id) => state.partners.find((p) => p.id === id)?.nome || "-";
         const captureRoot = document.getElementById("listaCaptureRoot");
         if (captureRoot) {
@@ -14902,7 +14935,7 @@
           excludeRemoved ? "Ocultando removidos (VRP)" : "Inclui removidos no agrupamento",
           `Total no relatório: ${vehicles.length} veículo(s)`,
           `Emitido em: ${nowStr}`,
-          ...(isGestorPista ? ["Perfil gestor de pista: colunas monetárias omitidas"] : []),
+          ...(hidesFinancialValues() ? ["Colunas monetárias omitidas neste perfil"] : []),
         ].join(" · ");
 
         const theadLoc =
@@ -15036,7 +15069,7 @@
         const metaLine = [
           `Total: ${vehicles.length} veículo(s)`,
           `Emitido em: ${nowStr}`,
-          ...(isGestorPista ? ["Perfil gestor de pista: colunas monetárias omitidas"] : []),
+          ...(hidesFinancialValues() ? ["Colunas monetárias omitidas neste perfil"] : []),
         ].join(" · ");
 
         const situacaoCell = (v) => escapeHtml(REMOVAL_FLOW_LABELS[v.status] || v.status || "—");
@@ -15279,7 +15312,7 @@
           metaParts.push(`VRP/NFSe: ${formatYmdToBr(fromStr)} a ${formatYmdToBr(toStr)}`);
         }
         metaParts.push(`Emitido em: ${nowStr}`);
-        if (isGestorPista) metaParts.push("Perfil gestor de pista: colunas monetárias omitidas nas tabelas");
+        if (hidesFinancialValues()) metaParts.push("Colunas monetárias omitidas neste perfil");
         const metaLine = metaParts.join(" · ");
 
         const sections = [];
@@ -15469,12 +15502,12 @@
 
       /** Cabeçalhos HTML de valores nas impressões do pátio (vazio para gestor de pista). */
       function patioPrintMoneyHeaderHtml() {
-        return isGestorPista ? "" : "<th>Diária</th><th>Total estimado</th>";
+        return hidesFinancialValues() ? "" : "<th>Diária</th><th>Total estimado</th>";
       }
 
       /** Células HTML de diária + total estimado (vazio para gestor de pista). */
       function patioPrintMoneyCellsHtml(v) {
-        if (isGestorPista) return "";
+        if (hidesFinancialValues()) return "";
         const vd = Number(v?.valor_diaria);
         const diaria = Number.isFinite(vd) && vd >= 0 ? vd : 0;
         return `<td>${escapeHtml(formatCurrency(diaria))}</td><td>${escapeHtml(formatCurrency(calcTotal(v)))}</td>`;
@@ -16063,6 +16096,11 @@
           setPatioView("vistoria");
           return;
         }
+        if (isVisualizador && (cfg.view === "financeiro" || cfg.fin || isViewerForbiddenView(cfg.view))) {
+          showMainView("patio");
+          setPatioView("inicio");
+          return;
+        }
         const view = cfg.view || (cfg.fin ? "financeiro" : null) || (cfg.patio ? "patio" : null);
         if (!view) return;
         try {
@@ -16246,11 +16284,14 @@
         state.patioOwnerUserId = null;
         isGestorPista = false;
         isVistoriador = false;
+        isVisualizador = false;
         window.isGestorPista = false;
         window.isVistoriador = false;
-        document.body.classList.remove("role-vistoriador", "role-gestor-pista");
+        window.isVisualizador = false;
+        document.body.classList.remove("role-vistoriador", "role-gestor-pista", "role-visualizador");
         document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
         document.getElementById("vistoriadorWelcomeBanner")?.classList.add("hidden");
+        document.getElementById("visualizadorWelcomeBanner")?.classList.add("hidden");
         appInitUserId = null;
         appInitPromise = null;
         appLaunchConfigConsumed = false;
@@ -16261,6 +16302,7 @@
       async function loadPatioDelegatedRole() {
         isGestorPista = false;
         isVistoriador = false;
+        isVisualizador = false;
         state.patioOwnerUserId = null;
         try {
           if (!supabase || !state?.user?.id) return false;
@@ -16288,6 +16330,10 @@
             .toUpperCase();
           if (role === "VISTORIADOR") {
             isVistoriador = true;
+            return true;
+          }
+          if (role === "VISUALIZADOR" || role === "VIEWER") {
+            isVisualizador = true;
             return true;
           }
           isGestorPista = true;
@@ -16333,6 +16379,7 @@
       function applyMobileModuleNavRestrictions() {
         const gestorVisible = new Set(["dashboardOpenPatio", "dashboardOpenLista"]);
         const vistoriadorVisible = new Set();
+        const visualizadorVisible = new Set(["dashboardOpenHome", "dashboardOpenPatio", "dashboardOpenLista", "dashboardOpenParceiros"]);
         [
           "dashboardOpenHome",
           "dashboardOpenPatio",
@@ -16344,7 +16391,9 @@
           const btn = document.getElementById(id);
           if (!btn) return;
           let show = isVistoriador ? vistoriadorVisible.has(id) : !isGestorPista || gestorVisible.has(id);
-          if (id === "dashboardOpenHome") show = !isGestorPista && !isVistoriador;
+          if (isVisualizador) show = visualizadorVisible.has(id);
+          if (id === "dashboardOpenHome") show = (!isGestorPista && !isVistoriador) || isVisualizador;
+          if (id === "dashboardOpenFinance") show = show && !isVisualizador;
           btn.classList.toggle("hidden", !show);
           btn.style.display = show ? "" : "none";
         });
@@ -16408,7 +16457,8 @@
 
         document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
         document.getElementById("vistoriadorWelcomeBanner")?.classList.add("hidden");
-        document.body.classList.remove("role-vistoriador", "role-gestor-pista");
+        document.getElementById("visualizadorWelcomeBanner")?.classList.add("hidden");
+        document.body.classList.remove("role-vistoriador", "role-gestor-pista", "role-visualizador");
         goDashboardFromPlate?.classList.remove("hidden");
         if (isVistoriador) {
           try {
@@ -16437,6 +16487,7 @@
           document.body.classList.add("role-vistoriador");
           window.isGestorPista = false;
           window.isVistoriador = true;
+          window.isVisualizador = false;
           applyMobileModuleNavRestrictions();
           if (!opts.skipDefaultView) {
             showMainView("patio");
@@ -16445,12 +16496,68 @@
           document.getElementById("vistoriadorWelcomeBanner")?.classList.remove("hidden");
           return;
         }
+        if (isVisualizador) {
+          try {
+            navStack.splice(0, navStack.length, "patio", "patio:inicio");
+          } catch (e) {
+            console.warn("navStack", e);
+          }
+          document.getElementById("headerDetailsConfig")?.classList.add("hidden");
+          document.getElementById("headerDetailsFinance")?.classList.add("hidden");
+          document.getElementById("dashboardOpenFinance")?.classList.add("hidden");
+          document.getElementById("dashboardOpenConfiguracoes")?.classList.add("hidden");
+          document.querySelectorAll("#appHeaderMenu button[data-view='biExecutivo']").forEach((btn) => {
+            btn.style.display = "none";
+          });
+          document.querySelectorAll("#headerDetailsLista [data-lista-gestor-hide], #listaSubnav [data-lista-gestor-hide]").forEach((el) => {
+            el.classList.add("hidden");
+          });
+          document
+            .querySelectorAll(
+              '#headerDetailsPatio [data-header-patio-sub="aguardando_faturamento"], #headerDetailsPatio [data-header-patio="new-vehicle"]'
+            )
+            .forEach((el) => el.classList.add("hidden"));
+          document.getElementById("patioMenuNewVehicle")?.classList.add("hidden");
+          patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.add("hidden");
+          patioSubnav?.querySelector('[data-subview="aguardando_faturamento"]')?.classList.add("hidden");
+          const vehicleDailyHide = document.getElementById("vehicleDaily");
+          const vehicleDailyWrapHide = vehicleDailyHide?.closest("div");
+          if (vehicleDailyWrapHide) vehicleDailyWrapHide.style.display = "none";
+          if (vehicleDailyHide) vehicleDailyHide.required = false;
+          const style = document.createElement("style");
+          style.id = "track-manager-hide-values-style";
+          style.textContent = `
+          #viewPatio [data-subview="no_patio"] table thead th:nth-child(6),
+          #viewPatio [data-subview="no_patio"] table tbody td:nth-child(6),
+          #viewPatio [data-subview="vlp"] table thead th:nth-child(6),
+          #viewPatio [data-subview="vlp"] table tbody td:nth-child(6) {
+            display: none !important;
+          }
+          #viewPatio [data-subview="removidos"] table thead th:nth-child(7),
+          #viewPatio [data-subview="removidos"] table tbody td:nth-child(7) {
+            display: none !important;
+          }
+          `;
+          document.head.appendChild(style);
+          document.body.classList.add("role-visualizador");
+          window.isGestorPista = false;
+          window.isVistoriador = false;
+          window.isVisualizador = true;
+          applyMobileModuleNavRestrictions();
+          if (!opts.skipDefaultView) {
+            showMainView("patio");
+            setPatioView("inicio");
+          }
+          document.getElementById("visualizadorWelcomeBanner")?.classList.remove("hidden");
+          return;
+        }
         if (!isGestorPista) {
           document.getElementById("dashboardSystemEntry")?.classList.remove("dashboard-system-entry--single");
           document.getElementById("dashboardOpenFinance")?.classList.remove("hidden");
           document.getElementById("headerDetailsFinance")?.classList.remove("hidden");
           window.isGestorPista = false;
           window.isVistoriador = false;
+          window.isVisualizador = false;
           const patioOpsHead = document.querySelector("#patioInicioPanel .patio-inicio-ops-section h4");
           if (patioOpsHead) patioOpsHead.textContent = "Indicadores operacionais";
           applyAdmDesktopPcRestrictions();
@@ -16525,6 +16632,7 @@
         document.getElementById("gestorPistaWelcomeBanner")?.classList.remove("hidden");
         window.isGestorPista = true;
         window.isVistoriador = false;
+        window.isVisualizador = false;
         const patioOpsHead = document.querySelector("#patioInicioPanel .patio-inicio-ops-section h4");
         if (patioOpsHead) patioOpsHead.textContent = "Indicadores do pátio";
         applyMobileModuleNavRestrictions();
@@ -16605,7 +16713,7 @@
       }
 
       async function savePartnerManager(parent, editingId, payload) {
-        if (isGestorPista || isVistoriador) {
+        if (isGestorPista || isVistoriador || isVisualizador) {
           alert("Somente o administrador pode cadastrar ou editar gestores.");
           return false;
         }
@@ -16644,7 +16752,7 @@
       }
 
       async function togglePartnerManager(id) {
-        if (isGestorPista || isVistoriador) return;
+        if (isGestorPista || isVistoriador || isVisualizador) return;
         const m = (state.partnerManagers || []).find((x) => String(x.id) === String(id));
         if (!m) return;
         const next = String(m.status || "ATIVO").toUpperCase() === "INATIVO" ? "ATIVO" : "INATIVO";
@@ -16664,7 +16772,7 @@
       }
 
       async function deletePartnerManager(id) {
-        if (isGestorPista || isVistoriador) return;
+        if (isGestorPista || isVistoriador || isVisualizador) return;
         if (!confirm("Excluir este gestor? Esta ação não desfaz vínculos futuros, apenas remove o cadastro.")) return;
         const { error } = await runSupabaseWrite(() =>
           supabase.from("partner_managers").delete().eq("id", id).eq("user_id", effectiveUserId())
@@ -16871,7 +16979,7 @@
       }
 
       async function saveAdvocacyOffice(editingId, payload) {
-        if (isGestorPista || isVistoriador) {
+        if (isGestorPista || isVistoriador || isVisualizador) {
           alert("Somente o administrador pode cadastrar ou editar escritórios.");
           return false;
         }
@@ -16910,7 +17018,7 @@
       }
 
       async function toggleAdvocacyOffice(id) {
-        if (isGestorPista || isVistoriador) return;
+        if (isGestorPista || isVistoriador || isVisualizador) return;
         const o = (state.advocacyOffices || []).find((x) => String(x.id) === String(id));
         if (!o) return;
         const { error } = await runSupabaseWrite(() =>
@@ -16928,7 +17036,7 @@
       }
 
       async function saveAdvocacyOfficeManager(officeId, editingId, payload) {
-        if (isGestorPista || isVistoriador) {
+        if (isGestorPista || isVistoriador || isVisualizador) {
           alert("Somente o administrador pode cadastrar ou editar gestores de carteira.");
           return false;
         }
@@ -16985,7 +17093,7 @@
       }
 
       async function toggleAdvocacyOfficeManager(id, officeId) {
-        if (isGestorPista || isVistoriador) return;
+        if (isGestorPista || isVistoriador || isVisualizador) return;
         const m = (state.advocacyOfficeManagers || []).find((x) => String(x.id) === String(id));
         if (!m || String(m.office_id) !== String(officeId || m.office_id)) {
           alert("Este gestor não pertence a este escritório.");
@@ -17009,7 +17117,7 @@
       }
 
       async function deleteAdvocacyOfficeManager(id, officeId) {
-        if (isGestorPista || isVistoriador) return;
+        if (isGestorPista || isVistoriador || isVisualizador) return;
         const m = (state.advocacyOfficeManagers || []).find((x) => String(x.id) === String(id));
         if (!m || String(m.office_id) !== String(officeId || m.office_id)) {
           alert("Este gestor não pertence a este escritório.");
@@ -17036,7 +17144,7 @@
       }
 
       async function deleteAdvocacyOffice(id) {
-        if (isGestorPista || isVistoriador) return;
+        if (isGestorPista || isVistoriador || isVisualizador) return;
         const n = (state.vehicles || []).filter((v) => String(v.advocacy_office_id || "") === String(id)).length;
         if (n) {
           alert("Não é possível excluir: há veículos/demandas vinculados a este escritório.");
@@ -17084,7 +17192,7 @@
       window.toggleAdvocacyOfficeManager = toggleAdvocacyOfficeManager;
       window.deleteAdvocacyOfficeManager = deleteAdvocacyOfficeManager;
       window.openAdvocacyDemandReport = function openAdvocacyDemandReport(opts) {
-        if (isGestorPista || isVistoriador) return;
+        if (isGestorPista || isVistoriador || isVisualizador) return;
         openEscritoriosSubview("relatorio");
         if (typeof window.advocacyOfficesUi?.openReport === "function") {
           window.advocacyOfficesUi.openReport(opts || {});
@@ -17502,7 +17610,7 @@
       }
 
       function vnpShouldShowVistoriaStartButton(v) {
-        if (!v || isAdmDesktopPc()) return false;
+        if (!v || isAdmDesktopPc() || isVisualizador) return false;
         if (isRegistroPendente(v)) return false;
         if (getInspectionIndexEntry(v.id)) return false;
         return window.vehicleEntryInspection?.canStartInspection
@@ -17511,12 +17619,12 @@
       }
 
       function vnpShouldShowVistoriaEditButton(v) {
-        if (!v || isAdmDesktopPc()) return false;
+        if (!v || isAdmDesktopPc() || isVisualizador) return false;
         return !!getInspectionIndexEntry(v.id);
       }
 
       function vnpShouldShowVistoriaDeleteButton(v) {
-        if (!v || isGestorPista || isVistoriador) return false;
+        if (!v || isGestorPista || isVistoriador || isVisualizador) return false;
         return !!getInspectionIndexEntry(v.id);
       }
 
@@ -17526,6 +17634,7 @@
           effectiveUserId,
           isGestorPista,
           isVistoriador,
+          isVisualizador,
           requiresInspectorIdentification: !!isVistoriador,
           isAdmDesktopPc: isAdmDesktopPc(),
           isVehicleOnPatio,
@@ -17563,7 +17672,7 @@
       }
 
       async function loadAll() {
-        if (isGestorPista || isVistoriador) {
+        if (isGestorPista || isVistoriador || isVisualizador) {
         await Promise.all([loadPartners(), loadPartnerManagers(), loadVehicles(), loadVehicleInspections(), loadAdvocacyOffices()]);
           probeVehiclesRpfColumns().catch(() => {});
           probeVehiclesAdvocacyColumn().catch(() => {});
@@ -17981,6 +18090,7 @@
             {
               formatCurrency,
               isGestorPista,
+              isVisualizador,
               isAdmDesktopPc: isAdmDesktopPc(),
               userName: typeof displayManagerIdentity === "function"
                 ? displayManagerIdentity(state.user?.email || "")
@@ -18015,11 +18125,11 @@
         if (pdSM) pdSM.textContent = String(saidasMes);
 
         if (typeof window.patioDashboardRender === "function") {
-          window.patioDashboardRender(state.vehicles, { formatCurrency, isGestorPista });
+          window.patioDashboardRender(state.vehicles, { formatCurrency, isGestorPista, isVisualizador });
         }
 
         if (typeof window.operationalDashboardRender === "function") {
-          const opsCtx = { formatCurrency, escapeHtml, isGestorPista };
+          const opsCtx = { formatCurrency, escapeHtml, isGestorPista, isVisualizador };
           const opsData = {
             vehicles: state.vehicles || [],
             partners: state.partners || [],
@@ -18619,11 +18729,11 @@
           ).length;
           if (patioCardTitle1) patioCardTitle1.textContent = "VRP";
           if (patioCardTitle2)
-            patioCardTitle2.textContent = isGestorPista ? "Saídas no mês" : "Valor total estimado";
+            patioCardTitle2.textContent = hidesFinancialValues() ? "Saídas no mês" : "Valor total estimado";
           if (patioCardTitle3) patioCardTitle3.textContent = "Saídas registradas";
           if (patioCardValue1) patioCardValue1.textContent = String(byStatus.REMOVIDO.length);
           if (patioCardValue2)
-            patioCardValue2.textContent = isGestorPista
+            patioCardValue2.textContent = hidesFinancialValues()
               ? String(saidasMes)
               : formatCurrency(
                   byStatus.REMOVIDO.reduce((s, v) => s + Number(calcTotal(v) || 0), 0)
@@ -18631,7 +18741,7 @@
           if (patioCardValue3) patioCardValue3.textContent = String(byStatus.REMOVIDO.filter((v) => !!v.data_saida).length);
           if (patioCardMeta1) patioCardMeta1.textContent = "veículos removidos";
           if (patioCardMeta2)
-            patioCardMeta2.textContent = isGestorPista ? "mês atual" : "soma dos removidos";
+            patioCardMeta2.textContent = hidesFinancialValues() ? "mês atual" : "soma dos removidos";
           if (patioCardMeta3) patioCardMeta3.textContent = "com data de saída";
         } else if (currentPatioView === "fechando_ciclo" || currentPatioView === "aguardando_faturamento") {
           if (patioCardTitle1) patioCardTitle1.textContent = "Aguardando faturamento";
@@ -18640,11 +18750,11 @@
           if (patioCardValue1) patioCardValue1.textContent = String(fechamentoCicloReceivables.length);
           if (patioCardValue2)
             patioCardValue2.textContent = formatCurrency(
-              fechamentoCicloReceivables.reduce((s, r) => s + (isGestorPista ? 0 : Number(r.valor || 0)), 0)
+              fechamentoCicloReceivables.reduce((s, r) => s + (hidesFinancialValues() ? 0 : Number(r.valor || 0)), 0)
             );
           if (patioCardValue3) patioCardValue3.textContent = "Contas a receber";
           if (patioCardMeta1) patioCardMeta1.textContent = "ciclos nesta fila";
-          if (patioCardMeta2) patioCardMeta2.textContent = isGestorPista ? "valores ocultos" : "soma dos ciclos";
+          if (patioCardMeta2) patioCardMeta2.textContent = hidesFinancialValues() ? "valores ocultos" : "soma dos ciclos";
           if (patioCardMeta3) patioCardMeta3.textContent = "após NF ou cobrança";
         } else {
           if (patioCardTitle1) patioCardTitle1.textContent = "VNP";
@@ -18801,7 +18911,7 @@
         html += row("RPP", escapeHtml(rpp));
         html += row("Entrada", escapeHtml(formatDateTime(v.data_entrada)));
         html += row("Dias no pátio", escapeHtml(String(dias)));
-        if (isGestorPista) {
+        if (isGestorPista || isVisualizador) {
           html += `<p class="notice patio-mob-info-notice">Valores não exibidos neste perfil.</p>`;
         } else {
           html += row("Valor da diária", escapeHtml(valorDiariaTxt));
@@ -18852,6 +18962,12 @@
 
       function buildPatioVehicleActionsHtml(v, opts = {}) {
         const listContext = opts.listContext || "vnp";
+        if (isVisualizador) {
+          const viewBtn = vnpShouldShowVistoriaViewButton(v)
+            ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
+            : "";
+          return `${viewBtn}<button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>`;
+        }
         if (isGestorPista) {
           if (listContext === "vrp") {
             return `<span class="notice">Sem permissão de ação</span><span class="tag success">Removido</span>`;
@@ -18921,7 +19037,7 @@
         const total = calcTotal(v);
         const localizador = state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
         const rpfNome = vehicleRpfNome(v);
-        const semValores = isGestorPista;
+        const semValores = hidesFinancialValues();
         const valorCell = semValores
           ? "-"
           : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
@@ -19028,6 +19144,7 @@
       }
 
       function setPatioView(view, opts = {}) {
+        if (isVisualizador) view = view === "aguardando_faturamento" || view === "fechando_ciclo" ? "no_patio" : view;
         if (isVistoriador) view = "vistoria";
         if (isAdmDesktopPc() && view === "vistoria") view = "no_patio";
         const silent = opts.silent === true;
@@ -19385,7 +19502,7 @@
           );
           return;
         }
-        const semValores = isGestorPista;
+        const semValores = hidesFinancialValues();
         tbody.innerHTML = items
           .map((r) => {
             const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
@@ -19433,7 +19550,7 @@
           setEmptyRow(tbody, "Nenhum veículo removido.", 10);
           return;
         }
-        const semValores = isGestorPista;
+        const semValores = hidesFinancialValues();
         tbody.innerHTML = items
           .map((v) => {
             const total = calcTotal(v);
@@ -20190,6 +20307,10 @@
       }
 
       function openVehicleModal(mode, vehicle) {
+        if (isVisualizador) {
+          alert("O perfil Visualizador é somente consulta. Não é possível cadastrar ou editar veículos.");
+          return;
+        }
         if (isVistoriador) {
           alert("Este perfil só pode realizar vistorias.");
           return;
@@ -20279,7 +20400,7 @@
         if (entryInput) entryInput.required = !gestorCreate && mode !== "create" && !crMode;
         refreshVehiclePlatePreviewInput();
         const novoEscBtn = document.getElementById("vehicleAdvocacyOfficeNew");
-        if (novoEscBtn) novoEscBtn.classList.toggle("hidden", !!(isGestorPista || isVistoriador));
+        if (novoEscBtn) novoEscBtn.classList.toggle("hidden", !!(isGestorPista || isVistoriador || isVisualizador));
         vehicleModal.classList.remove("hidden");
       }
 
@@ -20321,7 +20442,7 @@
         openVehicleModal("create");
       });
       patioMenuNewVehicle?.addEventListener("click", () => {
-        if (isVistoriador) return;
+        if (isVistoriador || isVisualizador) return;
         closePatioMenu();
         openVehicleModal("create");
       });
@@ -20350,7 +20471,7 @@
       });
 
       document.getElementById("vehicleAdvocacyOfficeNew")?.addEventListener("click", () => {
-        if (isGestorPista || isVistoriador) {
+        if (isGestorPista || isVistoriador || isVisualizador) {
           alert("Somente o administrador pode cadastrar escritórios.");
           return;
         }
@@ -22710,6 +22831,9 @@
       document.getElementById("gestorPistaWelcomeDismiss")?.addEventListener("click", () => {
         document.getElementById("gestorPistaWelcomeBanner")?.classList.add("hidden");
       });
+      document.getElementById("visualizadorWelcomeDismiss")?.addEventListener("click", () => {
+        document.getElementById("visualizadorWelcomeBanner")?.classList.add("hidden");
+      });
 
       trackManagerBtnNovo?.addEventListener("click", () => {
         hideTrackManagerAccessBox();
@@ -22808,7 +22932,9 @@
                 anon_key: supabaseKey,
                 email,
                 password: ownerChosenPassword,
-                role: (trackManagerRole?.value || "GESTOR_PISTA").toUpperCase() === "VISTORIADOR" ? "VISTORIADOR" : "GESTOR_PISTA",
+                role: ["VISTORIADOR", "VISUALIZADOR"].includes((trackManagerRole?.value || "").toUpperCase())
+                  ? (trackManagerRole.value || "").toUpperCase()
+                  : "GESTOR_PISTA",
               }),
             });
 
@@ -22977,6 +23103,10 @@
       async function handleVnpVehicleAction(button) {
         const id = button.getAttribute("data-id");
         const action = button.getAttribute("data-action");
+        if (isVisualizador && action !== "ficha" && action !== "ver_vistoria" && action !== "patio_acoes") {
+          alert("O perfil Visualizador é somente consulta. Não é possível alterar dados.");
+          return;
+        }
         if (isVistoriador && action !== "vistoria") {
           alert("Este perfil só pode realizar vistorias.");
           return;
@@ -23253,7 +23383,7 @@
         }
 
         if (action === "apagar_vistoria") {
-          if (isGestorPista || isVistoriador) {
+          if (isGestorPista || isVistoriador || isVisualizador) {
             alert("Apenas o gestor principal pode apagar uma vistoria.");
             return;
           }
@@ -24270,6 +24400,9 @@
         if (isVistoriador) {
           view = "patio";
         }
+        if (isVisualizador && isViewerForbiddenView(view)) {
+          view = "patio";
+        }
         if (isGestorPista && view === "dashboard") {
           navStack.splice(0, navStack.length, "patio", "patio:inicio");
           showMainView("patio");
@@ -24393,7 +24526,7 @@
       }
 
       async function loadTrackManagersList() {
-        if (!tableTrackManagersBody || !supabase || !state.user?.id || isGestorPista || isVistoriador) return;
+        if (!tableTrackManagersBody || !supabase || !state.user?.id || isGestorPista || isVistoriador || isVisualizador) return;
         let { data, error } = await supabase
           .from("track_managers")
           .select("user_id, email, role")
@@ -24420,7 +24553,9 @@
         }
         tableTrackManagersBody.innerHTML = rows
           .map((r) => {
-            const perfil = String(r.role || "").toUpperCase() === "VISTORIADOR" ? "Vistoriador" : "Gestor de pista";
+            const roleRaw = String(r.role || "").toUpperCase();
+            const perfil =
+              roleRaw === "VISTORIADOR" ? "Vistoriador" : roleRaw === "VISUALIZADOR" ? "Visualizador" : "Gestor de pista";
             const rotulo = escapeHtml(displayManagerIdentity((r.email || "—").trim()));
             const uid = String(r.user_id || "").trim();
             if (!uid) {
@@ -24523,6 +24658,11 @@
         if (isVistoriador) {
           showMainView("patio");
           setPatioView("vistoria");
+          return;
+        }
+        if (isVisualizador && isViewerForbiddenView(view)) {
+          showMainView("patio");
+          setPatioView("inicio");
           return;
         }
         if (isGestorPista && view !== "patio" && view !== "lista") {
@@ -24664,6 +24804,10 @@
         if (!sub) return;
         if (sub === "aguardando_lancamento") sub = "aguardando_faturamento";
         if (sub === "historico_receber" || sub === "receber_alerta") sub = "receber";
+        if (isVisualizador && ["aguardando_faturamento", "receber", "pagar", "caixa"].includes(sub)) {
+          alert("Com o perfil Visualizador as listas financeiras não estão disponíveis.");
+          sub = "vnp";
+        }
         if (
           isGestorPista &&
           ["aguardando_faturamento", "receber", "pagar", "caixa"].includes(sub)
@@ -24763,7 +24907,10 @@
         if (isGestorPista || isVistoriador) return openMainView("patio");
         openMainView("dashboard");
       });
-      document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => openMainView("financeiro"));
+      document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => {
+        if (isVisualizador) return openMainView("patio");
+        openMainView("financeiro");
+      });
       document.getElementById("finSubnavOpenCobranca")?.addEventListener("click", () => openMainView("cobranca"));
       document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
       document.getElementById("dashboardOpenLista")?.addEventListener("click", () => openMainView("lista"));
@@ -24871,6 +25018,11 @@
           closeAppHeaderMenu();
           return;
         }
+        if (isVisualizador && isViewerForbiddenView(view)) {
+          openMainView("patio");
+          closeAppHeaderMenu();
+          return;
+        }
         if (isGestorPista && view === "dashboard") {
           openMainView("patio");
           return;
@@ -24898,7 +25050,7 @@
           return;
         }
         if (view === "cobranca") {
-          if (isGestorPista || isVistoriador) {
+          if (isGestorPista || isVistoriador || isVisualizador) {
             openMainView("patio");
             return;
           }
@@ -24979,7 +25131,9 @@
             (typeof navStack[navStack.length - 1] === "string" && navStack[navStack.length - 1].startsWith("patio:"));
           if (!onPatio) openMainView("patio");
           else showMainView("patio");
-          if (k === "new-vehicle") openVehicleModal("create");
+          if (k === "new-vehicle") {
+            if (!isVisualizador) openVehicleModal("create");
+          }
           closeAppHeaderMenu();
           return;
         }
