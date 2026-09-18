@@ -358,6 +358,9 @@
   }
 
   function greetingName(ctx) {
+    if (typeof global.formatOpsUserGreeting === "function") {
+      return global.formatOpsUserGreeting(ctx?.userName || global.state?.user?.email || "");
+    }
     const raw = String(ctx?.userName || global.state?.user?.email || "").trim();
     if (!raw) return "Olá";
     const local = raw.includes("@") ? raw.split("@")[0] : raw;
