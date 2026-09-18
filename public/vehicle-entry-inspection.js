@@ -3497,8 +3497,8 @@
       return;
     }
     if (opts?.mode === "edit_existing") {
-      if (ctx?.isVistoriador) {
-        alert("O perfil Vistoriador não pode alterar uma vistoria já finalizada.");
+      if (ctx?.isVistoriador || ctx?.isGestorPista) {
+        alert("Este perfil não pode alterar uma vistoria já finalizada.");
         return;
       }
       const insp = opts.inspection || (await findCompletedInspectionForVehicle(ctx, vehicle.id));
@@ -3534,8 +3534,8 @@
     if (!vehicle) return false;
     try {
       if (active.editingInspectionId) {
-        if (ctx.isVistoriador) {
-          alert("O perfil Vistoriador não pode alterar uma vistoria já finalizada.");
+        if (ctx.isVistoriador || ctx.isGestorPista) {
+          alert("Este perfil não pode alterar uma vistoria já finalizada.");
           clearActiveEdit();
           return false;
         }
