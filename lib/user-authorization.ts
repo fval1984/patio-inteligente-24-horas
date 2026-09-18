@@ -101,16 +101,17 @@ export async function resolveEffectiveAuthorizationStatus(
     return { status: "ATIVO", tableMissing: false, error: null };
   }
 
-  const { data: delegateRow, error: delegateErr } = await admin
+  const { data: delegateRows, error: delegateErr } = await admin
     .from("track_managers")
     .select("owner_user_id")
     .eq("user_id", userId)
-    .maybeSingle();
+    .limit(1);
 
   if (delegateErr && !isMissingTableError(delegateErr.message || "")) {
     return { status: direct.status || "AGUARDANDO_AUTORIZACAO", tableMissing: false, error: delegateErr.message };
   }
 
+  const delegateRow = Array.isArray(delegateRows) ? delegateRows[0] : delegateRows;
   if (delegateRow?.owner_user_id) {
     const owner = await getUserAuthorizationStatus(admin, delegateRow.owner_user_id);
     if (owner.status === "ATIVO") {
