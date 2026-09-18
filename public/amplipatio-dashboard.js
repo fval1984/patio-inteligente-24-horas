@@ -477,7 +477,7 @@
     if (!root) return;
     syncFiltersFromDom();
     syncPeriodChips();
-    const isGestorPista = !!(ctx?.isGestorPista || global.isGestorPista);
+    const isGestorPista = !!(ctx?.isGestorPista || global.isGestorPista || ctx?.isVisualizador || global.isVisualizador);
     const isAdmDesktopPc = !!(ctx?.isAdmDesktopPc || global.isAdmDesktopPc?.());
     const m = getMetrics(data);
     const vehicles = data.vehicles || [];
