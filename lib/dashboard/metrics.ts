@@ -184,6 +184,8 @@ export function filterVehicles(
     if (finId && String(v.localizador_id || "") !== finId) return false;
 
     if (filters.status === "no_patio" && !isVehicleOnPatio(v)) return false;
+    if (filters.status === "vsl" && String(v.status || "").toUpperCase() !== "LIBERACAO_SOLICITADA") return false;
+    if (filters.status === "vsc" && !isLiberadoAguardandoRetirada(v)) return false;
     if (filters.status === "vlp" && !isVlpStatus(v.status)) return false;
     if (filters.status === "removido" && statusUpper(v) !== "REMOVIDO") return false;
 
