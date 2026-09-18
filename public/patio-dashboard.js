@@ -462,7 +462,7 @@
   function patioDashboardRender(vehicles, ctx) {
     const el = document.getElementById("patioDashOpsCards");
     if (!el) return;
-    const isGestorPista = !!(ctx?.isGestorPista || global.isGestorPista);
+    const isGestorPista = !!(ctx?.isGestorPista || global.isGestorPista || ctx?.isVisualizador || global.isVisualizador);
     const formatCurrency = ctx?.formatCurrency || ((n) => `R$ ${Number(n || 0).toFixed(2)}`);
     const m = getMetrics(vehicles);
     const footnote = m.hasData
