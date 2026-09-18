@@ -70,16 +70,17 @@ export async function resolvePatioActor(
   authUserId: string
 ): Promise<PatioActor> {
   const uid = String(authUserId || "").trim();
-  const { data, error } = await admin
+  const { data: rows, error } = await admin
     .from("track_managers")
     .select("owner_user_id, role")
     .eq("user_id", uid)
-    .maybeSingle();
+    .limit(1);
 
   if (error && !isMissingTableError(error.message || "")) {
     return { authUserId: uid, ownerUserId: uid, role: "ADM", delegatedRole: null };
   }
 
+  const data = Array.isArray(rows) ? rows[0] : rows;
   if (data?.owner_user_id) {
     const delegatedRole = normalizeTrackManagerRole(data.role);
     const role: PatioActorRole =
