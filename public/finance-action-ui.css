@@ -287,9 +287,82 @@
   font-weight: 800;
 }
 
-#viewFinanceiro .finance-subview[data-finance-subview="receber"] .table-wrap,
-#viewFinanceiro .finance-subview[data-finance-subview="pagar"] .table-wrap {
+#viewFinanceiro .finance-subview[data-finance-subview="receber"] .table-wrap {
   display: none;
+}
+
+#viewFinanceiro .finance-subview[data-finance-subview="pagar"] .table-wrap {
+  display: block;
+}
+
+#viewFinanceiro .finance-subview[data-finance-subview="pagar"] #finPagarCards,
+#viewFinanceiro .finance-subview[data-finance-subview="pagar"] #finPagarAlerts {
+  display: none;
+}
+
+#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-caderneta-open .table-wrap {
+  display: block;
+}
+
+#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-caderneta-open #finReceberCards {
+  display: none;
+}
+
+#viewFinanceiro .finance-subview[data-finance-subview="receber"]:not(.is-caderneta-open) .fin-batch-bar,
+#viewFinanceiro .finance-subview[data-finance-subview="receber"]:not(.is-caderneta-open) #finReceberSelectedSummary {
+  display: none;
+}
+
+#viewFinanceiro .fin-caderneta-bar {
+  margin: 0 0 14px;
+}
+
+#viewFinanceiro .fin-caderneta-bar h3 {
+  margin: 12px 0 10px;
+  font-size: 1.15rem;
+}
+
+#viewFinanceiro .fin-caderneta-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 8px;
+}
+
+#viewFinanceiro .fin-caderneta-kpi {
+  background: #f8fafc;
+  border: 1px solid var(--fin-act-line);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+#viewFinanceiro .fin-caderneta-kpi span {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--fin-act-muted);
+}
+
+#viewFinanceiro .fin-caderneta-kpi strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.05rem;
+}
+
+#viewFinanceiro .fin-caderneta-card {
+  cursor: pointer;
+}
+
+#viewFinanceiro .fin-caderneta-card:hover,
+#viewFinanceiro .fin-caderneta-card:focus-within {
+  border-color: #93c5fd;
+}
+
+@media (max-width: 980px) {
+  #viewFinanceiro .fin-caderneta-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 #viewFinanceiro .fin-act-table-wrap {
