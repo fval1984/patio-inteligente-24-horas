@@ -1519,6 +1519,25 @@
     return storedNorm.includes(queryNorm) || queryNorm.includes(storedNorm);
   }
 
+  function financeReceivableMatchesPlateQuery(r, v, plateNorm) {
+    if (!plateNorm) return true;
+    if (financePlateMatchesQuery(v, plateNorm)) return true;
+    const typed = financeIsManualReceivable(r) ? financeReceivableTypedFields(r) : null;
+    const blob = [
+      v?.placa,
+      typed?.descricao,
+      typed?.origem,
+      typed?.observacoes,
+      financeReceivableLabel(r),
+      r?.observacoes,
+      r?.descricao,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const blobNorm = financeNormalizePlate(blob);
+    return !!(blobNorm && (blobNorm.includes(plateNorm) || plateNorm.includes(blobNorm)));
+  }
+
   function financeReceivableIdsComCaixaHistoricoInvalido() {
     if (!financeOperationalModeActive()) return new Set();
     const needsRepair = new Set();
@@ -1807,10 +1826,7 @@
     const plateNorm = financeNormalizePlate(financeFilterReceberPlaca);
     const rppId = (financeFilterReceberRppId || "").trim();
     if (plateNorm) {
-      list = list.filter((r) => {
-        if (isManualReceita(r)) return true;
-        return financePlateMatchesQuery(vmap.get(r.vehicle_id), plateNorm);
-      });
+      list = list.filter((r) => financeReceivableMatchesPlateQuery(r, vmap.get(r.vehicle_id), plateNorm));
     }
     if (rppId) {
       list = list.filter((r) => financeReceivableMatchesRppFilter(r, vmap.get(r.vehicle_id), rppId));
@@ -1896,7 +1912,7 @@
       return r.financeiro_aprovado_contas_receber === true;
     }).filter((r) => {
       const plateNorm = financeNormalizePlate(financeFilterReceberPlaca);
-      if (plateNorm && !financePlateMatchesQuery(vmap.get(r.vehicle_id), plateNorm)) return false;
+      if (plateNorm && !financeReceivableMatchesPlateQuery(r, vmap.get(r.vehicle_id), plateNorm)) return false;
       if (!financeValorInRange(r.valor, financeFilterReceberValorDe, financeFilterReceberValorAte)) return false;
       return true;
     });
@@ -6464,7 +6480,18 @@
     document.getElementById("finReceberCadernetaBack")?.addEventListener("click", () => {
       financeCloseReceberCaderneta();
     });
+    document.getElementById("finReceberPlateForm")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      finReceberCadernetaKey = "";
+      if (currentFinanceView === "receber") financeRenderReceber();
+    });
     document.getElementById("finReceberPlaca")?.addEventListener("input", () => {
+      if (currentFinanceView === "receber") financeRenderReceber();
+    });
+    document.getElementById("finReceberPlaca")?.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      finReceberCadernetaKey = "";
       if (currentFinanceView === "receber") financeRenderReceber();
     });
     ["finReceberValorDe", "finReceberValorAte"].forEach((id) => {
