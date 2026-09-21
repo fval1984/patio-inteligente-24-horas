@@ -111,6 +111,33 @@
       .join("")}</div>`;
   }
 
+  function renderPlacaResultCards(host, cards, emptyText) {
+    if (!host) return;
+    if (!cards?.length) {
+      host.innerHTML = `<p class="fin-act-empty">${esc(emptyText || "Nenhum veículo encontrado.")}</p>`;
+      return;
+    }
+    host.innerHTML = `<div class="fin-act-launch-list">${cards
+      .map((c) => {
+        const id = esc(c.id || "");
+        return `<article class="fin-act-launch fin-placa-result-card" data-fin-abrir-registro="${id}">
+          <div>
+            <h4>${esc(c.title)}</h4>
+            <p>${esc(c.subtitle || "")}</p>
+            <p>${esc(c.dueLabel || "")}</p>
+          </div>
+          <div>
+            <div class="fin-act-launch-amount">${esc(c.amountLabel)}</div>
+            <span class="${statusClass(c.statusKind)}">${esc(c.status)}</span>
+          </div>
+          <div class="fin-act-launch-actions">
+            <button type="button" class="fin-act-primary" data-fin-abrir-registro="${id}">Abrir registro</button>
+          </div>
+        </article>`;
+      })
+      .join("")}</div>`;
+  }
+
   function ensureDetailModal() {
     let modal = document.getElementById("finActDetailModal");
     if (modal) return modal;
@@ -289,6 +316,7 @@
     monthLabel,
     renderLaunchCards,
     renderDevedorCards,
+    renderPlacaResultCards,
     renderLancamentoCards,
     renderReceberDetailItems,
     renderAttentionCards,
