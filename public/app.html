@@ -3474,7 +3474,8 @@
       .table td.actions button[data-action="cobranca"],
       .table td.actions button[data-action="nota"],
       .table td.actions button[data-action="ficha"],
-      .table td.actions button[data-action="nfse"] {
+      .table td.actions button[data-action="nfse"],
+      .table td.actions button[data-action="cobranca_email"] {
         border-color: rgba(212, 175, 55, 0.45);
         background: rgba(212, 175, 55, 0.13);
         color: #fca5a5;
@@ -3501,7 +3502,8 @@
       [data-theme="light"] .table td.actions button[data-action="cobranca"],
       [data-theme="light"] .table td.actions button[data-action="nota"],
       [data-theme="light"] .table td.actions button[data-action="ficha"],
-      [data-theme="light"] .table td.actions button[data-action="nfse"] {
+      [data-theme="light"] .table td.actions button[data-action="nfse"],
+      [data-theme="light"] .table td.actions button[data-action="cobranca_email"] {
         background: rgba(212, 175, 55, 0.12);
         color: #b8941f;
       }
@@ -8951,6 +8953,28 @@
         </div>
       </div>
 
+      <div id="cobrancaEmailModal" class="modal-backdrop hidden">
+        <div class="modal">
+          <div class="modal-header">
+            <div>
+              <h3>E-mail</h3>
+              <p class="notice" style="margin: 4px 0 0; font-size: 12px">Copie o assunto e a mensagem para colar no seu e-mail.</p>
+            </div>
+            <button type="button" class="modal-close" id="closeCobrancaEmailModal">Fechar</button>
+          </div>
+          <label for="cobrancaEmailAssunto" class="notice" style="display:block;margin:0 0 4px">Assunto</label>
+          <input id="cobrancaEmailAssunto" type="text" readonly />
+          <label for="cobrancaEmailMensagem" class="notice" style="display:block;margin:12px 0 4px">Mensagem</label>
+          <textarea id="cobrancaEmailMensagem" class="textarea" readonly rows="18"></textarea>
+          <p id="cobrancaEmailCopyHint" class="notice" style="margin:8px 0 0"></p>
+          <div class="form-actions">
+            <button type="button" id="cobrancaEmailCopyAssuntoBtn">Copiar assunto</button>
+            <button type="button" id="cobrancaEmailCopyMensagemBtn">Copiar mensagem</button>
+            <button type="button" class="secondary" id="cobrancaEmailCloseBtn">Fechar</button>
+          </div>
+        </div>
+      </div>
+
       <div id="textModal" class="modal-backdrop hidden">
         <div class="modal">
           <div class="modal-header">
@@ -10185,6 +10209,14 @@
       const nfseConfirmActions = document.getElementById("nfseConfirmActions");
       const cancelNfseConfirm = document.getElementById("cancelNfseConfirm");
       const nfseCopyHint = document.getElementById("nfseCopyHint");
+      const cobrancaEmailModal = document.getElementById("cobrancaEmailModal");
+      const cobrancaEmailAssunto = document.getElementById("cobrancaEmailAssunto");
+      const cobrancaEmailMensagem = document.getElementById("cobrancaEmailMensagem");
+      const cobrancaEmailCopyHint = document.getElementById("cobrancaEmailCopyHint");
+      const closeCobrancaEmailModal = document.getElementById("closeCobrancaEmailModal");
+      const cobrancaEmailCloseBtn = document.getElementById("cobrancaEmailCloseBtn");
+      const cobrancaEmailCopyAssuntoBtn = document.getElementById("cobrancaEmailCopyAssuntoBtn");
+      const cobrancaEmailCopyMensagemBtn = document.getElementById("cobrancaEmailCopyMensagemBtn");
       const textModal = document.getElementById("textModal");
       const textModalTitle = document.getElementById("textModalTitle");
       const textModalBody = document.getElementById("textModalBody");
@@ -19211,6 +19243,7 @@
               <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
               <button class="secondary" data-action="voltar" data-id="${v.id}" title="Desfaz remoção feita por engano e volta para o passo anterior">Voltar</button>
               ${nfseActionButtonHtml(v)}
+              ${cobrancaEmailActionButtonHtml(v)}
               ${
                 vnpShouldShowVistoriaViewButton(v)
                   ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
@@ -19254,6 +19287,7 @@
               ${veiBtn}
               <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
               ${nfseActionButtonHtml(v)}
+              ${cobrancaEmailActionButtonHtml(v)}
               <button class="secondary" data-action="voltar" data-id="${v.id}" title="Volta um passo no fluxo">Voltar</button>
               ${
                 isSystemManagerUser()
@@ -19830,6 +19864,123 @@
         const emitida = vehicle.nfse_status === "EMITIDA";
         const cls = emitida ? " nfse-action-btn--emitida" : "";
         return `<button type="button" class="secondary nfse-action-btn${cls}" data-action="nfse" data-id="${vehicle.id}">NFSe</button>`;
+      }
+
+      function cobrancaEmailActionButtonHtml(vehicle) {
+        return `<button type="button" class="secondary" data-action="cobranca_email" data-id="${vehicle.id}">E-MAIL</button>`;
+      }
+
+      function cobrancaEmailDash(value) {
+        const t = String(value == null ? "" : value).trim();
+        return t || "—";
+      }
+
+      function cobrancaEmailRpvRpp(vehicle) {
+        const rpv = partnerNomeById(vehicle?.localizador_id) || "";
+        const rpp = vehicleRpfNome(vehicle);
+        const rpvOk = rpv && rpv !== "—";
+        const rppOk = rpp && rpp !== "—";
+        if (rpvOk && rppOk && rpv !== rpp) return `${rpv} / ${rpp}`;
+        if (rppOk) return rpp;
+        if (rpvOk) return rpv;
+        return "—";
+      }
+
+      function cobrancaEmailReceivableForVehicle(vehicle) {
+        const id = String(vehicle?.id || "");
+        if (!id) return null;
+        const list = (state.receivables || []).filter((r) => String(r.vehicle_id) === id);
+        if (!list.length) return null;
+        return (
+          list.find((r) => String(r.status || "").toUpperCase() !== "PAGO") ||
+          list[0] ||
+          null
+        );
+      }
+
+      function cobrancaEmailVencimento(vehicle, rec) {
+        const dueFn = typeof financeContaDueYmd === "function" ? financeContaDueYmd : window.financeContaDueYmd;
+        const fromRec = rec && dueFn ? dueFn(rec, "receivable") : rec?.period_end || rec?.data_vencimento || "";
+        const ymd = fromRec || vehicle?.data_saida || "";
+        return ymd ? formatDate(ymd) : "—";
+      }
+
+      function buildCobrancaEmailContent(vehicle) {
+        const rec = cobrancaEmailReceivableForVehicle(vehicle);
+        const placa = cobrancaEmailDash(vehicle?.placa);
+        const marcaModelo = cobrancaEmailDash([vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" "));
+        const entrada = vehicle?.data_entrada ? formatDate(vehicle.data_entrada) : "—";
+        const saida = vehicle?.data_saida ? formatDate(vehicle.data_saida) : "—";
+        const dias = rec && typeof window.financeReceberDiariasCell === "function"
+          ? window.financeReceberDiariasCell(rec, vehicle)
+          : String(typeof calcDays === "function" ? calcDays(vehicle) : "—");
+        const diarias = cobrancaEmailDash(dias && dias !== "—" ? dias : calcDays(vehicle));
+        const valorNum = rec?.valor != null && rec.valor !== "" ? Number(rec.valor) : calcTotal(vehicle);
+        const valor = formatCurrency(Number.isFinite(valorNum) ? valorNum : 0);
+        const vencimento = cobrancaEmailVencimento(vehicle, rec);
+        const assunto = `Nota Fiscal e Cobrança | AMPLIGUARD | ${placa}`;
+        const mensagem = [
+          "Prezados(as),",
+          "",
+          "Segue em anexo a Nota Fiscal referente aos serviços de guarda e custódia do veículo abaixo:",
+          "",
+          `Veículo: ${marcaModelo}`,
+          `Placa: ${placa}`,
+          `RPV/RPP: ${cobrancaEmailRpvRpp(vehicle)}`,
+          `Período de permanência: ${entrada} a ${saida}`,
+          `Quantidade de diárias: ${diarias}`,
+          `Valor total: ${valor}`,
+          `Vencimento: ${vencimento}`,
+          "",
+          "Seguem anexos a Nota Fiscal e os respectivos documentos de cobrança.",
+          "",
+          "Solicitamos, por gentileza, a confirmação do recebimento deste e-mail e dos documentos anexados.",
+          "",
+          "Em caso de dúvidas ou necessidade de informações complementares, permanecemos à disposição.",
+          "",
+          "Atenciosamente,",
+          "",
+          "AMPLIGUARD",
+          "Guarda • Custódia • Gestão de Veículos",
+        ].join("\n");
+        return { assunto, mensagem };
+      }
+
+      function closeCobrancaEmailModalFn() {
+        cobrancaEmailModal?.classList.add("hidden");
+        if (cobrancaEmailCopyHint) cobrancaEmailCopyHint.textContent = "";
+      }
+
+      function openCobrancaEmailModal(vehicle) {
+        if (!vehicle) return;
+        const { assunto, mensagem } = buildCobrancaEmailContent(vehicle);
+        if (cobrancaEmailAssunto) cobrancaEmailAssunto.value = assunto;
+        if (cobrancaEmailMensagem) cobrancaEmailMensagem.value = mensagem;
+        if (cobrancaEmailCopyHint) cobrancaEmailCopyHint.textContent = "";
+        cobrancaEmailModal?.classList.remove("hidden");
+      }
+
+      async function copyCobrancaEmailField(text, fieldEl, okMsg) {
+        const value = String(text || "");
+        if (!value) return;
+        try {
+          await navigator.clipboard.writeText(value);
+        } catch (e) {
+          if (fieldEl) {
+            fieldEl.focus();
+            fieldEl.select();
+            try {
+              document.execCommand("copy");
+            } catch (err) {
+              alert("Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.");
+              return;
+            }
+          } else {
+            alert("Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.");
+            return;
+          }
+        }
+        if (cobrancaEmailCopyHint) cobrancaEmailCopyHint.textContent = okMsg;
       }
 
       function resetNfseModalUi() {
@@ -20857,6 +21008,14 @@
       closeNfseModal.addEventListener("click", () => {
         void cancelNfseModal();
       });
+      closeCobrancaEmailModal?.addEventListener("click", () => closeCobrancaEmailModalFn());
+      cobrancaEmailCloseBtn?.addEventListener("click", () => closeCobrancaEmailModalFn());
+      cobrancaEmailCopyAssuntoBtn?.addEventListener("click", () => {
+        void copyCobrancaEmailField(cobrancaEmailAssunto?.value, cobrancaEmailAssunto, "Assunto copiado.");
+      });
+      cobrancaEmailCopyMensagemBtn?.addEventListener("click", () => {
+        void copyCobrancaEmailField(cobrancaEmailMensagem?.value, cobrancaEmailMensagem, "Mensagem copiada.");
+      });
       cancelNfseConfirm?.addEventListener("click", () => {
         void cancelNfseModal();
       });
@@ -21048,7 +21207,7 @@
         workflowModalConfig = null;
       });
 
-      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, lancamentoModal, fichaModal, patioVehicleActionsModal, nfseModal, textModal, reciboModal, receberBaixaModal, pagarBaixaModal].filter(Boolean).forEach((modal) => {
+      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, lancamentoModal, fichaModal, patioVehicleActionsModal, nfseModal, cobrancaEmailModal, textModal, reciboModal, receberBaixaModal, pagarBaixaModal].filter(Boolean).forEach((modal) => {
         modal.addEventListener("click", (event) => {
           if (event.target === modal) {
             modal.classList.add("hidden");
@@ -23633,6 +23792,11 @@
 
         if (action === "nfse") {
           await openNfseModal(vehicle);
+          return;
+        }
+
+        if (action === "cobranca_email") {
+          openCobrancaEmailModal(vehicle);
           return;
         }
 
