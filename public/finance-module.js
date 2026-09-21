@@ -29,6 +29,7 @@
   let financeFilterReceberRppId = "";
   let finReceberQuick = "todos";
   let finReceberCadernetaKey = "";
+  let finReceberRegistroId = "";
   let finPagarQuick = "todos";
   let finDashReceberQuick = "todos";
   let finDashPagarQuick = "todos";
@@ -1784,7 +1785,9 @@
       hint.classList.add("hidden");
       return;
     }
-    hint.textContent = `Filtros — ${parts.join(" · ")}`;
+    hint.textContent = q
+      ? `Filtros — ${parts.join(" · ")}. Clique no resultado para abrir o registro financeiro completo.`
+      : `Filtros — ${parts.join(" · ")}`;
     hint.classList.remove("hidden");
   }
 
@@ -2161,6 +2164,7 @@
     const k = String(key || "").trim();
     if (!k) return;
     finReceberCadernetaKey = k;
+    finReceberRegistroId = "";
     financeRenderReceber();
   }
 
@@ -2168,6 +2172,151 @@
     finReceberCadernetaKey = "";
     financeRowSelection.receber?.clear();
     financeRenderReceber();
+  }
+
+  function financeFindReceivableById(id) {
+    if (!id) return null;
+    return (state.receivables || []).find((r) => String(r.id) === String(id)) || null;
+  }
+
+  function financeOpenReceberRegistro(id) {
+    const rec = financeFindReceivableById(id);
+    if (!rec) return;
+    finReceberRegistroId = String(rec.id);
+    finReceberCadernetaKey = "";
+    financeRowSelection.receber?.clear();
+    financeRenderReceber();
+  }
+
+  function financeCloseReceberRegistro() {
+    finReceberRegistroId = "";
+    financeRenderReceber();
+  }
+
+  function financeReceberTryOpenRegistroFromPlacaSubmit() {
+    financeSyncReceberPlacaFromDom();
+    finReceberCadernetaKey = "";
+    const plateNorm = financeNormalizePlate(financeFilterReceberPlaca);
+    if (!plateNorm) {
+      finReceberRegistroId = "";
+      financeRenderReceber();
+      return;
+    }
+    const list = financeReceberVisibleList();
+    if (list.length === 1) {
+      financeOpenReceberRegistro(list[0].id);
+      return;
+    }
+    finReceberRegistroId = "";
+    financeRenderReceber();
+  }
+
+  function financeBuildReceberPlacaResultCards(list) {
+    const vmap = financeVehicleById();
+    return (list || []).map((r) => {
+      const v = vmap.get(r.vehicle_id);
+      const due = financeContaDueYmd(r, "receivable");
+      const st = financeReceberStatusSimples(r);
+      const modelo = [v?.marca, v?.modelo].filter(Boolean).join(" ");
+      const rpp = financeReceberRppNome(r, v);
+      const placa = v?.placa || financeReceberReferenciaText(r, v);
+      return {
+        id: String(r.id),
+        title: placa,
+        subtitle: [modelo, rpp && rpp !== "—" ? `RPP: ${rpp}` : ""].filter(Boolean).join(" · "),
+        dueLabel: `Vencimento: ${due ? formatDate(due) : "—"}`,
+        amountLabel: formatCurrency(Number(r.valor || 0)),
+        status: st,
+        statusKind: financeStatusKindFromLabel(st === "Em aberto" ? "A receber" : st),
+      };
+    });
+  }
+
+  function financeReceberObsText(r) {
+    if (!r) return "";
+    if (financeIsManualReceivable(r)) return financeReceivableTypedFields(r).observacoes || "";
+    const raw =
+      typeof financeReceivableMetaText === "function"
+        ? financeReceivableMetaText(r)
+        : r?.observacoes || r?.responsavel_pagamento || "";
+    const unpack =
+      typeof financeMetaUnpack === "function" ? financeMetaUnpack(raw) : financeMetaUnpackLocal(raw);
+    const fromMeta = String(unpack?.meta?.observacoes_texto || "").trim();
+    if (fromMeta) return fromMeta;
+    const text = financeTextAfterFinmeta(unpack?.text || "");
+    if (text && !text.includes(FINANCE_META_PREFIX_LOCAL)) return text;
+    return "";
+  }
+
+  function financeReceberRegistroField(label, valueHtml) {
+    return `<div class="fin-receber-registro-field"><span>${escapeHtml(label)}</span><div>${valueHtml || "—"}</div></div>`;
+  }
+
+  function financeFillReceberRegistro(host, r) {
+    if (!host) return;
+    if (!r) {
+      host.classList.add("hidden");
+      host.innerHTML = "";
+      return;
+    }
+    const v = financeVehicleById().get(r.vehicle_id);
+    const st = financeReceivableDisplayStatus(r);
+    const statusLabel = financeReceberStatusSimples(r);
+    const due = financeContaDueYmd(r, "receivable");
+    const ident = financeReceivableDevedorIdentity(r);
+    const typed = financeIsManualReceivable(r) ? financeReceivableTypedFields(r) : null;
+    const br =
+      typeof receivableFinanceBreakdown === "function" && v ? receivableFinanceBreakdown(r, v) : null;
+    const valorDiaria = br?.valor_diaria ?? br?.valorDiaria ?? v?.valor_diaria;
+    const entradas = financeCashForConta(r.id).filter((m) => financeCashIsEntrada(m));
+    const valorRecebido = entradas.reduce((s, m) => s + financeCashMovValor(m), 0);
+    const dataRecebimento =
+      (entradas[0] && (entradas[0].data_movimento || entradas[0].created_at)) ||
+      financeReceivableCashCompetenciaYmd(r);
+    const forma = entradas[0]?.forma_pagamento || "";
+    const obs = financeReceberObsText(r);
+    const veiculoTxt = [v?.marca, v?.modelo, v?.cor, v?.ano].filter(Boolean).join(" ") || (typed?.descricao && typed.descricao !== "—" ? typed.descricao : "—");
+    const canPay = st !== "Recebido";
+    const actions = `<div class="fin-receber-registro-actions">
+      ${
+        canPay
+          ? `<button type="button" class="fin-act-primary" data-fin-receber-pg="${escapeHtml(String(r.id))}">Receber</button>`
+          : ""
+      }
+      <button type="button" class="secondary" data-fin-receber-editar="${escapeHtml(String(r.id))}">Editar</button>
+      <button type="button" class="secondary" data-fin-fechar-registro>Voltar</button>
+      <button type="button" class="secondary" data-fin-receber-apagar="${escapeHtml(String(r.id))}">Apagar</button>
+    </div>`;
+    const placaHtml = v?.placa ? financePlateVisualHtml(v.placa) : escapeHtml(typed?.origem || "—");
+    host.classList.remove("hidden");
+    host.innerHTML = `
+      <div class="fin-receber-registro-head">
+        <h3>Registro financeiro</h3>
+        <p class="notice">Título do veículo localizado pela busca por placa.</p>
+      </div>
+      <div class="fin-receber-registro-grid">
+        ${financeReceberRegistroField("Placa", placaHtml)}
+        ${financeReceberRegistroField("Veículo", escapeHtml(veiculoTxt))}
+        ${financeReceberRegistroField("RPV", escapeHtml(financeVehicleRpvNome(v)))}
+        ${financeReceberRegistroField("RPP", escapeHtml(financeReceberRppNome(r, v)))}
+        ${financeReceberRegistroField("Origem", escapeHtml(financeReceivableOrigemCellText(r, v)))}
+        ${financeReceberRegistroField("Devedor", escapeHtml(ident?.nome || "—"))}
+        ${financeReceberRegistroField("Valor", escapeHtml(formatCurrency(Number(r.valor || 0))))}
+        ${financeReceberRegistroField("Valor da diária", escapeHtml(valorDiaria != null && valorDiaria !== "" ? formatCurrency(Number(valorDiaria || 0)) : "—"))}
+        ${financeReceberRegistroField("Diárias", escapeHtml(financeReceberDiariasCell(r, v)))}
+        ${financeReceberRegistroField("Entrada", escapeHtml(v?.data_entrada ? formatDate(v.data_entrada) : "—"))}
+        ${financeReceberRegistroField("Saída", escapeHtml(v?.data_saida ? formatDate(v.data_saida) : r?.period_end ? formatDate(r.period_end) : "—"))}
+        ${financeReceberRegistroField("Período", escapeHtml(`${r?.period_start ? formatDate(r.period_start) : "…"} — ${r?.period_end ? formatDate(r.period_end) : "…"}`))}
+        ${financeReceberRegistroField("Faturamento", escapeHtml(r?.created_at ? formatDate(r.created_at) : "—"))}
+        ${financeReceberRegistroField("Vencimento", escapeHtml(due ? formatDate(due) : "—"))}
+        ${financeReceberRegistroField("Status", `<span class="${financeReceivableStatusClass(st)}">${escapeHtml(statusLabel)}</span>`)}
+        ${financeReceberRegistroField("Serviço", escapeHtml(financeReceivableServicoLabel(r)))}
+        ${financeReceberRegistroField("Data do recebimento", escapeHtml(st === "Recebido" && dataRecebimento ? formatDate(dataRecebimento) : "—"))}
+        ${financeReceberRegistroField("Valor recebido", escapeHtml(st === "Recebido" ? formatCurrency(valorRecebido || Number(r.valor || 0)) : "—"))}
+        ${financeReceberRegistroField("Forma de pagamento", escapeHtml(forma || "—"))}
+        ${financeReceberRegistroField("Observações", obs ? escapeHtml(obs) : "—")}
+      </div>
+      ${actions}`;
   }
 
   function financeBuildPagarCards(list) {
@@ -2870,16 +3019,45 @@
     if (finReceberQuick === "recebidos_hoje") recChips.push(["recebidos_hoje", "Recebidos hoje"]);
     financeRenderQuickChips("finReceberQuickFilters", finReceberQuick, recChips);
 
+    const registroRec = finReceberRegistroId ? financeFindReceivableById(finReceberRegistroId) : null;
+    if (finReceberRegistroId && !registroRec) {
+      finReceberRegistroId = "";
+    }
+    const registroOpen = !!finReceberRegistroId;
+    if (registroOpen) finReceberCadernetaKey = "";
+
     const cadernetaList = finReceberCadernetaKey ? financeReceberTitlesForDevedor(finReceberCadernetaKey) : [];
     if (finReceberCadernetaKey && !cadernetaList.length) {
       finReceberCadernetaKey = "";
     }
-    const cadernetaOpen = !!finReceberCadernetaKey;
+    const cadernetaOpen = !!finReceberCadernetaKey && !registroOpen;
     subview?.classList.toggle("is-caderneta-open", cadernetaOpen);
+    subview?.classList.toggle("is-registro-open", registroOpen);
     if (cadBar) cadBar.classList.toggle("hidden", !cadernetaOpen);
 
     const cardsHost = document.getElementById("finReceberCards");
-    if (!cadernetaOpen && cardsHost && globalThis.financeActionUi?.renderDevedorCards) {
+    const registroHost = document.getElementById("finReceberRegistro");
+    if (registroOpen) {
+      financeFillReceberRegistro(registroHost, registroRec);
+      if (cardsHost) cardsHost.innerHTML = "";
+      if (totalEl) totalEl.textContent = formatCurrency(Number(registroRec?.valor || 0));
+      financePruneStaleRowSelection("receber");
+      financeUpdateBatchBar("receber");
+      body.innerHTML = "";
+      return;
+    }
+    if (registroHost) {
+      registroHost.classList.add("hidden");
+      registroHost.innerHTML = "";
+    }
+
+    if (!cadernetaOpen && cardsHost && plateFilter && globalThis.financeActionUi?.renderPlacaResultCards) {
+      globalThis.financeActionUi.renderPlacaResultCards(
+        cardsHost,
+        financeBuildReceberPlacaResultCards(list),
+        "Nenhum veículo encontrado para esta placa com os filtros atuais."
+      );
+    } else if (!cadernetaOpen && cardsHost && globalThis.financeActionUi?.renderDevedorCards) {
       globalThis.financeActionUi.renderDevedorCards(
         cardsHost,
         financeBuildReceberDevedorCards(list),
@@ -4352,7 +4530,7 @@
   async function financeDeleteReceberPrompt(receivableId) {
     const rec = (state.receivables || []).find((r) => String(r.id) === String(receivableId));
     if (!rec) return alert("Conta a receber não encontrada.");
-    if (!confirm("Apagar esta conta a receber?")) return;
+    if (!confirm("Tem certeza que deseja apagar este registro? Esta ação poderá afetar informações relacionadas em outros módulos.")) return;
     if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
     const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
     if (!uid) return;
@@ -4367,6 +4545,7 @@
       view: "receber_single_done",
     });
     if (error) return typeof alertSupabaseError === "function" ? alertSupabaseError(error, "Não foi possível apagar a conta a receber.") : alert(error.message);
+    if (String(finReceberRegistroId) === String(rec.id)) finReceberRegistroId = "";
     await financeReloadAfterAction();
   }
 
@@ -6482,17 +6661,17 @@
     });
     document.getElementById("finReceberPlateForm")?.addEventListener("submit", (e) => {
       e.preventDefault();
-      finReceberCadernetaKey = "";
-      if (currentFinanceView === "receber") financeRenderReceber();
+      if (currentFinanceView === "receber") financeReceberTryOpenRegistroFromPlacaSubmit();
     });
     document.getElementById("finReceberPlaca")?.addEventListener("input", () => {
+      const plateNorm = financeNormalizePlate(document.getElementById("finReceberPlaca")?.value);
+      if (plateNorm) finReceberCadernetaKey = "";
       if (currentFinanceView === "receber") financeRenderReceber();
     });
     document.getElementById("finReceberPlaca")?.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
       e.preventDefault();
-      finReceberCadernetaKey = "";
-      if (currentFinanceView === "receber") financeRenderReceber();
+      if (currentFinanceView === "receber") financeReceberTryOpenRegistroFromPlacaSubmit();
     });
     ["finReceberValorDe", "finReceberValorAte"].forEach((id) => {
       document.getElementById(id)?.addEventListener("input", () => {
@@ -6511,6 +6690,8 @@
       financeFilterReceberRppId = "";
       financeFilterReceberValorDe = null;
       financeFilterReceberValorAte = null;
+      finReceberRegistroId = "";
+      finReceberCadernetaKey = "";
       if (currentFinanceView === "receber") financeRenderReceber();
     });
     document.getElementById("finCaixaPlaca")?.addEventListener("input", () => {
@@ -7061,6 +7242,7 @@
         if (chip.closest("#finReceberQuickFilters") || chip.closest("[data-finance-subview='receber']")) {
           finReceberQuick = value;
           finReceberCadernetaKey = "";
+          finReceberRegistroId = "";
           financeRenderReceber();
         } else if (chip.closest("#finPagarQuickFilters") || chip.closest("[data-finance-subview='pagar']")) {
           finPagarQuick = value;
@@ -7093,6 +7275,16 @@
       const groupPag = e.target.closest("[data-fin-group-pagar]");
       if (groupPag) {
         financePaySelectedGroup("pagar", groupPag.getAttribute("data-fin-group-pagar"));
+        return;
+      }
+      const fecharRegistro = e.target.closest("[data-fin-fechar-registro]");
+      if (fecharRegistro) {
+        financeCloseReceberRegistro();
+        return;
+      }
+      const abrirRegistro = e.target.closest("[data-fin-abrir-registro]");
+      if (abrirRegistro) {
+        financeOpenReceberRegistro(abrirRegistro.getAttribute("data-fin-abrir-registro"));
         return;
       }
       const abrirCaderneta = e.target.closest("[data-fin-abrir-caderneta]");
