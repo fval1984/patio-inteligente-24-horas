@@ -359,9 +359,81 @@
   border-color: #93c5fd;
 }
 
+#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-registro-open #finReceberCards,
+#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-registro-open .table-wrap,
+#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-registro-open #finReceberCadernetaBar,
+#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-registro-open .fin-batch-bar,
+#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-registro-open #finReceberSelectedSummary,
+#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-registro-open #finReceberBtnPrint,
+#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-registro-open #finReceberBtnPdf {
+  display: none;
+}
+
+#viewFinanceiro .fin-placa-result-card {
+  cursor: pointer;
+}
+
+#viewFinanceiro .fin-placa-result-card:hover,
+#viewFinanceiro .fin-placa-result-card:focus-within {
+  border-color: #93c5fd;
+}
+
+#viewFinanceiro .fin-receber-registro {
+  background: #fff;
+  border: 1px solid var(--fin-act-line);
+  border-radius: 14px;
+  padding: 16px 18px 18px;
+  margin: 0 0 16px;
+}
+
+#viewFinanceiro .fin-receber-registro-head h3 {
+  margin: 0 0 4px;
+  font-size: 1.15rem;
+}
+
+#viewFinanceiro .fin-receber-registro-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin: 14px 0 16px;
+}
+
+#viewFinanceiro .fin-receber-registro-field {
+  background: #f8fafc;
+  border: 1px solid var(--fin-act-line);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+#viewFinanceiro .fin-receber-registro-field span {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--fin-act-muted);
+  margin-bottom: 4px;
+}
+
+#viewFinanceiro .fin-receber-registro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#viewFinanceiro .fin-receber-registro-actions button {
+  min-height: 42px;
+  border-radius: 10px;
+  font-weight: 800;
+}
+
 @media (max-width: 980px) {
   #viewFinanceiro .fin-caderneta-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #viewFinanceiro .fin-receber-registro-grid {
+    grid-template-columns: 1fr;
   }
 }
 
