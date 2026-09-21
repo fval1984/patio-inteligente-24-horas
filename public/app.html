@@ -5185,7 +5185,14 @@
         cursor: pointer;
         min-height: 92px;
       }
-      .fin-simple-card strong { font-size: 1.15rem; }
+      .fin-simple-card strong { font-size: 1.45rem; }
+      .fin-ops-period { margin: 0 0 12px; }
+      .fin-ops-custom { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 12px; }
+      .fin-ops-custom.hidden { display: none; }
+      .fin-simple-card--recv strong { color: #1d4ed8; }
+      .fin-simple-card--in strong, .fin-simple-card--saldo strong { color: #15803d; }
+      .fin-simple-card--pay strong, .fin-simple-card--out strong { color: #b45309; }
+      .fin-simple-card--neg strong { color: #dc2626; }
       .fin-simple-attn-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -7078,7 +7085,7 @@
       }
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260917header1" />
-    <link rel="stylesheet" href="/finance-action-ui.css?v=20260818finact6" />
+    <link rel="stylesheet" href="/finance-action-ui.css?v=20260921ops1" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260917header1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
@@ -7924,15 +7931,10 @@
             </div>
           </div>
           <div class="finance-subnav" id="finSubnav">
-            <button type="button" data-finance-subview-btn="dashboard" class="active">Dashboard</button>
-            <button type="button" data-finance-subview-btn="em_patio">Diárias</button>
-            <button type="button" id="finSubnavOpenCobranca">Cobrança</button>
+            <button type="button" data-finance-subview-btn="dashboard" class="active">Visão Geral</button>
             <button type="button" data-finance-subview-btn="receber">A Receber</button>
             <button type="button" data-finance-subview-btn="pagar">A Pagar</button>
-            <button type="button" data-finance-subview-btn="contas">Contas</button>
-            <button type="button" data-finance-subview-btn="caixa">Movimentações</button>
-            <button type="button" data-finance-subview-btn="relatorios">Relatórios</button>
-            <button type="button" data-finance-subview-btn="cadastros">Configurações</button>
+            <button type="button" data-finance-subview-btn="caixa">Entradas e Saídas</button>
           </div>
           <p id="finRecebidosRecoverHint" class="notice hidden" style="margin: 0 0 10px"></p>
 
@@ -8112,6 +8114,11 @@
             </p>
             <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
             <div class="fin-act-chips" id="finReceberQuickFilters" aria-label="Filtros rápidos"></div>
+            <div id="finReceberCadernetaBar" class="fin-caderneta-bar hidden">
+              <button type="button" class="secondary" id="finReceberCadernetaBack">← Voltar às cadernetas</button>
+              <h3 id="finReceberCadernetaTitle">Caderneta</h3>
+              <div id="finReceberCadernetaKpis" class="fin-caderneta-kpis"></div>
+            </div>
             <div id="finReceberCards" class="fin-act-launch-host"></div>
             <div class="actions" style="margin: 0 0 12px; flex-wrap: wrap; gap: 8px">
               <button type="button" class="secondary" id="finReceberBtnPrint">Imprimir para cliente</button>
@@ -8119,7 +8126,7 @@
             </div>
             <div class="table-wrap section-card">
               <table class="table">
-                <thead><tr><th class="fin-th-select" scope="col"><input type="checkbox" class="fin-select-all" data-fin-select-all="receber" title="Selecionar todos" aria-label="Selecionar todos"></th><th>Origem</th><th>Descrição</th><th>RPP</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Ações</th></tr></thead>
+                <thead id="finReceberHead"><tr><th class="fin-th-select" scope="col"><input type="checkbox" class="fin-select-all" data-fin-select-all="receber" title="Selecionar todos" aria-label="Selecionar todos"></th><th>Título</th><th>Referência</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
                 <tbody id="finReceberBody"></tbody>
               </table>
             </div>
@@ -8128,6 +8135,7 @@
           <div class="finance-subview hidden" data-finance-subview="pagar">
             <div class="fin-toolbar">
               <div><button type="button" id="finBtnNovaDespesa">+ Nova despesa</button></div>
+              <div><button type="button" class="secondary" id="finPagarOpenCadastros">Cadastros</button></div>
               <div><label for="finPagarBusca">Buscar</label><input id="finPagarBusca" type="search" placeholder="Fornecedor, descrição…" /></div>
               <div><label for="finPagarTipo">Tipo</label>
                 <select id="finPagarTipo">
@@ -8201,6 +8209,7 @@
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="caixa">
+            <div class="fin-act-chips" id="finCaixaQuickFilters" aria-label="Filtros de entradas e saídas"></div>
             <div class="fin-toolbar">
               <div>
                 <label for="finCaixaRpp">RPP</label>
@@ -9484,15 +9493,10 @@
         <details class="header-menu-details" id="headerDetailsFinance">
           <summary>Financeiro</summary>
           <div class="header-menu-nested">
-            <button type="button" data-finance-subview="dashboard">Dashboard</button>
-            <button type="button" data-finance-subview="em_patio">Diárias</button>
-            <button type="button" data-header-cobranca="1">Cobrança</button>
+            <button type="button" data-finance-subview="dashboard">Visão Geral</button>
             <button type="button" data-finance-subview="receber">A Receber</button>
             <button type="button" data-finance-subview="pagar">A Pagar</button>
-            <button type="button" data-finance-subview="contas">Contas</button>
-            <button type="button" data-finance-subview="caixa">Movimentações</button>
-            <button type="button" data-finance-subview="relatorios">Relatórios</button>
-            <button type="button" data-finance-subview="cadastros">Configurações</button>
+            <button type="button" data-finance-subview="caixa">Entradas e Saídas</button>
           </div>
         </details>
 
@@ -9536,12 +9540,12 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260921valor1"></script>
+    <script src="/finance-module.js?v=20260921ops1"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
-    <script src="/finance-simple-ui.js?v=20260909finsimple1"></script>
-    <script src="/finance-action-ui.js?v=20260818finact6"></script>
+    <script src="/finance-simple-ui.js?v=20260921ops1"></script>
+    <script src="/finance-action-ui.js?v=20260921caderneta1"></script>
     <script src="/patio-dashboard.js?v=20260715gestor"></script>
     <script src="/operational-metrics-service.js?v=20260727opsdash"></script>
     <script src="/operational-dashboard-ui.js?v=20260909contrast1"></script>
@@ -21622,9 +21626,6 @@
         }
         updateDashboard();
         if (typeof renderFinance === "function") renderFinance();
-        if (typeof openFinanceSubview === "function") {
-          openFinanceSubview("caixa", { skipRefresh: true });
-        }
         const paidReceivable = state.receivables.find((r) => r.id === receivableId) || {
           ...receivable,
           status: "PAGO",
@@ -22296,6 +22297,23 @@
         if (opts.anexo) await financeAttachmentSave("payable", payableId, opts.anexo);
 
         await loadPayables();
+        const paidPayable = state.payables.find((p) => p.id === payableId) || { ...payable, status: "PAGO" };
+        if (!payableCashMovementExists(payableId)) {
+          const cashResult = await registerPayableCashMovement(paidPayable, {
+            dataMovimento: dataMov,
+            formaPagamento,
+            descricao: payable.descricao,
+            aprovadoCaixa: true,
+          });
+          if (cashResult.error) {
+            alertSupabaseError(
+              cashResult.error,
+              "Pagamento confirmado, mas não foi possível registrar a saída no caixa."
+            );
+          } else {
+            await loadCash();
+          }
+        }
         updateDashboard();
         if (typeof renderFinance === "function") renderFinance();
         return true;
