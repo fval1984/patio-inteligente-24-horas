@@ -37,9 +37,68 @@
     return todayYmd().slice(0, 7);
   }
 
-  function card(label, value, hint, goto) {
+  function ymdFromDate(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function weekStartYmd(asOf) {
+    const d = new Date(`${asOf}T12:00:00`);
+    const day = d.getDay();
+    const diff = day === 0 ? 6 : day - 1;
+    d.setDate(d.getDate() - diff);
+    return ymdFromDate(d);
+  }
+
+  function monthStartYmd(asOf) {
+    return `${String(asOf).slice(0, 7)}-01`;
+  }
+
+  function prevMonthRange(asOf) {
+    const d = new Date(`${monthStartYmd(asOf)}T12:00:00`);
+    d.setDate(0);
+    const to = ymdFromDate(d);
+    return { from: `${to.slice(0, 7)}-01`, to };
+  }
+
+  function opsDashState() {
+    if (!global.finOpsDash) global.finOpsDash = { period: "month", customFrom: "", customTo: "" };
+    return global.finOpsDash;
+  }
+
+  function opsDashRange() {
+    const st = opsDashState();
+    const today = todayYmd();
+    if (st.period === "today") return { from: today, to: today, label: "Hoje" };
+    if (st.period === "week") return { from: weekStartYmd(today), to: today, label: "Esta semana" };
+    if (st.period === "prev_month") {
+      const r = prevMonthRange(today);
+      return { from: r.from, to: r.to, label: "Mês anterior" };
+    }
+    if (st.period === "custom") {
+      let from = st.customFrom || monthStartYmd(today);
+      let to = st.customTo || today;
+      if (from > to) [from, to] = [to, from];
+      return { from, to, label: "Período personalizado" };
+    }
+    return { from: monthStartYmd(today), to: today, label: "Este mês" };
+  }
+
+  function cashInRange(from, to) {
+    if (typeof financeCaixaMovsForPeriod === "function") {
+      return financeCaixaMovsForPeriod("", { useDomFilters: false, de: from, ate: to });
+    }
+    return [];
+  }
+
+  function cashTotals(movs) {
+    if (typeof financeCaixaTotalsForMovs === "function") return financeCaixaTotalsForMovs(movs);
+    return { entradas: 0, saidas: 0, saldo: 0 };
+  }
+
+  function card(label, value, hint, goto, extraClass) {
     const go = goto ? ` data-fin-simple-goto="${esc(goto)}"` : "";
-    return `<button type="button" class="fin-simple-card"${go}>
+    const cls = extraClass ? ` fin-simple-card--${esc(extraClass)}` : "";
+    return `<button type="button" class="fin-simple-card${cls}"${go}>
       <span class="fin-card-label">${esc(label)}</span>
       <strong>${esc(value)}</strong>
       ${hint ? `<small>${esc(hint)}</small>` : ""}
@@ -101,78 +160,97 @@
     const m = ctx?.metrics || (typeof financeMetrics === "function" ? financeMetrics() : {});
     const recs = contasReceberAbertas();
     const today = todayYmd();
-    const limit7 = addDays(today, 7);
     const vencidos = recs.filter((r) => statusReceber(r) === "Vencido" || statusReceber(r) === "Atrasado");
-    const vencendo = recs.filter((r) => {
-      const st = statusReceber(r);
-      const due = dueReceber(r);
-      if (st === "Recebido" || st === "Vencido" || st === "Atrasado" || !due) return false;
-      return due > today && due <= limit7;
-    });
-    const aReceber = recs.filter((r) => {
-      const st = statusReceber(r);
-      return st !== "Recebido";
-    });
-    const recent = recentPaid(5);
-    const vehicles = global.state?.vehicles || [];
-    const hoje = diariasGeradasNoDia(vehicles, today);
-    const mes = diariasGeradasNoMes(vehicles, monthYm());
-    const faturado = recs.concat(
-      typeof financeReceivablePaidList === "function" ? financeReceivablePaidList() : []
-    );
-    const faturadoMes = faturado
-      .filter((r) => String(r.period_end || r.created_at || "").slice(0, 7) === monthYm())
-      .reduce((s, r) => s + Number(r.valor || 0), 0);
-    const recebidoMes = Number(m.recebidoMes || 0);
-    const aReceberVal = Number(m.totalReceber || 0);
     const vencidoVal = vencidos.reduce((s, r) => s + Number(r.valor || 0), 0);
-    const resultado = Number(m.recebidoMes || 0) - Number(m.despesasMes || 0);
+    const pagarAlerts =
+      typeof financePayableAlerts === "function" ? financePayableAlerts() : { vencidas: 0, venceHoje: 0, totalVencidas: 0 };
+    const paidOpen = (global.state?.receivables || []).filter((r) => {
+      if (String(r.status || "").toUpperCase() !== "PAGO") return false;
+      if (typeof window.receivableCashMovementExists === "function") {
+        return !window.receivableCashMovementExists(r.id);
+      }
+      return false;
+    });
+    const st = opsDashState();
+    const range = opsDashRange();
+    const fluxo = cashTotals(cashInRange(range.from, range.to));
     const fmt = ctx?.formatCurrency || money;
-
-    const recentHtml = recent.length
-      ? recent
-          .map((r) => {
-            const v = (vehicles || []).find((x) => String(x.id) === String(r.vehicle_id));
-            const placa = v?.placa || "Recebimento";
-            return `<li><button type="button" data-fin-simple-goto="receber:recebidos">${esc(placa)} · ${esc(
-              fmt(Number(r.valor || 0))
-            )}</button></li>`;
-          })
-          .join("")
-      : "<li class='notice'>Nenhum recebimento recente.</li>";
+    const aReceberVal = Number(m.totalReceber || 0);
+    const aPagarVal = Number(m.totalPagar || 0);
+    const saldoPeriodo = Number(fluxo.entradas || 0) - Number(fluxo.saidas || 0);
+    const periods = [
+      ["today", "Hoje"],
+      ["week", "Esta semana"],
+      ["month", "Este mês"],
+      ["prev_month", "Mês anterior"],
+      ["custom", "Personalizado"],
+    ];
+    const periodBtns = periods
+      .map(
+        ([id, label]) =>
+          `<button type="button" class="fin-act-chip${st.period === id ? " is-active" : ""}" data-fin-ops-period="${id}">${label}</button>`
+      )
+      .join("");
+    const customHidden = st.period === "custom" ? "" : " hidden";
+    const attn = [];
+    if (vencidos.length) {
+      attn.push(attentionItem("red", "Títulos vencidos", vencidos.length, vencidoVal, "receber:vencidos"));
+    }
+    if (pagarAlerts.vencidas) {
+      attn.push(attentionItem("red", "Contas a pagar vencidas", pagarAlerts.vencidas, pagarAlerts.totalVencidas || 0, "pagar:vencidos"));
+    }
+    if (pagarAlerts.venceHoje) {
+      attn.push(attentionItem("yellow", "Contas vencendo hoje", pagarAlerts.venceHoje, 0, "pagar:hoje"));
+    }
+    const recVenceHoje = recs.filter((r) => dueReceber(r) === today && statusReceber(r) !== "Recebido");
+    if (recVenceHoje.length) {
+      attn.push(
+        attentionItem(
+          "yellow",
+          "A receber vencendo hoje",
+          recVenceHoje.length,
+          recVenceHoje.reduce((s, r) => s + Number(r.valor || 0), 0),
+          "receber:hoje"
+        )
+      );
+    }
+    if (paidOpen.length) {
+      attn.push(
+        attentionItem(
+          "blue",
+          "Recebimentos aguardando entrada",
+          paidOpen.length,
+          paidOpen.reduce((s, r) => s + Number(r.valor || 0), 0),
+          "receber:recebidos"
+        )
+      );
+    }
 
     root.innerHTML = `
-      <div class="fin-simple-dash">
-        <div class="fin-simple-grid">
-          ${card("Saldo atual", fmt(m.saldo || 0), "Contas e caixa", "contas")}
-          ${card("Recebido no mês", fmt(m.recebidoMes || 0), "Já entrou", "receber:recebidos")}
-          ${card("A receber", fmt(m.totalReceber || 0), `${m.pendentes || 0} em aberto`, "receber:todos")}
-          ${card("Vencido", fmt(vencidoVal), `${vencidos.length} título(s)`, "receber:vencidos")}
-          ${card("A pagar", fmt(m.totalPagar || 0), `${m.vencidas || 0} despesa(s) vencida(s)`, "pagar:todos")}
-          ${card("Despesas do mês", fmt(m.despesasMes || 0), "Já saiu", "pagar:pagos")}
-          ${card("Resultado", fmt(resultado), "Recebido − despesas do mês", "relatorios")}
+      <div class="fin-simple-dash fin-ops-dash">
+        <div class="fin-act-chips fin-ops-period" aria-label="Período">${periodBtns}</div>
+        <div class="fin-ops-custom${customHidden}">
+          <label>De <input type="date" id="finOpsCustomFrom" value="${esc(st.customFrom || range.from)}" /></label>
+          <label>Até <input type="date" id="finOpsCustomTo" value="${esc(st.customTo || range.to)}" /></label>
         </div>
-
-        <h3 class="fin-simple-h">Diárias</h3>
-        <p class="notice" style="margin:0 0 10px">Receita do pátio: quantidade de diárias × valor da diária do veículo. Sem lançamento paralelo.</p>
-        <div class="fin-simple-grid">
-          ${card("Diárias geradas hoje", fmt(hoje), "Permanência no dia", "em_patio")}
-          ${card("Diárias geradas no mês", fmt(mes), monthYm(), "em_patio")}
-          ${card("Valor faturado no mês", fmt(faturadoMes), "Títulos do ciclo", "receber:todos")}
-          ${card("Valor recebido", fmt(recebidoMes), "Mês atual", "receber:recebidos")}
-          ${card("Valor a receber", fmt(aReceberVal), "Ainda em aberto", "receber:todos")}
-          ${card("Valor vencido", fmt(vencidoVal), "Em atraso", "receber:vencidos")}
-          ${card("Veículos gerando diárias", String(m.veiculosPatio || 0), "No pátio agora", "em_patio")}
+        <p class="notice" style="margin:0 0 12px">Período dos valores recebidos e pagos: ${esc(range.label)} (${esc(range.from)} a ${esc(range.to)}). A receber e a pagar são o que está em aberto agora.</p>
+        <div class="fin-simple-grid fin-ops-kpis">
+          ${card("A receber", fmt(aReceberVal), `${m.pendentes || 0} título(s) em aberto`, "receber:todos", "recv")}
+          ${card("Recebido", fmt(fluxo.entradas), "Já entrou no período", "caixa:entrada", "in")}
+          ${card("A pagar", fmt(aPagarVal), `${m.vencidas || 0} vencida(s)`, "pagar:todos", "pay")}
+          ${card("Pago", fmt(fluxo.saidas), "Já saiu no período", "caixa:saida", "out")}
+          ${card("Saldo", fmt(saldoPeriodo), `${fmt(fluxo.entradas)} − ${fmt(fluxo.saidas)}`, "caixa:todos", saldoPeriodo < 0 ? "neg" : "saldo")}
         </div>
-
-        <h3 class="fin-simple-h">Precisa da sua atenção</h3>
-        <div class="fin-simple-attn-grid">
-          ${attentionItem("red", "Vencidos", vencidos.length, vencidoVal, "receber:vencidos")}
-          ${attentionItem("yellow", "Vencendo", vencendo.length, vencendo.reduce((s, r) => s + Number(r.valor || 0), 0), "receber:a_vencer")}
-          ${attentionItem("blue", "A receber", aReceber.length, aReceberVal, "receber:todos")}
-          ${attentionItem("green", "Recebimentos recentes", recent.length, recent.reduce((s, r) => s + Number(r.valor || 0), 0), "receber:recebidos")}
+        <div class="fin-simple-grid fin-ops-kpis-mini">
+          ${card("Entrou", fmt(fluxo.entradas), "Entradas do período", "caixa:entrada")}
+          ${card("Saiu", fmt(fluxo.saidas), "Saídas do período", "caixa:saida")}
         </div>
-        <ul class="fin-simple-recent">${recentHtml}</ul>
+        <h3 class="fin-simple-h">Precisa de atenção</h3>
+        ${
+          attn.length
+            ? `<div class="fin-simple-attn-grid">${attn.join("")}</div>`
+            : `<p class="notice">Nada urgente no momento.</p>`
+        }
       </div>`;
   };
 
@@ -256,16 +334,28 @@
 
   global.financeSimpleGoto = function financeSimpleGoto(spec) {
     const [view, quick] = String(spec || "").split(":");
+    const range = opsDashRange();
     if (view === "em_patio" || view === "diarias") {
       if (typeof setFinanceView === "function") setFinanceView("em_patio");
       return;
     }
     if (view === "contas") {
-      if (typeof setFinanceView === "function") setFinanceView("contas");
+      if (typeof setFinanceView === "function") setFinanceView("caixa");
       return;
     }
     if (view === "relatorios") {
-      if (typeof setFinanceView === "function") setFinanceView("relatorios");
+      if (typeof setFinanceView === "function") setFinanceView("dashboard");
+      return;
+    }
+    if (view === "caixa") {
+      if (typeof setFinanceView === "function") setFinanceView("caixa");
+      if (typeof window.financeApplyCaixaOpsFilter === "function") {
+        window.financeApplyCaixaOpsFilter({
+          tipo: quick === "entrada" || quick === "saida" ? quick : "",
+          de: range.from,
+          ate: range.to,
+        });
+      }
       return;
     }
     if (view === "receber") {
@@ -297,6 +387,14 @@
     if (bindOnce._done) return;
     bindOnce._done = true;
     document.getElementById("viewFinanceiro")?.addEventListener("click", (e) => {
+      const periodBtn = e.target.closest("[data-fin-ops-period]");
+      if (periodBtn) {
+        e.preventDefault();
+        const st = opsDashState();
+        st.period = periodBtn.getAttribute("data-fin-ops-period") || "month";
+        if (typeof financeRenderDashboard === "function") financeRenderDashboard();
+        return;
+      }
       const goto = e.target.closest("[data-fin-simple-goto]");
       if (goto) {
         e.preventDefault();
@@ -309,6 +407,15 @@
         if (root) root.dataset.account = conta.getAttribute("data-fin-open-conta") || "";
         global.financeRenderContas();
         return;
+      }
+    });
+    document.getElementById("viewFinanceiro")?.addEventListener("change", (e) => {
+      if (e.target?.id === "finOpsCustomFrom" || e.target?.id === "finOpsCustomTo") {
+        const st = opsDashState();
+        st.period = "custom";
+        st.customFrom = document.getElementById("finOpsCustomFrom")?.value || "";
+        st.customTo = document.getElementById("finOpsCustomTo")?.value || "";
+        if (typeof financeRenderDashboard === "function") financeRenderDashboard();
       }
     });
     document.getElementById("finBtnNovoLancamento")?.addEventListener("click", openNovoLancamentoModal);
