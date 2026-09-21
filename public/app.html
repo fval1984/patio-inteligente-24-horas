@@ -8039,6 +8039,14 @@
                     spellcheck="false"
                   />
                 </div>
+                <div>
+                  <label for="finAguardandoValorDe">Valor de</label>
+                  <input id="finAguardandoValorDe" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" />
+                </div>
+                <div>
+                  <label for="finAguardandoValorAte">até</label>
+                  <input id="finAguardandoValorAte" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" />
+                </div>
                 <div style="align-self: flex-end"><button type="submit" id="finAguardandoPlacaOk">OK</button></div>
                 <div style="align-self: flex-end"><button type="button" class="secondary" id="finAguardandoPlacaClear">Limpar</button></div>
               </form>
@@ -8082,6 +8090,14 @@
                   autocapitalize="characters"
                   spellcheck="false"
                 />
+              </div>
+              <div>
+                <label for="finReceberValorDe">Valor de</label>
+                <input id="finReceberValorDe" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" />
+              </div>
+              <div>
+                <label for="finReceberValorAte">até</label>
+                <input id="finReceberValorAte" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" />
               </div>
               <div style="align-self: flex-end"><button type="button" class="secondary" id="finReceberPlacaClear">Limpar placa</button></div>
             </div>
@@ -8136,6 +8152,8 @@
               <div><label for="finPagarConta">Conta bancária</label><input id="finPagarConta" type="text" placeholder="Filtrar…" /></div>
               <div><label for="finPagarPeriodoDe">De</label><input id="finPagarPeriodoDe" type="date" /></div>
               <div><label for="finPagarPeriodoAte">Até</label><input id="finPagarPeriodoAte" type="date" /></div>
+              <div><label for="finPagarValorDe">Valor de</label><input id="finPagarValorDe" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" /></div>
+              <div><label for="finPagarValorAte">até</label><input id="finPagarValorAte" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" /></div>
             </div>
             <div class="fin-alert-row" id="finPagarAlerts"></div>
             <div class="fin-batch-bar" aria-label="Ações em lote">
@@ -8210,6 +8228,8 @@
               </div>
               <div><label for="finCaixaDataDe">De</label><input id="finCaixaDataDe" type="date" /></div>
               <div><label for="finCaixaDataAte">Até</label><input id="finCaixaDataAte" type="date" /></div>
+              <div><label for="finCaixaValorDe">Valor de</label><input id="finCaixaValorDe" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" /></div>
+              <div><label for="finCaixaValorAte">até</label><input id="finCaixaValorAte" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" /></div>
               <div><label for="finFilterPeriodo">Mês (competência)</label><input id="finFilterPeriodo" type="month" title="Usado quando De/Até estiver vazio" /></div>
               <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaFilterApply">Filtrar</button></div>
               <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaFilterClear">Limpar</button></div>
@@ -9516,7 +9536,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260917logo1"></script>
+    <script src="/finance-module.js?v=20260921valor1"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
