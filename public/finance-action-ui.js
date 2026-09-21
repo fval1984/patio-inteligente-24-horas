@@ -78,6 +78,39 @@
       .join("")}</div>`;
   }
 
+  function renderDevedorCards(host, cards, emptyText) {
+    if (!host) return;
+    if (!cards?.length) {
+      host.innerHTML = `<p class="fin-act-empty">${esc(emptyText || "Nenhum devedor.")}</p>`;
+      return;
+    }
+    host.innerHTML = `<div class="fin-act-launch-list">${cards
+      .map((c) => {
+        const key = encodeURIComponent(c.key || "");
+        const overdueLine =
+          c.overdueCount > 0
+            ? `${c.overdueCount} título${c.overdueCount === 1 ? "" : "s"} vencido${c.overdueCount === 1 ? "" : "s"}: ${esc(c.overdueTotalLabel)}`
+            : "Nenhum título vencido";
+        return `<article class="fin-act-launch fin-caderneta-card" data-fin-abrir-caderneta="${esc(key)}">
+          <div>
+            <h4>${esc(c.title)}</h4>
+            <p>${c.openCount} título${c.openCount === 1 ? "" : "s"} em aberto</p>
+            <p>Total em aberto: ${esc(c.openTotalLabel)}</p>
+            <p>${overdueLine}</p>
+            <p>Próximo vencimento: ${esc(c.nextDueLabel)}</p>
+          </div>
+          <div>
+            <div class="fin-act-launch-amount">${esc(c.openTotalLabel)}</div>
+            <span class="${statusClass(c.statusKind)}">${esc(c.status)}</span>
+          </div>
+          <div class="fin-act-launch-actions">
+            <button type="button" class="fin-act-primary" data-fin-abrir-caderneta="${esc(key)}">Abrir Caderneta</button>
+          </div>
+        </article>`;
+      })
+      .join("")}</div>`;
+  }
+
   function ensureDetailModal() {
     let modal = document.getElementById("finActDetailModal");
     if (modal) return modal;
@@ -255,6 +288,7 @@
   global.financeActionUi = {
     monthLabel,
     renderLaunchCards,
+    renderDevedorCards,
     renderLancamentoCards,
     renderReceberDetailItems,
     renderAttentionCards,
