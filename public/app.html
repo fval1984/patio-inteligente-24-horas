@@ -8072,6 +8072,7 @@
 
           <div class="finance-subview hidden" data-finance-subview="receber">
             <div class="fin-toolbar">
+              <form id="finReceberPlateForm" action="#" novalidate style="display: contents">
               <div><button type="button" id="finBtnNovaReceita">+ Receita avulsa</button></div>
               <div>
                 <label for="finReceberRpp">RPP</label>
@@ -8083,7 +8084,8 @@
                 <label for="finReceberPlaca">Busca por placa</label>
                 <input
                   id="finReceberPlaca"
-                  type="text"
+                  name="plate"
+                  type="search"
                   inputmode="text"
                   placeholder="Ex.: ABC1D23"
                   maxlength="20"
@@ -8101,7 +8103,9 @@
                 <label for="finReceberValorAte">até</label>
                 <input id="finReceberValorAte" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" />
               </div>
-              <div style="align-self: flex-end"><button type="button" class="secondary" id="finReceberPlacaClear">Limpar placa</button></div>
+              <div style="align-self: flex-end"><button type="submit" id="finReceberPlacaOk">Buscar</button></div>
+              <div style="align-self: flex-end"><button type="button" class="secondary" id="finReceberPlacaClear">Limpar</button></div>
+              </form>
             </div>
             <p id="finReceberPlateHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <div class="fin-batch-bar" aria-label="Ações em lote">
@@ -9540,7 +9544,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260921ops1"></script>
+    <script src="/finance-module.js?v=20260921placa1"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
