@@ -2041,11 +2041,7 @@
     return (state.receivables || [])
       .filter((r) => {
         if (financeReceivableDevedorIdentity(r).key !== devedorKey) return false;
-        if (String(r.status || "").toUpperCase() === "PAGO") {
-          if (Number(r.valor || 0) <= 0) return false;
-          if (financeIsManualReceivable(r)) return true;
-          return r.financeiro_aprovado_contas_receber === true;
-        }
+        if (!financeReceivableIsOpenReceber(r)) return false;
         return isContaReceber(r) && !financeReceivableIsDuplicateOfPaidCycle(r);
       })
       .sort((a, b) => {
@@ -2054,6 +2050,16 @@
         if (da !== db) return da.localeCompare(db);
         return String(a.created_at || "").localeCompare(String(b.created_at || ""));
       });
+  }
+
+  function financeReceberRecebidoDevedor(devedorKey) {
+    if (!devedorKey) return 0;
+    return (state.receivables || []).reduce((s, r) => {
+      if (financeReceivableDevedorIdentity(r).key !== devedorKey) return s;
+      if (financeReceivableIsOpenReceber(r)) return s;
+      const val = Number(r.valor || 0);
+      return val > 0 ? s + val : s;
+    }, 0);
   }
 
   function financeReceberCadernetaTotals(list) {
@@ -3090,6 +3096,10 @@
     const totals = cadernetaOpen
       ? financeReceberCadernetaTotals(cadernetaList)
       : { aberto: list.reduce((s, r) => s + Number(r.valor || 0), 0) };
+    if (cadernetaOpen) {
+      totals.recebido = financeReceberRecebidoDevedor(finReceberCadernetaKey);
+      totals.total = totals.aberto + totals.recebido;
+    }
     if (totalEl) totalEl.textContent = formatCurrency(cadernetaOpen ? totals.aberto : totals.aberto);
 
     if (cadernetaOpen) {
