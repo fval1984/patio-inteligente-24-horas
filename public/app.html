@@ -3532,11 +3532,24 @@
         box-shadow: none;
         filter: grayscale(0.55);
       }
-      #nfseThermalCnpjStatus.is-invalid {
+      #nfseThermalCnpjStatus.is-invalid,
+      #controleRecebimentoStatus.is-invalid {
         color: #f87171;
       }
-      [data-theme="light"] #nfseThermalCnpjStatus.is-invalid {
+      [data-theme="light"] #nfseThermalCnpjStatus.is-invalid,
+      [data-theme="light"] #controleRecebimentoStatus.is-invalid {
         color: #b91c1c;
+      }
+      #controleRecebimentoModal .modal {
+        width: min(440px, 92vw);
+      }
+      #controleRecebimentoModal button:disabled,
+      #controleRecebimentoModal button:disabled:hover {
+        opacity: 0.42;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+        filter: grayscale(0.55);
       }
       .section-card {
         padding: 20px;
@@ -9029,6 +9042,37 @@
         </div>
       </div>
 
+      <div id="controleRecebimentoModal" class="modal-backdrop hidden">
+        <div class="modal">
+          <div class="modal-header">
+            <div>
+              <h3>Controle de recebimento</h3>
+              <p class="notice" style="margin: 4px 0 0; font-size: 12px">
+                RPP, placa, modelo, cor, período e valor vêm do título. A razão social e o CNPJ são digitados agora.
+              </p>
+            </div>
+            <button type="button" class="modal-close" id="closeControleRecebimentoModal">Fechar</button>
+          </div>
+          <div class="form-grid">
+            <div class="full">
+              <label for="controleRecebimentoRazao">Razão Social</label>
+              <input id="controleRecebimentoRazao" type="text" maxlength="160" autocomplete="off" placeholder="Digite a razão social" />
+            </div>
+            <div class="full">
+              <label for="controleRecebimentoCnpj">CNPJ</label>
+              <input id="controleRecebimentoCnpj" type="text" inputmode="numeric" maxlength="18" autocomplete="off" placeholder="00.000.000/0000-00" />
+            </div>
+          </div>
+          <p id="controleRecebimentoStatus" class="notice" style="margin: 8px 0 0">
+            Informe a razão social e um CNPJ válido para liberar a impressão.
+          </p>
+          <div class="form-actions">
+            <button type="button" id="controleRecebimentoPrintBtn" disabled>IMPRIMIR</button>
+            <button type="button" class="secondary" id="controleRecebimentoCloseBtn">Fechar</button>
+          </div>
+        </div>
+      </div>
+
       <div id="textModal" class="modal-backdrop hidden">
         <div class="modal">
           <div class="modal-header">
@@ -9623,7 +9667,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260921placa1"></script>
+    <script src="/finance-module.js?v=20260922controle1"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
@@ -10279,6 +10323,13 @@
       const nfseThermalWidth = document.getElementById("nfseThermalWidth");
       const nfseThermalCnpjStatus = document.getElementById("nfseThermalCnpjStatus");
       const nfseThermalPrintBtn = document.getElementById("nfseThermalPrintBtn");
+      const controleRecebimentoModal = document.getElementById("controleRecebimentoModal");
+      const closeControleRecebimentoModal = document.getElementById("closeControleRecebimentoModal");
+      const controleRecebimentoCloseBtn = document.getElementById("controleRecebimentoCloseBtn");
+      const controleRecebimentoRazao = document.getElementById("controleRecebimentoRazao");
+      const controleRecebimentoCnpj = document.getElementById("controleRecebimentoCnpj");
+      const controleRecebimentoStatus = document.getElementById("controleRecebimentoStatus");
+      const controleRecebimentoPrintBtn = document.getElementById("controleRecebimentoPrintBtn");
       const textModal = document.getElementById("textModal");
       const textModalTitle = document.getElementById("textModalTitle");
       const textModalBody = document.getElementById("textModalBody");
@@ -10440,6 +10491,7 @@
       let nfseVehicleId = null;
       let nfseStatusBeforeOpen = null;
       let nfseThermalVehicleId = null;
+      let controleRecebimentoPayload = null;
       const NFSE_THERMAL_WIDTH_KEY = "amplipatio_nfse_thermal_width_mm";
 
       const state = {
@@ -15170,6 +15222,52 @@
         }, 300);
         return true;
       }
+
+      function printControleRecebimentoTicket(html, paperWidthMm) {
+        const iframe = document.createElement("iframe");
+        iframe.setAttribute("title", "Controle de recebimento");
+        iframe.setAttribute("aria-hidden", "true");
+        const framePx = Math.max(220, Math.round((Number(paperWidthMm) * 96) / 25.4));
+        iframe.style.cssText =
+          `position:fixed;left:0;top:0;width:${framePx}px;height:200px;border:0;opacity:0;pointer-events:none;z-index:-1;overflow:hidden;`;
+        document.body.appendChild(iframe);
+        const win = iframe.contentWindow;
+        if (!win) {
+          iframe.remove();
+          alert("Não foi possível preparar a impressão neste navegador.");
+          return false;
+        }
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+        const removeIframe = () => {
+          try {
+            iframe.remove();
+          } catch (e) {
+            /* ignore */
+          }
+        };
+        setTimeout(() => {
+          try {
+            const doc = win.document;
+            const ticket = doc.querySelector(".ticket");
+            const pxH = ticket ? ticket.getBoundingClientRect().height : doc.body?.scrollHeight || 80;
+            const pageMm = Math.ceil(((pxH * 25.4) / 96) * 10) / 10;
+            const style = doc.getElementById("controleRecebimentoPage");
+            if (style) {
+              style.textContent = `@page { size: ${Number(paperWidthMm)}mm ${pageMm}mm; margin: 0; }`;
+            }
+            iframe.style.height = `${Math.ceil(pxH)}px`;
+            win.focus();
+            win.print();
+          } catch (e) {
+            alert("Não foi possível abrir a impressão térmica.");
+          }
+          setTimeout(removeIframe, 800);
+        }, 300);
+        return true;
+      }
+
       window.loadJsPdf = loadJsPdf;
       window.loadHtml2Canvas = loadHtml2Canvas;
 
@@ -20276,6 +20374,189 @@
         printNfseThermalTicket(html, widthMm);
       }
 
+      function controleRecebimentoWidthMm() {
+        try {
+          const n = Number(localStorage.getItem(NFSE_THERMAL_WIDTH_KEY));
+          if (n === 58 || n === 80) return n;
+        } catch (e) {
+          /* ignore */
+        }
+        return 80;
+      }
+
+      function formatControleRecebimentoDate(date) {
+        const dd = String(date.getDate()).padStart(2, "0");
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
+        return `${dd}/${mm}/${date.getFullYear()}`;
+      }
+
+      function addControleRecebimentoDays(date, days) {
+        const next = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        next.setDate(next.getDate() + days);
+        return next;
+      }
+
+      function syncControleRecebimentoPrintState() {
+        const razao = String(controleRecebimentoRazao?.value || "").trim();
+        const digits = String(controleRecebimentoCnpj?.value || "").replace(/\D/g, "");
+        const cnpjOk = isValidCnpjDigits(digits);
+        const ready = razao.length > 0 && cnpjOk;
+        if (controleRecebimentoPrintBtn) controleRecebimentoPrintBtn.disabled = !ready;
+        if (!controleRecebimentoStatus) return;
+        const incomplete = digits.length > 0 && digits.length < 14;
+        const invalid = digits.length === 14 && !cnpjOk;
+        controleRecebimentoStatus.classList.toggle("is-invalid", invalid);
+        if (!digits.length && !razao) {
+          controleRecebimentoStatus.textContent = "Informe a razão social e um CNPJ válido para liberar a impressão.";
+        } else if (incomplete) {
+          controleRecebimentoStatus.textContent = "Complete o CNPJ no formato 00.000.000/0000-00.";
+        } else if (invalid) {
+          controleRecebimentoStatus.textContent = "CNPJ inválido. O formato é 00.000.000/0000-00.";
+        } else if (!razao) {
+          controleRecebimentoStatus.textContent = "Informe a razão social.";
+        } else if (!cnpjOk) {
+          controleRecebimentoStatus.textContent = "Informe o CNPJ no formato 00.000.000/0000-00.";
+        } else {
+          controleRecebimentoStatus.textContent = "Dados preenchidos. A impressão está liberada.";
+        }
+      }
+
+      function applyControleRecebimentoCnpjMask() {
+        const el = controleRecebimentoCnpj;
+        if (!el) return;
+        const start = el.selectionStart ?? el.value.length;
+        const digitsBefore = el.value.slice(0, start).replace(/\D/g, "").length;
+        const masked = maskCnpjInputValue(el.value);
+        if (el.value !== masked) {
+          el.value = masked;
+          let pos = 0;
+          let seen = 0;
+          while (pos < masked.length && seen < digitsBefore) {
+            if (/\d/.test(masked.charAt(pos))) seen += 1;
+            pos += 1;
+          }
+          try {
+            el.setSelectionRange(pos, pos);
+          } catch (e) {
+            /* ignore */
+          }
+        }
+      }
+
+      function buildControleRecebimentoPrintHtml(data, paperWidthMm) {
+        const width = paperWidthMm === 58 ? 58 : 80;
+        const fontPx = width <= 58 ? 11 : 12;
+        const titlePx = width <= 58 ? 12 : 13;
+        const brandPx = width <= 58 ? 14 : 16;
+        const dash = (value) => {
+          const text = String(value == null ? "" : value).trim();
+          return text || "—";
+        };
+        const css = `
+  html, body { margin: 0; padding: 0; background: #fff; color: #000; height: auto; }
+  .ticket {
+    width: ${width}mm;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 1.2mm 2mm 0.6mm;
+    background: #fff;
+    color: #000;
+    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+    font-size: ${fontPx}px;
+    line-height: 1.25;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: normal;
+  }
+  .ticket * { max-width: 100%; overflow-wrap: break-word; word-break: normal; }
+  .brand, .title, .foot {
+    margin: 0;
+    text-align: center;
+    font-weight: 800;
+    line-height: 1.15;
+  }
+  .brand { font-size: ${brandPx}px; letter-spacing: 0.05em; }
+  .title { margin-top: 1px; font-size: ${titlePx}px; }
+  .line { margin: 1px 0 0; }
+  .line strong { font-weight: 700; }
+  .total { margin: 2px 0 0; font-weight: 800; font-size: ${titlePx}px; }
+  .foot { margin-top: 2px; font-size: ${fontPx}px; font-weight: 700; }
+  .sep { border: 0; border-top: 1px dashed #000; height: 0; margin: 4px 0; }
+  @media print {
+    html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; color: #000 !important; height: auto !important; }
+  }`;
+        return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Controle de recebimento</title>
+<style id="controleRecebimentoPage">@page { size: ${width}mm 20mm; margin: 0; }</style>
+<style>${css}</style></head><body>
+<div class="ticket">
+  <p class="brand">AMPLIGUARD</p>
+  <p class="title">CONTROLE DE RECEBIMENTO</p>
+  <hr class="sep" />
+  <p class="line"><strong>RPP:</strong> ${escapeHtml(dash(data.rpp))}</p>
+  <p class="line"><strong>Placa:</strong> ${escapeHtml(dash(data.placa))}</p>
+  <p class="line"><strong>Modelo:</strong> ${escapeHtml(dash(data.modelo))}</p>
+  <p class="line"><strong>Cor:</strong> ${escapeHtml(dash(data.cor))}</p>
+  <p class="line"><strong>Período:</strong> ${escapeHtml(dash(data.periodo))}</p>
+  <hr class="sep" />
+  <p class="line"><strong>Razão Social:</strong></p>
+  <p class="line">${escapeHtml(dash(data.razao))}</p>
+  <p class="line"><strong>CNPJ:</strong></p>
+  <p class="line">${escapeHtml(dash(data.cnpj))}</p>
+  <hr class="sep" />
+  <p class="line"><strong>Data de emissão:</strong> ${escapeHtml(dash(data.emissao))}</p>
+  <p class="line"><strong>Vencimento:</strong> ${escapeHtml(dash(data.vencimento))}</p>
+  <p class="total">VALOR TOTAL: ${escapeHtml(dash(data.valor))}</p>
+  <hr class="sep" />
+  <p class="foot">Controle de Recebimento — AMPLIGUARD</p>
+</div>
+</body></html>`;
+      }
+
+      function closeControleRecebimentoModalFn() {
+        controleRecebimentoModal?.classList.add("hidden");
+        controleRecebimentoPayload = null;
+      }
+
+      function openControleRecebimentoModal(payload) {
+        if (!controleRecebimentoModal || !payload) return;
+        controleRecebimentoPayload = {
+          rpp: payload.rpp,
+          placa: payload.placa,
+          modelo: payload.modelo,
+          cor: payload.cor,
+          periodo: payload.periodo,
+          valor: payload.valor,
+        };
+        if (controleRecebimentoRazao) controleRecebimentoRazao.value = "";
+        if (controleRecebimentoCnpj) controleRecebimentoCnpj.value = "";
+        syncControleRecebimentoPrintState();
+        controleRecebimentoModal.classList.remove("hidden");
+        controleRecebimentoRazao?.focus();
+      }
+      window.openControleRecebimentoModal = openControleRecebimentoModal;
+
+      function printOpenControleRecebimento() {
+        syncControleRecebimentoPrintState();
+        if (!controleRecebimentoPrintBtn || controleRecebimentoPrintBtn.disabled || !controleRecebimentoPayload) return;
+        const razao = String(controleRecebimentoRazao?.value || "").trim();
+        const cnpj = maskCnpjInputValue(controleRecebimentoCnpj?.value || "");
+        if (!razao || !isValidCnpjDigits(cnpj)) return;
+        const emissaoDate = new Date();
+        const vencimentoDate = addControleRecebimentoDays(emissaoDate, 10);
+        const widthMm = controleRecebimentoWidthMm();
+        const html = buildControleRecebimentoPrintHtml(
+          {
+            ...controleRecebimentoPayload,
+            razao,
+            cnpj,
+            emissao: formatControleRecebimentoDate(emissaoDate),
+            vencimento: formatControleRecebimentoDate(vencimentoDate),
+          },
+          widthMm
+        );
+        printControleRecebimentoTicket(html, widthMm);
+      }
+
       async function copyCobrancaEmailField(text, fieldEl, okMsg) {
         const value = String(text || "");
         if (!value) return;
@@ -21343,6 +21624,14 @@
         setNfseThermalWidthMm(Number(nfseThermalWidth.value));
       });
       nfseThermalPrintBtn?.addEventListener("click", () => printOpenNfseThermal());
+      closeControleRecebimentoModal?.addEventListener("click", () => closeControleRecebimentoModalFn());
+      controleRecebimentoCloseBtn?.addEventListener("click", () => closeControleRecebimentoModalFn());
+      controleRecebimentoRazao?.addEventListener("input", () => syncControleRecebimentoPrintState());
+      controleRecebimentoCnpj?.addEventListener("input", () => {
+        applyControleRecebimentoCnpjMask();
+        syncControleRecebimentoPrintState();
+      });
+      controleRecebimentoPrintBtn?.addEventListener("click", () => printOpenControleRecebimento());
       cancelNfseConfirm?.addEventListener("click", () => {
         void cancelNfseModal();
       });
@@ -21534,7 +21823,7 @@
         workflowModalConfig = null;
       });
 
-      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, lancamentoModal, fichaModal, patioVehicleActionsModal, nfseModal, cobrancaEmailModal, nfseThermalModal, textModal, reciboModal, receberBaixaModal, pagarBaixaModal].filter(Boolean).forEach((modal) => {
+      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, lancamentoModal, fichaModal, patioVehicleActionsModal, nfseModal, cobrancaEmailModal, nfseThermalModal, controleRecebimentoModal, textModal, reciboModal, receberBaixaModal, pagarBaixaModal].filter(Boolean).forEach((modal) => {
         modal.addEventListener("click", (event) => {
           if (event.target === modal) {
             modal.classList.add("hidden");
