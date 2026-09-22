@@ -20298,16 +20298,23 @@
     height: auto;
     min-height: 0;
     max-height: none;
+    overflow: visible;
+    position: static;
     background: #fff;
     color: #000;
   }
-  body > :first-child { margin-top: 0; }
-  .ticket {
-    width: ${paperMm}mm;
-    max-width: ${paperMm}mm;
-    margin: 0;
+  .ticket.cdr-print {
+    width: 68mm;
+    max-width: 68mm;
+    margin: 0 0 0 8mm;
+    padding: 1.2mm 2mm 1.5mm 2mm;
     box-sizing: border-box;
-    padding: 1.2mm 3mm 1.5mm 8mm;
+    position: static;
+    left: auto;
+    right: auto;
+    transform: none;
+    float: none;
+    overflow: visible;
     height: auto;
     min-height: 0;
     max-height: none;
@@ -20363,21 +20370,44 @@
   .ticket .foot-tag { margin: 0; font-size: 11px; font-weight: 700; }
   .ticket .sep { border: 0; border-top: 1px dashed #000; height: 0; margin: 2mm 0 1.6mm; }
   @media print {
-    html, body, .ticket {
-      height: auto !important;
-      min-height: 0 !important;
-      max-height: none !important;
-      background: #fff !important;
-      color: #000 !important;
-    }
     html, body {
       margin: 0 !important;
       padding: 0 !important;
+      width: ${paperMm}mm !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow: visible !important;
+      position: static !important;
+      background: #fff !important;
+      color: #000 !important;
+    }
+    .cdr-print {
+      width: 68mm !important;
+      max-width: 68mm !important;
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+      margin-left: 8mm !important;
+      margin-right: 0 !important;
+      padding-top: 1.2mm !important;
+      padding-right: 2mm !important;
+      padding-bottom: 1.5mm !important;
+      padding-left: 2mm !important;
+      box-sizing: border-box !important;
+      overflow: visible !important;
+      position: static !important;
+      left: auto !important;
+      right: auto !important;
+      transform: none !important;
+      float: none !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
     }
   }`;
         return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Controle de Recebimento</title>
 <style>${css}</style></head><body>
-<div class="ticket">
+<div class="ticket cdr-print">
   <img class="logo" src="${escapeHtml(logo)}" alt="AMPLIGUARD" />
   <p class="title">CONTROLE DE RECEBIMENTO</p>
   <p class="sec">DADOS DO FATURAMENTO</p>
