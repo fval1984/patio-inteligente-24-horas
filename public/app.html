@@ -9008,28 +9008,21 @@
         <div class="modal">
           <div class="modal-header">
             <div>
-              <h3>Impressão térmica da NFS-e</h3>
+              <h3>Imprimir CDR</h3>
               <p class="notice" style="margin: 4px 0 0; font-size: 12px">
-                O botão IMPRIMIR fica bloqueado até o nome/razão social e um CNPJ válido estarem preenchidos.
+                Controle de Recebimento. O botão IMPRIMIR fica bloqueado até a razão social e um CNPJ válido estarem preenchidos.
               </p>
             </div>
             <button type="button" class="modal-close" id="closeNfseThermalModal">Fechar</button>
           </div>
           <div class="form-grid">
             <div class="full">
-              <label for="nfseThermalNome">Nome/Razão Social do destinatário</label>
-              <input id="nfseThermalNome" type="text" maxlength="160" autocomplete="off" placeholder="Nome ou razão social de quem a nota foi emitida" />
+              <label for="nfseThermalNome">Razão Social</label>
+              <input id="nfseThermalNome" type="text" maxlength="160" autocomplete="off" placeholder="Digite a razão social" />
             </div>
-            <div>
-              <label for="nfseThermalCnpj">CNPJ do destinatário</label>
+            <div class="full">
+              <label for="nfseThermalCnpj">CNPJ</label>
               <input id="nfseThermalCnpj" type="text" inputmode="numeric" maxlength="18" autocomplete="off" placeholder="00.000.000/0000-00" />
-            </div>
-            <div>
-              <label for="nfseThermalWidth">Largura da impressora</label>
-              <select id="nfseThermalWidth" title="Largura do papel térmico">
-                <option value="80">80 mm</option>
-                <option value="58">58 mm</option>
-              </select>
             </div>
           </div>
           <p id="nfseThermalCnpjStatus" class="notice" style="margin: 8px 0 0">
@@ -15178,11 +15171,11 @@
 
       function printNfseThermalTicket(html, paperWidthMm) {
         const iframe = document.createElement("iframe");
-        iframe.setAttribute("title", "Impressão térmica NFS-e");
+        iframe.setAttribute("title", "Controle de Recebimento");
         iframe.setAttribute("aria-hidden", "true");
         const framePx = Math.max(220, Math.round((Number(paperWidthMm) * 96) / 25.4));
         iframe.style.cssText =
-          `position:fixed;left:0;top:0;width:${framePx}px;height:480px;border:0;opacity:0;pointer-events:none;z-index:-1;overflow:hidden;`;
+          `position:fixed;left:0;top:0;width:${framePx}px;height:900px;border:0;opacity:0;pointer-events:none;z-index:-1;overflow:visible;`;
         document.body.appendChild(iframe);
         const win = iframe.contentWindow;
         if (!win) {
@@ -15200,26 +15193,45 @@
             /* ignore */
           }
         };
-        setTimeout(() => {
+        let started = false;
+        const printNow = () => {
+          if (started) return;
+          started = true;
           try {
             const doc = win.document;
             const ticket = doc.querySelector(".ticket");
-            const pxH = ticket
-              ? Math.ceil(ticket.getBoundingClientRect().height)
-              : Math.ceil(doc.body?.scrollHeight || 120);
-            const pageMm = Math.max(28, Math.ceil(((pxH * 25.4) / 96 + 1.2) * 10) / 10);
+            const pxH = ticket ? ticket.getBoundingClientRect().height : doc.body?.scrollHeight || 80;
+            const pageMm = Math.ceil(((pxH * 25.4) / 96) * 10) / 10;
             const style = doc.getElementById("nfseThermalPage");
             if (style) {
               style.textContent = `@page { size: ${Number(paperWidthMm)}mm ${pageMm}mm; margin: 0; }`;
             }
-            iframe.style.height = `${pxH + 8}px`;
+            iframe.style.height = `${Math.ceil(pxH)}px`;
             win.focus();
             win.print();
           } catch (e) {
             alert("Não foi possível abrir a impressão térmica.");
           }
           setTimeout(removeIframe, 800);
-        }, 300);
+        };
+        const arm = () => {
+          const imgs = [...(win.document?.images || [])].filter((img) => !img.complete);
+          if (!imgs.length) {
+            setTimeout(printNow, 40);
+            return;
+          }
+          let left = imgs.length;
+          const done = () => {
+            left -= 1;
+            if (left <= 0) setTimeout(printNow, 40);
+          };
+          imgs.forEach((img) => {
+            img.addEventListener("load", done, { once: true });
+            img.addEventListener("error", done, { once: true });
+          });
+          setTimeout(printNow, 1200);
+        };
+        setTimeout(arm, 30);
         return true;
       }
 
@@ -20082,7 +20094,7 @@
       }
 
       function nfseThermalActionButtonHtml(vehicle) {
-        return `<button type="button" class="secondary" data-action="nfse_termica" data-id="${vehicle.id}">Imprimir NFS-e</button>`;
+        return `<button type="button" class="secondary" data-action="nfse_termica" data-id="${vehicle.id}">Imprimir CDR</button>`;
       }
 
       function cobrancaEmailDash(value) {
@@ -20272,64 +20284,109 @@
         }
       }
 
-      function buildNfseThermalPrintHtml({ nome, cnpj, nfseText, emailText, paperWidthMm }) {
-        const width = paperWidthMm === 58 ? 58 : 80;
-        const fontPx = width <= 58 ? 11 : 12;
-        const titlePx = width <= 58 ? 12 : 13;
-        const brandPx = width <= 58 ? 14 : 16;
+      function buildCdrPrintHtml(data) {
+        const paperMm = 80;
+        const usefulMm = 72;
+        const logo = `${location.origin}/assets/ampliguard-marca.png?v=20260917logo2`;
+        const dash = (value) => {
+          const text = String(value == null ? "" : value).trim();
+          if (!text || text === "-" || text === "—") return "—";
+          return text;
+        };
         const css = `
-  html, body { margin: 0; padding: 0; background: #fff; color: #000; }
-  .ticket {
-    width: ${width}mm;
-    box-sizing: border-box;
-    padding: 2mm 2.2mm 2.4mm;
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: ${paperMm}mm;
+    height: auto;
+    min-height: 0;
     background: #fff;
     color: #000;
-    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
-    font-size: ${fontPx}px;
-    line-height: 1.28;
+  }
+  .ticket {
+    width: ${usefulMm}mm;
+    margin: 0 auto;
+    box-sizing: border-box;
+    padding: 1mm 0 0.4mm;
+    background: #fff;
+    color: #000;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    line-height: 1.25;
     overflow-wrap: break-word;
     word-wrap: break-word;
     word-break: normal;
   }
   .ticket * { max-width: 100%; overflow-wrap: break-word; word-break: normal; }
-  .brand {
-    margin: 0;
-    text-align: center;
+  .logo {
+    display: block;
+    width: 58mm;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto 1.2mm;
+    object-fit: contain;
+    object-position: center;
+  }
+  .title, .sec, .foot-brand, .foot-tag, .total { margin: 0; text-align: center; }
+  .title {
+    font-size: 14px;
     font-weight: 800;
-    font-size: ${brandPx}px;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.02em;
     line-height: 1.15;
   }
-  .title {
-    margin: 2px 0 6px;
-    text-align: center;
-    font-weight: 700;
-    font-size: ${titlePx}px;
-    line-height: 1.2;
+  .sec {
+    margin-top: 1.4mm;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
   }
-  .meta { margin: 0; }
-  .block {
-    margin: 6px 0 0;
-    white-space: pre-wrap;
-    overflow-wrap: break-word;
-    word-break: normal;
+  .line { margin: 0.6mm 0 0; }
+  .hot { font-weight: 800; }
+  .hot-placa { font-weight: 800; font-size: 14px; }
+  .total {
+    margin-top: 1.2mm;
+    font-size: 14px;
+    font-weight: 800;
   }
-  .sep { border: 0; border-top: 1px dashed #000; height: 0; margin: 7px 0 1px; }
+  .foot-brand { margin-top: 0.4mm; font-size: 13px; font-weight: 800; letter-spacing: 0.04em; }
+  .foot-tag { font-size: 11px; font-weight: 700; }
+  .sep { border: 0; border-top: 1px dashed #000; height: 0; margin: 1.4mm 0 0; }
   @media print {
-    html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; color: #000 !important; }
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: ${paperMm}mm;
+      height: auto !important;
+      min-height: 0 !important;
+      background: #fff !important;
+      color: #000 !important;
+    }
   }`;
-        return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>NFS-e</title>
-<style id="nfseThermalPage">@page { size: ${width}mm 40mm; margin: 0; }</style>
+        return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Controle de Recebimento</title>
+<style id="nfseThermalPage">@page { size: ${paperMm}mm 20mm; margin: 0; }</style>
 <style>${css}</style></head><body>
 <div class="ticket">
-  <p class="brand">AMPLIGUARD</p>
-  <p class="title">NFS-e — NOTA FISCAL DE SERVIÇO</p>
-  <p class="meta">Emitida para: ${escapeHtml(nome)}</p>
-  <p class="meta">CNPJ: ${escapeHtml(cnpj)}</p>
-  <div class="block">${escapeHtml(nfseText)}</div>
+  <img class="logo" src="${escapeHtml(logo)}" alt="AMPLIGUARD" />
+  <p class="title">CONTROLE DE RECEBIMENTO</p>
+  <p class="sec">DADOS DO FATURAMENTO</p>
+  <p class="line">Razão Social: ${escapeHtml(dash(data.razao))}</p>
+  <p class="line">CNPJ: ${escapeHtml(dash(data.cnpj))}</p>
   <hr class="sep" />
-  <div class="block">${escapeHtml(emailText)}</div>
+  <p class="sec">DADOS DO VEÍCULO</p>
+  <p class="line hot">RPP: ${escapeHtml(dash(data.rpp))}</p>
+  <p class="line hot-placa">Placa: ${escapeHtml(dash(data.placa))}</p>
+  <p class="line">Veículo: ${escapeHtml(dash(data.veiculo))}</p>
+  <p class="line">Cor: ${escapeHtml(dash(data.cor))}</p>
+  <p class="line">Data de Entrada: ${escapeHtml(dash(data.entrada))}</p>
+  <p class="line">Data de Saída: ${escapeHtml(dash(data.saida))}</p>
+  <p class="line">Período: ${escapeHtml(dash(data.periodo))}</p>
+  <hr class="sep" />
+  <p class="line">Data de Emissão: ${escapeHtml(dash(data.emissao))}</p>
+  <p class="line hot">Vencimento: ${escapeHtml(dash(data.vencimento))}</p>
+  <p class="total">VALOR TOTAL: ${escapeHtml(dash(data.valor))}</p>
+  <hr class="sep" />
+  <p class="foot-brand">AMPLIGUARD</p>
+  <p class="foot-tag">Guarda, Custódia e Remoção de Veículos</p>
 </div>
 </body></html>`;
       }
@@ -20344,7 +20401,6 @@
         nfseThermalVehicleId = vehicle.id;
         if (nfseThermalNome) nfseThermalNome.value = "";
         if (nfseThermalCnpj) nfseThermalCnpj.value = "";
-        if (nfseThermalWidth) nfseThermalWidth.value = String(nfseThermalWidthMm());
         syncNfseThermalPrintState();
         nfseThermalModal.classList.remove("hidden");
         nfseThermalNome?.focus();
@@ -20355,23 +20411,32 @@
         if (!nfseThermalPrintBtn || nfseThermalPrintBtn.disabled) return;
         const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(nfseThermalVehicleId));
         if (!vehicle) {
-          alert("Não foi possível localizar o veículo desta NFS-e.");
+          alert("Não foi possível localizar o veículo deste controle.");
           return;
         }
-        const nome = String(nfseThermalNome?.value || "").trim();
+        const razao = String(nfseThermalNome?.value || "").trim();
         const cnpj = maskCnpjInputValue(nfseThermalCnpj?.value || "");
-        if (!nome || !isValidCnpjDigits(cnpj)) return;
-        const widthMm = setNfseThermalWidthMm(Number(nfseThermalWidth?.value));
-        const { assunto, mensagem } = buildCobrancaEmailContent(vehicle);
-        const emailText = [assunto, mensagem].filter((part) => String(part || "").trim()).join("\n\n");
-        const html = buildNfseThermalPrintHtml({
-          nome,
+        if (!razao || !isValidCnpjDigits(cnpj)) return;
+        const emissaoDate = new Date();
+        const vencimentoDate = addControleRecebimentoDays(emissaoDate, 10);
+        const marca = String(vehicle.marca || "").trim();
+        const modelo = String(vehicle.modelo || "").trim();
+        const dias = calcDays(vehicle);
+        const html = buildCdrPrintHtml({
+          razao,
           cnpj,
-          nfseText: buildNfseText(vehicle),
-          emailText,
-          paperWidthMm: widthMm,
+          rpp: vehicleRpfNome(vehicle),
+          placa: vehicle.placa || "",
+          veiculo: [marca, modelo].filter(Boolean).join(" / "),
+          cor: vehicle.cor || "",
+          entrada: vehicle.data_entrada ? formatDateBr(vehicle.data_entrada) : "",
+          saida: vehicle.data_saida ? formatDateBr(vehicle.data_saida) : "",
+          periodo: dias ? `${dias} dias` : "",
+          emissao: formatControleRecebimentoDate(emissaoDate),
+          vencimento: formatControleRecebimentoDate(vencimentoDate),
+          valor: formatCurrency(calcTotal(vehicle)),
         });
-        printNfseThermalTicket(html, widthMm);
+        printNfseThermalTicket(html, 80);
       }
 
       function controleRecebimentoWidthMm() {
