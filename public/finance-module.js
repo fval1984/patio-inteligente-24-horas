@@ -2290,6 +2290,7 @@
           : ""
       }
       <button type="button" class="secondary" data-fin-receber-editar="${escapeHtml(String(r.id))}">Editar</button>
+      <button type="button" class="secondary" data-fin-receber-controle="${escapeHtml(String(r.id))}">Controle de recebimento</button>
       <button type="button" class="secondary" data-fin-fechar-registro>Voltar</button>
       <button type="button" class="secondary" data-fin-receber-apagar="${escapeHtml(String(r.id))}">Apagar</button>
     </div>`;
@@ -7166,6 +7167,24 @@
       if (btnVoltar) {
         const id = btnVoltar.getAttribute("data-fin-aguardando-voltar");
         if (typeof financeVoltarAguardandoReceivable === "function") await financeVoltarAguardandoReceivable(id);
+        return;
+      }
+      const btnReceberControle = e.target.closest("[data-fin-receber-controle]");
+      if (btnReceberControle) {
+        const id = btnReceberControle.getAttribute("data-fin-receber-controle");
+        const r = financeFindReceivableById(id);
+        if (!r || typeof window.openControleRecebimentoModal !== "function") return;
+        const v = financeVehicleById().get(r.vehicle_id);
+        const inicio = r.period_start && typeof formatDateBr === "function" ? formatDateBr(r.period_start) : "—";
+        const fim = r.period_end && typeof formatDateBr === "function" ? formatDateBr(r.period_end) : "—";
+        window.openControleRecebimentoModal({
+          rpp: financeReceberRppNome(r, v),
+          placa: v?.placa || "",
+          modelo: v?.modelo || "",
+          cor: v?.cor || "",
+          periodo: `${inicio} a ${fim}`,
+          valor: formatCurrency(Number(r.valor || 0)),
+        });
         return;
       }
       const btnReceberPg = e.target.closest("[data-fin-receber-pg]");
