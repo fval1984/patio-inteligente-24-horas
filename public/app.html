@@ -15170,12 +15170,13 @@
       window.printHtmlInHiddenIframe = printHtmlInHiddenIframe;
 
       function printNfseThermalTicket(html, paperWidthMm) {
+        const paper = Number(paperWidthMm) || 80;
         const iframe = document.createElement("iframe");
         iframe.setAttribute("title", "Controle de Recebimento");
         iframe.setAttribute("aria-hidden", "true");
-        const framePx = Math.max(220, Math.round((Number(paperWidthMm) * 96) / 25.4));
+        const framePx = Math.max(220, Math.round((paper * 96) / 25.4));
         iframe.style.cssText =
-          `position:fixed;left:0;top:0;width:${framePx}px;height:900px;border:0;opacity:0;pointer-events:none;z-index:-1;overflow:visible;`;
+          `position:fixed;left:0;top:0;width:${framePx}px;height:640px;border:0;opacity:0;pointer-events:none;z-index:-1;`;
         document.body.appendChild(iframe);
         const win = iframe.contentWindow;
         if (!win) {
@@ -15200,13 +15201,32 @@
           try {
             const doc = win.document;
             const ticket = doc.querySelector(".ticket");
-            const pxH = ticket ? ticket.getBoundingClientRect().height : doc.body?.scrollHeight || 80;
-            const pageMm = Math.ceil(((pxH * 25.4) / 96) * 10) / 10;
-            const style = doc.getElementById("nfseThermalPage");
-            if (style) {
-              style.textContent = `@page { size: ${Number(paperWidthMm)}mm ${pageMm}mm; margin: 0; }`;
+            const pxH = ticket ? ticket.getBoundingClientRect().height : 80;
+            const preset = doc.getElementById("nfseThermalPage");
+            if (preset) preset.textContent = "";
+            const pageMm = Math.max(1, Math.ceil((pxH * 25.4) / 96));
+            let lock = doc.getElementById("cdrPageLock");
+            if (!lock) {
+              lock = doc.createElement("style");
+              lock.id = "cdrPageLock";
+              doc.head.appendChild(lock);
             }
-            iframe.style.height = `${Math.ceil(pxH)}px`;
+            lock.textContent = [
+              `@page { size: ${paper}mm ${pageMm}mm; margin: 0; }`,
+              `html, body {`,
+              `  width: ${paper}mm !important;`,
+              `  height: ${pageMm}mm !important;`,
+              `  max-height: ${pageMm}mm !important;`,
+              `  min-height: 0 !important;`,
+              `  margin: 0 !important;`,
+              `  padding: 0 !important;`,
+              `  overflow: hidden !important;`,
+              `}`,
+            ].join("\n");
+            const frameH = Math.ceil((pageMm * 96) / 25.4);
+            iframe.style.height = `${frameH}px`;
+            void iframe.offsetHeight;
+            void doc.documentElement.offsetHeight;
             win.focus();
             win.print();
           } catch (e) {
@@ -20307,7 +20327,7 @@
     width: ${usefulMm}mm;
     margin: 0 auto;
     box-sizing: border-box;
-    padding: 1mm 0 0.4mm;
+    padding: 1mm 0 8mm;
     background: #fff;
     color: #000;
     font-family: Arial, Helvetica, sans-serif;
@@ -20323,24 +20343,25 @@
     width: 58mm;
     max-width: 100%;
     height: auto;
-    margin: 0 auto 1.2mm;
+    margin: 0 auto 3mm;
     object-fit: contain;
     object-position: center;
   }
-  .title, .sec, .foot-brand, .foot-tag, .total { margin: 0; text-align: center; }
+  .title, .sec, .foot-brand, .foot-tag, .total { text-align: center; }
   .title {
+    margin: 0 0 2.8mm;
     font-size: 14px;
     font-weight: 800;
     letter-spacing: 0.02em;
     line-height: 1.15;
   }
   .sec {
-    margin-top: 1.4mm;
+    margin: 0;
     font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.04em;
   }
-  .line { margin: 0.6mm 0 0; }
+  .line { margin: 0.4mm 0 0; }
   .hot { font-weight: 800; }
   .hot-placa { font-weight: 800; font-size: 14px; }
   .total {
@@ -20350,14 +20371,11 @@
   }
   .foot-brand { margin-top: 0.4mm; font-size: 13px; font-weight: 800; letter-spacing: 0.04em; }
   .foot-tag { font-size: 11px; font-weight: 700; }
-  .sep { border: 0; border-top: 1px dashed #000; height: 0; margin: 1.4mm 0 0; }
+  .sep { border: 0; border-top: 1px dashed #000; height: 0; margin: 2.8mm 0 2.2mm; }
   @media print {
     html, body {
       margin: 0 !important;
       padding: 0 !important;
-      width: ${paperMm}mm;
-      height: auto !important;
-      min-height: 0 !important;
       background: #fff !important;
       color: #000 !important;
     }
