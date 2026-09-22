@@ -15201,32 +15201,9 @@
           try {
             const doc = win.document;
             const ticket = doc.querySelector(".ticket");
-            const pxH = ticket ? ticket.getBoundingClientRect().height : 80;
-            const preset = doc.getElementById("nfseThermalPage");
-            if (preset) preset.textContent = "";
-            const pageMm = Math.max(1, Math.ceil((pxH * 25.4) / 96));
-            let lock = doc.getElementById("cdrPageLock");
-            if (!lock) {
-              lock = doc.createElement("style");
-              lock.id = "cdrPageLock";
-              doc.head.appendChild(lock);
-            }
-            lock.textContent = [
-              `@page { size: ${paper}mm ${pageMm}mm; margin: 0; }`,
-              `html, body {`,
-              `  width: ${paper}mm !important;`,
-              `  height: ${pageMm}mm !important;`,
-              `  max-height: ${pageMm}mm !important;`,
-              `  min-height: 0 !important;`,
-              `  margin: 0 !important;`,
-              `  padding: 0 !important;`,
-              `  overflow: hidden !important;`,
-              `}`,
-            ].join("\n");
-            const frameH = Math.ceil((pageMm * 96) / 25.4);
-            iframe.style.height = `${frameH}px`;
+            const pxH = ticket ? Math.ceil(ticket.getBoundingClientRect().height) : 120;
+            iframe.style.height = `${Math.max(pxH + 2, 80)}px`;
             void iframe.offsetHeight;
-            void doc.documentElement.offsetHeight;
             win.focus();
             win.print();
           } catch (e) {
@@ -20314,74 +20291,85 @@
           return text;
         };
         const css = `
+  @page { margin: 0; size: ${paperMm}mm auto; }
   html, body {
     margin: 0;
     padding: 0;
     width: ${paperMm}mm;
     height: auto;
     min-height: 0;
+    max-height: none;
     background: #fff;
     color: #000;
   }
+  body > :first-child { margin-top: 0; }
   .ticket {
     width: ${usefulMm}mm;
     margin: 0 auto;
     box-sizing: border-box;
-    padding: 1mm 0 8mm;
+    padding: 1.2mm 0 1.5mm;
+    height: auto;
+    min-height: 0;
+    max-height: none;
     background: #fff;
     color: #000;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 12px;
-    line-height: 1.25;
+    line-height: 1.2;
     overflow-wrap: break-word;
     word-wrap: break-word;
     word-break: normal;
   }
   .ticket * { max-width: 100%; overflow-wrap: break-word; word-break: normal; }
-  .logo {
+  .ticket p, .ticket img, .ticket hr { margin: 0; padding: 0; }
+  .ticket .logo {
     display: block;
     width: 58mm;
     max-width: 100%;
     height: auto;
-    margin: 0 auto 3mm;
+    margin: 0 auto 2mm;
     object-fit: contain;
-    object-position: center;
+    object-position: center top;
   }
-  .title, .sec, .foot-brand, .foot-tag, .total { text-align: center; }
-  .title {
-    margin: 0 0 2.8mm;
+  .ticket .title, .ticket .sec, .ticket .foot-brand, .ticket .foot-tag, .ticket .total { text-align: center; }
+  .ticket .title {
+    margin: 0 0 2mm;
     font-size: 14px;
     font-weight: 800;
     letter-spacing: 0.02em;
     line-height: 1.15;
   }
-  .sec {
+  .ticket .sec {
     margin: 0;
     font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.04em;
   }
-  .line { margin: 0.4mm 0 0; }
-  .hot { font-weight: 800; }
-  .hot-placa { font-weight: 800; font-size: 14px; }
-  .total {
-    margin-top: 1.2mm;
+  .ticket .line { margin: 0.3mm 0 0; }
+  .ticket .hot { font-weight: 800; }
+  .ticket .hot-placa { font-weight: 800; font-size: 14px; }
+  .ticket .total {
+    margin: 1mm 0 0;
     font-size: 14px;
     font-weight: 800;
   }
-  .foot-brand { margin-top: 0.4mm; font-size: 13px; font-weight: 800; letter-spacing: 0.04em; }
-  .foot-tag { font-size: 11px; font-weight: 700; }
-  .sep { border: 0; border-top: 1px dashed #000; height: 0; margin: 2.8mm 0 2.2mm; }
+  .ticket .foot-brand { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: 0.04em; }
+  .ticket .foot-tag { margin: 0; font-size: 11px; font-weight: 700; }
+  .ticket .sep { border: 0; border-top: 1px dashed #000; height: 0; margin: 2mm 0 1.6mm; }
   @media print {
-    html, body {
-      margin: 0 !important;
-      padding: 0 !important;
+    html, body, .ticket {
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
       background: #fff !important;
       color: #000 !important;
     }
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
   }`;
         return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Controle de Recebimento</title>
-<style id="nfseThermalPage">@page { size: ${paperMm}mm 20mm; margin: 0; }</style>
 <style>${css}</style></head><body>
 <div class="ticket">
   <img class="logo" src="${escapeHtml(logo)}" alt="AMPLIGUARD" />
