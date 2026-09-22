@@ -3475,7 +3475,8 @@
       .table td.actions button[data-action="nota"],
       .table td.actions button[data-action="ficha"],
       .table td.actions button[data-action="nfse"],
-      .table td.actions button[data-action="cobranca_email"] {
+      .table td.actions button[data-action="cobranca_email"],
+      .table td.actions button[data-action="nfse_termica"] {
         border-color: rgba(212, 175, 55, 0.45);
         background: rgba(212, 175, 55, 0.13);
         color: #fca5a5;
@@ -3503,7 +3504,8 @@
       [data-theme="light"] .table td.actions button[data-action="nota"],
       [data-theme="light"] .table td.actions button[data-action="ficha"],
       [data-theme="light"] .table td.actions button[data-action="nfse"],
-      [data-theme="light"] .table td.actions button[data-action="cobranca_email"] {
+      [data-theme="light"] .table td.actions button[data-action="cobranca_email"],
+      [data-theme="light"] .table td.actions button[data-action="nfse_termica"] {
         background: rgba(212, 175, 55, 0.12);
         color: #b8941f;
       }
@@ -3521,6 +3523,20 @@
         margin: 0 0 10px;
         font-size: 13px;
         color: var(--muted);
+      }
+      #nfseThermalModal button:disabled,
+      #nfseThermalModal button:disabled:hover {
+        opacity: 0.42;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+        filter: grayscale(0.55);
+      }
+      #nfseThermalCnpjStatus.is-invalid {
+        color: #f87171;
+      }
+      [data-theme="light"] #nfseThermalCnpjStatus.is-invalid {
+        color: #b91c1c;
       }
       .section-card {
         padding: 20px;
@@ -8975,6 +8991,44 @@
         </div>
       </div>
 
+      <div id="nfseThermalModal" class="modal-backdrop hidden">
+        <div class="modal">
+          <div class="modal-header">
+            <div>
+              <h3>Impressão térmica da NFS-e</h3>
+              <p class="notice" style="margin: 4px 0 0; font-size: 12px">
+                O botão IMPRIMIR fica bloqueado até o nome/razão social e um CNPJ válido estarem preenchidos.
+              </p>
+            </div>
+            <button type="button" class="modal-close" id="closeNfseThermalModal">Fechar</button>
+          </div>
+          <div class="form-grid">
+            <div class="full">
+              <label for="nfseThermalNome">Nome/Razão Social do destinatário</label>
+              <input id="nfseThermalNome" type="text" maxlength="160" autocomplete="off" placeholder="Nome ou razão social de quem a nota foi emitida" />
+            </div>
+            <div>
+              <label for="nfseThermalCnpj">CNPJ do destinatário</label>
+              <input id="nfseThermalCnpj" type="text" inputmode="numeric" maxlength="18" autocomplete="off" placeholder="00.000.000/0000-00" />
+            </div>
+            <div>
+              <label for="nfseThermalWidth">Largura da impressora</label>
+              <select id="nfseThermalWidth" title="Largura do papel térmico">
+                <option value="80">80 mm</option>
+                <option value="58">58 mm</option>
+              </select>
+            </div>
+          </div>
+          <p id="nfseThermalCnpjStatus" class="notice" style="margin: 8px 0 0">
+            Informe o nome/razão social e um CNPJ válido para liberar a impressão.
+          </p>
+          <div class="form-actions">
+            <button type="button" id="nfseThermalPrintBtn" disabled>IMPRIMIR</button>
+            <button type="button" class="secondary" id="nfseThermalCloseBtn">Fechar</button>
+          </div>
+        </div>
+      </div>
+
       <div id="textModal" class="modal-backdrop hidden">
         <div class="modal">
           <div class="modal-header">
@@ -10217,6 +10271,14 @@
       const cobrancaEmailCloseBtn = document.getElementById("cobrancaEmailCloseBtn");
       const cobrancaEmailCopyAssuntoBtn = document.getElementById("cobrancaEmailCopyAssuntoBtn");
       const cobrancaEmailCopyMensagemBtn = document.getElementById("cobrancaEmailCopyMensagemBtn");
+      const nfseThermalModal = document.getElementById("nfseThermalModal");
+      const closeNfseThermalModal = document.getElementById("closeNfseThermalModal");
+      const nfseThermalCloseBtn = document.getElementById("nfseThermalCloseBtn");
+      const nfseThermalNome = document.getElementById("nfseThermalNome");
+      const nfseThermalCnpj = document.getElementById("nfseThermalCnpj");
+      const nfseThermalWidth = document.getElementById("nfseThermalWidth");
+      const nfseThermalCnpjStatus = document.getElementById("nfseThermalCnpjStatus");
+      const nfseThermalPrintBtn = document.getElementById("nfseThermalPrintBtn");
       const textModal = document.getElementById("textModal");
       const textModalTitle = document.getElementById("textModalTitle");
       const textModalBody = document.getElementById("textModalBody");
@@ -10377,6 +10439,8 @@
       let editingVehicleData = null;
       let nfseVehicleId = null;
       let nfseStatusBeforeOpen = null;
+      let nfseThermalVehicleId = null;
+      const NFSE_THERMAL_WIDTH_KEY = "amplipatio_nfse_thermal_width_mm";
 
       const state = {
         user: null,
@@ -15059,6 +15123,53 @@
         return true;
       }
       window.printHtmlInHiddenIframe = printHtmlInHiddenIframe;
+
+      function printNfseThermalTicket(html, paperWidthMm) {
+        const iframe = document.createElement("iframe");
+        iframe.setAttribute("title", "Impressão térmica NFS-e");
+        iframe.setAttribute("aria-hidden", "true");
+        const framePx = Math.max(220, Math.round((Number(paperWidthMm) * 96) / 25.4));
+        iframe.style.cssText =
+          `position:fixed;left:0;top:0;width:${framePx}px;height:480px;border:0;opacity:0;pointer-events:none;z-index:-1;overflow:hidden;`;
+        document.body.appendChild(iframe);
+        const win = iframe.contentWindow;
+        if (!win) {
+          iframe.remove();
+          alert("Não foi possível preparar a impressão neste navegador.");
+          return false;
+        }
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+        const removeIframe = () => {
+          try {
+            iframe.remove();
+          } catch (e) {
+            /* ignore */
+          }
+        };
+        setTimeout(() => {
+          try {
+            const doc = win.document;
+            const ticket = doc.querySelector(".ticket");
+            const pxH = ticket
+              ? Math.ceil(ticket.getBoundingClientRect().height)
+              : Math.ceil(doc.body?.scrollHeight || 120);
+            const pageMm = Math.max(28, Math.ceil(((pxH * 25.4) / 96 + 1.2) * 10) / 10);
+            const style = doc.getElementById("nfseThermalPage");
+            if (style) {
+              style.textContent = `@page { size: ${Number(paperWidthMm)}mm ${pageMm}mm; margin: 0; }`;
+            }
+            iframe.style.height = `${pxH + 8}px`;
+            win.focus();
+            win.print();
+          } catch (e) {
+            alert("Não foi possível abrir a impressão térmica.");
+          }
+          setTimeout(removeIframe, 800);
+        }, 300);
+        return true;
+      }
       window.loadJsPdf = loadJsPdf;
       window.loadHtml2Canvas = loadHtml2Canvas;
 
@@ -19244,6 +19355,7 @@
               <button class="secondary" data-action="voltar" data-id="${v.id}" title="Desfaz remoção feita por engano e volta para o passo anterior">Voltar</button>
               ${nfseActionButtonHtml(v)}
               ${cobrancaEmailActionButtonHtml(v)}
+              ${nfseThermalActionButtonHtml(v)}
               ${
                 vnpShouldShowVistoriaViewButton(v)
                   ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
@@ -19288,6 +19400,7 @@
               <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
               ${nfseActionButtonHtml(v)}
               ${cobrancaEmailActionButtonHtml(v)}
+              ${nfseThermalActionButtonHtml(v)}
               <button class="secondary" data-action="voltar" data-id="${v.id}" title="Volta um passo no fluxo">Voltar</button>
               ${
                 isSystemManagerUser()
@@ -19870,6 +19983,10 @@
         return `<button type="button" class="secondary" data-action="cobranca_email" data-id="${vehicle.id}">E-MAIL</button>`;
       }
 
+      function nfseThermalActionButtonHtml(vehicle) {
+        return `<button type="button" class="secondary" data-action="nfse_termica" data-id="${vehicle.id}">Imprimir NFS-e</button>`;
+      }
+
       function cobrancaEmailDash(value) {
         const t = String(value == null ? "" : value).trim();
         return t || "—";
@@ -19958,6 +20075,205 @@
         if (cobrancaEmailMensagem) cobrancaEmailMensagem.value = mensagem;
         if (cobrancaEmailCopyHint) cobrancaEmailCopyHint.textContent = "";
         cobrancaEmailModal?.classList.remove("hidden");
+      }
+
+      function isValidCnpjDigits(digits) {
+        const d = String(digits || "").replace(/\D/g, "");
+        if (d.length !== 14) return false;
+        if (/^(\d)\1{13}$/.test(d)) return false;
+        const calc = (base, weights) => {
+          let sum = 0;
+          for (let i = 0; i < weights.length; i += 1) sum += Number(base[i]) * weights[i];
+          const mod = sum % 11;
+          return mod < 2 ? 0 : 11 - mod;
+        };
+        const d1 = calc(d.slice(0, 12), [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+        const d2 = calc(d.slice(0, 13), [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+        return d1 === Number(d[12]) && d2 === Number(d[13]);
+      }
+
+      function maskCnpjInputValue(raw) {
+        const d = String(raw || "").replace(/\D/g, "").slice(0, 14);
+        const p1 = d.slice(0, 2);
+        const p2 = d.slice(2, 5);
+        const p3 = d.slice(5, 8);
+        const p4 = d.slice(8, 12);
+        const p5 = d.slice(12, 14);
+        let out = p1;
+        if (p2) out += `.${p2}`;
+        if (p3) out += `.${p3}`;
+        if (p4) out += `/${p4}`;
+        if (p5) out += `-${p5}`;
+        return out;
+      }
+
+      function nfseThermalWidthMm() {
+        try {
+          const n = Number(localStorage.getItem(NFSE_THERMAL_WIDTH_KEY));
+          if (n === 58 || n === 80) return n;
+        } catch (e) {
+          /* ignore */
+        }
+        return 80;
+      }
+
+      function setNfseThermalWidthMm(n) {
+        const width = n === 58 ? 58 : 80;
+        try {
+          localStorage.setItem(NFSE_THERMAL_WIDTH_KEY, String(width));
+        } catch (e) {
+          /* ignore */
+        }
+        return width;
+      }
+
+      function syncNfseThermalPrintState() {
+        const nome = String(nfseThermalNome?.value || "").trim();
+        const digits = String(nfseThermalCnpj?.value || "").replace(/\D/g, "");
+        const cnpjOk = isValidCnpjDigits(digits);
+        const ready = nome.length > 0 && cnpjOk;
+        if (nfseThermalPrintBtn) nfseThermalPrintBtn.disabled = !ready;
+        if (!nfseThermalCnpjStatus) return;
+        const cnpjIncomplete = digits.length > 0 && digits.length < 14;
+        const cnpjInvalid = digits.length === 14 && !cnpjOk;
+        nfseThermalCnpjStatus.classList.toggle("is-invalid", cnpjInvalid);
+        if (!digits.length && !nome) {
+          nfseThermalCnpjStatus.textContent = "Informe o nome/razão social e um CNPJ válido para liberar a impressão.";
+        } else if (cnpjIncomplete) {
+          nfseThermalCnpjStatus.textContent = "Complete o CNPJ no formato 00.000.000/0000-00.";
+        } else if (cnpjInvalid) {
+          nfseThermalCnpjStatus.textContent = "CNPJ inválido. O formato é 00.000.000/0000-00.";
+        } else if (!nome) {
+          nfseThermalCnpjStatus.textContent = "Informe o nome ou a razão social do destinatário.";
+        } else if (!cnpjOk) {
+          nfseThermalCnpjStatus.textContent = "Informe o CNPJ do destinatário no formato 00.000.000/0000-00.";
+        } else {
+          nfseThermalCnpjStatus.textContent = "Dados preenchidos. A impressão está liberada.";
+        }
+      }
+
+      function applyNfseThermalCnpjMask() {
+        const el = nfseThermalCnpj;
+        if (!el) return;
+        const start = el.selectionStart ?? el.value.length;
+        const digitsBefore = el.value.slice(0, start).replace(/\D/g, "").length;
+        const masked = maskCnpjInputValue(el.value);
+        if (el.value !== masked) {
+          el.value = masked;
+          let pos = 0;
+          let seen = 0;
+          while (pos < masked.length && seen < digitsBefore) {
+            if (/\d/.test(masked.charAt(pos))) seen += 1;
+            pos += 1;
+          }
+          try {
+            el.setSelectionRange(pos, pos);
+          } catch (e) {
+            /* ignore */
+          }
+        }
+      }
+
+      function buildNfseThermalPrintHtml({ nome, cnpj, nfseText, emailText, paperWidthMm }) {
+        const width = paperWidthMm === 58 ? 58 : 80;
+        const fontPx = width <= 58 ? 11 : 12;
+        const titlePx = width <= 58 ? 12 : 13;
+        const brandPx = width <= 58 ? 14 : 16;
+        const css = `
+  html, body { margin: 0; padding: 0; background: #fff; color: #000; }
+  .ticket {
+    width: ${width}mm;
+    box-sizing: border-box;
+    padding: 2mm 2.2mm 2.4mm;
+    background: #fff;
+    color: #000;
+    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+    font-size: ${fontPx}px;
+    line-height: 1.28;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: normal;
+  }
+  .ticket * { max-width: 100%; overflow-wrap: break-word; word-break: normal; }
+  .brand {
+    margin: 0;
+    text-align: center;
+    font-weight: 800;
+    font-size: ${brandPx}px;
+    letter-spacing: 0.06em;
+    line-height: 1.15;
+  }
+  .title {
+    margin: 2px 0 6px;
+    text-align: center;
+    font-weight: 700;
+    font-size: ${titlePx}px;
+    line-height: 1.2;
+  }
+  .meta { margin: 0; }
+  .block {
+    margin: 6px 0 0;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+  .sep { border: 0; border-top: 1px dashed #000; height: 0; margin: 7px 0 1px; }
+  @media print {
+    html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; color: #000 !important; }
+  }`;
+        return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>NFS-e</title>
+<style id="nfseThermalPage">@page { size: ${width}mm 40mm; margin: 0; }</style>
+<style>${css}</style></head><body>
+<div class="ticket">
+  <p class="brand">AMPLIGUARD</p>
+  <p class="title">NFS-e — NOTA FISCAL DE SERVIÇO</p>
+  <p class="meta">Emitida para: ${escapeHtml(nome)}</p>
+  <p class="meta">CNPJ: ${escapeHtml(cnpj)}</p>
+  <div class="block">${escapeHtml(nfseText)}</div>
+  <hr class="sep" />
+  <div class="block">${escapeHtml(emailText)}</div>
+</div>
+</body></html>`;
+      }
+
+      function closeNfseThermalModalFn() {
+        nfseThermalModal?.classList.add("hidden");
+        nfseThermalVehicleId = null;
+      }
+
+      function openNfseThermalModal(vehicle) {
+        if (!vehicle || !nfseThermalModal) return;
+        nfseThermalVehicleId = vehicle.id;
+        if (nfseThermalNome) nfseThermalNome.value = "";
+        if (nfseThermalCnpj) nfseThermalCnpj.value = "";
+        if (nfseThermalWidth) nfseThermalWidth.value = String(nfseThermalWidthMm());
+        syncNfseThermalPrintState();
+        nfseThermalModal.classList.remove("hidden");
+        nfseThermalNome?.focus();
+      }
+
+      function printOpenNfseThermal() {
+        syncNfseThermalPrintState();
+        if (!nfseThermalPrintBtn || nfseThermalPrintBtn.disabled) return;
+        const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(nfseThermalVehicleId));
+        if (!vehicle) {
+          alert("Não foi possível localizar o veículo desta NFS-e.");
+          return;
+        }
+        const nome = String(nfseThermalNome?.value || "").trim();
+        const cnpj = maskCnpjInputValue(nfseThermalCnpj?.value || "");
+        if (!nome || !isValidCnpjDigits(cnpj)) return;
+        const widthMm = setNfseThermalWidthMm(Number(nfseThermalWidth?.value));
+        const { assunto, mensagem } = buildCobrancaEmailContent(vehicle);
+        const emailText = [assunto, mensagem].filter((part) => String(part || "").trim()).join("\n\n");
+        const html = buildNfseThermalPrintHtml({
+          nome,
+          cnpj,
+          nfseText: buildNfseText(vehicle),
+          emailText,
+          paperWidthMm: widthMm,
+        });
+        printNfseThermalTicket(html, widthMm);
       }
 
       async function copyCobrancaEmailField(text, fieldEl, okMsg) {
@@ -21016,6 +21332,17 @@
       cobrancaEmailCopyMensagemBtn?.addEventListener("click", () => {
         void copyCobrancaEmailField(cobrancaEmailMensagem?.value, cobrancaEmailMensagem, "Mensagem copiada.");
       });
+      closeNfseThermalModal?.addEventListener("click", () => closeNfseThermalModalFn());
+      nfseThermalCloseBtn?.addEventListener("click", () => closeNfseThermalModalFn());
+      nfseThermalNome?.addEventListener("input", () => syncNfseThermalPrintState());
+      nfseThermalCnpj?.addEventListener("input", () => {
+        applyNfseThermalCnpjMask();
+        syncNfseThermalPrintState();
+      });
+      nfseThermalWidth?.addEventListener("change", () => {
+        setNfseThermalWidthMm(Number(nfseThermalWidth.value));
+      });
+      nfseThermalPrintBtn?.addEventListener("click", () => printOpenNfseThermal());
       cancelNfseConfirm?.addEventListener("click", () => {
         void cancelNfseModal();
       });
@@ -21207,7 +21534,7 @@
         workflowModalConfig = null;
       });
 
-      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, lancamentoModal, fichaModal, patioVehicleActionsModal, nfseModal, cobrancaEmailModal, textModal, reciboModal, receberBaixaModal, pagarBaixaModal].filter(Boolean).forEach((modal) => {
+      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, lancamentoModal, fichaModal, patioVehicleActionsModal, nfseModal, cobrancaEmailModal, nfseThermalModal, textModal, reciboModal, receberBaixaModal, pagarBaixaModal].filter(Boolean).forEach((modal) => {
         modal.addEventListener("click", (event) => {
           if (event.target === modal) {
             modal.classList.add("hidden");
@@ -23797,6 +24124,11 @@
 
         if (action === "cobranca_email") {
           openCobrancaEmailModal(vehicle);
+          return;
+        }
+
+        if (action === "nfse_termica") {
+          openNfseThermalModal(vehicle);
           return;
         }
 
