@@ -9206,6 +9206,24 @@
         </div>
       </div>
 
+      <div id="comprovantePagamentoModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 440px">
+          <div class="modal-header">
+            <div>
+              <h3>Comprovante de pagamento</h3>
+              <p class="subtitle" style="margin: 4px 0 0">Pagamento confirmado. Imprima ou baixe o comprovante.</p>
+            </div>
+            <button type="button" class="modal-close" id="closeComprovantePagamentoModal">Fechar</button>
+          </div>
+          <p id="comprovantePagamentoResumo" class="notice" style="margin: 0 0 12px; font-size: 13px; line-height: 1.45"></p>
+          <div class="form-actions" style="flex-wrap: wrap">
+            <button type="button" id="comprovantePagamentoPrintBtn">Imprimir Comprovante</button>
+            <button type="button" class="secondary" id="comprovantePagamentoPdfBtn">Baixar PDF</button>
+            <button type="button" class="secondary" id="comprovantePagamentoCloseBtn">Fechar</button>
+          </div>
+        </div>
+      </div>
+
       <div id="finContactModal" class="modal-backdrop hidden">
         <div class="modal" style="max-width: 560px">
           <div class="modal-header">
@@ -15342,10 +15360,10 @@
       }
       window.printHtmlInHiddenIframe = printHtmlInHiddenIframe;
 
-      function printNfseThermalTicket(html, paperWidthMm) {
+      function printNfseThermalTicket(html, paperWidthMm, frameTitle) {
         const paper = Number(paperWidthMm) || 80;
         const iframe = document.createElement("iframe");
-        iframe.setAttribute("title", "Controle de Recebimento");
+        iframe.setAttribute("title", frameTitle || "Controle de Recebimento");
         iframe.setAttribute("aria-hidden", "true");
         const framePx = Math.max(220, Math.round((paper * 96) / 25.4));
         iframe.style.cssText =
@@ -22154,6 +22172,17 @@
       document.getElementById("receberBaixaGerarPdf")?.addEventListener("click", () => {
         void executeReceberBaixa("pdf");
       });
+      document.getElementById("closeComprovantePagamentoModal")?.addEventListener("click", closeComprovantePagamentoModal);
+      document.getElementById("comprovantePagamentoCloseBtn")?.addEventListener("click", closeComprovantePagamentoModal);
+      document.getElementById("comprovantePagamentoModal")?.addEventListener("click", (e) => {
+        if (e.target === e.currentTarget) closeComprovantePagamentoModal();
+      });
+      document.getElementById("comprovantePagamentoPrintBtn")?.addEventListener("click", () => {
+        printComprovantePagamentoAtual();
+      });
+      document.getElementById("comprovantePagamentoPdfBtn")?.addEventListener("click", () => {
+        void downloadComprovantePagamentoAtual();
+      });
       document.getElementById("closePagarBaixaModal")?.addEventListener("click", closePagarBaixaModal);
       document.getElementById("cancelPagarBaixaModal")?.addEventListener("click", closePagarBaixaModal);
       pagarBaixaModal?.addEventListener("click", (e) => {
@@ -22387,6 +22416,7 @@
 
       let pendingReciboContext = null;
       let pendingBaixaReceber = null;
+      let comprovantePagamentoAtual = null;
       let pendingBaixaPagar = null;
       let pendingCobrancaReceivableId = null;
       let pendingContaEdit = null;
@@ -22560,6 +22590,271 @@
         pendingBaixaReceber = null;
       }
 
+      function comprovanteDash(value) {
+        const text = String(value == null ? "" : value).trim();
+        if (!text || text === "-" || text === "—") return "—";
+        return text;
+      }
+
+      function collectComprovantePagamentoData(payload) {
+        const receivable = payload?.receivable || {};
+        const vehicle = payload?.vehicle || null;
+        const confirmedAt = payload?.confirmedAt instanceof Date ? payload.confirmedAt : new Date();
+        const hora = `${String(confirmedAt.getHours()).padStart(2, "0")}:${String(confirmedAt.getMinutes()).padStart(2, "0")}`;
+        const dataConf = formatDateBr(confirmedAt.toISOString());
+        const dest = receivableDestinatarioCobranca(receivable);
+        const display = financeReceivableDisplayText(receivable);
+        const rppNome = vehicle ? vehicleRpfNome(vehicle) : "";
+        const devedor =
+          String(dest.nome || "").trim() ||
+          (display && display !== "—" ? display : "") ||
+          (rppNome && rppNome !== "—" ? rppNome : "");
+        const rpv = vehicle?.localizador_id
+          ? String((state.partners || []).find((p) => String(p.id) === String(vehicle.localizador_id))?.nome || "").trim()
+          : "";
+        const idCompact = String(receivable.id || "").replace(/-/g, "").slice(0, 8).toUpperCase();
+        const tipoLabel = dest.tipo === "NF" ? "Nota fiscal" : dest.tipo === "COBRANCA" ? "Cobrança" : "";
+        const descricao = String(receivable.descricao || "").trim();
+        const referencia = [descricao, idCompact ? `Ref. ${idCompact}` : ""].filter(Boolean).join(" · ");
+        const faturamento = [tipoLabel, idCompact ? `Ref. ${idCompact}` : ""].filter(Boolean).join(" · ");
+        const desconto = Math.max(0, Number(payload?.desconto) || 0);
+        const dias = vehicle ? calcDays(vehicle) : 0;
+        return {
+          dataPagamento: payload?.dataMov ? formatDateBr(payload.dataMov) : "",
+          horaConfirmacao: hora,
+          dataHoraConfirmacao: `${dataConf} ${hora}`,
+          valorRecebido: formatCurrency(payload?.valorRecebido),
+          valorOriginal: formatCurrency(payload?.valorOriginal),
+          desconto: desconto > 0 ? formatCurrency(desconto) : "",
+          forma: String(payload?.formaPagamento || "").trim(),
+          referencia,
+          faturamento,
+          devedor,
+          contato: String(dest.contato || "").trim(),
+          servico: receivable.receivable_category ? receivableCategoryLabel(receivable.receivable_category) : "",
+          observacao: String(payload?.observacao || "").trim(),
+          placa: String(vehicle?.placa || "").trim(),
+          marca: String(vehicle?.marca || "").trim(),
+          modelo: String(vehicle?.modelo || "").trim(),
+          cor: String(vehicle?.cor || "").trim(),
+          rpv,
+          rpp: rppNome && rppNome !== "—" ? rppNome : "",
+          entrada: vehicle?.data_entrada ? formatDateBr(vehicle.data_entrada) : "",
+          saida: vehicle?.data_saida ? formatDateBr(vehicle.data_saida) : "",
+          periodo: dias ? `${dias} dias` : "",
+          confirmadoPor: currentPatioOperatorLabel(),
+          hasVehicle: !!vehicle,
+        };
+      }
+
+      function comprovantePagamentoBlocks(data) {
+        const blocks = [];
+        const line = (kind, text) => blocks.push({ kind, text });
+        line("title", "COMPROVANTE DE PAGAMENTO");
+        line("sec", "DADOS DO PAGAMENTO");
+        line("line", `Data do pagamento: ${comprovanteDash(data.dataPagamento)}`);
+        line("line", `Hora da confirmação: ${comprovanteDash(data.horaConfirmacao)}`);
+        line("line", `Forma de pagamento: ${comprovanteDash(data.forma)}`);
+        if (data.referencia) line("line", `Identificação: ${data.referencia}`);
+        line("total", `VALOR RECEBIDO: ${comprovanteDash(data.valorRecebido)}`);
+        line("sep", "");
+        line("sec", "DADOS DO FATURAMENTO");
+        line("line", `Devedor: ${comprovanteDash(data.devedor)}`);
+        if (data.faturamento) line("line", `Faturamento: ${data.faturamento}`);
+        line("line", `Valor original: ${comprovanteDash(data.valorOriginal)}`);
+        if (data.desconto) line("line", `Desconto: ${data.desconto}`);
+        if (data.servico) line("line", `Serviço: ${data.servico}`);
+        if (data.contato) line("line", `Contato: ${data.contato}`);
+        if (data.observacao) line("line", `Observação: ${data.observacao}`);
+        if (data.hasVehicle) {
+          line("sep", "");
+          line("sec", "DADOS DO VEÍCULO");
+          line("line", `RPV: ${comprovanteDash(data.rpv)}`);
+          line("hot", `RPP: ${comprovanteDash(data.rpp)}`);
+          line("placa", `Placa: ${comprovanteDash(data.placa)}`);
+          line("line", `Marca: ${comprovanteDash(data.marca)}`);
+          line("line", `Modelo: ${comprovanteDash(data.modelo)}`);
+          if (data.cor) line("line", `Cor: ${data.cor}`);
+          if (data.entrada && data.entrada !== "-") line("line", `Data de Entrada: ${data.entrada}`);
+          if (data.saida && data.saida !== "-") line("line", `Data de Saída: ${data.saida}`);
+          if (data.periodo) line("line", `Período: ${data.periodo}`);
+        }
+        line("sep", "");
+        line("line", `Pagamento confirmado por: ${comprovanteDash(data.confirmadoPor)}`);
+        line("hot", `Data e hora da confirmação: ${comprovanteDash(data.dataHoraConfirmacao)}`);
+        line("sep", "");
+        line("foot", "AMPLIGUARD");
+        line("foot-tag", "Guarda, Custódia e Remoção de Veículos");
+        return blocks;
+      }
+
+      function comprovanteTicketCss() {
+        const sample = buildCdrPrintHtml({ tipo: "PF" });
+        const match = String(sample || "").match(/<style>([\s\S]*?)<\/style>/);
+        return match ? match[1] : "";
+      }
+
+      function buildComprovantePagamentoHtml(data) {
+        const logo = `${location.origin}/assets/ampliguard-marca.png?v=20260917logo2`;
+        const cls = {
+          title: "title",
+          sec: "sec",
+          line: "line",
+          hot: "line hot",
+          placa: "line hot-placa",
+          total: "total",
+          foot: "foot-brand",
+          "foot-tag": "foot-tag",
+        };
+        const body = comprovantePagamentoBlocks(data)
+          .map((block) =>
+            block.kind === "sep"
+              ? `  <hr class="sep" />`
+              : `  <p class="${cls[block.kind] || "line"}">${escapeHtml(block.text)}</p>`
+          )
+          .join("\n");
+        return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Comprovante de Pagamento</title>
+<style>${comprovanteTicketCss()}</style></head><body>
+<div class="ticket cdr-print">
+  <img class="logo" src="${escapeHtml(logo)}" alt="AMPLIGUARD" />
+${body}
+</div>
+</body></html>`;
+      }
+
+      function closeComprovantePagamentoModal() {
+        document.getElementById("comprovantePagamentoModal")?.classList.add("hidden");
+      }
+
+      function openComprovantePagamentoModal(data) {
+        if (!data) return;
+        comprovantePagamentoAtual = data;
+        const modal = document.getElementById("comprovantePagamentoModal");
+        const resumo = document.getElementById("comprovantePagamentoResumo");
+        if (resumo) {
+          const bits = [
+            data.placa ? `Placa ${data.placa}` : "",
+            data.valorRecebido ? `Valor recebido ${data.valorRecebido}` : "",
+            data.forma || "",
+          ].filter(Boolean);
+          resumo.textContent = bits.join(" · ") || "Pagamento confirmado.";
+        }
+        if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
+        modal?.classList.remove("hidden");
+      }
+
+      function printComprovantePagamentoAtual() {
+        if (!comprovantePagamentoAtual) return;
+        printNfseThermalTicket(buildComprovantePagamentoHtml(comprovantePagamentoAtual), 80, "Comprovante de Pagamento");
+      }
+
+      const COMPROVANTE_PDF_STYLE = {
+        title: { size: 10.5, font: "bold", align: "center", after: 2, lh: 1.15 },
+        sec: { size: 8.25, font: "bold", align: "center", after: 0.6, lh: 1.2 },
+        line: { size: 9, font: "normal", align: "left", after: 0.35, lh: 1.2 },
+        hot: { size: 9, font: "bold", align: "left", after: 0.35, lh: 1.2 },
+        placa: { size: 10.5, font: "bold", align: "left", after: 0.35, lh: 1.2 },
+        total: { size: 10.5, font: "bold", align: "center", after: 1, lh: 1.15 },
+        foot: { size: 9.75, font: "bold", align: "center", after: 0.3, lh: 1.15 },
+        "foot-tag": { size: 8.25, font: "bold", align: "center", after: 0, lh: 1.15 },
+      };
+
+      function comprovantePdfBlockHeight(doc, block) {
+        if (block.kind === "sep") return 3.6;
+        const style = COMPROVANTE_PDF_STYLE[block.kind];
+        doc.setFont("helvetica", style.font);
+        doc.setFontSize(style.size);
+        const lines = doc.splitTextToSize(String(block.text || ""), 68);
+        return lines.length * style.size * 0.352777 * style.lh + style.after;
+      }
+
+      function drawComprovantePdfBlock(doc, block, y) {
+        if (block.kind === "sep") {
+          doc.setDrawColor(0);
+          doc.setLineWidth(0.2);
+          doc.setLineDashPattern([0.8, 0.7], 0);
+          doc.line(6, y + 2, 74, y + 2);
+          doc.setLineDashPattern([], 0);
+          return y + 3.6;
+        }
+        const style = COMPROVANTE_PDF_STYLE[block.kind];
+        doc.setFont("helvetica", style.font);
+        doc.setFontSize(style.size);
+        doc.setTextColor(0, 0, 0);
+        const lines = doc.splitTextToSize(String(block.text || ""), 68);
+        const lineMm = style.size * 0.352777 * style.lh;
+        const x = style.align === "center" ? 40 : 6;
+        let cursor = y;
+        lines.forEach((textLine) => {
+          doc.text(textLine, x, cursor + style.size * 0.352777 * 0.82, { align: style.align });
+          cursor += lineMm;
+        });
+        return cursor + style.after;
+      }
+
+      async function buildComprovantePagamentoPdfDoc(data) {
+        await loadJsPdf();
+        const jsPdfCtor = window.jspdf?.jsPDF;
+        if (!jsPdfCtor) throw new Error("jsPDF indisponível");
+        const measure = new jsPdfCtor({ unit: "mm", format: [80, 200] });
+        const blocks = comprovantePagamentoBlocks(data);
+        const logo = await loadReciboLogoDataUrl();
+        let logoW = 58;
+        let logoH = 16;
+        if (logo) {
+          try {
+            const props = measure.getImageProperties(logo.dataUrl);
+            logoH = (props.height * logoW) / props.width;
+            if (logoH > 22) {
+              logoH = 22;
+              logoW = (props.width * logoH) / props.height;
+            }
+          } catch (e) {
+            logoH = 16;
+            logoW = 58;
+          }
+        }
+        let height = logo ? 1.2 + logoH + 2 : 1.2;
+        blocks.forEach((block) => {
+          height += comprovantePdfBlockHeight(measure, block);
+        });
+        height += 1.5;
+        const doc = new jsPdfCtor({ unit: "mm", format: [80, Math.max(40, height)] });
+        let y = 1.2;
+        if (logo) {
+          try {
+            doc.addImage(logo.dataUrl, logo.type, (80 - logoW) / 2, 1.2, logoW, logoH);
+            y = 1.2 + logoH + 2;
+          } catch (e) {
+            y = 1.2;
+          }
+        }
+        blocks.forEach((block) => {
+          y = drawComprovantePdfBlock(doc, block, y);
+        });
+        return doc;
+      }
+
+      async function downloadComprovantePagamentoAtual() {
+        if (!comprovantePagamentoAtual) return;
+        const btn = document.getElementById("comprovantePagamentoPdfBtn");
+        if (btn) btn.disabled = true;
+        try {
+          const doc = await buildComprovantePagamentoPdfDoc(comprovantePagamentoAtual);
+          const placa = String(comprovantePagamentoAtual.placa || "pagamento").replace(/[^\w.-]+/g, "") || "pagamento";
+          doc.save(`comprovante-pagamento-${placa}.pdf`);
+        } catch (e) {
+          console.error(e);
+          alert("O pagamento já foi confirmado, mas não foi possível gerar o PDF do comprovante.");
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      }
+      window.buildComprovantePagamentoHtml = buildComprovantePagamentoHtml;
+      window.collectComprovantePagamentoData = collectComprovantePagamentoData;
+      window.openComprovantePagamentoModal = openComprovantePagamentoModal;
+      window.buildComprovantePagamentoPdfDoc = buildComprovantePagamentoPdfDoc;
+
       async function executeReceberBaixa(mode) {
         const pending = pendingBaixaReceber;
         if (!pending) return;
@@ -22621,6 +22916,23 @@
           return;
         }
         if (!result) return;
+        try {
+          openComprovantePagamentoModal(
+            collectComprovantePagamentoData({
+              receivable: result.receivable,
+              vehicle: result.vehicle,
+              valorRecebido: result.valor,
+              valorOriginal,
+              desconto,
+              formaPagamento,
+              dataMov,
+              observacao,
+              confirmedAt: new Date(),
+            })
+          );
+        } catch (errComprovante) {
+          console.error("comprovante pagamento", errComprovante);
+        }
         if (mode === "pdf") {
           try {
             await downloadReciboPdf({
