@@ -7133,7 +7133,7 @@
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260917header1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20260917header5" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20260923home1" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
   </head>
   <body class="auth-screen-active">
@@ -7962,14 +7962,14 @@
           <div class="toolbar fin-act-pagehead">
             <div>
               <h2 style="margin: 0">Financeiro</h2>
-              <p class="fin-act-subtitle">Saldo, diárias, a receber, a pagar e movimentações</p>
+              <p class="fin-act-subtitle">Quanto receber, o que está atrasado, quanto entrou, quanto saiu e o saldo</p>
               <p class="fin-act-period-range" id="finPeriodRangeLabel"></p>
             </div>
             <div class="actions fin-act-head-actions">
               <button type="button" id="finBtnNovoLancamento">+ Novo lançamento</button>
               <label class="fin-act-search-wrap" for="finGlobalSearch">
                 <span class="fin-act-sr">Pesquisar</span>
-                <input type="search" id="finGlobalSearch" placeholder="Placa, financeira, fornecedor, valor ou data" autocomplete="off" />
+                <input type="search" id="finGlobalSearch" placeholder="Placa, RPP, RPV, devedor, parceiro ou veículo" autocomplete="off" />
               </label>
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar">X</button>
             </div>
@@ -7977,9 +7977,10 @@
           <div class="finance-subnav" id="finSubnav">
             <button type="button" data-finance-subview-btn="dashboard" class="active">Visão Geral</button>
             <button type="button" data-finance-subview-btn="receber">A Receber</button>
-            <button type="button" data-finance-subview-btn="pagar">A Pagar</button>
-            <button type="button" data-finance-subview-btn="caixa">Entradas e Saídas</button>
+            <button type="button" data-finance-subview-btn="pagar">Despesas</button>
+            <button type="button" data-finance-subview-btn="caixa">Caixa</button>
           </div>
+          <div id="finSearchResults" class="fin-search-results hidden"></div>
           <p id="finRecebidosRecoverHint" class="notice hidden" style="margin: 0 0 10px"></p>
 
           <div class="finance-subview" data-finance-subview="dashboard">
@@ -9058,6 +9059,7 @@
           </p>
           <div class="form-actions">
             <button type="button" id="nfseThermalPrintBtn" disabled>IMPRIMIR CDR</button>
+            <button type="button" class="secondary" id="nfseThermalPdfBtn" disabled>Baixar PDF</button>
             <button type="button" class="secondary" id="nfseThermalCloseBtn">Fechar</button>
           </div>
         </div>
@@ -9219,6 +9221,7 @@
           <div class="form-actions" style="flex-wrap: wrap">
             <button type="button" id="comprovantePagamentoPrintBtn">Imprimir Comprovante</button>
             <button type="button" class="secondary" id="comprovantePagamentoPdfBtn">Baixar PDF</button>
+            <button type="button" class="secondary" id="comprovantePagamentoCdrBtn">Imprimir CDR</button>
             <button type="button" class="secondary" id="comprovantePagamentoCloseBtn">Fechar</button>
           </div>
         </div>
@@ -9661,8 +9664,8 @@
           <div class="header-menu-nested">
             <button type="button" data-finance-subview="dashboard">Visão Geral</button>
             <button type="button" data-finance-subview="receber">A Receber</button>
-            <button type="button" data-finance-subview="pagar">A Pagar</button>
-            <button type="button" data-finance-subview="caixa">Entradas e Saídas</button>
+            <button type="button" data-finance-subview="pagar">Despesas</button>
+            <button type="button" data-finance-subview="caixa">Caixa</button>
           </div>
         </details>
 
@@ -9706,11 +9709,11 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260922controle1"></script>
+    <script src="/finance-module.js?v=20260923home1"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
-    <script src="/finance-simple-ui.js?v=20260921ops1"></script>
+    <script src="/finance-simple-ui.js?v=20260923home1"></script>
     <script src="/finance-action-ui.js?v=20260921caderneta1"></script>
     <script src="/patio-dashboard.js?v=20260715gestor"></script>
     <script src="/operational-metrics-service.js?v=20260727opsdash"></script>
@@ -16831,15 +16834,15 @@
       };
 
       const APP_FIN_SUBVIEW_LABELS = {
-        dashboard: "Dashboard",
+        dashboard: "Visão geral",
         financeiras: "A Receber",
         em_patio: "Diárias",
         aguardando: "Aguardando faturamento",
         receber: "A Receber",
-        pagar: "A Pagar",
+        pagar: "Despesas",
         lancamentos: "Movimentações",
         relatorios: "Relatórios",
-        caixa: "Movimentações",
+        caixa: "Caixa",
         cadastros: "Configurações",
         contas: "Contas",
       };
@@ -20539,6 +20542,8 @@
         const cpfOk = isValidCpfDigits(cpfDigits);
         const ready = nfseThermalTipo === "PF" ? responsavel.length > 0 && cpfOk : nfseThermalTipo === "PJ" ? nome.length > 0 && cnpjOk : false;
         if (nfseThermalPrintBtn) nfseThermalPrintBtn.disabled = !ready;
+        const nfseThermalPdfBtn = document.getElementById("nfseThermalPdfBtn");
+        if (nfseThermalPdfBtn) nfseThermalPdfBtn.disabled = !ready;
         if (!nfseThermalCnpjStatus) return;
         const cpfIncomplete = nfseThermalTipo === "PF" && cpfDigits.length > 0 && cpfDigits.length < 11;
         const cpfInvalid = nfseThermalTipo === "PF" && cpfDigits.length === 11 && !cpfOk;
@@ -20751,6 +20756,7 @@
         nfseThermalModal.classList.remove("hidden");
         nfseThermalTipoPf?.focus();
       }
+      window.openNfseThermalModal = openNfseThermalModal;
 
       function printOpenNfseThermal() {
         syncNfseThermalPrintState();
@@ -20791,6 +20797,100 @@
           valor: formatCurrency(calcTotal(vehicle)),
         });
         printNfseThermalTicket(html, 80);
+      }
+
+      function currentCdrPrintData() {
+        syncNfseThermalPrintState();
+        const pdfBtn = document.getElementById("nfseThermalPdfBtn");
+        if ((nfseThermalPrintBtn && nfseThermalPrintBtn.disabled) || (pdfBtn && pdfBtn.disabled && !nfseThermalPrintBtn)) return null;
+        if (nfseThermalPrintBtn?.disabled) return null;
+        const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(nfseThermalVehicleId));
+        if (!vehicle) return null;
+        const tipo = nfseThermalTipo === "PF" || nfseThermalTipo === "PJ" ? nfseThermalTipo : "";
+        const razao = tipo === "PJ" ? String(nfseThermalNome?.value || "").trim() : "";
+        const cnpj = tipo === "PJ" ? maskCnpjInputValue(nfseThermalCnpj?.value || "") : "";
+        const responsavelNome = tipo === "PF" ? String(nfseThermalResponsavelNome?.value || "").trim() : "";
+        const responsavelCpf = tipo === "PF" ? maskCpfInputValue(nfseThermalResponsavelCpf?.value || "") : "";
+        if (tipo === "PF" && (!responsavelNome || !isValidCpfDigits(responsavelCpf))) return null;
+        if (tipo === "PJ" && (!razao || !isValidCnpjDigits(cnpj))) return null;
+        if (!tipo) return null;
+        const emissaoDate = new Date();
+        const vencimentoDate = addControleRecebimentoDays(emissaoDate, 10);
+        const marca = String(vehicle.marca || "").trim();
+        const modelo = String(vehicle.modelo || "").trim();
+        const dias = calcDays(vehicle);
+        return {
+          tipo,
+          razao,
+          cnpj,
+          responsavelNome,
+          responsavelCpf,
+          rpp: vehicleRpfNome(vehicle),
+          placa: vehicle.placa || "",
+          veiculo: [marca, modelo].filter(Boolean).join(" / "),
+          cor: vehicle.cor || "",
+          entrada: vehicle.data_entrada ? formatDateBr(vehicle.data_entrada) : "",
+          saida: vehicle.data_saida ? formatDateBr(vehicle.data_saida) : "",
+          periodo: dias ? `${dias} dias` : "",
+          emissao: formatControleRecebimentoDate(emissaoDate),
+          vencimento: formatControleRecebimentoDate(vencimentoDate),
+          valor: formatCurrency(calcTotal(vehicle)),
+        };
+      }
+
+      function cdrPdfBlocks(data) {
+        const dash = (value) => {
+          const text = String(value == null ? "" : value).trim();
+          if (!text || text === "-" || text === "—") return "—";
+          return text;
+        };
+        const blocks = [
+          { kind: "title", text: "CONTROLE DE RECEBIMENTO" },
+          { kind: "sec", text: "DADOS DO FATURAMENTO" },
+        ];
+        if (data.tipo === "PF") {
+          blocks.push({ kind: "line", text: `Nome completo: ${dash(data.responsavelNome)}` });
+          blocks.push({ kind: "line", text: `CPF: ${dash(data.responsavelCpf)}` });
+        } else {
+          blocks.push({ kind: "line", text: `Razão Social: ${dash(data.razao)}` });
+          blocks.push({ kind: "line", text: `CNPJ: ${dash(data.cnpj)}` });
+        }
+        blocks.push(
+          { kind: "sep", text: "" },
+          { kind: "sec", text: "DADOS DO VEÍCULO" },
+          { kind: "hot", text: `RPP: ${dash(data.rpp)}` },
+          { kind: "placa", text: `Placa: ${dash(data.placa)}` },
+          { kind: "line", text: `Veículo: ${dash(data.veiculo)}` },
+          { kind: "line", text: `Cor: ${dash(data.cor)}` },
+          { kind: "line", text: `Data de Entrada: ${dash(data.entrada)}` },
+          { kind: "line", text: `Data de Saída: ${dash(data.saida)}` },
+          { kind: "line", text: `Período: ${dash(data.periodo)}` },
+          { kind: "sep", text: "" },
+          { kind: "line", text: `Data de Emissão: ${dash(data.emissao)}` },
+          { kind: "hot", text: `Vencimento: ${dash(data.vencimento)}` },
+          { kind: "total", text: `VALOR TOTAL: ${dash(data.valor)}` },
+          { kind: "sep", text: "" },
+          { kind: "foot", text: "AMPLIGUARD" },
+          { kind: "foot-tag", text: "Guarda, Custódia e Remoção de Veículos" }
+        );
+        return blocks;
+      }
+
+      async function downloadOpenNfseThermalPdf() {
+        const data = currentCdrPrintData();
+        if (!data) return;
+        const btn = document.getElementById("nfseThermalPdfBtn");
+        if (btn) btn.disabled = true;
+        try {
+          const doc = await buildThermalBlocksPdfDoc(cdrPdfBlocks(data));
+          const placa = String(data.placa || "cdr").replace(/[^\w.-]+/g, "") || "cdr";
+          doc.save(`cdr-${placa}.pdf`);
+        } catch (e) {
+          console.error(e);
+          alert("Não foi possível gerar o PDF do CDR.");
+        } finally {
+          syncNfseThermalPrintState();
+        }
       }
 
       function controleRecebimentoWidthMm() {
@@ -22050,6 +22150,9 @@
         setNfseThermalWidthMm(Number(nfseThermalWidth.value));
       });
       nfseThermalPrintBtn?.addEventListener("click", () => printOpenNfseThermal());
+      document.getElementById("nfseThermalPdfBtn")?.addEventListener("click", () => {
+        void downloadOpenNfseThermalPdf();
+      });
       closeControleRecebimentoModal?.addEventListener("click", () => closeControleRecebimentoModalFn());
       controleRecebimentoCloseBtn?.addEventListener("click", () => closeControleRecebimentoModalFn());
       controleRecebimentoRazao?.addEventListener("input", () => syncControleRecebimentoPrintState());
@@ -22182,6 +22285,10 @@
       });
       document.getElementById("comprovantePagamentoPdfBtn")?.addEventListener("click", () => {
         void downloadComprovantePagamentoAtual();
+      });
+      document.getElementById("comprovantePagamentoCdrBtn")?.addEventListener("click", () => {
+        const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(comprovantePagamentoAtual?.vehicleId || ""));
+        if (vehicle) openNfseThermalModal(vehicle);
       });
       document.getElementById("closePagarBaixaModal")?.addEventListener("click", closePagarBaixaModal);
       document.getElementById("cancelPagarBaixaModal")?.addEventListener("click", closePagarBaixaModal);
@@ -22644,6 +22751,7 @@
           periodo: dias ? `${dias} dias` : "",
           confirmadoPor: currentPatioOperatorLabel(),
           hasVehicle: !!vehicle,
+          vehicleId: vehicle?.id || "",
         };
       }
 
@@ -22740,6 +22848,8 @@ ${body}
           resumo.textContent = bits.join(" · ") || "Pagamento confirmado.";
         }
         if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
+        const cdrBtn = document.getElementById("comprovantePagamentoCdrBtn");
+        if (cdrBtn) cdrBtn.classList.toggle("hidden", !data.vehicleId);
         modal?.classList.remove("hidden");
       }
 
@@ -22793,11 +22903,14 @@ ${body}
       }
 
       async function buildComprovantePagamentoPdfDoc(data) {
+        return buildThermalBlocksPdfDoc(comprovantePagamentoBlocks(data));
+      }
+
+      async function buildThermalBlocksPdfDoc(blocks) {
         await loadJsPdf();
         const jsPdfCtor = window.jspdf?.jsPDF;
         if (!jsPdfCtor) throw new Error("jsPDF indisponível");
         const measure = new jsPdfCtor({ unit: "mm", format: [80, 200] });
-        const blocks = comprovantePagamentoBlocks(data);
         const logo = await loadReciboLogoDataUrl();
         let logoW = 58;
         let logoH = 16;
