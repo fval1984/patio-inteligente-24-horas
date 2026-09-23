@@ -3481,6 +3481,15 @@
         background: rgba(212, 175, 55, 0.13);
         color: #fca5a5;
       }
+      #nfseThermalTipoChoice {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 12px;
+      }
+      #nfseThermalTipoChoice button.active {
+        box-shadow: inset 0 0 0 2px currentColor;
+      }
       [data-theme="light"] .table td.actions button {
         border-color: rgba(148, 163, 184, 0.38);
         background: rgba(148, 163, 184, 0.12);
@@ -9010,34 +9019,41 @@
             <div>
               <h3>Imprimir CDR</h3>
               <p class="notice" style="margin: 4px 0 0; font-size: 12px">
-                Controle de Recebimento. O documento pode ser CPF (pessoa física) ou CNPJ (pessoa jurídica).
+                Controle de Recebimento. Escolha Pessoa Física ou Pessoa Jurídica. Só uma das opções é preenchida.
               </p>
             </div>
             <button type="button" class="modal-close" id="closeNfseThermalModal">Fechar</button>
           </div>
-          <div class="form-grid">
+          <p class="notice" style="margin: 0 0 8px">Selecione o tipo de cadastro:</p>
+          <div id="nfseThermalTipoChoice">
+            <button type="button" class="secondary" id="nfseThermalTipoPf" aria-pressed="false">Pessoa Física — CPF</button>
+            <button type="button" class="secondary" id="nfseThermalTipoPj" aria-pressed="false">Pessoa Jurídica — CNPJ</button>
+          </div>
+          <div id="nfseThermalPfFields" class="form-grid hidden">
             <div class="full">
-              <label for="nfseThermalNome">Nome / Razão social</label>
-              <input id="nfseThermalNome" type="text" maxlength="160" autocomplete="off" placeholder="Nome completo ou razão social" />
+              <label for="nfseThermalResponsavelNome">Nome completo</label>
+              <input id="nfseThermalResponsavelNome" type="text" maxlength="160" autocomplete="name" placeholder="Nome completo" />
             </div>
             <div class="full">
-              <label for="nfseThermalCnpj">CPF ou CNPJ</label>
-              <input id="nfseThermalCnpj" type="text" inputmode="numeric" maxlength="18" autocomplete="off" placeholder="000.000.000-00 ou 00.000.000/0000-00" />
+              <label for="nfseThermalResponsavelCpf">CPF</label>
+              <input id="nfseThermalResponsavelCpf" type="text" inputmode="numeric" maxlength="14" autocomplete="off" placeholder="000.000.000-00" />
+            </div>
+          </div>
+          <div id="nfseThermalPjFields" class="form-grid hidden">
+            <div class="full">
+              <label for="nfseThermalNome">Razão social</label>
+              <input id="nfseThermalNome" type="text" maxlength="160" autocomplete="organization" placeholder="Razão social" />
             </div>
             <div class="full">
-              <label for="nfseThermalResponsavelNome">Nome completo de quem recebe</label>
-              <input id="nfseThermalResponsavelNome" type="text" maxlength="160" autocomplete="name" placeholder="Nome de quem recebe" />
-            </div>
-            <div class="full">
-              <label for="nfseThermalResponsavelCpf">CPF ou CNPJ de quem recebe</label>
-              <input id="nfseThermalResponsavelCpf" type="text" inputmode="numeric" maxlength="18" autocomplete="off" placeholder="000.000.000-00 ou 00.000.000/0000-00" />
+              <label for="nfseThermalCnpj">CNPJ</label>
+              <input id="nfseThermalCnpj" type="text" inputmode="numeric" maxlength="18" autocomplete="off" placeholder="00.000.000/0000-00" />
             </div>
           </div>
           <p id="nfseThermalCnpjStatus" class="notice" style="margin: 8px 0 0">
-            Informe o nome, um CPF ou CNPJ válido e os dados de quem recebe para liberar a impressão.
+            Selecione Pessoa Física ou Pessoa Jurídica para continuar.
           </p>
           <div class="form-actions">
-            <button type="button" id="nfseThermalPrintBtn" disabled>IMPRIMIR</button>
+            <button type="button" id="nfseThermalPrintBtn" disabled>IMPRIMIR CDR</button>
             <button type="button" class="secondary" id="nfseThermalCloseBtn">Fechar</button>
           </div>
         </div>
@@ -10326,6 +10342,10 @@
       const nfseThermalWidth = document.getElementById("nfseThermalWidth");
       const nfseThermalCnpjStatus = document.getElementById("nfseThermalCnpjStatus");
       const nfseThermalPrintBtn = document.getElementById("nfseThermalPrintBtn");
+      const nfseThermalTipoPf = document.getElementById("nfseThermalTipoPf");
+      const nfseThermalTipoPj = document.getElementById("nfseThermalTipoPj");
+      const nfseThermalPfFields = document.getElementById("nfseThermalPfFields");
+      const nfseThermalPjFields = document.getElementById("nfseThermalPjFields");
       const controleRecebimentoModal = document.getElementById("controleRecebimentoModal");
       const closeControleRecebimentoModal = document.getElementById("closeControleRecebimentoModal");
       const controleRecebimentoCloseBtn = document.getElementById("controleRecebimentoCloseBtn");
@@ -10494,6 +10514,7 @@
       let nfseVehicleId = null;
       let nfseStatusBeforeOpen = null;
       let nfseThermalVehicleId = null;
+      let nfseThermalTipo = "";
       let controleRecebimentoPayload = null;
       const NFSE_THERMAL_WIDTH_KEY = "amplipatio_nfse_thermal_width_mm";
 
@@ -20467,56 +20488,70 @@
         return width;
       }
 
-      function cdrDocStatusMessage(digits, ok) {
-        if (!digits.length) return "";
-        if (digits.length < 11) return "Complete o CPF no formato 000.000.000-00 ou continue para o CNPJ.";
-        if (digits.length === 11 && !ok) return "CPF inválido. O formato é 000.000.000-00.";
-        if (digits.length > 11 && digits.length < 14) return "Complete o CNPJ no formato 00.000.000/0000-00.";
-        if (digits.length === 14 && !ok) return "CNPJ inválido. O formato é 00.000.000/0000-00.";
-        return "";
+      function setNfseThermalTipo(tipo) {
+        const next = tipo === "PF" || tipo === "PJ" ? tipo : "";
+        if (next !== nfseThermalTipo) {
+          if (nfseThermalNome) nfseThermalNome.value = "";
+          if (nfseThermalCnpj) nfseThermalCnpj.value = "";
+          if (nfseThermalResponsavelNome) nfseThermalResponsavelNome.value = "";
+          if (nfseThermalResponsavelCpf) nfseThermalResponsavelCpf.value = "";
+        }
+        nfseThermalTipo = next;
+        nfseThermalPfFields?.classList.toggle("hidden", next !== "PF");
+        nfseThermalPjFields?.classList.toggle("hidden", next !== "PJ");
+        nfseThermalTipoPf?.classList.toggle("active", next === "PF");
+        nfseThermalTipoPj?.classList.toggle("active", next === "PJ");
+        nfseThermalTipoPf?.setAttribute("aria-pressed", next === "PF" ? "true" : "false");
+        nfseThermalTipoPj?.setAttribute("aria-pressed", next === "PJ" ? "true" : "false");
+        syncNfseThermalPrintState();
+        if (next === "PF") nfseThermalResponsavelNome?.focus();
+        else if (next === "PJ") nfseThermalNome?.focus();
       }
 
       function syncNfseThermalPrintState() {
         const nome = String(nfseThermalNome?.value || "").trim();
         const responsavel = String(nfseThermalResponsavelNome?.value || "").trim();
-        const digits = String(nfseThermalCnpj?.value || "").replace(/\D/g, "");
-        const respDigits = String(nfseThermalResponsavelCpf?.value || "").replace(/\D/g, "");
-        const docOk = isValidCpfOuCnpjDigits(digits);
-        const respOk = isValidCpfOuCnpjDigits(respDigits);
-        const ready = nome.length > 0 && docOk && responsavel.length > 0 && respOk;
+        const cnpjDigits = String(nfseThermalCnpj?.value || "").replace(/\D/g, "");
+        const cpfDigits = String(nfseThermalResponsavelCpf?.value || "").replace(/\D/g, "");
+        const cnpjOk = isValidCnpjDigits(cnpjDigits);
+        const cpfOk = isValidCpfDigits(cpfDigits);
+        const ready = nfseThermalTipo === "PF" ? responsavel.length > 0 && cpfOk : nfseThermalTipo === "PJ" ? nome.length > 0 && cnpjOk : false;
         if (nfseThermalPrintBtn) nfseThermalPrintBtn.disabled = !ready;
         if (!nfseThermalCnpjStatus) return;
-        const docMsg = cdrDocStatusMessage(digits, docOk);
-        const respMsg = cdrDocStatusMessage(respDigits, respOk);
-        const docInvalid = (digits.length === 11 || digits.length === 14) && !docOk;
-        const respInvalid = (respDigits.length === 11 || respDigits.length === 14) && !respOk;
-        nfseThermalCnpjStatus.classList.toggle("is-invalid", docInvalid || respInvalid);
-        if (!digits.length && !nome && !responsavel && !respDigits.length) {
-          nfseThermalCnpjStatus.textContent =
-            "Informe o nome, um CPF ou CNPJ válido e os dados de quem recebe para liberar a impressão.";
-        } else if (docMsg) {
-          nfseThermalCnpjStatus.textContent = docMsg;
-        } else if (!nome) {
-          nfseThermalCnpjStatus.textContent = "Informe o nome ou a razão social.";
-        } else if (!docOk) {
-          nfseThermalCnpjStatus.textContent = "Informe um CPF (000.000.000-00) ou um CNPJ (00.000.000/0000-00).";
-        } else if (!responsavel) {
-          nfseThermalCnpjStatus.textContent = "Informe o nome completo de quem recebe.";
-        } else if (respMsg) {
-          nfseThermalCnpjStatus.textContent = `Quem recebe: ${respMsg}`;
-        } else if (!respOk) {
-          nfseThermalCnpjStatus.textContent = "Informe o CPF ou o CNPJ de quem recebe.";
+        const cpfIncomplete = nfseThermalTipo === "PF" && cpfDigits.length > 0 && cpfDigits.length < 11;
+        const cpfInvalid = nfseThermalTipo === "PF" && cpfDigits.length === 11 && !cpfOk;
+        const cnpjIncomplete = nfseThermalTipo === "PJ" && cnpjDigits.length > 0 && cnpjDigits.length < 14;
+        const cnpjInvalid = nfseThermalTipo === "PJ" && cnpjDigits.length === 14 && !cnpjOk;
+        nfseThermalCnpjStatus.classList.toggle("is-invalid", cpfInvalid || cnpjInvalid);
+        if (!nfseThermalTipo) {
+          nfseThermalCnpjStatus.textContent = "Selecione Pessoa Física ou Pessoa Jurídica para continuar.";
+        } else if (nfseThermalTipo === "PF" && cpfIncomplete) {
+          nfseThermalCnpjStatus.textContent = "Complete o CPF no formato 000.000.000-00.";
+        } else if (cpfInvalid) {
+          nfseThermalCnpjStatus.textContent = "CPF inválido. O formato é 000.000.000-00.";
+        } else if (nfseThermalTipo === "PF" && !responsavel) {
+          nfseThermalCnpjStatus.textContent = "Informe o nome completo.";
+        } else if (nfseThermalTipo === "PF" && !cpfOk) {
+          nfseThermalCnpjStatus.textContent = "Informe o CPF no formato 000.000.000-00.";
+        } else if (cnpjIncomplete) {
+          nfseThermalCnpjStatus.textContent = "Complete o CNPJ no formato 00.000.000/0000-00.";
+        } else if (cnpjInvalid) {
+          nfseThermalCnpjStatus.textContent = "CNPJ inválido. O formato é 00.000.000/0000-00.";
+        } else if (nfseThermalTipo === "PJ" && !nome) {
+          nfseThermalCnpjStatus.textContent = "Informe a razão social.";
+        } else if (nfseThermalTipo === "PJ" && !cnpjOk) {
+          nfseThermalCnpjStatus.textContent = "Informe o CNPJ no formato 00.000.000/0000-00.";
         } else {
           nfseThermalCnpjStatus.textContent = "Dados preenchidos. A impressão está liberada.";
         }
       }
 
       function applyNfseThermalCnpjMask() {
-        applyMaskedDocInput(nfseThermalCnpj, maskCpfOuCnpjInputValue);
+        applyMaskedDocInput(nfseThermalCnpj, maskCnpjInputValue);
       }
 
       function applyNfseThermalCpfMask() {
-        applyMaskedDocInput(nfseThermalResponsavelCpf, maskCpfOuCnpjInputValue);
+        applyMaskedDocInput(nfseThermalResponsavelCpf, maskCpfInputValue);
       }
 
       function buildCdrPrintHtml(data) {
@@ -20649,10 +20684,13 @@
   <img class="logo" src="${escapeHtml(logo)}" alt="AMPLIGUARD" />
   <p class="title">CONTROLE DE RECEBIMENTO</p>
   <p class="sec">DADOS DO FATURAMENTO</p>
-  <p class="line">Nome / Razão social: ${escapeHtml(dash(data.razao))}</p>
-  <p class="line">${escapeHtml(data.docLabel || "CPF/CNPJ")}: ${escapeHtml(dash(data.cnpj))}</p>
-  <p class="line">Nome completo: ${escapeHtml(dash(data.responsavelNome))}</p>
-  <p class="line">${escapeHtml(data.responsavelDocLabel || "CPF/CNPJ")}: ${escapeHtml(dash(data.responsavelCpf))}</p>
+  ${
+    data.tipo === "PF"
+      ? `<p class="line">Nome completo: ${escapeHtml(dash(data.responsavelNome))}</p>
+  <p class="line">CPF: ${escapeHtml(dash(data.responsavelCpf))}</p>`
+      : `<p class="line">Razão Social: ${escapeHtml(dash(data.razao))}</p>
+  <p class="line">CNPJ: ${escapeHtml(dash(data.cnpj))}</p>`
+  }
   <hr class="sep" />
   <p class="sec">DADOS DO VEÍCULO</p>
   <p class="line hot">RPP: ${escapeHtml(dash(data.rpp))}</p>
@@ -20676,6 +20714,7 @@
       function closeNfseThermalModalFn() {
         nfseThermalModal?.classList.add("hidden");
         nfseThermalVehicleId = null;
+        nfseThermalTipo = "";
       }
 
       function openNfseThermalModal(vehicle) {
@@ -20685,9 +20724,10 @@
         if (nfseThermalCnpj) nfseThermalCnpj.value = "";
         if (nfseThermalResponsavelNome) nfseThermalResponsavelNome.value = "";
         if (nfseThermalResponsavelCpf) nfseThermalResponsavelCpf.value = "";
-        syncNfseThermalPrintState();
+        nfseThermalTipo = "";
+        setNfseThermalTipo("");
         nfseThermalModal.classList.remove("hidden");
-        nfseThermalNome?.focus();
+        nfseThermalTipoPf?.focus();
       }
 
       function printOpenNfseThermal() {
@@ -20698,23 +20738,25 @@
           alert("Não foi possível localizar o veículo deste controle.");
           return;
         }
-        const razao = String(nfseThermalNome?.value || "").trim();
-        const cnpj = maskCpfOuCnpjInputValue(nfseThermalCnpj?.value || "");
-        const responsavelNome = String(nfseThermalResponsavelNome?.value || "").trim();
-        const responsavelCpf = maskCpfOuCnpjInputValue(nfseThermalResponsavelCpf?.value || "");
-        if (!razao || !isValidCpfOuCnpjDigits(cnpj) || !responsavelNome || !isValidCpfOuCnpjDigits(responsavelCpf)) return;
+        const tipo = nfseThermalTipo === "PF" || nfseThermalTipo === "PJ" ? nfseThermalTipo : "";
+        const razao = tipo === "PJ" ? String(nfseThermalNome?.value || "").trim() : "";
+        const cnpj = tipo === "PJ" ? maskCnpjInputValue(nfseThermalCnpj?.value || "") : "";
+        const responsavelNome = tipo === "PF" ? String(nfseThermalResponsavelNome?.value || "").trim() : "";
+        const responsavelCpf = tipo === "PF" ? maskCpfInputValue(nfseThermalResponsavelCpf?.value || "") : "";
+        if (tipo === "PF" && (!responsavelNome || !isValidCpfDigits(responsavelCpf))) return;
+        if (tipo === "PJ" && (!razao || !isValidCnpjDigits(cnpj))) return;
+        if (!tipo) return;
         const emissaoDate = new Date();
         const vencimentoDate = addControleRecebimentoDays(emissaoDate, 10);
         const marca = String(vehicle.marca || "").trim();
         const modelo = String(vehicle.modelo || "").trim();
         const dias = calcDays(vehicle);
         const html = buildCdrPrintHtml({
+          tipo,
           razao,
           cnpj,
-          docLabel: cpfOuCnpjDocLabel(cnpj),
           responsavelNome,
           responsavelCpf,
-          responsavelDocLabel: cpfOuCnpjDocLabel(responsavelCpf),
           rpp: vehicleRpfNome(vehicle),
           placa: vehicle.placa || "",
           veiculo: [marca, modelo].filter(Boolean).join(" / "),
@@ -21970,6 +22012,8 @@
       });
       closeNfseThermalModal?.addEventListener("click", () => closeNfseThermalModalFn());
       nfseThermalCloseBtn?.addEventListener("click", () => closeNfseThermalModalFn());
+      nfseThermalTipoPf?.addEventListener("click", () => setNfseThermalTipo("PF"));
+      nfseThermalTipoPj?.addEventListener("click", () => setNfseThermalTipo("PJ"));
       nfseThermalNome?.addEventListener("input", () => syncNfseThermalPrintState());
       nfseThermalResponsavelNome?.addEventListener("input", () => syncNfseThermalPrintState());
       nfseThermalCnpj?.addEventListener("input", () => {
