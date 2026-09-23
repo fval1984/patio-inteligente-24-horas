@@ -219,6 +219,7 @@
   }
 
   function contasReceberAbertas() {
+    if (typeof global.financeContasReceberList === "function") return global.financeContasReceberList();
     if (typeof financeContasReceberList === "function") return financeContasReceberList();
     return [];
   }
