@@ -20236,11 +20236,13 @@
                 <td data-label="Saída / ciclo"><span class="notice" style="display:block">${escapeHtml(pIni)} → ${escapeHtml(pFim)}</span></td>
                 <td data-label="Valor">${valorCiclo}</td>
                 <td data-label="Destinatário">${escapeHtml(destTxt)}</td>
-                <td data-label="Faturamento">
+                <td class="actions" data-label="Faturamento">
                   ${
                     FINANCE_MANUAL_ONLY || isGestorPista
                       ? `<span class="notice">Faturamento no perfil do gestor do sistema.</span>`
-                      : `<button type="button" class="secondary" data-action="patio_finalizar_faturamento" data-id="${vehicle.id}" data-receivable-id="${r.id}"${closureAttr}>Finalizar faturamento</button>`
+                      : `<button type="button" class="secondary" data-action="patio_finalizar_faturamento" data-id="${vehicle.id}" data-receivable-id="${r.id}"${closureAttr}>Finalizar faturamento</button>
+                  <button type="button" class="secondary" data-action="editar_aguardando_faturamento" data-id="${vehicle.id}" data-receivable-id="${r.id}">Editar</button>
+                  <button type="button" class="secondary" data-action="apagar_aguardando_faturamento" data-id="${vehicle.id}" data-receivable-id="${r.id}">Apagar</button>`
                   }
                 </td>
               </tr>`;
@@ -25056,6 +25058,21 @@ ${body}
           renderVehicles();
           updateDashboard();
           alert("Triagem atualizada em Fechando ciclo.");
+          return;
+        }
+
+        if (action === "editar_aguardando_faturamento" || action === "apagar_aguardando_faturamento") {
+          if (FINANCE_MANUAL_ONLY || isGestorPista) return;
+          const receivableId = button.getAttribute("data-receivable-id");
+          if (!receivableId) return;
+          if (action === "editar_aguardando_faturamento") {
+            if (typeof window.financeEditAguardandoReceivable === "function") {
+              await window.financeEditAguardandoReceivable(receivableId);
+            }
+          } else if (typeof window.financeDeleteAguardandoReceivable === "function") {
+            await window.financeDeleteAguardandoReceivable(receivableId);
+          }
+          if (typeof renderVehicles === "function") renderVehicles();
           return;
         }
 
