@@ -2289,7 +2289,7 @@
     const actions = `<div class="fin-receber-registro-actions">
       ${
         canPay
-          ? `<button type="button" class="fin-act-primary" data-fin-receber-pg="${escapeHtml(String(r.id))}">Receber</button>`
+          ? `<button type="button" class="fin-act-primary" data-fin-receber-pg="${escapeHtml(String(r.id))}">RECEBER</button>`
           : ""
       }
       <button type="button" class="secondary" data-fin-receber-editar="${escapeHtml(String(r.id))}">Editar</button>
@@ -3036,7 +3036,11 @@
     const registroOpen = !!finReceberRegistroId;
     if (registroOpen) finReceberCadernetaKey = "";
 
-    const cadernetaList = finReceberCadernetaKey ? financeReceberTitlesForDevedor(finReceberCadernetaKey) : [];
+    const cadernetaAll = finReceberCadernetaKey ? financeReceberTitlesForDevedor(finReceberCadernetaKey) : [];
+    const cadernetaList =
+      finReceberQuick === "vencidos" || finReceberQuick === "hoje" || finReceberQuick === "a_vencer"
+        ? cadernetaAll.filter((r) => financeReceberMatchesQuick(r))
+        : cadernetaAll;
     if (finReceberCadernetaKey && !cadernetaList.length) {
       finReceberCadernetaKey = "";
     }
@@ -7450,6 +7454,17 @@
   window.financeDedupeCaixaMovs = financeDedupeCaixaMovs;
   window.financeCaixaMovsMerged = financeCaixaMovsMerged;
   window.financeCaixaMovsForPeriod = financeCaixaMovsForPeriod;
+  window.financeCaixaTotalsForMovs = financeCaixaTotalsForMovs;
+  window.financeCashIsSaida = financeCashIsSaida;
+  window.financeOpenReceberCaderneta = financeOpenReceberCaderneta;
+  window.financeOpenReceberRegistro = financeOpenReceberRegistro;
+  window.financeReceivableDevedorIdentity = financeReceivableDevedorIdentity;
+  window.financeVehicleRpvNome = financeVehicleRpvNome;
+  window.financePrepareReceberQuick = function financePrepareReceberQuick(quick) {
+    finReceberQuick = quick || "todos";
+    finReceberCadernetaKey = "";
+    finReceberRegistroId = "";
+  };
   window.financeCaixaMovCompetenciaYmd = financeCaixaMovCompetenciaYmd;
   window.financeReceivableCashCompetenciaYmd = financeReceivableCashCompetenciaYmd;
   window.financePayableCashCompetenciaYmd = financePayableCashCompetenciaYmd;
