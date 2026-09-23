@@ -3490,6 +3490,10 @@
       #nfseThermalTipoChoice button.active {
         box-shadow: inset 0 0 0 2px currentColor;
       }
+      #nfseThermalPfFields.hidden,
+      #nfseThermalPjFields.hidden {
+        display: none;
+      }
       [data-theme="light"] .table td.actions button {
         border-color: rgba(148, 163, 184, 0.38);
         background: rgba(148, 163, 184, 0.12);
@@ -9019,15 +9023,15 @@
             <div>
               <h3>Imprimir CDR</h3>
               <p class="notice" style="margin: 4px 0 0; font-size: 12px">
-                Controle de Recebimento. Escolha Pessoa Física ou Pessoa Jurídica. Só uma das opções é preenchida.
+                Controle de Recebimento. Escolha CPF ou CNPJ. Só o formulário escolhido abre para preenchimento.
               </p>
             </div>
             <button type="button" class="modal-close" id="closeNfseThermalModal">Fechar</button>
           </div>
-          <p class="notice" style="margin: 0 0 8px">Selecione o tipo de cadastro:</p>
+          <p class="notice" style="margin: 0 0 8px">Selecione CPF ou CNPJ:</p>
           <div id="nfseThermalTipoChoice">
-            <button type="button" class="secondary" id="nfseThermalTipoPf" aria-pressed="false">Pessoa Física — CPF</button>
-            <button type="button" class="secondary" id="nfseThermalTipoPj" aria-pressed="false">Pessoa Jurídica — CNPJ</button>
+            <button type="button" class="secondary" id="nfseThermalTipoPf" aria-pressed="false">CPF</button>
+            <button type="button" class="secondary" id="nfseThermalTipoPj" aria-pressed="false">CNPJ</button>
           </div>
           <div id="nfseThermalPfFields" class="form-grid hidden">
             <div class="full">
@@ -9050,7 +9054,7 @@
             </div>
           </div>
           <p id="nfseThermalCnpjStatus" class="notice" style="margin: 8px 0 0">
-            Selecione Pessoa Física ou Pessoa Jurídica para continuar.
+            Selecione CPF ou CNPJ para continuar.
           </p>
           <div class="form-actions">
             <button type="button" id="nfseThermalPrintBtn" disabled>IMPRIMIR CDR</button>
@@ -20524,7 +20528,7 @@
         const cnpjInvalid = nfseThermalTipo === "PJ" && cnpjDigits.length === 14 && !cnpjOk;
         nfseThermalCnpjStatus.classList.toggle("is-invalid", cpfInvalid || cnpjInvalid);
         if (!nfseThermalTipo) {
-          nfseThermalCnpjStatus.textContent = "Selecione Pessoa Física ou Pessoa Jurídica para continuar.";
+          nfseThermalCnpjStatus.textContent = "Selecione CPF ou CNPJ para continuar.";
         } else if (nfseThermalTipo === "PF" && cpfIncomplete) {
           nfseThermalCnpjStatus.textContent = "Complete o CPF no formato 000.000.000-00.";
         } else if (cpfInvalid) {
