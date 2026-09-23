@@ -1563,6 +1563,9 @@
   function financeContasAguardandoList() {
     const legacyCaixaRecIds = financeReceivableIdsComCaixaHistoricoInvalido();
     const matched = (state.receivables || []).filter((r) => {
+      if (typeof receivableIsContaReceberFinanceiro === "function" && receivableIsContaReceberFinanceiro(r)) {
+        return false;
+      }
       const inAguardando =
         typeof receivableIsAguardandoFaturamentoFinanceiro === "function"
           ? receivableIsAguardandoFaturamentoFinanceiro(r)
