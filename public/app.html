@@ -12357,12 +12357,21 @@
       }
       window.migrateLocalTriagemIdsToDatabase = migrateLocalTriagemIdsToDatabase;
 
-      function receivableMarcadoEnvioContasReceber(r) {
+      /** Nota ou cobrança já informada em Finalizar faturamento. Só isso libera o financeiro. */
+      function receivableFaturamentoConcluido(r) {
         if (!r) return false;
-        const meta = receivableObservacoesMeta(r);
-        if (meta?.origem_modulo === "PATIO_VRP" && Number(r.valor || 0) > 0) return true;
-        if (meta?.enviado_aguardando_faturamento === true) return true;
-        return false;
+        const meta = receivableObservacoesMeta(r) || {};
+        const tipo = String(r.tipo_faturamento || meta.tipo_faturamento || "")
+          .trim()
+          .toUpperCase();
+        const nome = String(r.cobranca_destinatario_nome || meta.cobranca_destinatario_nome || "").trim();
+        const contato = String(r.cobranca_destinatario_contato || meta.cobranca_destinatario_contato || "").trim();
+        return (tipo === "NF" || tipo === "COBRANCA") && !!nome && !!contato;
+      }
+      window.receivableFaturamentoConcluido = receivableFaturamentoConcluido;
+
+      function receivableMarcadoEnvioContasReceber(r) {
+        return receivableFaturamentoConcluido(r);
       }
 
       /** Título que saiu de «Aguardando» mas não aparece em «Contas a receber». */
@@ -12748,7 +12757,12 @@
                 financeiro_aprovado_contas_receber: false,
                 patio_liberado_financeiro: true,
               },
-              { period_end: dataSaida, valor: valorFechamento, status: "EM_ABERTO" },
+              {
+                period_end: dataSaida,
+                valor: valorFechamento,
+                status: "EM_ABERTO",
+                financeiro_aprovado_contas_receber: false,
+              },
               { period_end: dataSaida, valor: valorFechamento, status: RECEIVABLE_AGUARDANDO_LANCAMENTO },
             ];
 
@@ -13515,7 +13529,8 @@
         if (receivableHasPaidSiblingCycle(r)) return false;
         if (receivableFluxoFinanceiroQuitado(r)) return false;
         if (receivableSemCobrancaFinanceira(r)) return false;
-        if (receivableIsContaReceberFinanceiro(r) || receivableAprovadoParaContasReceber(r)) return false;
+        if (receivableIsContaReceberFinanceiro(r)) return false;
+        if (receivableAprovadoParaContasReceber(r) && receivableFaturamentoConcluido(r)) return false;
         if (!r.vehicle_id) return false;
         if (typeof receivableOrfaoEntreFilasFinanceiro === "function" && receivableOrfaoEntreFilasFinanceiro(r)) {
           return true;
@@ -13525,7 +13540,7 @@
         if (
           r.status === "EM_ABERTO" &&
           receivableCicloEncerradoParaFinanceiro(r) &&
-          !receivableAprovadoParaContasReceber(r)
+          !receivableFaturamentoConcluido(r)
         ) {
           return true;
         }
@@ -13578,7 +13593,8 @@
           return isManualFinanceLancamento(r) && st === "EM_ABERTO";
         }
         if (receivableNaFilaAguardandoTriagem(r)) return false;
-        if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return receivableAprovadoParaContasReceber(r);
+        if (r.vehicle_id && !receivableFaturamentoConcluido(r)) return false;
+        if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return false;
         if (r.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(r)) {
           return receivableAprovadoParaContasReceber(r);
         }
@@ -25947,11 +25963,30 @@ ${body}
             }
             await loadVehicles();
             renderVehicles();
+            let pistaSemCobranca = false;
+            let pistaFinanceWarning = "";
+            if (!FINANCE_MANUAL_ONLY) {
+              const finRes = await applyVrpFinanceClosure(id, liveVehicle, dataSaida, {
+                responsavelFinanceiro: vehicleRpfNome(liveVehicle) || liveVehicle.responsavel_financeiro_nome || "",
+              });
+              pistaSemCobranca = !!finRes.vrpSemCobranca;
+              pistaFinanceWarning = finRes.financeWarning || "";
+              await Promise.all([loadReceivables(), loadCycleClosures()]);
+              renderVehicles();
+            }
             updateDashboard();
             await refreshFichaIfOpen(id);
             fichaModal.classList.add("hidden");
             delete fichaModal.dataset.openVehicleId;
-            alert("Saída física confirmada. O veículo saiu do pátio (VRP).");
+            if (pistaFinanceWarning) {
+              alert(`Saída física confirmada, mas houve pendência no faturamento:\n\n${pistaFinanceWarning}`);
+            } else if (pistaSemCobranca) {
+              alert("Saída física confirmada. Valor R$ 0,00 — encerrado sem cobrança.");
+            } else {
+              alert(
+                "Saída física confirmada. O veículo saiu do pátio e o ciclo ficou em Aguardando faturamento. Só entra no financeiro depois de finalizar o faturamento."
+              );
+            }
             return;
           }
           const readyVehicle = await ensureVehicleReadyForVrp(id, vehicle, liveVehicle);
