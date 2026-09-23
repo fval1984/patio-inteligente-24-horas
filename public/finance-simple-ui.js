@@ -91,8 +91,104 @@
   }
 
   function cashTotals(movs) {
-    if (typeof financeCaixaTotalsForMovs === "function") return financeCaixaTotalsForMovs(movs);
-    return { entradas: 0, saidas: 0, saldo: 0 };
+    if (typeof global.financeCaixaTotalsForMovs === "function") return global.financeCaixaTotalsForMovs(movs);
+    let entradas = 0;
+    let saidas = 0;
+    (movs || []).forEach((mov) => {
+      const v = typeof global.financeCashMovValor === "function" ? global.financeCashMovValor(mov) : Number(mov?.valor || 0);
+      if (typeof global.financeCashIsEntrada === "function" && global.financeCashIsEntrada(mov)) entradas += v;
+      else if (typeof global.financeCashIsSaida === "function" && global.financeCashIsSaida(mov)) saidas += v;
+    });
+    return { entradas, saidas, saldo: entradas - saidas };
+  }
+
+  function isEntrada(mov) {
+    return typeof global.financeCashIsEntrada === "function" && global.financeCashIsEntrada(mov);
+  }
+
+  function isSaida(mov) {
+    return typeof global.financeCashIsSaida === "function" && global.financeCashIsSaida(mov);
+  }
+
+  function movValor(mov) {
+    return typeof global.financeCashMovValor === "function" ? global.financeCashMovValor(mov) : Number(mov?.valor || 0);
+  }
+
+  function movYmd(mov) {
+    if (typeof global.financeCaixaMovCompetenciaYmd === "function") return global.financeCaixaMovCompetenciaYmd(mov) || "";
+    return String(mov?.data_movimento || mov?.created_at || "").slice(0, 10);
+  }
+
+  function stripMeta(text) {
+    const raw = String(text || "");
+    const mark = "[[finmeta:";
+    const end = raw.lastIndexOf("]]");
+    if (raw.includes(mark) && end >= 0) return raw.slice(end + 2).trim();
+    return raw.trim();
+  }
+
+  function monthLabel(ym) {
+    const names = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    const m = Number(String(ym).slice(5, 7));
+    return names[m - 1] || ym;
+  }
+
+  function monthsEnding(endYm, count) {
+    let y = Number(String(endYm).slice(0, 4));
+    let m = Number(String(endYm).slice(5, 7));
+    const out = [];
+    for (let i = 0; i < count; i += 1) {
+      out.unshift(`${y}-${String(m).padStart(2, "0")}`);
+      m -= 1;
+      if (m === 0) {
+        m = 12;
+        y -= 1;
+      }
+    }
+    return out;
+  }
+
+  function lastDay(ym) {
+    const y = Number(String(ym).slice(0, 4));
+    const m = Number(String(ym).slice(5, 7));
+    const d = new Date(y, m, 0);
+    return ymdFromDate(d);
+  }
+
+  function chartHtml(range) {
+    const endYm = String(range.to || todayYmd()).slice(0, 7);
+    const months = monthsEnding(endYm, 6);
+    const movs = cashInRange(`${months[0]}-01`, lastDay(months[months.length - 1]));
+    const buckets = new Map(months.map((ym) => [ym, { in: 0, out: 0 }]));
+    movs.forEach((mov) => {
+      const ym = movYmd(mov).slice(0, 7);
+      const bucket = buckets.get(ym);
+      if (!bucket) return;
+      const v = movValor(mov);
+      if (isEntrada(mov)) bucket.in += v;
+      else if (isSaida(mov)) bucket.out += v;
+    });
+    const max = Math.max(1, ...[...buckets.values()].flatMap((b) => [b.in, b.out]));
+    const bars = months
+      .map((ym) => {
+        const b = buckets.get(ym);
+        const hIn = Math.round((b.in / max) * 100);
+        const hOut = Math.round((b.out / max) * 100);
+        return `<div class="fin-ops-bar">
+          <div class="fin-ops-bar-pair">
+            <i class="fin-ops-bar-in" style="height:${hIn}%" title="Entradas ${esc(money(b.in))}"></i>
+            <i class="fin-ops-bar-out" style="height:${hOut}%" title="Saídas ${esc(money(b.out))}"></i>
+          </div>
+          <span>${esc(monthLabel(ym))}</span>
+        </div>`;
+      })
+      .join("");
+    return `<section class="fin-ops-chart">
+      <h3 class="fin-simple-h">Entradas x Saídas</h3>
+      <p class="notice">Evolução mensal do que entrou e do que saiu de fato.</p>
+      <div class="fin-ops-legend"><span><i class="fin-ops-dot fin-ops-dot--in"></i> Entradas</span><span><i class="fin-ops-dot fin-ops-dot--out"></i> Saídas</span></div>
+      <div class="fin-ops-bars">${bars}</div>
+    </section>`;
   }
 
   function card(label, value, hint, goto, extraClass) {
@@ -157,30 +253,20 @@
       bar.setAttribute("aria-hidden", "true");
     }
 
-    const m = ctx?.metrics || (typeof financeMetrics === "function" ? financeMetrics() : {});
+    const m = ctx?.metrics || (typeof global.financeMetrics === "function" ? global.financeMetrics() : {});
     const recs = contasReceberAbertas();
     const today = todayYmd();
     const vencidos = recs.filter((r) => statusReceber(r) === "Vencido" || statusReceber(r) === "Atrasado");
     const vencidoVal = vencidos.reduce((s, r) => s + Number(r.valor || 0), 0);
-    const pagarAlerts =
-      typeof financePayableAlerts === "function" ? financePayableAlerts() : { vencidas: 0, venceHoje: 0, totalVencidas: 0 };
-    const paidOpen = (global.state?.receivables || []).filter((r) => {
-      if (String(r.status || "").toUpperCase() !== "PAGO") return false;
-      if (typeof window.receivableCashMovementExists === "function") {
-        return !window.receivableCashMovementExists(r.id);
-      }
-      return false;
-    });
     const st = opsDashState();
     const range = opsDashRange();
-    const fluxo = cashTotals(cashInRange(range.from, range.to));
+    const movs = cashInRange(range.from, range.to);
+    const fluxo = cashTotals(movs);
     const fmt = ctx?.formatCurrency || money;
-    const aReceberVal = Number(m.totalReceber || 0);
-    const aPagarVal = Number(m.totalPagar || 0);
+    const aReceberVal = recs.reduce((s, r) => s + Number(r.valor || 0), 0);
     const saldoPeriodo = Number(fluxo.entradas || 0) - Number(fluxo.saidas || 0);
     const periods = [
       ["today", "Hoje"],
-      ["week", "Esta semana"],
       ["month", "Este mês"],
       ["prev_month", "Mês anterior"],
       ["custom", "Personalizado"],
@@ -192,60 +278,41 @@
       )
       .join("");
     const customHidden = st.period === "custom" ? "" : " hidden";
+    const recVenceHoje = recs.filter((r) => dueReceber(r) === today);
+    const hojeVal = recVenceHoje.reduce((s, r) => s + Number(r.valor || 0), 0);
     const attn = [];
-    if (vencidos.length) {
-      attn.push(attentionItem("red", "Títulos vencidos", vencidos.length, vencidoVal, "receber:vencidos"));
-    }
-    if (pagarAlerts.vencidas) {
-      attn.push(attentionItem("red", "Contas a pagar vencidas", pagarAlerts.vencidas, pagarAlerts.totalVencidas || 0, "pagar:vencidos"));
-    }
-    if (pagarAlerts.venceHoje) {
-      attn.push(attentionItem("yellow", "Contas vencendo hoje", pagarAlerts.venceHoje, 0, "pagar:hoje"));
-    }
-    const recVenceHoje = recs.filter((r) => dueReceber(r) === today && statusReceber(r) !== "Recebido");
-    if (recVenceHoje.length) {
-      attn.push(
-        attentionItem(
-          "yellow",
-          "A receber vencendo hoje",
-          recVenceHoje.length,
-          recVenceHoje.reduce((s, r) => s + Number(r.valor || 0), 0),
-          "receber:hoje"
-        )
-      );
-    }
-    if (paidOpen.length) {
-      attn.push(
-        attentionItem(
-          "blue",
-          "Recebimentos aguardando entrada",
-          paidOpen.length,
-          paidOpen.reduce((s, r) => s + Number(r.valor || 0), 0),
-          "receber:recebidos"
-        )
-      );
+    if (vencidos.length) attn.push(attentionItem("red", "Títulos vencidos", vencidos.length, vencidoVal, "receber:vencidos"));
+    if (recVenceHoje.length) attn.push(attentionItem("yellow", "Títulos vencem hoje", recVenceHoje.length, hojeVal, "receber:hoje"));
+    if (recs.length) attn.push(attentionItem("blue", "Títulos aguardando recebimento", recs.length, aReceberVal, "receber:todos"));
+
+    const periodBar = `<div class="fin-act-chips fin-ops-period" aria-label="Período">${periodBtns}</div>
+        <div class="fin-ops-custom${customHidden}">
+          <label>De <input type="date" id="finOpsCustomFrom" value="${esc(st.customFrom || range.from)}" /></label>
+          <label>Até <input type="date" id="finOpsCustomTo" value="${esc(st.customTo || range.to)}" /></label>
+        </div>`;
+
+    if (st.screen === "recebidos" || st.screen === "saidas" || st.screen === "fluxo") {
+      root.innerHTML = `<div class="fin-simple-dash fin-ops-dash">
+        <button type="button" class="secondary" data-fin-ops-home>← Visão financeira</button>
+        ${periodBar}
+        ${movementScreen(st.screen, movs, fluxo, fmt, range)}
+      </div>`;
+      return;
     }
 
     root.innerHTML = `
       <div class="fin-simple-dash fin-ops-dash">
-        <div class="fin-act-chips fin-ops-period" aria-label="Período">${periodBtns}</div>
-        <div class="fin-ops-custom${customHidden}">
-          <label>De <input type="date" id="finOpsCustomFrom" value="${esc(st.customFrom || range.from)}" /></label>
-          <label>Até <input type="date" id="finOpsCustomTo" value="${esc(st.customTo || range.to)}" /></label>
-        </div>
-        <p class="notice" style="margin:0 0 12px">Período dos valores recebidos e pagos: ${esc(range.label)} (${esc(range.from)} a ${esc(range.to)}). A receber e a pagar são o que está em aberto agora.</p>
+        ${periodBar}
+        <p class="notice" style="margin:0 0 12px">Recebido, saídas e saldo usam o período ${esc(range.label)}. A receber e em atraso mostram tudo que ainda está em aberto, inclusive dívidas antigas.</p>
         <div class="fin-simple-grid fin-ops-kpis">
-          ${card("A receber", fmt(aReceberVal), `${m.pendentes || 0} título(s) em aberto`, "receber:todos", "recv")}
-          ${card("Recebido", fmt(fluxo.entradas), "Já entrou no período", "caixa:entrada", "in")}
-          ${card("A pagar", fmt(aPagarVal), `${m.vencidas || 0} vencida(s)`, "pagar:todos", "pay")}
-          ${card("Pago", fmt(fluxo.saidas), "Já saiu no período", "caixa:saida", "out")}
-          ${card("Saldo", fmt(saldoPeriodo), `${fmt(fluxo.entradas)} − ${fmt(fluxo.saidas)}`, "caixa:todos", saldoPeriodo < 0 ? "neg" : "saldo")}
+          ${card("A receber", fmt(aReceberVal), `${recs.length} título(s) em aberto`, "receber:todos", "recv")}
+          ${card("Recebido", fmt(fluxo.entradas), "Entrou no período", "tela:recebidos", "in")}
+          ${card("Em atraso", fmt(vencidoVal), `${vencidos.length} título(s) vencido(s)`, "receber:vencidos", "late")}
+          ${card("Saídas", fmt(fluxo.saidas), "Saiu no período", "tela:saidas", "out")}
+          ${card("Saldo", fmt(saldoPeriodo), "Recebido − saídas", "tela:fluxo", saldoPeriodo < 0 ? "neg" : "saldo")}
         </div>
-        <div class="fin-simple-grid fin-ops-kpis-mini">
-          ${card("Entrou", fmt(fluxo.entradas), "Entradas do período", "caixa:entrada")}
-          ${card("Saiu", fmt(fluxo.saidas), "Saídas do período", "caixa:saida")}
-        </div>
-        <h3 class="fin-simple-h">Precisa de atenção</h3>
+        ${chartHtml(range)}
+        <h3 class="fin-simple-h">O que precisa da minha atenção</h3>
         ${
           attn.length
             ? `<div class="fin-simple-attn-grid">${attn.join("")}</div>`
@@ -253,6 +320,62 @@
         }
       </div>`;
   };
+
+  function movementScreen(screen, movs, fluxo, fmt, range) {
+    if (screen === "fluxo") {
+      return `<h3 class="fin-simple-h">Fluxo de caixa</h3>
+        <p class="notice">${esc(range.label)}: o que entrou e o que saiu de fato.</p>
+        <div class="fin-simple-grid fin-ops-kpis">
+          ${card("Entradas", fmt(fluxo.entradas), "Total recebido", "tela:recebidos", "in")}
+          ${card("Saídas", fmt(fluxo.saidas), "Total pago", "tela:saidas", "out")}
+          ${card("Saldo", fmt(fluxo.saldo), "Entradas − saídas", "", Number(fluxo.saldo) < 0 ? "neg" : "saldo")}
+        </div>
+        ${chartHtml(range)}`;
+    }
+    const entrada = screen === "recebidos";
+    const rows = (movs || []).filter((mov) => (entrada ? isEntrada(mov) : isSaida(mov)));
+    rows.sort((a, b) => movYmd(b).localeCompare(movYmd(a)));
+    const total = rows.reduce((s, mov) => s + movValor(mov), 0);
+    const body = rows.length
+      ? rows.map((mov) => movementRow(mov)).join("")
+      : `<tr><td colspan="7" class="notice">Nenhuma movimentação neste período.</td></tr>`;
+    return `<h3 class="fin-simple-h">${entrada ? "Recebidos" : "Despesas / Saídas"}</h3>
+      <p><strong>Total do período:</strong> ${esc(fmt(total))}</p>
+      <div class="table-wrap section-card">
+        <table class="table">
+          <thead><tr><th>Data</th><th>Devedor</th><th>Placa</th><th>RPP/RPV</th><th>Valor</th><th>Forma</th><th>Ações</th></tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>`;
+  }
+
+  function movementRow(mov) {
+    const rec = (global.state?.receivables || []).find((r) => String(r.id) === String(mov?.conta_id || ""));
+    const pay = !rec ? (global.state?.payables || []).find((p) => String(p.id) === String(mov?.conta_id || "")) : null;
+    const vehicle = rec?.vehicle_id ? (global.state?.vehicles || []).find((v) => String(v.id) === String(rec.vehicle_id)) : null;
+    const ident = rec && typeof global.financeReceivableDevedorIdentity === "function" ? global.financeReceivableDevedorIdentity(rec) : null;
+    const devedor = ident?.nome || pay?.fornecedor || stripMeta(mov?.descricao) || "—";
+    const placa = vehicle?.placa || "—";
+    const rpp = rec && typeof global.financeReceberRppNome === "function" ? global.financeReceberRppNome(rec, vehicle) : "—";
+    const rpv = vehicle && typeof global.financeVehicleRpvNome === "function" ? global.financeVehicleRpvNome(vehicle) : "—";
+    const data = typeof formatDate === "function" ? formatDate(movYmd(mov)) : movYmd(mov);
+    const forma = mov?.forma_pagamento || "—";
+    const abrir = rec
+      ? `<button type="button" class="secondary" data-fin-open-recebimento="${esc(rec.id)}">Abrir</button>`
+      : "";
+    const cdr = vehicle
+      ? `<button type="button" class="secondary" data-fin-print-cdr="${esc(vehicle.id)}">Imprimir CDR</button>`
+      : "";
+    return `<tr>
+      <td data-label="Data">${esc(data || "—")}</td>
+      <td data-label="Devedor">${esc(devedor || "—")}</td>
+      <td data-label="Placa">${esc(placa)}</td>
+      <td data-label="RPP/RPV">${esc([rpp, rpv].filter((x) => x && x !== "—").join(" · ") || "—")}</td>
+      <td data-label="Valor">${esc(money(movValor(mov)))}</td>
+      <td data-label="Forma">${esc(forma)}</td>
+      <td data-label="Ações">${abrir} ${cdr}</td>
+    </tr>`;
+  }
 
   function accountNameForMov(mov) {
     if (typeof financeMovContaLabel === "function") return financeMovContaLabel(mov) || "Caixa";
@@ -359,11 +482,20 @@
       return;
     }
     if (view === "receber") {
+      ["finReceberPlaca", "finReceberValorDe", "finReceberValorAte"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+      });
+      const rpp = document.getElementById("finReceberRpp");
+      if (rpp) rpp.value = "";
+      if (typeof global.financePrepareReceberQuick === "function") global.financePrepareReceberQuick(quick || "todos");
       if (typeof setFinanceView === "function") setFinanceView("receber");
-      setTimeout(() => {
-        const chip = document.querySelector(`#finReceberQuickFilters [data-fin-act-chip="${quick || "todos"}"]`);
-        chip?.click();
-      }, 0);
+      return;
+    }
+    if (view === "tela") {
+      opsDashState().screen = quick || "home";
+      if (typeof setFinanceView === "function") setFinanceView("dashboard");
+      else if (typeof financeRenderDashboard === "function") financeRenderDashboard();
       return;
     }
     if (view === "pagar") {
@@ -374,6 +506,61 @@
       }, 0);
     }
   };
+
+  function renderFinanceSearch(raw) {
+    const host = document.getElementById("finSearchResults");
+    if (!host) return;
+    const q = String(raw || "").trim().toLowerCase();
+    if (q.length < 2) {
+      host.classList.add("hidden");
+      host.innerHTML = "";
+      return;
+    }
+    const vehicles = global.state?.vehicles || [];
+    const vmap = new Map(vehicles.map((v) => [String(v.id), v]));
+    const hits = [];
+    (global.state?.receivables || []).forEach((r) => {
+      const v = vmap.get(String(r.vehicle_id || ""));
+      const ident = typeof global.financeReceivableDevedorIdentity === "function" ? global.financeReceivableDevedorIdentity(r) : null;
+      const rpp = typeof global.financeReceberRppNome === "function" ? global.financeReceberRppNome(r, v) : "";
+      const rpv = typeof global.financeVehicleRpvNome === "function" ? global.financeVehicleRpvNome(v) : "";
+      const blob = [v?.placa, v?.marca, v?.modelo, ident?.nome, rpp, rpv, r.id, r.descricao, stripMeta(r.observacoes)]
+        .join(" ")
+        .toLowerCase();
+      if (!blob.includes(q)) return;
+      const aberto = String(r.status || "").toUpperCase() !== "PAGO";
+      hits.push({
+        id: r.id,
+        title: v?.placa || ident?.nome || "Título",
+        sub: `${ident?.nome || "—"} · ${aberto ? "Em aberto" : "Recebido"} · ${money(r.valor)}`,
+      });
+    });
+    if (!hits.length) {
+      host.classList.remove("hidden");
+      host.innerHTML = `<p class="notice">Nenhum registro encontrado.</p>`;
+      return;
+    }
+    host.classList.remove("hidden");
+    host.innerHTML = hits
+      .slice(0, 12)
+      .map(
+        (hit) => `<button type="button" class="fin-search-hit" data-fin-search-hit="${esc(hit.id)}">
+          <strong>${esc(hit.title)}</strong>
+          <span>${esc(hit.sub)}</span>
+        </button>`
+      )
+      .join("");
+  }
+
+  function openSearchHit(id) {
+    const input = document.getElementById("finGlobalSearch");
+    if (input) input.value = "";
+    renderFinanceSearch("");
+    const rec = (global.state?.receivables || []).find((r) => String(r.id) === String(id));
+    if (!rec) return;
+    if (typeof setFinanceView === "function") setFinanceView("receber");
+    if (typeof global.financeOpenReceberRegistro === "function") global.financeOpenReceberRegistro(rec.id);
+  }
 
   function openNovoLancamentoModal() {
     document.getElementById("finNovoLancamentoModal")?.classList.remove("hidden");
@@ -387,6 +574,34 @@
     if (bindOnce._done) return;
     bindOnce._done = true;
     document.getElementById("viewFinanceiro")?.addEventListener("click", (e) => {
+      const home = e.target.closest("[data-fin-ops-home]");
+      if (home) {
+        e.preventDefault();
+        opsDashState().screen = "home";
+        if (typeof financeRenderDashboard === "function") financeRenderDashboard();
+        return;
+      }
+      const openRec = e.target.closest("[data-fin-open-recebimento]");
+      if (openRec) {
+        e.preventDefault();
+        const id = openRec.getAttribute("data-fin-open-recebimento");
+        if (typeof setFinanceView === "function") setFinanceView("receber");
+        if (typeof global.financeOpenReceberRegistro === "function") global.financeOpenReceberRegistro(id);
+        return;
+      }
+      const cdr = e.target.closest("[data-fin-print-cdr]");
+      if (cdr) {
+        e.preventDefault();
+        const vehicle = (global.state?.vehicles || []).find((v) => String(v.id) === String(cdr.getAttribute("data-fin-print-cdr")));
+        if (vehicle && typeof global.openNfseThermalModal === "function") global.openNfseThermalModal(vehicle);
+        return;
+      }
+      const searchHit = e.target.closest("[data-fin-search-hit]");
+      if (searchHit) {
+        e.preventDefault();
+        openSearchHit(searchHit.getAttribute("data-fin-search-hit"));
+        return;
+      }
       const periodBtn = e.target.closest("[data-fin-ops-period]");
       if (periodBtn) {
         e.preventDefault();
@@ -417,6 +632,12 @@
         st.customTo = document.getElementById("finOpsCustomTo")?.value || "";
         if (typeof financeRenderDashboard === "function") financeRenderDashboard();
       }
+    });
+    document.getElementById("finSubnav")?.addEventListener("click", (e) => {
+      if (e.target.closest("[data-finance-subview-btn='dashboard']")) opsDashState().screen = "home";
+    });
+    document.getElementById("finGlobalSearch")?.addEventListener("input", () => {
+      renderFinanceSearch(document.getElementById("finGlobalSearch")?.value || "");
     });
     document.getElementById("finBtnNovoLancamento")?.addEventListener("click", openNovoLancamentoModal);
     document.getElementById("finNovoLancamentoClose")?.addEventListener("click", closeNovoLancamentoModal);
