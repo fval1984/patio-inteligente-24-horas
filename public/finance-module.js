@@ -96,30 +96,76 @@
     return end ? `${String(r.vehicle_id)}|${end}` : "";
   }
 
+  function financeReceivableStatusUpper(r) {
+    return String(r?.status || "").trim().toUpperCase();
+  }
+
+  /** Entrada de caixa que já baixou o título (aprovada no caixa operacional). */
+  function financeReceivableTemBaixaAprovada(r) {
+    if (!r?.id) return false;
+    const st = financeReceivableStatusUpper(r);
+    if (st === "PAGO" || st === "RECEBIDO" || st === "BAIXADO" || st === "QUITADO") return true;
+    const movs = financeCashForConta(r.id);
+    return (movs || []).some((m) => financeCashIsEntrada(m) && Number(m.valor || 0) > 0 && financeCashAprovadoCaixa(m));
+  }
+
   function financePaidReceivableCycleKeys() {
-    if (typeof window.paidReceivableCycleKeySet === "function") {
-      return window.paidReceivableCycleKeySet(state.receivables || []);
-    }
     const keys = new Set();
+    if (typeof window.paidReceivableCycleKeySet === "function") {
+      for (const k of window.paidReceivableCycleKeySet(state.receivables || [])) keys.add(k);
+    }
     for (const rec of state.receivables || []) {
-      if (String(rec.status || "").toUpperCase() !== "PAGO") continue;
+      if (!financeReceivableTemBaixaAprovada(rec)) continue;
       const k = financeReceivableCycleKey(rec);
       if (k) keys.add(k);
     }
     return keys;
   }
 
-  /** Duplicata em aberto de um ciclo já pago (ex.: final de julho recriado pelo VRP). */
+  /**
+   * Duplicata em aberto de um ciclo já pago (ex.: final de julho recriado pelo VRP).
+   * A data do ciclo usa o mesmo recorte AAAA-MM-DD nos dois títulos, para não
+   * reabrir quando um registro vem com hora e o outro só com a data.
+   */
   function financeReceivableIsDuplicateOfPaidCycle(r) {
-    if (typeof window.receivableHasPaidSiblingCycle === "function") {
-      return window.receivableHasPaidSiblingCycle(r);
+    if (!r || financeReceivableTemBaixaAprovada(r)) return false;
+    if (typeof window.receivableHasPaidSiblingCycle === "function" && window.receivableHasPaidSiblingCycle(r)) {
+      return true;
     }
-    if (typeof window.isDuplicateOfPaidReceivableCycle === "function") {
-      return window.isDuplicateOfPaidReceivableCycle(r, financePaidReceivableCycleKeys());
-    }
-    if (!r || String(r.status || "").toUpperCase() === "PAGO") return false;
     const k = financeReceivableCycleKey(r);
-    return !!(k && financePaidReceivableCycleKeys().has(k));
+    if (k && financePaidReceivableCycleKeys().has(k)) return true;
+    if (typeof window.isDuplicateOfPaidReceivableCycle === "function") {
+      const paidOnly =
+        typeof window.paidReceivableCycleKeySet === "function"
+          ? window.paidReceivableCycleKeySet(state.receivables || [])
+          : financePaidReceivableCycleKeys();
+      if (window.isDuplicateOfPaidReceivableCycle(r, paidOnly)) return true;
+    }
+    return false;
+  }
+
+  /** Veículo já quitado nesta saída: título em aberto do mesmo ciclo não volta à fila. */
+  function financeReceivableQuitadoNaSaidaDoVeiculo(r) {
+    if (!r?.vehicle_id || financeReceivableTemBaixaAprovada(r)) return false;
+    const v = financeVehicleById().get(r.vehicle_id);
+    if (!v || typeof window.vehicleFinanceiroQuitadoParaSaida !== "function") return false;
+    if (!window.vehicleFinanceiroQuitadoParaSaida(v)) return false;
+    const exitYmd = financeToPeriodYmd(v.data_saida);
+    const endYmd = financeToPeriodYmd(r.period_end);
+    if (!endYmd) return true;
+    return !exitYmd || endYmd === exitYmd;
+  }
+
+  /** Já recebido ou baixado. Só classificação — não altera o registro. */
+  function financeReceivableJaRecebido(r) {
+    if (!r) return false;
+    if (financeReceivableTemBaixaAprovada(r)) return true;
+    if (typeof window.receivableFluxoFinanceiroQuitado === "function" && window.receivableFluxoFinanceiroQuitado(r)) {
+      return true;
+    }
+    if (financeReceivableIsDuplicateOfPaidCycle(r)) return true;
+    if (financeReceivableQuitadoNaSaidaDoVeiculo(r)) return true;
+    return false;
   }
 
   /** Mês marco do caixa (gravado em settings.caixa_reset_ym após o reset). */
@@ -1485,11 +1531,7 @@
 
   function financeReceivableDisplayStatus(r) {
     if (!r) return "—";
-    if (r.status === "PAGO") return "Recebido";
-    if (typeof receivableFluxoFinanceiroQuitado === "function" && receivableFluxoFinanceiroQuitado(r)) {
-      return "Recebido";
-    }
-    if (financeReceivableIsDuplicateOfPaidCycle(r)) return "Recebido";
+    if (financeReceivableJaRecebido(r)) return "Recebido";
     const due = financeContaDueYmd(r, "receivable");
     const today = financeTodayYmd();
     if (due && today && due < today) return "Vencido";
@@ -1828,7 +1870,9 @@
       typeof window.receivableIsManualControleReceitas === "function"
         ? window.receivableIsManualControleReceitas
         : () => false;
-    let list = (state.receivables || []).filter((r) => isContaReceber(r) && !financeReceivableIsDuplicateOfPaidCycle(r));
+    let list = (state.receivables || []).filter(
+      (r) => isContaReceber(r) && !financeReceivableJaRecebido(r)
+    );
     const plateNorm = financeNormalizePlate(financeFilterReceberPlaca);
     const rppId = (financeFilterReceberRppId || "").trim();
     if (plateNorm) {
