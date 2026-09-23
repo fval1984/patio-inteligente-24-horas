@@ -9010,31 +9010,31 @@
             <div>
               <h3>Imprimir CDR</h3>
               <p class="notice" style="margin: 4px 0 0; font-size: 12px">
-                Controle de Recebimento. Informe a razão social, o CNPJ, o nome completo e o CPF de quem recebe antes de imprimir.
+                Controle de Recebimento. O documento pode ser CPF (pessoa física) ou CNPJ (pessoa jurídica).
               </p>
             </div>
             <button type="button" class="modal-close" id="closeNfseThermalModal">Fechar</button>
           </div>
           <div class="form-grid">
             <div class="full">
-              <label for="nfseThermalNome">Razão Social</label>
-              <input id="nfseThermalNome" type="text" maxlength="160" autocomplete="off" placeholder="Digite a razão social" />
+              <label for="nfseThermalNome">Nome / Razão social</label>
+              <input id="nfseThermalNome" type="text" maxlength="160" autocomplete="off" placeholder="Nome completo ou razão social" />
             </div>
             <div class="full">
-              <label for="nfseThermalCnpj">CNPJ</label>
-              <input id="nfseThermalCnpj" type="text" inputmode="numeric" maxlength="18" autocomplete="off" placeholder="00.000.000/0000-00" />
+              <label for="nfseThermalCnpj">CPF ou CNPJ</label>
+              <input id="nfseThermalCnpj" type="text" inputmode="numeric" maxlength="18" autocomplete="off" placeholder="000.000.000-00 ou 00.000.000/0000-00" />
             </div>
             <div class="full">
-              <label for="nfseThermalResponsavelNome">Nome completo</label>
+              <label for="nfseThermalResponsavelNome">Nome completo de quem recebe</label>
               <input id="nfseThermalResponsavelNome" type="text" maxlength="160" autocomplete="name" placeholder="Nome de quem recebe" />
             </div>
             <div class="full">
-              <label for="nfseThermalResponsavelCpf">CPF</label>
-              <input id="nfseThermalResponsavelCpf" type="text" inputmode="numeric" maxlength="14" autocomplete="off" placeholder="000.000.000-00" />
+              <label for="nfseThermalResponsavelCpf">CPF ou CNPJ de quem recebe</label>
+              <input id="nfseThermalResponsavelCpf" type="text" inputmode="numeric" maxlength="18" autocomplete="off" placeholder="000.000.000-00 ou 00.000.000/0000-00" />
             </div>
           </div>
           <p id="nfseThermalCnpjStatus" class="notice" style="margin: 8px 0 0">
-            Informe a razão social, um CNPJ válido, o nome completo e o CPF para liberar a impressão.
+            Informe o nome, um CPF ou CNPJ válido e os dados de quem recebe para liberar a impressão.
           </p>
           <div class="form-actions">
             <button type="button" id="nfseThermalPrintBtn" disabled>IMPRIMIR</button>
@@ -20409,6 +20409,24 @@
         return out;
       }
 
+      function maskCpfOuCnpjInputValue(raw) {
+        const d = String(raw || "").replace(/\D/g, "");
+        if (d.length <= 11) return maskCpfInputValue(d);
+        return maskCnpjInputValue(d);
+      }
+
+      function isValidCpfOuCnpjDigits(digits) {
+        const d = String(digits || "").replace(/\D/g, "");
+        if (d.length === 11) return isValidCpfDigits(d);
+        if (d.length === 14) return isValidCnpjDigits(d);
+        return false;
+      }
+
+      function cpfOuCnpjDocLabel(value) {
+        const d = String(value || "").replace(/\D/g, "");
+        return d.length > 11 ? "CNPJ" : "CPF";
+      }
+
       function applyMaskedDocInput(el, maskFn) {
         if (!el) return;
         const start = el.selectionStart ?? el.value.length;
@@ -20449,49 +20467,56 @@
         return width;
       }
 
+      function cdrDocStatusMessage(digits, ok) {
+        if (!digits.length) return "";
+        if (digits.length < 11) return "Complete o CPF no formato 000.000.000-00 ou continue para o CNPJ.";
+        if (digits.length === 11 && !ok) return "CPF inválido. O formato é 000.000.000-00.";
+        if (digits.length > 11 && digits.length < 14) return "Complete o CNPJ no formato 00.000.000/0000-00.";
+        if (digits.length === 14 && !ok) return "CNPJ inválido. O formato é 00.000.000/0000-00.";
+        return "";
+      }
+
       function syncNfseThermalPrintState() {
         const nome = String(nfseThermalNome?.value || "").trim();
         const responsavel = String(nfseThermalResponsavelNome?.value || "").trim();
         const digits = String(nfseThermalCnpj?.value || "").replace(/\D/g, "");
-        const cpfDigits = String(nfseThermalResponsavelCpf?.value || "").replace(/\D/g, "");
-        const cnpjOk = isValidCnpjDigits(digits);
-        const cpfOk = isValidCpfDigits(cpfDigits);
-        const ready = nome.length > 0 && cnpjOk && responsavel.length > 0 && cpfOk;
+        const respDigits = String(nfseThermalResponsavelCpf?.value || "").replace(/\D/g, "");
+        const docOk = isValidCpfOuCnpjDigits(digits);
+        const respOk = isValidCpfOuCnpjDigits(respDigits);
+        const ready = nome.length > 0 && docOk && responsavel.length > 0 && respOk;
         if (nfseThermalPrintBtn) nfseThermalPrintBtn.disabled = !ready;
         if (!nfseThermalCnpjStatus) return;
-        const cnpjIncomplete = digits.length > 0 && digits.length < 14;
-        const cnpjInvalid = digits.length === 14 && !cnpjOk;
-        const cpfIncomplete = cpfDigits.length > 0 && cpfDigits.length < 11;
-        const cpfInvalid = cpfDigits.length === 11 && !cpfOk;
-        nfseThermalCnpjStatus.classList.toggle("is-invalid", cnpjInvalid || cpfInvalid);
-        if (!digits.length && !nome && !responsavel && !cpfDigits.length) {
+        const docMsg = cdrDocStatusMessage(digits, docOk);
+        const respMsg = cdrDocStatusMessage(respDigits, respOk);
+        const docInvalid = (digits.length === 11 || digits.length === 14) && !docOk;
+        const respInvalid = (respDigits.length === 11 || respDigits.length === 14) && !respOk;
+        nfseThermalCnpjStatus.classList.toggle("is-invalid", docInvalid || respInvalid);
+        if (!digits.length && !nome && !responsavel && !respDigits.length) {
           nfseThermalCnpjStatus.textContent =
-            "Informe a razão social, um CNPJ válido, o nome completo e o CPF para liberar a impressão.";
-        } else if (cnpjIncomplete) {
-          nfseThermalCnpjStatus.textContent = "Complete o CNPJ no formato 00.000.000/0000-00.";
-        } else if (cnpjInvalid) {
-          nfseThermalCnpjStatus.textContent = "CNPJ inválido. O formato é 00.000.000/0000-00.";
+            "Informe o nome, um CPF ou CNPJ válido e os dados de quem recebe para liberar a impressão.";
+        } else if (docMsg) {
+          nfseThermalCnpjStatus.textContent = docMsg;
         } else if (!nome) {
-          nfseThermalCnpjStatus.textContent = "Informe a razão social.";
-        } else if (!cnpjOk) {
-          nfseThermalCnpjStatus.textContent = "Informe o CNPJ no formato 00.000.000/0000-00.";
+          nfseThermalCnpjStatus.textContent = "Informe o nome ou a razão social.";
+        } else if (!docOk) {
+          nfseThermalCnpjStatus.textContent = "Informe um CPF (000.000.000-00) ou um CNPJ (00.000.000/0000-00).";
         } else if (!responsavel) {
           nfseThermalCnpjStatus.textContent = "Informe o nome completo de quem recebe.";
-        } else if (cpfIncomplete) {
-          nfseThermalCnpjStatus.textContent = "Complete o CPF no formato 000.000.000-00.";
-        } else if (cpfInvalid || !cpfOk) {
-          nfseThermalCnpjStatus.textContent = "CPF inválido. O formato é 000.000.000-00.";
+        } else if (respMsg) {
+          nfseThermalCnpjStatus.textContent = `Quem recebe: ${respMsg}`;
+        } else if (!respOk) {
+          nfseThermalCnpjStatus.textContent = "Informe o CPF ou o CNPJ de quem recebe.";
         } else {
           nfseThermalCnpjStatus.textContent = "Dados preenchidos. A impressão está liberada.";
         }
       }
 
       function applyNfseThermalCnpjMask() {
-        applyMaskedDocInput(nfseThermalCnpj, maskCnpjInputValue);
+        applyMaskedDocInput(nfseThermalCnpj, maskCpfOuCnpjInputValue);
       }
 
       function applyNfseThermalCpfMask() {
-        applyMaskedDocInput(nfseThermalResponsavelCpf, maskCpfInputValue);
+        applyMaskedDocInput(nfseThermalResponsavelCpf, maskCpfOuCnpjInputValue);
       }
 
       function buildCdrPrintHtml(data) {
@@ -20624,10 +20649,10 @@
   <img class="logo" src="${escapeHtml(logo)}" alt="AMPLIGUARD" />
   <p class="title">CONTROLE DE RECEBIMENTO</p>
   <p class="sec">DADOS DO FATURAMENTO</p>
-  <p class="line">Razão Social: ${escapeHtml(dash(data.razao))}</p>
-  <p class="line">CNPJ: ${escapeHtml(dash(data.cnpj))}</p>
+  <p class="line">Nome / Razão social: ${escapeHtml(dash(data.razao))}</p>
+  <p class="line">${escapeHtml(data.docLabel || "CPF/CNPJ")}: ${escapeHtml(dash(data.cnpj))}</p>
   <p class="line">Nome completo: ${escapeHtml(dash(data.responsavelNome))}</p>
-  <p class="line">CPF: ${escapeHtml(dash(data.responsavelCpf))}</p>
+  <p class="line">${escapeHtml(data.responsavelDocLabel || "CPF/CNPJ")}: ${escapeHtml(dash(data.responsavelCpf))}</p>
   <hr class="sep" />
   <p class="sec">DADOS DO VEÍCULO</p>
   <p class="line hot">RPP: ${escapeHtml(dash(data.rpp))}</p>
@@ -20674,10 +20699,10 @@
           return;
         }
         const razao = String(nfseThermalNome?.value || "").trim();
-        const cnpj = maskCnpjInputValue(nfseThermalCnpj?.value || "");
+        const cnpj = maskCpfOuCnpjInputValue(nfseThermalCnpj?.value || "");
         const responsavelNome = String(nfseThermalResponsavelNome?.value || "").trim();
-        const responsavelCpf = maskCpfInputValue(nfseThermalResponsavelCpf?.value || "");
-        if (!razao || !isValidCnpjDigits(cnpj) || !responsavelNome || !isValidCpfDigits(responsavelCpf)) return;
+        const responsavelCpf = maskCpfOuCnpjInputValue(nfseThermalResponsavelCpf?.value || "");
+        if (!razao || !isValidCpfOuCnpjDigits(cnpj) || !responsavelNome || !isValidCpfOuCnpjDigits(responsavelCpf)) return;
         const emissaoDate = new Date();
         const vencimentoDate = addControleRecebimentoDays(emissaoDate, 10);
         const marca = String(vehicle.marca || "").trim();
@@ -20686,8 +20711,10 @@
         const html = buildCdrPrintHtml({
           razao,
           cnpj,
+          docLabel: cpfOuCnpjDocLabel(cnpj),
           responsavelNome,
           responsavelCpf,
+          responsavelDocLabel: cpfOuCnpjDocLabel(responsavelCpf),
           rpp: vehicleRpfNome(vehicle),
           placa: vehicle.placa || "",
           veiculo: [marca, modelo].filter(Boolean).join(" / "),
