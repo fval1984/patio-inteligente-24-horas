@@ -9010,7 +9010,7 @@
             <div>
               <h3>Imprimir CDR</h3>
               <p class="notice" style="margin: 4px 0 0; font-size: 12px">
-                Controle de Recebimento. O botão IMPRIMIR fica bloqueado até a razão social e um CNPJ válido estarem preenchidos.
+                Controle de Recebimento. Informe a razão social, o CNPJ, o nome completo e o CPF de quem recebe antes de imprimir.
               </p>
             </div>
             <button type="button" class="modal-close" id="closeNfseThermalModal">Fechar</button>
@@ -9024,9 +9024,17 @@
               <label for="nfseThermalCnpj">CNPJ</label>
               <input id="nfseThermalCnpj" type="text" inputmode="numeric" maxlength="18" autocomplete="off" placeholder="00.000.000/0000-00" />
             </div>
+            <div class="full">
+              <label for="nfseThermalResponsavelNome">Nome completo</label>
+              <input id="nfseThermalResponsavelNome" type="text" maxlength="160" autocomplete="name" placeholder="Nome de quem recebe" />
+            </div>
+            <div class="full">
+              <label for="nfseThermalResponsavelCpf">CPF</label>
+              <input id="nfseThermalResponsavelCpf" type="text" inputmode="numeric" maxlength="14" autocomplete="off" placeholder="000.000.000-00" />
+            </div>
           </div>
           <p id="nfseThermalCnpjStatus" class="notice" style="margin: 8px 0 0">
-            Informe o nome/razão social e um CNPJ válido para liberar a impressão.
+            Informe a razão social, um CNPJ válido, o nome completo e o CPF para liberar a impressão.
           </p>
           <div class="form-actions">
             <button type="button" id="nfseThermalPrintBtn" disabled>IMPRIMIR</button>
@@ -10313,6 +10321,8 @@
       const nfseThermalCloseBtn = document.getElementById("nfseThermalCloseBtn");
       const nfseThermalNome = document.getElementById("nfseThermalNome");
       const nfseThermalCnpj = document.getElementById("nfseThermalCnpj");
+      const nfseThermalResponsavelNome = document.getElementById("nfseThermalResponsavelNome");
+      const nfseThermalResponsavelCpf = document.getElementById("nfseThermalResponsavelCpf");
       const nfseThermalWidth = document.getElementById("nfseThermalWidth");
       const nfseThermalCnpjStatus = document.getElementById("nfseThermalCnpjStatus");
       const nfseThermalPrintBtn = document.getElementById("nfseThermalPrintBtn");
@@ -12030,6 +12040,85 @@
       }
       window.receivableAprovadoParaContasReceber = receivableAprovadoParaContasReceber;
 
+      const RECEIVABLE_PROMOTE_OPTIONAL_COLS = [
+        "contas_receber_em",
+        "faturado_em",
+        "cobranca_destinatario_nome",
+        "cobranca_destinatario_contato",
+        "tipo_faturamento",
+        "cobranca_emitida",
+        "nf_emitida",
+        "patio_liberado_financeiro",
+        "financeiro_aprovado_contas_receber",
+      ];
+
+      /** Atualiza o recebível existente. Colunas ausentes são removidas do patch; não insere outro título. */
+      async function writeReceivablePatch(receivableId, patch) {
+        const uid = effectiveUserId();
+        if (!uid || !receivableId) {
+          return { row: null, error: { message: "Sessão ou título inválido. Nada foi gravado." } };
+        }
+        let current = { ...(patch || {}) };
+        let lastError = null;
+        const dropped = new Set();
+        for (let attempt = 0; attempt < 12; attempt += 1) {
+          if (!Object.keys(current).length) break;
+          const body = { ...current };
+          const run = () =>
+            supabase.from("receivables").update(body).eq("id", receivableId).eq("user_id", uid).select("*");
+          const result = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(run) : await run();
+          if (!result?.error) {
+            const row = Array.isArray(result.data) ? result.data[0] : result.data;
+            if (!row) {
+              return {
+                row: null,
+                error: {
+                  message:
+                    "O servidor não gravou a alteração (nenhuma linha atualizada). Os dados do formulário foram mantidos.",
+                },
+                dropped,
+              };
+            }
+            return { row, error: null, dropped };
+          }
+          lastError = result.error;
+          if (!supabaseSchemaColumnError(result.error)) break;
+          let col = supabaseMissingColumnFromError(result.error);
+          if (!col || !(col in current)) {
+            col = RECEIVABLE_PROMOTE_OPTIONAL_COLS.find((key) => key in current && !dropped.has(key)) || null;
+          }
+          if (!col || !(col in current)) break;
+          delete current[col];
+          dropped.add(col);
+        }
+        return { row: null, error: lastError, dropped };
+      }
+
+      function receivablePromoteMetaPatch(r, metaExtra) {
+        const obsPatch = receivableObservacoesPatchFields(r, metaExtra);
+        const resp = String(r?.responsavel_pagamento || "");
+        if (obsPatch.responsavel_pagamento && resp && !resp.includes(FINANCE_META_PREFIX)) {
+          if (!obsPatch.observacoes) obsPatch.observacoes = receivablePackObservacoesMeta(r, metaExtra);
+          delete obsPatch.responsavel_pagamento;
+        }
+        return obsPatch;
+      }
+
+      function openContaReceberSibling(r) {
+        if (!r?.vehicle_id) return null;
+        const end = toPeriodYmd(r.period_end) || toLocalYmd(r.period_end) || "";
+        if (!end) return null;
+        return (
+          (state.receivables || []).find((other) => {
+            if (!other || String(other.id) === String(r.id)) return false;
+            if (String(other.vehicle_id) !== String(r.vehicle_id)) return false;
+            const otherEnd = toPeriodYmd(other.period_end) || toLocalYmd(other.period_end) || "";
+            if (otherEnd !== end) return false;
+            return receivableIsContaReceberFinanceiro(other);
+          }) || null
+        );
+      }
+
       /** Marca título como aprovado para «Contas a receber» (persistência obrigatória no Supabase). */
       async function ensureReceivablePromotedToContasReceber(receivableId, opts = {}) {
         if (!receivableId || FINANCE_MANUAL_ONLY) return false;
@@ -12037,8 +12126,16 @@
           return false;
         }
         const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
-        if (!r || r.status === "PAGO" || receivableSemCobrancaFinanceira(r)) return false;
-        if (receivableIsContaReceberFinanceiro(r)) return true;
+        if (!r) {
+          if (!opts.silent) alert("Título não encontrado. Atualize a página. Nenhum dado foi alterado.");
+          return false;
+        }
+        if (receivableFinanceStatus(r) === "PAGO" || receivableSemCobrancaFinanceira(r)) {
+          if (!opts.silent) {
+            alert("Este registro não pode ir para Contas a Receber (já recebido ou sem cobrança). Nenhum dado foi alterado.");
+          }
+          return false;
+        }
 
         const promovidoEm = new Date().toISOString();
         const metaAtual = receivableObservacoesMeta(r);
@@ -12073,56 +12170,104 @@
         if (destNome) metaExtra.cobranca_destinatario_nome = destNome;
         if (destContato) metaExtra.cobranca_destinatario_contato = destContato;
         if (tipoFat === "NF" || tipoFat === "COBRANCA") metaExtra.tipo_faturamento = tipoFat;
-        metaExtra.cobranca_emitida = tipoFat === "COBRANCA" ? true : metaExtra.cobranca_emitida === true;
+        metaExtra.cobranca_emitida = tipoFat === "COBRANCA" ? true : metaAtual.cobranca_emitida === true;
         if (tipoFat === "NF") metaExtra.nf_emitida = true;
+
+        if (receivableHasPaidSiblingCycle(r)) {
+          if (!opts.silent) {
+            alert(
+              "Este ciclo já foi recebido. Não foi criada outra conta a receber e nenhum valor foi alterado."
+            );
+          }
+          opts.outcome = "already_paid";
+          return false;
+        }
+
+        const sibling = !receivableIsContaReceberFinanceiro(r) ? openContaReceberSibling(r) : null;
+        if (sibling) {
+          const sibPatch = receivablePromoteMetaPatch(sibling, metaExtra);
+          if (destNome) sibPatch.cobranca_destinatario_nome = destNome;
+          if (destContato) sibPatch.cobranca_destinatario_contato = destContato;
+          if (tipoFat === "NF" || tipoFat === "COBRANCA") sibPatch.tipo_faturamento = tipoFat;
+          const sibWrite = await writeReceivablePatch(sibling.id, sibPatch);
+          if (sibWrite.error || !sibWrite.row) {
+            if (!opts.silent) {
+              alertSupabaseError(
+                sibWrite.error,
+                "Já existe um título deste ciclo em Contas a Receber, mas não foi possível atualizá-lo. Nenhum registro novo foi criado."
+              );
+            }
+            return false;
+          }
+          const dismissed =
+            typeof persistFinanceAguardandoDismissed === "function"
+              ? await persistFinanceAguardandoDismissed(r.vehicle_id, r.period_end)
+              : false;
+          if (!dismissed) {
+            if (!opts.silent) {
+              alert(
+                "O título já está em Contas a Receber, mas a fila Aguardando Faturamento não foi atualizada. Nenhum registro foi apagado."
+              );
+            }
+            return false;
+          }
+          const sibIdx = (state.receivables || []).findIndex((x) => String(x.id) === String(sibling.id));
+          if (sibIdx >= 0) state.receivables[sibIdx] = sibWrite.row;
+          opts.outcome = "duplicate";
+          return true;
+        }
+
+        if (receivableIsContaReceberFinanceiro(r) && !fat.destinatarioNome && !fat.tipoFaturamento) {
+          opts.outcome = "promoted";
+          return true;
+        }
+
         const patch = {
           financeiro_aprovado_contas_receber: true,
           patio_liberado_financeiro: true,
           contas_receber_em: promovidoEm,
           faturado_em: promovidoEm,
-          ...receivableObservacoesPatchFields(r, metaExtra),
+          ...receivablePromoteMetaPatch(r, metaExtra),
         };
         if (destNome) patch.cobranca_destinatario_nome = destNome;
         if (destContato) patch.cobranca_destinatario_contato = destContato;
         if (tipoFat === "NF" || tipoFat === "COBRANCA") patch.tipo_faturamento = tipoFat;
         if (tipoFat === "COBRANCA") patch.cobranca_emitida = true;
-        if (r.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) patch.status = "EM_ABERTO";
+        if (receivableFinanceStatus(r) === RECEIVABLE_AGUARDANDO_LANCAMENTO) patch.status = "EM_ABERTO";
 
-        const runUpdate = () =>
-          supabase.from("receivables").update(patch).eq("id", receivableId).eq("user_id", effectiveUserId());
-        let { error } =
-          typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runUpdate) : await runUpdate();
-        if (error && supabaseSchemaColumnError(error)) {
-          const lean = {
-            financeiro_aprovado_contas_receber: true,
-            patio_liberado_financeiro: true,
-            ...receivableObservacoesPatchFields(r, metaExtra),
-          };
-          if (patch.status) lean.status = patch.status;
-          const runLean = () =>
-            supabase.from("receivables").update(lean).eq("id", receivableId).eq("user_id", effectiveUserId());
-          ({ error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runLean) : await runLean());
-          if (error && supabaseSchemaColumnError(error)) {
-            const metaOnly = { ...receivableObservacoesPatchFields(r, metaExtra) };
-            if (patch.status) metaOnly.status = patch.status;
-            const runMetaOnly = () =>
-              supabase.from("receivables").update(metaOnly).eq("id", receivableId).eq("user_id", effectiveUserId());
-            ({ error } =
-              typeof runSupabaseWrite === "function" ? await runSupabaseWrite(runMetaOnly) : await runMetaOnly());
-          }
+        let written = await writeReceivablePatch(receivableId, patch);
+        if (written.error && /enum|check constraint|invalid input value/i.test(written.error.message || "")) {
+          const withoutStatus = { ...patch };
+          delete withoutStatus.status;
+          written = await writeReceivablePatch(receivableId, withoutStatus);
         }
-        if (error) {
+        if (written.error || !written.row) {
           if (!opts.silent) {
-            alertSupabaseError(error, "Não foi possível enviar para Contas a receber. Os dados não foram salvos no servidor.");
+            alertSupabaseError(
+              written.error,
+              "Não foi possível enviar para Contas a Receber. Os dados do formulário foram mantidos e nenhum registro novo foi criado."
+            );
           }
           return false;
         }
 
-        const verified = await verifyReceivableRow(receivableId);
-        if (!verified || !receivableIsContaReceberFinanceiro(verified)) {
+        let verified = written.row;
+        if (!receivableAprovadoParaContasReceber(verified)) {
+          const packed = receivablePackObservacoesMeta(r, metaExtra);
+          const retryObs = await writeReceivablePatch(receivableId, {
+            observacoes: packed,
+            ...(patch.status ? { status: patch.status } : {}),
+          });
+          if (retryObs.row) verified = retryObs.row;
+          if (!receivableAprovadoParaContasReceber(verified)) {
+            const retryResp = await writeReceivablePatch(receivableId, { responsavel_pagamento: packed });
+            if (retryResp.row) verified = retryResp.row;
+          }
+        }
+        if (!receivableAprovadoParaContasReceber(verified) && !receivableIsContaReceberFinanceiro(verified)) {
           if (!opts.silent) {
             alert(
-              "O servidor não confirmou o envio para Contas a receber. Atualize a página e tente novamente. Se persistir, execute as migrações SQL do financeiro no Supabase."
+              "O servidor não confirmou o envio para Contas a Receber. Os dados do formulário foram mantidos. Se persistir, execute as migrações SQL do financeiro no Supabase."
             );
           }
           return false;
@@ -12140,6 +12285,7 @@
         const idx = (state.receivables || []).findIndex((x) => String(x.id) === String(receivableId));
         if (idx >= 0) state.receivables[idx] = verified;
         else if (typeof loadReceivables === "function") await loadReceivables();
+        opts.outcome = "promoted";
         return true;
       }
 
@@ -13323,7 +13469,7 @@
         if (receivableHasPaidSiblingCycle(r)) return false;
         if (receivableFluxoFinanceiroQuitado(r)) return false;
         if (receivableSemCobrancaFinanceira(r)) return false;
-        if (receivableIsContaReceberFinanceiro(r)) return false;
+        if (receivableIsContaReceberFinanceiro(r) || receivableAprovadoParaContasReceber(r)) return false;
         if (!r.vehicle_id) return false;
         if (typeof receivableOrfaoEntreFilasFinanceiro === "function" && receivableOrfaoEntreFilasFinanceiro(r)) {
           return true;
@@ -13463,7 +13609,9 @@
         if (!c) return "-";
         if (c.status === "PAGO") return Number(c.valor || 0) <= 0 && c.vehicle_id ? "Sem cobrança" : "Pago";
         if (receivableNaFilaFechamentoCicloPatio(c)) return "Fechando ciclo (pátio)";
-        if (c.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) return "Aguardando Faturamento";
+        if (c.status === RECEIVABLE_AGUARDANDO_LANCAMENTO) {
+          return receivableAprovadoParaContasReceber(c) ? "Em aberto (conta a receber)" : "Aguardando Faturamento";
+        }
         if (c.status === "EM_ABERTO" && receivableIsCicloPatioAberto(c)) return "Em curso (pátio)";
         if (c.status === "EM_ABERTO" && receivableCicloEncerradoParaFinanceiro(c) && !receivableAprovadoParaContasReceber(c))
           return "Aguardando Faturamento";
@@ -19850,7 +19998,12 @@
           alert("Selecione se foi emitida a nota fiscal ou a cobrança.");
           return;
         }
+        if (submitPatioFaturamentoForm._busy) return;
         if (!(await requireSupabaseSessionForWrite())) return;
+        const confirmBtn = document.getElementById("patioFaturamentoModalConfirm");
+        submitPatioFaturamentoForm._busy = true;
+        if (confirmBtn) confirmBtn.disabled = true;
+        try {
         const r = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
         const vehicle = (state.vehicles || []).find((x) => String(x.id) === String(r?.vehicle_id));
         const closure = (state.cycleClosures || []).find((c) => String(c.receivable_id) === String(receivableId));
@@ -19881,6 +20034,17 @@
           }
         }
 
+        const promoteOpts = {
+          faturamento: {
+            destinatarioNome: nome,
+            destinatarioContato: contato,
+            tipoFaturamento: tipo,
+          },
+        };
+        const ok = await ensureReceivablePromotedToContasReceber(receivableId, promoteOpts);
+        if (!ok) return;
+
+        let closureWarning = "";
         if (closure?.id) {
           const cloPatch = {
             triagem_ok: true,
@@ -19914,20 +20078,9 @@
               .eq("id", closure.id)
               .eq("user_id", effectiveUserId()));
           }
-          if (cloErr && !isMissingRelationError(cloErr)) {
-            alert(cloErr.message);
-            return;
-          }
+          if (cloErr && !isMissingRelationError(cloErr)) closureWarning = cloErr.message || "Falha ao atualizar o fechamento do ciclo.";
         }
 
-        const ok = await ensureReceivablePromotedToContasReceber(receivableId, {
-          faturamento: {
-            destinatarioNome: nome,
-            destinatarioContato: contato,
-            tipoFaturamento: tipo,
-          },
-        });
-        if (!ok) return;
         if (vehicle?.id) {
           try {
             await supabase.from("vehicle_events").insert({
@@ -19947,7 +20100,24 @@
         openMainView("financeiro");
         if (typeof openFinanceSubview === "function") openFinanceSubview("receber", { skipRefresh: true });
         else if (typeof setFinanceView === "function") setFinanceView("receber");
-        alert("Faturamento concluído. O título entrou em Financeiro → Contas a receber.");
+        const devedorBruto = vehicle ? vehicleRpfNome(vehicle) : "";
+        const devedorLimpo = String(
+          typeof financeStripFinmetaText === "function" ? financeStripFinmetaText(devedorBruto) : devedorBruto || ""
+        ).trim();
+        const devedor = devedorLimpo && devedorLimpo !== "—" && devedorLimpo !== "-" ? devedorLimpo : "";
+        const caderneta = devedor ? `na caderneta de ${devedor}` : "na caderneta do devedor";
+        const baseMsg =
+          promoteOpts.outcome === "duplicate"
+            ? `Faturamento concluído. Este ciclo já estava em Contas a Receber, ${caderneta}. Nenhum registro duplicado foi criado.`
+            : `Faturamento concluído. O registro saiu de Aguardando Faturamento e entrou em Contas a Receber, ${caderneta}.`;
+        alert(closureWarning ? `${baseMsg}\n\nO fechamento do ciclo no pátio não foi atualizado: ${closureWarning}` : baseMsg);
+        } catch (err) {
+          console.error("submitPatioFaturamentoForm", err);
+          alert("Não foi possível finalizar o faturamento. Os dados do formulário foram mantidos.");
+        } finally {
+          submitPatioFaturamentoForm._busy = false;
+          if (confirmBtn) confirmBtn.disabled = false;
+        }
       }
 
       function bindPatioFaturamentoModalOnce() {
@@ -20214,6 +20384,51 @@
         return out;
       }
 
+      function isValidCpfDigits(digits) {
+        const d = String(digits || "").replace(/\D/g, "");
+        if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+        const calc = (len) => {
+          let sum = 0;
+          for (let i = 0; i < len; i += 1) sum += Number(d[i]) * (len + 1 - i);
+          const mod = (sum * 10) % 11;
+          return mod === 10 ? 0 : mod;
+        };
+        return calc(9) === Number(d[9]) && calc(10) === Number(d[10]);
+      }
+
+      function maskCpfInputValue(raw) {
+        const d = String(raw || "").replace(/\D/g, "").slice(0, 11);
+        const p1 = d.slice(0, 3);
+        const p2 = d.slice(3, 6);
+        const p3 = d.slice(6, 9);
+        const p4 = d.slice(9, 11);
+        let out = p1;
+        if (p2) out += `.${p2}`;
+        if (p3) out += `.${p3}`;
+        if (p4) out += `-${p4}`;
+        return out;
+      }
+
+      function applyMaskedDocInput(el, maskFn) {
+        if (!el) return;
+        const start = el.selectionStart ?? el.value.length;
+        const digitsBefore = el.value.slice(0, start).replace(/\D/g, "").length;
+        const masked = maskFn(el.value);
+        if (el.value === masked) return;
+        el.value = masked;
+        let pos = 0;
+        let seen = 0;
+        while (pos < masked.length && seen < digitsBefore) {
+          if (/\d/.test(masked.charAt(pos))) seen += 1;
+          pos += 1;
+        }
+        try {
+          el.setSelectionRange(pos, pos);
+        } catch (e) {
+          /* ignore */
+        }
+      }
+
       function nfseThermalWidthMm() {
         try {
           const n = Number(localStorage.getItem(NFSE_THERMAL_WIDTH_KEY));
@@ -20236,49 +20451,47 @@
 
       function syncNfseThermalPrintState() {
         const nome = String(nfseThermalNome?.value || "").trim();
+        const responsavel = String(nfseThermalResponsavelNome?.value || "").trim();
         const digits = String(nfseThermalCnpj?.value || "").replace(/\D/g, "");
+        const cpfDigits = String(nfseThermalResponsavelCpf?.value || "").replace(/\D/g, "");
         const cnpjOk = isValidCnpjDigits(digits);
-        const ready = nome.length > 0 && cnpjOk;
+        const cpfOk = isValidCpfDigits(cpfDigits);
+        const ready = nome.length > 0 && cnpjOk && responsavel.length > 0 && cpfOk;
         if (nfseThermalPrintBtn) nfseThermalPrintBtn.disabled = !ready;
         if (!nfseThermalCnpjStatus) return;
         const cnpjIncomplete = digits.length > 0 && digits.length < 14;
         const cnpjInvalid = digits.length === 14 && !cnpjOk;
-        nfseThermalCnpjStatus.classList.toggle("is-invalid", cnpjInvalid);
-        if (!digits.length && !nome) {
-          nfseThermalCnpjStatus.textContent = "Informe o nome/razão social e um CNPJ válido para liberar a impressão.";
+        const cpfIncomplete = cpfDigits.length > 0 && cpfDigits.length < 11;
+        const cpfInvalid = cpfDigits.length === 11 && !cpfOk;
+        nfseThermalCnpjStatus.classList.toggle("is-invalid", cnpjInvalid || cpfInvalid);
+        if (!digits.length && !nome && !responsavel && !cpfDigits.length) {
+          nfseThermalCnpjStatus.textContent =
+            "Informe a razão social, um CNPJ válido, o nome completo e o CPF para liberar a impressão.";
         } else if (cnpjIncomplete) {
           nfseThermalCnpjStatus.textContent = "Complete o CNPJ no formato 00.000.000/0000-00.";
         } else if (cnpjInvalid) {
           nfseThermalCnpjStatus.textContent = "CNPJ inválido. O formato é 00.000.000/0000-00.";
         } else if (!nome) {
-          nfseThermalCnpjStatus.textContent = "Informe o nome ou a razão social do destinatário.";
+          nfseThermalCnpjStatus.textContent = "Informe a razão social.";
         } else if (!cnpjOk) {
-          nfseThermalCnpjStatus.textContent = "Informe o CNPJ do destinatário no formato 00.000.000/0000-00.";
+          nfseThermalCnpjStatus.textContent = "Informe o CNPJ no formato 00.000.000/0000-00.";
+        } else if (!responsavel) {
+          nfseThermalCnpjStatus.textContent = "Informe o nome completo de quem recebe.";
+        } else if (cpfIncomplete) {
+          nfseThermalCnpjStatus.textContent = "Complete o CPF no formato 000.000.000-00.";
+        } else if (cpfInvalid || !cpfOk) {
+          nfseThermalCnpjStatus.textContent = "CPF inválido. O formato é 000.000.000-00.";
         } else {
           nfseThermalCnpjStatus.textContent = "Dados preenchidos. A impressão está liberada.";
         }
       }
 
       function applyNfseThermalCnpjMask() {
-        const el = nfseThermalCnpj;
-        if (!el) return;
-        const start = el.selectionStart ?? el.value.length;
-        const digitsBefore = el.value.slice(0, start).replace(/\D/g, "").length;
-        const masked = maskCnpjInputValue(el.value);
-        if (el.value !== masked) {
-          el.value = masked;
-          let pos = 0;
-          let seen = 0;
-          while (pos < masked.length && seen < digitsBefore) {
-            if (/\d/.test(masked.charAt(pos))) seen += 1;
-            pos += 1;
-          }
-          try {
-            el.setSelectionRange(pos, pos);
-          } catch (e) {
-            /* ignore */
-          }
-        }
+        applyMaskedDocInput(nfseThermalCnpj, maskCnpjInputValue);
+      }
+
+      function applyNfseThermalCpfMask() {
+        applyMaskedDocInput(nfseThermalResponsavelCpf, maskCpfInputValue);
       }
 
       function buildCdrPrintHtml(data) {
@@ -20304,9 +20517,9 @@
     color: #000;
   }
   .ticket.cdr-print {
-    width: 68mm;
-    max-width: 68mm;
-    margin: 0 0 0 8mm;
+    width: 72mm;
+    max-width: 72mm;
+    margin: 0 4mm;
     padding: 1.2mm 2mm 1.5mm 2mm;
     box-sizing: border-box;
     position: static;
@@ -20358,7 +20571,7 @@
     font-weight: 800;
     letter-spacing: 0.04em;
   }
-  .ticket .line { margin: 0.3mm 0 0; }
+  .ticket .line { margin: 0.3mm 0 0; overflow-wrap: anywhere; word-break: break-word; }
   .ticket .hot { font-weight: 800; }
   .ticket .hot-placa { font-weight: 800; font-size: 14px; }
   .ticket .total {
@@ -20383,12 +20596,12 @@
       color: #000 !important;
     }
     .cdr-print {
-      width: 68mm !important;
-      max-width: 68mm !important;
+      width: 72mm !important;
+      max-width: 72mm !important;
       margin-top: 0 !important;
       margin-bottom: 0 !important;
-      margin-left: 8mm !important;
-      margin-right: 0 !important;
+      margin-left: 4mm !important;
+      margin-right: 4mm !important;
       padding-top: 1.2mm !important;
       padding-right: 2mm !important;
       padding-bottom: 1.5mm !important;
@@ -20413,6 +20626,8 @@
   <p class="sec">DADOS DO FATURAMENTO</p>
   <p class="line">Razão Social: ${escapeHtml(dash(data.razao))}</p>
   <p class="line">CNPJ: ${escapeHtml(dash(data.cnpj))}</p>
+  <p class="line">Nome completo: ${escapeHtml(dash(data.responsavelNome))}</p>
+  <p class="line">CPF: ${escapeHtml(dash(data.responsavelCpf))}</p>
   <hr class="sep" />
   <p class="sec">DADOS DO VEÍCULO</p>
   <p class="line hot">RPP: ${escapeHtml(dash(data.rpp))}</p>
@@ -20443,6 +20658,8 @@
         nfseThermalVehicleId = vehicle.id;
         if (nfseThermalNome) nfseThermalNome.value = "";
         if (nfseThermalCnpj) nfseThermalCnpj.value = "";
+        if (nfseThermalResponsavelNome) nfseThermalResponsavelNome.value = "";
+        if (nfseThermalResponsavelCpf) nfseThermalResponsavelCpf.value = "";
         syncNfseThermalPrintState();
         nfseThermalModal.classList.remove("hidden");
         nfseThermalNome?.focus();
@@ -20458,7 +20675,9 @@
         }
         const razao = String(nfseThermalNome?.value || "").trim();
         const cnpj = maskCnpjInputValue(nfseThermalCnpj?.value || "");
-        if (!razao || !isValidCnpjDigits(cnpj)) return;
+        const responsavelNome = String(nfseThermalResponsavelNome?.value || "").trim();
+        const responsavelCpf = maskCpfInputValue(nfseThermalResponsavelCpf?.value || "");
+        if (!razao || !isValidCnpjDigits(cnpj) || !responsavelNome || !isValidCpfDigits(responsavelCpf)) return;
         const emissaoDate = new Date();
         const vencimentoDate = addControleRecebimentoDays(emissaoDate, 10);
         const marca = String(vehicle.marca || "").trim();
@@ -20467,6 +20686,8 @@
         const html = buildCdrPrintHtml({
           razao,
           cnpj,
+          responsavelNome,
+          responsavelCpf,
           rpp: vehicleRpfNome(vehicle),
           placa: vehicle.placa || "",
           veiculo: [marca, modelo].filter(Boolean).join(" / "),
@@ -21723,8 +21944,13 @@
       closeNfseThermalModal?.addEventListener("click", () => closeNfseThermalModalFn());
       nfseThermalCloseBtn?.addEventListener("click", () => closeNfseThermalModalFn());
       nfseThermalNome?.addEventListener("input", () => syncNfseThermalPrintState());
+      nfseThermalResponsavelNome?.addEventListener("input", () => syncNfseThermalPrintState());
       nfseThermalCnpj?.addEventListener("input", () => {
         applyNfseThermalCnpjMask();
+        syncNfseThermalPrintState();
+      });
+      nfseThermalResponsavelCpf?.addEventListener("input", () => {
+        applyNfseThermalCpfMask();
         syncNfseThermalPrintState();
       });
       nfseThermalWidth?.addEventListener("change", () => {
