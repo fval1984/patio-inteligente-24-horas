@@ -5176,6 +5176,12 @@
         color: var(--primary-strong);
         font-weight: 600;
       }
+      #finDespTipoChoice button.active {
+        background: var(--primary-weak);
+        border-color: rgba(212, 175, 55, 0.45);
+        color: var(--primary-strong);
+        font-weight: 600;
+      }
       .fin-caixa-tipo-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
       .fin-caixa-tipo-filter button.active {
         background: var(--primary-weak);
@@ -9447,21 +9453,28 @@
           <div class="modal-header">
             <div>
               <h3 id="finDespesaModalTitle">Nova despesa</h3>
-              <p class="subtitle" style="margin: 4px 0 0">Cadastre contas a pagar com vencimento, categoria e comprovante.</p>
+              <p class="subtitle" style="margin: 4px 0 0">Qual o tipo da despesa?</p>
             </div>
             <button type="button" class="modal-close" id="closeFinDespesaModal">Fechar</button>
           </div>
           <form id="finDespesaForm">
             <div class="form-grid">
               <div class="full">
+                <div id="finDespTipoChoice" style="display:flex; flex-wrap:wrap; gap:8px">
+                  <button type="button" class="secondary" data-fin-desp-tipo="UNICA">Única</button>
+                  <button type="button" class="secondary" data-fin-desp-tipo="RECORRENTE">Recorrente</button>
+                  <button type="button" class="secondary" data-fin-desp-tipo="PARCELADA">Parcelada</button>
+                </div>
+              </div>
+              <div class="full hidden">
                 <label for="finDespContactSelect">Vincular cadastro</label>
                 <select id="finDespContactSelect">
                   <option value="">— Digitar manualmente —</option>
                 </select>
               </div>
-              <div class="full">
+              <div class="full hidden">
                 <label for="finDespFornecedor">Fornecedor</label>
-                <input id="finDespFornecedor" type="text" required placeholder="Nome do fornecedor" />
+                <input id="finDespFornecedor" type="text" placeholder="Nome do fornecedor" />
               </div>
               <div class="full">
                 <label for="finDespDescricao">Descrição</label>
@@ -9472,11 +9485,11 @@
                 <select id="finDespCategoria" required></select>
               </div>
               <div>
-                <label for="finDespValor">Valor (R$)</label>
+                <label for="finDespValor" id="finDespValorLabel">Valor (R$)</label>
                 <input id="finDespValor" type="number" step="0.01" min="0.01" required />
               </div>
               <div>
-                <label for="finDespVencimento">Vencimento</label>
+                <label for="finDespVencimento" id="finDespDataLabel">Data</label>
                 <input id="finDespVencimento" type="date" required />
               </div>
               <div>
@@ -9491,11 +9504,11 @@
                   <option value="Cheque">Cheque</option>
                 </select>
               </div>
-              <div>
+              <div class="hidden">
                 <label for="finDespConta">Conta bancária</label>
                 <input id="finDespConta" type="text" placeholder="Banco / conta" />
               </div>
-              <div>
+              <div class="hidden">
                 <label for="finDespModo">Tipo</label>
                 <select id="finDespModo">
                   <option value="UNICA">Única</option>
@@ -9504,16 +9517,23 @@
                 </select>
               </div>
               <div id="finDespRecorrenciaWrap" class="hidden">
-                <label for="finDespRecorrencia">Recorrência</label>
+                <label for="finDespRecorrencia">Frequência</label>
                 <select id="finDespRecorrencia">
-                  <option value="semanal">Semanal</option>
-                  <option value="quinzenal">Quinzenal</option>
                   <option value="mensal" selected>Mensal</option>
+                  <option value="semanal">Semanal</option>
                   <option value="anual">Anual</option>
                 </select>
               </div>
+              <div id="finDespDiaWrap" class="hidden">
+                <label for="finDespDia">Dia do vencimento</label>
+                <input id="finDespDia" type="number" min="1" max="31" value="10" />
+              </div>
+              <div id="finDespFimWrap" class="hidden">
+                <label for="finDespDataFim">Data de término</label>
+                <input id="finDespDataFim" type="date" />
+              </div>
               <div id="finDespParcelasWrap" class="hidden">
-                <label for="finDespParcelas">Parcelas</label>
+                <label for="finDespParcelas">Quantidade de parcelas</label>
                 <input id="finDespParcelas" type="number" min="2" max="60" value="2" />
               </div>
               <div class="full">
@@ -9774,7 +9794,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260924caixa3"></script>
+    <script src="/finance-module.js?v=20260924desp1"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
@@ -10268,18 +10288,60 @@
         recorrenciaIntervalo = "mensal",
         contaBancaria = "",
         financeContactId = null,
+        dataInicio = "",
+        dataFim = "",
+        diaVencimento = 0,
+        lancarNoCaixa = false,
       }) {
         if (!(await requireSupabaseSessionForWrite())) return { error: { message: "Sessão expirada" } };
         const modoUp = String(modo || "UNICA").toUpperCase();
-        const count = modoUp === "PARCELADA" ? Math.max(2, Math.min(60, Number(parcelas) || 2)) : 1;
-        const valorParcela = modoUp === "PARCELADA" ? Number(valor) / count : Number(valor);
         const grupoId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
         const insertedIds = [];
+        const centavos = Math.round(Number(valor) * 100);
+        const itens = [];
+        if (modoUp === "PARCELADA") {
+          const count = Math.max(2, Math.min(60, Number(parcelas) || 2));
+          const base = Math.floor(centavos / count);
+          const valores = Array.from({ length: count }, () => base);
+          valores[count - 1] += centavos - base * count;
+          for (let i = 0; i < count; i++) {
+            itens.push({
+              valor: valores[i] / 100,
+              due: addMonthsToYmd(vencimento, i) || vencimento,
+              parcela: i + 1,
+              total: count,
+              pago: false,
+            });
+          }
+        } else if (modoUp === "RECORRENTE" && dataInicio) {
+          let cursor = dataInicio;
+          const dia = Number(diaVencimento);
+          const freq = String(recorrenciaIntervalo || "mensal").toLowerCase();
+          if ((freq === "mensal" || freq === "anual") && dia >= 1 && dia <= 31) {
+            const [y, m] = cursor.split("-");
+            const last = new Date(Number(y), Number(m), 0).getDate();
+            const candidato = `${y}-${m}-${String(Math.min(dia, last)).padStart(2, "0")}`;
+            cursor = candidato >= dataInicio ? candidato : addMonthsToYmd(candidato, freq === "anual" ? 12 : 1) || candidato;
+          }
+          const limite = dataFim || "";
+          const max = limite ? 36 : 12;
+          for (let i = 0; i < max && cursor; i++) {
+            if (limite && cursor > limite) break;
+            itens.push({ valor: Number(valor), due: cursor, pago: false });
+            const next = addPeriodToYmd(cursor, freq);
+            if (!next || next === cursor) break;
+            cursor = next;
+          }
+        } else {
+          itens.push({ valor: Number(valor), due: vencimento, pago: !!pago });
+        }
+        if (!itens.length) return { error: { message: "Não foi possível montar as ocorrências da despesa." } };
 
-        for (let i = 0; i < count; i++) {
-          const dueDate = addMonthsToYmd(vencimento, i) || vencimento;
-          const isLast = i === count - 1;
-          const markPago = pago && (count === 1 || isLast);
+        for (let i = 0; i < itens.length; i++) {
+          const item = itens[i];
+          const dueDate = item.due;
+          const valorParcela = item.valor;
+          const markPago = item.pago === true;
           const fornLabel = String(fornecedor || "").trim();
           const descLabel = String(descricao || "").trim();
           const obsLabel = String(observacoes || "").trim();
@@ -10296,12 +10358,15 @@
             gerou_compromisso: !markPago,
             conta_bancaria: String(contaBancaria || "").trim() || null,
             ...(modoUp === "RECORRENTE"
-              ? { recorrencia: String(recorrenciaIntervalo || "mensal").toLowerCase() }
+              ? { recorrencia: String(recorrenciaIntervalo || "mensal").toLowerCase(), grupo_id: grupoId }
               : {}),
-            ...(modoUp === "PARCELADA" ? { parcela: i + 1, parcelas_total: count, grupo_id: grupoId } : {}),
+            ...(modoUp === "PARCELADA"
+              ? { parcela: item.parcela, parcelas_total: item.total, grupo_id: grupoId }
+              : {}),
             ...(financeContactId ? { finance_contact_id: String(financeContactId) } : {}),
           };
-          const baseDesc = count > 1 ? `${descLabel} (${i + 1}/${count})` : descLabel;
+          const baseDesc =
+            modoUp === "PARCELADA" && item.total ? `${descLabel} (${item.parcela}/${item.total})` : descLabel;
           const descricaoFinal = financeMetaPack(
             meta,
             [fornLabel, baseDesc, obsLabel].filter(Boolean).join(" — ").trim() || baseDesc
@@ -10330,6 +10395,25 @@
           if (error) return { error };
           const payableId = inserted?.id;
           if (payableId) insertedIds.push(payableId);
+          if (markPago && lancarNoCaixa && payableId) {
+            const cashResult = await registerPayableCashMovement(
+              {
+                id: payableId,
+                valor: valorParcela,
+                data_vencimento: dueDate,
+                forma_pagamento: formaPagamento,
+                descricao: descLabel,
+              },
+              {
+                valor: valorParcela,
+                dataMovimento: dueDate,
+                formaPagamento,
+                descricao: descLabel,
+                aprovadoCaixa: true,
+              }
+            );
+            if (cashResult?.error) return { error: cashResult.error };
+          }
         }
         return { id: insertedIds[0], ids: insertedIds };
       }
