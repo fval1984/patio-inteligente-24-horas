@@ -365,7 +365,7 @@
       ? `<button type="button" class="secondary" data-fin-open-recebimento="${esc(rec.id)}">Abrir</button>`
       : "";
     const cdr = vehicle
-      ? `<button type="button" class="secondary" data-fin-print-cdr="${esc(vehicle.id)}">Imprimir CDR</button>`
+      ? `<button type="button" class="secondary" data-fin-print-cdr="${esc(vehicle.id)}">Imprimir CDF</button>`
       : "";
     const comprovante =
       rec && isEntrada(mov)
