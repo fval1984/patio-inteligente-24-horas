@@ -8000,8 +8000,8 @@
           </div>
           <div class="finance-subnav" id="finSubnav">
             <button type="button" data-finance-subview-btn="dashboard" class="active">Visão Geral</button>
-            <button type="button" data-finance-subview-btn="receber">A Receber</button>
-            <button type="button" data-finance-subview-btn="pagar">Despesas</button>
+            <button type="button" data-finance-subview-btn="receber">Entradas</button>
+            <button type="button" data-finance-subview-btn="pagar">Saídas</button>
             <button type="button" data-finance-subview-btn="caixa">Caixa</button>
           </div>
           <div id="finSearchResults" class="fin-search-results hidden"></div>
@@ -8207,10 +8207,10 @@
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="pagar">
-            <h2 id="finDespesasTitulo" style="margin: 0 0 8px; font-size: 1.15rem; letter-spacing: 0.04em">DESPESAS</h2>
-            <p style="margin: 0 0 12px"><strong>Total de Despesas:</strong> <span id="finPagarTotal">R$ 0,00</span></p>
+            <h2 id="finDespesasTitulo" style="margin: 0 0 8px; font-size: 1.15rem; letter-spacing: 0.04em">SAÍDAS</h2>
+            <p style="margin: 0 0 12px"><strong>Total de Saídas:</strong> <span id="finPagarTotal">R$ 0,00</span></p>
             <div class="fin-toolbar">
-              <div><button type="button" id="finBtnNovaDespesa">+ Nova despesa</button></div>
+              <div><button type="button" id="finBtnNovaDespesa">+ Nova saída</button></div>
               <div><button type="button" class="secondary" id="finPagarOpenCadastros">Cadastros</button></div>
               <div><label for="finPagarBusca">Buscar</label><input id="finPagarBusca" type="search" placeholder="Fornecedor, descrição…" /></div>
               <div><label for="finPagarTipo">Tipo</label>
@@ -8793,7 +8793,7 @@
         <div class="modal">
           <div class="modal-header">
             <div>
-              <h3>Finalizar faturamento</h3>
+              <h3>Faturar Serviço</h3>
               <p class="subtitle" id="patioFaturamentoModalSub">Informe o destinatário e o documento emitido</p>
             </div>
             <button type="button" class="modal-close" id="patioFaturamentoModalClose">Fechar</button>
@@ -8814,7 +8814,7 @@
               </label>
             </fieldset>
             <div class="modal-actions">
-              <button type="submit" id="patioFaturamentoModalConfirm">Concluir e enviar a Contas a receber</button>
+              <button type="submit" id="patioFaturamentoModalConfirm">Faturar / Gerar CDF</button>
               <button type="button" class="secondary" id="patioFaturamentoModalCancel">Cancelar</button>
             </div>
           </form>
@@ -9041,9 +9041,9 @@
         <div class="modal">
           <div class="modal-header">
             <div>
-              <h3>Imprimir CDR</h3>
-              <p class="notice" style="margin: 4px 0 0; font-size: 12px">
-                Controle de Recebimento. Escolha CPF ou CNPJ. Só o formulário escolhido abre para preenchimento.
+              <h3 id="nfseThermalTitle">CDF — Controle de Faturamento</h3>
+              <p class="notice" id="nfseThermalSubtitle" style="margin: 4px 0 0; font-size: 12px">
+                Controle de Faturamento. Escolha CPF ou CNPJ. Só o formulário escolhido abre para preenchimento.
               </p>
             </div>
             <button type="button" class="modal-close" id="closeNfseThermalModal">Fechar</button>
@@ -9073,11 +9073,20 @@
               <input id="nfseThermalCnpj" type="text" inputmode="numeric" maxlength="18" autocomplete="off" placeholder="00.000.000/0000-00" />
             </div>
           </div>
+          <div id="nfseThermalFaturarExtra" class="hidden" style="margin-top: 12px">
+            <label for="cdfDestContato">Contato do destinatário</label>
+            <input id="cdfDestContato" type="text" maxlength="180" placeholder="Telefone, e-mail ou WhatsApp" />
+            <fieldset style="margin: 12px 0; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px">
+              <legend>Documento do faturamento</legend>
+              <label style="display:block;margin-bottom:6px"><input type="radio" name="cdfTipoFat" value="NF" /> Nota fiscal</label>
+              <label style="display:block"><input type="radio" name="cdfTipoFat" value="COBRANCA" checked /> Cobrança</label>
+            </fieldset>
+          </div>
           <p id="nfseThermalCnpjStatus" class="notice" style="margin: 8px 0 0">
             Selecione CPF ou CNPJ para continuar.
           </p>
           <div class="form-actions">
-            <button type="button" id="nfseThermalPrintBtn" disabled>IMPRIMIR CDR</button>
+            <button type="button" id="nfseThermalPrintBtn" disabled>IMPRIMIR CDF</button>
             <button type="button" class="secondary" id="nfseThermalPdfBtn" disabled>Baixar PDF</button>
             <button type="button" class="secondary" id="nfseThermalCloseBtn">Fechar</button>
           </div>
@@ -9217,10 +9226,10 @@
             </div>
           </div>
           <p class="notice receber-baixa-notice" style="margin: 0 0 12px; font-size: 13px; line-height: 1.45">
-            <strong>Confirmar Pagamento</strong> — registra o recebimento. <strong>Gerar PDF</strong> — confirma e baixa o recibo.
+            <strong>Confirmar Recebimento</strong> abre o comprovante. O valor só entra no Caixa depois de <strong>Confirmar Comprovante</strong>.
           </p>
           <div class="form-actions" style="flex-wrap: wrap">
-            <button type="button" id="receberBaixaOk">PG</button>
+            <button type="button" id="receberBaixaOk">Confirmar Recebimento</button>
             <button type="button" class="secondary" id="receberBaixaGerarPdf">Gerar PDF</button>
             <button type="button" class="secondary" id="cancelReceberBaixaModal">Cancelar</button>
           </div>
@@ -9232,15 +9241,16 @@
           <div class="modal-header">
             <div>
               <h3>Comprovante de pagamento</h3>
-              <p class="subtitle" style="margin: 4px 0 0">Pagamento confirmado. Imprima ou baixe o comprovante.</p>
+              <p class="subtitle" id="comprovantePagamentoSubtitle" style="margin: 4px 0 0">Pagamento confirmado. Imprima ou baixe o comprovante.</p>
             </div>
             <button type="button" class="modal-close" id="closeComprovantePagamentoModal">Fechar</button>
           </div>
           <p id="comprovantePagamentoResumo" class="notice" style="margin: 0 0 12px; font-size: 13px; line-height: 1.45"></p>
           <div class="form-actions" style="flex-wrap: wrap">
+            <button type="button" class="secondary" id="comprovantePagamentoConfirmarBtn" hidden>Confirmar Comprovante</button>
             <button type="button" id="comprovantePagamentoPrintBtn">Imprimir Comprovante</button>
             <button type="button" class="secondary" id="comprovantePagamentoPdfBtn">Baixar PDF</button>
-            <button type="button" class="secondary" id="comprovantePagamentoCdrBtn">Imprimir CDR</button>
+            <button type="button" class="secondary" id="comprovantePagamentoCdrBtn">Imprimir CDF</button>
             <button type="button" class="secondary" id="comprovantePagamentoCloseBtn">Fechar</button>
           </div>
         </div>
@@ -9476,7 +9486,7 @@
         <div class="modal" style="max-width: 520px">
           <div class="modal-header">
             <div>
-              <h3 id="finDespesaModalTitle">Nova despesa</h3>
+              <h3 id="finDespesaModalTitle">Nova saída</h3>
               <p class="subtitle" style="margin: 4px 0 0">Qual o tipo da despesa?</p>
             </div>
             <button type="button" class="modal-close" id="closeFinDespesaModal">Fechar</button>
@@ -9772,8 +9782,8 @@
           <summary>Financeiro</summary>
           <div class="header-menu-nested">
             <button type="button" data-finance-subview="dashboard">Visão Geral</button>
-            <button type="button" data-finance-subview="receber">A Receber</button>
-            <button type="button" data-finance-subview="pagar">Despesas</button>
+            <button type="button" data-finance-subview="receber">Entradas</button>
+            <button type="button" data-finance-subview="pagar">Saídas</button>
             <button type="button" data-finance-subview="caixa">Caixa</button>
           </div>
         </details>
@@ -9818,11 +9828,11 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260924caixa5"></script>
+    <script src="/finance-module.js?v=20260924cdf1"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
-    <script src="/finance-simple-ui.js?v=20260923baixa1"></script>
+    <script src="/finance-simple-ui.js?v=20260924cdf1"></script>
     <script src="/finance-action-ui.js?v=20260921caderneta1"></script>
     <script src="/patio-dashboard.js?v=20260715gestor"></script>
     <script src="/operational-metrics-service.js?v=20260727opsdash"></script>
@@ -17041,11 +17051,11 @@
 
       const APP_FIN_SUBVIEW_LABELS = {
         dashboard: "Visão geral",
-        financeiras: "A Receber",
+        financeiras: "Entradas",
         em_patio: "Diárias",
         aguardando: "Aguardando faturamento",
-        receber: "A Receber",
-        pagar: "Despesas",
+        receber: "Entradas",
+        pagar: "Saídas",
         lancamentos: "Movimentações",
         relatorios: "Relatórios",
         caixa: "Caixa",
@@ -20295,9 +20305,9 @@
           }
           if (nfErr && /nfse_|column|schema cache|PGRST204/i.test(nfErr.message || "")) {
             addNfseEnviadaVehicleId(vehicle.id);
-          } else if (nfErr) {
+          } else           if (nfErr) {
             alert(nfErr.message);
-            return;
+            return false;
           }
         }
 
@@ -20309,7 +20319,7 @@
           },
         };
         const ok = await ensureReceivablePromotedToContasReceber(receivableId, promoteOpts);
-        if (!ok) return;
+        if (!ok) return false;
 
         let closureWarning = "";
         if (closure?.id) {
@@ -20354,7 +20364,7 @@
               vehicle_id: vehicle.id,
               tipo: "FATURAMENTO_CONCLUIDO",
               responsavel: nome,
-              descricao: `Faturamento no Pátio (${tipo === "NF" ? "nota fiscal" : "cobrança"}). Destinatário: ${nome}. Contato: ${contato}. Título enviado a Contas a receber.`,
+              descricao: `Faturamento no Pátio (${tipo === "NF" ? "nota fiscal" : "cobrança"}). Destinatário: ${nome}. Contato: ${contato}. Título enviado a Entradas.`,
             });
           } catch (e) {
             console.warn("vehicle_events faturamento", e);
@@ -20375,9 +20385,10 @@
         const caderneta = devedor ? `na caderneta de ${devedor}` : "na caderneta do devedor";
         const baseMsg =
           promoteOpts.outcome === "duplicate"
-            ? `Faturamento concluído. Este ciclo já estava em Contas a Receber, ${caderneta}. Nenhum registro duplicado foi criado.`
-            : `Faturamento concluído. O registro saiu de Aguardando Faturamento e entrou em Contas a Receber, ${caderneta}.`;
+            ? `CDF gerado. Este ciclo já estava em Entradas, ${caderneta}. Nenhum registro duplicado foi criado.`
+            : `CDF gerado. O mesmo registro saiu de Aguardando Faturamento e entrou em Entradas, ${caderneta}.`;
         alert(closureWarning ? `${baseMsg}\n\nO fechamento do ciclo no pátio não foi atualizado: ${closureWarning}` : baseMsg);
+        return true;
         } catch (err) {
           console.error("submitPatioFaturamentoForm", err);
           alert("Não foi possível finalizar o faturamento. Os dados do formulário foram mantidos.");
@@ -20461,7 +20472,7 @@
                   ${
                     FINANCE_MANUAL_ONLY || isGestorPista
                       ? `<span class="notice">Faturamento no perfil do gestor do sistema.</span>`
-                      : `<button type="button" class="secondary" data-action="patio_finalizar_faturamento" data-id="${vehicle.id}" data-receivable-id="${r.id}"${closureAttr}>Finalizar faturamento</button>
+                      : `<button type="button" class="secondary" data-action="patio_finalizar_faturamento" data-id="${vehicle.id}" data-receivable-id="${r.id}"${closureAttr}>Faturar Serviço</button>
                   <button type="button" class="secondary" data-action="editar_aguardando_faturamento" data-id="${vehicle.id}" data-receivable-id="${r.id}">Editar</button>
                   <button type="button" class="secondary" data-action="apagar_aguardando_faturamento" data-id="${vehicle.id}" data-receivable-id="${r.id}">Apagar</button>`
                   }
@@ -20530,7 +20541,7 @@
       }
 
       function nfseThermalActionButtonHtml(vehicle) {
-        return `<button type="button" class="secondary" data-action="nfse_termica" data-id="${vehicle.id}">Imprimir CDR</button>`;
+        return `<button type="button" class="secondary" data-action="nfse_termica" data-id="${vehicle.id}">Imprimir CDF</button>`;
       }
 
       function comprovantePagamentoActionButtonHtml(vehicle) {
@@ -20934,11 +20945,11 @@
       max-height: none !important;
     }
   }`;
-        return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Controle de Recebimento</title>
+        return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Controle de Faturamento</title>
 <style>${css}</style></head><body>
 <div class="ticket cdr-print">
   <img class="logo" src="${escapeHtml(logo)}" alt="AMPLIGUARD" />
-  <p class="title">CONTROLE DE RECEBIMENTO</p>
+  <p class="title">CONTROLE DE FATURAMENTO</p>
   <p class="sec">DADOS DO FATURAMENTO</p>
   ${
     data.tipo === "PF"
@@ -20967,13 +20978,36 @@
 </body></html>`;
       }
 
+      function setCdfFaturarMode(on, receivableId) {
+        if (!nfseThermalModal) return;
+        if (on) {
+          nfseThermalModal.dataset.modo = "faturar";
+          nfseThermalModal.dataset.receivableId = String(receivableId || "");
+        } else {
+          delete nfseThermalModal.dataset.modo;
+          delete nfseThermalModal.dataset.receivableId;
+        }
+        const title = document.getElementById("nfseThermalTitle");
+        const sub = document.getElementById("nfseThermalSubtitle");
+        const extra = document.getElementById("nfseThermalFaturarExtra");
+        if (title) title.textContent = on ? "CONTROLE DE FATURAMENTO" : "CDF — Controle de Faturamento";
+        if (sub) {
+          sub.textContent = on
+            ? "Confira os dados do faturamento e do veículo. Ao confirmar, o mesmo registro segue para Entradas."
+            : "Controle de Faturamento. Escolha CPF ou CNPJ. Só o formulário escolhido abre para preenchimento.";
+        }
+        extra?.classList.toggle("hidden", !on);
+        if (nfseThermalPrintBtn) nfseThermalPrintBtn.textContent = on ? "Faturar / Gerar CDF" : "IMPRIMIR CDF";
+      }
+
       function closeNfseThermalModalFn() {
         nfseThermalModal?.classList.add("hidden");
         nfseThermalVehicleId = null;
         nfseThermalTipo = "";
+        setCdfFaturarMode(false);
       }
 
-      function openNfseThermalModal(vehicle) {
+      function openNfseThermalModal(vehicle, opts) {
         if (!vehicle || !nfseThermalModal) return;
         nfseThermalVehicleId = vehicle.id;
         if (nfseThermalNome) nfseThermalNome.value = "";
@@ -20982,8 +21016,69 @@
         if (nfseThermalResponsavelCpf) nfseThermalResponsavelCpf.value = "";
         nfseThermalTipo = "";
         setNfseThermalTipo("");
+        setCdfFaturarMode(!!opts?.faturar, opts?.receivableId);
+        if (opts?.faturar && opts.receivableId) {
+          const rec = (state.receivables || []).find((x) => String(x.id) === String(opts.receivableId));
+          const dest = rec && typeof receivableDestinatarioCobranca === "function" ? receivableDestinatarioCobranca(rec) : {};
+          const contato = document.getElementById("cdfDestContato");
+          if (contato) contato.value = dest.contato || "";
+          document.querySelectorAll('input[name="cdfTipoFat"]').forEach((el) => {
+            el.checked = el.value === (dest.tipo === "NF" ? "NF" : "COBRANCA");
+          });
+        }
         nfseThermalModal.classList.remove("hidden");
         nfseThermalTipoPf?.focus();
+      }
+
+      function openCdfFaturamento(receivableId) {
+        const rec = (state.receivables || []).find((x) => String(x.id) === String(receivableId));
+        if (!rec) {
+          alert("Não foi possível localizar o título deste ciclo. Atualize o pátio.");
+          return;
+        }
+        const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(rec.vehicle_id));
+        if (!vehicle) {
+          alert("Não foi possível localizar o veículo deste faturamento.");
+          return;
+        }
+        openNfseThermalModal(vehicle, { faturar: true, receivableId: rec.id });
+      }
+
+      async function concluirCdfFaturamento() {
+        syncNfseThermalPrintState();
+        if (!nfseThermalPrintBtn || nfseThermalPrintBtn.disabled) return;
+        const tipoPessoa = nfseThermalTipo === "PF" || nfseThermalTipo === "PJ" ? nfseThermalTipo : "";
+        const nome =
+          tipoPessoa === "PF"
+            ? String(nfseThermalResponsavelNome?.value || "").trim()
+            : String(nfseThermalNome?.value || "").trim();
+        const doc =
+          tipoPessoa === "PF"
+            ? maskCpfInputValue(nfseThermalResponsavelCpf?.value || "")
+            : maskCnpjInputValue(nfseThermalCnpj?.value || "");
+        const contato = String(document.getElementById("cdfDestContato")?.value || "").trim() || doc;
+        const tipo = String(document.querySelector('input[name="cdfTipoFat"]:checked')?.value || "").toUpperCase();
+        if (!nome || !contato) {
+          alert("Informe o nome e o contato de quem recebeu a cobrança.");
+          return;
+        }
+        if (tipo !== "NF" && tipo !== "COBRANCA") {
+          alert("Selecione se foi emitida a nota fiscal ou a cobrança.");
+          return;
+        }
+        const patioModal = document.getElementById("patioFaturamentoModal");
+        if (patioModal) patioModal.dataset.receivableId = nfseThermalModal?.dataset.receivableId || "";
+        const nomeEl = document.getElementById("patioFatDestNome");
+        const contatoEl = document.getElementById("patioFatDestContato");
+        if (nomeEl) nomeEl.value = nome;
+        if (contatoEl) contatoEl.value = contato;
+        document.querySelectorAll('#patioFaturamentoForm input[name="patioFatTipo"]').forEach((el) => {
+          el.checked = el.value === tipo;
+        });
+        const ok = await submitPatioFaturamentoForm({ preventDefault() {} });
+        if (!ok) return;
+        printOpenNfseThermal();
+        closeNfseThermalModalFn();
       }
       window.openNfseThermalModal = openNfseThermalModal;
 
@@ -21074,7 +21169,7 @@
           return text;
         };
         const blocks = [
-          { kind: "title", text: "CONTROLE DE RECEBIMENTO" },
+          { kind: "title", text: "CONTROLE DE FATURAMENTO" },
           { kind: "sec", text: "DADOS DO FATURAMENTO" },
         ];
         if (data.tipo === "PF") {
@@ -21233,12 +21328,12 @@
   @media print {
     html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; color: #000 !important; height: auto !important; }
   }`;
-        return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Controle de recebimento</title>
+        return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Controle de Faturamento</title>
 <style id="controleRecebimentoPage">@page { size: ${width}mm 20mm; margin: 0; }</style>
 <style>${css}</style></head><body>
 <div class="ticket">
   <p class="brand">AMPLIGUARD</p>
-  <p class="title">CONTROLE DE RECEBIMENTO</p>
+  <p class="title">CONTROLE DE FATURAMENTO</p>
   <hr class="sep" />
   <p class="line"><strong>RPP:</strong> ${escapeHtml(dash(data.rpp))}</p>
   <p class="line"><strong>Placa:</strong> ${escapeHtml(dash(data.placa))}</p>
@@ -21255,7 +21350,7 @@
   <p class="line"><strong>Vencimento:</strong> ${escapeHtml(dash(data.vencimento))}</p>
   <p class="total">VALOR TOTAL: ${escapeHtml(dash(data.valor))}</p>
   <hr class="sep" />
-  <p class="foot">Controle de Recebimento — AMPLIGUARD</p>
+  <p class="foot">Controle de Faturamento — AMPLIGUARD</p>
 </div>
 </body></html>`;
       }
@@ -22378,7 +22473,10 @@
       nfseThermalWidth?.addEventListener("change", () => {
         setNfseThermalWidthMm(Number(nfseThermalWidth.value));
       });
-      nfseThermalPrintBtn?.addEventListener("click", () => printOpenNfseThermal());
+      nfseThermalPrintBtn?.addEventListener("click", () => {
+        if (nfseThermalModal?.dataset.modo === "faturar") void concluirCdfFaturamento();
+        else printOpenNfseThermal();
+      });
       document.getElementById("nfseThermalPdfBtn")?.addEventListener("click", () => {
         void downloadOpenNfseThermalPdf();
       });
@@ -22508,6 +22606,9 @@
       document.getElementById("comprovantePagamentoCloseBtn")?.addEventListener("click", closeComprovantePagamentoModal);
       document.getElementById("comprovantePagamentoModal")?.addEventListener("click", (e) => {
         if (e.target === e.currentTarget) closeComprovantePagamentoModal();
+      });
+      document.getElementById("comprovantePagamentoConfirmarBtn")?.addEventListener("click", () => {
+        void confirmarComprovantePagamento();
       });
       document.getElementById("comprovantePagamentoPrintBtn")?.addEventListener("click", () => {
         printComprovantePagamentoAtual();
@@ -23234,11 +23335,26 @@ ${body}
 </body></html>`;
       }
 
-      function closeComprovantePagamentoModal() {
-        document.getElementById("comprovantePagamentoModal")?.classList.add("hidden");
+      let pendingComprovanteCaixa = null;
+
+      function setComprovanteAguardandoCaixa(on) {
+        const btn = document.getElementById("comprovantePagamentoConfirmarBtn");
+        const sub = document.getElementById("comprovantePagamentoSubtitle");
+        if (btn) btn.hidden = !on;
+        if (sub) {
+          sub.textContent = on
+            ? "Confira os dados. O valor só entra no Caixa depois de confirmar o comprovante."
+            : "Pagamento confirmado. Imprima ou baixe o comprovante.";
+        }
       }
 
-      function openComprovantePagamentoModal(data) {
+      function closeComprovantePagamentoModal() {
+        document.getElementById("comprovantePagamentoModal")?.classList.add("hidden");
+        pendingComprovanteCaixa = null;
+        setComprovanteAguardandoCaixa(false);
+      }
+
+      function openComprovantePagamentoModal(data, opts) {
         if (!data) return;
         comprovantePagamentoAtual = data;
         const modal = document.getElementById("comprovantePagamentoModal");
@@ -23254,6 +23370,7 @@ ${body}
         if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
         const cdrBtn = document.getElementById("comprovantePagamentoCdrBtn");
         if (cdrBtn) cdrBtn.classList.toggle("hidden", !data.vehicleId);
+        setComprovanteAguardandoCaixa(opts?.pendente === true);
         modal?.classList.remove("hidden");
       }
 
@@ -23411,57 +23528,99 @@ ${body}
           const descNote = `Desconto: ${formatCurrency(desconto)} (título ${formatCurrency(valorOriginal)})`;
           obsFinal = obsFinal ? `${obsFinal} — ${descNote}` : descNote;
         }
-        closeReceberBaixaModal();
-        let result = null;
-        try {
-          result = await finalizeReceivablePayment(pending.receivableId, valorRecebido, {
-          dataMovimento: dataMov,
+        const receivable = (state.receivables || []).find((x) => String(x.id) === String(pending.receivableId));
+        const vehicle = receivable
+          ? (state.vehicles || []).find((v) => String(v.id) === String(receivable.vehicle_id))
+          : null;
+        pendingComprovanteCaixa = {
+          receivableId: pending.receivableId,
+          valorRecebido,
+          valorOriginal,
+          desconto,
+          dataMov,
           formaPagamento,
           anexo,
-            observacao: obsFinal,
-          desconto,
-          valorOriginal,
-        });
+          observacao: obsFinal,
+          mode,
+          destinatarioNome,
+          destinatarioDoc,
+        };
+        closeReceberBaixaModal();
+        openComprovantePagamentoModal(
+          collectComprovantePagamentoData({
+            receivable: receivable || { id: pending.receivableId },
+            vehicle,
+            valorRecebido,
+            valorOriginal,
+            desconto,
+            formaPagamento,
+            dataMov,
+            observacao,
+            confirmedAt: new Date(),
+          }),
+          { pendente: true }
+        );
+      }
+
+      async function confirmarComprovantePagamento() {
+        const job = pendingComprovanteCaixa;
+        if (!job || confirmarComprovantePagamento._busy) return;
+        confirmarComprovantePagamento._busy = true;
+        const btn = document.getElementById("comprovantePagamentoConfirmarBtn");
+        if (btn) btn.disabled = true;
+        let result = null;
+        try {
+          result = await finalizeReceivablePayment(job.receivableId, job.valorRecebido, {
+            dataMovimento: job.dataMov,
+            formaPagamento: job.formaPagamento,
+            anexo: job.anexo,
+            observacao: job.observacao,
+            desconto: job.desconto,
+            valorOriginal: job.valorOriginal,
+          });
         } catch (e) {
-          console.error("executeReceberBaixa", e);
+          console.error("confirmarComprovantePagamento", e);
           const msg = e?.message || String(e);
           alert(
             /failed to fetch/i.test(msg)
-              ? "Falha de rede ao confirmar o pagamento. Verifique a internet, recarregue a página (Ctrl+Shift+R) e tente novamente."
-              : msg || "Não foi possível confirmar o pagamento."
+              ? "Falha de rede ao confirmar o comprovante. Verifique a internet e tente novamente."
+              : msg || "Não foi possível confirmar o comprovante."
           );
           return;
+        } finally {
+          confirmarComprovantePagamento._busy = false;
+          if (btn) btn.disabled = false;
         }
         if (!result) return;
+        pendingComprovanteCaixa = null;
+        setComprovanteAguardandoCaixa(false);
         try {
-          openComprovantePagamentoModal(
-            collectComprovantePagamentoData({
-              receivable: result.receivable,
-              vehicle: result.vehicle,
-              valorRecebido: result.valor,
-              valorOriginal,
-              desconto,
-              formaPagamento,
-              dataMov,
-              observacao,
-              confirmedAt: new Date(),
-            })
-          );
+          comprovantePagamentoAtual = collectComprovantePagamentoData({
+            receivable: result.receivable,
+            vehicle: result.vehicle,
+            valorRecebido: result.valor,
+            valorOriginal: job.valorOriginal,
+            desconto: job.desconto,
+            formaPagamento: job.formaPagamento,
+            dataMov: job.dataMov,
+            observacao: job.observacao,
+            confirmedAt: new Date(),
+          });
         } catch (errComprovante) {
           console.error("comprovante pagamento", errComprovante);
         }
-        if (mode === "pdf") {
+        if (job.mode === "pdf") {
           try {
             await downloadReciboPdf({
               receivable: result.receivable,
               vehicle: result.vehicle,
-              destinatarioNome,
-              destinatarioDoc: destinatarioDoc || "—",
+              destinatarioNome: job.destinatarioNome,
+              destinatarioDoc: job.destinatarioDoc || "—",
               valor: result.valor,
             });
           } catch (e) {
             console.error(e);
-            alert("Baixa confirmada, mas não foi possível gerar o PDF do recibo.");
+            alert("O recebimento entrou no Caixa, mas não foi possível gerar o PDF do recibo.");
           }
         }
       }
@@ -25493,7 +25652,7 @@ ${body}
             alert("Não foi possível localizar o título deste ciclo. Atualize o pátio.");
             return;
           }
-          openPatioFaturamentoModal(receivableId);
+          openCdfFaturamento(receivableId);
           return;
         }
 
