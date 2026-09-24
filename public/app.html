@@ -8814,7 +8814,7 @@
               </label>
             </fieldset>
             <div class="modal-actions">
-              <button type="submit" id="patioFaturamentoModalConfirm">Faturar / Gerar CDF</button>
+              <button type="submit" id="patioFaturamentoModalConfirm">Gerar CDF</button>
               <button type="button" class="secondary" id="patioFaturamentoModalCancel">Cancelar</button>
             </div>
           </form>
@@ -9828,7 +9828,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260924cdf1"></script>
+    <script src="/finance-module.js?v=20260924cdf2"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
@@ -15588,7 +15588,7 @@
       function printNfseThermalTicket(html, paperWidthMm, frameTitle) {
         const paper = Number(paperWidthMm) || 80;
         const iframe = document.createElement("iframe");
-        iframe.setAttribute("title", frameTitle || "Controle de Recebimento");
+        iframe.setAttribute("title", frameTitle || "CDF — Controle de Faturamento");
         iframe.setAttribute("aria-hidden", "true");
         const framePx = Math.max(220, Math.round((paper * 96) / 25.4));
         iframe.style.cssText =
@@ -20258,8 +20258,8 @@
         nomeEl?.focus();
       }
 
-      async function submitPatioFaturamentoForm(e) {
-        e.preventDefault();
+      async function submitPatioFaturamentoForm(e, opts) {
+        e?.preventDefault?.();
         const modal = document.getElementById("patioFaturamentoModal");
         const receivableId = modal?.dataset.receivableId;
         const nome = String(document.getElementById("patioFatDestNome")?.value || "").trim();
@@ -20387,7 +20387,9 @@
           promoteOpts.outcome === "duplicate"
             ? `CDF gerado. Este ciclo já estava em Entradas, ${caderneta}. Nenhum registro duplicado foi criado.`
             : `CDF gerado. O mesmo registro saiu de Aguardando Faturamento e entrou em Entradas, ${caderneta}.`;
-        alert(closureWarning ? `${baseMsg}\n\nO fechamento do ciclo no pátio não foi atualizado: ${closureWarning}` : baseMsg);
+        const aviso = closureWarning ? `${baseMsg}\n\nO fechamento do ciclo no pátio não foi atualizado: ${closureWarning}` : baseMsg;
+        if (opts?.adiarAviso) return { ok: true, aviso };
+        alert(aviso);
         return true;
         } catch (err) {
           console.error("submitPatioFaturamentoForm", err);
@@ -20884,13 +20886,20 @@
     object-fit: contain;
     object-position: center top;
   }
-  .ticket .title, .ticket .sec, .ticket .foot-brand, .ticket .foot-tag, .ticket .total { text-align: center; }
+  .ticket .title, .ticket .sigla, .ticket .sec, .ticket .foot-brand, .ticket .foot-tag, .ticket .total { text-align: center; }
   .ticket .title {
-    margin: 0 0 2mm;
+    margin: 0;
     font-size: 14px;
     font-weight: 800;
     letter-spacing: 0.02em;
     line-height: 1.15;
+  }
+  .ticket .sigla {
+    margin: 0 0 2mm;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
   }
   .ticket .sec {
     margin: 0;
@@ -20950,6 +20959,7 @@
 <div class="ticket cdr-print">
   <img class="logo" src="${escapeHtml(logo)}" alt="AMPLIGUARD" />
   <p class="title">CONTROLE DE FATURAMENTO</p>
+  <p class="sigla">CDF</p>
   <p class="sec">DADOS DO FATURAMENTO</p>
   ${
     data.tipo === "PF"
@@ -20993,11 +21003,11 @@
         if (title) title.textContent = on ? "CONTROLE DE FATURAMENTO" : "CDF — Controle de Faturamento";
         if (sub) {
           sub.textContent = on
-            ? "Confira os dados do faturamento e do veículo. Ao confirmar, o mesmo registro segue para Entradas."
+            ? "Gerar CDF salva o faturamento, abre a impressão térmica e envia o mesmo registro para Entradas. Cancelar a impressão não desfaz o faturamento."
             : "Controle de Faturamento. Escolha CPF ou CNPJ. Só o formulário escolhido abre para preenchimento.";
         }
         extra?.classList.toggle("hidden", !on);
-        if (nfseThermalPrintBtn) nfseThermalPrintBtn.textContent = on ? "Faturar / Gerar CDF" : "IMPRIMIR CDF";
+        if (nfseThermalPrintBtn) nfseThermalPrintBtn.textContent = on ? "Gerar CDF" : "IMPRIMIR CDF";
       }
 
       function closeNfseThermalModalFn() {
@@ -21075,10 +21085,11 @@
         document.querySelectorAll('#patioFaturamentoForm input[name="patioFatTipo"]').forEach((el) => {
           el.checked = el.value === tipo;
         });
-        const ok = await submitPatioFaturamentoForm({ preventDefault() {} });
-        if (!ok) return;
+        const saved = await submitPatioFaturamentoForm({ preventDefault() {} }, { adiarAviso: true });
+        if (!saved?.ok) return;
         printOpenNfseThermal();
         closeNfseThermalModalFn();
+        if (saved.aviso) alert(saved.aviso);
       }
       window.openNfseThermalModal = openNfseThermalModal;
 
@@ -21170,6 +21181,7 @@
         };
         const blocks = [
           { kind: "title", text: "CONTROLE DE FATURAMENTO" },
+          { kind: "title", text: "CDF" },
           { kind: "sec", text: "DADOS DO FATURAMENTO" },
         ];
         if (data.tipo === "PF") {
