@@ -501,7 +501,7 @@
     const canPay = opts.canPay === true;
     const canCaixa = opts.canCaixa === true;
     const payBtn = canPay
-      ? `<button type="button" class="secondary fin-btn-${kind}-pg" data-fin-${kind}-pg="${safeId}">${kind === "pagar" ? "Pagar" : "Receber"}</button>`
+      ? `<button type="button" class="secondary fin-btn-${kind}-pg" data-fin-${kind}-pg="${safeId}">${kind === "pagar" ? "Pagar" : "Confirmar Recebimento"}</button>`
       : "";
     const caixaBtn =
       canCaixa && (kind === "pagar" || kind === "receber")
@@ -2463,11 +2463,11 @@
       const month = Number(de.slice(5, 7));
       const last = new Date(year, month, 0).getDate();
       if (ate === `${de.slice(0, 7)}-${String(last).padStart(2, "0")}`) {
-        return `DESPESAS — ${meses[month - 1] || ""}/${de.slice(0, 4)}`;
+        return `SAÍDAS — ${meses[month - 1] || ""}/${de.slice(0, 4)}`;
       }
     }
-    if (de || ate) return `DESPESAS — ${de ? formatDate(de) : "…"} a ${ate ? formatDate(ate) : "…"}`;
-    return "DESPESAS";
+    if (de || ate) return `SAÍDAS — ${de ? formatDate(de) : "…"} a ${ate ? formatDate(ate) : "…"}`;
+    return "SAÍDAS";
   }
 
   function financeDespesasNoPeriodo() {
@@ -3404,7 +3404,7 @@
       globalThis.financeActionUi.renderLaunchCards(
         cardsHostPagar,
         financeBuildPagarCards(list),
-        "Nenhuma despesa neste período.",
+        "Nenhuma saída neste período.",
         "pagar"
       );
     }
@@ -3412,7 +3412,7 @@
       financePruneStaleRowSelection("pagar");
       financeUpdateBatchBar("pagar");
       const total = (state.payables || []).length;
-      body.innerHTML = `<tr><td colspan="11" class="notice">Nenhuma despesa neste período.${total ? "" : " Cadastre em + Nova despesa."}</td></tr>`;
+      body.innerHTML = `<tr><td colspan="11" class="notice">Nenhuma saída neste período.${total ? "" : " Cadastre em + Nova saída."}</td></tr>`;
       return;
     }
     financePruneStaleRowSelection("pagar");
@@ -4668,7 +4668,7 @@
         const pagamentoConfirmado = isEntrada && rec && Number(mov.valor || rec.valor || 0) > 0;
         const cdrBtn =
           isEntrada && v
-            ? `<button type="button" class="secondary" data-fin-print-cdr="${escapeHtml(String(v.id))}">Imprimir CDR</button>`
+            ? `<button type="button" class="secondary" data-fin-print-cdr="${escapeHtml(String(v.id))}">Imprimir CDF</button>`
             : "";
         const comprovanteBtn = pagamentoConfirmado
           ? `<button type="button" class="secondary" data-fin-print-comprovante="${escapeHtml(String(rec.id))}" data-fin-print-comprovante-mov="${movId}">Comprovante de Pagamento</button>`
@@ -5149,15 +5149,23 @@
   async function financeVoltarReceberPrompt(receivableId) {
     const rec = (state.receivables || []).find((r) => String(r.id) === String(receivableId));
     if (!rec) return alert("Conta a receber não encontrada.");
-    if (!confirm("Voltar esta conta a receber?")) return;
+    if (!confirm("Voltar este registro para a etapa anterior?")) return;
     if (String(rec.status || "").toUpperCase() === "PAGO") {
       const result = await financeRevertReceivableClientSide(rec);
       if (!result.ok) alert(result.error || "Não foi possível voltar a conta a receber.");
     } else {
       if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
       const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+      const metaPatch =
+        rec.vehicle_id && typeof window.receivableObservacoesPatchFields === "function"
+          ? window.receivableObservacoesPatchFields(rec, {
+              financeiro_aprovado_contas_receber: false,
+              cobranca_emitida: false,
+              nf_emitida: false,
+            })
+          : {};
       const patch = rec.vehicle_id
-        ? { status: "EM_ABERTO", financeiro_aprovado_contas_receber: false }
+        ? { status: "EM_ABERTO", financeiro_aprovado_contas_receber: false, ...metaPatch }
         : { status: "EM_ABERTO" };
       const write = () => supabase.from("receivables").update(patch).eq("id", rec.id).eq("user_id", uid);
       const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
@@ -6662,7 +6670,7 @@
       { id: "recebimentos", title: "Recebimentos", detail: "Total efetivamente recebido." },
       { id: "aberto", title: "A receber", detail: "Valores em aberto." },
       { id: "vencidos", title: "Inadimplência", detail: "Valores vencidos." },
-      { id: "pagar", title: "Despesas", detail: "Despesas por categoria e situação." },
+      { id: "pagar", title: "Saídas", detail: "Saídas por categoria e situação." },
       { id: "resultado", title: "Resultado", detail: "Recebido menos despesas pagas no período." },
     ]);
   }
@@ -6787,7 +6795,7 @@
       diarias: ["Placa", "Cliente/Financeira", "Diárias", "Valor da diária", "Total"],
     };
     const titleMap = {
-      pagar: "Contas a pagar",
+      pagar: "Saídas",
       caixa: "Fluxo de caixa",
       recebimentos: "Recebimentos",
       pagamentos: "Pagamentos",
