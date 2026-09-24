@@ -4,6 +4,9 @@
  */
 (function () {
   let currentFinanceView = "dashboard";
+  let financeCaixaReturnView = "dashboard";
+  let financeCaixaEditId = "";
+  let financeCaixaDeleteId = "";
   let financeFilterBanco = "";
   let financeFilterStatus = "";
   let financeFilterTipo = "";
@@ -4435,7 +4438,7 @@
       const rppHint = (financeFilterCaixaRppId || "").trim()
         ? " Nenhuma movimentação para o RPP selecionado."
         : "";
-      body.innerHTML = `<tr><td colspan="5" class="notice">Nenhuma movimentação registrada.${periodoHint}${placaHint}${rppHint}${tipoHint}</td></tr>`;
+      body.innerHTML = `<tr><td colspan="6" class="notice">Nenhuma movimentação registrada.${periodoHint}${placaHint}${rppHint}${tipoHint}</td></tr>`;
       return;
     }
     const rowsHtml = movs
@@ -4479,22 +4482,184 @@
         let desc = auditBadge + escapeHtml(descText);
         if (v?.placa) desc += `<br /><span class="notice">${escapeHtml(v.placa)}</span>`;
         const dataComp = financeCaixaMovCompetenciaYmd(mov);
+        const movId = escapeHtml(String(mov.id || ""));
         return `<tr>
           <td data-label="Data">${escapeHtml(formatDate(dataComp || mov.data_movimento || mov.created_at))}</td>
           <td data-label="Tipo"><span class="${tipoClass}">${tipoLabel}</span></td>
           <td data-label="Origem">${escapeHtml(pagante)}</td>
           <td data-label="Descrição">${desc}</td>
           <td data-label="Valor"><span class="${tipoClass}">${escapeHtml(formatCurrency(valSigned))}</span></td>
+          <td data-label="Ações" class="actions">
+            <button type="button" class="secondary" data-fin-caixa-editar="${movId}">Editar</button>
+            <button type="button" class="secondary" data-fin-caixa-apagar="${movId}">Apagar</button>
+            <button type="button" class="secondary" data-fin-caixa-voltar="${movId}">Voltar</button>
+          </td>
         </tr>`;
       })
       .join("");
     body.innerHTML =
       rowsHtml +
       `<tr class="fin-caixa-total-row">
-        <td colspan="4" data-label=""><strong>Saldo operacional</strong></td>
+        <td colspan="5" data-label=""><strong>Saldo operacional</strong></td>
         <td data-label="Valor"><strong class="${financeSaldoCaixa() >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(financeSaldoCaixa()))}</strong></td>
       </tr>`;
     financeSanitizeCaixaTableCells(body);
+  }
+
+  function financeCaixaMovGravado(mov) {
+    if (!mov?.id) return false;
+    if (mov._syntheticPendingCaixa) return false;
+    return !String(mov.id).startsWith("syn-");
+  }
+
+  function financeFindCaixaMovById(id) {
+    return (state.cash || []).find((m) => String(m.id) === String(id)) || null;
+  }
+
+  function financeCaixaDescricaoEditavel(mov) {
+    const text = financeDisplaySafeText(mov?.descricao || "");
+    return text === "—" ? "" : text;
+  }
+
+  function financeCaixaDescricaoAtualizada(mov, texto) {
+    const raw = String(mov?.descricao || "");
+    const clean = String(texto || "").trim();
+    if (raw.startsWith(FINANCE_META_PREFIX_LOCAL)) {
+      const end = raw.indexOf("]]");
+      if (end > 0) return `${raw.slice(0, end + 2)}${clean ? ` ${clean}` : ""}`;
+    }
+    return clean;
+  }
+
+  function financeCloseCaixaEditModal() {
+    financeCaixaEditId = "";
+    document.getElementById("finCaixaEditModal")?.classList.add("hidden");
+  }
+
+  function financeCloseCaixaDeleteModal() {
+    financeCaixaDeleteId = "";
+    document.getElementById("finCaixaDeleteModal")?.classList.add("hidden");
+  }
+
+  function financeCaixaVoltarSemAlterar() {
+    const back = financeCaixaReturnView && financeCaixaReturnView !== "caixa" ? financeCaixaReturnView : "dashboard";
+    financeActivateSubview(back);
+  }
+
+  function financeOpenCaixaEdit(id) {
+    const mov = financeFindCaixaMovById(id);
+    if (!financeCaixaMovGravado(mov)) {
+      alert("Este lançamento é calculado a partir de outro registro e não pode ser editado no Caixa.");
+      return;
+    }
+    financeCaixaEditId = String(mov.id);
+    const dataEl = document.getElementById("finCaixaEditData");
+    const valorEl = document.getElementById("finCaixaEditValor");
+    const formaEl = document.getElementById("finCaixaEditForma");
+    const descEl = document.getElementById("finCaixaEditDescricao");
+    const ymd = typeof toLocalYmd === "function" ? toLocalYmd(mov.data_movimento || mov.created_at || "") : "";
+    if (dataEl) dataEl.value = ymd || "";
+    if (valorEl) valorEl.value = String(Number(mov.valor || 0));
+    if (formaEl) {
+      const forma = String(mov.forma_pagamento || "").trim();
+      const has = [...formaEl.options].some((opt) => opt.value === forma);
+      if (forma && !has) {
+        const extra = document.createElement("option");
+        extra.value = forma;
+        extra.textContent = forma;
+        formaEl.appendChild(extra);
+      }
+      formaEl.value = forma;
+    }
+    if (descEl) descEl.value = financeCaixaDescricaoEditavel(mov);
+    const modal = document.getElementById("finCaixaEditModal");
+    if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
+    modal?.classList.remove("hidden");
+  }
+
+  function financeOpenCaixaDelete(id) {
+    const mov = financeFindCaixaMovById(id);
+    if (!financeCaixaMovGravado(mov)) {
+      alert("Este lançamento é calculado a partir de outro registro e não pode ser apagado no Caixa.");
+      return;
+    }
+    financeCaixaDeleteId = String(mov.id);
+    const modal = document.getElementById("finCaixaDeleteModal");
+    if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
+    modal?.classList.remove("hidden");
+  }
+
+  async function financeRefreshCaixaIndicadores() {
+    if (typeof loadCash === "function") await loadCash();
+    if (typeof updateDashboard === "function") updateDashboard();
+    if (currentFinanceView === "caixa") financeRenderCaixa();
+    else if (typeof renderFinance === "function") renderFinance();
+  }
+
+  async function financeSaveCaixaEdit(event) {
+    event?.preventDefault();
+    const mov = financeFindCaixaMovById(financeCaixaEditId);
+    if (!financeCaixaMovGravado(mov)) return;
+    if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid || typeof supabase === "undefined") return;
+    const data = document.getElementById("finCaixaEditData")?.value || "";
+    const valor = Number(document.getElementById("finCaixaEditValor")?.value);
+    const forma = document.getElementById("finCaixaEditForma")?.value || "";
+    const descricao = financeCaixaDescricaoAtualizada(mov, document.getElementById("finCaixaEditDescricao")?.value || "");
+    if (!data) return alert("Informe a data do lançamento.");
+    if (!Number.isFinite(valor) || valor < 0) return alert("Valor inválido.");
+    let body = {
+      data_movimento: data,
+      valor,
+      forma_pagamento: forma || null,
+      descricao,
+    };
+    let error = null;
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const write = () => supabase.from("cash_movements").update(body).eq("id", mov.id).eq("user_id", uid);
+      const result = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
+      error = result.error;
+      if (!error) break;
+      const msg = String(error.message || "");
+      if (/forma_pagamento/i.test(msg) && Object.prototype.hasOwnProperty.call(body, "forma_pagamento")) {
+        delete body.forma_pagamento;
+        continue;
+      }
+      if (/descricao/i.test(msg) && Object.prototype.hasOwnProperty.call(body, "descricao")) {
+        delete body.descricao;
+        continue;
+      }
+      if (/data_movimento/i.test(msg) && body.data_movimento && !String(body.data_movimento).includes("T")) {
+        body = { ...body, data_movimento: `${data}T12:00:00` };
+        continue;
+      }
+      break;
+    }
+    if (error) {
+      if (typeof alertSupabaseError === "function") alertSupabaseError(error, "Não foi possível editar o lançamento do Caixa.");
+      else alert(error.message || "Não foi possível editar o lançamento do Caixa.");
+      return;
+    }
+    financeCloseCaixaEditModal();
+    await financeRefreshCaixaIndicadores();
+  }
+
+  async function financeConfirmCaixaDelete() {
+    const mov = financeFindCaixaMovById(financeCaixaDeleteId);
+    if (!financeCaixaMovGravado(mov)) return;
+    if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid || typeof supabase === "undefined") return;
+    const write = () => supabase.from("cash_movements").delete().eq("id", mov.id).eq("user_id", uid);
+    const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
+    if (error) {
+      if (typeof alertSupabaseError === "function") alertSupabaseError(error, "Não foi possível apagar o lançamento do Caixa.");
+      else alert(error.message || "Não foi possível apagar o lançamento do Caixa.");
+      return;
+    }
+    financeCloseCaixaDeleteModal();
+    await financeRefreshCaixaIndicadores();
   }
 
   function financeOpenReceitaModal(presetRecorrente) {
@@ -6310,6 +6475,9 @@
       if (financeRedirectAguardandoToPatio()) return;
     }
     if (!FINANCE_SUBVIEWS.includes(resolved)) return;
+    if (resolved === "caixa" && currentFinanceView && currentFinanceView !== "caixa" && currentFinanceView !== "none") {
+      financeCaixaReturnView = currentFinanceView;
+    }
     currentFinanceView = resolved;
     if (view === "recorrentes") {
       finPagarTipo = "recorrente";
@@ -7193,7 +7361,42 @@
       financeRenderLancamentos();
     });
 
+    document.getElementById("finCaixaEditForm")?.addEventListener("submit", (e) => {
+      void financeSaveCaixaEdit(e);
+    });
+    document.getElementById("finCaixaEditCancel")?.addEventListener("click", financeCloseCaixaEditModal);
+    document.getElementById("finCaixaEditClose")?.addEventListener("click", financeCloseCaixaEditModal);
+    document.getElementById("finCaixaEditModal")?.addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) financeCloseCaixaEditModal();
+    });
+    document.getElementById("finCaixaDeleteCancel")?.addEventListener("click", financeCloseCaixaDeleteModal);
+    document.getElementById("finCaixaDeleteClose")?.addEventListener("click", financeCloseCaixaDeleteModal);
+    document.getElementById("finCaixaDeleteConfirm")?.addEventListener("click", () => {
+      void financeConfirmCaixaDelete();
+    });
+    document.getElementById("finCaixaDeleteModal")?.addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) financeCloseCaixaDeleteModal();
+    });
+
     document.getElementById("viewFinanceiro")?.addEventListener("click", async (e) => {
+      const caixaEditar = e.target.closest("[data-fin-caixa-editar]");
+      if (caixaEditar) {
+        e.preventDefault();
+        financeOpenCaixaEdit(caixaEditar.getAttribute("data-fin-caixa-editar"));
+        return;
+      }
+      const caixaApagar = e.target.closest("[data-fin-caixa-apagar]");
+      if (caixaApagar) {
+        e.preventDefault();
+        financeOpenCaixaDelete(caixaApagar.getAttribute("data-fin-caixa-apagar"));
+        return;
+      }
+      const caixaVoltar = e.target.closest("[data-fin-caixa-voltar]");
+      if (caixaVoltar) {
+        e.preventDefault();
+        financeCaixaVoltarSemAlterar();
+        return;
+      }
       const btnReceber = e.target.closest("[data-fin-aguardando-receber]");
       if (btnReceber) {
         const id = btnReceber.getAttribute("data-fin-aguardando-receber");
