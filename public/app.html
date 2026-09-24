@@ -8261,7 +8261,8 @@
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="caixa">
-            <div class="fin-act-chips" id="finCaixaQuickFilters" aria-label="Filtros de entradas e saídas"></div>
+            <h2 id="finCaixaTitulo" style="margin: 0 0 12px; font-size: 1.15rem; letter-spacing: 0.04em">CAIXA</h2>
+            <div class="fin-act-chips hidden" id="finCaixaQuickFilters" aria-label="Filtros de entradas e saídas"></div>
             <div class="fin-toolbar">
               <div>
                 <label for="finCaixaRpp">RPP</label>
@@ -8287,12 +8288,13 @@
                 <label for="finCaixaDataBusca">Buscar por datas</label>
                 <input id="finCaixaDataBusca" type="search" placeholder="Ex.: 15/04/2026 a 01/05/2026" autocomplete="off" />
               </div>
-              <div><label for="finCaixaDataDe">De</label><input id="finCaixaDataDe" type="date" /></div>
-              <div><label for="finCaixaDataAte">Até</label><input id="finCaixaDataAte" type="date" /></div>
+              <div><label for="finCaixaDataDe">Data de início</label><input id="finCaixaDataDe" type="date" /></div>
+              <div><label for="finCaixaDataAte">Data de fim</label><input id="finCaixaDataAte" type="date" /></div>
               <div><label for="finCaixaValorDe">Valor de</label><input id="finCaixaValorDe" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" /></div>
               <div><label for="finCaixaValorAte">até</label><input id="finCaixaValorAte" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" /></div>
               <div><label for="finFilterPeriodo">Mês (competência)</label><input id="finFilterPeriodo" type="month" title="Usado quando De/Até estiver vazio" /></div>
-              <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaFilterApply">Filtrar</button></div>
+              <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaFilterApply">Buscar</button></div>
+              <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaMesAtual">Mês Atual</button></div>
               <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaFilterClear">Limpar</button></div>
               <div class="fin-caixa-tipo-filter">
                 <button type="button" class="secondary" id="finCaixaFilterEntrada" aria-pressed="false">Entrada</button>
@@ -9772,7 +9774,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260924caixa2"></script>
+    <script src="/finance-module.js?v=20260924caixa3"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
