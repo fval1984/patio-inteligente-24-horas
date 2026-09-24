@@ -12584,7 +12584,7 @@
       }
       window.migrateLocalTriagemIdsToDatabase = migrateLocalTriagemIdsToDatabase;
 
-      /** Nota ou cobrança já informada em Finalizar faturamento. Só isso libera o financeiro. */
+      /** CDF gravado: nome e CPF/CNPJ. O tipo antigo NF/Cobrança continua válido. */
       function receivableFaturamentoConcluido(r) {
         if (!r) return false;
         const meta = receivableObservacoesMeta(r) || {};
@@ -12593,7 +12593,9 @@
           .toUpperCase();
         const nome = String(r.cobranca_destinatario_nome || meta.cobranca_destinatario_nome || "").trim();
         const contato = String(r.cobranca_destinatario_contato || meta.cobranca_destinatario_contato || "").trim();
-        return (tipo === "NF" || tipo === "COBRANCA") && !!nome && !!contato;
+        if (!nome || !contato) return false;
+        if (tipo === "NF" || tipo === "COBRANCA") return true;
+        return receivableAprovadoParaContasReceber(r);
       }
       window.receivableFaturamentoConcluido = receivableFaturamentoConcluido;
 
@@ -21352,6 +21354,7 @@
           }
         );
         if (!saved?.ok) return;
+        if (typeof renderVehicles === "function") renderVehicles();
         printOpenNfseThermal();
         fila.memoria = memoria;
         fila.ok += 1;
