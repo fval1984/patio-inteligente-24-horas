@@ -4566,6 +4566,14 @@
         if (v?.placa) desc += `<br /><span class="notice">${escapeHtml(v.placa)}</span>`;
         const dataComp = financeCaixaMovCompetenciaYmd(mov);
         const movId = escapeHtml(String(mov.id || ""));
+        const pagamentoConfirmado = isEntrada && rec && Number(mov.valor || rec.valor || 0) > 0;
+        const cdrBtn =
+          isEntrada && v
+            ? `<button type="button" class="secondary" data-fin-print-cdr="${escapeHtml(String(v.id))}">Imprimir CDR</button>`
+            : "";
+        const comprovanteBtn = pagamentoConfirmado
+          ? `<button type="button" class="secondary" data-fin-print-comprovante="${escapeHtml(String(rec.id))}" data-fin-print-comprovante-mov="${movId}">Comprovante de Pagamento</button>`
+          : "";
         return `<tr>
           <td data-label="Data">${escapeHtml(formatDate(dataComp || mov.data_movimento || mov.created_at))}</td>
           <td data-label="Tipo"><span class="${tipoClass}">${tipoLabel}</span></td>
@@ -4573,6 +4581,8 @@
           <td data-label="Descrição">${desc}</td>
           <td data-label="Valor"><span class="${tipoClass}">${escapeHtml(formatCurrency(valSigned))}</span></td>
           <td data-label="Ações" class="actions">
+            ${cdrBtn}
+            ${comprovanteBtn}
             <button type="button" class="secondary" data-fin-caixa-editar="${movId}">Editar</button>
             <button type="button" class="secondary" data-fin-caixa-apagar="${movId}">Apagar</button>
             <button type="button" class="secondary" data-fin-caixa-voltar="${movId}">Voltar</button>
@@ -7743,6 +7753,28 @@
     });
 
     document.getElementById("viewFinanceiro")?.addEventListener("click", async (e) => {
+      const printCdr = e.target.closest("[data-fin-print-cdr]");
+      if (printCdr) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(printCdr.getAttribute("data-fin-print-cdr")));
+        if (vehicle && typeof openNfseThermalModal === "function") openNfseThermalModal(vehicle);
+        return;
+      }
+      const comprovanteBtn = e.target.closest("[data-fin-print-comprovante]");
+      if (comprovanteBtn) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const rec = (state.receivables || []).find(
+          (r) => String(r.id) === String(comprovanteBtn.getAttribute("data-fin-print-comprovante"))
+        );
+        const movId = comprovanteBtn.getAttribute("data-fin-print-comprovante-mov");
+        const mov = (state.cash || []).find((m) => String(m.id) === String(movId)) || null;
+        if (rec && typeof printComprovantePagamentoRecebimento === "function") {
+          printComprovantePagamentoRecebimento(rec, mov);
+        }
+        return;
+      }
       const caixaEditar = e.target.closest("[data-fin-caixa-editar]");
       if (caixaEditar) {
         e.preventDefault();
