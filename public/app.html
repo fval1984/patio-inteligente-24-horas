@@ -9112,6 +9112,7 @@
           <ul id="cdfLoteLista" style="margin: 0 0 12px; padding-left: 18px; font-size: 13px; line-height: 1.45"></ul>
           <div class="form-actions">
             <button type="button" id="cdfLoteRetryBtn" class="hidden">Tentar novamente os que falharam</button>
+            <button type="button" id="cdfLoteReimprimirBtn" class="hidden">Reimprimir CDF</button>
             <button type="button" class="secondary hidden" id="cdfLoteFecharBtn">Fechar</button>
           </div>
         </div>
@@ -15655,7 +15656,7 @@
             win.focus();
             if (waitPrint) win.addEventListener("afterprint", () => finishWait(true), { once: true });
             win.print();
-            if (waitPrint) setTimeout(() => finishWait(true), 200);
+            if (waitPrint) setTimeout(() => finishWait(true), 400);
           } catch (e) {
             alert("Não foi possível abrir a impressão térmica.");
             if (waitPrint) finishWait(false);
@@ -20345,6 +20346,7 @@
         }
 
         const promoteOpts = {
+          silent: !!opts?.silent,
           faturamento: {
             destinatarioNome: nome,
             destinatarioContato: contato,
@@ -20405,6 +20407,7 @@
         }
         closePatioFaturamentoModal();
         await Promise.all([loadVehicles(), loadReceivables(), loadCycleClosures()]);
+        if (opts?.semTela) return { ok: true };
         renderVehicles();
         updateDashboard();
         if (opts?.navegar === false) return { ok: true };
@@ -20487,6 +20490,9 @@
           cdfLoteEstado.index = 0;
           cdfLoteEstado.linhas = [];
           void cdfLoteProcessarTodos();
+        });
+        document.getElementById("cdfLoteReimprimirBtn")?.addEventListener("click", () => {
+          void cdfLoteReimprimirPendentes();
         });
         document.getElementById("cdfLoteFecharBtn")?.addEventListener("click", () => {
           document.getElementById("cdfLoteProgressoModal")?.classList.add("hidden");
@@ -21315,6 +21321,8 @@
         }
         const retryBtn = document.getElementById("cdfLoteRetryBtn");
         if (retryBtn) retryBtn.classList.toggle("hidden", lote.busy || !(lote.falhas || []).length);
+        const reimpBtn = document.getElementById("cdfLoteReimprimirBtn");
+        if (reimpBtn) reimpBtn.classList.toggle("hidden", lote.busy || !(lote.impressaoPendente || []).length);
         if (fecharBtn) fecharBtn.classList.toggle("hidden", !!lote.busy);
         modal.classList.remove("hidden");
       }
@@ -21363,72 +21371,140 @@
         });
       }
 
+      function esperarMs(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
       async function cdfLoteProcessarTodos() {
         const lote = cdfLoteEstado;
         if (!lote || lote.busy) return;
+        const fila = lote.ids.slice();
         lote.busy = true;
         lote.linhas = [];
         lote.falhas = [];
+        lote.impressaoPendente = [];
         lote.ok = 0;
-        const tickets = [];
-        const total = lote.ids.length;
+        const total = fila.length;
         try {
-          for (let i = 0; i < lote.ids.length; i += 1) {
-            const id = lote.ids[i];
+          for (let i = 0; i < fila.length; i += 1) {
+            const id = fila[i];
             lote.index = i;
             const rec = (state.receivables || []).find((x) => String(x.id) === String(id));
-            const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(rec?.vehicle_id));
+            const vehicle = rec
+              ? (state.vehicles || []).find((v) => String(v.id) === String(rec.vehicle_id))
+              : null;
             const placa = vehicle?.placa || "—";
             const passo = `${i + 1} de ${total} — ${placa}`;
-            if (!rec || (typeof receivableAprovadoParaContasReceber === "function" && receivableAprovadoParaContasReceber(rec))) {
-              lote.linhas.push(`${passo} — Já estava em Entradas`);
-              cdfLoteAtualizarTela("Imprimindo CDFs");
-              continue;
-            }
-            lote.linhas.push(`${passo} — Enviando para Entradas...`);
-            cdfLoteAtualizarTela("Imprimindo CDFs");
-            const saved = await submitPatioFaturamentoForm(
-              { preventDefault() {} },
-              {
-                navegar: false,
-                adiarAviso: true,
-                silent: true,
-                receivableId: id,
-                nome: lote.fat.nome,
-                contato: lote.fat.contato,
-              }
-            );
-            lote.linhas.pop();
-            if (!saved?.ok || !vehicle) {
+            const jaEmEntradas =
+              rec && typeof receivableAprovadoParaContasReceber === "function" && receivableAprovadoParaContasReceber(rec);
+            if (!rec) {
               lote.falhas.push(id);
               lote.linhas.push(`${passo} — Erro`);
-              cdfLoteAtualizarTela("Imprimindo CDFs");
+              cdfLoteAtualizarTela("Faturamento em andamento");
               continue;
             }
-            const ticket = cdfExtrairTicket(cdfHtmlDoVeiculo(vehicle, lote.fat));
-            if (ticket) tickets.push(ticket);
-            patioAguardandoSelecionados.delete(String(id));
-            lote.ok += 1;
-            lote.linhas.push(`${passo} — Concluído`);
-            cdfLoteAtualizarTela("Imprimindo CDFs");
-          }
-          if (tickets.length) {
-            lote.linhas.push("Enviando todos os CDFs numa única impressão, um cupom por página.");
-            cdfLoteAtualizarTela("Imprimindo CDFs");
-            await aguardarImpressaoCdf(buildCdfLotePrintHtml(tickets));
-            lote.linhas.push("Impressão do lote enviada.");
+            if (!jaEmEntradas) {
+              lote.linhas.push(`${passo} — Salvando e enviando para Entradas...`);
+              cdfLoteAtualizarTela("Faturamento em andamento");
+              const saved = await submitPatioFaturamentoForm(
+                { preventDefault() {} },
+                {
+                  navegar: false,
+                  semTela: true,
+                  adiarAviso: true,
+                  silent: true,
+                  receivableId: id,
+                  nome: lote.fat.nome,
+                  contato: lote.fat.contato,
+                }
+              );
+              lote.linhas.pop();
+              if (!saved?.ok) {
+                lote.falhas.push(id);
+                lote.linhas.push(`${passo} — Erro ao enviar para Entradas`);
+                cdfLoteAtualizarTela("Faturamento em andamento");
+                continue;
+              }
+            }
+            if (!vehicle) {
+              lote.impressaoPendente.push(id);
+              lote.linhas.push(`${passo} — Em Entradas. Impressão pendente`);
+              cdfLoteAtualizarTela("Faturamento em andamento");
+              continue;
+            }
+            lote.linhas.push(`${passo} — Imprimindo...`);
+            cdfLoteAtualizarTela("Faturamento em andamento");
+            try {
+              await aguardarImpressaoCdf(cdfHtmlDoVeiculo(vehicle, lote.fat));
+              lote.ok += 1;
+              lote.linhas.pop();
+              lote.linhas.push(`${passo} — Impresso`);
+            } catch (err) {
+              console.error("cdf lote impressao", err);
+              lote.impressaoPendente.push(id);
+              lote.linhas.pop();
+              lote.linhas.push(`${passo} — Em Entradas. Impressão pendente`);
+            }
+            cdfLoteAtualizarTela("Faturamento em andamento");
+            if (i < fila.length - 1) {
+              lote.linhas.push("Aguardando 3 segundos...");
+              cdfLoteAtualizarTela("Faturamento em andamento");
+              await esperarMs(3000);
+              lote.linhas.pop();
+            }
           }
           lote.index = total;
+          fila.forEach((id) => {
+            if (!lote.falhas.includes(id)) patioAguardandoSelecionados.delete(String(id));
+          });
+          const pend = lote.impressaoPendente.length;
           lote.linhas.push(
-            lote.falhas.length
-              ? `${lote.ok} concluídos. ${lote.falhas.length} com erro.`
-              : `${lote.ok} de ${total} CDFs processados. Faturamento concluído com sucesso.`
+            pend || lote.falhas.length
+              ? `${lote.ok} de ${total} impressos. ${lote.falhas.length} erro(s) de faturamento. ${pend} impressão(ões) pendente(s).`
+              : `${total} de ${total} CDFs processados. Faturamento concluído com sucesso.`
           );
-          cdfLoteAtualizarTela(lote.falhas.length ? "Faturamento com pendências" : "Faturamento concluído");
+          cdfLoteAtualizarTela(pend || lote.falhas.length ? "Faturamento com pendências" : "Faturamento concluído");
           if (typeof renderVehicles === "function") renderVehicles();
         } finally {
           lote.busy = false;
-          cdfLoteAtualizarTela(lote.falhas.length ? "Faturamento com pendências" : "Faturamento concluído");
+          cdfLoteAtualizarTela(lote.falhas?.length || lote.impressaoPendente?.length ? "Faturamento com pendências" : "Faturamento concluído");
+        }
+      }
+
+      async function cdfLoteReimprimirPendentes() {
+        const lote = cdfLoteEstado;
+        if (!lote || lote.busy || !(lote.impressaoPendente || []).length) return;
+        const fila = lote.impressaoPendente.slice();
+        lote.busy = true;
+        lote.impressaoPendente = [];
+        cdfLoteAtualizarTela("Reimprimindo CDFs");
+        try {
+          for (let i = 0; i < fila.length; i += 1) {
+            const id = fila[i];
+            const rec = (state.receivables || []).find((x) => String(x.id) === String(id));
+            const vehicle = rec
+              ? (state.vehicles || []).find((v) => String(v.id) === String(rec.vehicle_id))
+              : null;
+            const placa = vehicle?.placa || "—";
+            if (!vehicle) {
+              lote.impressaoPendente.push(id);
+              lote.linhas.push(`Reimprimir — ${placa} — Impressão pendente`);
+              continue;
+            }
+            try {
+              await aguardarImpressaoCdf(cdfHtmlDoVeiculo(vehicle, lote.fat));
+              lote.linhas.push(`Reimprimir — ${placa} — Impresso`);
+            } catch (err) {
+              console.error("cdf reimprimir", err);
+              lote.impressaoPendente.push(id);
+              lote.linhas.push(`Reimprimir — ${placa} — Impressão pendente`);
+            }
+            if (i < fila.length - 1) await esperarMs(3000);
+            cdfLoteAtualizarTela("Reimprimindo CDFs");
+          }
+        } finally {
+          lote.busy = false;
+          cdfLoteAtualizarTela(lote.impressaoPendente.length ? "Impressão pendente" : "Reimpressão concluída");
         }
       }
 
@@ -21446,6 +21522,7 @@
           aguardandoImpressao: false,
           linhas: [],
           falhas: [],
+          impressaoPendente: [],
         };
         const modal = document.getElementById("cdfLoteProgressoModal");
         if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
