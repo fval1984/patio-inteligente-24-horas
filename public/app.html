@@ -9063,7 +9063,7 @@
             </div>
             <button type="button" class="modal-close" id="closeNfseThermalModal">Fechar</button>
           </div>
-          <p class="notice" style="margin: 0 0 8px">Selecione CPF ou CNPJ:</p>
+          <p id="nfseThermalTipoIntro" class="notice" style="margin: 0 0 8px">Selecione CPF ou CNPJ:</p>
           <div id="nfseThermalTipoChoice">
             <button type="button" class="secondary" id="nfseThermalTipoPf" aria-pressed="false">CPF</button>
             <button type="button" class="secondary" id="nfseThermalTipoPj" aria-pressed="false">CNPJ</button>
@@ -9109,8 +9109,9 @@
           </div>
           <p id="cdfLotePlaca" style="margin: 0 0 8px; font-size: 1.05rem"></p>
           <p id="cdfLoteStatus" class="notice" style="margin: 0 0 12px"></p>
+          <ul id="cdfLoteLista" style="margin: 0 0 12px; padding-left: 18px; font-size: 13px; line-height: 1.45"></ul>
           <div class="form-actions">
-            <button type="button" id="cdfLoteImprimirBtn">Imprimir CDF e continuar</button>
+            <button type="button" id="cdfLoteRetryBtn" class="hidden">Tentar novamente os que falharam</button>
             <button type="button" class="secondary hidden" id="cdfLoteFecharBtn">Fechar</button>
           </div>
         </div>
@@ -20478,6 +20479,15 @@
           else patioAguardandoSelecionados.delete(String(chk.value));
           patioAguardandoAtualizarSelecao();
         });
+        document.getElementById("cdfLoteRetryBtn")?.addEventListener("click", () => {
+          if (!cdfLoteEstado?.falhas?.length || cdfLoteEstado.busy) return;
+          cdfLoteEstado.ids = cdfLoteEstado.falhas.slice();
+          cdfLoteEstado.falhas = [];
+          cdfLoteEstado.ok = 0;
+          cdfLoteEstado.index = 0;
+          cdfLoteEstado.linhas = [];
+          void cdfLoteProcessarTodos();
+        });
         document.getElementById("cdfLoteFecharBtn")?.addEventListener("click", () => {
           document.getElementById("cdfLoteProgressoModal")?.classList.add("hidden");
           cdfLoteEstado = null;
@@ -21168,6 +21178,9 @@
             : "Controle de Faturamento. Escolha CPF ou CNPJ. Só o formulário escolhido abre para preenchimento.";
         }
         extra?.classList.toggle("hidden", !on);
+        document.getElementById("nfseThermalTipoIntro")?.classList.remove("hidden");
+        document.getElementById("nfseThermalTipoChoice")?.classList.remove("hidden");
+        document.getElementById("nfseThermalPdfBtn")?.classList.remove("hidden");
         if (nfseThermalPrintBtn) nfseThermalPrintBtn.textContent = on ? "Gerar CDF" : "IMPRIMIR CDF";
       }
 
@@ -21239,9 +21252,13 @@
         }
         const sub = document.getElementById("nfseThermalSubtitle");
         if (sub) {
-          sub.textContent = `Estes dados valem para ${lista.length} registro${lista.length === 1 ? "" : "s"}. Cada veículo gera o próprio CDF e segue para Entradas.`;
+          sub.textContent = `Informe a razão social e o CNPJ uma vez. Eles valem para ${lista.length} registro${lista.length === 1 ? "" : "s"}. Cada veículo continua com o próprio CDF.`;
         }
-        if (nfseThermalPrintBtn) nfseThermalPrintBtn.textContent = "Gerar CDF";
+        document.getElementById("nfseThermalTipoIntro")?.classList.add("hidden");
+        document.getElementById("nfseThermalTipoChoice")?.classList.add("hidden");
+        document.getElementById("nfseThermalPdfBtn")?.classList.add("hidden");
+        if (typeof setNfseThermalTipo === "function") setNfseThermalTipo("PJ");
+        if (nfseThermalPrintBtn) nfseThermalPrintBtn.textContent = "Gerar e Imprimir CDFs";
       }
       window.openCdfFaturamentoLote = openCdfFaturamentoLote;
 
@@ -21289,9 +21306,45 @@
         if (sub) sub.textContent = fim ? `${lote.ok} de ${total} registros faturados com sucesso.` : `Registro ${atual} de ${total}`;
         if (placaEl) placaEl.textContent = fim ? "" : `Placa: ${vehicle?.placa || "—"}`;
         if (statusEl) statusEl.textContent = textoStatus || "";
-        if (printBtn) printBtn.classList.toggle("hidden", fim || !lote.aguardandoImpressao);
-        if (fecharBtn) fecharBtn.classList.toggle("hidden", !fim);
+        if (printBtn) printBtn.classList.add("hidden");
+        const listaEl = document.getElementById("cdfLoteLista");
+        if (listaEl) {
+          listaEl.innerHTML = (lote.linhas || [])
+            .map((linha) => `<li>${escapeHtml(linha)}</li>`)
+            .join("");
+        }
+        const retryBtn = document.getElementById("cdfLoteRetryBtn");
+        if (retryBtn) retryBtn.classList.toggle("hidden", lote.busy || !(lote.falhas || []).length);
+        if (fecharBtn) fecharBtn.classList.toggle("hidden", !!lote.busy);
         modal.classList.remove("hidden");
+      }
+
+      function cdfExtrairTicket(html) {
+        const start = String(html || "").indexOf('<div class="ticket cdr-print">');
+        const end = String(html || "").lastIndexOf("</div>");
+        if (start < 0 || end < start) return "";
+        return html.slice(start, end + 6);
+      }
+
+      function buildCdfLotePrintHtml(fragmentos) {
+        const sample = buildCdrPrintHtml({
+          tipo: "PJ",
+          razao: "—",
+          cnpj: "—",
+          rpp: "—",
+          placa: "—",
+          veiculo: "—",
+          cor: "—",
+          entrada: "—",
+          saida: "—",
+          periodo: "—",
+          emissao: "—",
+          vencimento: "—",
+          valor: "—",
+        });
+        const css = (sample.match(/<style>([\s\S]*?)<\/style>/) || [])[1] || "";
+        const extra = ".ticket.cdr-print{page-break-after:always;break-after:page;}.ticket.cdr-print:last-child{page-break-after:auto;break-after:auto;}";
+        return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>CDFs</title><style>${css}${extra}</style></head><body>${fragmentos.join("")}</body></html>`;
       }
 
       function aguardarImpressaoCdf(html) {
@@ -21314,18 +21367,26 @@
         const lote = cdfLoteEstado;
         if (!lote || lote.busy) return;
         lote.busy = true;
-        lote.aguardandoImpressao = false;
+        lote.linhas = [];
+        lote.falhas = [];
+        lote.ok = 0;
+        const tickets = [];
+        const total = lote.ids.length;
         try {
-          while (lote.index < lote.ids.length) {
-            const id = lote.ids[lote.index];
+          for (let i = 0; i < lote.ids.length; i += 1) {
+            const id = lote.ids[i];
+            lote.index = i;
             const rec = (state.receivables || []).find((x) => String(x.id) === String(id));
+            const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(rec?.vehicle_id));
+            const placa = vehicle?.placa || "—";
+            const passo = `${i + 1} de ${total} — ${placa}`;
             if (!rec || (typeof receivableAprovadoParaContasReceber === "function" && receivableAprovadoParaContasReceber(rec))) {
-              lote.pulados += 1;
-              lote.index += 1;
+              lote.linhas.push(`${passo} — Já estava em Entradas`);
+              cdfLoteAtualizarTela("Imprimindo CDFs");
               continue;
             }
-            const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(rec.vehicle_id));
-            cdfLoteAtualizarTela("Enviando para Entradas...");
+            lote.linhas.push(`${passo} — Enviando para Entradas...`);
+            cdfLoteAtualizarTela("Imprimindo CDFs");
             const saved = await submitPatioFaturamentoForm(
               { preventDefault() {} },
               {
@@ -21337,21 +21398,37 @@
                 contato: lote.fat.contato,
               }
             );
-            if (!saved?.ok) {
-              cdfLoteAtualizarTela("Este registro não foi faturado. Os anteriores permanecem em Entradas.");
-              document.getElementById("cdfLoteFecharBtn")?.classList.remove("hidden");
-              return;
+            lote.linhas.pop();
+            if (!saved?.ok || !vehicle) {
+              lote.falhas.push(id);
+              lote.linhas.push(`${passo} — Erro`);
+              cdfLoteAtualizarTela("Imprimindo CDFs");
+              continue;
             }
-            cdfLoteAtualizarTela("CDF salvo. Abrindo a impressão...");
-            if (vehicle) await aguardarImpressaoCdf(cdfHtmlDoVeiculo(vehicle, lote.fat));
+            const ticket = cdfExtrairTicket(cdfHtmlDoVeiculo(vehicle, lote.fat));
+            if (ticket) tickets.push(ticket);
+            patioAguardandoSelecionados.delete(String(id));
             lote.ok += 1;
-            lote.index += 1;
+            lote.linhas.push(`${passo} — Concluído`);
+            cdfLoteAtualizarTela("Imprimindo CDFs");
           }
-          patioAguardandoSelecionados.clear();
-          cdfLoteAtualizarTela("Cada CDF foi impresso e o mesmo registro foi para Entradas. Cancelar uma impressão não desfaz o faturamento.");
+          if (tickets.length) {
+            lote.linhas.push("Enviando todos os CDFs numa única impressão, um cupom por página.");
+            cdfLoteAtualizarTela("Imprimindo CDFs");
+            await aguardarImpressaoCdf(buildCdfLotePrintHtml(tickets));
+            lote.linhas.push("Impressão do lote enviada.");
+          }
+          lote.index = total;
+          lote.linhas.push(
+            lote.falhas.length
+              ? `${lote.ok} concluídos. ${lote.falhas.length} com erro.`
+              : `${lote.ok} de ${total} CDFs processados. Faturamento concluído com sucesso.`
+          );
+          cdfLoteAtualizarTela(lote.falhas.length ? "Faturamento com pendências" : "Faturamento concluído");
           if (typeof renderVehicles === "function") renderVehicles();
         } finally {
           lote.busy = false;
+          cdfLoteAtualizarTela(lote.falhas.length ? "Faturamento com pendências" : "Faturamento concluído");
         }
       }
 
@@ -21359,10 +21436,19 @@
         const ids = (fat.ids || []).filter(Boolean);
         if (!ids.length) return;
         closeNfseThermalModalFn();
-        cdfLoteEstado = { ids, fat, index: 0, ok: 0, pulados: 0, busy: false, aguardandoImpressao: false };
+        cdfLoteEstado = {
+          ids,
+          fat,
+          index: 0,
+          ok: 0,
+          pulados: 0,
+          busy: false,
+          aguardandoImpressao: false,
+          linhas: [],
+          falhas: [],
+        };
         const modal = document.getElementById("cdfLoteProgressoModal");
         if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
-        document.getElementById("cdfLoteImprimirBtn")?.classList.add("hidden");
         void cdfLoteProcessarTodos();
       }
 
