@@ -3476,7 +3476,8 @@
       .table td.actions button[data-action="ficha"],
       .table td.actions button[data-action="nfse"],
       .table td.actions button[data-action="cobranca_email"],
-      .table td.actions button[data-action="nfse_termica"] {
+      .table td.actions button[data-action="nfse_termica"],
+      .table td.actions button[data-action="comprovante_pagamento"] {
         border-color: rgba(212, 175, 55, 0.45);
         background: rgba(212, 175, 55, 0.13);
         color: #fca5a5;
@@ -3518,7 +3519,8 @@
       [data-theme="light"] .table td.actions button[data-action="ficha"],
       [data-theme="light"] .table td.actions button[data-action="nfse"],
       [data-theme="light"] .table td.actions button[data-action="cobranca_email"],
-      [data-theme="light"] .table td.actions button[data-action="nfse_termica"] {
+      [data-theme="light"] .table td.actions button[data-action="nfse_termica"],
+      [data-theme="light"] .table td.actions button[data-action="comprovante_pagamento"] {
         background: rgba(212, 175, 55, 0.12);
         color: #b8941f;
       }
@@ -19673,6 +19675,7 @@
               ${nfseActionButtonHtml(v)}
               ${cobrancaEmailActionButtonHtml(v)}
               ${nfseThermalActionButtonHtml(v)}
+              ${comprovantePagamentoActionButtonHtml(v)}
               ${
                 vnpShouldShowVistoriaViewButton(v)
                   ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
@@ -19718,6 +19721,7 @@
               ${nfseActionButtonHtml(v)}
               ${cobrancaEmailActionButtonHtml(v)}
               ${nfseThermalActionButtonHtml(v)}
+              ${comprovantePagamentoActionButtonHtml(v)}
               <button class="secondary" data-action="voltar" data-id="${v.id}" title="Volta um passo no fluxo">Voltar</button>
               ${
                 isSystemManagerUser()
@@ -20326,6 +20330,12 @@
 
       function nfseThermalActionButtonHtml(vehicle) {
         return `<button type="button" class="secondary" data-action="nfse_termica" data-id="${vehicle.id}">Imprimir CDR</button>`;
+      }
+
+      function comprovantePagamentoActionButtonHtml(vehicle) {
+        const rec = recebimentoPagoDoVeiculo(vehicle);
+        if (!rec) return "";
+        return `<button type="button" class="secondary" data-action="comprovante_pagamento" data-id="${vehicle.id}">Comprovante de Pagamento</button>`;
       }
 
       function cobrancaEmailDash(value) {
@@ -22772,6 +22782,181 @@
           vehicleId: vehicle?.id || "",
         };
       }
+
+      function entradasCaixaDoRecebimento(receivable) {
+        const id = String(receivable?.id || "");
+        if (!id) return [];
+        return (state.cash || []).filter(
+          (m) => String(m.conta_id) === id && cashMovIsEntradaTipo(m.tipo_conta) && Number(m.valor || 0) > 0
+        );
+      }
+
+      function recebimentoPagamentoConfirmado(receivable) {
+        if (!receivable) return false;
+        const st = String(receivable.status || "").toUpperCase();
+        const statusPago = st === "PAGO" || st === "RECEBIDO" || st === "BAIXADO" || st === "QUITADO";
+        if (entradasCaixaDoRecebimento(receivable).length) return true;
+        return statusPago && Number(receivable.valor || 0) > 0;
+      }
+
+      function dataPagamentoYmdRecebimento(receivable, mov) {
+        if (mov) {
+          const fromMov = toLocalYmd(mov.data_movimento || mov.created_at || "");
+          if (fromMov) return fromMov;
+        }
+        if (typeof financeReceivablePaidDateYmd === "function") {
+          const fromRec = financeReceivablePaidDateYmd(receivable);
+          if (fromRec) return fromRec;
+        }
+        return "";
+      }
+
+      function recebimentoPagoDoVeiculo(vehicle) {
+        const id = String(vehicle?.id || "");
+        if (!id) return null;
+        const list = (state.receivables || []).filter(
+          (r) => String(r.vehicle_id) === id && recebimentoPagamentoConfirmado(r)
+        );
+        if (!list.length) return null;
+        list.sort((a, b) => dataPagamentoYmdRecebimento(b).localeCompare(dataPagamentoYmdRecebimento(a)));
+        return list[0];
+      }
+
+      function formaPagamentoRegistrada(receivable, mov) {
+        const fromMov = String(mov?.forma_pagamento || "").trim();
+        if (fromMov) return fromMov;
+        const fromCash = entradasCaixaDoRecebimento(receivable)
+          .map((m) => String(m.forma_pagamento || "").trim())
+          .find(Boolean);
+        if (fromCash) return fromCash;
+        const coluna = String(receivable?.forma_pagamento || "").trim();
+        if (coluna) return coluna;
+        const { meta } = financeMetaUnpack(financeReceivableMetaText(receivable));
+        return String(meta?.forma_pagamento || "").trim();
+      }
+
+      function valorPagoRecebimento(receivable, mov) {
+        if (mov && Number(mov.valor) > 0) return Number(mov.valor);
+        const entradas = entradasCaixaDoRecebimento(receivable);
+        if (entradas.length) return entradas.reduce((sum, m) => sum + Number(m.valor || 0), 0);
+        return Number(receivable?.valor || 0);
+      }
+
+      function faturamentoRealRecebimento(receivable, vehicle) {
+        const dest = receivableDestinatarioCobranca(receivable);
+        const { meta } = financeMetaUnpack(financeReceivableMetaText(receivable));
+        const contactId = String(meta?.finance_contact_id || "").trim();
+        const contact = contactId
+          ? (state.financeContacts || []).find((c) => String(c.id) === contactId)
+          : null;
+        const partnerId =
+          typeof window.financeReceivableRppPartnerId === "function"
+            ? window.financeReceivableRppPartnerId(receivable, vehicle)
+            : vehicle?.responsavel_financeiro_id || vehicle?.localizador_id || "";
+        const partner = partnerId
+          ? (state.partners || []).find((p) => String(p.id) === String(partnerId))
+          : null;
+        const ident =
+          typeof window.financeReceivableDevedorIdentity === "function"
+            ? window.financeReceivableDevedorIdentity(receivable)
+            : null;
+        const nome = String(
+          dest.nome || contact?.nome || ident?.nome || partner?.nome || financeReceivableDisplayText(receivable) || ""
+        ).trim();
+        const doc = String(contact?.documento || partner?.cnpj || partner?.cpf || partner?.documento || "").trim();
+        const digits = doc.replace(/\D/g, "");
+        if (digits.length === 14) {
+          return { tipo: "PJ", nome: nome && nome !== "—" ? nome : "", doc: formatCnpjForDisplay(digits) || doc };
+        }
+        if (digits.length === 11 && typeof maskCpfInputValue === "function") {
+          return { tipo: "PF", nome: nome && nome !== "—" ? nome : "", doc: maskCpfInputValue(digits) };
+        }
+        return { tipo: "", nome: nome && nome !== "—" ? nome : "", doc: "" };
+      }
+
+      function collectComprovanteCdrLayoutData(receivable, vehicle, mov) {
+        const fat = faturamentoRealRecebimento(receivable, vehicle);
+        const marca = String(vehicle?.marca || "").trim();
+        const modelo = String(vehicle?.modelo || "").trim();
+        const dias = vehicle && typeof calcDays === "function" ? calcDays(vehicle) : 0;
+        const ymd = dataPagamentoYmdRecebimento(receivable, mov);
+        return {
+          tipo: fat.tipo,
+          nome: fat.nome,
+          doc: fat.doc,
+          rpp: vehicle ? vehicleRpfNome(vehicle) : "",
+          placa: vehicle?.placa || "",
+          veiculo: [marca, modelo].filter(Boolean).join(" / "),
+          cor: vehicle?.cor || "",
+          entrada: vehicle?.data_entrada ? formatDateBr(vehicle.data_entrada) : "",
+          saida: vehicle?.data_saida ? formatDateBr(vehicle.data_saida) : "",
+          periodo: dias ? `${dias} dias` : "",
+          dataPagamento: ymd ? formatDateBr(ymd) : "",
+          forma: formaPagamentoRegistrada(receivable, mov),
+          valor: formatCurrency(valorPagoRecebimento(receivable, mov)),
+          hasVehicle: !!vehicle,
+        };
+      }
+
+      function buildComprovantePagamentoCdrLayoutHtml(data) {
+        const logo = `${location.origin}/assets/ampliguard-marca.png?v=20260917logo2`;
+        const dash = (value) => {
+          const text = String(value == null ? "" : value).trim();
+          if (!text || text === "-" || text === "—") return "—";
+          return text;
+        };
+        const faturamento =
+          data.tipo === "PF"
+            ? `<p class="line">Nome completo: ${escapeHtml(dash(data.nome))}</p>
+  <p class="line">CPF: ${escapeHtml(dash(data.doc))}</p>`
+            : data.tipo === "PJ"
+              ? `<p class="line">Razão Social: ${escapeHtml(dash(data.razao || data.nome))}</p>
+  <p class="line">CNPJ: ${escapeHtml(dash(data.doc))}</p>`
+              : `<p class="line">Nome completo: ${escapeHtml(dash(data.nome))}</p>`;
+        const veiculo = data.hasVehicle
+          ? `<hr class="sep" />
+  <p class="sec">DADOS DO VEÍCULO</p>
+  <p class="line hot">RPP: ${escapeHtml(dash(data.rpp))}</p>
+  <p class="line hot-placa">Placa: ${escapeHtml(dash(data.placa))}</p>
+  <p class="line">Veículo: ${escapeHtml(dash(data.veiculo))}</p>
+  <p class="line">Cor: ${escapeHtml(dash(data.cor))}</p>
+  <p class="line">Data de Entrada: ${escapeHtml(dash(data.entrada))}</p>
+  <p class="line">Data de Saída: ${escapeHtml(dash(data.saida))}</p>
+  <p class="line">Período: ${escapeHtml(dash(data.periodo))}</p>`
+          : "";
+        const forma = String(data.forma || "").trim()
+          ? `<p class="line">Forma de pagamento: ${escapeHtml(dash(data.forma))}</p>`
+          : "";
+        return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Comprovante de Pagamento</title>
+<style>${comprovanteTicketCss()}</style></head><body>
+<div class="ticket cdr-print">
+  <img class="logo" src="${escapeHtml(logo)}" alt="AMPLIGUARD" />
+  <p class="title">COMPROVANTE DE PAGAMENTO</p>
+  <p class="sec">DADOS DO FATURAMENTO</p>
+  ${faturamento}
+  ${veiculo}
+  <hr class="sep" />
+  <p class="line">Data do pagamento: ${escapeHtml(dash(data.dataPagamento))}</p>
+  ${forma}
+  <p class="total">VALOR TOTAL: ${escapeHtml(dash(data.valor))}</p>
+  <hr class="sep" />
+  <p class="foot-brand">AMPLIGUARD</p>
+  <p class="foot-tag">Guarda, Custódia e Remoção de Veículos</p>
+</div>
+</body></html>`;
+      }
+
+      function printComprovantePagamentoRecebimento(receivable, mov) {
+        if (!recebimentoPagamentoConfirmado(receivable)) {
+          alert("Não há pagamento confirmado para este registro.");
+          return;
+        }
+        const vehicle =
+          (state.vehicles || []).find((v) => String(v.id) === String(receivable.vehicle_id || "")) || null;
+        const html = buildComprovantePagamentoCdrLayoutHtml(collectComprovanteCdrLayoutData(receivable, vehicle, mov));
+        printNfseThermalTicket(html, 80, "Comprovante de Pagamento");
+      }
+      window.printComprovantePagamentoRecebimento = printComprovantePagamentoRecebimento;
 
       function comprovantePagamentoBlocks(data) {
         const blocks = [];
@@ -25284,6 +25469,16 @@ ${body}
 
         if (action === "nfse_termica") {
           openNfseThermalModal(vehicle);
+          return;
+        }
+
+        if (action === "comprovante_pagamento") {
+          const rec = recebimentoPagoDoVeiculo(vehicle);
+          if (!rec) {
+            alert("Não há pagamento confirmado para este registro.");
+            return;
+          }
+          printComprovantePagamentoRecebimento(rec);
           return;
         }
 
