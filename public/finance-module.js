@@ -43,6 +43,7 @@
   let financeFilterCaixaDataDe = "";
   let financeFilterCaixaDataAte = "";
   let financeFilterCaixaPlaca = "";
+  let finCaixaBuscaTexto = "";
   let financeFilterCaixaRppId = "";
   let financeFilterAguardandoValorDe = null;
   let financeFilterAguardandoValorAte = null;
@@ -4475,6 +4476,87 @@
 
   window.financeApplyCaixaOpsFilter = financeApplyCaixaOpsFilter;
 
+  function financeCaixaOrigemLabel(mov, rec, pay) {
+    const entrada = financeCashIsEntrada(mov);
+    if (entrada) {
+      if (rec?.vehicle_id) return "Recebimento de veículo";
+      return "Entrada manual";
+    }
+    const modo = pay && typeof financeEntryModoFromRecord === "function" ? financeEntryModoFromRecord(pay, "payable") : String(pay?.tipo || "").toUpperCase();
+    if (modo === "RECORRENTE") return "Despesa recorrente";
+    if (modo === "PARCELADA") return "Despesa parcelada";
+    if (pay) return "Despesa única";
+    return "Saída manual";
+  }
+
+  function financeCaixaPeriodoLegenda(de, ate) {
+    const range = financeCaixaMesAtualRange();
+    if (de && ate && de === range.de && ate === range.ate) return "Este mês";
+    if (de || ate) return `Período: ${de ? formatDate(de) : "…"} a ${ate ? formatDate(ate) : "…"}`;
+    return "Este mês";
+  }
+
+  function financeCaixaMovMatchesBusca(mov, rec, pay, vehicle, desc, origem) {
+    const q = finCaixaBuscaTexto.trim().toLowerCase();
+    if (!q) return true;
+    const rpp = rec && typeof financeReceberRppNome === "function" ? financeReceberRppNome(rec, vehicle) : "";
+    const rpv = vehicle && typeof financeVehicleRpvNome === "function" ? financeVehicleRpvNome(vehicle) : "";
+    const blob = [desc, origem, vehicle?.placa, rpp, rpv, financeQuemPagouCaixa(mov, rec), pay?.fornecedor, mov?.descricao]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return blob.includes(q);
+  }
+
+  function financeOpenCaixaDetalhe(id) {
+    const alvo = financeCaixaAlvo(id);
+    const mov = alvo.mov || (state.cash || []).find((m) => String(m.id) === String(id));
+    const rec = alvo.receivable;
+    const pay = alvo.payable;
+    const vehicle = rec?.vehicle_id ? financeVehicleById().get(rec.vehicle_id) : null;
+    const entrada = mov ? financeCashIsEntrada(mov) : !!rec;
+    const desc = entrada
+      ? financeCaixaDescricaoEntrada(mov, rec)
+      : financeStripFinmeta(mov?.descricao || pay?.descricao || pay?.fornecedor || "—");
+    const origem = mov ? financeCaixaOrigemLabel(mov, rec, pay) : "—";
+    const valor = mov ? financeCashMovValor(mov) : Number(rec?.valor || pay?.valor || 0);
+    const data = mov ? financeCaixaMovCompetenciaYmd(mov) : financeContaDueYmd(rec || pay, rec ? "receivable" : "payable");
+    const forma = mov?.forma_pagamento || rec?.forma_pagamento || pay?.forma_pagamento || "—";
+    const obs = pay ? financePayableTypedFields(pay).observacoes : "";
+    const linha = (rotulo, valorLinha) =>
+      `<div><dt>${escapeHtml(rotulo)}</dt><dd>${escapeHtml(valorLinha || "—")}</dd></div>`;
+    let html = `<dl class="fin-caixa-detalhe">
+      ${linha("Data", data ? formatDate(data) : "—")}
+      ${linha("Tipo", entrada ? "Entrada" : "Saída")}
+      ${linha("Descrição", financeDisplaySafeText(desc))}
+      ${linha("Valor", formatCurrency(entrada ? valor : -valor))}
+      ${linha("Origem", origem)}
+      ${linha("Forma de pagamento", forma)}
+      ${linha("Observação", obs || "—")}
+    </dl>`;
+    if (vehicle) {
+      const rpp = rec ? financeReceberRppNome(rec, vehicle) : "—";
+      const rpv = typeof financeVehicleRpvNome === "function" ? financeVehicleRpvNome(vehicle) : "—";
+      html += `<h4 style="margin: 16px 0 8px">Dados do veículo</h4><dl class="fin-caixa-detalhe">
+        ${linha("Placa", vehicle.placa)}
+        ${linha("RPP/RPV", [rpp, rpv].filter((x) => x && x !== "—").join(" · "))}
+        ${linha("Marca/Modelo", [vehicle.marca, vehicle.modelo].filter(Boolean).join(" "))}
+        ${linha("Devedor/Responsável", rec ? financeQuemPagouCaixa(mov, rec) : "—")}
+      </dl>`;
+    }
+    const body = document.getElementById("finCaixaDetalheBody");
+    const modal = document.getElementById("finCaixaDetalheModal");
+    if (body) body.innerHTML = html;
+    if (modal) {
+      if (modal.parentElement !== document.body) document.body.appendChild(modal);
+      modal.classList.remove("hidden");
+    }
+  }
+
+  function financeCloseCaixaDetalhe() {
+    document.getElementById("finCaixaDetalheModal")?.classList.add("hidden");
+  }
+
   function financeRenderCaixa() {
     financeEnsureCaixaPeriodoDefault();
     financeSyncCaixaPeriodoFromDom();
@@ -4497,16 +4579,34 @@
       const saldoPeriodo = totPeriodo.entradas - totPeriodo.saidas;
       const tituloEl = document.getElementById("finCaixaTitulo");
       if (tituloEl) tituloEl.textContent = financeCaixaTituloPeriodo(de, ate);
+      const periodoEl = document.getElementById("finCaixaPeriodoLabel");
+      if (periodoEl) periodoEl.textContent = financeCaixaPeriodoLegenda(de, ate);
       summaryEl.innerHTML = `
-        <p><strong>Entrada</strong><br /><span class="fin-val-entrada">${escapeHtml(formatCurrency(totPeriodo.entradas))}</span></p>
-        <p><strong>Saída</strong><br /><span class="fin-val-saida">${escapeHtml(formatCurrency(totPeriodo.saidas))}</span></p>
-        <p><strong>Saldo</strong><br /><span class="${saldoPeriodo >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(saldoPeriodo))}</span></p>
+        <p class="fin-caixa-card"><span>Entrada</span><strong class="fin-val-entrada">${escapeHtml(formatCurrency(totPeriodo.entradas))}</strong></p>
+        <p class="fin-caixa-card"><span>Saída</span><strong class="fin-val-saida">${escapeHtml(formatCurrency(totPeriodo.saidas))}</strong></p>
+        <p class="fin-caixa-card"><span>Saldo</span><strong class="${saldoPeriodo >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(saldoPeriodo))}</strong></p>
       `;
+    }
+    const nEntradas = movsOperacionais.filter((m) => financeCashIsEntrada(m)).length;
+    const nSaidas = movsOperacionais.filter((m) => financeCashIsSaida(m)).length;
+    const contagemEl = document.getElementById("finCaixaContagem");
+    if (contagemEl) {
+      contagemEl.innerHTML = `<span><strong>Entradas do período:</strong> ${nEntradas} movimentaç${nEntradas === 1 ? "ão" : "ões"}</span><span><strong>Saídas do período:</strong> ${nSaidas} movimentaç${nSaidas === 1 ? "ão" : "ões"}</span>`;
     }
     if (!body) return;
     let movs = [...movsOperacionais].sort((a, b) =>
       financeCaixaMovCompetenciaYmd(b).localeCompare(financeCaixaMovCompetenciaYmd(a))
     );
+    movs = movs.filter((mov) => {
+      const isEntrada = financeCashIsEntrada(mov);
+      const rec = isEntrada
+        ? (state.receivables || []).find((r) => String(r.id) === String(mov.conta_id)) || financeFindReceivableForMov(mov)
+        : null;
+      const pay = !isEntrada ? (state.payables || []).find((p) => String(p.id) === String(mov.conta_id)) : null;
+      const vehicle = rec ? financeVehicleById().get(rec.vehicle_id) : null;
+      const desc = isEntrada ? financeCaixaDescricaoEntrada(mov, rec) : financeStripFinmeta(mov.descricao || "");
+      return financeCaixaMovMatchesBusca(mov, rec, pay, vehicle, desc, financeCaixaOrigemLabel(mov, rec, pay));
+    });
     if (!movs.length) {
       const periodoHint = "";
       const tipoHint =
@@ -4541,7 +4641,6 @@
         const tipoLabel = isEntrada ? "Entrada" : "Saída";
         const tipoClass = isEntrada ? "fin-val-entrada" : "fin-val-saida";
         const amount = financeCashMovValor(mov);
-        const valSigned = isEntrada ? amount : -amount;
         let pagante = "—";
         let descText = "—";
         if (isEntrada) {
@@ -4562,8 +4661,8 @@
         descText = financeDisplaySafeText(descText);
         if (financeLooksLikeMetaNoise(pagante)) pagante = financeNormalizeQuemPagouText(mov?.descricao || rec?.responsavel_pagamento);
         if (financeLooksLikeMetaNoise(descText)) descText = pagante;
-        let desc = auditBadge + escapeHtml(descText);
-        if (v?.placa) desc += `<br /><span class="notice">${escapeHtml(v.placa)}</span>`;
+        const origem = financeCaixaOrigemLabel(mov, rec, pay);
+        const desc = auditBadge + escapeHtml(descText) + (v?.placa ? `<br /><span class="notice">${escapeHtml(v.placa)}</span>` : "");
         const dataComp = financeCaixaMovCompetenciaYmd(mov);
         const movId = escapeHtml(String(mov.id || ""));
         const pagamentoConfirmado = isEntrada && rec && Number(mov.valor || rec.valor || 0) > 0;
@@ -4574,12 +4673,13 @@
         const comprovanteBtn = pagamentoConfirmado
           ? `<button type="button" class="secondary" data-fin-print-comprovante="${escapeHtml(String(rec.id))}" data-fin-print-comprovante-mov="${movId}">Comprovante de Pagamento</button>`
           : "";
-        return `<tr>
+        const sinal = isEntrada ? "+" : "−";
+        return `<tr class="fin-caixa-row" data-fin-caixa-detalhe="${movId}">
           <td data-label="Data">${escapeHtml(formatDate(dataComp || mov.data_movimento || mov.created_at))}</td>
-          <td data-label="Tipo"><span class="${tipoClass}">${tipoLabel}</span></td>
-          <td data-label="Origem">${escapeHtml(pagante)}</td>
           <td data-label="Descrição">${desc}</td>
-          <td data-label="Valor"><span class="${tipoClass}">${escapeHtml(formatCurrency(valSigned))}</span></td>
+          <td data-label="Tipo"><span class="${tipoClass}">${tipoLabel}</span></td>
+          <td data-label="Origem">${escapeHtml(origem)}</td>
+          <td data-label="Valor"><span class="${tipoClass}">${sinal} ${escapeHtml(formatCurrency(amount))}</span></td>
           <td data-label="Ações" class="actions">
             ${cdrBtn}
             ${comprovanteBtn}
@@ -4590,12 +4690,7 @@
         </tr>`;
       })
       .join("");
-    body.innerHTML =
-      rowsHtml +
-      `<tr class="fin-caixa-total-row">
-        <td colspan="5" data-label=""><strong>Saldo</strong></td>
-        <td data-label="Valor"><strong class="${totPeriodo.entradas - totPeriodo.saidas >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(totPeriodo.entradas - totPeriodo.saidas))}</strong></td>
-      </tr>`;
+    body.innerHTML = rowsHtml;
     financeSanitizeCaixaTableCells(body);
   }
 
@@ -4937,7 +5032,7 @@
     await financeReloadAfterAction();
   }
 
-  function financeOpenReceitaModal(presetRecorrente) {
+  function financeOpenReceitaModal(presetRecorrente, opts = {}) {
     const modal = document.getElementById("finReceitaModal");
     const form = document.getElementById("finReceitaForm");
     if (!modal || !form) return;
@@ -4952,7 +5047,7 @@
     if (dataLanc) dataLanc.value = today;
     if (venc) venc.value = today;
     if (dataRec) dataRec.value = today;
-    if (jaRec) jaRec.checked = false;
+    if (jaRec) jaRec.checked = opts.lancarNoCaixa === true;
     if (modo) modo.value = presetRecorrente ? "RECORRENTE" : "UNICA";
     if (cat && typeof getLancReceitaCategorias === "function") {
       const cats = getLancReceitaCategorias();
@@ -4962,7 +5057,7 @@
     financeSyncReceitaModoFields();
     financePopulateContactSelects();
     const title = document.getElementById("finReceitaModalTitle");
-    if (title) title.textContent = presetRecorrente ? "Nova receita recorrente" : "Nova receita";
+    if (title) title.textContent = opts.titulo || (presetRecorrente ? "Nova receita recorrente" : "Nova receita");
     if (modal.parentElement !== document.body) document.body.appendChild(modal);
     modal.classList.remove("hidden");
   }
@@ -7322,6 +7417,19 @@
       financeCaixaAplicarMesAtualNosCampos();
       financeRenderCaixa();
     });
+    document.getElementById("finCaixaBusca")?.addEventListener("input", (e) => {
+      finCaixaBuscaTexto = e.target.value || "";
+      if (currentFinanceView === "caixa") financeRenderCaixa();
+    });
+    document.getElementById("finCaixaNovaEntrada")?.addEventListener("click", () => {
+      financeOpenReceitaModal(false, { lancarNoCaixa: true, titulo: "Nova entrada" });
+    });
+    document.getElementById("finCaixaNovaSaida")?.addEventListener("click", () => financeOpenDespesaModal(false));
+    document.getElementById("finCaixaDetalheClose")?.addEventListener("click", financeCloseCaixaDetalhe);
+    document.getElementById("finCaixaDetalheCancel")?.addEventListener("click", financeCloseCaixaDetalhe);
+    document.getElementById("finCaixaDetalheModal")?.addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) financeCloseCaixaDetalhe();
+    });
     document.getElementById("finCaixaFilterClear")?.addEventListener("click", () => {
       ["finCaixaPlaca", "finCaixaRpp", "finCaixaDataBusca", "finFilterPeriodo", "finCaixaValorDe", "finCaixaValorAte"].forEach((id) => {
         const el = document.getElementById(id);
@@ -7753,6 +7861,12 @@
     });
 
     document.getElementById("viewFinanceiro")?.addEventListener("click", async (e) => {
+      const caixaDetalhe = e.target.closest("[data-fin-caixa-detalhe]");
+      if (caixaDetalhe && !e.target.closest("button")) {
+        e.preventDefault();
+        financeOpenCaixaDetalhe(caixaDetalhe.getAttribute("data-fin-caixa-detalhe"));
+        return;
+      }
       const printCdr = e.target.closest("[data-fin-print-cdr]");
       if (printCdr) {
         e.preventDefault();
