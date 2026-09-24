@@ -20405,6 +20405,7 @@
             console.warn("vehicle_events faturamento", e);
           }
         }
+        if (opts?.semRecarregar) return { ok: true };
         closePatioFaturamentoModal();
         await Promise.all([loadVehicles(), loadReceivables(), loadCycleClosures()]);
         if (opts?.semTela) return { ok: true };
@@ -21350,9 +21351,104 @@
           vencimento: "—",
           valor: "—",
         });
-        const css = (sample.match(/<style>([\s\S]*?)<\/style>/) || [])[1] || "";
-        const extra = ".ticket.cdr-print{page-break-after:always;break-after:page;}.ticket.cdr-print:last-child{page-break-after:auto;break-after:auto;}";
+        const css = ((sample.match(/<style>([\s\S]*?)<\/style>/) || [])[1] || "").replace(
+          /@page\s*\{[^}]*\}/,
+          "@page { margin: 0; }"
+        );
+        const extra =
+          ".ticket.cdr-print{break-inside:avoid;page-break-inside:avoid;break-after:page;page-break-after:always;}" +
+          ".ticket.cdr-print:last-child{break-after:auto;page-break-after:auto;}";
         return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>CDFs</title><style>${css}${extra}</style></head><body>${fragmentos.join("")}</body></html>`;
+      }
+
+      function imprimirCdfsEmUmTrabalho(fragmentos) {
+        const lista = (fragmentos || []).filter(Boolean);
+        return new Promise((resolve) => {
+          if (!lista.length) {
+            resolve(false);
+            return;
+          }
+          const html = buildCdfLotePrintHtml(lista);
+          const paper = 80;
+          const iframe = document.createElement("iframe");
+          iframe.setAttribute("title", "CDFs — lote");
+          iframe.setAttribute("aria-hidden", "true");
+          const framePx = Math.max(280, Math.round((paper * 96) / 25.4));
+          iframe.style.cssText =
+            `position:fixed;left:0;top:0;width:${framePx}px;height:4800px;border:0;opacity:0;pointer-events:none;z-index:-1;overflow:visible;`;
+          document.body.appendChild(iframe);
+          const win = iframe.contentWindow;
+          if (!win) {
+            iframe.remove();
+            resolve(false);
+            return;
+          }
+          win.document.open();
+          win.document.write(html);
+          win.document.close();
+          const remover = () => {
+            try {
+              iframe.remove();
+            } catch (e) {
+              /* ignore */
+            }
+          };
+          const aplicar = () => {
+            try {
+              const doc = win.document;
+              const tickets = [...doc.querySelectorAll(".ticket.cdr-print")];
+              if (tickets.length !== lista.length) {
+                console.error("[CDF lote] documentos na fila divergem dos CDFs gerados", {
+                  fila: tickets.length,
+                  gerados: lista.length,
+                });
+                remover();
+                resolve(false);
+                return;
+              }
+              let css = "";
+              let totalPx = 0;
+              tickets.forEach((ticket, i) => {
+                const px = Math.ceil(ticket.getBoundingClientRect().height);
+                totalPx += px;
+                const mm = Math.max(40, Math.ceil((px * 25.4) / 96) + 6);
+                const nome = `cdflote${i}`;
+                ticket.classList.add(`cdf-folha-${i}`);
+                css += `@page ${nome} { size: ${paper}mm ${mm}mm; margin: 0; }\n.cdf-folha-${i}{page:${nome};}\n`;
+              });
+              const style = doc.createElement("style");
+              style.textContent = css;
+              doc.head.appendChild(style);
+              iframe.style.height = `${Math.max(totalPx + 12, 160)}px`;
+              void iframe.offsetHeight;
+              win.focus();
+              win.print();
+              setTimeout(() => {
+                remover();
+                resolve(true);
+              }, 900);
+            } catch (err) {
+              console.error("[CDF lote] impressao unica", err);
+              remover();
+              resolve(false);
+            }
+          };
+          const imgs = [...(win.document?.images || [])].filter((img) => !img.complete);
+          if (!imgs.length) {
+            setTimeout(aplicar, 60);
+            return;
+          }
+          let left = imgs.length;
+          const done = () => {
+            left -= 1;
+            if (left <= 0) setTimeout(aplicar, 40);
+          };
+          imgs.forEach((img) => {
+            img.addEventListener("load", done, { once: true });
+            img.addEventListener("error", done, { once: true });
+          });
+          setTimeout(aplicar, 1200);
+        });
       }
 
       function aguardarImpressaoCdf(html) {
@@ -21378,17 +21474,21 @@
       async function cdfLoteProcessarTodos() {
         const lote = cdfLoteEstado;
         if (!lote || lote.busy) return;
-        const fila = lote.ids.slice();
+        const batchIds = lote.ids.slice();
         lote.busy = true;
         lote.linhas = [];
         lote.falhas = [];
         lote.impressaoPendente = [];
+        lote.htmlPorId = {};
         lote.ok = 0;
-        const total = fila.length;
+        const total = batchIds.length;
+        const cdfsParaImprimir = [];
+        console.info("[CDF lote] Selecionados:", total, batchIds);
         try {
-          for (let i = 0; i < fila.length; i += 1) {
-            const id = fila[i];
+          for (let i = 0; i < batchIds.length; i += 1) {
+            const id = batchIds[i];
             lote.index = i;
+            console.info("[CDF lote] Processando ID", id);
             const rec = (state.receivables || []).find((x) => String(x.id) === String(id));
             const vehicle = rec
               ? (state.vehicles || []).find((v) => String(v.id) === String(rec.vehicle_id))
@@ -21397,20 +21497,21 @@
             const passo = `${i + 1} de ${total} — ${placa}`;
             const jaEmEntradas =
               rec && typeof receivableAprovadoParaContasReceber === "function" && receivableAprovadoParaContasReceber(rec);
-            if (!rec) {
+            if (!rec || !vehicle) {
               lote.falhas.push(id);
-              lote.linhas.push(`${passo} — Erro`);
+              lote.linhas.push(`${passo} — Erro: registro ou veículo não encontrado`);
               cdfLoteAtualizarTela("Faturamento em andamento");
               continue;
             }
             if (!jaEmEntradas) {
-              lote.linhas.push(`${passo} — Salvando e enviando para Entradas...`);
+              lote.linhas.push(`${passo} — Gerando CDF e enviando para Entradas...`);
               cdfLoteAtualizarTela("Faturamento em andamento");
               const saved = await submitPatioFaturamentoForm(
                 { preventDefault() {} },
                 {
                   navegar: false,
                   semTela: true,
+                  semRecarregar: true,
                   adiarAviso: true,
                   silent: true,
                   receivableId: id,
@@ -21426,48 +21527,55 @@
                 continue;
               }
             }
-            if (!vehicle) {
+            const fragmento = cdfExtrairTicket(cdfHtmlDoVeiculo(vehicle, lote.fat));
+            if (!fragmento) {
               lote.impressaoPendente.push(id);
               lote.linhas.push(`${passo} — Em Entradas. Impressão pendente`);
               cdfLoteAtualizarTela("Faturamento em andamento");
               continue;
             }
-            lote.linhas.push(`${passo} — Imprimindo...`);
+            lote.htmlPorId[id] = fragmento;
+            cdfsParaImprimir.push(fragmento);
+            lote.ok += 1;
+            lote.linhas.push(`${passo} — CDF gerado e enviado para Entradas`);
             cdfLoteAtualizarTela("Faturamento em andamento");
-            try {
-              await aguardarImpressaoCdf(cdfHtmlDoVeiculo(vehicle, lote.fat));
-              lote.ok += 1;
-              lote.linhas.pop();
-              lote.linhas.push(`${passo} — Impresso`);
-            } catch (err) {
-              console.error("cdf lote impressao", err);
-              lote.impressaoPendente.push(id);
-              lote.linhas.pop();
-              lote.linhas.push(`${passo} — Em Entradas. Impressão pendente`);
-            }
-            cdfLoteAtualizarTela("Faturamento em andamento");
-            if (i < fila.length - 1) {
-              lote.linhas.push("Aguardando 3 segundos...");
-              cdfLoteAtualizarTela("Faturamento em andamento");
-              await esperarMs(3000);
-              lote.linhas.pop();
-            }
           }
           lote.index = total;
-          fila.forEach((id) => {
+          const enviados = lote.ok;
+          console.info("[CDF lote] CDFs gerados:", cdfsParaImprimir.length);
+          console.info("[CDF lote] Enviados para Entradas:", enviados);
+          console.info("[CDF lote] CDFs enviados para impressão:", cdfsParaImprimir.length === total ? cdfsParaImprimir.length : 0);
+          lote.linhas.push(
+            `Selecionados: ${total} · CDFs gerados: ${cdfsParaImprimir.length} · Entradas: ${enviados}`
+          );
+          batchIds.forEach((id) => {
             if (!lote.falhas.includes(id)) patioAguardandoSelecionados.delete(String(id));
           });
-          const pend = lote.impressaoPendente.length;
-          lote.linhas.push(
-            pend || lote.falhas.length
-              ? `${lote.ok} de ${total} impressos. ${lote.falhas.length} erro(s) de faturamento. ${pend} impressão(ões) pendente(s).`
-              : `${total} de ${total} CDFs processados. Faturamento concluído com sucesso.`
-          );
-          cdfLoteAtualizarTela(pend || lote.falhas.length ? "Faturamento com pendências" : "Faturamento concluído");
-          if (typeof renderVehicles === "function") renderVehicles();
+          await Promise.all([loadVehicles(), loadReceivables(), loadCycleClosures()]);
+          if (cdfsParaImprimir.length !== total) {
+            Object.keys(lote.htmlPorId).forEach((id) => {
+              if (!lote.impressaoPendente.includes(id)) lote.impressaoPendente.push(id);
+            });
+            lote.linhas.push("A impressão não foi aberta: a quantidade de CDFs não fechou com os selecionados.");
+            cdfLoteAtualizarTela("Faturamento com pendências");
+            return;
+          }
+          lote.linhas.push("Impressão única: um trabalho, corte entre cada CDF.");
+          cdfLoteAtualizarTela("Enviando impressão");
+          const impresso = await imprimirCdfsEmUmTrabalho(cdfsParaImprimir);
+          if (!impresso) {
+            lote.impressaoPendente = batchIds.slice();
+            lote.linhas.push("Faturamento salvo. Impressão pendente — use Reimprimir CDF.");
+            cdfLoteAtualizarTela("Impressão pendente");
+            return;
+          }
+          lote.linhas.push(`${total} de ${total} CDFs faturados, em Entradas e enviados na mesma impressão.`);
+          cdfLoteAtualizarTela("Faturamento concluído");
         } finally {
           lote.busy = false;
-          cdfLoteAtualizarTela(lote.falhas?.length || lote.impressaoPendente?.length ? "Faturamento com pendências" : "Faturamento concluído");
+          cdfLoteAtualizarTela(
+            lote.falhas?.length || lote.impressaoPendente?.length ? "Faturamento com pendências" : "Faturamento concluído"
+          );
         }
       }
 
@@ -21475,32 +21583,29 @@
         const lote = cdfLoteEstado;
         if (!lote || lote.busy || !(lote.impressaoPendente || []).length) return;
         const fila = lote.impressaoPendente.slice();
+        const fragmentos = [];
+        const semHtml = [];
+        fila.forEach((id) => {
+          const html = lote.htmlPorId?.[id];
+          if (html) fragmentos.push(html);
+          else semHtml.push(id);
+        });
+        if (fragmentos.length !== fila.length) {
+          lote.linhas.push("Reimpressão não aberta: faltam CDFs já gerados. Nenhum faturamento novo foi criado.");
+          lote.impressaoPendente = fila;
+          cdfLoteAtualizarTela("Impressão pendente");
+          return;
+        }
         lote.busy = true;
-        lote.impressaoPendente = [];
         cdfLoteAtualizarTela("Reimprimindo CDFs");
         try {
-          for (let i = 0; i < fila.length; i += 1) {
-            const id = fila[i];
-            const rec = (state.receivables || []).find((x) => String(x.id) === String(id));
-            const vehicle = rec
-              ? (state.vehicles || []).find((v) => String(v.id) === String(rec.vehicle_id))
-              : null;
-            const placa = vehicle?.placa || "—";
-            if (!vehicle) {
-              lote.impressaoPendente.push(id);
-              lote.linhas.push(`Reimprimir — ${placa} — Impressão pendente`);
-              continue;
-            }
-            try {
-              await aguardarImpressaoCdf(cdfHtmlDoVeiculo(vehicle, lote.fat));
-              lote.linhas.push(`Reimprimir — ${placa} — Impresso`);
-            } catch (err) {
-              console.error("cdf reimprimir", err);
-              lote.impressaoPendente.push(id);
-              lote.linhas.push(`Reimprimir — ${placa} — Impressão pendente`);
-            }
-            if (i < fila.length - 1) await esperarMs(3000);
-            cdfLoteAtualizarTela("Reimprimindo CDFs");
+          const impresso = await imprimirCdfsEmUmTrabalho(fragmentos);
+          if (!impresso) {
+            lote.impressaoPendente = fila;
+            lote.linhas.push("Reimpressão pendente. O faturamento não foi refeito.");
+          } else {
+            lote.impressaoPendente = semHtml;
+            lote.linhas.push(`${fragmentos.length} CDF(s) reenviados em um único trabalho, sem novo faturamento.`);
           }
         } finally {
           lote.busy = false;
