@@ -54,6 +54,7 @@
   /** "" | "entrada" | "saida" */
   let financeFilterCaixaTipo = "";
   let finCaixaQuick = "todos";
+  let financeCaixaMesAtualAtivo = true;
   const financeRowSelection = {
     aguardando: new Set(),
     receber: new Set(),
@@ -2776,21 +2777,46 @@
       .reduce((s, m) => s + financeCashMovValor(m), 0);
   }
 
-  function financeEnsureCaixaPeriodoDefault() {
-    const de = (document.getElementById("finCaixaDataDe")?.value || financeFilterCaixaDataDe || "").trim();
-    const ate = (document.getElementById("finCaixaDataAte")?.value || financeFilterCaixaDataAte || "").trim();
-    if (de || ate) return;
-    if (finCaixaQuick && finCaixaQuick !== "mes") return;
-    const periodoEl = document.getElementById("finFilterPeriodo");
-    if (!periodoEl || periodoEl.value) return;
-    const fallback =
-      typeof getOperationalMonth === "function"
-        ? getOperationalMonth()
-        : yearMonthFromYmd(financeTodayYmd());
-    if (fallback) {
-      periodoEl.value = fallback;
-      financeFilterPeriodo = fallback;
+  function financeCaixaMesAtualRange() {
+    const today = financeTodayYmd();
+    const ym = today.slice(0, 7);
+    const year = Number(ym.slice(0, 4));
+    const month = Number(ym.slice(5, 7));
+    const last = new Date(year, month, 0).getDate();
+    return {
+      de: `${ym}-01`,
+      ate: `${ym}-${String(last).padStart(2, "0")}`,
+    };
+  }
+
+  function financeCaixaAplicarMesAtualNosCampos() {
+    const range = financeCaixaMesAtualRange();
+    financeCaixaMesAtualAtivo = true;
+    financeFilterCaixaDataDe = range.de;
+    financeFilterCaixaDataAte = range.ate;
+    financeFilterPeriodo = "";
+    const deEl = document.getElementById("finCaixaDataDe");
+    const ateEl = document.getElementById("finCaixaDataAte");
+    const perEl = document.getElementById("finFilterPeriodo");
+    if (deEl) deEl.value = range.de;
+    if (ateEl) ateEl.value = range.ate;
+    if (perEl) perEl.value = "";
+  }
+
+  function financeCaixaTituloPeriodo(de, ate) {
+    const meses = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
+    const range = financeCaixaMesAtualRange();
+    if (de && ate && de === range.de && ate === range.ate) {
+      const month = Number(de.slice(5, 7));
+      return `CAIXA — ${meses[month - 1] || ""}/${de.slice(0, 4)}`;
     }
+    if (de || ate) return `CAIXA — ${de ? formatDate(de) : "…"} a ${ate ? formatDate(ate) : "…"}`;
+    return "CAIXA";
+  }
+
+  function financeEnsureCaixaPeriodoDefault() {
+    if (!financeCaixaMesAtualAtivo) return;
+    financeCaixaAplicarMesAtualNosCampos();
   }
 
   function financeRecebidoHoje() {
@@ -4334,6 +4360,7 @@
   }
 
   function financeApplyCaixaOpsFilter(opts = {}) {
+    financeCaixaMesAtualAtivo = false;
     financeFilterCaixaTipo = opts.tipo || "";
     financeFilterCaixaDataDe = opts.de || "";
     financeFilterCaixaDataAte = opts.ate || "";
@@ -4389,28 +4416,13 @@
     const movsOperacionais = financeCaixaMovsForPeriod(periodoYm);
     const totPeriodo = financeCaixaTotalsForMovs(movsOperacionais);
     if (summaryEl) {
-      const periodoLabel = de || ate
-        ? `Período ${de ? formatDate(de) : "…"} — ${ate ? formatDate(ate) : "…"}`
-        : periodoYm
-          ? `Competência ${periodoYm}`
-          : "Todos os períodos (lista abaixo)";
-      const tipoLabel =
-        financeFilterCaixaTipo === "entrada"
-          ? " · apenas entradas"
-          : financeFilterCaixaTipo === "saida"
-            ? " · apenas saídas"
-            : "";
-      const placaLabel = (financeFilterCaixaPlaca || "").trim()
-        ? ` · placa: ${escapeHtml(financeFilterCaixaPlaca.trim())}`
-        : "";
-      const rppNome = financePartnerNomeById(financeFilterCaixaRppId);
-      const rppLabel = rppNome ? ` · RPP: ${escapeHtml(rppNome)}` : "";
-      const saldoOperacional = financeSaldoCaixa();
+      const saldoPeriodo = totPeriodo.entradas - totPeriodo.saidas;
+      const tituloEl = document.getElementById("finCaixaTitulo");
+      if (tituloEl) tituloEl.textContent = financeCaixaTituloPeriodo(de, ate);
       summaryEl.innerHTML = `
-        <p><strong>${escapeHtml(periodoLabel)}${escapeHtml(tipoLabel)}${placaLabel}${rppLabel}</strong></p>
-        <p><strong>Entrada (operacional):</strong> <span class="fin-val-entrada">${escapeHtml(formatCurrency(totPeriodo.entradas))}</span></p>
-        <p><strong>Saída (operacional):</strong> <span class="fin-val-saida">${escapeHtml(formatCurrency(totPeriodo.saidas))}</span></p>
-        <p><strong>Saldo operacional:</strong> <span class="${saldoOperacional >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(saldoOperacional))}</span></p>
+        <p><strong>Entrada</strong><br /><span class="fin-val-entrada">${escapeHtml(formatCurrency(totPeriodo.entradas))}</span></p>
+        <p><strong>Saída</strong><br /><span class="fin-val-saida">${escapeHtml(formatCurrency(totPeriodo.saidas))}</span></p>
+        <p><strong>Saldo</strong><br /><span class="${saldoPeriodo >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(saldoPeriodo))}</span></p>
       `;
     }
     if (!body) return;
@@ -4418,14 +4430,7 @@
       financeCaixaMovCompetenciaYmd(b).localeCompare(financeCaixaMovCompetenciaYmd(a))
     );
     if (!movs.length) {
-      const totalMovs = financeCaixaMovsMerged().length;
-      const periodoHint = de || ate
-        ? " Nenhuma movimentação no intervalo de datas informado."
-        : periodoYm
-          ? totalMovs > 0
-            ? ` Nenhuma movimentação na competência ${periodoYm}, mas existem ${totalMovs} no total. Limpe o filtro «Competência» para ver todas.`
-            : ` Nenhuma movimentação na competência ${periodoYm}. Limpe o filtro «Competência» para ver todas.`
-          : "";
+      const periodoHint = "";
       const tipoHint =
         financeFilterCaixaTipo === "entrada"
           ? " Nenhuma entrada no filtro atual."
@@ -4438,7 +4443,7 @@
       const rppHint = (financeFilterCaixaRppId || "").trim()
         ? " Nenhuma movimentação para o RPP selecionado."
         : "";
-      body.innerHTML = `<tr><td colspan="6" class="notice">Nenhuma movimentação registrada.${periodoHint}${placaHint}${rppHint}${tipoHint}</td></tr>`;
+      body.innerHTML = `<tr><td colspan="6" class="notice">Nenhuma movimentação neste período.${periodoHint}${placaHint}${rppHint}${tipoHint}</td></tr>`;
       return;
     }
     const rowsHtml = movs
@@ -4500,8 +4505,8 @@
     body.innerHTML =
       rowsHtml +
       `<tr class="fin-caixa-total-row">
-        <td colspan="5" data-label=""><strong>Saldo operacional</strong></td>
-        <td data-label="Valor"><strong class="${financeSaldoCaixa() >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(financeSaldoCaixa()))}</strong></td>
+        <td colspan="5" data-label=""><strong>Saldo</strong></td>
+        <td data-label="Valor"><strong class="${totPeriodo.entradas - totPeriodo.saidas >= 0 ? "fin-val-entrada" : "fin-val-saida"}">${escapeHtml(formatCurrency(totPeriodo.entradas - totPeriodo.saidas))}</strong></td>
       </tr>`;
     financeSanitizeCaixaTableCells(body);
   }
@@ -7149,26 +7154,35 @@
       financeFilterCaixaTipo = financeFilterCaixaTipo === "saida" ? "" : "saida";
       financeRenderCaixa();
     });
-    document.getElementById("finCaixaFilterApply")?.addEventListener("click", () => financeRenderCaixa());
+    document.getElementById("finCaixaFilterApply")?.addEventListener("click", () => {
+      financeCaixaMesAtualAtivo = false;
+      financeFilterPeriodo = "";
+      const per = document.getElementById("finFilterPeriodo");
+      if (per) per.value = "";
+      financeRenderCaixa();
+    });
+    document.getElementById("finCaixaMesAtual")?.addEventListener("click", () => {
+      financeCaixaAplicarMesAtualNosCampos();
+      financeRenderCaixa();
+    });
     document.getElementById("finCaixaFilterClear")?.addEventListener("click", () => {
-      ["finCaixaPlaca", "finCaixaRpp", "finCaixaDataDe", "finCaixaDataAte", "finCaixaDataBusca", "finFilterPeriodo", "finCaixaValorDe", "finCaixaValorAte"].forEach((id) => {
+      ["finCaixaPlaca", "finCaixaRpp", "finCaixaDataBusca", "finFilterPeriodo", "finCaixaValorDe", "finCaixaValorAte"].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.value = "";
       });
       financeFilterPeriodo = "";
       financeFilterCaixaPlaca = "";
       financeFilterCaixaRppId = "";
-      financeFilterCaixaDataDe = "";
-      financeFilterCaixaDataAte = "";
       financeFilterCaixaValorDe = null;
       financeFilterCaixaValorAte = null;
       financeFilterCaixaTipo = "";
+      financeCaixaAplicarMesAtualNosCampos();
       financeRenderCaixa();
     });
     document.getElementById("finCaixaRpp")?.addEventListener("change", () => {
       if (currentFinanceView === "caixa") financeRenderCaixa();
     });
-    ["finCaixaPlaca", "finCaixaDataDe", "finCaixaDataAte", "finCaixaDataBusca", "finFilterPeriodo", "finCaixaValorDe", "finCaixaValorAte"].forEach((id) => {
+    ["finCaixaPlaca", "finCaixaDataBusca", "finFilterPeriodo", "finCaixaValorDe", "finCaixaValorAte"].forEach((id) => {
       document.getElementById(id)?.addEventListener("change", () => {
         if (currentFinanceView === "caixa") financeRenderCaixa();
       });
