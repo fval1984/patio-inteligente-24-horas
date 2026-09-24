@@ -4516,6 +4516,25 @@
     return (state.cash || []).find((m) => String(m.id) === String(id)) || null;
   }
 
+  function financeCaixaAlvo(id) {
+    const sid = String(id || "");
+    if (sid.startsWith("syn-rec-")) {
+      const recId = sid.slice("syn-rec-".length);
+      const receivable = (state.receivables || []).find((r) => String(r.id) === recId) || null;
+      return { mov: null, receivable, payable: null, synthetic: true };
+    }
+    const mov = financeFindCaixaMovById(sid);
+    if (!mov) return { mov: null, receivable: null, payable: null, synthetic: false };
+    const entrada = financeCashIsEntrada(mov);
+    const receivable = entrada
+      ? (state.receivables || []).find((r) => String(r.id) === String(mov.conta_id || "")) || null
+      : null;
+    const payable = !entrada
+      ? (state.payables || []).find((p) => String(p.id) === String(mov.conta_id || "")) || null
+      : null;
+    return { mov, receivable, payable, synthetic: false };
+  }
+
   function financeCaixaDescricaoEditavel(mov) {
     const text = financeDisplaySafeText(mov?.descricao || "");
     return text === "—" ? "" : text;
@@ -4541,49 +4560,188 @@
     document.getElementById("finCaixaDeleteModal")?.classList.add("hidden");
   }
 
-  function financeCaixaVoltarSemAlterar() {
-    const back = financeCaixaReturnView && financeCaixaReturnView !== "caixa" ? financeCaixaReturnView : "dashboard";
-    financeActivateSubview(back);
+  function financeCaixaMetaRaw(record, kind) {
+    if (kind === "payable") {
+      return typeof financePayableMetaText === "function" ? financePayableMetaText(record) : record?.observacoes || record?.descricao || "";
+    }
+    return typeof financeReceivableMetaText === "function"
+      ? financeReceivableMetaText(record)
+      : record?.observacoes || record?.responsavel_pagamento || "";
+  }
+
+  function financeCaixaPackMeta(raw, mutate) {
+    const unpack = typeof financeMetaUnpack === "function" ? financeMetaUnpack(raw) : financeMetaUnpackLocal(raw);
+    const meta = { ...(unpack.meta || {}) };
+    mutate(meta);
+    const pack = typeof financeMetaPack === "function" ? financeMetaPack : null;
+    if (!pack) return String(unpack.text || "");
+    return pack(meta, unpack.text || "");
+  }
+
+  function financeCaixaMetaPatch(record, kind, packed) {
+    if (kind === "payable") return { observacoes: packed };
+    const obs = String(record?.observacoes || "");
+    const resp = String(record?.responsavel_pagamento || "");
+    if (obs.includes(FINANCE_META_PREFIX_LOCAL) || !resp.includes(FINANCE_META_PREFIX_LOCAL)) return { observacoes: packed };
+    return { responsavel_pagamento: packed };
+  }
+
+  async function financeCaixaWrite(table, id, body) {
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid || typeof supabase === "undefined" || !id) return { error: { message: "Sessão indisponível." } };
+    let payload = { ...body };
+    let error = null;
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const write = () => supabase.from(table).update(payload).eq("id", id).eq("user_id", uid);
+      const result = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
+      error = result.error;
+      if (!error) return { error: null };
+      const msg = String(error.message || "");
+      const missing = msg.match(/Could not find the ['"](\w+)['"] column|column ['"]?(\w+)['"]?/i);
+      const col = missing?.[1] || missing?.[2];
+      if (col && Object.prototype.hasOwnProperty.call(payload, col)) {
+        delete payload[col];
+        continue;
+      }
+      if (/data_movimento/i.test(msg) && payload.data_movimento && !String(payload.data_movimento).includes("T")) {
+        payload = { ...payload, data_movimento: `${payload.data_movimento}T12:00:00` };
+        continue;
+      }
+      break;
+    }
+    return { error };
+  }
+
+  async function financeCaixaDeleteRows(table, ids) {
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    const list = [...new Set((ids || []).map((id) => String(id)).filter(Boolean))];
+    if (!uid || typeof supabase === "undefined" || !list.length) return { error: null };
+    const runDel = () => supabase.from(table).delete().in("id", list).eq("user_id", uid);
+    return typeof runSupabaseWrite === "function" ? runSupabaseWrite(runDel) : runDel();
+  }
+
+  function financeCaixaMovimentosDoTitulo(contaId, entrada) {
+    return (state.cash || []).filter((m) => {
+      if (!financeCaixaMovGravado(m)) return false;
+      if (String(m.conta_id || "") !== String(contaId || "")) return false;
+      return entrada ? financeCashIsEntrada(m) : financeCashIsSaida(m);
+    });
+  }
+
+  async function financeCaixaLimparMovimentos(alvo) {
+    const ids = [];
+    if (financeCaixaMovGravado(alvo.mov)) ids.push(alvo.mov.id);
+    const titulo = alvo.receivable || alvo.payable;
+    if (titulo?.id) {
+      financeCaixaMovimentosDoTitulo(titulo.id, !!alvo.receivable).forEach((m) => ids.push(m.id));
+    }
+    return financeCaixaDeleteRows("cash_movements", ids);
+  }
+
+  async function financeCaixaAjustarVeiculo(vehicleId, ignorarReceivableId) {
+    if (!vehicleId) return;
+    const aindaPago = (state.receivables || []).some(
+      (r) =>
+        String(r.id) !== String(ignorarReceivableId || "") &&
+        String(r.vehicle_id) === String(vehicleId) &&
+        String(r.status || "").toUpperCase() === "PAGO"
+    );
+    if (aindaPago) return;
+    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+    if (!uid || typeof supabase === "undefined") return;
+    await supabase.from("vehicles").update({ payment_status: "EM_ABERTO" }).eq("id", vehicleId).eq("user_id", uid);
+  }
+
+  async function financeCaixaVoltarRegistro(id) {
+    const alvo = financeCaixaAlvo(id);
+    const titulo = alvo.receivable || alvo.payable;
+    if (!titulo?.id) {
+      alert("Este lançamento não está ligado a uma etapa anterior.");
+      return;
+    }
+    if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
+    const cash = await financeCaixaLimparMovimentos(alvo);
+    if (cash.error) {
+      if (typeof alertSupabaseError === "function") alertSupabaseError(cash.error, "Não foi possível desfazer a entrada no Caixa.");
+      else alert(cash.error.message || "Não foi possível desfazer a entrada no Caixa.");
+      return;
+    }
+    const packed = financeCaixaPackMeta(financeCaixaMetaRaw(titulo, alvo.payable ? "payable" : "receivable"), (meta) => {
+      delete meta.data_pagamento;
+      delete meta.data_recebimento;
+      delete meta.data_baixa;
+      delete meta.forma_pagamento;
+    });
+    const patch = {
+      status: "EM_ABERTO",
+      ...financeCaixaMetaPatch(titulo, alvo.payable ? "payable" : "receivable", packed),
+    };
+    if (alvo.receivable) patch.financeiro_aprovado_contas_receber = true;
+    if (alvo.payable) patch.data_pagamento = null;
+    const table = alvo.receivable ? "receivables" : "payables";
+    const saved = await financeCaixaWrite(table, titulo.id, patch);
+    if (saved.error) {
+      if (typeof alertSupabaseError === "function") alertSupabaseError(saved.error, "Não foi possível devolver o registro à etapa anterior.");
+      else alert(saved.error.message || "Não foi possível devolver o registro à etapa anterior.");
+      return;
+    }
+    if (alvo.receivable?.vehicle_id) {
+      const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
+      const outros = (state.receivables || []).some(
+        (r) =>
+          String(r.id) !== String(titulo.id) &&
+          String(r.vehicle_id) === String(alvo.receivable.vehicle_id) &&
+          String(r.status || "").toUpperCase() === "PAGO"
+      );
+      if (!outros && uid) {
+        await supabase.from("vehicles").update({ payment_status: "EM_ABERTO" }).eq("id", alvo.receivable.vehicle_id).eq("user_id", uid);
+      }
+    }
+    await financeReloadAfterAction();
   }
 
   function financeOpenCaixaEdit(id) {
-    const mov = financeFindCaixaMovById(id);
-    if (!financeCaixaMovGravado(mov)) {
-      alert("Este lançamento é calculado a partir de outro registro e não pode ser editado no Caixa.");
+    const alvo = financeCaixaAlvo(id);
+    if (!financeCaixaMovGravado(alvo.mov) && !alvo.receivable && !alvo.payable) {
+      alert("Não foi possível localizar este registro.");
       return;
     }
-    financeCaixaEditId = String(mov.id);
+    financeCaixaEditId = String(id);
+    const mov = alvo.mov;
+    const titulo = alvo.receivable || alvo.payable;
     const dataEl = document.getElementById("finCaixaEditData");
     const valorEl = document.getElementById("finCaixaEditValor");
     const formaEl = document.getElementById("finCaixaEditForma");
     const descEl = document.getElementById("finCaixaEditDescricao");
-    const ymd = typeof toLocalYmd === "function" ? toLocalYmd(mov.data_movimento || mov.created_at || "") : "";
+    const ymdFonte = mov?.data_movimento || mov?.created_at || titulo?.data_pagamento || "";
+    const ymd = typeof toLocalYmd === "function" ? toLocalYmd(ymdFonte) : "";
+    const valorFonte = mov && Number(mov.valor) > 0 ? Number(mov.valor) : Number(titulo?.valor || 0);
+    const formaFonte = String(mov?.forma_pagamento || titulo?.forma_pagamento || "").trim();
     if (dataEl) dataEl.value = ymd || "";
-    if (valorEl) valorEl.value = String(Number(mov.valor || 0));
+    if (valorEl) valorEl.value = String(valorFonte || 0);
     if (formaEl) {
-      const forma = String(mov.forma_pagamento || "").trim();
-      const has = [...formaEl.options].some((opt) => opt.value === forma);
-      if (forma && !has) {
+      const has = [...formaEl.options].some((opt) => opt.value === formaFonte);
+      if (formaFonte && !has) {
         const extra = document.createElement("option");
-        extra.value = forma;
-        extra.textContent = forma;
+        extra.value = formaFonte;
+        extra.textContent = formaFonte;
         formaEl.appendChild(extra);
       }
-      formaEl.value = forma;
+      formaEl.value = formaFonte;
     }
-    if (descEl) descEl.value = financeCaixaDescricaoEditavel(mov);
+    if (descEl) descEl.value = mov ? financeCaixaDescricaoEditavel(mov) : financeCaixaDescricaoEditavel(titulo || {});
     const modal = document.getElementById("finCaixaEditModal");
     if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
     modal?.classList.remove("hidden");
   }
 
   function financeOpenCaixaDelete(id) {
-    const mov = financeFindCaixaMovById(id);
-    if (!financeCaixaMovGravado(mov)) {
-      alert("Este lançamento é calculado a partir de outro registro e não pode ser apagado no Caixa.");
+    const alvo = financeCaixaAlvo(id);
+    if (!financeCaixaMovGravado(alvo.mov) && !alvo.receivable && !alvo.payable) {
+      alert("Não foi possível localizar este registro.");
       return;
     }
-    financeCaixaDeleteId = String(mov.id);
+    financeCaixaDeleteId = String(id);
     const modal = document.getElementById("finCaixaDeleteModal");
     if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
     modal?.classList.remove("hidden");
@@ -4598,68 +4756,92 @@
 
   async function financeSaveCaixaEdit(event) {
     event?.preventDefault();
-    const mov = financeFindCaixaMovById(financeCaixaEditId);
-    if (!financeCaixaMovGravado(mov)) return;
+    const alvo = financeCaixaAlvo(financeCaixaEditId);
+    const mov = alvo.mov;
+    const titulo = alvo.receivable || alvo.payable;
+    if (!financeCaixaMovGravado(mov) && !titulo) return;
     if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
-    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
-    if (!uid || typeof supabase === "undefined") return;
     const data = document.getElementById("finCaixaEditData")?.value || "";
     const valor = Number(document.getElementById("finCaixaEditValor")?.value);
     const forma = document.getElementById("finCaixaEditForma")?.value || "";
-    const descricao = financeCaixaDescricaoAtualizada(mov, document.getElementById("finCaixaEditDescricao")?.value || "");
+    const descricaoTexto = document.getElementById("finCaixaEditDescricao")?.value || "";
     if (!data) return alert("Informe a data do lançamento.");
     if (!Number.isFinite(valor) || valor < 0) return alert("Valor inválido.");
-    let body = {
-      data_movimento: data,
-      valor,
-      forma_pagamento: forma || null,
-      descricao,
-    };
-    let error = null;
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      const write = () => supabase.from("cash_movements").update(body).eq("id", mov.id).eq("user_id", uid);
-      const result = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
-      error = result.error;
-      if (!error) break;
-      const msg = String(error.message || "");
-      if (/forma_pagamento/i.test(msg) && Object.prototype.hasOwnProperty.call(body, "forma_pagamento")) {
-        delete body.forma_pagamento;
-        continue;
+    if (financeCaixaMovGravado(mov)) {
+      const savedMov = await financeCaixaWrite("cash_movements", mov.id, {
+        data_movimento: data,
+        valor,
+        forma_pagamento: forma || null,
+        descricao: financeCaixaDescricaoAtualizada(mov, descricaoTexto),
+      });
+      if (savedMov.error) {
+        if (typeof alertSupabaseError === "function") alertSupabaseError(savedMov.error, "Não foi possível editar o lançamento do Caixa.");
+        else alert(savedMov.error.message || "Não foi possível editar o lançamento do Caixa.");
+        return;
       }
-      if (/descricao/i.test(msg) && Object.prototype.hasOwnProperty.call(body, "descricao")) {
-        delete body.descricao;
-        continue;
-      }
-      if (/data_movimento/i.test(msg) && body.data_movimento && !String(body.data_movimento).includes("T")) {
-        body = { ...body, data_movimento: `${data}T12:00:00` };
-        continue;
-      }
-      break;
     }
-    if (error) {
-      if (typeof alertSupabaseError === "function") alertSupabaseError(error, "Não foi possível editar o lançamento do Caixa.");
-      else alert(error.message || "Não foi possível editar o lançamento do Caixa.");
-      return;
+    if (titulo?.id) {
+      const irmaos = financeCaixaMovimentosDoTitulo(titulo.id, !!alvo.receivable).filter(
+        (m) => !mov || String(m.id) !== String(mov.id)
+      );
+      const total = irmaos.reduce((sum, m) => sum + Number(m.valor || 0), 0) + valor;
+      const packed = financeCaixaPackMeta(financeCaixaMetaRaw(titulo, alvo.payable ? "payable" : "receivable"), (meta) => {
+        meta.data_pagamento = data;
+        if (forma) meta.forma_pagamento = forma;
+      });
+      const patch = {
+        valor: total,
+        ...financeCaixaMetaPatch(titulo, alvo.payable ? "payable" : "receivable", packed),
+      };
+      if (alvo.payable) {
+        patch.data_pagamento = data;
+        patch.forma_pagamento = forma || null;
+        if (descricaoTexto.trim()) patch.descricao = descricaoTexto.trim();
+      }
+      const savedTitulo = await financeCaixaWrite(alvo.receivable ? "receivables" : "payables", titulo.id, patch);
+      if (savedTitulo.error) {
+        if (typeof alertSupabaseError === "function") alertSupabaseError(savedTitulo.error, "O Caixa foi atualizado, mas o título ligado não pôde ser salvo.");
+        else alert(savedTitulo.error.message || "O Caixa foi atualizado, mas o título ligado não pôde ser salvo.");
+        return;
+      }
     }
     financeCloseCaixaEditModal();
-    await financeRefreshCaixaIndicadores();
+    await financeReloadAfterAction();
   }
 
   async function financeConfirmCaixaDelete() {
-    const mov = financeFindCaixaMovById(financeCaixaDeleteId);
-    if (!financeCaixaMovGravado(mov)) return;
+    const alvo = financeCaixaAlvo(financeCaixaDeleteId);
+    const titulo = alvo.receivable || alvo.payable;
+    if (!financeCaixaMovGravado(alvo.mov) && !titulo) return;
     if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
-    const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
-    if (!uid || typeof supabase === "undefined") return;
-    const write = () => supabase.from("cash_movements").delete().eq("id", mov.id).eq("user_id", uid);
-    const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
-    if (error) {
-      if (typeof alertSupabaseError === "function") alertSupabaseError(error, "Não foi possível apagar o lançamento do Caixa.");
-      else alert(error.message || "Não foi possível apagar o lançamento do Caixa.");
+    const cash = await financeCaixaLimparMovimentos(alvo);
+    if (cash.error) {
+      if (typeof alertSupabaseError === "function") alertSupabaseError(cash.error, "Não foi possível apagar o lançamento do Caixa.");
+      else alert(cash.error.message || "Não foi possível apagar o lançamento do Caixa.");
       return;
     }
+    if (titulo?.id) {
+      if (alvo.receivable) {
+        const closureIds = (state.cycleClosures || [])
+          .filter((c) => String(c.receivable_id) === String(titulo.id))
+          .map((c) => c.id);
+        if (closureIds.length) await financeCaixaDeleteRows("patio_cycle_closures", closureIds);
+      }
+      const table = alvo.receivable ? "receivables" : "payables";
+      const removed = await financeCaixaDeleteRows(table, [titulo.id]);
+      if (removed.error) {
+        if (typeof alertSupabaseError === "function") alertSupabaseError(removed.error, "Não foi possível apagar o registro relacionado.");
+        else alert(removed.error.message || "Não foi possível apagar o registro relacionado.");
+        return;
+      }
+      if (typeof window.removeReceberTriagemId === "function") window.removeReceberTriagemId(titulo.id);
+      if (typeof window.removePatioFinanceiroBloqueadoReceivableId === "function") {
+        window.removePatioFinanceiroBloqueadoReceivableId(titulo.id);
+      }
+      if (alvo.receivable?.vehicle_id) await financeCaixaAjustarVeiculo(alvo.receivable.vehicle_id, titulo.id);
+    }
     financeCloseCaixaDeleteModal();
-    await financeRefreshCaixaIndicadores();
+    await financeReloadAfterAction();
   }
 
   function financeOpenReceitaModal(presetRecorrente) {
@@ -7394,7 +7576,7 @@
       const caixaVoltar = e.target.closest("[data-fin-caixa-voltar]");
       if (caixaVoltar) {
         e.preventDefault();
-        financeCaixaVoltarSemAlterar();
+        void financeCaixaVoltarRegistro(caixaVoltar.getAttribute("data-fin-caixa-voltar"));
         return;
       }
       const btnReceber = e.target.closest("[data-fin-aguardando-receber]");
