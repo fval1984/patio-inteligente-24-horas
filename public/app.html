@@ -7802,14 +7802,22 @@
             <div class="section-card patio-subview hidden" data-subview="aguardando_faturamento">
               <div class="pill">Aguardando faturamento</div>
               <p class="notice" style="margin: 0 0 12px">
-                Ciclo do pátio já concluído (VRP). O título <strong>não</strong> entra em Contas a receber enquanto a nota fiscal ou a cobrança não for emitida.
-                Informe o destinatário (nome e contato) e finalize o faturamento nesta tela.
+                Ciclo do pátio já concluído (VRP). Selecione um ou mais veículos, preencha os dados de faturamento uma vez e gere um CDF para cada registro.
               </p>
+              <div id="patioAguardandoLoteBar" class="hidden" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px">
+                <label style="display:flex;align-items:center;gap:6px;margin:0">
+                  <input type="checkbox" id="patioAguardandoSelectAll" />
+                  Selecionar todos
+                </label>
+                <strong id="patioAguardandoSelCount">0 registros selecionados</strong>
+                <button type="button" id="patioAguardandoFaturarSel">Faturar Selecionados</button>
+              </div>
               <p class="patio-aguardando-total" id="patioAguardandoFaturamentoTotal" aria-live="polite">Total: —</p>
               <div class="table-wrap">
                 <table class="table stacked">
                   <thead>
                     <tr>
+                      <th><input type="checkbox" id="patioAguardandoSelectHead" title="Selecionar todos" aria-label="Selecionar todos" /></th>
                       <th>Placa</th>
                       <th>Registo</th>
                       <th>Veículo</th>
@@ -8124,7 +8132,7 @@
             </div>
             <p id="finAguardandoPlateHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <div class="fin-batch-bar" aria-label="Ações em lote">
-              <button type="button" class="secondary fin-batch-action" data-fin-batch-view="aguardando" data-fin-batch-action="promote" data-fin-batch-label="Contas a receber" disabled>Contas a receber</button>
+              <button type="button" class="secondary fin-batch-action" data-fin-batch-view="aguardando" data-fin-batch-action="faturar" data-fin-batch-label="Faturar Selecionados" disabled>Faturar Selecionados</button>
               <button type="button" class="secondary fin-batch-delete fin-batch-action hidden" data-fin-batch-view="aguardando" data-fin-batch-action="delete" data-fin-batch-label="Apagar Selecionados">Apagar Selecionados</button>
             </div>
             <p id="finAguardandoSelectedSummary" class="fin-selected-summary hidden" aria-live="polite">
@@ -9073,15 +9081,6 @@
               <input id="nfseThermalCnpj" type="text" inputmode="numeric" maxlength="18" autocomplete="off" placeholder="00.000.000/0000-00" />
             </div>
           </div>
-          <div id="nfseThermalFaturarExtra" class="hidden" style="margin-top: 12px">
-            <label for="cdfDestContato">Contato do destinatário</label>
-            <input id="cdfDestContato" type="text" maxlength="180" placeholder="Telefone, e-mail ou WhatsApp" />
-            <fieldset style="margin: 12px 0; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px">
-              <legend>Documento do faturamento</legend>
-              <label style="display:block;margin-bottom:6px"><input type="radio" name="cdfTipoFat" value="NF" /> Nota fiscal</label>
-              <label style="display:block"><input type="radio" name="cdfTipoFat" value="COBRANCA" checked /> Cobrança</label>
-            </fieldset>
-          </div>
           <p id="nfseThermalCnpjStatus" class="notice" style="margin: 8px 0 0">
             Selecione CPF ou CNPJ para continuar.
           </p>
@@ -9089,6 +9088,23 @@
             <button type="button" id="nfseThermalPrintBtn" disabled>IMPRIMIR CDF</button>
             <button type="button" class="secondary" id="nfseThermalPdfBtn" disabled>Baixar PDF</button>
             <button type="button" class="secondary" id="nfseThermalCloseBtn">Fechar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="cdfLoteProgressoModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 440px">
+          <div class="modal-header">
+            <div>
+              <h3 id="cdfLoteTitulo">Faturamento em andamento</h3>
+              <p class="subtitle" id="cdfLoteSubtitulo" style="margin: 4px 0 0">Um CDF por veículo.</p>
+            </div>
+          </div>
+          <p id="cdfLotePlaca" style="margin: 0 0 8px; font-size: 1.05rem"></p>
+          <p id="cdfLoteStatus" class="notice" style="margin: 0 0 12px"></p>
+          <div class="form-actions">
+            <button type="button" id="cdfLoteImprimirBtn">Imprimir CDF e continuar</button>
+            <button type="button" class="secondary hidden" id="cdfLoteFecharBtn">Fechar</button>
           </div>
         </div>
       </div>
@@ -9828,7 +9844,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260924cdf2"></script>
+    <script src="/finance-module.js?v=20260924cdf3"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
@@ -12411,11 +12427,9 @@
         const isPatioCiclo =
           !!r.vehicle_id &&
           !(typeof receivableIsManualControleReceitas === "function" && receivableIsManualControleReceitas(r));
-        if (isPatioCiclo && (!destNome || !destContato || (tipoFat !== "NF" && tipoFat !== "COBRANCA"))) {
+        if (isPatioCiclo && !destNome) {
           if (!opts.silent) {
-            alert(
-              "Para enviar a Contas a receber, finalize em Pátio → Aguardando faturamento: destinatário (nome e contato) e emissão de nota fiscal ou cobrança."
-            );
+            alert("Informe o nome ou a razão social para gerar o CDF e enviar o registro para Entradas.");
           }
           return false;
         }
@@ -15585,7 +15599,7 @@
       }
       window.printHtmlInHiddenIframe = printHtmlInHiddenIframe;
 
-      function printNfseThermalTicket(html, paperWidthMm, frameTitle) {
+      function printNfseThermalTicket(html, paperWidthMm, frameTitle, opts) {
         const paper = Number(paperWidthMm) || 80;
         const iframe = document.createElement("iframe");
         iframe.setAttribute("title", frameTitle || "CDF — Controle de Faturamento");
@@ -15611,6 +15625,14 @@
           }
         };
         let started = false;
+        const waitPrint = opts?.wait === true;
+        let waitSettled = false;
+        const finishWait = (ok) => {
+          if (waitSettled) return;
+          waitSettled = true;
+          setTimeout(removeIframe, 80);
+          if (typeof opts?.onDone === "function") opts.onDone(ok);
+        };
         const printNow = () => {
           if (started) return;
           started = true;
@@ -15621,11 +15643,14 @@
             iframe.style.height = `${Math.max(pxH + 2, 80)}px`;
             void iframe.offsetHeight;
             win.focus();
+            if (waitPrint) win.addEventListener("afterprint", () => finishWait(true), { once: true });
             win.print();
+            if (waitPrint) setTimeout(() => finishWait(false), 700);
           } catch (e) {
             alert("Não foi possível abrir a impressão térmica.");
+            if (waitPrint) finishWait(false);
           }
-          setTimeout(removeIframe, 800);
+          if (!waitPrint) setTimeout(removeIframe, 800);
         };
         const arm = () => {
           const imgs = [...(win.document?.images || [])].filter((img) => !img.complete);
@@ -20261,18 +20286,14 @@
       async function submitPatioFaturamentoForm(e, opts) {
         e?.preventDefault?.();
         const modal = document.getElementById("patioFaturamentoModal");
-        const receivableId = modal?.dataset.receivableId;
-        const nome = String(document.getElementById("patioFatDestNome")?.value || "").trim();
-        const contato = String(document.getElementById("patioFatDestContato")?.value || "").trim();
+        const receivableId = opts?.receivableId || modal?.dataset.receivableId;
+        const nome = String(opts?.nome || document.getElementById("patioFatDestNome")?.value || "").trim();
+        const contato = String(opts?.contato || document.getElementById("patioFatDestContato")?.value || "").trim();
         const tipo = String(
-          document.querySelector('#patioFaturamentoForm input[name="patioFatTipo"]:checked')?.value || ""
+          opts?.tipo || document.querySelector('#patioFaturamentoForm input[name="patioFatTipo"]:checked')?.value || ""
         ).toUpperCase();
-        if (!nome || !contato) {
-          alert("Informe o nome e o contato de quem recebeu a cobrança.");
-          return;
-        }
-        if (tipo !== "NF" && tipo !== "COBRANCA") {
-          alert("Selecione se foi emitida a nota fiscal ou a cobrança.");
+        if (!nome) {
+          if (!opts?.silent) alert("Informe o nome ou a razão social do faturamento.");
           return;
         }
         if (submitPatioFaturamentoForm._busy) return;
@@ -20374,6 +20395,7 @@
         await Promise.all([loadVehicles(), loadReceivables(), loadCycleClosures()]);
         renderVehicles();
         updateDashboard();
+        if (opts?.navegar === false) return { ok: true };
         openMainView("financeiro");
         if (typeof openFinanceSubview === "function") openFinanceSubview("receber", { skipRefresh: true });
         else if (typeof setFinanceView === "function") setFinanceView("receber");
@@ -20407,6 +20429,29 @@
           submitPatioFaturamentoForm(ev);
         });
         document.getElementById("patioFaturamentoModalClose")?.addEventListener("click", closePatioFaturamentoModal);
+        document.getElementById("patioAguardandoFaturarSel")?.addEventListener("click", () => {
+          openCdfFaturamentoLote([...patioAguardandoSelecionados]);
+        });
+        document.getElementById("patioAguardandoSelectAll")?.addEventListener("change", (ev) => {
+          patioAguardandoAlternarTodos(!!ev.target.checked);
+        });
+        document.getElementById("patioAguardandoSelectHead")?.addEventListener("change", (ev) => {
+          patioAguardandoAlternarTodos(!!ev.target.checked);
+        });
+        document.getElementById("tableFechamentoCiclo")?.addEventListener("change", (ev) => {
+          const chk = ev.target.closest(".patio-aguardando-check");
+          if (!chk) return;
+          if (chk.checked) patioAguardandoSelecionados.add(String(chk.value));
+          else patioAguardandoSelecionados.delete(String(chk.value));
+          patioAguardandoAtualizarSelecao();
+        });
+        document.getElementById("cdfLoteImprimirBtn")?.addEventListener("click", () => {
+          void cdfLoteImprimirEContinuar();
+        });
+        document.getElementById("cdfLoteFecharBtn")?.addEventListener("click", () => {
+          document.getElementById("cdfLoteProgressoModal")?.classList.add("hidden");
+          cdfLoteEstado = null;
+        });
         document.getElementById("patioFaturamentoModalCancel")?.addEventListener("click", closePatioFaturamentoModal);
         document.getElementById("patioFaturamentoModal")?.addEventListener("click", (ev) => {
           if (ev.target.id === "patioFaturamentoModal") closePatioFaturamentoModal();
@@ -20414,6 +20459,8 @@
       }
       bindPatioFaturamentoModalOnce();
       window.openPatioFaturamentoModal = openPatioFaturamentoModal;
+
+      const patioAguardandoSelecionados = new Set();
 
       function renderFechamentoCicloTable(tbody, items) {
         if (!tbody) return;
@@ -20434,8 +20481,10 @@
           setEmptyRow(
             tbody,
             "Nenhum veículo aguardando faturamento. Depois de concluir o ciclo no pátio (VRP), o registro aparece aqui até emitir a nota fiscal ou a cobrança.",
-            8
+            9
           );
+          patioAguardandoSelecionados.clear();
+          patioAguardandoAtualizarSelecao();
           return;
         }
         const semValores = hidesFinancialValues();
@@ -20461,8 +20510,10 @@
               : "-";
             const valorCiclo = semValores ? "-" : formatCurrency(Number(r.valor || 0));
             const closureAttr = closure?.id ? ` data-closure-id="${closure.id}"` : "";
+            const marcado = patioAguardandoSelecionados.has(String(r.id)) ? " checked" : "";
             return `
               <tr data-receivable-row="${r.id}" data-vehicle-row="${vehicle.id}">
+                <td data-label="Selecionar"><input type="checkbox" class="patio-aguardando-check" value="${escapeHtml(String(r.id))}"${marcado} aria-label="Selecionar ${escapeHtml(vehicle.placa || "veículo")}" /></td>
                 <td data-label="Placa">${plateVisualHtml(vehicle.placa, "sm")}</td>
                 <td data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td data-label="Veículo">${escapeHtml([vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-")}</td>
@@ -20482,6 +20533,33 @@
               </tr>`;
           })
           .join("");
+        patioAguardandoAtualizarSelecao();
+      }
+
+      function patioAguardandoAtualizarSelecao() {
+        const idsNaTela = [...document.querySelectorAll(".patio-aguardando-check")].map((el) => String(el.value));
+        for (const id of [...patioAguardandoSelecionados]) {
+          if (!idsNaTela.includes(id)) patioAguardandoSelecionados.delete(id);
+        }
+        const n = patioAguardandoSelecionados.size;
+        const bar = document.getElementById("patioAguardandoLoteBar");
+        const countEl = document.getElementById("patioAguardandoSelCount");
+        const all = document.getElementById("patioAguardandoSelectAll");
+        const head = document.getElementById("patioAguardandoSelectHead");
+        if (bar) bar.classList.toggle("hidden", n < 1);
+        if (countEl) countEl.textContent = `${n} registro${n === 1 ? "" : "s"} selecionado${n === 1 ? "" : "s"}`;
+        const todos = idsNaTela.length > 0 && idsNaTela.every((id) => patioAguardandoSelecionados.has(id));
+        if (all) all.checked = todos;
+        if (head) head.checked = todos;
+      }
+
+      function patioAguardandoAlternarTodos(marcado) {
+        document.querySelectorAll(".patio-aguardando-check").forEach((el) => {
+          el.checked = marcado;
+          if (marcado) patioAguardandoSelecionados.add(String(el.value));
+          else patioAguardandoSelecionados.delete(String(el.value));
+        });
+        patioAguardandoAtualizarSelecao();
       }
       function renderRemovedVehicles(tbody, items) {
         if (!items.length) {
@@ -21054,6 +21132,171 @@
         openNfseThermalModal(vehicle, { faturar: true, receivableId: rec.id });
       }
 
+      let cdfLoteEstado = null;
+
+      function openCdfFaturamentoLote(ids) {
+        const lista = [...new Set((ids || []).map((id) => String(id)).filter(Boolean))].filter((id) => {
+          const rec = (state.receivables || []).find((x) => String(x.id) === id);
+          return rec && !(typeof receivableAprovadoParaContasReceber === "function" && receivableAprovadoParaContasReceber(rec));
+        });
+        if (!lista.length) {
+          alert("Nenhum registro pendente. Os selecionados já estão em Entradas ou não foram encontrados.");
+          return;
+        }
+        const rec = (state.receivables || []).find((x) => String(x.id) === lista[0]);
+        const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(rec?.vehicle_id));
+        if (!vehicle) {
+          alert("Não foi possível localizar o veículo do primeiro registro.");
+          return;
+        }
+        openNfseThermalModal(vehicle, { faturar: true, receivableId: rec.id });
+        if (nfseThermalModal) {
+          nfseThermalModal.dataset.modo = "faturar-lote";
+          nfseThermalModal.dataset.loteIds = lista.join(",");
+        }
+        const sub = document.getElementById("nfseThermalSubtitle");
+        if (sub) {
+          sub.textContent = `Estes dados valem para ${lista.length} registro${lista.length === 1 ? "" : "s"}. Cada veículo gera o próprio CDF e segue para Entradas.`;
+        }
+        if (nfseThermalPrintBtn) nfseThermalPrintBtn.textContent = "Gerar CDF";
+      }
+      window.openCdfFaturamentoLote = openCdfFaturamentoLote;
+
+      function cdfHtmlDoVeiculo(vehicle, fat) {
+        const emissaoDate = new Date();
+        const vencimentoDate = addControleRecebimentoDays(emissaoDate, 10);
+        const marca = String(vehicle.marca || "").trim();
+        const modelo = String(vehicle.modelo || "").trim();
+        const dias = calcDays(vehicle);
+        return buildCdrPrintHtml({
+          tipo: fat.tipoPessoa,
+          razao: fat.razao,
+          cnpj: fat.cnpj,
+          responsavelNome: fat.responsavelNome,
+          responsavelCpf: fat.responsavelCpf,
+          rpp: vehicleRpfNome(vehicle),
+          placa: vehicle.placa || "",
+          veiculo: [marca, modelo].filter(Boolean).join(" / "),
+          cor: vehicle.cor || "",
+          entrada: vehicle.data_entrada ? formatDateBr(vehicle.data_entrada) : "",
+          saida: vehicle.data_saida ? formatDateBr(vehicle.data_saida) : "",
+          periodo: dias ? `${dias} dias` : "",
+          emissao: formatControleRecebimentoDate(emissaoDate),
+          vencimento: formatControleRecebimentoDate(vencimentoDate),
+          valor: formatCurrency(calcTotal(vehicle)),
+        });
+      }
+
+      function cdfLoteAtualizarTela(textoStatus) {
+        const lote = cdfLoteEstado;
+        const modal = document.getElementById("cdfLoteProgressoModal");
+        const titulo = document.getElementById("cdfLoteTitulo");
+        const sub = document.getElementById("cdfLoteSubtitulo");
+        const placaEl = document.getElementById("cdfLotePlaca");
+        const statusEl = document.getElementById("cdfLoteStatus");
+        const printBtn = document.getElementById("cdfLoteImprimirBtn");
+        const fecharBtn = document.getElementById("cdfLoteFecharBtn");
+        if (!lote || !modal) return;
+        const total = lote.ids.length;
+        const atual = Math.min(lote.index + 1, total);
+        const rec = (state.receivables || []).find((x) => String(x.id) === String(lote.ids[lote.index] || ""));
+        const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(rec?.vehicle_id));
+        const fim = lote.index >= total;
+        if (titulo) titulo.textContent = fim ? "Faturamento concluído" : "Faturamento em andamento";
+        if (sub) sub.textContent = fim ? `${lote.ok} de ${total} registros faturados com sucesso.` : `Registro ${atual} de ${total}`;
+        if (placaEl) placaEl.textContent = fim ? "" : `Placa: ${vehicle?.placa || "—"}`;
+        if (statusEl) statusEl.textContent = textoStatus || "";
+        if (printBtn) printBtn.classList.toggle("hidden", fim || !lote.aguardandoImpressao);
+        if (fecharBtn) fecharBtn.classList.toggle("hidden", !fim);
+        modal.classList.remove("hidden");
+      }
+
+      async function cdfLotePrepararAtual() {
+        const lote = cdfLoteEstado;
+        if (!lote || lote.busy) return;
+        lote.busy = true;
+        try {
+          while (lote.index < lote.ids.length) {
+            const id = lote.ids[lote.index];
+            const rec = (state.receivables || []).find((x) => String(x.id) === String(id));
+            if (!rec || (typeof receivableAprovadoParaContasReceber === "function" && receivableAprovadoParaContasReceber(rec))) {
+              lote.pulados += 1;
+              lote.index += 1;
+              continue;
+            }
+            cdfLoteAtualizarTela("Salvando o CDF e enviando para Entradas...");
+            const saved = await submitPatioFaturamentoForm(
+              { preventDefault() {} },
+              {
+                navegar: false,
+                adiarAviso: true,
+                silent: true,
+                receivableId: id,
+                nome: lote.fat.nome,
+                contato: lote.fat.contato,
+              }
+            );
+            if (!saved?.ok) {
+              cdfLoteAtualizarTela("Este registro não foi faturado. Os anteriores permanecem em Entradas.");
+              lote.aguardandoImpressao = false;
+              document.getElementById("cdfLoteFecharBtn")?.classList.remove("hidden");
+              return;
+            }
+            lote.aguardandoImpressao = true;
+            cdfLoteAtualizarTela("CDF gerado com sucesso. Aguardando impressão...");
+            return;
+          }
+          lote.aguardandoImpressao = false;
+          patioAguardandoSelecionados.clear();
+          cdfLoteAtualizarTela("Cada CDF foi salvo no próprio registro. Cancelar uma impressão não desfaz o faturamento.");
+          if (typeof renderVehicles === "function") renderVehicles();
+        } finally {
+          lote.busy = false;
+        }
+      }
+
+      function iniciarCdfLote(fat) {
+        const ids = (fat.ids || []).filter(Boolean);
+        if (!ids.length) return;
+        closeNfseThermalModalFn();
+        cdfLoteEstado = { ids, fat, index: 0, ok: 0, pulados: 0, busy: false, aguardandoImpressao: false };
+        const modal = document.getElementById("cdfLoteProgressoModal");
+        if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
+        void cdfLotePrepararAtual();
+      }
+
+      async function cdfLoteImprimirEContinuar() {
+        const lote = cdfLoteEstado;
+        if (!lote || lote.busy || !lote.aguardandoImpressao) return;
+        const id = lote.ids[lote.index];
+        const rec = (state.receivables || []).find((x) => String(x.id) === String(id));
+        const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(rec?.vehicle_id));
+        if (!vehicle) {
+          lote.index += 1;
+          lote.aguardandoImpressao = false;
+          void cdfLotePrepararAtual();
+          return;
+        }
+        lote.busy = true;
+        cdfLoteAtualizarTela("Aguardando impressão...");
+        const html = cdfHtmlDoVeiculo(vehicle, lote.fat);
+        const impresso = await new Promise((resolve) => {
+          printNfseThermalTicket(html, 80, "CDF — Controle de Faturamento", {
+            wait: true,
+            onDone: (ok) => resolve(ok === true),
+          });
+        });
+        lote.busy = false;
+        if (!impresso) {
+          cdfLoteAtualizarTela("A impressão não abriu. O CDF já está salvo em Entradas. Clique em Imprimir CDF e continuar.");
+          return;
+        }
+        lote.ok += 1;
+        lote.index += 1;
+        lote.aguardandoImpressao = false;
+        void cdfLotePrepararAtual();
+      }
+
       async function concluirCdfFaturamento() {
         syncNfseThermalPrintState();
         if (!nfseThermalPrintBtn || nfseThermalPrintBtn.disabled) return;
@@ -21066,14 +21309,23 @@
           tipoPessoa === "PF"
             ? maskCpfInputValue(nfseThermalResponsavelCpf?.value || "")
             : maskCnpjInputValue(nfseThermalCnpj?.value || "");
-        const contato = String(document.getElementById("cdfDestContato")?.value || "").trim() || doc;
-        const tipo = String(document.querySelector('input[name="cdfTipoFat"]:checked')?.value || "").toUpperCase();
-        if (!nome || !contato) {
-          alert("Informe o nome e o contato de quem recebeu a cobrança.");
+        const contato = doc;
+        const tipo = "";
+        if (!nome) {
+          alert("Informe o nome ou a razão social do faturamento.");
           return;
         }
-        if (tipo !== "NF" && tipo !== "COBRANCA") {
-          alert("Selecione se foi emitida a nota fiscal ou a cobrança.");
+        if (nfseThermalModal?.dataset.modo === "faturar-lote") {
+          iniciarCdfLote({
+            ids: String(nfseThermalModal.dataset.loteIds || "").split(",").filter(Boolean),
+            nome,
+            contato,
+            tipoPessoa,
+            razao: tipoPessoa === "PJ" ? nome : "",
+            cnpj: tipoPessoa === "PJ" ? doc : "",
+            responsavelNome: tipoPessoa === "PF" ? nome : "",
+            responsavelCpf: tipoPessoa === "PF" ? doc : "",
+          });
           return;
         }
         const patioModal = document.getElementById("patioFaturamentoModal");
