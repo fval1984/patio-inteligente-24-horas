@@ -21,6 +21,7 @@
   let finPagarConta = "";
   let finPagarPeriodoDe = "";
   let finPagarPeriodoAte = "";
+  let financeDespesasMesAtualAtivo = true;
   let financeFilterAguardandoPlaca = "";
   let financeFilterAguardandoPeriodo = "";
   let financeFilterAguardandoDataDe = "";
@@ -2438,7 +2439,49 @@
       .join("");
   }
 
-  function financeContasPagarList() {
+  function financeDespesasAplicarMesAtualNosCampos() {
+    const range = financeCaixaMesAtualRange();
+    financeDespesasMesAtualAtivo = true;
+    finPagarPeriodoDe = range.de;
+    finPagarPeriodoAte = range.ate;
+    const deEl = document.getElementById("finPagarPeriodoDe");
+    const ateEl = document.getElementById("finPagarPeriodoAte");
+    if (deEl) deEl.value = range.de;
+    if (ateEl) ateEl.value = range.ate;
+  }
+
+  function financeEnsureDespesasPeriodoDefault() {
+    if (!financeDespesasMesAtualAtivo) return;
+    financeDespesasAplicarMesAtualNosCampos();
+  }
+
+  function financeDespesasTituloPeriodo(de, ate) {
+    const meses = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
+    if (de && ate && de.slice(0, 7) === ate.slice(0, 7) && de.slice(8) === "01") {
+      const year = Number(de.slice(0, 4));
+      const month = Number(de.slice(5, 7));
+      const last = new Date(year, month, 0).getDate();
+      if (ate === `${de.slice(0, 7)}-${String(last).padStart(2, "0")}`) {
+        return `DESPESAS — ${meses[month - 1] || ""}/${de.slice(0, 4)}`;
+      }
+    }
+    if (de || ate) return `DESPESAS — ${de ? formatDate(de) : "…"} a ${ate ? formatDate(ate) : "…"}`;
+    return "DESPESAS";
+  }
+
+  function financeDespesasNoPeriodo() {
+    return (state.payables || []).filter((p) => {
+      if (!financeIsManualPayable(p)) return false;
+      const due = financeContaDueYmd(p, "payable") || "";
+      if (!due) return false;
+      if (finPagarPeriodoDe && due < finPagarPeriodoDe) return false;
+      if (finPagarPeriodoAte && due > finPagarPeriodoAte) return false;
+      return true;
+    });
+  }
+
+  function financeContasPagarList(opts = {}) {
+    const usarPeriodo = opts.periodo !== false;
     let list = (state.payables || []).filter((p) => financeIsManualPayable(p));
     const q = finPagarBusca.trim().toLowerCase();
     if (q) {
@@ -2460,13 +2503,13 @@
       const c = finPagarConta.trim().toLowerCase();
       list = list.filter((p) => financePayableContaBancaria(p).toLowerCase().includes(c));
     }
-    if (finPagarPeriodoDe) {
+    if (usarPeriodo && finPagarPeriodoDe) {
       list = list.filter((p) => {
         const due = financeContaDueYmd(p, "payable");
         return due && due >= finPagarPeriodoDe;
       });
     }
-    if (finPagarPeriodoAte) {
+    if (usarPeriodo && finPagarPeriodoAte) {
       list = list.filter((p) => {
         const due = financeContaDueYmd(p, "payable");
         return due && due <= finPagarPeriodoAte;
@@ -3306,28 +3349,48 @@
     financeUpdateBatchBar("aguardando");
   }
 
-  function financeRenderPagarAlerts() {
+  function financeRenderPagarAlerts(list) {
     const el = document.getElementById("finPagarAlerts");
     if (!el) return;
-    const a = financePayableAlerts();
+    const today = financeTodayYmd();
+    let vencidas = 0;
+    let venceHoje = 0;
+    let proximas = 0;
+    (list || []).forEach((p) => {
+      if (financePayableDisplayStatus(p) === "Pago") return;
+      const due = financeContaDueYmd(p, "payable");
+      if (!due) return;
+      if (due < today) vencidas += 1;
+      else if (due === today) venceHoje += 1;
+      else {
+        const days = Math.floor((new Date(`${due}T00:00:00`) - new Date(`${today}T00:00:00`)) / 86400000);
+        if (days <= 7) proximas += 1;
+      }
+    });
     el.innerHTML = `
-      <div class="fin-alert fin-alert--late"><span>Vencidas</span><strong>${a.vencidas}</strong></div>
-      <div class="fin-alert fin-alert--today"><span>Vencem hoje</span><strong>${a.venceHoje}</strong></div>
-      <div class="fin-alert fin-alert--soon"><span>Próximos 7 dias</span><strong>${a.proximas}</strong></div>
+      <div class="fin-alert fin-alert--late"><span>Vencidas</span><strong>${vencidas}</strong></div>
+      <div class="fin-alert fin-alert--today"><span>Vencem hoje</span><strong>${venceHoje}</strong></div>
+      <div class="fin-alert fin-alert--soon"><span>Próximos 7 dias</span><strong>${proximas}</strong></div>
     `;
   }
 
   function financeRenderPagar() {
     financePopulateCategoriaFilter();
+    financeEnsureDespesasPeriodoDefault();
     finPagarValorDe = financeParseValorFilter(document.getElementById("finPagarValorDe")?.value);
     finPagarValorAte = financeParseValorFilter(document.getElementById("finPagarValorAte")?.value);
-    financeRenderPagarAlerts();
+    const doPeriodo = financeDespesasNoPeriodo();
+    financeRenderPagarAlerts(doPeriodo);
+    const tituloEl = document.getElementById("finDespesasTitulo");
+    if (tituloEl) tituloEl.textContent = financeDespesasTituloPeriodo(finPagarPeriodoDe, finPagarPeriodoAte);
     const body = document.getElementById("finPagarBody");
     const totalEl = document.getElementById("finPagarTotal");
     if (!body) return;
+    if (totalEl) {
+      const totalPeriodo = doPeriodo.reduce((s, p) => s + Number(p.valor || 0), 0);
+      totalEl.textContent = formatCurrency(totalPeriodo);
+    }
     const list = financeContasPagarList().filter((p) => financePagarMatchesQuick(p));
-    const abertas = list.filter((p) => financePayableDisplayStatus(p) !== "Pago");
-    if (totalEl) totalEl.textContent = formatCurrency(abertas.reduce((s, p) => s + Number(p.valor || 0), 0));
     financeRenderQuickChips("finPagarQuickFilters", finPagarQuick, [
       ["todos", "Todos"],
       ["a_vencer", "A pagar"],
@@ -3340,7 +3403,7 @@
       globalThis.financeActionUi.renderLaunchCards(
         cardsHostPagar,
         financeBuildPagarCards(list),
-        "Nenhuma despesa com os filtros atuais.",
+        "Nenhuma despesa neste período.",
         "pagar"
       );
     }
@@ -3348,7 +3411,7 @@
       financePruneStaleRowSelection("pagar");
       financeUpdateBatchBar("pagar");
       const total = (state.payables || []).length;
-      body.innerHTML = `<tr><td colspan="11" class="notice">Nenhuma despesa com os filtros atuais.${total ? ` (${total} no total — limpe filtros ou clique Atualizar)` : " Cadastre em + Nova despesa."}</td></tr>`;
+      body.innerHTML = `<tr><td colspan="11" class="notice">Nenhuma despesa neste período.${total ? "" : " Cadastre em + Nova despesa."}</td></tr>`;
       return;
     }
     financePruneStaleRowSelection("pagar");
@@ -6042,7 +6105,7 @@
     finPagarQuick = quick || "todos";
     let list;
     try {
-      list = financeContasPagarList().filter((p) => financePagarMatchesQuick(p));
+      list = financeContasPagarList({ periodo: false }).filter((p) => financePagarMatchesQuick(p));
     } finally {
       finPagarQuick = prev;
     }
@@ -6544,7 +6607,7 @@
     }
     const rowsMap = {
       pagar: () =>
-        financeContasPagarList().map((p) => [
+        financeContasPagarList({ periodo: false }).map((p) => [
           financePayableTypedFields(p).fornecedor,
           financePayableTypedFields(p).descricao,
           formatCurrency(Number(p.valor || 0)),
@@ -7218,6 +7281,26 @@
       financeFilterCaixaTipo = financeFilterCaixaTipo === "saida" ? "" : "saida";
       financeRenderCaixa();
     });
+    document.getElementById("finDespesasFilterApply")?.addEventListener("click", () => {
+      const de = document.getElementById("finPagarPeriodoDe")?.value || "";
+      const ate = document.getElementById("finPagarPeriodoAte")?.value || "";
+      if (de && ate && ate < de) {
+        alert("A data de fim não pode ser anterior à data de início.");
+        return;
+      }
+      if (!de && !ate) {
+        financeDespesasAplicarMesAtualNosCampos();
+      } else {
+        financeDespesasMesAtualAtivo = false;
+        finPagarPeriodoDe = de;
+        finPagarPeriodoAte = ate;
+      }
+      financeRenderPagar();
+    });
+    document.getElementById("finDespesasMesAtual")?.addEventListener("click", () => {
+      financeDespesasAplicarMesAtualNosCampos();
+      financeRenderPagar();
+    });
     document.getElementById("finCaixaFilterApply")?.addEventListener("click", () => {
       financeCaixaMesAtualAtivo = false;
       financeFilterPeriodo = "";
@@ -7262,8 +7345,6 @@
       ["finPagarCategoria", (v) => { finPagarCategoria = v; }],
       ["finPagarFornecedor", (v) => { finPagarFornecedor = v; }],
       ["finPagarConta", (v) => { finPagarConta = v; }],
-      ["finPagarPeriodoDe", (v) => { finPagarPeriodoDe = v; }],
-      ["finPagarPeriodoAte", (v) => { finPagarPeriodoAte = v; }],
       ["finPagarValorDe", (v) => { finPagarValorDe = financeParseValorFilter(v); }],
       ["finPagarValorAte", (v) => { finPagarValorAte = financeParseValorFilter(v); }],
     ];
