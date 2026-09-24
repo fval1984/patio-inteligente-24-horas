@@ -7529,6 +7529,11 @@
           financeOpenBatchDeleteModal(view, count);
           return;
         }
+        if (action === "faturar" && view === "aguardando") {
+          const ids = [...(financeRowSelection[view] || [])];
+          if (typeof window.openCdfFaturamentoLote === "function") window.openCdfFaturamentoLote(ids);
+          return;
+        }
         if (action === "promote") {
           financeOpenBatchConfirmModal({
             view,
