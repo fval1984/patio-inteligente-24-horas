@@ -14183,8 +14183,10 @@
         return "vnp";
       }
 
+      /** VNP = presença física. VSL e VSC continuam no pátio e entram nesta lista. Só o VRP sai. */
       function isVnpStageVehicle(v) {
-        return isVehicleOnPatio(v) && patioStageOfVehicle(v) === "vnp";
+        if (!v || !isVehicleOnPatio(v)) return false;
+        return vehicleStatusKey(v.status) !== "AGUARDANDO_VISTORIA";
       }
 
       const VRP_READY_STATUSES = new Set(["LIBERACAO_CONFIRMADA", "REMOCAO_CONFIRMADA", "REMocao_CONFIRMADA"]);
@@ -15652,7 +15654,7 @@
             win.focus();
             if (waitPrint) win.addEventListener("afterprint", () => finishWait(true), { once: true });
             win.print();
-            if (waitPrint) setTimeout(() => finishWait(false), 700);
+            if (waitPrint) setTimeout(() => finishWait(true), 200);
           } catch (e) {
             alert("Não foi possível abrir a impressão térmica.");
             if (waitPrint) finishWait(false);
@@ -19052,7 +19054,7 @@
         const pdSS = document.getElementById("patioDashSaidasSemana");
         const pdEM = document.getElementById("patioDashEntradasMes");
         const pdSM = document.getElementById("patioDashSaidasMes");
-        if (pdVnp) pdVnp.textContent = String(onPatio.length);
+        if (pdVnp) pdVnp.textContent = String(state.vehicles.filter((v) => isVnpStageVehicle(v)).length);
         if (pdVlp) pdVlp.textContent = String(vls.length);
         if (pdED) pdED.textContent = String(entradasHoje);
         if (pdSD) pdSD.textContent = String(saidasHoje);
@@ -19709,9 +19711,9 @@
           if (patioCardValue1) patioCardValue1.textContent = String(vnpOnPatio.length);
           if (patioCardValue2) patioCardValue2.textContent = String(vslItems.length);
           if (patioCardValue3) patioCardValue3.textContent = String(vscItems.length);
-          if (patioCardMeta1) patioCardMeta1.textContent = "custodiados no pátio";
-          if (patioCardMeta2) patioCardMeta2.textContent = "solicitação de liberação";
-          if (patioCardMeta3) patioCardMeta3.textContent = "liberação confirmada";
+          if (patioCardMeta1) patioCardMeta1.textContent = "no pátio, inclui VSL e VSC";
+          if (patioCardMeta2) patioCardMeta2.textContent = "liberação solicitada, ainda no pátio";
+          if (patioCardMeta3) patioCardMeta3.textContent = "liberação confirmada, aguardando saída";
         }
 
         renderVnpUnifiedTable(tableNoPatio, vnpOnPatio, {
@@ -19752,8 +19754,10 @@
         const vlsCount =
           typeof vlsFilteredCount === "number" ? vlsFilteredCount : mergeVlsItems(byStatus).length;
         const nFech = typeof fechandoCicloCount === "number" ? fechandoCicloCount : 0;
-        const onPatioCount =
-          byStatus.NO_PATIO.length + (byStatus.AGUARDANDO_VISTORIA || []).length;
+        const onPatioCount = ["NO_PATIO", "LIBERACAO_SOLICITADA", "LIBERACAO_CONFIRMADA", "REMOCAO_CONFIRMADA", "REMocao_CONFIRMADA"].reduce(
+          (sum, key) => sum + (byStatus[key] || []).length,
+          0
+        );
         const qPlate = normalizePlateSearch(plateQuery);
         const vistoriaCount = (state.vehicles || []).filter(
           (v) => vehicleNeedsEntryInspection(v) && (!qPlate || normalizePlateSearch(v.placa) === qPlate)
@@ -20473,9 +20477,6 @@
           if (chk.checked) patioAguardandoSelecionados.add(String(chk.value));
           else patioAguardandoSelecionados.delete(String(chk.value));
           patioAguardandoAtualizarSelecao();
-        });
-        document.getElementById("cdfLoteImprimirBtn")?.addEventListener("click", () => {
-          void cdfLoteImprimirEContinuar();
         });
         document.getElementById("cdfLoteFecharBtn")?.addEventListener("click", () => {
           document.getElementById("cdfLoteProgressoModal")?.classList.add("hidden");
@@ -21293,10 +21294,27 @@
         modal.classList.remove("hidden");
       }
 
-      async function cdfLotePrepararAtual() {
+      function aguardarImpressaoCdf(html) {
+        return new Promise((resolve) => {
+          let done = false;
+          const finish = () => {
+            if (done) return;
+            done = true;
+            resolve();
+          };
+          printNfseThermalTicket(html, 80, "CDF — Controle de Faturamento", {
+            wait: true,
+            onDone: finish,
+          });
+          setTimeout(finish, 180000);
+        });
+      }
+
+      async function cdfLoteProcessarTodos() {
         const lote = cdfLoteEstado;
         if (!lote || lote.busy) return;
         lote.busy = true;
+        lote.aguardandoImpressao = false;
         try {
           while (lote.index < lote.ids.length) {
             const id = lote.ids[lote.index];
@@ -21306,7 +21324,8 @@
               lote.index += 1;
               continue;
             }
-            cdfLoteAtualizarTela("Salvando o CDF e enviando para Entradas...");
+            const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(rec.vehicle_id));
+            cdfLoteAtualizarTela("Enviando para Entradas...");
             const saved = await submitPatioFaturamentoForm(
               { preventDefault() {} },
               {
@@ -21320,17 +21339,16 @@
             );
             if (!saved?.ok) {
               cdfLoteAtualizarTela("Este registro não foi faturado. Os anteriores permanecem em Entradas.");
-              lote.aguardandoImpressao = false;
               document.getElementById("cdfLoteFecharBtn")?.classList.remove("hidden");
               return;
             }
-            lote.aguardandoImpressao = true;
-            cdfLoteAtualizarTela("CDF gerado com sucesso. Aguardando impressão...");
-            return;
+            cdfLoteAtualizarTela("CDF salvo. Abrindo a impressão...");
+            if (vehicle) await aguardarImpressaoCdf(cdfHtmlDoVeiculo(vehicle, lote.fat));
+            lote.ok += 1;
+            lote.index += 1;
           }
-          lote.aguardandoImpressao = false;
           patioAguardandoSelecionados.clear();
-          cdfLoteAtualizarTela("Cada CDF foi salvo no próprio registro. Cancelar uma impressão não desfaz o faturamento.");
+          cdfLoteAtualizarTela("Cada CDF foi impresso e o mesmo registro foi para Entradas. Cancelar uma impressão não desfaz o faturamento.");
           if (typeof renderVehicles === "function") renderVehicles();
         } finally {
           lote.busy = false;
@@ -21344,39 +21362,8 @@
         cdfLoteEstado = { ids, fat, index: 0, ok: 0, pulados: 0, busy: false, aguardandoImpressao: false };
         const modal = document.getElementById("cdfLoteProgressoModal");
         if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
-        void cdfLotePrepararAtual();
-      }
-
-      async function cdfLoteImprimirEContinuar() {
-        const lote = cdfLoteEstado;
-        if (!lote || lote.busy || !lote.aguardandoImpressao) return;
-        const id = lote.ids[lote.index];
-        const rec = (state.receivables || []).find((x) => String(x.id) === String(id));
-        const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(rec?.vehicle_id));
-        if (!vehicle) {
-          lote.index += 1;
-          lote.aguardandoImpressao = false;
-          void cdfLotePrepararAtual();
-          return;
-        }
-        lote.busy = true;
-        cdfLoteAtualizarTela("Aguardando impressão...");
-        const html = cdfHtmlDoVeiculo(vehicle, lote.fat);
-        const impresso = await new Promise((resolve) => {
-          printNfseThermalTicket(html, 80, "CDF — Controle de Faturamento", {
-            wait: true,
-            onDone: (ok) => resolve(ok === true),
-          });
-        });
-        lote.busy = false;
-        if (!impresso) {
-          cdfLoteAtualizarTela("A impressão não abriu. O CDF já está salvo em Entradas. Clique em Imprimir CDF e continuar.");
-          return;
-        }
-        lote.ok += 1;
-        lote.index += 1;
-        lote.aguardandoImpressao = false;
-        void cdfLotePrepararAtual();
+        document.getElementById("cdfLoteImprimirBtn")?.classList.add("hidden");
+        void cdfLoteProcessarTodos();
       }
 
       async function concluirCdfFaturamento() {
