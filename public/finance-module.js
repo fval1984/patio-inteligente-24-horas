@@ -507,8 +507,12 @@
       canCaixa && (kind === "pagar" || kind === "receber")
         ? `<button type="button" class="secondary fin-btn-${kind}-caixa" data-fin-${kind}-caixa="${safeId}">Caixa</button>`
         : "";
+    const cdfBtn = opts.vehicleId
+      ? `<button type="button" class="secondary" data-fin-print-cdr="${escapeHtml(String(opts.vehicleId))}">Imprimir CDF</button>`
+      : "";
     return `<div class="fin-row-actions">
       ${payBtn}
+      ${cdfBtn}
       ${caixaBtn}
       <button type="button" class="secondary fin-btn-${kind}-editar" data-fin-${kind}-editar="${safeId}">Editar</button>
       <button type="button" class="secondary fin-btn-${kind}-voltar" data-fin-${kind}-voltar="${safeId}">Voltar</button>
@@ -3284,6 +3288,7 @@
         const actionsHtml = financeRowActionsHtml("receber", r.id, {
           canPay: st !== "Recebido",
           canCaixa: st === "Recebido" && !financeReceivableHasCaixa(r.id),
+          vehicleId: v?.id || r.vehicle_id || "",
         });
         const rowSel = financeRowIsSelected("receber", r.id) ? " fin-row-selected" : "";
         return `<tr class="${rowSel.trim()}">
