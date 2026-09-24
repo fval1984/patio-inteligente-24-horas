@@ -6281,9 +6281,25 @@
       .fin-alert--soon { border-color: rgba(56, 189, 248, 0.45); }
       .fin-val-entrada { color: #34d399; font-weight: 600; }
       .fin-val-saida { color: #e8c547; font-weight: 600; }
-      .fin-caixa-summary { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 12px; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
-      .fin-caixa-summary p { margin: 0; font-size: 0.9rem; color: var(--text); }
-      .fin-caixa-summary strong { color: var(--text); }
+      .fin-caixa-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0 0 18px; }
+      .fin-caixa-card { margin: 0; padding: 18px 20px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; }
+      .fin-caixa-card span { display: block; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted, #94a3b8); margin-bottom: 8px; }
+      .fin-caixa-card strong { font-size: 1.55rem; font-weight: 700; line-height: 1.15; }
+      .fin-caixa-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
+      .fin-caixa-periodo { margin: 0 0 16px; color: var(--muted, #94a3b8); }
+      .fin-caixa-tools { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin: 0 0 18px; }
+      .fin-caixa-tools .fin-caixa-busca { flex: 1 1 220px; }
+      .fin-caixa-resumo { display: flex; flex-wrap: wrap; gap: 18px; margin: 0 0 14px; color: var(--text); }
+      .fin-caixa-row { cursor: pointer; }
+      .fin-caixa-detalhe { display: grid; gap: 8px; margin: 0; }
+      .fin-caixa-detalhe div { display: grid; grid-template-columns: 140px 1fr; gap: 8px; }
+      .fin-caixa-detalhe dt { margin: 0; color: var(--muted, #94a3b8); }
+      .fin-caixa-detalhe dd { margin: 0; }
+      @media (max-width: 720px) {
+        .fin-caixa-summary { grid-template-columns: 1fr; }
+        .fin-caixa-card strong { font-size: 1.35rem; }
+        .fin-caixa-detalhe div { grid-template-columns: 1fr; gap: 2px; }
+      }
       .fin-caixa-total-row td { background: color-mix(in srgb, var(--card) 88%, var(--primary) 12%); font-weight: 700; border-top: 2px solid var(--border); }
       .fin-charts-grid {
         display: grid;
@@ -8270,50 +8286,40 @@
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="caixa">
-            <h2 id="finCaixaTitulo" style="margin: 0 0 12px; font-size: 1.15rem; letter-spacing: 0.04em">CAIXA</h2>
-            <div class="fin-act-chips hidden" id="finCaixaQuickFilters" aria-label="Filtros de entradas e saídas"></div>
-            <div class="fin-toolbar">
-              <div>
-                <label for="finCaixaRpp">RPP</label>
-                <select id="finCaixaRpp" title="Responsável financeiro / pagamento">
-                  <option value="">Todos os RPP</option>
-                </select>
-              </div>
-              <div>
-                <label for="finCaixaPlaca">Busca por placa</label>
-                <input
-                  id="finCaixaPlaca"
-                  type="text"
-                  inputmode="text"
-                  placeholder="Ex.: ABC1D23"
-                  maxlength="20"
-                  autocomplete="off"
-                  autocorrect="off"
-                  autocapitalize="characters"
-                  spellcheck="false"
-                />
-              </div>
-              <div class="fin-filter-busca-datas" style="flex: 1 1 100%; min-width: min(100%, 320px)">
-                <label for="finCaixaDataBusca">Buscar por datas</label>
-                <input id="finCaixaDataBusca" type="search" placeholder="Ex.: 15/04/2026 a 01/05/2026" autocomplete="off" />
-              </div>
-              <div><label for="finCaixaDataDe">Data de início</label><input id="finCaixaDataDe" type="date" /></div>
-              <div><label for="finCaixaDataAte">Data de fim</label><input id="finCaixaDataAte" type="date" /></div>
-              <div><label for="finCaixaValorDe">Valor de</label><input id="finCaixaValorDe" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" /></div>
-              <div><label for="finCaixaValorAte">até</label><input id="finCaixaValorAte" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" /></div>
-              <div><label for="finFilterPeriodo">Mês (competência)</label><input id="finFilterPeriodo" type="month" title="Usado quando De/Até estiver vazio" /></div>
+            <h2 id="finCaixaTitulo" style="margin: 0 0 6px; font-size: 1.35rem; letter-spacing: 0.04em">CAIXA</h2>
+            <p id="finCaixaPeriodoLabel" class="fin-caixa-periodo">Este mês</p>
+            <div class="fin-caixa-summary" id="finCaixaSummary"></div>
+            <div class="fin-caixa-actions">
+              <button type="button" id="finCaixaNovaEntrada">+ Nova Entrada</button>
+              <button type="button" id="finCaixaNovaSaida">+ Nova Saída</button>
+            </div>
+            <div class="fin-caixa-tools">
+              <div><label for="finCaixaDataDe">Data inicial</label><input id="finCaixaDataDe" type="date" /></div>
+              <div><label for="finCaixaDataAte">Data final</label><input id="finCaixaDataAte" type="date" /></div>
               <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaFilterApply">Buscar</button></div>
-              <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaMesAtual">Mês Atual</button></div>
-              <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaFilterClear">Limpar</button></div>
-              <div class="fin-caixa-tipo-filter">
-                <button type="button" class="secondary" id="finCaixaFilterEntrada" aria-pressed="false">Entrada</button>
-                <button type="button" class="secondary" id="finCaixaFilterSaida" aria-pressed="false">Saída</button>
+              <div style="align-self: flex-end"><button type="button" class="secondary" id="finCaixaMesAtual">Mês atual</button></div>
+              <div class="fin-caixa-busca">
+                <label for="finCaixaBusca">Buscar movimentação</label>
+                <input id="finCaixaBusca" type="search" placeholder="Placa, descrição, RPP/RPV ou nome" autocomplete="off" />
               </div>
             </div>
-            <div class="fin-caixa-summary" id="finCaixaSummary"></div>
+            <p id="finCaixaContagem" class="fin-caixa-resumo"></p>
+            <h3 style="margin: 0 0 10px; font-size: 1rem; letter-spacing: 0.04em">MOVIMENTAÇÕES</h3>
+            <div class="fin-act-chips hidden" id="finCaixaQuickFilters" aria-label="Filtros de entradas e saídas"></div>
+            <div class="hidden" aria-hidden="true">
+              <select id="finCaixaRpp"><option value="">Todos os RPP</option></select>
+              <input id="finCaixaPlaca" type="text" />
+              <input id="finCaixaDataBusca" type="search" />
+              <input id="finCaixaValorDe" type="number" />
+              <input id="finCaixaValorAte" type="number" />
+              <input id="finFilterPeriodo" type="month" />
+              <button type="button" id="finCaixaFilterClear">Limpar</button>
+              <button type="button" id="finCaixaFilterEntrada">Entrada</button>
+              <button type="button" id="finCaixaFilterSaida">Saída</button>
+            </div>
             <div class="table-wrap section-card">
               <table class="table">
-                <thead><tr><th>Data</th><th>Tipo</th><th>Origem</th><th>Descrição</th><th>Valor</th><th>Ações</th></tr></thead>
+                <thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Origem</th><th>Valor</th><th>Ações</th></tr></thead>
                 <tbody id="finCaixaBody"></tbody>
               </table>
             </div>
@@ -9451,6 +9457,21 @@
         </div>
       </div>
 
+      <div id="finCaixaDetalheModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 560px">
+          <div class="modal-header">
+            <div>
+              <h3>Dados da movimentação</h3>
+            </div>
+            <button type="button" class="modal-close" id="finCaixaDetalheClose" aria-label="Fechar">Fechar</button>
+          </div>
+          <div id="finCaixaDetalheBody"></div>
+          <div class="form-actions" style="margin-top: 16px">
+            <button type="button" class="secondary" id="finCaixaDetalheCancel">Fechar</button>
+          </div>
+        </div>
+      </div>
+
       <div id="finDespesaModal" class="modal-backdrop hidden">
         <div class="modal" style="max-width: 520px">
           <div class="modal-header">
@@ -9797,7 +9818,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260924comp1"></script>
+    <script src="/finance-module.js?v=20260924caixa5"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
