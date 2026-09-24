@@ -8191,6 +8191,8 @@
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="pagar">
+            <h2 id="finDespesasTitulo" style="margin: 0 0 8px; font-size: 1.15rem; letter-spacing: 0.04em">DESPESAS</h2>
+            <p style="margin: 0 0 12px"><strong>Total de Despesas:</strong> <span id="finPagarTotal">R$ 0,00</span></p>
             <div class="fin-toolbar">
               <div><button type="button" id="finBtnNovaDespesa">+ Nova despesa</button></div>
               <div><button type="button" class="secondary" id="finPagarOpenCadastros">Cadastros</button></div>
@@ -8216,8 +8218,10 @@
               <div><label for="finPagarCategoria">Categoria</label><select id="finPagarCategoria"><option value="">Todas</option></select></div>
               <div><label for="finPagarFornecedor">Fornecedor</label><input id="finPagarFornecedor" type="text" placeholder="Filtrar…" /></div>
               <div><label for="finPagarConta">Conta bancária</label><input id="finPagarConta" type="text" placeholder="Filtrar…" /></div>
-              <div><label for="finPagarPeriodoDe">De</label><input id="finPagarPeriodoDe" type="date" /></div>
-              <div><label for="finPagarPeriodoAte">Até</label><input id="finPagarPeriodoAte" type="date" /></div>
+              <div><label for="finPagarPeriodoDe">Data de início</label><input id="finPagarPeriodoDe" type="date" /></div>
+              <div><label for="finPagarPeriodoAte">Data de fim</label><input id="finPagarPeriodoAte" type="date" /></div>
+              <div style="align-self: flex-end"><button type="button" class="secondary" id="finDespesasFilterApply">Buscar</button></div>
+              <div style="align-self: flex-end"><button type="button" class="secondary" id="finDespesasMesAtual">Mês Atual</button></div>
               <div><label for="finPagarValorDe">Valor de</label><input id="finPagarValorDe" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" /></div>
               <div><label for="finPagarValorAte">até</label><input id="finPagarValorAte" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" /></div>
             </div>
@@ -8227,7 +8231,6 @@
               <button type="button" class="secondary fin-batch-action" data-fin-batch-view="pagar" data-fin-batch-action="caixa" data-fin-batch-label="Caixa Selecionados" disabled>Caixa Selecionados</button>
               <button type="button" class="secondary fin-batch-delete fin-batch-action hidden" data-fin-batch-view="pagar" data-fin-batch-action="delete" data-fin-batch-label="Apagar Selecionados">Apagar Selecionados</button>
             </div>
-            <p><strong>Total a pagar (abertas):</strong> <span id="finPagarTotal">R$ 0,00</span></p>
             <div class="fin-act-chips" id="finPagarQuickFilters" aria-label="Filtros rápidos"></div>
             <div id="finPagarCards" class="fin-act-launch-host"></div>
             <div class="table-wrap section-card">
@@ -9794,7 +9797,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260924desp1"></script>
+    <script src="/finance-module.js?v=20260924desp2"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
