@@ -7804,6 +7804,12 @@
               <p class="notice" style="margin: 0 0 12px">
                 Ciclo do pátio já concluído (VRP). Selecione um ou mais veículos, preencha os dados de faturamento uma vez e gere um CDF para cada registro.
               </p>
+              <form id="patioAguardandoPlacaForm" class="filter-bar" style="margin: 0 0 12px" action="#" novalidate>
+                <label for="patioAguardandoPlaca">Placa</label>
+                <input id="patioAguardandoPlaca" type="text" maxlength="8" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="Buscar placa" aria-label="Buscar por placa" />
+                <button type="submit">Buscar</button>
+                <button type="button" class="secondary" id="patioAguardandoPlacaLimpar">Limpar</button>
+              </form>
               <div id="patioAguardandoLoteBar" class="hidden" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px">
                 <label style="display:flex;align-items:center;gap:6px;margin:0">
                   <input type="checkbox" id="patioAguardandoSelectAll" />
@@ -20432,6 +20438,22 @@
         document.getElementById("patioAguardandoFaturarSel")?.addEventListener("click", () => {
           openCdfFaturamentoLote([...patioAguardandoSelecionados]);
         });
+        document.getElementById("patioAguardandoPlacaForm")?.addEventListener("submit", (ev) => {
+          ev.preventDefault();
+          patioAguardandoPlacaBusca = document.getElementById("patioAguardandoPlaca")?.value || "";
+          if (typeof renderVehicles === "function") renderVehicles();
+        });
+        document.getElementById("patioAguardandoPlaca")?.addEventListener("input", (ev) => {
+          patioAguardandoPlacaBusca = ev.target.value || "";
+          if (typeof renderVehicles === "function") renderVehicles();
+        });
+        document.getElementById("patioAguardandoPlacaLimpar")?.addEventListener("click", () => {
+          patioAguardandoPlacaBusca = "";
+          const campo = document.getElementById("patioAguardandoPlaca");
+          if (campo) campo.value = "";
+          if (typeof renderVehicles === "function") renderVehicles();
+          campo?.focus();
+        });
         document.getElementById("patioAguardandoSelectAll")?.addEventListener("change", (ev) => {
           patioAguardandoAlternarTodos(!!ev.target.checked);
         });
@@ -20461,11 +20483,20 @@
       window.openPatioFaturamentoModal = openPatioFaturamentoModal;
 
       const patioAguardandoSelecionados = new Set();
+      let patioAguardandoPlacaBusca = "";
 
       function renderFechamentoCicloTable(tbody, items) {
         if (!tbody) return;
-        const list = items || [];
-        const rows = list.filter((r) => state.vehicles.some((v) => v.id === r.vehicle_id));
+        const fonte = items || [];
+        const q = typeof normalizePlateSearch === "function" ? normalizePlateSearch(patioAguardandoPlacaBusca) : "";
+        const list = fonte.filter((r) => {
+          const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
+          if (!vehicle) return false;
+          if (!q) return true;
+          const placa = typeof normalizePlateSearch === "function" ? normalizePlateSearch(vehicle.placa) : "";
+          return typeof plateNormMatchesQuery === "function" ? plateNormMatchesQuery(placa, q) : placa.includes(q);
+        });
+        const rows = list;
         const totalEl = document.getElementById("patioAguardandoFaturamentoTotal");
         if (totalEl) {
           const n = rows.length;
@@ -20477,13 +20508,15 @@
             totalEl.innerHTML = `<strong>Total</strong> · ${n} ${label} · ${escapeHtml(formatCurrency(sum))}`;
           }
         }
-        if (!items.length) {
+        if (!list.length) {
           setEmptyRow(
             tbody,
-            "Nenhum veículo aguardando faturamento. Depois de concluir o ciclo no pátio (VRP), o registro aparece aqui até emitir a nota fiscal ou a cobrança.",
+            q
+              ? "Nenhum veículo aguardando faturamento com essa placa."
+              : "Nenhum veículo aguardando faturamento. Depois de concluir o ciclo no pátio (VRP), o registro aparece aqui até emitir a nota fiscal ou a cobrança.",
             9
           );
-          patioAguardandoSelecionados.clear();
+          if (!q) patioAguardandoSelecionados.clear();
           patioAguardandoAtualizarSelecao();
           return;
         }
@@ -20538,8 +20571,11 @@
 
       function patioAguardandoAtualizarSelecao() {
         const idsNaTela = [...document.querySelectorAll(".patio-aguardando-check")].map((el) => String(el.value));
-        for (const id of [...patioAguardandoSelecionados]) {
-          if (!idsNaTela.includes(id)) patioAguardandoSelecionados.delete(id);
+        if (typeof collectPatioAguardandoFaturamentoReceivables === "function") {
+          const vigentes = new Set(collectPatioAguardandoFaturamentoReceivables().map((r) => String(r.id)));
+          for (const id of [...patioAguardandoSelecionados]) {
+            if (!vigentes.has(id)) patioAguardandoSelecionados.delete(id);
+          }
         }
         const n = patioAguardandoSelecionados.size;
         const bar = document.getElementById("patioAguardandoLoteBar");
