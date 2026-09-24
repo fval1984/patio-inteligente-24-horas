@@ -7810,6 +7810,7 @@
                 <button type="submit">Buscar</button>
                 <button type="button" class="secondary" id="patioAguardandoPlacaLimpar">Limpar</button>
               </form>
+              <p id="patioAguardandoPlacaHint" class="notice hidden" style="margin: 0 0 12px"></p>
               <div id="patioAguardandoLoteBar" class="hidden" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px">
                 <label style="display:flex;align-items:center;gap:6px;margin:0">
                   <input type="checkbox" id="patioAguardandoSelectAll" />
@@ -20442,13 +20443,19 @@
           ev.preventDefault();
           patioAguardandoPlacaBusca = document.getElementById("patioAguardandoPlaca")?.value || "";
           if (typeof renderVehicles === "function") renderVehicles();
-        });
-        document.getElementById("patioAguardandoPlaca")?.addEventListener("input", (ev) => {
-          patioAguardandoPlacaBusca = ev.target.value || "";
-          if (typeof renderVehicles === "function") renderVehicles();
+          const campo = document.getElementById("patioAguardandoPlaca");
+          if (campo && patioAguardandoPlacaAchou) {
+            campo.value = "";
+            campo.focus();
+          }
         });
         document.getElementById("patioAguardandoPlacaLimpar")?.addEventListener("click", () => {
           patioAguardandoPlacaBusca = "";
+          patioAguardandoPlacaAviso = "";
+          patioAguardandoPlacaAchou = false;
+          patioAguardandoTopoIds.length = 0;
+          patioAguardandoTopoDestaque = "";
+          patioAguardandoRolarTopo = false;
           const campo = document.getElementById("patioAguardandoPlaca");
           if (campo) campo.value = "";
           if (typeof renderVehicles === "function") renderVehicles();
@@ -20483,20 +20490,51 @@
       window.openPatioFaturamentoModal = openPatioFaturamentoModal;
 
       const patioAguardandoSelecionados = new Set();
+      const patioAguardandoTopoIds = [];
       let patioAguardandoPlacaBusca = "";
+      let patioAguardandoPlacaAviso = "";
+      let patioAguardandoPlacaAchou = false;
+      let patioAguardandoTopoDestaque = "";
+      let patioAguardandoRolarTopo = false;
 
       function renderFechamentoCicloTable(tbody, items) {
         if (!tbody) return;
-        const fonte = items || [];
+        const fonte = (items || []).filter((r) => state.vehicles.some((v) => v.id === r.vehicle_id));
         const q = typeof normalizePlateSearch === "function" ? normalizePlateSearch(patioAguardandoPlacaBusca) : "";
-        const list = fonte.filter((r) => {
-          const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
-          if (!vehicle) return false;
-          if (!q) return true;
-          const placa = typeof normalizePlateSearch === "function" ? normalizePlateSearch(vehicle.placa) : "";
-          return typeof plateNormMatchesQuery === "function" ? plateNormMatchesQuery(placa, q) : placa.includes(q);
-        });
-        const rows = list;
+        if (q) {
+          const hits = fonte.filter((r) => {
+            const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
+            const placa = typeof normalizePlateSearch === "function" ? normalizePlateSearch(vehicle?.placa || "") : "";
+            return typeof plateNormMatchesQuery === "function" ? plateNormMatchesQuery(placa, q) : placa.includes(q);
+          });
+          patioAguardandoPlacaAchou = hits.length > 0;
+          if (!hits.length) {
+            patioAguardandoPlacaAviso = "Nenhuma placa encontrada em Aguardando Faturamento.";
+          } else {
+            for (let i = hits.length - 1; i >= 0; i -= 1) {
+              const id = String(hits[i].id);
+              const pos = patioAguardandoTopoIds.indexOf(id);
+              if (pos >= 0) patioAguardandoTopoIds.splice(pos, 1);
+              patioAguardandoTopoIds.unshift(id);
+            }
+            patioAguardandoTopoDestaque = String(hits[0].id);
+            patioAguardandoRolarTopo = true;
+            const placaTxt = state.vehicles.find((v) => v.id === hits[0].vehicle_id)?.placa || "Placa";
+            patioAguardandoPlacaAviso =
+              hits.length === 1
+                ? `${placaTxt} no topo da lista. Marque o registro e busque outra placa.`
+                : `${hits.length} placas no topo da lista. Marque os registros e busque outra placa.`;
+          }
+          patioAguardandoPlacaBusca = "";
+        }
+        const porId = new Map(fonte.map((r) => [String(r.id), r]));
+        for (let i = patioAguardandoTopoIds.length - 1; i >= 0; i -= 1) {
+          if (!porId.has(patioAguardandoTopoIds[i])) patioAguardandoTopoIds.splice(i, 1);
+        }
+        const topo = patioAguardandoTopoIds.map((id) => porId.get(id)).filter(Boolean);
+        const topoSet = new Set(patioAguardandoTopoIds);
+        const list = topo.concat(fonte.filter((r) => !topoSet.has(String(r.id))));
+        const rows = fonte;
         const totalEl = document.getElementById("patioAguardandoFaturamentoTotal");
         if (totalEl) {
           const n = rows.length;
@@ -20508,20 +20546,23 @@
             totalEl.innerHTML = `<strong>Total</strong> · ${n} ${label} · ${escapeHtml(formatCurrency(sum))}`;
           }
         }
-        if (!list.length) {
+        const hint = document.getElementById("patioAguardandoPlacaHint");
+        if (hint) {
+          hint.textContent = patioAguardandoPlacaAviso;
+          hint.classList.toggle("hidden", !patioAguardandoPlacaAviso);
+        }
+        if (!fonte.length) {
           setEmptyRow(
             tbody,
-            q
-              ? "Nenhum veículo aguardando faturamento com essa placa."
-              : "Nenhum veículo aguardando faturamento. Depois de concluir o ciclo no pátio (VRP), o registro aparece aqui até emitir a nota fiscal ou a cobrança.",
+            "Nenhum veículo aguardando faturamento. Depois de concluir o ciclo no pátio (VRP), o registro aparece aqui até emitir a nota fiscal ou a cobrança.",
             9
           );
-          if (!q) patioAguardandoSelecionados.clear();
+          patioAguardandoSelecionados.clear();
           patioAguardandoAtualizarSelecao();
           return;
         }
         const semValores = hidesFinancialValues();
-        tbody.innerHTML = items
+        tbody.innerHTML = list
           .map((r) => {
             const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
             if (!vehicle) return "";
@@ -20544,8 +20585,9 @@
             const valorCiclo = semValores ? "-" : formatCurrency(Number(r.valor || 0));
             const closureAttr = closure?.id ? ` data-closure-id="${closure.id}"` : "";
             const marcado = patioAguardandoSelecionados.has(String(r.id)) ? " checked" : "";
+            const destaque = String(r.id) === String(patioAguardandoTopoDestaque) ? ' style="outline: 2px solid #8a9a3a"' : "";
             return `
-              <tr data-receivable-row="${r.id}" data-vehicle-row="${vehicle.id}">
+              <tr data-receivable-row="${r.id}" data-vehicle-row="${vehicle.id}"${destaque}>
                 <td data-label="Selecionar"><input type="checkbox" class="patio-aguardando-check" value="${escapeHtml(String(r.id))}"${marcado} aria-label="Selecionar ${escapeHtml(vehicle.placa || "veículo")}" /></td>
                 <td data-label="Placa">${plateVisualHtml(vehicle.placa, "sm")}</td>
                 <td data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
@@ -20567,6 +20609,10 @@
           })
           .join("");
         patioAguardandoAtualizarSelecao();
+        if (patioAguardandoRolarTopo && patioAguardandoTopoDestaque) {
+          patioAguardandoRolarTopo = false;
+          tbody.querySelector(`tr[data-receivable-row="${patioAguardandoTopoDestaque}"]`)?.scrollIntoView({ block: "nearest" });
+        }
       }
 
       function patioAguardandoAtualizarSelecao() {
