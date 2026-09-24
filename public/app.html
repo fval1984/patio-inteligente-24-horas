@@ -8302,7 +8302,7 @@
             <div class="fin-caixa-summary" id="finCaixaSummary"></div>
             <div class="table-wrap section-card">
               <table class="table">
-                <thead><tr><th>Data</th><th>Tipo</th><th>Origem</th><th>Descrição</th><th>Valor</th></tr></thead>
+                <thead><tr><th>Data</th><th>Tipo</th><th>Origem</th><th>Descrição</th><th>Valor</th><th>Ações</th></tr></thead>
                 <tbody id="finCaixaBody"></tbody>
               </table>
             </div>
@@ -9379,6 +9379,67 @@
         </div>
       </div>
 
+      <div id="finCaixaEditModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 480px">
+          <div class="modal-header">
+            <div>
+              <h3>Editar lançamento do Caixa</h3>
+              <p class="subtitle" style="margin: 4px 0 0">Altera o mesmo lançamento, sem criar outro registro.</p>
+            </div>
+            <button type="button" class="modal-close" id="finCaixaEditClose" aria-label="Fechar">Fechar</button>
+          </div>
+          <form id="finCaixaEditForm">
+            <div class="form-grid">
+              <div>
+                <label for="finCaixaEditData">Data</label>
+                <input id="finCaixaEditData" type="date" required />
+              </div>
+              <div>
+                <label for="finCaixaEditValor">Valor</label>
+                <input id="finCaixaEditValor" type="number" step="0.01" min="0" required />
+              </div>
+              <div>
+                <label for="finCaixaEditForma">Forma de pagamento</label>
+                <select id="finCaixaEditForma">
+                  <option value="">Não informada</option>
+                  <option value="PIX">PIX</option>
+                  <option value="Dinheiro">Dinheiro</option>
+                  <option value="Transferência">Transferência</option>
+                  <option value="Boleto">Boleto</option>
+                  <option value="Cartão Débito">Cartão Débito</option>
+                  <option value="Cartão Crédito">Cartão Crédito</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+              </div>
+              <div class="full">
+                <label for="finCaixaEditDescricao">Descrição</label>
+                <input id="finCaixaEditDescricao" type="text" />
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" id="finCaixaEditSave">Salvar</button>
+              <button type="button" class="secondary" id="finCaixaEditCancel">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="finCaixaDeleteModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 440px">
+          <div class="modal-header">
+            <div>
+              <h3>Apagar lançamento</h3>
+            </div>
+            <button type="button" class="modal-close" id="finCaixaDeleteClose" aria-label="Fechar">Fechar</button>
+          </div>
+          <p style="margin: 0 0 16px; line-height: 1.5">Tem certeza que deseja apagar este lançamento do Caixa?</p>
+          <div class="form-actions">
+            <button type="button" class="secondary" id="finCaixaDeleteCancel">Cancelar</button>
+            <button type="button" id="finCaixaDeleteConfirm">Confirmar exclusão</button>
+          </div>
+        </div>
+      </div>
+
       <div id="finDespesaModal" class="modal-backdrop hidden">
         <div class="modal" style="max-width: 520px">
           <div class="modal-header">
@@ -9711,7 +9772,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20260923baixa1"></script>
+    <script src="/finance-module.js?v=20260924caixa1"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
