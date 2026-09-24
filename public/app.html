@@ -9070,22 +9070,22 @@
           </div>
           <div id="nfseThermalPfFields" class="form-grid hidden">
             <div class="full">
-              <label for="nfseThermalResponsavelNome">Nome completo</label>
-              <input id="nfseThermalResponsavelNome" type="text" maxlength="160" autocomplete="name" placeholder="Nome completo" />
-            </div>
-            <div class="full">
               <label for="nfseThermalResponsavelCpf">CPF</label>
               <input id="nfseThermalResponsavelCpf" type="text" inputmode="numeric" maxlength="14" autocomplete="off" placeholder="000.000.000-00" />
+            </div>
+            <div class="full">
+              <label for="nfseThermalResponsavelNome">Nome</label>
+              <input id="nfseThermalResponsavelNome" type="text" maxlength="160" autocomplete="name" placeholder="Nome" />
             </div>
           </div>
           <div id="nfseThermalPjFields" class="form-grid hidden">
             <div class="full">
-              <label for="nfseThermalNome">Razão social</label>
-              <input id="nfseThermalNome" type="text" maxlength="160" autocomplete="organization" placeholder="Razão social" />
-            </div>
-            <div class="full">
               <label for="nfseThermalCnpj">CNPJ</label>
               <input id="nfseThermalCnpj" type="text" inputmode="numeric" maxlength="18" autocomplete="off" placeholder="00.000.000/0000-00" />
+            </div>
+            <div class="full">
+              <label for="nfseThermalNome">Razão Social</label>
+              <input id="nfseThermalNome" type="text" maxlength="160" autocomplete="organization" placeholder="Razão Social" />
             </div>
           </div>
           <p id="nfseThermalCnpjStatus" class="notice" style="margin: 8px 0 0">
@@ -9111,9 +9111,7 @@
           <p id="cdfLoteStatus" class="notice" style="margin: 0 0 12px"></p>
           <ul id="cdfLoteLista" style="margin: 0 0 12px; padding-left: 18px; font-size: 13px; line-height: 1.45"></ul>
           <div class="form-actions">
-            <button type="button" id="cdfLoteRetryBtn" class="hidden">Tentar novamente os que falharam</button>
-            <button type="button" id="cdfLoteReimprimirBtn" class="hidden">Reimprimir CDF</button>
-            <button type="button" class="secondary hidden" id="cdfLoteFecharBtn">Fechar</button>
+            <button type="button" id="cdfLoteFecharBtn">Concluir</button>
           </div>
         </div>
       </div>
@@ -20483,21 +20481,9 @@
           else patioAguardandoSelecionados.delete(String(chk.value));
           patioAguardandoAtualizarSelecao();
         });
-        document.getElementById("cdfLoteRetryBtn")?.addEventListener("click", () => {
-          if (!cdfLoteEstado?.falhas?.length || cdfLoteEstado.busy) return;
-          cdfLoteEstado.ids = cdfLoteEstado.falhas.slice();
-          cdfLoteEstado.falhas = [];
-          cdfLoteEstado.ok = 0;
-          cdfLoteEstado.index = 0;
-          cdfLoteEstado.linhas = [];
-          void cdfLoteProcessarTodos();
-        });
-        document.getElementById("cdfLoteReimprimirBtn")?.addEventListener("click", () => {
-          void cdfLoteReimprimirPendentes();
-        });
         document.getElementById("cdfLoteFecharBtn")?.addEventListener("click", () => {
           document.getElementById("cdfLoteProgressoModal")?.classList.add("hidden");
-          cdfLoteEstado = null;
+          void cdfFilaAtualizarListas();
         });
         document.getElementById("patioFaturamentoModalCancel")?.addEventListener("click", closePatioFaturamentoModal);
         document.getElementById("patioFaturamentoModal")?.addEventListener("click", (ev) => {
@@ -20949,8 +20935,8 @@
         nfseThermalTipoPf?.setAttribute("aria-pressed", next === "PF" ? "true" : "false");
         nfseThermalTipoPj?.setAttribute("aria-pressed", next === "PJ" ? "true" : "false");
         syncNfseThermalPrintState();
-        if (next === "PF") nfseThermalResponsavelNome?.focus();
-        else if (next === "PJ") nfseThermalNome?.focus();
+        if (next === "PF") nfseThermalResponsavelCpf?.focus();
+        else if (next === "PJ") nfseThermalCnpj?.focus();
       }
 
       function syncNfseThermalPrintState() {
@@ -20977,7 +20963,7 @@
         } else if (cpfInvalid) {
           nfseThermalCnpjStatus.textContent = "CPF inválido. O formato é 000.000.000-00.";
         } else if (nfseThermalTipo === "PF" && !responsavel) {
-          nfseThermalCnpjStatus.textContent = "Informe o nome completo.";
+          nfseThermalCnpjStatus.textContent = "Informe o nome.";
         } else if (nfseThermalTipo === "PF" && !cpfOk) {
           nfseThermalCnpjStatus.textContent = "Informe o CPF no formato 000.000.000-00.";
         } else if (cnpjIncomplete) {
@@ -21192,10 +21178,15 @@
       }
 
       function closeNfseThermalModalFn() {
+        const fila = filaFaturamento;
+        const cancelouNoMeio = !!(fila && fila.index < fila.ids.length);
+        const jaFaturados = cancelouNoMeio ? fila.ok : 0;
+        if (cancelouNoMeio) filaFaturamento = null;
         nfseThermalModal?.classList.add("hidden");
         nfseThermalVehicleId = null;
         nfseThermalTipo = "";
         setCdfFaturarMode(false);
+        if (jaFaturados > 0) void cdfFilaAtualizarListas();
       }
 
       function openNfseThermalModal(vehicle, opts) {
@@ -21237,6 +21228,71 @@
 
       let cdfLoteEstado = null;
 
+      let filaFaturamento = null;
+
+      function cdfFilaLerMemoria() {
+        return {
+          tipo: nfseThermalTipo === "PF" || nfseThermalTipo === "PJ" ? nfseThermalTipo : "",
+          nome: String(nfseThermalResponsavelNome?.value || ""),
+          cpf: String(nfseThermalResponsavelCpf?.value || ""),
+          razao: String(nfseThermalNome?.value || ""),
+          cnpj: String(nfseThermalCnpj?.value || ""),
+        };
+      }
+
+      function cdfFilaAplicarMemoria(mem) {
+        if (!mem?.tipo) return;
+        setNfseThermalTipo(mem.tipo);
+        if (mem.tipo === "PF") {
+          if (nfseThermalResponsavelCpf) nfseThermalResponsavelCpf.value = mem.cpf || "";
+          if (nfseThermalResponsavelNome) nfseThermalResponsavelNome.value = mem.nome || "";
+        } else if (mem.tipo === "PJ") {
+          if (nfseThermalCnpj) nfseThermalCnpj.value = mem.cnpj || "";
+          if (nfseThermalNome) nfseThermalNome.value = mem.razao || "";
+        }
+        syncNfseThermalPrintState();
+      }
+
+      function cdfFilaVeiculoAtual() {
+        const fila = filaFaturamento;
+        if (!fila) return null;
+        const id = fila.ids[fila.index];
+        const rec = (state.receivables || []).find((x) => String(x.id) === String(id));
+        const vehicle = rec ? (state.vehicles || []).find((v) => String(v.id) === String(rec.vehicle_id)) : null;
+        return { id, rec, vehicle };
+      }
+
+      function cdfFilaAtualizarCabecalho() {
+        const fila = filaFaturamento;
+        const atual = cdfFilaVeiculoAtual();
+        if (!fila || !atual) return;
+        const titulo = document.getElementById("nfseThermalTitle");
+        const sub = document.getElementById("nfseThermalSubtitle");
+        const n = fila.index + 1;
+        const total = fila.ids.length;
+        if (titulo) titulo.textContent = `FATURAMENTO ${n} DE ${total}`;
+        if (sub) sub.textContent = `Placa: ${atual.vehicle?.placa || "—"}`;
+        document.getElementById("nfseThermalPdfBtn")?.classList.add("hidden");
+        if (nfseThermalPrintBtn) nfseThermalPrintBtn.textContent = "Gerar e Imprimir";
+      }
+
+      function cdfFilaAbrirIndice() {
+        const atual = cdfFilaVeiculoAtual();
+        if (!atual?.rec || !atual.vehicle) {
+          alert("Não foi possível abrir o próximo registro da fila. Os já faturados permanecem em Entradas.");
+          const fila = filaFaturamento;
+          filaFaturamento = null;
+          closeNfseThermalModalFn();
+          if (fila?.ok) void cdfFilaAtualizarListas();
+          return;
+        }
+        const memoria = filaFaturamento.memoria;
+        openNfseThermalModal(atual.vehicle, { faturar: true, receivableId: atual.rec.id });
+        if (nfseThermalModal) nfseThermalModal.dataset.modo = "faturar";
+        cdfFilaAplicarMemoria(memoria);
+        cdfFilaAtualizarCabecalho();
+      }
+
       function openCdfFaturamentoLote(ids) {
         const lista = [...new Set((ids || []).map((id) => String(id)).filter(Boolean))].filter((id) => {
           const rec = (state.receivables || []).find((x) => String(x.id) === id);
@@ -21246,28 +21302,71 @@
           alert("Nenhum registro pendente. Os selecionados já estão em Entradas ou não foram encontrados.");
           return;
         }
-        const rec = (state.receivables || []).find((x) => String(x.id) === lista[0]);
-        const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(rec?.vehicle_id));
-        if (!vehicle) {
-          alert("Não foi possível localizar o veículo do primeiro registro.");
-          return;
-        }
-        openNfseThermalModal(vehicle, { faturar: true, receivableId: rec.id });
-        if (nfseThermalModal) {
-          nfseThermalModal.dataset.modo = "faturar-lote";
-          nfseThermalModal.dataset.loteIds = lista.join(",");
-        }
-        const sub = document.getElementById("nfseThermalSubtitle");
-        if (sub) {
-          sub.textContent = `Informe a razão social e o CNPJ uma vez. Eles valem para ${lista.length} registro${lista.length === 1 ? "" : "s"}. Cada veículo continua com o próprio CDF.`;
-        }
-        document.getElementById("nfseThermalTipoIntro")?.classList.add("hidden");
-        document.getElementById("nfseThermalTipoChoice")?.classList.add("hidden");
-        document.getElementById("nfseThermalPdfBtn")?.classList.add("hidden");
-        if (typeof setNfseThermalTipo === "function") setNfseThermalTipo("PJ");
-        if (nfseThermalPrintBtn) nfseThermalPrintBtn.textContent = "Gerar e Imprimir CDFs";
+        filaFaturamento = { ids: lista.slice(), index: 0, ok: 0, memoria: null };
+        cdfFilaAbrirIndice();
       }
       window.openCdfFaturamentoLote = openCdfFaturamentoLote;
+
+      async function cdfFilaAtualizarListas() {
+        await Promise.all([loadVehicles(), loadReceivables(), loadCycleClosures()]);
+      }
+
+      function cdfFilaMostrarConclusao(ok, total) {
+        const modal = document.getElementById("cdfLoteProgressoModal");
+        const titulo = document.getElementById("cdfLoteTitulo");
+        const sub = document.getElementById("cdfLoteSubtitulo");
+        if (titulo) titulo.textContent = "Faturamento concluído";
+        if (sub) sub.textContent = `${ok} de ${total} registros faturados com sucesso.`;
+        const placa = document.getElementById("cdfLotePlaca");
+        const status = document.getElementById("cdfLoteStatus");
+        const lista = document.getElementById("cdfLoteLista");
+        if (placa) placa.textContent = "";
+        if (status) status.textContent = "";
+        if (lista) lista.innerHTML = "";
+        if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
+        modal?.classList.remove("hidden");
+      }
+
+      async function cdfFilaGerarAtual() {
+        const fila = filaFaturamento;
+        const atual = cdfFilaVeiculoAtual();
+        if (!fila || !atual?.rec || !atual.vehicle) return;
+        const memoria = cdfFilaLerMemoria();
+        const nome = (memoria.tipo === "PF" ? memoria.nome : memoria.razao).trim();
+        const doc = memoria.tipo === "PF" ? maskCpfInputValue(memoria.cpf) : maskCnpjInputValue(memoria.cnpj);
+        if (!nome) {
+          alert(memoria.tipo === "PF" ? "Informe o nome." : "Informe a razão social.");
+          return;
+        }
+        const saved = await submitPatioFaturamentoForm(
+          { preventDefault() {} },
+          {
+            navegar: false,
+            semTela: true,
+            semRecarregar: true,
+            adiarAviso: true,
+            silent: true,
+            receivableId: atual.id,
+            nome,
+            contato: doc,
+          }
+        );
+        if (!saved?.ok) return;
+        printOpenNfseThermal();
+        fila.memoria = memoria;
+        fila.ok += 1;
+        patioAguardandoSelecionados.delete(String(atual.id));
+        fila.index += 1;
+        if (fila.index >= fila.ids.length) {
+          const ok = fila.ok;
+          const total = fila.ids.length;
+          filaFaturamento = null;
+          closeNfseThermalModalFn();
+          cdfFilaMostrarConclusao(ok, total);
+          return;
+        }
+        cdfFilaAbrirIndice();
+      }
 
       function cdfHtmlDoVeiculo(vehicle, fat) {
         const emissaoDate = new Date();
@@ -21472,6 +21571,7 @@
       }
 
       async function cdfLoteProcessarTodos() {
+        return;
         const lote = cdfLoteEstado;
         if (!lote || lote.busy) return;
         const batchIds = lote.ids.slice();
@@ -21580,6 +21680,7 @@
       }
 
       async function cdfLoteReimprimirPendentes() {
+        return;
         const lote = cdfLoteEstado;
         if (!lote || lote.busy || !(lote.impressaoPendente || []).length) return;
         const fila = lote.impressaoPendente.slice();
@@ -21613,25 +21714,8 @@
         }
       }
 
-      function iniciarCdfLote(fat) {
-        const ids = (fat.ids || []).filter(Boolean);
-        if (!ids.length) return;
-        closeNfseThermalModalFn();
-        cdfLoteEstado = {
-          ids,
-          fat,
-          index: 0,
-          ok: 0,
-          pulados: 0,
-          busy: false,
-          aguardandoImpressao: false,
-          linhas: [],
-          falhas: [],
-          impressaoPendente: [],
-        };
-        const modal = document.getElementById("cdfLoteProgressoModal");
-        if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
-        void cdfLoteProcessarTodos();
+      function iniciarCdfLote() {
+        return;
       }
 
       async function concluirCdfFaturamento() {
@@ -21652,19 +21736,11 @@
           alert("Informe o nome ou a razão social do faturamento.");
           return;
         }
-        if (nfseThermalModal?.dataset.modo === "faturar-lote") {
-          iniciarCdfLote({
-            ids: String(nfseThermalModal.dataset.loteIds || "").split(",").filter(Boolean),
-            nome,
-            contato,
-            tipoPessoa,
-            razao: tipoPessoa === "PJ" ? nome : "",
-            cnpj: tipoPessoa === "PJ" ? doc : "",
-            responsavelNome: tipoPessoa === "PF" ? nome : "",
-            responsavelCpf: tipoPessoa === "PF" ? doc : "",
-          });
+        if (filaFaturamento) {
+          await cdfFilaGerarAtual();
           return;
         }
+        if (nfseThermalModal?.dataset.modo === "faturar-lote") return;
         const patioModal = document.getElementById("patioFaturamentoModal");
         if (patioModal) patioModal.dataset.receivableId = nfseThermalModal?.dataset.receivableId || "";
         const nomeEl = document.getElementById("patioFatDestNome");
