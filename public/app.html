@@ -10854,6 +10854,29 @@
       let appLaunchConfigConsumed = false;
       let showAppBootstrapping = false;
       let capturedAppLaunchConfig = null;
+      let navigationChosenByUser = false;
+      const MAIN_VIEW_STORAGE_KEY = "ampliguard-main-view";
+
+      function rememberUserNavigation() {
+        navigationChosenByUser = true;
+      }
+
+      function persistMainView(view) {
+        if (!view) return;
+        try {
+          sessionStorage.setItem(MAIN_VIEW_STORAGE_KEY, view);
+        } catch (e) {
+          /* armazenamento indisponível */
+        }
+      }
+
+      function readPersistedMainView() {
+        try {
+          return sessionStorage.getItem(MAIN_VIEW_STORAGE_KEY) || "";
+        } catch (e) {
+          return "";
+        }
+      }
 
       async function initAppData(forceReload) {
         if (!state.user?.id) return;
@@ -16855,6 +16878,7 @@
       async function showApp(user, opts = {}) {
         if (showAppBootstrapping) return;
         showAppBootstrapping = true;
+        navigationChosenByUser = false;
         try {
           const session = await ensureValidSupabaseSession();
           if (!session?.user) {
@@ -16889,16 +16913,9 @@
           const pendingLaunch = captureAppLaunchConfigFromUrl();
           if (!alreadyInApp) {
             try {
-              applyRoleRestrictions({ skipDefaultView: !!pendingLaunch });
+              applyRoleRestrictions({ skipDefaultView: true });
             } catch (e) {
               console.error("applyRoleRestrictions", e);
-              if (!pendingLaunch) {
-                try {
-                  openDefaultHomeView();
-                } catch (e2) {
-                  console.error("showMainView fallback", e2);
-                }
-              }
             }
           }
           try {
@@ -16910,8 +16927,8 @@
           if (pendingLaunch && !alreadyInApp && !appLaunchConfigConsumed) {
             appLaunchConfigConsumed = true;
             applyAppLaunchConfig(pendingLaunch);
-          } else if (!alreadyInApp && !pendingLaunch) {
-            navigateDefaultViewForRole();
+          } else if (!alreadyInApp && !pendingLaunch && !navigationChosenByUser) {
+            openRestoredOrDefaultMainView();
           }
         } finally {
           showAppBootstrapping = false;
@@ -17284,6 +17301,19 @@
 
       function navigateDefaultViewForRole() {
         openDefaultHomeView();
+      }
+
+      function openRestoredOrDefaultMainView() {
+        const saved = resolveViewForDevice(readPersistedMainView());
+        const fallback = defaultHomeViewForRole();
+        let view = saved && views[saved] ? saved : fallback;
+        if (isVistoriador) view = "patio";
+        else if ((isVisualizador || isGestorPista) && isViewerForbiddenView(view)) view = fallback;
+        view = resolveViewForDevice(view);
+        if (view === "patio") openPatioSubview("inicio");
+        else if (view === "parceiros") openPartnerSubview("escritorios");
+        else if (view === "lista") openListaSubview("vnp");
+        else openMainView(view);
       }
 
       function applyRoleRestrictions(opts = {}) {
@@ -26805,6 +26835,7 @@ ${body}
         }
         syncHeaderMenuModuleHighlight(view);
         syncMobileModuleNavHighlight(view);
+        persistMainView(view);
         if (isVistoriador) {
           try {
             setPatioView("vistoria");
@@ -26963,6 +26994,7 @@ ${body}
       });
 
       function openMainView(view) {
+        rememberUserNavigation();
         view = resolveViewForDevice(view);
         if (isVistoriador) {
           showMainView("patio");
@@ -27034,6 +27066,7 @@ ${body}
       }
 
       function openPatioSubview(sub) {
+        rememberUserNavigation();
         if (isVistoriador) {
           showMainView("patio");
           setPatioView("vistoria");
@@ -27061,6 +27094,7 @@ ${body}
       window.openPatioSubview = openPatioSubview;
 
       function openPartnerSubview(sub) {
+        rememberUserNavigation();
         if (isVistoriador) {
           showMainView("patio");
           setPatioView("vistoria");
@@ -27100,6 +27134,7 @@ ${body}
       }
 
       function openListaSubview(sub) {
+        rememberUserNavigation();
         if (isVistoriador) {
           showMainView("patio");
           setPatioView("vistoria");
@@ -27314,6 +27349,7 @@ ${body}
       }
 
       function navigateMainViewFromNav(view) {
+        rememberUserNavigation();
         if (!view) return;
         view = resolveViewForDevice(view);
         if (isVistoriador) {
