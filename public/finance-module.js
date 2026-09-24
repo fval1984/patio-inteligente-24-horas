@@ -1478,6 +1478,15 @@
 
   function financeEntryTipoLabel(record, kind) {
     const modo = financeEntryModoFromRecord(record, kind);
+    if (kind === "payable") {
+      const { meta } = financePayableMeta(record);
+      if (modo === "RECORRENTE") return "Recorrente";
+      if (modo === "PARCELADA") {
+        if (meta?.parcela && meta?.parcelas_total) return `Parcelada — ${meta.parcela}/${meta.parcelas_total}`;
+        return "Parcelada";
+      }
+      return "Única";
+    }
     if (modo === "RECORRENTE") {
       const { meta } = financeMetaUnpack(record?.observacoes || "");
       const iv = String(meta.recorrencia || "mensal").toLowerCase();
@@ -2382,7 +2391,12 @@
     const ui = globalThis.financeActionUi;
     list.forEach((p) => {
       const fields = financePayableTypedFields(p);
-      const title = fields.fornecedor || "Fornecedor";
+      const title =
+        fields.descricao && fields.descricao !== "—"
+          ? fields.descricao
+          : fields.fornecedor && fields.fornecedor !== "—"
+            ? fields.fornecedor
+            : "Despesa";
       const ym = financeCompetenciaYm(p, null, "payable");
       const key = `${title}|${ym}`;
       const cur = groups.get(key) || { title, ym, items: [] };
@@ -2399,9 +2413,10 @@
         cat === "GUINCHO" || /remo/i.test(String(g.items[0]?.descricao || ""))
           ? `${g.items.length} remoção${g.items.length === 1 ? "" : "ões"}`
           : `${g.items.length} lançamento${g.items.length === 1 ? "" : "s"}`;
+      const tipos = [...new Set(g.items.map((p) => financeEntryTipoLabel(p, "payable")))];
       return {
         title: g.title,
-        subtitle: countLabel,
+        subtitle: `${tipos.join(" · ")} · ${countLabel}`,
         dueLabel: `Vencimento: ${dueDates[0] ? formatDate(dueDates[0]) : "—"}`,
         amountLabel: formatCurrency(total),
         status: badge.status,
@@ -4983,9 +4998,36 @@
     await financeReloadAfterAction();
   }
 
+  function financeDespesaSerieProximas(pay) {
+    const { meta } = financePayableMeta(pay);
+    const grupo = String(meta?.grupo_id || "");
+    if (!grupo) return [pay];
+    const due = financeContaDueYmd(pay, "payable") || "";
+    return (state.payables || []).filter((p) => {
+      const outro = financePayableMeta(p).meta || {};
+      if (String(outro.grupo_id || "") !== grupo) return false;
+      const data = financeContaDueYmd(p, "payable") || "";
+      return data >= due;
+    });
+  }
+
+  function financeDespesaEscopoSerie(pay) {
+    const modo = financeEntryModoFromRecord(pay, "payable");
+    if (modo !== "RECORRENTE" && modo !== "PARCELADA") return "uma";
+    if (financeDespesaSerieProximas(pay).length < 2) return "uma";
+    const escolha = prompt(
+      "Aplicar a alteração em:\n1 = Somente a esta ocorrência/parcela\n2 = A esta e às próximas",
+      "1"
+    );
+    if (escolha == null) return null;
+    return String(escolha).trim() === "2" ? "proximas" : "uma";
+  }
+
   async function financeEditPagarPrompt(payableId) {
     const pay = (state.payables || []).find((p) => String(p.id) === String(payableId));
     if (!pay) return alert("Conta a pagar não encontrada.");
+    const escopo = financeDespesaEscopoSerie(pay);
+    if (escopo == null) return;
     if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
     const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
     if (!uid) return;
@@ -5000,33 +5042,42 @@
     if (!Number.isFinite(valor) || valor < 0) return alert("Valor inválido.");
     const vencimento = prompt("Vencimento (AAAA-MM-DD):", financeContaDueYmd(pay, "payable") || "");
     if (vencimento == null) return;
-    const raw = typeof financePayableMetaText === "function" ? financePayableMetaText(pay) : pay.descricao || "";
-    const { meta } = typeof financeMetaUnpack === "function" ? financeMetaUnpack(raw) : { meta: {} };
-    const newMeta = { ...(meta || {}), fornecedor_texto: fornecedor.trim(), descricao_texto: descricao.trim() };
-    const userText = [fornecedor.trim(), descricao.trim(), typed.observacoes].filter(Boolean).join(" — ");
-    const patch = {
-      fornecedor: fornecedor.trim() || null,
-      descricao: typeof financeMetaPack === "function" ? financeMetaPack(newMeta, userText || descricao.trim()) : descricao.trim(),
-      valor,
-      data_vencimento: vencimento || pay.data_vencimento,
-    };
-    const write = () => supabase.from("payables").update(patch).eq("id", pay.id).eq("user_id", uid);
-    const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
-    if (error) return typeof alertSupabaseError === "function" ? alertSupabaseError(error, "Não foi possível editar a conta a pagar.") : alert(error.message);
+    const alvos = escopo === "proximas" ? financeDespesaSerieProximas(pay) : [pay];
+    for (const alvo of alvos) {
+      const rawAlvo = typeof financePayableMetaText === "function" ? financePayableMetaText(alvo) : alvo.descricao || "";
+      const { meta } = typeof financeMetaUnpack === "function" ? financeMetaUnpack(rawAlvo) : { meta: {} };
+      const typedAlvo = financePayableTypedFields(alvo);
+      const newMeta = { ...(meta || {}), fornecedor_texto: fornecedor.trim(), descricao_texto: descricao.trim() };
+      const userText = [fornecedor.trim(), descricao.trim(), typedAlvo.observacoes].filter(Boolean).join(" — ");
+      const patch = {
+        fornecedor: fornecedor.trim() || null,
+        descricao: typeof financeMetaPack === "function" ? financeMetaPack(newMeta, userText || descricao.trim()) : descricao.trim(),
+        valor,
+      };
+      if (String(alvo.id) === String(pay.id)) patch.data_vencimento = vencimento || pay.data_vencimento;
+      const write = () => supabase.from("payables").update(patch).eq("id", alvo.id).eq("user_id", uid);
+      const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
+      if (error) return typeof alertSupabaseError === "function" ? alertSupabaseError(error, "Não foi possível editar a conta a pagar.") : alert(error.message);
+    }
     await financeReloadAfterAction();
   }
 
   async function financeDeletePagarPrompt(payableId) {
     const pay = (state.payables || []).find((p) => String(p.id) === String(payableId));
     if (!pay) return alert("Conta a pagar não encontrada.");
-    if (!confirm("Apagar esta conta a pagar?")) return;
+    const escopo = financeDespesaEscopoSerie(pay);
+    if (escopo == null) return;
+    const alvos = escopo === "proximas" ? financeDespesaSerieProximas(pay) : [pay];
+    if (!confirm(alvos.length > 1 ? `Apagar ${alvos.length} ocorrências/parcelas?` : "Apagar esta conta a pagar?")) return;
     if (typeof requireSupabaseSessionForWrite === "function" && !(await requireSupabaseSessionForWrite())) return;
     const uid = typeof effectiveUserId === "function" ? effectiveUserId() : null;
     if (!uid) return;
-    await financeDeleteCashForPayableClient(pay.id);
-    const write = () => supabase.from("payables").delete().eq("id", pay.id).eq("user_id", uid);
-    const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
-    if (error) return typeof alertSupabaseError === "function" ? alertSupabaseError(error, "Não foi possível apagar a conta a pagar.") : alert(error.message);
+    for (const alvo of alvos) {
+      await financeDeleteCashForPayableClient(alvo.id);
+      const write = () => supabase.from("payables").delete().eq("id", alvo.id).eq("user_id", uid);
+      const { error } = typeof runSupabaseWrite === "function" ? await runSupabaseWrite(write) : await write();
+      if (error) return typeof alertSupabaseError === "function" ? alertSupabaseError(error, "Não foi possível apagar a conta a pagar.") : alert(error.message);
+    }
     await financeReloadAfterAction();
   }
 
@@ -5075,8 +5126,20 @@
 
   function financeSyncDespesaModoFields() {
     const modo = document.getElementById("finDespModo")?.value || "UNICA";
+    const freq = document.getElementById("finDespRecorrencia")?.value || "mensal";
     document.getElementById("finDespRecorrenciaWrap")?.classList.toggle("hidden", modo !== "RECORRENTE");
+    document.getElementById("finDespDiaWrap")?.classList.toggle("hidden", modo !== "RECORRENTE" || freq === "semanal");
+    document.getElementById("finDespFimWrap")?.classList.toggle("hidden", modo !== "RECORRENTE");
     document.getElementById("finDespParcelasWrap")?.classList.toggle("hidden", modo !== "PARCELADA");
+    const valorLabel = document.getElementById("finDespValorLabel");
+    const dataLabel = document.getElementById("finDespDataLabel");
+    if (valorLabel) valorLabel.textContent = modo === "PARCELADA" ? "Valor total (R$)" : "Valor (R$)";
+    if (dataLabel) {
+      dataLabel.textContent = modo === "RECORRENTE" ? "Data de início" : modo === "PARCELADA" ? "Data da primeira parcela" : "Data";
+    }
+    document.querySelectorAll("#finDespTipoChoice [data-fin-desp-tipo]").forEach((btn) => {
+      btn.classList.toggle("active", btn.getAttribute("data-fin-desp-tipo") === modo);
+    });
   }
 
   function financeExportCsv(rows, filename) {
@@ -6093,6 +6156,7 @@
         { label: "Serviço", value: fields.descricao || "—" },
         { label: "Quantidade", value: String(idList.length) },
         { label: "Categoria", value: first ? payableCategoryLabel(first.payable_category) : "—" },
+        { label: "Tipo", value: first ? financeEntryTipoLabel(first, "payable") : "—" },
         { label: "Vencimento", value: first ? formatDate(financeContaDueYmd(first, "payable")) || "—" : "—" },
         { label: "Valor total", value: formatCurrency(total) },
         { label: "Status", value: first ? financePayableDisplayStatus(first) : "—" },
@@ -7347,6 +7411,15 @@
       if (id) financeApplyContactToReceitaForm(id);
     });
     document.getElementById("finDespModo")?.addEventListener("change", financeSyncDespesaModoFields);
+    document.getElementById("finDespRecorrencia")?.addEventListener("change", financeSyncDespesaModoFields);
+    document.getElementById("finDespTipoChoice")?.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-fin-desp-tipo]");
+      if (!btn) return;
+      e.preventDefault();
+      const modoEl = document.getElementById("finDespModo");
+      if (modoEl) modoEl.value = btn.getAttribute("data-fin-desp-tipo") || "UNICA";
+      financeSyncDespesaModoFields();
+    });
     document.getElementById("finRecModo")?.addEventListener("change", financeSyncReceitaModoFields);
     document.getElementById("finRecJaRecebido")?.addEventListener("change", financeSyncReceitaModoFields);
     document.getElementById("finRecDataLancamento")?.addEventListener("change", () => {
@@ -7370,8 +7443,18 @@
       const modo = document.getElementById("finDespModo")?.value || "UNICA";
       const recorrenciaIntervalo = document.getElementById("finDespRecorrencia")?.value || "mensal";
       const parcelas = Number(document.getElementById("finDespParcelas")?.value) || 2;
+      const diaVencimento = Number(document.getElementById("finDespDia")?.value) || 0;
+      const dataFim = document.getElementById("finDespDataFim")?.value || "";
       if (!descricao || !vencimento || !Number.isFinite(valor) || valor <= 0) {
-        alert("Preencha descrição, valor e vencimento.");
+        alert("Preencha descrição, valor e data.");
+        return;
+      }
+      if (modo === "PARCELADA" && parcelas < 2) {
+        alert("Informe a quantidade de parcelas.");
+        return;
+      }
+      if (modo === "RECORRENTE" && dataFim && dataFim < vencimento) {
+        alert("A data de término não pode ser anterior à data de início.");
         return;
       }
       const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -7386,12 +7469,16 @@
           fornecedor,
           formaPagamento,
           observacoes,
-          pago: false,
           modo,
           parcelas,
           recorrenciaIntervalo,
           contaBancaria,
           financeContactId: contactId || null,
+          dataInicio: modo === "RECORRENTE" ? vencimento : "",
+          dataFim: modo === "RECORRENTE" ? dataFim : "",
+          diaVencimento: modo === "RECORRENTE" ? diaVencimento : 0,
+          lancarNoCaixa: modo === "UNICA",
+          pago: modo === "UNICA",
         });
         if (result.error) {
           alert(result.error.message || "Não foi possível salvar a despesa.");
