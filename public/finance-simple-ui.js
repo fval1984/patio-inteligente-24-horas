@@ -367,6 +367,10 @@
     const cdr = vehicle
       ? `<button type="button" class="secondary" data-fin-print-cdr="${esc(vehicle.id)}">Imprimir CDR</button>`
       : "";
+    const comprovante =
+      rec && isEntrada(mov)
+        ? `<button type="button" class="secondary" data-fin-print-comprovante="${esc(rec.id)}" data-fin-print-comprovante-mov="${esc(mov?.id || "")}">Comprovante de Pagamento</button>`
+        : "";
     return `<tr>
       <td data-label="Data">${esc(data || "—")}</td>
       <td data-label="Devedor">${esc(devedor || "—")}</td>
@@ -374,7 +378,7 @@
       <td data-label="RPP/RPV">${esc([rpp, rpv].filter((x) => x && x !== "—").join(" · ") || "—")}</td>
       <td data-label="Valor">${esc(money(movValor(mov)))}</td>
       <td data-label="Forma">${esc(forma)}</td>
-      <td data-label="Ações">${abrir} ${cdr}</td>
+      <td data-label="Ações">${abrir} ${cdr} ${comprovante}</td>
     </tr>`;
   }
 
@@ -595,6 +599,21 @@
         e.preventDefault();
         const vehicle = (global.state?.vehicles || []).find((v) => String(v.id) === String(cdr.getAttribute("data-fin-print-cdr")));
         if (vehicle && typeof global.openNfseThermalModal === "function") global.openNfseThermalModal(vehicle);
+        return;
+      }
+      const comprovante = e.target.closest("[data-fin-print-comprovante]");
+      if (comprovante) {
+        e.preventDefault();
+        const rec = (global.state?.receivables || []).find(
+          (r) => String(r.id) === String(comprovante.getAttribute("data-fin-print-comprovante"))
+        );
+        const movId = comprovante.getAttribute("data-fin-print-comprovante-mov");
+        const mov = movId
+          ? (global.state?.cash || []).find((m) => String(m.id) === String(movId))
+          : null;
+        if (rec && typeof global.printComprovantePagamentoRecebimento === "function") {
+          global.printComprovantePagamentoRecebimento(rec, mov || null);
+        }
         return;
       }
       const searchHit = e.target.closest("[data-fin-search-hit]");
