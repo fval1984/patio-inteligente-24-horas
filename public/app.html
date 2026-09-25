@@ -7402,7 +7402,7 @@
           </div>
           <div class="filter-bar" style="margin: 0 0 14px; flex-wrap: wrap; gap: 10px; align-items: flex-end">
             <div>
-              <label for="listaFilterLocator">RPV</label>
+              <label for="listaFilterLocator">Parceiro</label>
               <select id="listaFilterLocator" style="min-width: 11rem">
                 <option value="">Todos</option>
               </select>
@@ -7732,7 +7732,7 @@
               <div class="pill">VLP (legado)</div>
               <p class="notice" style="margin: 0 0 12px">Esta lista foi substituída por VSL e VSC.</p>
               <div id="vlsToolbarFilters" class="filter-bar hidden" style="margin-bottom: 10px">
-                <label for="vlsFilterLocator">RPV</label>
+                <label for="vlsFilterLocator">Parceiro</label>
                 <select id="vlsFilterLocator">
                   <option value="">Todos</option>
                 </select>
@@ -8571,7 +8571,7 @@
                 <input id="vehicleExit" type="datetime-local" />
               </div>
               <div>
-                <label>RPV / Localizador</label>
+                <label>Parceiro</label>
                 <select id="vehicleLocator" title="Parceiro que trouxe o veículo ao pátio"></select>
               </div>
               <div class="field-operador-hide">
@@ -8867,9 +8867,9 @@
           <div class="form-grid">
             <p class="notice full" style="margin: 0 0 4px">Restringir quem entra no relatório (opcional)</p>
             <div>
-              <label for="listaPrintFilterLocator">Somente RPV</label>
+              <label for="listaPrintFilterLocator">Somente parceiro</label>
               <select id="listaPrintFilterLocator">
-                <option value="">Todos os RPVs</option>
+                <option value="">Todos os parceiros</option>
               </select>
             </div>
             <div class="full">
@@ -14420,15 +14420,8 @@
       function syncVlsFilterSelects() {
         const locSel = document.getElementById("vlsFilterLocator");
         if (!locSel) return;
-        const parceiros = allPartnersSorted();
-        const opt = (id, label) => {
-          const vid = String(id).replace(/"/g, "&quot;");
-          return `<option value="${vid}">${escapeHtml(label)}</option>`;
-        };
-        locSel.innerHTML =
-          `<option value="">Todos os RPVs</option>` +
-          parceiros.map((p) => opt(p.id, p.nome || "-")).join("");
-        if (parceiros.some((p) => p.id === vlsListFilterLocatorId)) locSel.value = vlsListFilterLocatorId;
+        locSel.innerHTML = partnerSelectOptionsHtml(vlsListFilterLocatorId, "Todos os parceiros");
+        if (rppChoiceExists(vlsListFilterLocatorId)) locSel.value = vlsListFilterLocatorId;
         else {
           locSel.value = "";
           vlsListFilterLocatorId = "";
@@ -14550,15 +14543,9 @@
         const rpfSel = document.getElementById("listaFilterRpf");
         if (!locSel || !rpfSel) return;
         const parceiros = allPartnersSorted();
-        const opt = (id, label) => {
-          const vid = String(id).replace(/"/g, "&quot;");
-          return `<option value="${vid}">${escapeHtml(label)}</option>`;
-        };
-        locSel.innerHTML =
-          `<option value="">Todos os RPVs</option>` +
-          parceiros.map((p) => opt(p.id, p.nome || "-")).join("");
+        locSel.innerHTML = partnerSelectOptionsHtml(listaFilterLocatorId, "Todos os parceiros");
         rpfSel.innerHTML = rppSelectOptionsHtml(listaFilterRpfId, "Todos os RPP");
-        if (parceiros.some((p) => p.id === listaFilterLocatorId)) locSel.value = listaFilterLocatorId;
+        if (rppChoiceExists(listaFilterLocatorId)) locSel.value = listaFilterLocatorId;
         else {
           locSel.value = "";
           listaFilterLocatorId = "";
@@ -14928,9 +14915,9 @@
           const v = String(id).replace(/"/g, "&quot;");
           return `<option value="${v}">${escapeHtml(label)}</option>`;
         };
-        locSel.innerHTML = `<option value="">Todos os RPVs</option>` + parceiros.map((p) => optId(p.id, p.nome || "-")).join("");
+        locSel.innerHTML = partnerSelectOptionsHtml(preserveLoc, "Todos os parceiros");
         rpfSel.innerHTML = rppSelectOptionsHtml(preserveRpf, "Todos os RPP");
-        if (parceiros.some((p) => p.id === preserveLoc)) locSel.value = preserveLoc;
+        if (rppChoiceExists(preserveLoc)) locSel.value = preserveLoc;
         else locSel.value = "";
         if (rppChoiceExists(preserveRpf)) rpfSel.value = preserveRpf;
         else rpfSel.value = "";
@@ -16049,9 +16036,7 @@
           const v = String(id).replace(/"/g, "&quot;");
           return `<option value="${v}">${escapeHtml(label)}</option>`;
         };
-        locSel.innerHTML =
-          `<option value="">Todos os RPVs</option>` +
-          parceiros.map((p) => optId(p.id, p.nome || "-")).join("");
+        locSel.innerHTML = partnerSelectOptionsHtml(preserveLoc, "Todos os parceiros");
         const names = [
           ...new Set(
             [
@@ -16063,7 +16048,7 @@
         respSel.innerHTML =
           `<option value="">Todos os RPP</option>` +
           names.map((n) => `<option value="${encodeURIComponent(n)}">${escapeHtml(n)}</option>`).join("");
-        if (parceiros.some((p) => p.id === preserveLoc)) locSel.value = preserveLoc;
+        if (rppChoiceExists(preserveLoc)) locSel.value = preserveLoc;
         else locSel.value = "";
         if (preserveResp) {
           try {
@@ -19287,10 +19272,9 @@
 
       function partnerSelectOptionsHtml(selectedId, emptyLabel = "Selecione o parceiro…") {
         const sel = String(selectedId || "").trim();
-        const opts = allPartnersSorted()
+        const opts = listaGeralParceiros(sel)
           .map((p) => {
-            const id = String(p.id);
-            return `<option value="${escapeHtml(id)}"${id === sel ? " selected" : ""}>${escapeHtml(p.nome || "-")}</option>`;
+            return `<option value="${escapeHtml(p.id)}"${p.id === sel ? " selected" : ""}>${escapeHtml(p.label)}</option>`;
           })
           .join("");
         return `<option value="">${escapeHtml(emptyLabel)}</option>${opts}`;
@@ -19338,6 +19322,34 @@
         return out.sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR"));
       }
 
+      function listaGeralParceiros(keepId) {
+        const items = [];
+        allPartnersSorted().forEach((p) => {
+          const nome = String(p.nome || "").trim() || "-";
+          items.push({
+            id: String(p.id),
+            nome,
+            label: nome,
+            search: partnerNomeNorm(`${nome} ${p.cpf || ""} ${p.nome_fantasia || ""}`),
+          });
+        });
+        carteiraManagersForRpp(keepId).forEach((m) => {
+          const nome = String(m.name || "").trim() || "-";
+          const parent = rppParentLabel(m);
+          const label = parent ? `${nome} · ${parent}` : nome;
+          items.push({
+            id: String(m.id),
+            nome,
+            label: m.active === false ? `${label} (inativo)` : label,
+            search: partnerNomeNorm(`${nome} ${parent}`),
+          });
+        });
+        items.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "pt-BR", { sensitivity: "base" }));
+        return items;
+      }
+
+      window.listaGeralParceiros = listaGeralParceiros;
+
       function rppParentLabel(m) {
         if (!m) return "";
         if (m.office_id) {
@@ -19355,24 +19367,12 @@
       }
 
       function rppChoices(keepId) {
-        const items = [];
-        allPartnersSorted().forEach((p) => {
-          items.push({
-            id: String(p.id),
-            label: String(p.nome || "-").trim() || "-",
-            group: "Parceiros",
-            search: partnerNomeNorm(`${p.nome || ""} ${p.cpf || ""} ${p.nome_fantasia || ""}`),
-          });
-        });
-        carteiraManagersForRpp(keepId).forEach((m) => {
-          items.push({
-            id: String(m.id),
-            label: rppManagerLabel(m),
-            group: "Gestores de carteira",
-            search: partnerNomeNorm(`${m.name || ""} ${rppParentLabel(m)}`),
-          });
-        });
-        return items;
+        return listaGeralParceiros(keepId).map((item) => ({
+          id: item.id,
+          label: item.label,
+          group: "",
+          search: item.search,
+        }));
       }
 
       function searchRppChoices(query, keepId) {
@@ -19404,21 +19404,8 @@
         return rppChoices(sid).some((x) => String(x.id) === sid);
       }
 
-      function rppSelectOptionsHtml(selectedId, emptyLabel = "Selecione o RPP…") {
-        const sel = String(selectedId || "").trim();
-        const items = rppChoices(sel);
-        const partnerOpts = items
-          .filter((x) => x.group === "Parceiros")
-          .map((x) => `<option value="${escapeHtml(x.id)}"${x.id === sel ? " selected" : ""}>${escapeHtml(x.label)}</option>`)
-          .join("");
-        const mgrOpts = items
-          .filter((x) => x.group === "Gestores de carteira")
-          .map((x) => `<option value="${escapeHtml(x.id)}"${x.id === sel ? " selected" : ""}>${escapeHtml(x.label)}</option>`)
-          .join("");
-        let html = `<option value="">${escapeHtml(emptyLabel)}</option>`;
-        if (partnerOpts) html += `<optgroup label="Parceiros">${partnerOpts}</optgroup>`;
-        if (mgrOpts) html += `<optgroup label="Gestores de carteira">${mgrOpts}</optgroup>`;
-        return html;
+      function rppSelectOptionsHtml(selectedId, emptyLabel = "Selecione o parceiro…") {
+        return partnerSelectOptionsHtml(selectedId, emptyLabel);
       }
 
       function fillRppSelect(selectEl, emptyLabel) {
@@ -22780,7 +22767,7 @@
       }
 
       function renderPartnerOptions() {
-        appendPartnerOptionsToSelect(vehicleLocator, "Sem RPV / localizador");
+        appendPartnerOptionsToSelect(vehicleLocator, "Sem parceiro");
         fillRppSelect(vehicleFinancialResponsible, "Sem RPP");
         fillPartnerSelectByTipos(vehicleAuctioneer, "Sem leiloeiro", ["LEILOEIRO"]);
         fillPartnerSelectByTipos(document.getElementById("vehiclePatioPartner"), "Sem pátio", ["PATIO_APREENSAO", "PATIO"]);
