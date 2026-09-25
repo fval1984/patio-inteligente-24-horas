@@ -115,7 +115,7 @@
     root.innerHTML =
       `<div class="filter-bar" style="margin:0 0 12px">
         <label for="aoCadastroSearch">Pesquisar</label>
-        <input id="aoCadastroSearch" type="search" placeholder="Nome, CNPJ, responsável, telefone…" value="${esc(_cadastroFilters.search)}" />
+        <input id="aoCadastroSearch" type="search" placeholder="Nome, gestor de carteira, CNPJ, telefone…" value="${esc(_cadastroFilters.search)}" />
         <label for="aoCadastroStatus">Status</label>
         <select id="aoCadastroStatus">
           <option value="">Todos</option>
