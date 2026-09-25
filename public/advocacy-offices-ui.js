@@ -148,6 +148,24 @@
                          <button type="button" class="secondary" data-ao-toggle="${esc(o.id)}">${toggle}</button>
                          ${del}`
                       : "";
+                    const gestorRows = officeMgrs
+                      .map((m) => {
+                        const inativo = m.active === false ? " (inativo)" : "";
+                        const stGestor = m.active === false
+                          ? '<span class="pc-status-inativo">Inativo</span>'
+                          : '<span class="pc-status-ativo">Ativo</span>';
+                        return `<tr>
+                          <td data-label="Nome">${esc(m.name || "—")}${inativo}<div class="notice" style="margin:4px 0 0">Escritório: ${esc(o.name || "—")}</div></td>
+                          <td data-label="CNPJ">—</td>
+                          <td data-label="Cidade/UF">${esc(cidadeUf)}</td>
+                          <td data-label="Telefone">${esc(m.phone || m.whatsapp || "—")}</td>
+                          <td data-label="Carteira">Gestor de carteira</td>
+                          <td data-label="Cobrança">—</td>
+                          <td data-label="Status">${stGestor}</td>
+                          <td data-label="Ações"></td>
+                        </tr>`;
+                      })
+                      .join("");
                     return `<tr>
                       <td data-label="Nome">${esc(o.name)}</td>
                       <td data-label="CNPJ">${esc(o.cnpj || "—")}</td>
@@ -160,7 +178,7 @@
                         <button type="button" class="secondary" data-ao-view="${esc(o.id)}">Visualizar</button>
                         ${edits}
                       </td>
-                    </tr>`;
+                    </tr>${gestorRows}`;
                   })
                   .join("")
               : `<tr><td colspan="8" class="notice" style="text-align:center;padding:18px">Nenhum escritório cadastrado.</td></tr>`
@@ -943,6 +961,7 @@
       if (del && canManage() && typeof global.deleteAdvocacyOfficeManager === "function") {
         await global.deleteAdvocacyOfficeManager(del.getAttribute("data-ao-mgr-del"), _editingId);
         renderManagersSection();
+        renderCadastro();
       }
     });
     document.getElementById("aoManagersRoot")?.addEventListener("input", (e) => {
@@ -1058,6 +1077,7 @@
           const wasEdit = !!_editingManagerId;
           closeManagerModal();
           renderManagersSection();
+          renderCadastro();
           showOfficeNotice(wasEdit ? "Gestor atualizado." : "Gestor cadastrado neste escritório.");
         }
       }
