@@ -19457,10 +19457,12 @@
         return id ? partnerNomeById(id) : String(stored || "").trim();
       }
 
-      function readWorkflowPartnerSelect(el, opts) {
+      function readWorkflowPartnerSelect(el) {
         const id = String(el?.value || "").trim();
-        const nome = opts && opts.includeCarteira ? rppNomeById(id) : partnerNomeById(id);
-        return { id, nome };
+        if (!id) return { id: "", nome: "" };
+        const item = listaGeralParceiros(id).find((x) => String(x.id) === id);
+        if (!item) return { id: "", nome: "" };
+        return { id: String(item.id), nome: String(item.nome || "").trim() };
       }
 
       function syncWorkflowPartnerSelects() {
@@ -23330,7 +23332,7 @@
         if (!workflowModalConfig) return;
         const sol = readWorkflowPartnerSelect(libSolicitante);
         const conf = readWorkflowPartnerSelect(libConfirmador);
-        const rpp = readWorkflowPartnerSelect(libResponsavelPagamento, { includeCarteira: true });
+        const rpp = readWorkflowPartnerSelect(libResponsavelPagamento);
         const solRem = readWorkflowPartnerSelect(libSolicitanteRemocao);
         const rem = readWorkflowPartnerSelect(libRemoveu);
         const required = workflowModalConfig.requiredFields || [];
@@ -27088,8 +27090,10 @@ ${body}
             requiredFields: ["solicitante"],
           });
           if (!libData) return;
-          const solicitante = String(libData.solicitante || "").trim();
-          if (!libData.solicitantePartnerId || !solicitante) {
+          const solicitanteId = String(libData.solicitantePartnerId || "").trim();
+          const solicitanteItem = listaGeralParceiros(solicitanteId).find((x) => String(x.id) === solicitanteId);
+          const solicitante = String(libData.solicitante || solicitanteItem?.nome || "").trim();
+          if (!solicitanteId || !solicitanteItem) {
             alert("Selecione quem solicitou a liberação (parceiro cadastrado).");
             return;
           }
