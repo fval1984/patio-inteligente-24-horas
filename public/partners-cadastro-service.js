@@ -25,7 +25,7 @@
       defaultTipo: "LEILOEIRO",
       lockTipo: true,
       novoLabel: "+ Novo leiloeiro",
-      searchPlaceholder: "Nome, CNPJ/CPF, cidade…",
+      searchPlaceholder: "Nome, gestor de carteira, CNPJ/CPF, cidade…",
       title: "Leiloeiros",
     },
     patios: {
@@ -35,7 +35,7 @@
       defaultTipo: "PATIO_APREENSAO",
       lockTipo: true,
       novoLabel: "+ Novo pátio",
-      searchPlaceholder: "Nome, CNPJ/CPF, cidade…",
+      searchPlaceholder: "Nome, gestor de carteira, CNPJ/CPF, cidade…",
       title: "Pátios",
     },
     localizadores: {
@@ -46,7 +46,7 @@
       lockTipo: true,
       includeUnknown: true,
       novoLabel: "+ Novo localizador",
-      searchPlaceholder: "Nome, CNPJ/CPF, cidade…",
+      searchPlaceholder: "Nome, gestor de carteira, CNPJ/CPF, cidade…",
       title: "Localizadores",
     },
     financeiras: {
@@ -398,6 +398,23 @@
     });
   }
 
+  function carteiraManagerNames(partnerId) {
+    const list = (global.__ampliState && global.__ampliState.partnerManagers) || [];
+    const svc = global.partnerManagersService;
+    return list
+      .map(function (raw) {
+        return svc && svc.normalizeManagerRecord ? svc.normalizeManagerRecord(raw) : raw;
+      })
+      .filter(function (rec) {
+        if (!rec || String(rec.partner_id || "") !== String(partnerId || "")) return false;
+        return String(rec.kind || "CARTEIRA").toUpperCase() === "CARTEIRA";
+      })
+      .map(function (rec) {
+        return String(rec.name || "");
+      })
+      .join(" ");
+  }
+
   function filterPartners(list, filtersIn) {
     const f = Object.assign({}, DEFAULT_PARTNER_FILTERS, filtersIn || {});
     const q = String(f.search || "")
@@ -453,7 +470,9 @@
           " " +
           String(perfil.gestor_conta || "") +
           " " +
-          String(perfil.tipo_servico || "");
+          String(perfil.tipo_servico || "") +
+          " " +
+          carteiraManagerNames(p.id);
         const hayLower = hay.toLowerCase();
         const hayDigits = digits(String(p.cpf || "") + String(p.telefone || "") + String(p.whatsapp || ""));
         return hayLower.indexOf(q) >= 0 || (!!qDigits && hayDigits.indexOf(qDigits) >= 0);
