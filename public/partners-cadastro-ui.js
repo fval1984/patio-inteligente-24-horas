@@ -375,6 +375,51 @@
     return categoryMeta().hasCarteiraManagers !== false;
   }
 
+  function carteiraGestorRows(partner, ctx) {
+    const mgrSvc = global.partnerManagersService;
+    const list = (global.__ampliState && global.__ampliState.partnerManagers) || [];
+    if (!mgrSvc || !partner || !partner.id) return "";
+    const gestores = mgrSvc.listForParent(list, { partner_id: partner.id }, mgrSvc.KIND_CARTEIRA);
+    const showTipo = !categoryMeta().lockTipo || !!categoryMeta().includeUnknown;
+    const tipoCell = showTipo ? '<td data-label="Tipo">Gestor de carteira</td>' : "";
+    const cidadeUf = [partner.cidade, partner.estado].filter(Boolean).join("/") || "—";
+    return gestores
+      .map(function (m) {
+        const inativo = m.status === "INATIVO" ? " (inativo)" : "";
+        const stClass = m.status === "INATIVO" ? "pc-status-inativo" : "pc-status-ativo";
+        const stLabel = m.status === "INATIVO" ? "Inativo" : "Ativo";
+        return (
+          "<tr>" +
+          '<td data-label="Nome">' +
+          esc(m.name || "—", ctx) +
+          esc(inativo, ctx) +
+          '<div class="notice" style="margin:4px 0 0">Parceiro: ' +
+          esc(partner.nome || "—", ctx) +
+          "</div></td>" +
+          tipoCell +
+          '<td data-label="CNPJ/CPF">' +
+          esc(m.cpf || "—", ctx) +
+          "</td>" +
+          '<td data-label="Cidade/UF">' +
+          esc(cidadeUf, ctx) +
+          "</td>" +
+          '<td data-label="Telefone">' +
+          esc(m.phone || m.whatsapp || "—", ctx) +
+          "</td>" +
+          '<td data-label="Carteira">Gestor de carteira</td>' +
+          '<td data-label="Cobrança">—</td>' +
+          '<td data-label="Status"><span class="' +
+          stClass +
+          '">' +
+          esc(stLabel, ctx) +
+          "</span></td>" +
+          '<td data-label="Ações"></td>' +
+          "</tr>"
+        );
+      })
+      .join("");
+  }
+
   function renderTableRows(list, ctx) {
     const meta = categoryMeta();
     const showCarteira = categoryHasCarteiraManagers();
@@ -393,6 +438,7 @@
         const toggleLabel = st === "INATIVO" ? "Reativar" : "Inativar";
         const cidadeUf = [p.cidade, p.estado].filter(Boolean).join("/") || "—";
         const counts = partnerManagerCounts(p.id);
+        const carteiraRows = showCarteira ? carteiraGestorRows(p, ctx) : "";
         const tipoCell = showTipo ? "<td data-label=\"Tipo\">" + renderTipoBadge(p.tipo, ctx) + "</td>" : "";
         const edits = manage
           ? '<button type="button" class="secondary" data-pc-action="editar" data-id="' +
@@ -441,7 +487,8 @@
           '">Visualizar</button>' +
           edits +
           "</td>" +
-          "</tr>"
+          "</tr>" +
+          carteiraRows
         );
       })
       .join("");
@@ -1623,6 +1670,7 @@
         if (del && typeof global.deletePartnerManager === "function") {
           await global.deletePartnerManager(del.getAttribute("data-pc-mgr-del"));
           refreshManagerPanels();
+          refreshTable(ctx);
         }
       });
       form.addEventListener("input", function (e) {
@@ -1669,6 +1717,7 @@
         if (ok) {
           closePartnerManagerModal();
           refreshManagerPanels();
+          refreshTable(ctx);
         }
       });
       document.getElementById("pcMgrCancel")?.addEventListener("click", closePartnerManagerModal);
