@@ -301,7 +301,11 @@
       if (st === "ATIVO" && !o.active) return false;
       if (st === "INATIVO" && o.active) return false;
       if (!q) return true;
+      const gestores = (global.__ampliState?.advocacyOfficeManagers || [])
+        .filter((m) => String(m.office_id) === String(o.id))
+        .map((m) => m.name);
       const hay = [o.name, o.cnpj, o.responsible_name, o.phone, o.whatsapp, o.email, o.notes, o.city, o.trade_name]
+        .concat(gestores)
         .map((x) => String(x || "").toLowerCase())
         .join(" ");
       return hay.includes(q);
@@ -316,7 +320,11 @@
     let list = (offices || []).filter((o) => (onlyActive ? o.active : true));
     if (q) {
       list = list.filter((o) => {
-        const hay = `${o.name || ""} ${o.cnpj || ""} ${o.responsible_name || ""}`.toLowerCase();
+        const gestores = (global.__ampliState?.advocacyOfficeManagers || [])
+          .filter((m) => String(m.office_id) === String(o.id))
+          .map((m) => m.name || "")
+          .join(" ");
+        const hay = `${o.name || ""} ${o.cnpj || ""} ${o.responsible_name || ""} ${gestores}`.toLowerCase();
         return hay.includes(q);
       });
     }
