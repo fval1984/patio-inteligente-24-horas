@@ -20974,7 +20974,7 @@
       }
 
       function patioCobrancaArtigoHtml(model) {
-        const logo = `${location.origin}/assets/ampliguard-header-system-trim.png?v=1`;
+        const logo = `${location.origin}/assets/ampliguard-marca.png?v=20260917logo2`;
         const itens = (model.itens || [])
           .map(
             (it) => `<section class="ag-cob-item">
@@ -21131,6 +21131,12 @@
             height: altura,
             windowWidth: 720,
             windowHeight: Math.max(altura, window.innerHeight || 800),
+            onclone: (doc, element) => {
+              doc.querySelectorAll(".app-top-shell, .brand-header-logo").forEach((el) => el.remove());
+              doc.querySelectorAll(".ag-cob").forEach((el) => {
+                if (el !== element) el.querySelector(".ag-cob-head img")?.remove();
+              });
+            },
           });
           const link = document.createElement("a");
           link.href = canvas.toDataURL("image/png");
