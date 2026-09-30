@@ -7821,6 +7821,10 @@
                 <select id="vnpFilterEscritorio" aria-label="Escritório">
                   <option value="">Todos os escritórios</option>
                 </select>
+                <label for="vnpFilterPatio">Pátio</label>
+                <select id="vnpFilterPatio" aria-label="Pátio">
+                  <option value="">Todos os pátios</option>
+                </select>
                 <button type="button" class="secondary" id="vnpFiltersClear">Limpar filtros</button>
               </div>
                 <div class="table-wrap">
@@ -10952,6 +10956,7 @@
       let vnpFilterParceiroId = "";
       let vnpFilterFinanceiraId = "";
       let vnpFilterEscritorioId = "";
+      let vnpFilterPatioId = "";
       let vnpFilterPlacaNorm = "";
       let listaFilterLocatorId = "";
       let listaFilterRpfId = "";
@@ -14639,7 +14644,7 @@
       }
 
       function vnpOrganizationalFiltersOn() {
-        return !!(vnpFilterParceiroId || vnpFilterFinanceiraId || vnpFilterEscritorioId);
+        return !!(vnpFilterParceiroId || vnpFilterFinanceiraId || vnpFilterEscritorioId || vnpFilterPatioId);
       }
 
       function vehicleMatchesVnpFilters(v) {
@@ -14648,6 +14653,7 @@
         if (vnpFilterParceiroId && String(v.localizador_id || "") !== String(vnpFilterParceiroId)) return false;
         if (vnpFilterFinanceiraId && String(v.financeira_id || "") !== String(vnpFilterFinanceiraId)) return false;
         if (vnpFilterEscritorioId && String(v.advocacy_office_id || "") !== String(vnpFilterEscritorioId)) return false;
+        if (vnpFilterPatioId && String(v.patio_parceiro_id || "") !== String(vnpFilterPatioId)) return false;
         return true;
       }
 
@@ -14655,6 +14661,7 @@
         const parc = document.getElementById("vnpFilterParceiro");
         const fin = document.getElementById("vnpFilterFinanceira");
         const esc = document.getElementById("vnpFilterEscritorio");
+        const patio = document.getElementById("vnpFilterPatio");
         if (parc) {
           const cur = String(vnpFilterParceiroId || "");
           const opts = allPartnersSorted()
@@ -14697,6 +14704,15 @@
           else {
             esc.value = "";
             vnpFilterEscritorioId = "";
+          }
+        }
+        if (patio) {
+          fillPartnerSelectByTipos(patio, "Todos os pátios", ["PATIO_APREENSAO", "PATIO"]);
+          const cur = String(vnpFilterPatioId || "");
+          if (cur && [...patio.options].some((o) => o.value === cur)) patio.value = cur;
+          else {
+            patio.value = "";
+            vnpFilterPatioId = "";
           }
         }
       }
@@ -25986,6 +26002,7 @@ ${body}
         vnpFilterParceiroId = "";
         vnpFilterFinanceiraId = "";
         vnpFilterEscritorioId = "";
+        vnpFilterPatioId = "";
         vnpFilterPlacaNorm = "";
         if (plateFilter) plateFilter.value = "";
         if (plateFilterPatio) plateFilterPatio.value = "";
@@ -26006,6 +26023,10 @@ ${body}
       });
       document.getElementById("vnpFilterEscritorio")?.addEventListener("change", (e) => {
         vnpFilterEscritorioId = e.target.value || "";
+        renderVehicles();
+      });
+      document.getElementById("vnpFilterPatio")?.addEventListener("change", (e) => {
+        vnpFilterPatioId = e.target.value || "";
         renderVehicles();
       });
       document.getElementById("vnpFilterPlaca")?.addEventListener("input", (e) => {
