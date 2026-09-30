@@ -2799,7 +2799,7 @@
         height: 72px;
         width: auto;
         max-width: 100%;
-        margin: 0 auto 10px;
+        margin: 0 auto 14px;
         object-fit: contain;
       }
       .ag-cob-head h1 {
@@ -2811,7 +2811,7 @@
         letter-spacing: 0.06em;
       }
       .ag-cob-meta {
-        margin: 18px 0 8px;
+        margin: 0 0 8px;
         padding: 12px 14px;
         background: #e6f4ff;
         border-left: 4px solid #1677ff;
@@ -20974,7 +20974,7 @@
       }
 
       function patioCobrancaArtigoHtml(model) {
-        const logo = `${location.origin}/assets/ampliguard-marca.png?v=20260917logo2`;
+        const logo = `${location.origin}/assets/ampliguard-header-system-trim.png?v=1`;
         const itens = (model.itens || [])
           .map(
             (it) => `<section class="ag-cob-item">
@@ -20990,7 +20990,6 @@
         return `<article class="ag-cob">
           <header class="ag-cob-head">
             <img src="${escapeHtml(logo)}" alt="AMPLIGUARD" />
-            <h1>COBRANÇA DE ESTADIAS</h1>
           </header>
           <div class="ag-cob-meta">
             <p><strong>Parceiro:</strong> ${escapeHtml(model.parceiro)}</p>
@@ -21011,9 +21010,8 @@
   .ag-cob { width: 100%; max-width: none; margin: 0; padding: 0; background: #fff; color: #001529; border-top: 0; box-shadow: none; }
   .ag-cob * { box-sizing: border-box; }
   .ag-cob-head { text-align: center; break-inside: avoid; page-break-inside: avoid; }
-  .ag-cob-head img { display: block; height: 22mm; width: auto; max-width: 90mm; margin: 0 auto 4mm; object-fit: contain; }
-  .ag-cob-head h1 { margin: 0; font-size: 16pt; line-height: 1.2; font-weight: 800; letter-spacing: 0.04em; color: #001529; }
-  .ag-cob-meta { margin: 6mm 0 2mm; padding: 3mm 4mm; background: #e6f4ff; border-left: 1.2mm solid #1677ff; border-radius: 2mm; break-inside: avoid; page-break-inside: avoid; }
+  .ag-cob-head img { display: block; height: 22mm; width: auto; max-width: 90mm; margin: 0 auto 5mm; object-fit: contain; }
+  .ag-cob-meta { margin: 0 0 2mm; padding: 3mm 4mm; background: #e6f4ff; border-left: 1.2mm solid #1677ff; border-radius: 2mm; break-inside: avoid; page-break-inside: avoid; }
   .ag-cob-meta p { margin: 0; font-size: 12pt; line-height: 1.4; color: #001529; }
   .ag-cob-meta p + p { margin-top: 1mm; }
   .ag-cob h2 { margin: 6mm 0 2mm; font-size: 11pt; font-weight: 800; letter-spacing: 0.06em; color: #001529; }
