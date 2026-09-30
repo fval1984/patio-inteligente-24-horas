@@ -2732,6 +2732,159 @@
       .hidden {
         display: none;
       }
+      #patioAguardandoGerarCobranca.hidden {
+        display: none !important;
+      }
+      .patio-cobranca-aviso {
+        margin: 0 0 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+        font-weight: 700;
+      }
+      .modal.patio-cobranca-modal {
+        width: min(840px, 96vw);
+        background: #fff;
+      }
+      .patio-cobranca-preview-scroll {
+        max-height: min(62vh, 720px);
+        overflow: auto;
+        background: #eef2f6;
+        border: 1px solid #dee2e6;
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .patio-cobranca-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .ag-cob {
+        width: 720px;
+        max-width: 100%;
+        margin: 0 auto;
+        box-sizing: border-box;
+        background: #ffffff;
+        color: #001529;
+        font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+        padding: 28px 28px 24px;
+        border-top: 6px solid #001529;
+        box-shadow: 0 8px 28px rgba(0, 21, 41, 0.08);
+      }
+      #patioCobrancaCaptureHost {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 720px;
+        z-index: 1;
+        pointer-events: none;
+        background: #ffffff;
+      }
+      #patioCobrancaCaptureHost .ag-cob {
+        width: 720px;
+        max-width: none;
+        box-shadow: none;
+      }
+      .ag-cob * {
+        box-sizing: border-box;
+      }
+      .ag-cob-head {
+        text-align: center;
+      }
+      .ag-cob-head img {
+        display: block;
+        height: 72px;
+        width: auto;
+        max-width: 100%;
+        margin: 0 auto 10px;
+        object-fit: contain;
+      }
+      .ag-cob-head h1 {
+        margin: 0;
+        color: #001529;
+        font-size: 22px;
+        line-height: 1.2;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+      }
+      .ag-cob-meta {
+        margin: 18px 0 8px;
+        padding: 12px 14px;
+        background: #e6f4ff;
+        border-left: 4px solid #1677ff;
+        border-radius: 8px;
+      }
+      .ag-cob-meta p,
+      .ag-cob-item p,
+      .ag-cob-brand,
+      .ag-cob-tag {
+        margin: 0;
+        color: #001529;
+      }
+      .ag-cob-meta p + p {
+        margin-top: 4px;
+      }
+      .ag-cob h2 {
+        margin: 18px 0 8px;
+        color: #001529;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+      .ag-cob-item {
+        padding: 12px 0 14px;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .ag-cob-item:last-child {
+        border-bottom: 0;
+      }
+      .ag-cob-veic {
+        font-size: 17px;
+        font-weight: 800;
+        line-height: 1.3;
+      }
+      .ag-cob-item p + p {
+        margin-top: 3px;
+        font-size: 15px;
+        line-height: 1.45;
+      }
+      .ag-cob-item .ag-cob-valor {
+        font-weight: 800;
+      }
+      .ag-cob-total {
+        margin-top: 18px;
+        padding: 16px 14px;
+        background: #001529;
+        border-radius: 10px;
+        text-align: center;
+      }
+      .ag-cob-total p {
+        margin: 0;
+        color: #ffffff;
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+      }
+      .ag-cob-brand {
+        margin-top: 16px;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+      .ag-cob .ag-cob-tag {
+        text-align: center;
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748b;
+      }
+      .ag-cob .ag-cob-total,
+      .ag-cob .ag-cob-total p {
+        color: #ffffff;
+      }
 
       .gestor-pista-welcome:not(.hidden) {
         display: flex;
@@ -7803,6 +7956,7 @@
               <div class="pill">Aguardando faturamento</div>
               <p class="notice" style="margin: 0 0 12px">
                 Ciclo do pátio já concluído (VRP). Selecione um ou mais veículos, preencha os dados de faturamento uma vez e gere um CDF para cada registro.
+                O botão Gerar Cobrança monta um demonstrativo dos veículos marcados do mesmo parceiro, sem faturar, mover ou alterar os registros.
               </p>
               <form id="patioAguardandoPlacaForm" class="filter-bar" style="margin: 0 0 12px" action="#" novalidate>
                 <label for="patioAguardandoPlaca">Placa</label>
@@ -7818,7 +7972,9 @@
                 </label>
                 <strong id="patioAguardandoSelCount">0 registros selecionados</strong>
                 <button type="button" id="patioAguardandoFaturarSel">Faturar Selecionados</button>
+                <button type="button" class="secondary hidden" id="patioAguardandoGerarCobranca">GERAR COBRANÇA</button>
               </div>
+              <p id="patioCobrancaParceiroAviso" class="patio-cobranca-aviso hidden" role="alert"></p>
               <p class="patio-aguardando-total" id="patioAguardandoFaturamentoTotal" aria-live="polite">Total: —</p>
               <div class="table-wrap">
                 <table class="table stacked">
@@ -8833,6 +8989,26 @@
               <button type="button" class="secondary" id="patioFaturamentoModalCancel">Cancelar</button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <div id="patioCobrancaPreviewModal" class="modal-backdrop hidden">
+        <div class="modal patio-cobranca-modal" role="dialog" aria-modal="true" aria-labelledby="patioCobrancaPreviewTitulo">
+          <div class="modal-header">
+            <div>
+              <h3 id="patioCobrancaPreviewTitulo">Pré-visualização da Cobrança</h3>
+              <p class="subtitle">Demonstrativo para o parceiro. Os registros permanecem em Aguardando Faturamento.</p>
+            </div>
+            <button type="button" class="modal-close" id="patioCobrancaPreviewClose">Fechar</button>
+          </div>
+          <div class="patio-cobranca-preview-scroll">
+            <div id="patioCobrancaDoc"></div>
+          </div>
+          <div class="patio-cobranca-actions">
+            <button type="button" id="patioCobrancaBaixar">BAIXAR IMAGEM</button>
+            <button type="button" id="patioCobrancaImprimir">IMPRIMIR</button>
+            <button type="button" class="secondary" id="patioCobrancaFechar">FECHAR</button>
+          </div>
         </div>
       </div>
 
@@ -20470,6 +20646,7 @@
           if (!chk) return;
           if (chk.checked) patioAguardandoSelecionados.add(String(chk.value));
           else patioAguardandoSelecionados.delete(String(chk.value));
+          patioCobrancaLimparAviso();
           patioAguardandoAtualizarSelecao();
         });
         document.getElementById("cdfLoteFecharBtn")?.addEventListener("click", () => {
@@ -20491,6 +20668,7 @@
       let patioAguardandoPlacaAchou = false;
       let patioAguardandoTopoDestaque = "";
       let patioAguardandoRolarTopo = false;
+      let patioCobrancaDocAtual = null;
 
       function renderFechamentoCicloTable(tbody, items) {
         if (!tbody) return;
@@ -20628,9 +20806,12 @@
         const todos = idsNaTela.length > 0 && idsNaTela.every((id) => patioAguardandoSelecionados.has(id));
         if (all) all.checked = todos;
         if (head) head.checked = todos;
+        const gerarBtn = document.getElementById("patioAguardandoGerarCobranca");
+        if (gerarBtn) gerarBtn.classList.toggle("hidden", hidesFinancialValues() || n < 1);
       }
 
       function patioAguardandoAlternarTodos(marcado) {
+        patioCobrancaLimparAviso();
         document.querySelectorAll(".patio-aguardando-check").forEach((el) => {
           el.checked = marcado;
           if (marcado) patioAguardandoSelecionados.add(String(el.value));
@@ -20638,6 +20819,410 @@
         });
         patioAguardandoAtualizarSelecao();
       }
+
+      function patioCobrancaLimparAviso() {
+        const el = document.getElementById("patioCobrancaParceiroAviso");
+        if (!el) return;
+        el.textContent = "";
+        el.classList.add("hidden");
+      }
+
+      function patioCobrancaMostrarAviso(texto) {
+        const el = document.getElementById("patioCobrancaParceiroAviso");
+        if (!el) {
+          alert(texto);
+          return;
+        }
+        el.textContent = texto;
+        el.classList.remove("hidden");
+        el.scrollIntoView({ block: "nearest" });
+      }
+
+      function patioCobrancaNormNome(nome) {
+        return String(nome || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .toLocaleLowerCase("pt-BR");
+      }
+
+      function patioCobrancaRpfExibido(r, vehicle) {
+        const closure = (state.cycleClosures || []).find((c) => String(c.receivable_id) === String(r.id));
+        const bruto =
+          String(r.responsavel_pagamento || "").trim() ||
+          String(closure?.responsavel_financeiro || "").trim() ||
+          (vehicle && typeof vehicleRpfNome === "function" ? vehicleRpfNome(vehicle) : "") ||
+          "";
+        const limpo = typeof financeStripFinmetaText === "function" ? financeStripFinmetaText(bruto) : bruto;
+        const nome = String(limpo || "").trim();
+        if (!nome || nome === "-" || nome === "—") return "";
+        return nome;
+      }
+
+      function patioCobrancaTextoLimpo(valor) {
+        const t = String(valor || "").trim();
+        if (!t || t === "-" || t === "—") return "";
+        return t;
+      }
+
+      function patioCobrancaRppRpvTexto(vehicle) {
+        if (!vehicle) return "";
+        const rpv = patioCobrancaTextoLimpo(typeof partnerNomeById === "function" ? partnerNomeById(vehicle.localizador_id) : "");
+        const rpp = patioCobrancaTextoLimpo(typeof vehicleRpfNome === "function" ? vehicleRpfNome(vehicle) : "");
+        if (rpp && rpv && rpp !== rpv) return `RPP: ${rpp} · RPV: ${rpv}`;
+        if (rpp && rpv) return `RPP/RPV: ${rpp}`;
+        if (rpp) return `RPP: ${rpp}`;
+        if (rpv) return `RPV: ${rpv}`;
+        return "";
+      }
+
+      function patioCobrancaDataTxt(valor) {
+        if (!valor) return "—";
+        const txt = typeof formatDateBr === "function" ? formatDateBr(valor) : "";
+        if (!txt || txt === "-") return "—";
+        return txt;
+      }
+
+      function patioCobrancaEntrada(r, vehicle) {
+        const closure = (state.cycleClosures || []).find((c) => String(c.receivable_id) === String(r.id));
+        return r.period_start || closure?.period_start || vehicle?.data_entrada || "";
+      }
+
+      function patioCobrancaSaida(r, vehicle) {
+        return r.period_end || vehicle?.data_saida || "";
+      }
+
+      function patioCobrancaDiarias(r, vehicle) {
+        let days = null;
+        if (typeof receivableFinanceBreakdown === "function") {
+          const br = receivableFinanceBreakdown(r, vehicle);
+          if (br && br.dias != null && Number.isFinite(Number(br.dias))) days = Number(br.dias);
+        }
+        const startStr = r.period_start || vehicle?.data_entrada;
+        const endStr = r.period_end || vehicle?.data_saida;
+        if (days == null && startStr && endStr) {
+          const diff = new Date(endStr).getTime() - new Date(startStr).getTime();
+          if (Number.isFinite(diff)) days = Math.max(1, Math.ceil(diff / 86400000));
+        }
+        if (days == null && typeof calcDays === "function" && vehicle?.data_entrada) {
+          days = calcDays({ ...vehicle, data_saida: endStr || vehicle.data_saida });
+        }
+        if (days == null || !Number.isFinite(Number(days))) return 0;
+        return Math.max(0, Math.round(Number(days)));
+      }
+
+      function patioCobrancaPeriodoLabel(dias) {
+        const n = Number(dias) || 0;
+        return n === 1 ? "1 diária" : `${n} diárias`;
+      }
+
+      function patioCobrancaHoje() {
+        const dt = new Date();
+        const dd = String(dt.getDate()).padStart(2, "0");
+        const mm = String(dt.getMonth() + 1).padStart(2, "0");
+        const yyyy = String(dt.getFullYear());
+        return { br: `${dd}/${mm}/${yyyy}`, arquivo: `${yyyy}-${mm}-${dd}` };
+      }
+
+      function patioCobrancaIdsSelecionados() {
+        const vistos = [];
+        document.querySelectorAll(".patio-aguardando-check").forEach((el) => {
+          const id = String(el.value || "");
+          if (id && patioAguardandoSelecionados.has(id)) vistos.push(id);
+        });
+        patioAguardandoSelecionados.forEach((id) => {
+          if (!vistos.includes(id)) vistos.push(id);
+        });
+        return vistos;
+      }
+
+      function patioCobrancaRegistrosSelecionados() {
+        const fonte =
+          typeof collectPatioAguardandoFaturamentoReceivables === "function"
+            ? collectPatioAguardandoFaturamentoReceivables()
+            : [];
+        const porId = new Map((fonte || []).map((r) => [String(r.id), r]));
+        return patioCobrancaIdsSelecionados()
+          .map((id) => porId.get(String(id)))
+          .filter(Boolean);
+      }
+
+      function patioCobrancaItens(registros) {
+        const itens = [];
+        for (const r of registros) {
+          const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(r.vehicle_id));
+          if (!vehicle) continue;
+          const parceiro = patioCobrancaRpfExibido(r, vehicle);
+          const placa = String(vehicle.placa || "—").trim().toUpperCase() || "—";
+          const mm = [vehicle.marca, vehicle.modelo].filter(Boolean).join(" ").trim();
+          const valorNum = Math.round((Number(r.valor) || 0) * 100) / 100;
+          const dias = patioCobrancaDiarias(r, vehicle);
+          itens.push({
+            chave: patioCobrancaNormNome(parceiro) || "sem-parceiro",
+            parceiro: parceiro || "Não informado",
+            titulo: `${placa} — ${mm ? mm.toUpperCase() : "—"}`,
+            rppRpv: patioCobrancaRppRpvTexto(vehicle),
+            entrada: patioCobrancaDataTxt(patioCobrancaEntrada(r, vehicle)),
+            saida: patioCobrancaDataTxt(patioCobrancaSaida(r, vehicle)),
+            periodo: patioCobrancaPeriodoLabel(dias),
+            valorNum,
+            valor: formatCurrency(valorNum),
+          });
+        }
+        return itens;
+      }
+
+      function patioCobrancaArtigoHtml(model) {
+        const logo = `${location.origin}/assets/ampliguard-marca.png?v=20260917logo2`;
+        const itens = (model.itens || [])
+          .map((it) => {
+            const rpp = it.rppRpv ? `<p>${escapeHtml(it.rppRpv)}</p>` : "";
+            return `<section class="ag-cob-item">
+              <p class="ag-cob-veic">${escapeHtml(it.titulo)}</p>
+              ${rpp}
+              <p>Entrada: ${escapeHtml(it.entrada)}</p>
+              <p>Saída: ${escapeHtml(it.saida)}</p>
+              <p>Período: ${escapeHtml(it.periodo)}</p>
+              <p class="ag-cob-valor">Valor: ${escapeHtml(it.valor)}</p>
+            </section>`;
+          })
+          .join("");
+        return `<article class="ag-cob">
+          <header class="ag-cob-head">
+            <img src="${escapeHtml(logo)}" alt="AMPLIGUARD" />
+            <h1>COBRANÇA DE ESTADIAS</h1>
+          </header>
+          <div class="ag-cob-meta">
+            <p><strong>Parceiro:</strong> ${escapeHtml(model.parceiro)}</p>
+            <p><strong>Data de emissão:</strong> ${escapeHtml(model.emissao)}</p>
+          </div>
+          <h2>VEÍCULOS / ESTADIAS</h2>
+          <div class="ag-cob-list">${itens}</div>
+          <div class="ag-cob-total"><p>VALOR TOTAL: ${escapeHtml(model.total)}</p></div>
+          <p class="ag-cob-brand">AMPLIGUARD</p>
+          <p class="ag-cob-tag">Guarda, Custódia e Remoção de Veículos</p>
+        </article>`;
+      }
+
+      function patioCobrancaCssImpressao() {
+        return `
+  @page { size: A4 portrait; margin: 14mm 14mm 16mm; }
+  html, body { margin: 0; padding: 0; background: #fff; color: #001529; }
+  body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; }
+  .ag-cob { width: 100%; max-width: none; margin: 0; padding: 0; background: #fff; color: #001529; border-top: 0; box-shadow: none; }
+  .ag-cob * { box-sizing: border-box; }
+  .ag-cob-head { text-align: center; break-inside: avoid; page-break-inside: avoid; }
+  .ag-cob-head img { display: block; height: 22mm; width: auto; max-width: 90mm; margin: 0 auto 4mm; object-fit: contain; }
+  .ag-cob-head h1 { margin: 0; font-size: 16pt; line-height: 1.2; font-weight: 800; letter-spacing: 0.04em; color: #001529; }
+  .ag-cob-meta { margin: 6mm 0 2mm; padding: 3mm 4mm; background: #e6f4ff; border-left: 1.2mm solid #1677ff; border-radius: 2mm; break-inside: avoid; page-break-inside: avoid; }
+  .ag-cob-meta p { margin: 0; font-size: 12pt; line-height: 1.4; color: #001529; }
+  .ag-cob-meta p + p { margin-top: 1mm; }
+  .ag-cob h2 { margin: 6mm 0 2mm; font-size: 11pt; font-weight: 800; letter-spacing: 0.06em; color: #001529; }
+  .ag-cob-item { padding: 3.5mm 0 4mm; border-bottom: 0.3mm solid #e2e8f0; break-inside: avoid; page-break-inside: avoid; }
+  .ag-cob-item:last-child { border-bottom: 0; }
+  .ag-cob-veic { margin: 0; font-size: 13pt; font-weight: 800; line-height: 1.3; color: #001529; }
+  .ag-cob-item p { margin: 0; font-size: 12pt; line-height: 1.45; color: #001529; }
+  .ag-cob-item p + p { margin-top: 0.8mm; }
+  .ag-cob-valor { font-weight: 800; }
+  .ag-cob-total { margin-top: 6mm; padding: 4mm 3mm; background: #001529; border-radius: 2mm; text-align: center; break-inside: avoid; page-break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ag-cob-total p { margin: 0; color: #fff; font-size: 16pt; font-weight: 800; }
+  .ag-cob-brand { margin: 6mm 0 0; text-align: center; font-size: 11pt; font-weight: 800; letter-spacing: 0.06em; color: #001529; break-inside: avoid; page-break-inside: avoid; }
+  .ag-cob-tag { margin: 1mm 0 0; text-align: center; font-size: 10pt; font-weight: 600; color: #64748b; }
+`;
+      }
+
+      function patioCobrancaPrintHtml(model) {
+        const artigo = patioCobrancaArtigoHtml(model);
+        return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>Cobrança de Estadias</title><style>${patioCobrancaCssImpressao()}</style></head><body>${artigo}</body></html>`;
+      }
+
+      function patioCobrancaFecharPreview() {
+        document.getElementById("patioCobrancaPreviewModal")?.classList.add("hidden");
+      }
+
+      function patioCobrancaGerar() {
+        if (hidesFinancialValues()) return;
+        const registros = patioCobrancaRegistrosSelecionados();
+        if (!registros.length) {
+          patioCobrancaMostrarAviso("Selecione os registros para gerar a cobrança.");
+          return;
+        }
+        const itens = patioCobrancaItens(registros);
+        if (!itens.length) {
+          patioCobrancaMostrarAviso("Não foi possível montar a cobrança com os registros selecionados.");
+          return;
+        }
+        const chaves = new Set(itens.map((it) => it.chave));
+        if (chaves.size > 1) {
+          patioCobrancaMostrarAviso("Selecione apenas registros do mesmo parceiro para gerar a cobrança.");
+          return;
+        }
+        const hoje = patioCobrancaHoje();
+        const totalCent = itens.reduce((s, it) => s + Math.round(it.valorNum * 100), 0);
+        patioCobrancaDocAtual = {
+          parceiro: itens[0].parceiro,
+          emissao: hoje.br,
+          arquivoData: hoje.arquivo,
+          itens,
+          total: formatCurrency(totalCent / 100),
+        };
+        patioCobrancaLimparAviso();
+        const doc = document.getElementById("patioCobrancaDoc");
+        if (doc) doc.innerHTML = patioCobrancaArtigoHtml(patioCobrancaDocAtual);
+        document.getElementById("patioCobrancaPreviewModal")?.classList.remove("hidden");
+      }
+
+      function patioCobrancaSlug(nome) {
+        const slug = String(nome || "Parceiro")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^A-Za-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 80);
+        return slug || "Parceiro";
+      }
+
+      function patioCobrancaNomeArquivo(model) {
+        return `Cobranca_AMPLIGUARD_${patioCobrancaSlug(model?.parceiro)}_${model?.arquivoData || patioCobrancaHoje().arquivo}.png`;
+      }
+
+      function patioCobrancaEscalaImagem(alturaCss) {
+        const maxAltura = 32000;
+        if (!alturaCss || alturaCss <= 0) return 2;
+        const cabe = maxAltura / alturaCss;
+        return Math.max(0.35, Math.min(2, Math.floor(cabe * 100) / 100));
+      }
+
+      function patioCobrancaEsperarImagens(root) {
+        const imgs = [...root.querySelectorAll("img")];
+        return Promise.all(
+          imgs.map(
+            (img) =>
+              new Promise((resolve) => {
+                if (img.complete) {
+                  resolve();
+                  return;
+                }
+                img.addEventListener("load", () => resolve(), { once: true });
+                img.addEventListener("error", () => resolve(), { once: true });
+              })
+          )
+        );
+      }
+
+      async function patioCobrancaBaixarImagem() {
+        const model = patioCobrancaDocAtual;
+        if (!model) return;
+        const btn = document.getElementById("patioCobrancaBaixar");
+        if (btn) btn.disabled = true;
+        const host = document.createElement("div");
+        host.id = "patioCobrancaCaptureHost";
+        host.setAttribute("aria-hidden", "true");
+        host.innerHTML = patioCobrancaArtigoHtml(model);
+        document.body.appendChild(host);
+        try {
+          const h2c = await loadHtml2Canvas();
+          await patioCobrancaEsperarImagens(host);
+          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          const alvo = host.querySelector(".ag-cob") || host;
+          const altura = Math.max(alvo.scrollHeight, alvo.offsetHeight, 1);
+          const canvas = await h2c(alvo, {
+            backgroundColor: "#ffffff",
+            scale: patioCobrancaEscalaImagem(altura),
+            useCORS: true,
+            width: 720,
+            height: altura,
+            windowWidth: 720,
+            windowHeight: Math.max(altura, window.innerHeight || 800),
+          });
+          const link = document.createElement("a");
+          link.href = canvas.toDataURL("image/png");
+          link.download = patioCobrancaNomeArquivo(model);
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+        } catch (err) {
+          console.error(err);
+          alert("Não foi possível gerar a imagem neste aparelho.");
+        } finally {
+          host.remove();
+          if (btn) btn.disabled = false;
+        }
+      }
+
+      function patioCobrancaImprimir() {
+        const model = patioCobrancaDocAtual;
+        if (!model) return;
+        const html = patioCobrancaPrintHtml(model);
+        const iframe = document.createElement("iframe");
+        iframe.setAttribute("title", "Impressão da cobrança");
+        iframe.setAttribute("aria-hidden", "true");
+        iframe.style.cssText =
+          "position:fixed;left:0;top:0;width:210mm;height:297mm;border:0;opacity:0;pointer-events:none;z-index:-1;";
+        document.body.appendChild(iframe);
+        const win = iframe.contentWindow;
+        if (!win) {
+          iframe.remove();
+          alert("Não foi possível preparar a impressão neste navegador.");
+          return;
+        }
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+        let feito = false;
+        const imprimir = () => {
+          if (feito) return;
+          feito = true;
+          try {
+            win.focus();
+            win.print();
+          } catch (e) {
+            /* ignore */
+          }
+          setTimeout(() => {
+            try {
+              iframe.remove();
+            } catch (err) {
+              /* ignore */
+            }
+          }, 800);
+        };
+        const imgs = [...(win.document.images || [])];
+        if (!imgs.length) {
+          setTimeout(imprimir, 200);
+          return;
+        }
+        let pendentes = imgs.length;
+        const pronto = () => {
+          pendentes -= 1;
+          if (pendentes <= 0) setTimeout(imprimir, 80);
+        };
+        imgs.forEach((img) => {
+          if (img.complete) pronto();
+          else {
+            img.addEventListener("load", pronto, { once: true });
+            img.addEventListener("error", pronto, { once: true });
+          }
+        });
+        setTimeout(imprimir, 1500);
+      }
+
+      document.getElementById("patioAguardandoGerarCobranca")?.addEventListener("click", () => {
+        patioCobrancaGerar();
+      });
+      document.getElementById("patioCobrancaBaixar")?.addEventListener("click", () => {
+        void patioCobrancaBaixarImagem();
+      });
+      document.getElementById("patioCobrancaImprimir")?.addEventListener("click", () => {
+        patioCobrancaImprimir();
+      });
+      document.getElementById("patioCobrancaFechar")?.addEventListener("click", patioCobrancaFecharPreview);
+      document.getElementById("patioCobrancaPreviewClose")?.addEventListener("click", patioCobrancaFecharPreview);
+      document.getElementById("patioCobrancaPreviewModal")?.addEventListener("click", (ev) => {
+        if (ev.target.id === "patioCobrancaPreviewModal") patioCobrancaFecharPreview();
+      });
+
       function renderRemovedVehicles(tbody, items) {
         if (!items.length) {
           setEmptyRow(tbody, "Nenhum veículo removido.", 10);
