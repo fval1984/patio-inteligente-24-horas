@@ -2978,6 +2978,16 @@
         padding: 6px 10px;
         font-size: 12px;
       }
+      #vnpFiltersBar select {
+        min-width: 180px;
+        max-width: 260px;
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+      #vnpFiltersBar input {
+        width: 128px;
+        text-transform: uppercase;
+      }
       .toolbar h2 {
         margin: 0;
       }
@@ -4428,6 +4438,12 @@
         .filter-bar input,
         .filter-bar select {
           width: 100%;
+          min-width: 0;
+        }
+        #vnpFiltersBar select,
+        #vnpFiltersBar input {
+          width: 100%;
+          max-width: none;
           min-width: 0;
         }
         .table.stacked thead {
@@ -7790,6 +7806,23 @@
             </div>
             <div class="section-card patio-subview hidden" data-subview="no_patio">
               <div class="pill">VNP</div>
+              <div id="vnpFiltersBar" class="filter-bar" style="margin: 0 0 12px">
+                <label for="vnpFilterPlaca">Buscar placa</label>
+                <input id="vnpFilterPlaca" type="text" maxlength="8" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="Placa" aria-label="Buscar por placa" />
+                <label for="vnpFilterParceiro">Parceiro</label>
+                <select id="vnpFilterParceiro" aria-label="Parceiro">
+                  <option value="">Todos os parceiros</option>
+                </select>
+                <label for="vnpFilterFinanceira">Instituição Financeira</label>
+                <select id="vnpFilterFinanceira" aria-label="Instituição Financeira">
+                  <option value="">Todas as instituições</option>
+                </select>
+                <label for="vnpFilterEscritorio">Escritório</label>
+                <select id="vnpFilterEscritorio" aria-label="Escritório">
+                  <option value="">Todos os escritórios</option>
+                </select>
+                <button type="button" class="secondary" id="vnpFiltersClear">Limpar filtros</button>
+              </div>
                 <div class="table-wrap">
                 <table class="table stacked patio-vehicle-table">
                 <thead class="patio-mob-thead">
@@ -10916,6 +10949,10 @@
       let financeConciliacaoFilter = "pendentes";
       let financePlateInputTimer = null;
       let vlsListFilterLocatorId = "";
+      let vnpFilterParceiroId = "";
+      let vnpFilterFinanceiraId = "";
+      let vnpFilterEscritorioId = "";
+      let vnpFilterPlacaNorm = "";
       let listaFilterLocatorId = "";
       let listaFilterRpfId = "";
       let listaFilterPlaca = "";
@@ -14601,6 +14638,69 @@
         });
       }
 
+      function vnpOrganizationalFiltersOn() {
+        return !!(vnpFilterParceiroId || vnpFilterFinanceiraId || vnpFilterEscritorioId);
+      }
+
+      function vehicleMatchesVnpFilters(v) {
+        if (!v) return false;
+        if (vnpFilterPlacaNorm && normalizePlateSearch(v.placa) !== vnpFilterPlacaNorm) return false;
+        if (vnpFilterParceiroId && String(v.localizador_id || "") !== String(vnpFilterParceiroId)) return false;
+        if (vnpFilterFinanceiraId && String(v.financeira_id || "") !== String(vnpFilterFinanceiraId)) return false;
+        if (vnpFilterEscritorioId && String(v.advocacy_office_id || "") !== String(vnpFilterEscritorioId)) return false;
+        return true;
+      }
+
+      function syncVnpFilterSelects() {
+        const parc = document.getElementById("vnpFilterParceiro");
+        const fin = document.getElementById("vnpFilterFinanceira");
+        const esc = document.getElementById("vnpFilterEscritorio");
+        if (parc) {
+          const cur = String(vnpFilterParceiroId || "");
+          const opts = allPartnersSorted()
+            .map((p) => {
+              const id = String(p.id);
+              return `<option value="${escapeHtml(id)}"${id === cur ? " selected" : ""}>${escapeHtml(p.nome || "-")}</option>`;
+            })
+            .join("");
+          parc.innerHTML = `<option value="">Todos os parceiros</option>${opts}`;
+          if (cur && [...parc.options].some((o) => o.value === cur)) parc.value = cur;
+          else {
+            parc.value = "";
+            vnpFilterParceiroId = "";
+          }
+        }
+        if (fin) {
+          fillPartnerSelectByTipos(fin, "Todas as instituições", ["INSTITUICAO_FINANCEIRA", "FINANCEIRA"]);
+          const cur = String(vnpFilterFinanceiraId || "");
+          if (cur && [...fin.options].some((o) => o.value === cur)) fin.value = cur;
+          else {
+            fin.value = "";
+            vnpFilterFinanceiraId = "";
+          }
+        }
+        if (esc) {
+          const cur = String(vnpFilterEscritorioId || "");
+          const offices = [...(state.advocacyOffices || [])].sort((a, b) =>
+            String(a.name || "").localeCompare(String(b.name || ""), "pt-BR", { sensitivity: "base" })
+          );
+          const opts = offices
+            .map((o) => {
+              const id = String(o.id);
+              const nome = String(o.name || "-").trim() || "-";
+              const label = o.active === false ? `${nome} (inativo)` : nome;
+              return `<option value="${escapeHtml(id)}"${id === cur ? " selected" : ""}>${escapeHtml(label)}</option>`;
+            })
+            .join("");
+          esc.innerHTML = `<option value="">Todos os escritórios</option>${opts}`;
+          if (cur && [...esc.options].some((o) => o.value === cur)) esc.value = cur;
+          else {
+            esc.value = "";
+            vnpFilterEscritorioId = "";
+          }
+        }
+      }
+
       function syncVlsFilterSelects() {
         const locSel = document.getElementById("vlsFilterLocator");
         if (!locSel) return;
@@ -18082,6 +18182,7 @@
         state.advocacyOffices = data || [];
         await loadAdvocacyOfficeManagers();
         syncAdvocacyOfficeState();
+        syncVnpFilterSelects();
         bindVehicleAdvocacyPicker();
         bindVehicleRppPicker();
         if (typeof window.advocacyOfficesUi?.bindOnce === "function") window.advocacyOfficesUi.bindOnce();
@@ -19832,7 +19933,9 @@
           }
         }
 
-        const vnpOnPatio = sortVnpOnPatioForDisplay(filteredVehicles.filter((v) => isVnpStageVehicle(v)));
+        syncVnpFilterSelects();
+        const vnpOnPatioAll = sortVnpOnPatioForDisplay(filteredVehicles.filter((v) => isVnpStageVehicle(v)));
+        const vnpOnPatio = vnpOnPatioAll.filter(vehicleMatchesVnpFilters);
         const vslItems = sortVnpUnifiedForDisplay(mergeVslItems(byStatus));
         const vscItems = sortVnpUnifiedForDisplay(mergeVscItems(byStatus));
         const vlpItems = sortVnpUnifiedForDisplay(vlsForTable);
@@ -19886,14 +19989,16 @@
           if (patioCardValue1) patioCardValue1.textContent = String(vnpOnPatio.length);
           if (patioCardValue2) patioCardValue2.textContent = String(vslItems.length);
           if (patioCardValue3) patioCardValue3.textContent = String(vscItems.length);
-          if (patioCardMeta1) patioCardMeta1.textContent = "no pátio, inclui VSL e VSC";
+          if (patioCardMeta1) patioCardMeta1.textContent = vnpOrganizationalFiltersOn() ? "no pátio, com os filtros" : "no pátio, inclui VSL e VSC";
           if (patioCardMeta2) patioCardMeta2.textContent = "liberação solicitada, ainda no pátio";
           if (patioCardMeta3) patioCardMeta3.textContent = "liberação confirmada, aguardando saída";
         }
 
         renderVnpUnifiedTable(tableNoPatio, vnpOnPatio, {
           registoKind: "vnp",
-          emptyText: "Nenhum veículo no pátio.",
+          emptyText: vnpOrganizationalFiltersOn() || vnpFilterPlacaNorm
+            ? "Nenhum veículo no pátio com os filtros selecionados."
+            : "Nenhum veículo no pátio.",
         });
         if (window.vehicleEntryInspection?.renderAwaitingTable) {
           window.vehicleEntryInspection.renderAwaitingTable(tableVistoria, state.vehicles, buildVehicleInspectionCtx());
@@ -23376,6 +23481,7 @@
         fillPartnerSelectByTipos(vehicleAuctioneer, "Sem leiloeiro", ["LEILOEIRO"]);
         fillPartnerSelectByTipos(document.getElementById("vehiclePatioPartner"), "Sem pátio", ["PATIO_APREENSAO", "PATIO"]);
         fillPartnerSelectByTipos(document.getElementById("vehicleFinanceira"), "Sem financeira", ["INSTITUICAO_FINANCEIRA", "FINANCEIRA"]);
+        syncVnpFilterSelects();
       }
 
       function openPartnerRegistrationFlow() {
@@ -25868,6 +25974,45 @@ ${body}
         const loc = document.getElementById("vlsFilterLocator");
         if (loc) loc.value = "";
         renderVehicles();
+      });
+
+      function applyVnpPlateFromInput(raw) {
+        const norm = normalizePlateSearch(raw);
+        vnpFilterPlacaNorm = norm.length >= 7 ? norm : "";
+        renderVehicles();
+      }
+
+      function clearVnpOrganizationalFilters() {
+        vnpFilterParceiroId = "";
+        vnpFilterFinanceiraId = "";
+        vnpFilterEscritorioId = "";
+        vnpFilterPlacaNorm = "";
+        if (plateFilter) plateFilter.value = "";
+        if (plateFilterPatio) plateFilterPatio.value = "";
+        const placa = document.getElementById("vnpFilterPlaca");
+        if (placa) placa.value = "";
+        plateQuery = "";
+        setPlateSearchHints("", false);
+        renderVehicles();
+      }
+
+      document.getElementById("vnpFilterParceiro")?.addEventListener("change", (e) => {
+        vnpFilterParceiroId = e.target.value || "";
+        renderVehicles();
+      });
+      document.getElementById("vnpFilterFinanceira")?.addEventListener("change", (e) => {
+        vnpFilterFinanceiraId = e.target.value || "";
+        renderVehicles();
+      });
+      document.getElementById("vnpFilterEscritorio")?.addEventListener("change", (e) => {
+        vnpFilterEscritorioId = e.target.value || "";
+        renderVehicles();
+      });
+      document.getElementById("vnpFilterPlaca")?.addEventListener("input", (e) => {
+        applyVnpPlateFromInput(e.target.value);
+      });
+      document.getElementById("vnpFiltersClear")?.addEventListener("click", () => {
+        clearVnpOrganizationalFilters();
       });
 
       document.getElementById("listaSubnav")?.addEventListener("click", (e) => {
