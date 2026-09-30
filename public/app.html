@@ -2791,14 +2791,22 @@
       .ag-cob * {
         box-sizing: border-box;
       }
-      .ag-cob-head {
+      .ag-cob > .ag-cob-head {
         text-align: center;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        background: none !important;
+        background-image: none !important;
+        padding: 0 !important;
+        overflow: visible !important;
       }
-      .ag-cob-head img {
+      .ag-cob > .ag-cob-head img {
         display: block;
-        height: 72px;
-        width: auto;
+        width: 100%;
+        height: auto !important;
         max-width: 100%;
+        max-height: none !important;
         margin: 0 auto 14px;
         object-fit: contain;
       }
@@ -20974,7 +20982,7 @@
       }
 
       function patioCobrancaArtigoHtml(model) {
-        const logo = `${location.origin}/assets/ampliguard-marca.png?v=20260917logo2`;
+        const logo = `${location.origin}/assets/ampliguard-header-institutional.jpg?v=20260930cob1`;
         const itens = (model.itens || [])
           .map(
             (it) => `<section class="ag-cob-item">
@@ -21009,8 +21017,8 @@
   body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; }
   .ag-cob { width: 100%; max-width: none; margin: 0; padding: 0; background: #fff; color: #001529; border-top: 0; box-shadow: none; }
   .ag-cob * { box-sizing: border-box; }
-  .ag-cob-head { text-align: center; break-inside: avoid; page-break-inside: avoid; }
-  .ag-cob-head img { display: block; height: 22mm; width: auto; max-width: 90mm; margin: 0 auto 5mm; object-fit: contain; }
+  .ag-cob-head { text-align: center; height: auto; min-height: 0; max-height: none; background: none; padding: 0; overflow: visible; break-inside: avoid; page-break-inside: avoid; }
+  .ag-cob-head img { display: block; width: 100%; height: auto; max-width: 100%; max-height: none; margin: 0 auto 5mm; object-fit: contain; }
   .ag-cob-meta { margin: 0 0 2mm; padding: 3mm 4mm; background: #e6f4ff; border-left: 1.2mm solid #1677ff; border-radius: 2mm; break-inside: avoid; page-break-inside: avoid; }
   .ag-cob-meta p { margin: 0; font-size: 12pt; line-height: 1.4; color: #001529; }
   .ag-cob-meta p + p { margin-top: 1mm; }
