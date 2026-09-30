@@ -9006,7 +9006,7 @@
           </div>
           <div class="patio-cobranca-actions">
             <button type="button" id="patioCobrancaBaixar">BAIXAR IMAGEM</button>
-            <button type="button" id="patioCobrancaImprimir">IMPRIMIR</button>
+            <button type="button" id="patioCobrancaImprimir">IMPRIMIR COBRANÇA</button>
             <button type="button" class="secondary" id="patioCobrancaFechar">FECHAR</button>
           </div>
         </div>
@@ -20961,11 +20961,11 @@
           itens.push({
             chave: patioCobrancaNormNome(parceiro) || "sem-parceiro",
             parceiro: parceiro || "Não informado",
-            titulo: `${placa} — ${mm ? mm.toUpperCase() : "—"}`,
-            rppRpv: patioCobrancaRppRpvTexto(vehicle),
+            placa,
+            marcaModelo: mm || "—",
             entrada: patioCobrancaDataTxt(patioCobrancaEntrada(r, vehicle)),
             saida: patioCobrancaDataTxt(patioCobrancaSaida(r, vehicle)),
-            periodo: patioCobrancaPeriodoLabel(dias),
+            diarias: String(dias),
             valorNum,
             valor: formatCurrency(valorNum),
           });
@@ -20976,17 +20976,16 @@
       function patioCobrancaArtigoHtml(model) {
         const logo = `${location.origin}/assets/ampliguard-marca.png?v=20260917logo2`;
         const itens = (model.itens || [])
-          .map((it) => {
-            const rpp = it.rppRpv ? `<p>${escapeHtml(it.rppRpv)}</p>` : "";
-            return `<section class="ag-cob-item">
-              <p class="ag-cob-veic">${escapeHtml(it.titulo)}</p>
-              ${rpp}
-              <p>Entrada: ${escapeHtml(it.entrada)}</p>
-              <p>Saída: ${escapeHtml(it.saida)}</p>
-              <p>Período: ${escapeHtml(it.periodo)}</p>
-              <p class="ag-cob-valor">Valor: ${escapeHtml(it.valor)}</p>
-            </section>`;
-          })
+          .map(
+            (it) => `<section class="ag-cob-item">
+              <p><strong>Placa:</strong> ${escapeHtml(it.placa)}</p>
+              <p><strong>Marca/Modelo:</strong> ${escapeHtml(it.marcaModelo)}</p>
+              <p><strong>Entrada:</strong> ${escapeHtml(it.entrada)}</p>
+              <p><strong>Saída:</strong> ${escapeHtml(it.saida)}</p>
+              <p><strong>Diárias:</strong> ${escapeHtml(it.diarias)}</p>
+              <p class="ag-cob-valor"><strong>Valor:</strong> ${escapeHtml(it.valor)}</p>
+            </section>`
+          )
           .join("");
         return `<article class="ag-cob">
           <header class="ag-cob-head">
@@ -20995,11 +20994,10 @@
           </header>
           <div class="ag-cob-meta">
             <p><strong>Parceiro:</strong> ${escapeHtml(model.parceiro)}</p>
-            <p><strong>Data de emissão:</strong> ${escapeHtml(model.emissao)}</p>
+            <p><strong>Data da cobrança:</strong> ${escapeHtml(model.emissao)}</p>
           </div>
-          <h2>VEÍCULOS / ESTADIAS</h2>
           <div class="ag-cob-list">${itens}</div>
-          <div class="ag-cob-total"><p>VALOR TOTAL: ${escapeHtml(model.total)}</p></div>
+          <div class="ag-cob-total"><p>VALOR TOTAL DA COBRANÇA: ${escapeHtml(model.total)}</p></div>
           <p class="ag-cob-brand">AMPLIGUARD</p>
           <p class="ag-cob-tag">Guarda, Custódia e Remoção de Veículos</p>
         </article>`;
@@ -21055,7 +21053,7 @@
         }
         const chaves = new Set(itens.map((it) => it.chave));
         if (chaves.size > 1) {
-          patioCobrancaMostrarAviso("Selecione apenas registros do mesmo parceiro para gerar a cobrança.");
+          patioCobrancaMostrarAviso("Para gerar a cobrança, selecione apenas registros do mesmo parceiro.");
           return;
         }
         const hoje = patioCobrancaHoje();
@@ -21208,7 +21206,9 @@
         setTimeout(imprimir, 1500);
       }
 
-      document.getElementById("patioAguardandoGerarCobranca")?.addEventListener("click", () => {
+      document.getElementById("patioAguardandoGerarCobranca")?.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
         patioCobrancaGerar();
       });
       document.getElementById("patioCobrancaBaixar")?.addEventListener("click", () => {
