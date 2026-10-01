@@ -410,7 +410,7 @@ button {
   transition: background var(--ag-ease), border-color var(--ag-ease), color var(--ag-ease);
 }
 
-button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.close-view):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn):not(.exec-ops-kpi):not(.exec-ops-link):not(.exec-ops-attn button):not(.exec-ops-period button):not(.fin-simple-card):not(.fin-simple-attn):not(.fin-simple-recent button):not(.dashboard-system-btn):not(.header-menu-dropdown button):not(.cmd-ops-kpi):not(.cmd-ops-attn button):not(.cmd-ops-link):not(.fin-act-kpi) {
+button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.close-view):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn):not(.exec-ops-kpi):not(.exec-ops-link):not(.exec-ops-attn button):not(.exec-ops-period button):not(.fin-simple-card):not(.fin-simple-attn):not(.fin-simple-recent button):not(.dashboard-system-btn):not(.header-menu-dropdown button):not(.cmd-ops-kpi):not(.cmd-ops-attn button):not(.cmd-ops-link):not(.fin-act-kpi):not(.ao-card):not(.ao-band):not(.ao-attn):not(.ao-bucket):not(.ao-sort):not(.ao-clear) {
   background: var(--ag-iron) !important;
   color: #f6f3ee !important;
   border: 1px solid #000 !important;
