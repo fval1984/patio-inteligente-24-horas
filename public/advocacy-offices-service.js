@@ -85,6 +85,19 @@
     return !isRemoved(v);
   }
 
+  /** Mesma etapa do pátio: VNP → VSL → VSC → VRP. Não altera o status gravado. */
+  function flowStage(v) {
+    const s = statusUpper(v);
+    if (s === "REMOVIDO") return { code: "VRP", label: "Retirado do Pátio" };
+    if (s === "LIBERACAO_SOLICITADA") return { code: "VSL", label: "Solicitação de Liberação" };
+    if (s === "LIBERACAO_CONFIRMADA" || s === "REMOCAO_CONFIRMADA") {
+      return { code: "VSC", label: "Liberação Confirmada" };
+    }
+    return { code: "VNP", label: "No Pátio" };
+  }
+
+  const FLOW_STAGE_CODES = { VNP: true, VSL: true, VSC: true, VRP: true };
+
   function isPending(v) {
     const s = String(v?.status || "");
     if (s === "AGUARDANDO_VISTORIA" || s === "LIBERACAO_SOLICITADA") return true;
@@ -363,7 +376,11 @@
         return false;
       }
       if (finId && financeiraId(v) !== finId) return false;
-      if (status && String(v.status || "") !== status) return false;
+      if (status) {
+        if (FLOW_STAGE_CODES[status]) {
+          if (flowStage(v).code !== status) return false;
+        } else if (String(v.status || "") !== status) return false;
+      }
       if (tipo && resolveTipoVeiculo(v) !== tipo) return false;
       if (situacao === "no_patio" && !isOnPatio(v)) return false;
       if (situacao === "baixado" && !isRemoved(v)) return false;
@@ -548,6 +565,328 @@
     return { from, to };
   }
 
+  function blankText(value) {
+    const s = String(value == null ? "" : value).trim();
+    return s;
+  }
+
+  function roundMoney(n) {
+    const x = Number(n);
+    if (!Number.isFinite(x)) return 0;
+    return Math.round(x * 100) / 100;
+  }
+
+  function addMoney(a, b) {
+    return roundMoney(roundMoney(a) + roundMoney(b));
+  }
+
+  /** Permanência cruza o período: entrou até o fim e (saiu a partir do início ou ainda está). */
+  function stayOverlapsPeriod(v, fromYmd, toYmd) {
+    if (!fromYmd && !toYmd) return true;
+    const ent = toLocalYmd(v?.data_entrada);
+    if (!ent) return false;
+    const saida = toLocalYmd(v?.data_saida);
+    const end = saida || "9999-12-31";
+    const start = fromYmd || "0000-01-01";
+    const finish = toYmd || "9999-12-31";
+    return ent <= finish && end >= start;
+  }
+
+  function ymdInRange(ymd, fromYmd, toYmd) {
+    if (!fromYmd && !toYmd) return true;
+    if (!ymd) return false;
+    if (fromYmd && ymd < fromYmd) return false;
+    if (toYmd && ymd > toYmd) return false;
+    return true;
+  }
+
+  function partnerNomeById(id, partners) {
+    if (!id) return "";
+    const p = (partners || []).find((x) => String(x.id) === String(id));
+    return blankText(p?.nome);
+  }
+
+  function rppRpvText(v, partners) {
+    const rpv = partnerNomeById(v?.localizador_id, partners);
+    const rppId = blankText(v?.responsavel_financeiro_id || v?.localizador_id);
+    const rpp = rppId
+      ? partnerNomeById(rppId, partners) || blankText(v?.responsavel_financeiro_nome)
+      : "";
+    if (rpp && rpv && rpp !== rpv) return `RPP: ${rpp} · RPV: ${rpv}`;
+    if (rpp && rpv) return `RPP/RPV: ${rpp}`;
+    if (rpp) return `RPP: ${rpp}`;
+    if (rpv) return `RPV: ${rpv}`;
+    return "";
+  }
+
+  function hasDailyRate(v) {
+    if (v?.valor_diaria == null || v.valor_diaria === "") return false;
+    return Number.isFinite(Number(v.valor_diaria));
+  }
+
+  function estadiaValor(v, endYmd) {
+    if (!hasDailyRate(v) || !toLocalYmd(v?.data_entrada)) return null;
+    return roundMoney(stayDays(v, endYmd) * Number(v.valor_diaria));
+  }
+
+  function cleanNotes(value) {
+    return String(value || "")
+      .replace(/\[\[finmeta:[\s\S]*?\]\]/g, "")
+      .replace(/\[\[partnermeta:[\s\S]*?\]\]/g, "")
+      .trim();
+  }
+
+  function officeCnpjText(office) {
+    if (!office) return "";
+    const raw = blankText(office.cnpj || office.cnpj_digits);
+    const d = digits(raw);
+    if (d.length === 14) return formatCnpj(d);
+    return raw;
+  }
+
+  function linkedManagersLabel(managers, officeId) {
+    const list = managersForOffice(managers, officeId);
+    if (!list.length) return "";
+    return list
+      .map((m) => {
+        const name = blankText(m.name);
+        if (!name) return "";
+        return m.active === false ? `${name} (inativo)` : name;
+      })
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  function emptyFinance() {
+    return {
+      estadia: null,
+      faturadoValor: 0,
+      recebido: 0,
+      aberto: 0,
+      vencido: 0,
+      faturado: false,
+      faturamentoLabel: "Não faturado",
+      pagamentoKey: "",
+      pagamentoLabel: "—",
+      faturadoEm: [],
+      pagoEm: [],
+      openCount: 0,
+      paidCount: 0,
+    };
+  }
+
+  function financeOfVehicle(v, receivables, classifyReceivable) {
+    const fin = emptyFinance();
+    const recs = (receivables || []).filter((r) => String(r?.vehicle_id || "") === String(v?.id || ""));
+    if (!classifyReceivable || !recs.length) return fin;
+    recs.forEach((r) => {
+      let info = null;
+      try {
+        info = classifyReceivable(r, v);
+      } catch (_e) {
+        info = null;
+      }
+      if (!info || info.skip) return;
+      const valor = roundMoney(info.valor != null ? info.valor : r.valor || 0);
+      const billed = !!info.billed;
+      const received = !!info.received;
+      if (billed || received) {
+        fin.faturado = true;
+        fin.faturadoValor = addMoney(fin.faturadoValor, valor);
+      }
+      if (received) {
+        fin.recebido = addMoney(fin.recebido, valor);
+        fin.paidCount += 1;
+      } else if (billed) {
+        fin.aberto = addMoney(fin.aberto, valor);
+        fin.openCount += 1;
+        if (info.overdue) fin.vencido = addMoney(fin.vencido, valor);
+      }
+      const fat = blankText(info.faturadoEm);
+      const pago = blankText(info.pagoEm);
+      if (fat && fin.faturadoEm.indexOf(fat) < 0) fin.faturadoEm.push(fat);
+      if (pago && received && fin.pagoEm.indexOf(pago) < 0) fin.pagoEm.push(pago);
+    });
+    fin.faturamentoLabel = fin.faturado ? "Faturado" : "Não faturado";
+    if (fin.vencido > 0) fin.pagamentoKey = "vencido";
+    else if (fin.aberto > 0) fin.pagamentoKey = "aberto";
+    else if (fin.recebido > 0) fin.pagamentoKey = "pago";
+    fin.pagamentoLabel =
+      fin.pagamentoKey === "pago"
+        ? "Pago"
+        : fin.pagamentoKey === "aberto"
+          ? "Em aberto"
+          : fin.pagamentoKey === "vencido"
+            ? "Vencido"
+            : "—";
+    fin.faturadoEm.sort();
+    fin.pagoEm.sort();
+    return fin;
+  }
+
+  function vehiclePassesFinanceFilters(fin, filters) {
+    const fat = String(filters?.faturamento || "");
+    if (fat === "faturado" && !fin.faturado) return false;
+    if (fat === "nao_faturado" && fin.faturado) return false;
+    const pay = String(filters?.pagamento || "");
+    if (pay && fin.pagamentoKey !== pay) return false;
+    return true;
+  }
+
+  function filterOfficeReportVehicles(vehicles, partners, filters) {
+    const officeId = String(filters?.officeId || "");
+    const managerId = String(filters?.managerId || "");
+    const patioId = String(filters?.patioId || "");
+    const finId = String(filters?.financeiraId || "");
+    const status = String(filters?.status || "");
+    const tipo = String(filters?.tipoVeiculo || "");
+    const situacao = String(filters?.situacaoPatio || "");
+    return (vehicles || []).filter((v) => {
+      if (officeId === "__sem__") {
+        if (v?.advocacy_office_id) return false;
+      } else if (officeId && String(v?.advocacy_office_id || "") !== officeId) {
+        return false;
+      }
+      if (!stayOverlapsPeriod(v, filters?.from || "", filters?.to || "")) return false;
+      if (
+        (filters?.entradaFrom || filters?.entradaTo) &&
+        !ymdInRange(toLocalYmd(v?.data_entrada), filters.entradaFrom || "", filters.entradaTo || "")
+      ) {
+        return false;
+      }
+      if (
+        (filters?.saidaFrom || filters?.saidaTo) &&
+        !ymdInRange(toLocalYmd(v?.data_saida), filters.saidaFrom || "", filters.saidaTo || "")
+      ) {
+        return false;
+      }
+      if (managerId && String(v?.advocacy_office_manager_id || "") !== managerId) return false;
+      if (patioId && String(v?.patio_parceiro_id || "") !== patioId) return false;
+      if (finId && financeiraId(v) !== finId) return false;
+      if (status) {
+        if (FLOW_STAGE_CODES[status]) {
+          if (flowStage(v).code !== status) return false;
+        } else if (String(v?.status || "") !== status) return false;
+      }
+      if (tipo && resolveTipoVeiculo(v) !== tipo) return false;
+      if (situacao === "no_patio" && !isOnPatio(v)) return false;
+      if (situacao === "baixado" && !isRemoved(v)) return false;
+      if (situacao === "pendente" && !isPending(v)) return false;
+      return true;
+    });
+  }
+
+  /**
+   * Relatório detalhado de um escritório.
+   * Valores financeiros só entram pelo classificador (títulos já gravados).
+   * A estadia é dias de permanência × valor_diaria já cadastrado. Sem diária, o valor fica vazio.
+   */
+  function buildOfficeReport(input) {
+    const filters = input?.filters || {};
+    const offices = input?.offices || [];
+    const partners = input?.partners || [];
+    const managers = input?.managers || [];
+    const eventsByVehicle = input?.eventsByVehicle || {};
+    const endYmd = todayYmd();
+    const officeId = String(filters.officeId || "");
+    const office =
+      officeId && officeId !== "__sem__"
+        ? (offices || []).find((o) => String(o.id) === officeId) || null
+        : null;
+    const candidates = filterOfficeReportVehicles(input?.vehicles || [], partners, filters);
+    const rows = [];
+    candidates.forEach((v) => {
+      const stage = flowStage(v);
+      const fin = financeOfVehicle(v, input?.receivables || [], input?.classifyReceivable);
+      if (!vehiclePassesFinanceFilters(fin, filters)) return;
+      const ev = eventsByVehicle[String(v.id)] || {};
+      const gestorId = v.advocacy_office_manager_id || "";
+      const patioNome = partnerNomeById(v.patio_parceiro_id, partners) || blankText(input?.patioFallbackName);
+      const dias = stayDays(v, endYmd);
+      const estadia = estadiaValor(v, endYmd);
+      fin.estadia = estadia;
+      rows.push({
+        id: v.id,
+        rppRpv: rppRpvText(v, partners),
+        placa: blankText(v.placa),
+        veiculo: [v.marca, v.modelo].filter(Boolean).join(" ").trim(),
+        cor: blankText(v.cor),
+        parceiro: partnerNomeById(v.localizador_id, partners),
+        escritorio: officeId === "__sem__" ? "" : officeName(v.advocacy_office_id, offices),
+        gestor: gestorId ? managerName(gestorId, managers) : "",
+        patio: v.patio_parceiro_id ? partnerNomeById(v.patio_parceiro_id, partners) : patioNome,
+        dataEntrada: toLocalYmd(v.data_entrada) || "",
+        dataSolicitacao: blankText(ev.solicitacao),
+        dataConfirmacao: blankText(ev.confirmacao),
+        dataSaida: toLocalYmd(v.data_saida) || blankText(ev.retirada),
+        dias,
+        valorDiaria: hasDailyRate(v) ? roundMoney(v.valor_diaria) : null,
+        estadia,
+        stageCode: stage.code,
+        stageLabel: stage.label,
+        situacao: `${stage.code} — ${stage.label}`,
+        faturamento: fin.faturamentoLabel,
+        pagamento: fin.pagamentoLabel,
+        pagamentoKey: fin.pagamentoKey,
+        faturado: fin.faturado,
+        faturadoEm: fin.faturadoEm.slice(),
+        pagoEm: fin.pagoEm.slice(),
+        faturadoValor: fin.faturadoValor,
+        recebido: fin.recebido,
+        aberto: fin.aberto,
+        vencido: fin.vencido,
+        openCount: fin.openCount,
+        paidCount: fin.paidCount,
+        observacoes: cleanNotes(v.observacoes),
+      });
+    });
+    rows.sort((a, b) => String(b.dataEntrada || "").localeCompare(String(a.dataEntrada || "")) || String(a.placa).localeCompare(String(b.placa), "pt-BR"));
+
+    const summary = {
+      veiculos: rows.length,
+      noPatio: rows.filter((r) => r.stageCode !== "VRP").length,
+      vsl: rows.filter((r) => r.stageCode === "VSL").length,
+      vsc: rows.filter((r) => r.stageCode === "VSC").length,
+      retirados: rows.filter((r) => r.stageCode === "VRP").length,
+      diarias: rows.reduce((s, r) => s + (Number(r.dias) || 0), 0),
+      estadia: null,
+      faturado: 0,
+      recebido: 0,
+      aberto: 0,
+      vencido: 0,
+      semDiaria: rows.filter((r) => r.estadia == null).length,
+      registrosAbertos: 0,
+      registrosPagos: 0,
+    };
+    let estadiaSum = 0;
+    let estadiaAny = false;
+    rows.forEach((r) => {
+      if (r.estadia != null) {
+        estadiaAny = true;
+        estadiaSum = addMoney(estadiaSum, r.estadia);
+      }
+      summary.faturado = addMoney(summary.faturado, r.faturadoValor);
+      summary.recebido = addMoney(summary.recebido, r.recebido);
+      summary.aberto = addMoney(summary.aberto, r.aberto);
+      summary.vencido = addMoney(summary.vencido, r.vencido);
+      summary.registrosAbertos += r.openCount || 0;
+      summary.registrosPagos += r.paidCount || 0;
+    });
+    summary.estadia = estadiaAny ? estadiaSum : rows.length ? null : 0;
+
+    return {
+      office: {
+        id: officeId,
+        name: officeId === "__sem__" ? "Sem escritório informado" : office?.name || (officeId ? "Escritório removido" : ""),
+        cnpj: officeCnpjText(office),
+        managers: officeId && officeId !== "__sem__" ? linkedManagersLabel(managers, officeId) : "",
+      },
+      filters,
+      summary,
+      vehicles: rows,
+    };
+  }
+
   global.advocacyOfficesService = {
     digits,
     formatCnpj,
@@ -572,6 +911,9 @@
     searchOffices,
     linkedVehicleCount,
     filterDemandVehicles,
+    flowStage,
+    buildOfficeReport,
+    stayOverlapsPeriod,
     computeReport,
     rankingRows,
     chartRange,
@@ -581,4 +923,5 @@
     financeiraNome,
     kpisOf,
   };
+  if (typeof module !== "undefined" && module.exports) module.exports = global.advocacyOfficesService;
 })(typeof window !== "undefined" ? window : globalThis);
