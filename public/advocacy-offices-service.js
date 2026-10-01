@@ -670,6 +670,7 @@
       pagamentoLabel: "—",
       faturadoEm: [],
       pagoEm: [],
+      lancamentos: [],
       openCount: 0,
       paidCount: 0,
     };
@@ -706,6 +707,13 @@
       const pago = blankText(info.pagoEm);
       if (fat && fin.faturadoEm.indexOf(fat) < 0) fin.faturadoEm.push(fat);
       if (pago && received && fin.pagoEm.indexOf(pago) < 0) fin.pagoEm.push(pago);
+      fin.lancamentos.push({
+        valor,
+        billed: billed || received,
+        received,
+        faturadoEm: fat,
+        pagoEm: received ? pago : "",
+      });
     });
     fin.faturamentoLabel = fin.faturado ? "Faturado" : "Não faturado";
     if (fin.vencido > 0) fin.pagamentoKey = "vencido";
@@ -831,6 +839,7 @@
         faturado: fin.faturado,
         faturadoEm: fin.faturadoEm.slice(),
         pagoEm: fin.pagoEm.slice(),
+        lancamentos: fin.lancamentos.slice(),
         faturadoValor: fin.faturadoValor,
         recebido: fin.recebido,
         aberto: fin.aberto,
@@ -874,7 +883,9 @@
     });
     summary.estadia = estadiaAny ? estadiaSum : rows.length ? null : 0;
 
+    const insights = officeReportInsights({ filters, vehicles: rows }, endYmd);
     return {
+      insights,
       office: {
         id: officeId,
         name: officeId === "__sem__" ? "Sem escritório informado" : office?.name || (officeId ? "Escritório removido" : ""),
@@ -885,6 +896,316 @@
       summary,
       vehicles: rows,
     };
+  }
+
+  function calendarSpanDays(startYmd, endYmd) {
+    if (!startYmd || !endYmd || endYmd < startYmd) return 0;
+    return Math.max(1, Math.ceil((ymdToDate(endYmd).getTime() - ymdToDate(startYmd).getTime()) / 86400000));
+  }
+
+  function eachYmd(fromYmd, toYmd, fn) {
+    if (!fromYmd || !toYmd || toYmd < fromYmd) return;
+    let cur = fromYmd;
+    let guard = 0;
+    while (cur <= toYmd && guard < 4000) {
+      fn(cur);
+      cur = addDaysYmd(cur, 1);
+      guard += 1;
+    }
+  }
+
+  const STAY_BANDS = [
+    { id: "0-10", label: "0 a 10 dias", min: 1, max: 10 },
+    { id: "11-20", label: "11 a 20 dias", min: 11, max: 20 },
+    { id: "21-30", label: "21 a 30 dias", min: 21, max: 30 },
+    { id: "31-60", label: "31 a 60 dias", min: 31, max: 60 },
+    { id: "61-90", label: "61 a 90 dias", min: 61, max: 90 },
+    { id: "90+", label: "Acima de 90 dias", min: 91, max: 100000 },
+  ];
+
+  function suggestOfficeBucket(fromYmd, toYmd) {
+    if (!fromYmd || !toYmd || toYmd < fromYmd) return "month";
+    const span = Math.round((ymdToDate(toYmd).getTime() - ymdToDate(fromYmd).getTime()) / 86400000) + 1;
+    if (span <= 31) return "day";
+    if (span <= 120) return "week";
+    return "month";
+  }
+
+  function bucketStartYmd(ymd, mode) {
+    if (!ymd) return "";
+    if (mode === "month") return `${ymd.slice(0, 7)}-01`;
+    if (mode === "week") {
+      const day = ymdToDate(ymd).getDay();
+      const back = day === 0 ? 6 : day - 1;
+      return addDaysYmd(ymd, -back);
+    }
+    return ymd;
+  }
+
+  function bucketEndYmd(start, mode, periodEnd) {
+    let end = start;
+    if (mode === "month") {
+      const [y, m] = start.split("-").map(Number);
+      const last = new Date(y, m, 0).getDate();
+      end = `${start.slice(0, 7)}-${String(last).padStart(2, "0")}`;
+    } else if (mode === "week") end = addDaysYmd(start, 6);
+    if (periodEnd && end > periodEnd) return periodEnd;
+    return end;
+  }
+
+  function chargedDays(row) {
+    const start = row?.dataEntrada || "";
+    const n = Number(row?.dias) || 0;
+    if (!start || n <= 0) return [];
+    const out = [];
+    for (let i = 0; i < n && i < 4000; i += 1) out.push(addDaysYmd(start, i));
+    return out;
+  }
+
+  function inYmdWindow(ymd, fromYmd, toYmd) {
+    if (!ymd) return false;
+    if (fromYmd && ymd < fromYmd) return false;
+    if (toYmd && ymd > toYmd) return false;
+    return true;
+  }
+
+  function avgSamples(values) {
+    if (!values.length) return { media: null, quantidade: 0 };
+    const media = Math.round(values.reduce((s, n) => s + n, 0) / values.length);
+    return { media, quantidade: values.length };
+  }
+
+  function stageGap(rows, fromKey, toKey) {
+    const values = [];
+    (rows || []).forEach((r) => {
+      const a = r?.[fromKey] || "";
+      const b = r?.[toKey] || "";
+      if (!a || !b || b < a) return;
+      const days = calendarSpanDays(a, b);
+      if (days > 0) values.push(days);
+    });
+    return avgSamples(values);
+  }
+
+  function officeReportInsights(report, asOfYmd) {
+    const rows = report?.vehicles || [];
+    const filters = report?.filters || {};
+    const from = filters.from || "";
+    const to = filters.to || "";
+    const onPatio = rows.filter((r) => r.stageCode !== "VRP");
+    const diasAtuais = onPatio.map((r) => Number(r.dias) || 0).filter((n) => n > 0);
+    const entradas = rows.filter((r) => inYmdWindow(r.dataEntrada, from, to));
+    const saidas = rows.filter((r) => inYmdWindow(r.dataSaida, from, to));
+    let geradoPeriodo = 0;
+    let geradoAny = false;
+    rows.forEach((r) => {
+      if (r.valorDiaria == null) return;
+      chargedDays(r).forEach((day) => {
+        if (!inYmdWindow(day, from, to)) return;
+        geradoAny = true;
+        geradoPeriodo = addMoney(geradoPeriodo, r.valorDiaria);
+      });
+    });
+    const bands = STAY_BANDS.map((band) => ({
+      id: band.id,
+      label: band.label,
+      quantidade: onPatio.filter((r) => {
+        const d = Number(r.dias) || 0;
+        return d >= band.min && d <= band.max;
+      }).length,
+    }));
+    const maiorLista = onPatio
+      .filter((r) => Number(r.dias) > 0)
+      .slice()
+      .sort((a, b) => (Number(b.dias) || 0) - (Number(a.dias) || 0) || String(a.placa).localeCompare(String(b.placa), "pt-BR"));
+    const maiorDias = maiorLista.length ? Number(maiorLista[0].dias) : null;
+    let semDataFaturamento = 0;
+    let semDataPagamento = 0;
+    rows.forEach((r) => {
+      (r.lancamentos || []).forEach((l) => {
+        if ((l.billed || l.received) && !l.faturadoEm) semDataFaturamento += 1;
+        if (l.received && !l.pagoEm) semDataPagamento += 1;
+      });
+    });
+    return {
+      asOf: asOfYmd || todayYmd(),
+      entradas: entradas.length,
+      saidas: saidas.length,
+      mediaDias: diasAtuais.length ? Math.round(diasAtuais.reduce((s, n) => s + n, 0) / diasAtuais.length) : null,
+      maiorDias,
+      geradoPeriodo: geradoAny ? geradoPeriodo : rows.length ? null : 0,
+      bands,
+      maiorPermanencia: maiorLista,
+      etapas: {
+        entradaSolicitacao: stageGap(rows, "dataEntrada", "dataSolicitacao"),
+        solicitacaoConfirmacao: stageGap(rows, "dataSolicitacao", "dataConfirmacao"),
+        confirmacaoRetirada: stageGap(rows, "dataConfirmacao", "dataSaida"),
+        entradaRetirada: stageGap(rows, "dataEntrada", "dataSaida"),
+      },
+      atencao: {
+        longa: onPatio.filter((r) => Number(r.dias) > 60),
+        liberados: rows.filter((r) => r.stageCode === "VSC"),
+        aguardandoFaturamento: rows.filter((r) => r.stageCode === "VRP" && !r.faturado),
+        vencidos: rows.filter((r) => Number(r.vencido) > 0),
+        abertos: rows.filter((r) => Number(r.aberto) > 0),
+        semMovimento: onPatio.filter((r) => !r.dataSolicitacao && Number(r.dias) >= 30),
+      },
+      semDataFaturamento,
+      semDataPagamento,
+    };
+  }
+
+  function officeReportTimeline(rows, filters, mode, asOfYmd) {
+    const asOf = asOfYmd || todayYmd();
+    const from = filters?.from || "";
+    const to = filters?.to || asOf;
+    const entradas = (rows || []).map((r) => r.dataEntrada).filter(Boolean).sort();
+    const start = from || entradas[0] || asOf;
+    const end = to || asOf;
+    const bucket = mode || suggestOfficeBucket(start, end);
+    if (!start || !end || end < start) return { bucket, points: [] };
+    const points = new Map();
+    const ensure = (ymd) => {
+      const key = bucketStartYmd(ymd, bucket);
+      if (!points.has(key)) {
+        points.set(key, {
+          key,
+          entradas: 0,
+          saidas: 0,
+          permanencia: 0,
+          mediaDias: null,
+          gerado: 0,
+          faturado: 0,
+          recebido: 0,
+          aberto: 0,
+          _staySum: 0,
+          _stayN: 0,
+        });
+      }
+      return points.get(key);
+    };
+    eachYmd(start, end, (day) => ensure(day));
+    (rows || []).forEach((row) => {
+      if (inYmdWindow(row.dataEntrada, start, end)) ensure(row.dataEntrada).entradas += 1;
+      if (inYmdWindow(row.dataSaida, start, end)) ensure(row.dataSaida).saidas += 1;
+      const days = chargedDays(row).filter((day) => inYmdWindow(day, start, end));
+      const seen = new Set();
+      days.forEach((day) => {
+        const p = ensure(day);
+        if (row.valorDiaria != null) p.gerado = addMoney(p.gerado, row.valorDiaria);
+        seen.add(p.key);
+      });
+      seen.forEach((key) => {
+        const p = points.get(key);
+        p.permanencia += 1;
+        const last = days.filter((day) => bucketStartYmd(day, bucket) === key).sort().pop();
+        const stay = calendarSpanDays(row.dataEntrada, last);
+        if (stay > 0) {
+          p._staySum += stay;
+          p._stayN += 1;
+        }
+      });
+      (row.lancamentos || []).forEach((l) => {
+        if ((l.billed || l.received) && inYmdWindow(l.faturadoEm, start, end)) {
+          const p = ensure(l.faturadoEm);
+          p.faturado = addMoney(p.faturado, l.valor);
+        }
+        if (l.received && inYmdWindow(l.pagoEm, start, end)) {
+          const p = ensure(l.pagoEm);
+          p.recebido = addMoney(p.recebido, l.valor);
+        }
+      });
+    });
+    return {
+      bucket,
+      points: Array.from(points.values())
+        .sort((a, b) => a.key.localeCompare(b.key))
+        .map((p) => {
+          const bucketEnd = bucketEndYmd(p.key, bucket, end);
+          let aberto = 0;
+          (rows || []).forEach((row) => {
+            (row.lancamentos || []).forEach((l) => {
+              if (!(l.billed || l.received) || !l.faturadoEm || l.faturadoEm > bucketEnd) return;
+              if (l.received && !l.pagoEm) return;
+              if (l.received && l.pagoEm <= bucketEnd) return;
+              aberto = addMoney(aberto, l.valor);
+            });
+          });
+          return {
+            key: p.key,
+            entradas: p.entradas,
+            saidas: p.saidas,
+            permanencia: p.permanencia,
+            mediaDias: p._stayN ? Math.round(p._staySum / p._stayN) : null,
+            gerado: p.gerado,
+            faturado: p.faturado,
+            recebido: p.recebido,
+            aberto,
+          };
+        }),
+    };
+  }
+
+  function filterOfficeReportDrill(rows, drill, filters) {
+    const list = rows || [];
+    const id = String(drill || "all");
+    const from = filters?.from || "";
+    const to = filters?.to || "";
+    if (!id || id === "all") return list.slice();
+    if (id === "patio") return list.filter((r) => r.stageCode !== "VRP");
+    if (id === "entradas") return list.filter((r) => inYmdWindow(r.dataEntrada, from, to));
+    if (id === "saidas") return list.filter((r) => inYmdWindow(r.dataSaida, from, to));
+    if (id === "vsl") return list.filter((r) => r.stageCode === "VSL");
+    if (id === "vsc") return list.filter((r) => r.stageCode === "VSC");
+    if (id === "gerado") return list.filter((r) => r.estadia != null || r.valorDiaria != null);
+    if (id === "faturado") return list.filter((r) => r.faturado);
+    if (id === "recebido") return list.filter((r) => Number(r.recebido) > 0);
+    if (id === "aberto") return list.filter((r) => Number(r.aberto) > 0);
+    if (id === "maior") {
+      const onPatio = list.filter((r) => r.stageCode !== "VRP" && Number(r.dias) > 0);
+      const max = onPatio.reduce((m, r) => Math.max(m, Number(r.dias) || 0), 0);
+      return onPatio.filter((r) => Number(r.dias) === max);
+    }
+    if (id.indexOf("band:") === 0) {
+      const band = STAY_BANDS.find((b) => b.id === id.slice(5));
+      if (!band) return list.slice();
+      return list.filter((r) => r.stageCode !== "VRP" && Number(r.dias) >= band.min && Number(r.dias) <= band.max);
+    }
+    if (id === "attn:longa") return list.filter((r) => r.stageCode !== "VRP" && Number(r.dias) > 60);
+    if (id === "attn:vsc") return list.filter((r) => r.stageCode === "VSC");
+    if (id === "attn:fat") return list.filter((r) => r.stageCode === "VRP" && !r.faturado);
+    if (id === "attn:vencido") return list.filter((r) => Number(r.vencido) > 0);
+    if (id === "attn:aberto") return list.filter((r) => Number(r.aberto) > 0);
+    if (id === "attn:sem-mov") return list.filter((r) => r.stageCode !== "VRP" && !r.dataSolicitacao && Number(r.dias) >= 30);
+    return list.slice();
+  }
+
+  function sortOfficeReportRows(rows, sort) {
+    const key = sort?.key || "dataEntrada";
+    const dir = sort?.dir === "asc" ? 1 : -1;
+    const textKeys = { placa: 1, veiculo: 1, gestor: 1, patio: 1, situacao: 1, stageCode: 1 };
+    return (rows || []).slice().sort((a, b) => {
+      const va = a?.[key];
+      const vb = b?.[key];
+      if (!textKeys[key]) {
+        const na = va == null || va === "" ? null : Number(va);
+        const nb = vb == null || vb === "" ? null : Number(vb);
+        if (key === "dataEntrada" || key === "dataSaida") {
+          const sa = String(va || "");
+          const sb = String(vb || "");
+          if (!sa && sb) return 1;
+          if (sa && !sb) return -1;
+          if (sa !== sb) return dir * sa.localeCompare(sb);
+        } else if (na == null && nb == null) {
+          /* keep going */
+        } else if (na == null) return 1;
+        else if (nb == null) return -1;
+        else if (na !== nb) return dir * (na - nb);
+      }
+      const cmp = String(va || "").localeCompare(String(vb || ""), "pt-BR");
+      if (cmp) return dir * cmp;
+      return String(a?.placa || "").localeCompare(String(b?.placa || ""), "pt-BR");
+    });
   }
 
   global.advocacyOfficesService = {
@@ -913,6 +1234,12 @@
     filterDemandVehicles,
     flowStage,
     buildOfficeReport,
+    officeReportInsights,
+    officeReportTimeline,
+    filterOfficeReportDrill,
+    sortOfficeReportRows,
+    suggestOfficeBucket,
+    STAY_BANDS,
     stayOverlapsPeriod,
     computeReport,
     rankingRows,
