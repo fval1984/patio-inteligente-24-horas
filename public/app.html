@@ -8125,7 +8125,7 @@
             </p>
             <div id="escritoriosSubnav" class="subnav">
               <button type="button" data-ao-sub="cadastro" class="active">Cadastro</button>
-              <button type="button" data-ao-sub="relatorio">Relatório de demanda</button>
+              <button type="button" data-ao-sub="relatorio">Relatório de escritório</button>
             </div>
             <div id="aoCadastroPanel">
               <div id="aoCadastroRoot"></div>
@@ -8141,8 +8141,32 @@
                   <input type="date" id="aoRepTo" />
                 </div>
                 <div>
+                  <label for="aoRepEntradaFrom">Entrada de</label>
+                  <input type="date" id="aoRepEntradaFrom" />
+                </div>
+                <div>
+                  <label for="aoRepEntradaTo">Entrada até</label>
+                  <input type="date" id="aoRepEntradaTo" />
+                </div>
+                <div>
+                  <label for="aoRepSaidaFrom">Saída de</label>
+                  <input type="date" id="aoRepSaidaFrom" />
+                </div>
+                <div>
+                  <label for="aoRepSaidaTo">Saída até</label>
+                  <input type="date" id="aoRepSaidaTo" />
+                </div>
+                <div>
                   <label for="aoRepOffice">Escritório</label>
                   <select id="aoRepOffice"><option value="">Todos</option></select>
+                </div>
+                <div>
+                  <label for="aoRepManager">Gestor de Carteira</label>
+                  <select id="aoRepManager"><option value="">Todos</option></select>
+                </div>
+                <div>
+                  <label for="aoRepPatio">Pátio</label>
+                  <select id="aoRepPatio"><option value="">Todos</option></select>
                 </div>
                 <div>
                   <label for="aoRepFinanceira">Financeira</label>
@@ -8150,7 +8174,30 @@
                 </div>
                 <div>
                   <label for="aoRepStatus">Status do veículo</label>
-                  <select id="aoRepStatus"><option value="">Todos</option></select>
+                  <select id="aoRepStatus">
+                    <option value="">Todos</option>
+                    <option value="VNP">No Pátio</option>
+                    <option value="VSL">Solicitação de Liberação</option>
+                    <option value="VSC">Liberação Confirmada</option>
+                    <option value="VRP">Retirado do Pátio</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="aoRepFaturamento">Faturamento</label>
+                  <select id="aoRepFaturamento">
+                    <option value="">Todos</option>
+                    <option value="faturado">Faturado</option>
+                    <option value="nao_faturado">Não faturado</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="aoRepPagamento">Pagamento</label>
+                  <select id="aoRepPagamento">
+                    <option value="">Todos</option>
+                    <option value="pago">Pago</option>
+                    <option value="aberto">Em aberto</option>
+                    <option value="vencido">Vencido</option>
+                  </select>
                 </div>
                 <div>
                   <label for="aoRepTipo">Tipo de veículo</label>
@@ -8166,6 +8213,8 @@
                   </select>
                 </div>
                 <button type="button" id="aoGenerateReport">Gerar relatório</button>
+                <button type="button" id="aoPrintReport" class="secondary hidden" hidden>Imprimir Relatório</button>
+                <button type="button" id="aoPdfReport" class="secondary hidden" hidden>Baixar PDF</button>
               </div>
               <div id="aoRelatorioRoot"></div>
             </div>
@@ -10096,8 +10145,9 @@
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
-    <script src="/advocacy-offices-service.js?v=20260909partners2"></script>
-    <script src="/advocacy-offices-ui.js?v=20260917logo1"></script>
+    <script src="/advocacy-offices-service.js?v=20261001escritorio2"></script>
+    <script src="/advocacy-office-report-ui.js?v=20261001escritorio2"></script>
+    <script src="/advocacy-offices-ui.js?v=20261001escritorio2"></script>
     <script src="/cobranca-service.js?v=20260910cob4"></script>
     <script src="/cobranca-ui.js?v=20260917logo1"></script>
     <script>
