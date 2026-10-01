@@ -436,18 +436,40 @@
     _readonly = false;
   }
 
-  function currentReportFilters() {
-    if (_reportFilters) return _reportFilters;
-    const d = svc().defaultPeriod();
-    _reportFilters = {
-      from: d.from,
-      to: d.to,
+  function emptyReportFilters(from, to) {
+    return {
+      from: from || "",
+      to: to || "",
       officeId: "",
       financeiraId: "",
       status: "",
       tipoVeiculo: "",
       situacaoPatio: "",
+      entradaFrom: "",
+      entradaTo: "",
+      saidaFrom: "",
+      saidaTo: "",
+      managerId: "",
+      patioId: "",
+      faturamento: "",
+      pagamento: "",
     };
+  }
+
+  function setOfficeReportActions(on) {
+    if (!on && global.advocacyOfficeReport) global.advocacyOfficeReport.cancel();
+    ["aoPrintReport", "aoPdfReport"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.hidden = !on;
+      el.classList.toggle("hidden", !on);
+    });
+  }
+
+  function currentReportFilters() {
+    if (_reportFilters) return _reportFilters;
+    const d = svc().defaultPeriod();
+    _reportFilters = emptyReportFilters(d.from, d.to);
     return _reportFilters;
   }
 
@@ -485,11 +507,44 @@
     }
     const st = document.getElementById("aoRepStatus");
     if (st) {
-      st.innerHTML =
-        opt("", "Todos", f.status) +
-        svc()
-          .uniqueStatuses(vehicles)
-          .map((s) => opt(s, svc().STATUS_LABELS[s] || s, f.status))
+      const stages = [
+        ["VNP", "No Pátio"],
+        ["VSL", "Solicitação de Liberação"],
+        ["VSC", "Liberação Confirmada"],
+        ["VRP", "Retirado do Pátio"],
+      ];
+      st.innerHTML = opt("", "Todos", f.status) + stages.map(([id, label]) => opt(id, label, f.status)).join("");
+    }
+    const mgr = document.getElementById("aoRepManager");
+    if (mgr) {
+      const all = global.__ampliState?.advocacyOfficeManagers || [];
+      const list = f.officeId && f.officeId !== "__sem__" ? svc().managersForOffice(all, f.officeId) : all.slice();
+      mgr.innerHTML =
+        opt("", "Todos", f.managerId) +
+        list
+          .slice()
+          .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR"))
+          .map((m) => opt(m.id, m.active === false ? `${m.name} (inativo)` : m.name, f.managerId))
+          .join("");
+    }
+    const pat = document.getElementById("aoRepPatio");
+    if (pat) {
+      const ids = new Map();
+      (partners || []).forEach((p) => {
+        const tipo = String(p.tipo || "").toUpperCase();
+        if (tipo.indexOf("PATIO") >= 0) ids.set(String(p.id), p.nome || p.id);
+      });
+      (vehicles || []).forEach((v) => {
+        const id = String(v.patio_parceiro_id || "");
+        if (!id || ids.has(id)) return;
+        const p = (partners || []).find((x) => String(x.id) === id);
+        ids.set(id, p?.nome || id);
+      });
+      pat.innerHTML =
+        opt("", "Todos", f.patioId) +
+        Array.from(ids.entries())
+          .sort((a, b) => String(a[1]).localeCompare(String(b[1]), "pt-BR"))
+          .map(([id, nome]) => opt(id, nome, f.patioId))
           .join("");
     }
     const tp = document.getElementById("aoRepTipo");
@@ -507,6 +562,16 @@
     if (to) to.value = f.to || "";
     const sit = document.getElementById("aoRepSituacao");
     if (sit) sit.value = f.situacaoPatio || "";
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = val || "";
+    };
+    setVal("aoRepEntradaFrom", f.entradaFrom);
+    setVal("aoRepEntradaTo", f.entradaTo);
+    setVal("aoRepSaidaFrom", f.saidaFrom);
+    setVal("aoRepSaidaTo", f.saidaTo);
+    setVal("aoRepFaturamento", f.faturamento);
+    setVal("aoRepPagamento", f.pagamento);
   }
 
   function readReportFiltersFromDom() {
@@ -518,6 +583,14 @@
       status: document.getElementById("aoRepStatus")?.value || "",
       tipoVeiculo: document.getElementById("aoRepTipo")?.value || "",
       situacaoPatio: document.getElementById("aoRepSituacao")?.value || "",
+      entradaFrom: document.getElementById("aoRepEntradaFrom")?.value || "",
+      entradaTo: document.getElementById("aoRepEntradaTo")?.value || "",
+      saidaFrom: document.getElementById("aoRepSaidaFrom")?.value || "",
+      saidaTo: document.getElementById("aoRepSaidaTo")?.value || "",
+      managerId: document.getElementById("aoRepManager")?.value || "",
+      patioId: document.getElementById("aoRepPatio")?.value || "",
+      faturamento: document.getElementById("aoRepFaturamento")?.value || "",
+      pagamento: document.getElementById("aoRepPagamento")?.value || "",
     };
     return _reportFilters;
   }
@@ -561,9 +634,17 @@
     injectStyles();
     fillReportFilterOptions();
     if (!_generated) {
-      root.innerHTML = `<p class="notice">Defina os filtros e clique em <strong>Gerar relatório</strong>.</p>`;
+      setOfficeReportActions(false);
+      root.innerHTML = `<p class="notice">Selecione o escritório, defina os filtros e clique em <strong>Gerar relatório</strong>.</p>`;
       return;
     }
+    const selectedOffice = String(currentReportFilters().officeId || "");
+    if (selectedOffice && global.advocacyOfficeReport) {
+      setOfficeReportActions(false);
+      void global.advocacyOfficeReport.show(root, currentReportFilters());
+      return;
+    }
+    setOfficeReportActions(false);
     const data = ctxData();
     const filters = currentReportFilters();
     const chartRange = svc().chartRange(
@@ -623,7 +704,8 @@
     }).financeiras : report.financeiras);
 
     root.innerHTML =
-      `<div id="aoReportCapture">
+      `<p class="notice">Escolha um escritório e clique em Gerar relatório para abrir o relatório completo, com impressão e PDF. Abaixo segue o ranking de demanda de todos os escritórios.</p>
+      <div id="aoReportCapture">
         ${renderKpis(report.kpis)}
         <div class="ao-toolbar-actions" style="margin:0 0 12px">
           <button type="button" class="secondary" data-ao-export="excel">Exportar Excel</button>
@@ -1129,6 +1211,16 @@
       _detailOfficeId = currentReportFilters().officeId || "";
       renderReport();
     });
+    document.getElementById("aoRepOffice")?.addEventListener("change", () => {
+      readReportFiltersFromDom();
+      const f = currentReportFilters();
+      if (f.managerId && f.officeId && f.officeId !== "__sem__") {
+        const managers = global.__ampliState?.advocacyOfficeManagers || [];
+        if (!svc().managerBelongsToOffice(f.managerId, f.officeId, managers)) f.managerId = "";
+      }
+      fillReportFilterOptions();
+    });
+    if (global.advocacyOfficeReport) global.advocacyOfficeReport.bind();
     document.getElementById("aoRelatorioRoot")?.addEventListener("click", (e) => {
       const sortBtn = e.target.closest("[data-ao-sort]");
       if (sortBtn) {
@@ -1150,7 +1242,13 @@
       }
       const row = e.target.closest("[data-ao-office]");
       if (row) {
-        _detailOfficeId = row.getAttribute("data-ao-office") || "";
+        const id = row.getAttribute("data-ao-office") || "";
+        _reportFilters = currentReportFilters();
+        _reportFilters.officeId = id;
+        _detailOfficeId = id;
+        _generated = true;
+        const sel = document.getElementById("aoRepOffice");
+        if (sel) sel.value = id;
         renderReport();
       }
     });
@@ -1192,7 +1290,7 @@
   function openReport(opts) {
     _generated = true;
     const d = svc().defaultPeriod();
-    _reportFilters = Object.assign({ from: d.from, to: d.to, officeId: "", financeiraId: "", status: "", tipoVeiculo: "", situacaoPatio: "" }, opts || {});
+    _reportFilters = Object.assign(emptyReportFilters(d.from, d.to), opts || {});
     _detailOfficeId = _reportFilters.officeId || "";
     setSubview("relatorio");
   }
