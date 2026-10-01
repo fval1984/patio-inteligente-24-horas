@@ -166,4 +166,82 @@ const gestor = svc.buildOfficeReport({
 });
 assert(gestor.vehicles.length === 1 && gestor.vehicles[0].placa === "BBB0001", "filtros em conjunto");
 
+assert(report.insights.entradas === 2, "entradas do período");
+assert(report.insights.saidas === 1, "saídas do período");
+assert(report.insights.bands.reduce((s, b) => s + b.quantidade, 0) === 1, "faixas só de quem está no pátio");
+assert(report.vehicles[0].lancamentos.length === 1, "lançamento do título");
+
+const linhas = [
+  {
+    placa: "LONGO",
+    stageCode: "VNP",
+    situacao: "VNP — No Pátio",
+    veiculo: "Fiat Argo",
+    gestor: "Ana",
+    patio: "Pátio Central",
+    dataEntrada: "2026-01-01",
+    dataSaida: "",
+    dataSolicitacao: "",
+    dataConfirmacao: "",
+    dias: 40,
+    valorDiaria: 10,
+    estadia: 400,
+    faturado: false,
+    recebido: 0,
+    aberto: 0,
+    vencido: 0,
+    lancamentos: [],
+  },
+  {
+    placa: "CURTO",
+    stageCode: "VRP",
+    situacao: "VRP — Retirado do Pátio",
+    veiculo: "VW Gol",
+    gestor: "Ana",
+    patio: "Pátio Central",
+    dataEntrada: "2026-01-10",
+    dataSaida: "2026-01-20",
+    dataSolicitacao: "2026-01-15",
+    dataConfirmacao: "2026-01-18",
+    dias: 10,
+    valorDiaria: 10,
+    estadia: 100,
+    faturado: true,
+    recebido: 0,
+    aberto: 100,
+    vencido: 100,
+    lancamentos: [{ valor: 100, billed: true, received: false, faturadoEm: "2026-01-25", pagoEm: "" }],
+  },
+];
+const periodo = { from: "2026-01-01", to: "2026-01-31" };
+const ins = svc.officeReportInsights({ vehicles: linhas, filters: periodo }, "2026-01-31");
+assert(ins.entradas === 2 && ins.saidas === 1, "movimento de janeiro");
+assert(ins.mediaDias === 40 && ins.maiorDias === 40, "permanência atual");
+assert(ins.geradoPeriodo === 410, "diárias de janeiro");
+assert(ins.bands.find((b) => b.id === "31-60").quantidade === 1, "faixa 31 a 60");
+assert(ins.bands.find((b) => b.id === "0-10").quantidade === 0, "retirado não entra na faixa");
+assert(ins.maiorPermanencia[0].placa === "LONGO", "maior permanência");
+assert(ins.etapas.entradaSolicitacao.media === 5 && ins.etapas.entradaSolicitacao.quantidade === 1, "entrada até solicitação");
+assert(ins.etapas.solicitacaoConfirmacao.media === 3, "solicitação até confirmação");
+assert(ins.etapas.confirmacaoRetirada.media === 2, "confirmação até retirada");
+assert(ins.etapas.entradaRetirada.media === 10, "entrada até retirada");
+assert(ins.etapas.entradaSolicitacao && ins.atencao.semMovimento.length === 1, "sem solicitação");
+assert(ins.atencao.longa.length === 0, "40 dias ainda não é permanência longa");
+assert(ins.atencao.vencidos.length === 1 && ins.atencao.abertos.length === 1, "financeiro em atenção");
+assert(ins.atencao.aguardandoFaturamento.length === 0, "já faturado não aguarda");
+
+const serie = svc.officeReportTimeline(linhas, periodo, "month", "2026-01-31");
+assert(serie.bucket === "month" && serie.points.length === 1, "um mês");
+assert(serie.points[0].entradas === 2 && serie.points[0].saidas === 1 && serie.points[0].permanencia === 2, "série de veículos");
+assert(serie.points[0].gerado === 410 && serie.points[0].faturado === 100 && serie.points[0].aberto === 100, "série financeira");
+assert(serie.points[0].mediaDias === 20, "média de janeiro");
+
+const ordem = svc.sortOfficeReportRows(linhas, { key: "dias", dir: "desc" });
+assert(ordem[0].placa === "LONGO", "dias do maior para o menor");
+assert(svc.filterOfficeReportDrill(linhas, "band:31-60", periodo)[0].placa === "LONGO", "filtro da faixa");
+assert(svc.filterOfficeReportDrill(linhas, "saidas", periodo)[0].placa === "CURTO", "filtro de saídas");
+assert(svc.suggestOfficeBucket("2026-01-01", "2026-01-31") === "day", "até 31 dias por dia");
+assert(svc.suggestOfficeBucket("2026-01-01", "2026-04-30") === "week", "até 120 dias por semana");
+assert(svc.suggestOfficeBucket("2026-01-01", "2026-05-01") === "month", "acima de 120 dias por mês");
+
 console.log("advocacy-offices-service.test.js ok");
