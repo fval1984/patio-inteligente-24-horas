@@ -1,0 +1,580 @@
+/* Recibo de pagamento AMPLIGUARD — tela, edição e impressão A4. */
+
+.ag-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: rgba(6, 18, 14, 0.78);
+  display: flex;
+  flex-direction: column;
+  color: #14221c;
+}
+
+.ag-modal.hidden {
+  display: none !important;
+}
+
+.ag-modal-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 14px;
+  background: #071f1a;
+  color: #f8faf8;
+  border-bottom: 3px solid #c6a15b;
+}
+
+.ag-modal-bar strong {
+  margin-right: auto;
+  letter-spacing: 0.04em;
+  font-size: 14px;
+}
+
+.ag-modal-bar button {
+  margin: 0;
+}
+
+.ag-modal-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  overflow: auto;
+}
+
+.ag-editor.hidden {
+  display: none !important;
+}
+
+.ag-editor {
+  width: min(420px, 100%);
+  flex: 0 0 min(420px, 100%);
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px;
+  overflow: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.ag-editor h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.ag-editor .ag-hint {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #3d5248;
+}
+
+.ag-editor label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 8px 0 4px;
+  color: #1c332b;
+}
+
+.ag-editor input,
+.ag-editor select,
+.ag-editor textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ag-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.ag-svc {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.ag-svc th,
+.ag-svc td {
+  padding: 4px;
+  vertical-align: middle;
+}
+
+.ag-svc input {
+  width: 100%;
+  min-width: 0;
+}
+
+.ag-check-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ag-check-row input {
+  width: auto;
+  margin-top: 2px;
+}
+
+.ag-stage {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.ag-sheet {
+  width: 210mm;
+  min-height: 297mm;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  box-sizing: border-box;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  color: #16241e;
+  position: relative;
+}
+
+.ag-hero {
+  position: relative;
+  min-height: 132px;
+  background: #0c3b2e url("/assets/ampliguard-recibo-patio.jpg") right 78% / cover no-repeat;
+  overflow: hidden;
+  color: #fff;
+}
+
+.ag-hero-slash {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 62%;
+  background: linear-gradient(180deg, #0e4636 0%, #0a3328 100%);
+  clip-path: polygon(0 0, 84% 0, 100% 100%, 0 100%);
+}
+
+.ag-hero-brand {
+  position: relative;
+  z-index: 1;
+  padding: 14px 18px 16px;
+  max-width: 58%;
+}
+
+.ag-logo {
+  height: 54px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: left center;
+  display: block;
+}
+
+.ag-slogan {
+  margin: 8px 0 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+}
+
+.ag-badge {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 2;
+  min-width: 158px;
+  background: #0c3b2e;
+  border: 1px solid rgba(232, 205, 140, 0.85);
+  border-radius: 12px;
+  padding: 8px 12px 9px;
+  text-align: center;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.ag-badge small {
+  display: block;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+  opacity: 0.9;
+}
+
+.ag-badge strong {
+  display: block;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  margin-top: 1px;
+}
+
+.ag-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+  background: #157a45;
+  color: #fff;
+  border-radius: 8px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  font-size: 13px;
+  padding: 4px 10px;
+}
+
+.ag-status--wait,
+.ag-status--previa {
+  background: #8a5a12;
+}
+
+.ag-hero-gold {
+  height: 3px;
+  background: linear-gradient(90deg, #8d6b2f, #f3e2b0, #c6a15b, #8d6b2f);
+}
+
+.ag-body {
+  padding: 16px 18px 8px;
+}
+
+.ag-title {
+  margin: 0 0 12px;
+  font-size: 26px;
+  letter-spacing: 0.02em;
+  font-weight: 800;
+  color: #12261f;
+}
+
+.ag-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e6e0d2;
+}
+
+.ag-kicker {
+  margin: 0 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  color: #1a2e26;
+}
+
+.ag-line {
+  margin: 0 0 2px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.ag-line span {
+  color: #3e524a;
+}
+
+.ag-facts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.ag-fact {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.ag-ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1.5px solid #0c3b2e;
+  color: #0c3b2e;
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+}
+
+.ag-ico svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+}
+
+.ag-fact small {
+  display: block;
+  color: #5c6d65;
+  font-size: 11px;
+}
+
+.ag-fact strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.ag-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.ag-table th {
+  background: #0c3b2e;
+  color: #fff;
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 8px 10px;
+}
+
+.ag-table th:nth-child(n + 2),
+.ag-table td:nth-child(n + 2) {
+  text-align: right;
+}
+
+.ag-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #ece7dc;
+}
+
+.ag-table tbody tr:nth-child(even) td {
+  background: #f7f5f0;
+}
+
+.ag-total {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(90deg, #0c3b2e 0%, #0c3b2e 58%, #c6a15b 100%);
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 16px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.ag-total span {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  font-size: 16px;
+}
+
+.ag-total strong {
+  font-size: 28px;
+  letter-spacing: 0.02em;
+}
+
+.ag-pay {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 14px;
+}
+
+.ag-pay .ag-kicker {
+  margin-bottom: 2px;
+}
+
+.ag-declare {
+  margin: 14px 0 0;
+  max-width: 62%;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #24362e;
+}
+
+.ag-qr {
+  text-align: center;
+  justify-self: end;
+}
+
+.ag-qr img {
+  width: 92px;
+  height: 92px;
+  display: block;
+  margin: 0 auto 4px;
+}
+
+.ag-qr small {
+  display: block;
+  font-size: 10px;
+  color: #3e524a;
+  max-width: 110px;
+  line-height: 1.25;
+}
+
+.ag-sign {
+  margin: 22px auto 8px;
+  width: min(280px, 70%);
+  text-align: center;
+}
+
+.ag-sign .line {
+  border-top: 1px solid #1c1c1c;
+  margin-bottom: 6px;
+}
+
+.ag-sign small {
+  display: block;
+  font-size: 11px;
+  color: #3e524a;
+}
+
+.ag-sign strong {
+  display: block;
+  letter-spacing: 0.14em;
+  font-size: 13px;
+}
+
+.ag-foot {
+  margin-top: 12px;
+  background: #0c3b2e;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+}
+
+.ag-foot p {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.ag-foot .ag-marks {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.ag-mark {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  min-width: 64px;
+}
+
+.ag-mark svg {
+  width: 22px;
+  height: 22px;
+  stroke: #fff;
+  fill: none;
+  stroke-width: 1.6;
+}
+
+.ag-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding: 10px 16px 14px;
+  font-size: 12px;
+  color: #1c332b;
+}
+
+.ag-contact span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ag-watermark {
+  position: absolute;
+  inset: 38% 0 auto;
+  text-align: center;
+  font-size: 64px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: rgba(138, 90, 18, 0.16);
+  transform: rotate(-18deg);
+  pointer-events: none;
+}
+
+@media (max-width: 980px) {
+  .ag-modal-body {
+    flex-direction: column;
+  }
+
+  .ag-editor {
+    width: 100%;
+    flex-basis: auto;
+    max-height: 46vh;
+  }
+
+  .ag-sheet {
+    zoom: 0.72;
+  }
+}
+
+@media (max-width: 640px) {
+  .ag-sheet {
+    zoom: 0.48;
+  }
+
+  .ag-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@page {
+  size: A4 portrait;
+  margin: 8mm;
+}
+
+@media print {
+  .ag-modal-bar,
+  .ag-editor,
+  .ag-no-print {
+    display: none !important;
+  }
+
+  .ag-modal,
+  .ag-modal-body,
+  .ag-stage {
+    position: static;
+    background: #fff;
+    overflow: visible;
+    display: block;
+    padding: 0;
+  }
+
+  .ag-sheet {
+    width: auto;
+    min-height: 0;
+    zoom: 1;
+    box-shadow: none;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .ag-hero,
+  .ag-total,
+  .ag-foot,
+  .ag-status {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .ag-table,
+  .ag-total,
+  .ag-pay,
+  .ag-sign,
+  .ag-foot {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
