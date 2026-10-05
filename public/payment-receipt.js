@@ -15,7 +15,7 @@
  */
 (function () {
   const LOGO = "/assets/ampliguard-header-system-trim.png?v=20261005recibo1";
-  const PHOTO = "/assets/ampliguard-recibo-patio.jpg?v=20261005recibo1";
+  const PHOTO = "/assets/ampliguard-recibo-patio-lot.jpg?v=20261005recibo4";
   const FORMAS = ["Dinheiro", "PIX", "Cartão Débito", "Cartão Crédito", "Transferência", "Boleto", "Cheque"];
 
   let draft = null;
@@ -378,6 +378,9 @@
     out: `<svg viewBox="0 0 24 24"><path d="M9 6h11v12H9"/><path d="M13 12H4m0 0 3-3m-3 3 3 3"/></svg>`,
     clock: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></svg>`,
     pin: `<svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/></svg>`,
+    gem: `<svg viewBox="0 0 24 24"><path d="M3 9h18L12 21 3 9z"/><path d="M3 9 7 4h10l4 5"/><path d="M7 4l5 5 5-5"/></svg>`,
+    phone: `<svg viewBox="0 0 24 24"><path d="M7 3h3l1.4 3.6-2 1.2a12 12 0 0 0 6.8 6.8l1.2-2L21 14v3a2 2 0 0 1-2.2 2A16 16 0 0 1 5 5.2 2 2 0 0 1 7 3z"/></svg>`,
+    mail: `<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>`,
     shield: `<svg viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4.2 2.8 7.2 7 9 4.2-1.8 7-4.8 7-9V6l-7-3z"/></svg>`,
     lock: `<svg viewBox="0 0 24 24"><rect x="6" y="11" width="12" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>`,
     truck: `<svg viewBox="0 0 24 24"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg>`,
@@ -416,15 +419,17 @@
     return `<article class="ag-sheet" id="agReciboPrintRoot">
       ${d.pago ? "" : `<div class="ag-watermark">PRÉVIA</div>`}
       <header class="ag-hero">
-        <div class="ag-hero-slash"></div>
         <div class="ag-hero-brand">
-          <img class="ag-logo" src="${esc(absUrl(LOGO))}" alt="AMPLIGUARD" />
+          <img class="ag-logo" src="${esc(absUrl(LOGO))}" alt="AMPLIGUARD — Pátio de guarda de veículos" />
           <p class="ag-slogan">MAIS QUE UM PÁTIO,<br />UM COMPROMISSO.</p>
         </div>
-        <div class="ag-badge">
-          <small>RECIBO Nº</small>
-          <strong>${esc(d.numero || "——")}</strong>
-          ${statusBadge(d)}
+        <div class="ag-hero-photo">
+          <img src="${esc(absUrl(PHOTO))}" alt="" />
+          <div class="ag-badge">
+            <small>RECIBO Nº</small>
+            <strong>${esc(d.numero || "——")}</strong>
+            ${statusBadge(d)}
+          </div>
         </div>
       </header>
       <div class="ag-hero-gold"></div>
@@ -459,20 +464,30 @@
           <div class="ag-total"><span>TOTAL PAGO</span><strong>${esc(money(t.total))}</strong></div>
         </div>
         <div class="ag-pay">
-          <div>
-            <h2 class="ag-kicker">FORMA DE PAGAMENTO</h2>
-            <strong>${esc(d.formaPagamento || "—")}</strong>
-          </div>
-          <div>
-            <h2 class="ag-kicker">PAGAMENTO REALIZADO EM</h2>
-            <strong>${esc(quando)}</strong>
+          <div class="ag-pay-main">
+            <div class="ag-pay-meta">
+              <div class="ag-pay-item">
+                <div class="ag-ico">${ICO.gem}</div>
+                <div>
+                  <h2 class="ag-kicker">FORMA DE PAGAMENTO</h2>
+                  <strong>${esc(d.formaPagamento || "—")}</strong>
+                </div>
+              </div>
+              <div class="ag-pay-item">
+                <div class="ag-ico">${ICO.cal}</div>
+                <div>
+                  <h2 class="ag-kicker">PAGAMENTO REALIZADO EM</h2>
+                  <strong>${esc(quando)}</strong>
+                </div>
+              </div>
+            </div>
+            <p class="ag-declare">Declaramos, para os devidos fins, o recebimento do valor total acima discriminado, referente aos serviços indicados neste documento.</p>
           </div>
           <div class="ag-qr">
             ${qr}
             <small>Documento autenticado via QR Code</small>
           </div>
         </div>
-        <p class="ag-declare">Declaramos, para os devidos fins, o recebimento do valor total acima discriminado, referente aos serviços indicados neste documento.</p>
         ${d.observacoes ? `<p class="ag-line" style="margin-top:8px"><span>Observações:</span> ${esc(d.observacoes)}</p>` : ""}
         <div class="ag-sign">
           <div class="line"></div>
@@ -492,9 +507,9 @@
         </div>
       </footer>
       <div class="ag-contact">
-        <span>${esc(co.tel)}</span>
-        <span>${esc(co.email)}</span>
-        <span>${esc(co.endereco)}</span>
+        <span>${ICO.phone}${esc(co.tel)}</span>
+        <span>${ICO.mail}${esc(co.email)}</span>
+        <span>${ICO.pin}${esc(co.endereco)}</span>
       </div>
     </article>`;
   }
@@ -992,7 +1007,7 @@
   }
 
   function openPrintWindow() {
-    const css = `${location.origin}/payment-receipt.css?v=20261005recibo2`;
+    const css = `${location.origin}/payment-receipt.css?v=20261005recibo5`;
     const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${esc(pdfName())}</title>
       <link rel="stylesheet" href="${css}" />
       <style>body{margin:0;background:#fff}.ag-sheet{box-shadow:none;width:auto;min-height:0}</style>
@@ -1072,25 +1087,28 @@
     const t = totals(d);
     const co = companyBits();
     const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
     const margin = 32;
-    const green = [12, 59, 46];
+    const headerH = 158;
+    const green = [1, 38, 30];
     const gold = [198, 161, 91];
     doc.setFillColor(...green);
-    doc.rect(0, 0, pageW, 96, "F");
+    doc.rect(0, 0, pageW, headerH, "F");
     const photo = await toDataUrl(PHOTO);
     if (photo) {
       try {
-        doc.addImage(photo, "JPEG", pageW * 0.46, 0, pageW * 0.54, 96);
-        doc.setFillColor(...green);
-        doc.triangle(pageW * 0.42, 0, pageW * 0.62, 0, pageW * 0.42, 96, "F");
+        doc.addImage(photo, "JPEG", pageW * 0.38, 0, pageW * 0.62, headerH);
       } catch {
         /* foto opcional */
       }
     }
+    doc.setFillColor(...green);
+    doc.rect(0, 0, pageW * 0.4, headerH, "F");
+    doc.triangle(pageW * 0.4, 0, pageW * 0.4, headerH, pageW * 0.62, headerH, "F");
     const logo = await toDataUrl(LOGO);
     if (logo) {
       try {
-        doc.addImage(logo, "PNG", margin, 16, 210, 42);
+        doc.addImage(logo, "PNG", 22, 18, 214, 47);
       } catch {
         /* logo opcional */
       }
@@ -1098,27 +1116,34 @@
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.text("MAIS QUE UM PÁTIO, UM COMPROMISSO.", margin, 74);
+    doc.text("MAIS QUE UM PÁTIO,", 24, 84);
+    doc.text("UM COMPROMISSO.", 24, 96);
+    const badgeW = d.pago ? 132 : 176;
+    const badgeH = 62;
+    const badgeX = pageW - badgeW - 14;
+    const badgeY = headerH - badgeH - 8;
     doc.setFillColor(...green);
-    doc.roundedRect(pageW - 168, 28, 140, 52, 6, 6, "F");
-    doc.setDrawColor(...gold);
-    doc.roundedRect(pageW - 168, 28, 140, 52, 6, 6, "S");
+    doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 5, 5, "F");
+    doc.setDrawColor(232, 205, 140);
+    doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 5, 5, "S");
     doc.setFontSize(8);
-    doc.text("RECIBO Nº", pageW - 98, 44, { align: "center" });
-    doc.setFontSize(14);
-    doc.text(d.numero || "——", pageW - 98, 62, { align: "center" });
+    doc.text("RECIBO Nº", badgeX + badgeW / 2, badgeY + 14, { align: "center" });
+    doc.setFontSize(13);
+    doc.text(d.numero || "——", badgeX + badgeW / 2, badgeY + 30, { align: "center" });
+    doc.setFillColor(...(d.pago ? [21, 122, 69] : [138, 90, 18]));
+    doc.roundedRect(badgeX + 8, badgeY + 36, badgeW - 16, 18, 3, 3, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(d.pago ? 9 : 7);
+    doc.text(d.pago ? "PAGO" : "AGUARDANDO PAGAMENTO", badgeX + badgeW / 2, badgeY + 48, { align: "center" });
     doc.setFillColor(...gold);
-    doc.rect(0, 96, pageW, 3, "F");
+    doc.rect(0, headerH, pageW, 3, "F");
 
-    let y = 122;
+    let y = headerH + 28;
     doc.setTextColor(18, 38, 31);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
     doc.text("RECIBO DE PAGAMENTO", margin, y);
-    doc.setFontSize(9);
-    doc.setTextColor(...(d.pago ? [21, 122, 69] : [138, 90, 18]));
-    doc.text(d.pago ? "PAGO" : "PRÉVIA · AGUARDANDO PAGAMENTO", pageW - margin, y, { align: "right" });
-    y += 22;
+    y += 26;
     doc.setTextColor(18, 38, 31);
     doc.setFontSize(8);
     doc.text("DADOS DO PAGADOR", margin, y);
@@ -1181,14 +1206,20 @@
       doc.text(`${t.desc ? `Descontos: ${money(t.desc)}  ` : ""}${t.acres ? `Acréscimos: ${money(t.acres)}` : ""}`, margin, y);
     }
     y += 10;
+    const totalW = pageW - margin * 2;
     doc.setFillColor(...green);
-    doc.roundedRect(margin, y, pageW - margin * 2, 28, 4, 4, "F");
+    doc.roundedRect(margin, y, totalW, 32, 4, 4, "F");
+    doc.setFillColor(244, 231, 196);
+    doc.triangle(margin + totalW * 0.62, y, margin + totalW, y, margin + totalW, y + 32, "F");
+    doc.setFillColor(...gold);
+    doc.triangle(margin + totalW * 0.7, y + 32, margin + totalW, y, margin + totalW, y + 32, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("TOTAL PAGO", margin + 10, y + 18);
-    doc.setFontSize(16);
-    doc.text(money(t.total), pageW - margin - 10, y + 19, { align: "right" });
+    doc.setFontSize(12);
+    doc.text("TOTAL PAGO", margin + 12, y + 21);
+    doc.setTextColor(16, 36, 28);
+    doc.setFontSize(18);
+    doc.text(money(t.total), pageW - margin - 12, y + 22, { align: "right" });
     y += 46;
     doc.setTextColor(18, 38, 31);
     doc.setFontSize(8);
@@ -1224,15 +1255,20 @@
     y += 12;
     doc.setFont("helvetica", "bold");
     doc.text(d.responsavel || "AMPLIGUARD", pageW / 2, y, { align: "center" });
-    const footY = 790;
+    const footY = pageH - 56;
     doc.setFillColor(...green);
-    doc.rect(0, footY, pageW, 52, "F");
+    doc.rect(0, footY, pageW, 34, "F");
     doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.text(co.razao, margin, footY + 16);
+    doc.text(co.razao, margin, footY + 14);
     doc.setFont("helvetica", "normal");
-    doc.text(`CNPJ: ${co.cnpj}  ·  ${co.site}`, margin, footY + 30);
-    doc.text(`${co.tel}  ·  ${co.email}`, margin, footY + 42);
+    doc.setFontSize(7);
+    doc.text(`CNPJ: ${co.cnpj}  ·  ${co.site}`, margin, footY + 26);
+    doc.text("GUARDA  ·  CUSTÓDIA  ·  REMOÇÃO DE VEÍCULOS", pageW - margin, footY + 20, { align: "right" });
+    doc.setTextColor(18, 38, 31);
+    doc.setFontSize(8);
+    doc.text(`${co.tel}     ${co.email}     ${co.endereco}`, margin, footY + 48);
   }
 
   async function open(receivableId) {
