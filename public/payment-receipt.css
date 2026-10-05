@@ -149,7 +149,7 @@
   flex: 0 0 58mm;
   height: 58mm;
   display: grid;
-  grid-template-columns: 1.02fr 0.98fr;
+  grid-template-columns: 0.92fr 1.08fr;
   background: #01261e;
   overflow: hidden;
   color: #fff;
@@ -171,11 +171,24 @@
   content: "";
   position: absolute;
   top: 0;
-  right: -26mm;
-  width: 40mm;
+  right: -22mm;
+  width: 34mm;
   height: 100%;
   background: #01261e;
-  clip-path: polygon(0 0, 6% 0, 100% 100%, 0 100%);
+  clip-path: polygon(0 0, 18% 0, 100% 100%, 0 100%);
+  pointer-events: none;
+}
+
+.ag-hero-photo::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 16mm;
+  z-index: 1;
+  background: rgba(1, 38, 30, 0.55);
+  clip-path: polygon(0 0, 28% 0, 100% 100%, 0 100%);
   pointer-events: none;
 }
 
@@ -219,47 +232,53 @@
 
 .ag-badge {
   position: absolute;
-  right: 4mm;
-  bottom: 3.5mm;
+  right: 3.5mm;
+  bottom: 3.2mm;
   z-index: 3;
-  min-width: 38mm;
-  max-width: 62mm;
+  min-width: 42mm;
+  max-width: 58mm;
   background: #01261e;
-  border: 1px solid rgba(232, 205, 140, 0.9);
-  border-radius: 3mm;
-  padding: 2mm 2.5mm 2.2mm;
+  border: 1.5px solid rgba(232, 205, 140, 0.95);
+  border-radius: 3.2mm;
+  padding: 2.2mm 2.4mm 2.4mm;
   text-align: center;
-  box-shadow: 0 2mm 5mm rgba(0, 0, 0, 0.28);
+  box-shadow: 0 2mm 6mm rgba(0, 0, 0, 0.32);
 }
 
 .ag-badge small {
   display: block;
-  letter-spacing: 0.12em;
-  font-size: 10px;
-  opacity: 0.9;
+  letter-spacing: 0.08em;
+  font-size: 9px;
+  font-weight: 700;
+  opacity: 0.95;
 }
 
-.ag-badge strong {
-  display: block;
-  font-size: 18px;
-  letter-spacing: 0.08em;
-  margin-top: 1px;
+.ag-badge small b {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  font-weight: 800;
 }
 
 .ag-status {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.5mm;
-  margin-top: 1.4mm;
-  background: #157a45;
+  gap: 2mm;
+  margin-top: 1.8mm;
+  background: #1b9a4a;
   color: #fff;
-  border-radius: 1.6mm;
+  border-radius: 2mm;
   font-weight: 800;
-  letter-spacing: 0.04em;
-  font-size: 11px;
-  line-height: 1.15;
-  padding: 1.2mm 2mm;
+  letter-spacing: 0.14em;
+  font-size: 15px;
+  line-height: 1;
+  padding: 2.4mm 3mm;
+}
+
+.ag-check {
+  font-size: 16px;
+  letter-spacing: 0;
+  line-height: 1;
 }
 
 .ag-status--wait,
@@ -362,6 +381,7 @@
   display: block;
   font-size: 13.5px;
   line-height: 1.25;
+  white-space: pre-line;
 }
 
 .ag-keep {
@@ -371,9 +391,19 @@
 
 .ag-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   margin: 0;
   font-size: 13.5px;
+}
+
+.ag-table th:first-child {
+  border-radius: 1.6mm 0 0 0;
+  width: 52%;
+}
+
+.ag-table th:last-child {
+  border-radius: 0 1.6mm 0 0;
 }
 
 .ag-table th {
@@ -438,7 +468,7 @@
 }
 
 .ag-total strong {
-  font-size: 26px;
+  font-size: 28px;
   letter-spacing: 0.01em;
   line-height: 1;
   color: #10241c;
@@ -484,16 +514,16 @@
 }
 
 .ag-qr {
-  text-align: center;
+  text-align: right;
   justify-self: end;
   align-self: center;
 }
 
 .ag-qr img {
-  width: 28mm;
-  height: 28mm;
+  width: 26mm;
+  height: 26mm;
   display: block;
-  margin: 0 auto 1mm;
+  margin: 0 0 1.2mm auto;
 }
 
 .ag-qr small {
@@ -501,8 +531,9 @@
   font-size: 10px;
   color: #3e524a;
   max-width: 32mm;
-  margin: 0 auto;
+  margin: 0 0 0 auto;
   line-height: 1.25;
+  text-align: right;
 }
 
 .ag-sign {
@@ -571,10 +602,11 @@
 }
 
 .ag-contact {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2mm 6mm;
-  padding: 2.5mm 6mm 3.5mm;
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 6mm;
+  padding: 3mm 8mm 4mm;
   font-size: 12px;
   color: #1c332b;
 }
@@ -583,6 +615,11 @@
   display: inline-flex;
   gap: 6px;
   align-items: center;
+}
+
+.ag-contact span:last-child {
+  justify-self: end;
+  text-align: right;
 }
 
 .ag-contact svg {
