@@ -1003,7 +1003,7 @@
   }
 
   function openPrintWindow() {
-    const css = `${location.origin}/payment-receipt.css?v=20261005recibo6`;
+    const css = `${location.origin}/payment-receipt.css?v=20261005recibo7`;
     const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${esc(pdfName())}</title>
       <link rel="stylesheet" href="${css}" />
       <style>body{margin:0;background:#fff}.ag-sheet{box-shadow:none;width:auto;min-height:0}</style>
