@@ -134,132 +134,87 @@
 
 .ag-sheet {
   width: 210mm;
-  min-height: 297mm;
   background: #fff;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
   box-sizing: border-box;
   font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  color: #16241e;
+  color: #1a211d;
   position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-.ag-hero {
-  flex: 0 0 56mm;
-  height: 56mm;
-  display: grid;
-  grid-template-columns: 46% 54%;
-  background: #01261e;
   overflow: hidden;
-  color: #fff;
-  position: relative;
+  padding: 10mm 11mm 8mm;
 }
 
-.ag-hero-brand {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 5mm 8mm 5mm 7mm;
-  background: #01261e;
-  min-width: 0;
-}
-
-.ag-hero-brand::after {
+.ag-sheet::before {
   content: "";
   position: absolute;
-  top: 0;
-  right: -14mm;
-  width: 14mm;
-  height: 100%;
-  background: #01261e;
-  clip-path: polygon(0 0, 0 100%, 100% 100%, 62% 0);
+  inset: 0;
   pointer-events: none;
+  background:
+    linear-gradient(128deg, transparent 62%, rgba(190, 198, 194, 0.16) 62.4%, transparent 64%),
+    radial-gradient(circle at 108% -8%, rgba(198, 206, 202, 0.28), transparent 32%),
+    radial-gradient(circle at -8% 108%, rgba(198, 206, 202, 0.2), transparent 26%);
+  z-index: 0;
+}
+
+.ag-sheet > * {
+  position: relative;
+  z-index: 1;
+}
+
+.ag-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8mm;
 }
 
 .ag-logo {
   display: block;
-  width: 100%;
-  max-width: 100%;
+  width: 78mm;
+  max-width: 52%;
   height: auto;
-  max-height: 32mm;
+  max-height: 20mm;
   object-fit: contain;
   object-position: left center;
   background: transparent;
 }
 
+.ag-top-side {
+  text-align: right;
+  padding-top: 1mm;
+}
+
 .ag-slogan {
-  margin: 2.2mm 0 0;
-  font-size: 12.5px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  line-height: 1.2;
-  max-width: 100%;
-}
-
-.ag-hero-photo {
-  position: relative;
-  min-width: 0;
-  height: 56mm;
-  overflow: hidden;
-  background: #12352c;
-}
-
-.ag-hero-photo img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center center;
-  display: block;
-}
-
-.ag-badge {
-  position: absolute;
-  right: 3.5mm;
-  bottom: 3.2mm;
-  z-index: 3;
-  min-width: 42mm;
-  max-width: 58mm;
-  background: #01261e;
-  border: 1.5px solid rgba(232, 205, 140, 0.95);
-  border-radius: 3.2mm;
-  padding: 2.2mm 2.4mm 2.4mm;
-  text-align: center;
-  box-shadow: 0 2mm 6mm rgba(0, 0, 0, 0.32);
-}
-
-.ag-badge small {
-  display: block;
-  letter-spacing: 0.08em;
-  font-size: 9px;
-  font-weight: 700;
-  opacity: 0.95;
-}
-
-.ag-badge small b {
+  margin: 0;
   font-size: 11px;
-  letter-spacing: 0.14em;
   font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.25;
+  color: #1b2420;
+}
+
+.ag-num {
+  margin: 2.2mm 0 1.6mm;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #1b2420;
 }
 
 .ag-status {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 2mm;
-  margin-top: 1.8mm;
+  gap: 1.6mm;
+  margin-top: 0;
   background: #1b9a4a;
   color: #fff;
   border-radius: 2mm;
   font-weight: 800;
-  letter-spacing: 0.14em;
-  font-size: 15px;
+  letter-spacing: 0.12em;
+  font-size: 13px;
   line-height: 1;
-  padding: 2.4mm 3mm;
+  padding: 1.8mm 4mm;
 }
 
 .ag-check {
@@ -276,35 +231,35 @@
   white-space: nowrap;
 }
 
-.ag-hero-gold {
-  height: 3px;
-  background: linear-gradient(90deg, #8d6b2f, #f3e2b0, #c6a15b, #8d6b2f);
-}
-
 .ag-body {
-  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  gap: 5.2mm;
-  justify-content: space-between;
-  padding: 7mm 9mm 5mm;
+  gap: 4.2mm;
+  margin-top: 6mm;
 }
 
 .ag-title {
   margin: 0;
-  font-size: 26px;
-  letter-spacing: 0.01em;
+  font-size: 22px;
+  letter-spacing: 0;
   font-weight: 800;
-  color: #12261f;
+  color: #141816;
   line-height: 1.1;
+  text-align: left;
 }
 
 .ag-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8mm;
-  padding-bottom: 3mm;
-  border-bottom: 1px solid #e6e0d2;
+}
+
+.ag-cols section + section {
+  border-left: 1px solid #e5e8e6;
+  padding-left: 6mm;
+}
+
+.ag-cols section:first-child {
+  padding-right: 6mm;
 }
 
 .ag-kicker {
@@ -316,8 +271,8 @@
 }
 
 .ag-line {
-  margin: 0 0 0.8mm;
-  font-size: 14.5px;
+  margin: 0 0 0.6mm;
+  font-size: 13px;
   line-height: 1.35;
 }
 
@@ -328,31 +283,35 @@
 .ag-facts {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 4mm;
+  gap: 3mm;
   margin: 0;
+  background: #f6f7f6;
+  border: 1px solid #e3e6e4;
+  border-radius: 2.2mm;
+  padding: 3.2mm 3.5mm;
 }
 
 .ag-fact {
   display: flex;
-  gap: 8px;
+  gap: 2.4mm;
   align-items: center;
   min-width: 0;
 }
 
 .ag-ico {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
   border: 1.5px solid #0c3b2e;
   color: #0c3b2e;
   display: grid;
   place-items: center;
-  flex: 0 0 34px;
+  flex: 0 0 28px;
 }
 
 .ag-ico svg {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   stroke: currentColor;
   fill: none;
   stroke-width: 1.8;
@@ -366,7 +325,7 @@
 
 .ag-fact strong {
   display: block;
-  font-size: 14.5px;
+  font-size: 12.5px;
   line-height: 1.25;
   white-space: pre-line;
 }
@@ -381,25 +340,21 @@
   border-collapse: separate;
   border-spacing: 0;
   margin: 0;
-  font-size: 14.5px;
+  font-size: 13px;
 }
 
 .ag-table th:first-child {
-  border-radius: 1.6mm 0 0 0;
   width: 52%;
 }
 
-.ag-table th:last-child {
-  border-radius: 0 1.6mm 0 0;
-}
-
 .ag-table th {
-  background: #01261e;
-  color: #fff;
+  background: #f3f4f3;
+  color: #1c2420;
   text-align: left;
   font-size: 11px;
   letter-spacing: 0.06em;
-  padding: 2.4mm 3mm;
+  padding: 2.2mm 3mm;
+  border-bottom: 1px solid #e1e4e2;
 }
 
 .ag-table th:nth-child(n + 2),
@@ -408,65 +363,42 @@
 }
 
 .ag-table td {
-  padding: 2.6mm 3mm;
-  border-bottom: 1px solid #ece7dc;
-}
-
-.ag-table tbody tr:nth-child(even) td {
-  background: #f7f5f0;
+  padding: 2.4mm 3mm;
+  border-bottom: 1px solid #eceeed;
+  background: #fff;
 }
 
 .ag-total {
-  position: relative;
-  overflow: hidden;
-  margin-top: 2.5mm;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #01261e;
-  color: #fff;
+  background: #eef6f1;
+  color: #143028;
+  border: 1px solid #d7e6dc;
   border-radius: 2.2mm;
-  padding: 3.2mm 5mm;
+  padding: 3.4mm 5mm;
   break-inside: avoid;
   page-break-inside: avoid;
-}
-
-.ag-total::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 46%;
-  height: 100%;
-  background: linear-gradient(100deg, #c6a15b 0%, #f6ead0 46%, #d4bc7a 100%);
-  clip-path: polygon(18% 0, 100% 0, 100% 100%, 0 100%);
-}
-
-.ag-total span,
-.ag-total strong {
-  position: relative;
-  z-index: 1;
 }
 
 .ag-total span {
   font-weight: 800;
   letter-spacing: 0.08em;
-  font-size: 16px;
+  font-size: 15px;
 }
 
 .ag-total strong {
-  font-size: 30px;
-  letter-spacing: 0.01em;
+  font-size: 22px;
+  letter-spacing: 0;
   line-height: 1;
   color: #10241c;
 }
 
-.ag-pay {
+.ag-lower {
   display: grid;
-  grid-template-columns: 1fr 34mm;
+  grid-template-columns: 1fr 32mm;
   gap: 6mm;
-  align-items: center;
-  margin: 0;
+  align-items: start;
   break-inside: avoid;
   page-break-inside: avoid;
 }
@@ -474,8 +406,14 @@
 .ag-pay-meta {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4mm;
-  margin-bottom: 3mm;
+  gap: 0;
+  margin-bottom: 3.5mm;
+}
+
+.ag-pay-item + .ag-pay-item {
+  border-left: 1px solid #e5e8e6;
+  padding-left: 4mm;
+  margin-left: 2mm;
 }
 
 .ag-pay-item {
@@ -485,8 +423,9 @@
   min-width: 0;
 }
 
-.ag-pay .ag-kicker {
-  margin-bottom: 0.6mm;
+.ag-lower .ag-kicker {
+  margin-bottom: 0.5mm;
+  font-size: 10px;
 }
 
 .ag-pay-meta strong {
@@ -494,10 +433,10 @@
 }
 
 .ag-declare {
-  margin: 0;
-  font-size: 12.5px;
+  margin: 0 0 3.5mm;
+  font-size: 11.5px;
   line-height: 1.4;
-  color: #24362e;
+  color: #3a4741;
 }
 
 .ag-qr {
@@ -525,7 +464,7 @@
 
 .ag-sign {
   margin: 1mm auto 0;
-  width: 78mm;
+  width: 68mm;
   text-align: center;
   break-inside: avoid;
   page-break-inside: avoid;
@@ -549,94 +488,39 @@
 }
 
 .ag-foot {
-  background: #01261e;
-  color: #fff;
+  margin-top: 5mm;
+  padding-top: 3.5mm;
+  border-top: 1px solid #e4e7e5;
+  background: transparent;
+  color: #1c2420;
   display: flex;
   justify-content: space-between;
   gap: 6mm;
   align-items: center;
-  padding: 4.5mm 8mm;
 }
 
 .ag-foot p {
   margin: 0;
   font-size: 11px;
-  letter-spacing: 0.04em;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
 }
 
-.ag-foot .ag-marks {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.ag-mark {
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-  font-size: 9px;
-  letter-spacing: 0.06em;
-  text-align: center;
-  min-width: 64px;
-}
-
-.ag-mark svg {
-  width: 22px;
-  height: 22px;
-  stroke: #fff;
-  fill: none;
-  stroke-width: 1.6;
-}
-
-.ag-contact {
-  display: grid;
-  grid-template-columns: auto auto 1fr;
-  align-items: center;
-  gap: 6mm;
-  padding: 3mm 8mm 4mm;
-  font-size: 12px;
-  color: #1c332b;
-}
-
-.ag-contact span {
+.ag-social {
   display: inline-flex;
-  gap: 6px;
   align-items: center;
+  gap: 2mm;
+  color: #1c2420;
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.ag-contact span:last-child {
-  justify-self: end;
-  text-align: right;
-}
-
-.ag-contact svg {
-  width: 15px;
-  height: 15px;
-  stroke: #0c3b2e;
+.ag-social svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
   fill: none;
   stroke-width: 1.7;
-  flex: 0 0 15px;
-}
-
-.ag-watermark {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 42%;
-  z-index: 4;
-  text-align: center;
-  font-size: 28mm;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  color: rgba(138, 90, 18, 0.12);
-  transform: rotate(-18deg);
-  pointer-events: none;
-}
-
-@media screen {
-  .ag-sheet {
-    zoom: min(1, calc((100vh - 86px) / 297mm));
-  }
 }
 
 @media screen and (max-width: 980px) {
@@ -682,8 +566,8 @@
 
   .ag-sheet {
     width: 210mm;
-    min-height: 297mm;
-    height: 297mm;
+    height: auto;
+    min-height: 0;
     zoom: 1;
     margin: 0;
     box-shadow: none;
@@ -708,7 +592,7 @@
   .ag-keep,
   .ag-table,
   .ag-total,
-  .ag-pay,
+  .ag-lower,
   .ag-sign,
   .ag-foot {
     break-inside: avoid;
