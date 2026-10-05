@@ -510,8 +510,13 @@
     const cdfBtn = opts.vehicleId
       ? `<button type="button" class="secondary" data-fin-print-cdr="${escapeHtml(String(opts.vehicleId))}">Imprimir CDF</button>`
       : "";
+    const reciboBtn =
+      kind === "receber"
+        ? `<button type="button" class="secondary" data-fin-recibo="${safeId}">Recibo de Pagamento</button>`
+        : "";
     return `<div class="fin-row-actions">
       ${payBtn}
+      ${reciboBtn}
       ${cdfBtn}
       ${caixaBtn}
       <button type="button" class="secondary fin-btn-${kind}-editar" data-fin-${kind}-editar="${safeId}">Editar</button>
@@ -2355,6 +2360,7 @@
           ? `<button type="button" class="fin-act-primary" data-fin-receber-pg="${escapeHtml(String(r.id))}">RECEBER</button>`
           : ""
       }
+      <button type="button" class="secondary" data-fin-recibo="${escapeHtml(String(r.id))}">Recibo de Pagamento</button>
       <button type="button" class="secondary" data-fin-receber-editar="${escapeHtml(String(r.id))}">Editar</button>
       <button type="button" class="secondary" data-fin-receber-controle="${escapeHtml(String(r.id))}">Controle de recebimento</button>
       <button type="button" class="secondary" data-fin-fechar-registro>Voltar</button>
@@ -7891,6 +7897,14 @@
         e.stopImmediatePropagation();
         const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(printCdr.getAttribute("data-fin-print-cdr")));
         if (vehicle && typeof openNfseThermalModal === "function") openNfseThermalModal(vehicle);
+        return;
+      }
+      const reciboBtn = e.target.closest("[data-fin-recibo]");
+      if (reciboBtn) {
+        e.preventDefault();
+        const id = reciboBtn.getAttribute("data-fin-recibo");
+        if (window.AmpliguardRecibo?.open) window.AmpliguardRecibo.open(id);
+        else alert("O recibo de pagamento não foi carregado. Atualize a página.");
         return;
       }
       const comprovanteBtn = e.target.closest("[data-fin-print-comprovante]");
