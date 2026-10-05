@@ -146,10 +146,10 @@
 }
 
 .ag-hero {
-  flex: 0 0 58mm;
-  height: 58mm;
+  flex: 0 0 56mm;
+  height: 56mm;
   display: grid;
-  grid-template-columns: 0.92fr 1.08fr;
+  grid-template-columns: 46% 54%;
   background: #01261e;
   overflow: hidden;
   color: #fff;
@@ -162,7 +162,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 4mm 8mm 4mm 6mm;
+  padding: 5mm 8mm 5mm 7mm;
   background: #01261e;
   min-width: 0;
 }
@@ -171,51 +171,38 @@
   content: "";
   position: absolute;
   top: 0;
-  right: -22mm;
-  width: 34mm;
+  right: -14mm;
+  width: 14mm;
   height: 100%;
   background: #01261e;
-  clip-path: polygon(0 0, 18% 0, 100% 100%, 0 100%);
-  pointer-events: none;
-}
-
-.ag-hero-photo::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 16mm;
-  z-index: 1;
-  background: rgba(1, 38, 30, 0.55);
-  clip-path: polygon(0 0, 28% 0, 100% 100%, 0 100%);
+  clip-path: polygon(0 0, 0 100%, 100% 100%, 62% 0);
   pointer-events: none;
 }
 
 .ag-logo {
   display: block;
-  width: 84%;
-  max-width: 84%;
+  width: 100%;
+  max-width: 100%;
   height: auto;
-  max-height: 30mm;
+  max-height: 32mm;
   object-fit: contain;
   object-position: left center;
   background: transparent;
 }
 
 .ag-slogan {
-  margin: 2mm 0 0;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  margin: 2.2mm 0 0;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
   line-height: 1.2;
-  max-width: 78%;
+  max-width: 100%;
 }
 
 .ag-hero-photo {
   position: relative;
   min-width: 0;
-  height: 58mm;
+  height: 56mm;
   overflow: hidden;
   background: #12352c;
 }
@@ -298,14 +285,14 @@
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  gap: 3.2mm;
+  gap: 5.2mm;
   justify-content: space-between;
-  padding: 6mm 8mm 4mm;
+  padding: 7mm 9mm 5mm;
 }
 
 .ag-title {
   margin: 0;
-  font-size: 22px;
+  font-size: 26px;
   letter-spacing: 0.01em;
   font-weight: 800;
   color: #12261f;
@@ -330,7 +317,7 @@
 
 .ag-line {
   margin: 0 0 0.8mm;
-  font-size: 13.5px;
+  font-size: 14.5px;
   line-height: 1.35;
 }
 
@@ -379,7 +366,7 @@
 
 .ag-fact strong {
   display: block;
-  font-size: 13.5px;
+  font-size: 14.5px;
   line-height: 1.25;
   white-space: pre-line;
 }
@@ -394,7 +381,7 @@
   border-collapse: separate;
   border-spacing: 0;
   margin: 0;
-  font-size: 13.5px;
+  font-size: 14.5px;
 }
 
 .ag-table th:first-child {
@@ -468,7 +455,7 @@
 }
 
 .ag-total strong {
-  font-size: 28px;
+  font-size: 30px;
   letter-spacing: 0.01em;
   line-height: 1;
   color: #10241c;
@@ -568,7 +555,7 @@
   justify-content: space-between;
   gap: 6mm;
   align-items: center;
-  padding: 3.5mm 6mm;
+  padding: 4.5mm 8mm;
 }
 
 .ag-foot p {
@@ -646,6 +633,12 @@
   pointer-events: none;
 }
 
+@media screen {
+  .ag-sheet {
+    zoom: min(1, calc((100vh - 86px) / 297mm));
+  }
+}
+
 @media screen and (max-width: 980px) {
   .ag-modal-body {
     flex-direction: column;
@@ -656,17 +649,9 @@
     flex-basis: auto;
     max-height: 42vh;
   }
-
-  .ag-sheet {
-    zoom: 0.82;
-  }
 }
 
 @media screen and (max-width: 640px) {
-  .ag-sheet {
-    zoom: 0.55;
-  }
-
   .ag-grid-2 {
     grid-template-columns: 1fr;
   }
