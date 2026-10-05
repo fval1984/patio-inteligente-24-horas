@@ -14,7 +14,7 @@
  * Aguardando Faturamento → CDF → Entradas → Caixa.
  */
 (function () {
-  const LOGO = "/assets/ampliguard-header-system-trim.png?v=20261005recibo1";
+  const LOGO = "/assets/ampliguard-logo-official.png?v=20261005recibo8";
   const PHOTO = "/assets/ampliguard-recibo-patio-lot.jpg?v=20261005recibo4";
   const FORMAS = ["Dinheiro", "PIX", "Cartão Débito", "Cartão Crédito", "Transferência", "Boleto", "Cheque"];
 
@@ -384,6 +384,7 @@
     shield: `<svg viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4.2 2.8 7.2 7 9 4.2-1.8 7-4.8 7-9V6l-7-3z"/></svg>`,
     lock: `<svg viewBox="0 0 24 24"><rect x="6" y="11" width="12" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>`,
     truck: `<svg viewBox="0 0 24 24"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg>`,
+    ig: `<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>`,
   };
 
   function sheetHtml() {
@@ -414,21 +415,14 @@
       : `<small>${d.token ? "QR Code indisponível neste momento." : "O QR Code é gerado ao salvar."}</small>`;
     const quando = [showDate(d.pagamentoYmd), d.pagamentoHora].filter((x) => x && x !== "—").join(" - ") || "—";
     return `<article class="ag-sheet" id="agReciboPrintRoot">
-      ${d.pago ? "" : `<div class="ag-watermark">PRÉVIA</div>`}
-      <header class="ag-hero">
-        <div class="ag-hero-brand">
-          <img class="ag-logo" src="${esc(absUrl(LOGO))}" alt="AMPLIGUARD — Pátio de guarda de veículos" />
-          <p class="ag-slogan">MAIS QUE UM PÁTIO,<br />UM COMPROMISSO.</p>
-        </div>
-        <div class="ag-hero-photo">
-          <img src="${esc(absUrl(PHOTO))}" alt="" />
-          <div class="ag-badge">
-            <small>RECIBO Nº <b>${esc(d.numero || "——")}</b></small>
-            ${statusBadge(d)}
-          </div>
+      <header class="ag-top">
+        <img class="ag-logo" src="${esc(absUrl(LOGO))}" alt="AMPLIGUARD — Pátio de guarda de veículos" />
+        <div class="ag-top-side">
+          <p class="ag-slogan">MAIS QUE<br />UM PÁTIO,<br />UM COMPROMISSO.</p>
+          <p class="ag-num">Nº ${esc(d.numero || "——")}</p>
+          ${statusBadge(d)}
         </div>
       </header>
-      <div class="ag-hero-gold"></div>
       <div class="ag-body">
         <h1 class="ag-title">RECIBO DE PAGAMENTO</h1>
         <div class="ag-cols">
@@ -459,18 +453,18 @@
           ${adjust.length ? `<p class="ag-line" style="margin-top:8px">${adjust.join(" · ")}</p>` : ""}
           <div class="ag-total"><span>TOTAL PAGO</span><strong>${esc(money(t.total))}</strong></div>
         </div>
-        <div class="ag-pay">
-          <div class="ag-pay-main">
+        <div class="ag-lower">
+          <div class="ag-lower-main">
             <div class="ag-pay-meta">
               <div class="ag-pay-item">
-                <div class="ag-ico">${ICO.gem}</div>
+                <div class="ag-ico">${ICO.cal}</div>
                 <div>
                   <h2 class="ag-kicker">FORMA DE PAGAMENTO</h2>
                   <strong>${esc(d.formaPagamento || "—")}</strong>
                 </div>
               </div>
               <div class="ag-pay-item">
-                <div class="ag-ico">${ICO.cal}</div>
+                <div class="ag-ico">${ICO.gem}</div>
                 <div>
                   <h2 class="ag-kicker">PAGAMENTO REALIZADO EM</h2>
                   <strong>${esc(quando)}</strong>
@@ -478,35 +472,27 @@
               </div>
             </div>
             <p class="ag-declare">Declaramos, para os devidos fins, o recebimento do valor total acima discriminado, referente aos serviços indicados neste documento.</p>
+            ${d.observacoes ? `<p class="ag-line"><span>Observações:</span> ${esc(d.observacoes)}</p>` : ""}
+            <div class="ag-sign">
+              <div class="line"></div>
+              <small>Responsável pelo Recebimento</small>
+              <strong>${esc(d.responsavel || "AMPLIGUARD")}</strong>
+            </div>
           </div>
           <div class="ag-qr">
             ${qr}
             <small>Documento autenticado<br />via QR Code</small>
           </div>
         </div>
-        ${d.observacoes ? `<p class="ag-line" style="margin-top:8px"><span>Observações:</span> ${esc(d.observacoes)}</p>` : ""}
-        <div class="ag-sign">
-          <div class="line"></div>
-          <small>Responsável pelo Recebimento</small>
-          <strong>${esc(d.responsavel || "AMPLIGUARD")}</strong>
-        </div>
       </div>
       <footer class="ag-foot">
         <div>
           <p><strong>${esc(co.razao)}</strong></p>
-          <p>CNPJ: ${esc(co.cnpj)} · ${esc(co.site)}</p>
+          <p>CNPJ: ${esc(co.cnpj)}</p>
+          <p>${esc(co.site)}</p>
         </div>
-        <div class="ag-marks">
-          <div class="ag-mark">${ICO.shield}<span>GUARDA</span></div>
-          <div class="ag-mark">${ICO.lock}<span>CUSTÓDIA</span></div>
-          <div class="ag-mark">${ICO.truck}<span>REMOÇÃO DE VEÍCULOS</span></div>
-        </div>
+        <div class="ag-social">${ICO.ig}<span>@ampliguard</span></div>
       </footer>
-      <div class="ag-contact">
-        <span>${ICO.phone}${esc(co.tel)}</span>
-        <span>${ICO.mail}${esc(co.email)}</span>
-        <span>${ICO.pin}${esc(co.endereco)}</span>
-      </div>
     </article>`;
   }
 
@@ -1003,7 +989,7 @@
   }
 
   function openPrintWindow() {
-    const css = `${location.origin}/payment-receipt.css?v=20261005recibo7`;
+    const css = `${location.origin}/payment-receipt.css?v=20261005recibo8`;
     const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${esc(pdfName())}</title>
       <link rel="stylesheet" href="${css}" />
       <style>body{margin:0;background:#fff}.ag-sheet{box-shadow:none;width:auto;min-height:0}</style>
@@ -1083,56 +1069,32 @@
     const t = totals(d);
     const co = companyBits();
     const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const margin = 32;
-    const headerH = 158;
-    const green = [1, 38, 30];
-    const gold = [198, 161, 91];
-    doc.setFillColor(...green);
-    doc.rect(0, 0, pageW, headerH, "F");
-    const photo = await toDataUrl(PHOTO);
-    if (photo) {
-      try {
-        doc.addImage(photo, "JPEG", pageW * 0.38, 0, pageW * 0.62, headerH);
-      } catch {
-        /* foto opcional */
-      }
-    }
-    doc.setFillColor(...green);
-    doc.rect(0, 0, pageW * 0.4, headerH, "F");
-    doc.triangle(pageW * 0.4, 0, pageW * 0.4, headerH, pageW * 0.62, headerH, "F");
+    const margin = 36;
+    const ink = [20, 24, 22];
     const logo = await toDataUrl(LOGO);
     if (logo) {
       try {
-        doc.addImage(logo, "PNG", 22, 18, 214, 47);
+        doc.addImage(logo, "PNG", margin, 28, 210, 42);
       } catch {
         /* logo opcional */
       }
     }
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(...ink);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.text("MAIS QUE UM PÁTIO,", 24, 84);
-    doc.text("UM COMPROMISSO.", 24, 96);
-    const badgeW = d.pago ? 132 : 176;
-    const badgeH = 62;
-    const badgeX = pageW - badgeW - 14;
-    const badgeY = headerH - badgeH - 8;
-    doc.setFillColor(...green);
-    doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 5, 5, "F");
-    doc.setDrawColor(232, 205, 140);
-    doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 5, 5, "S");
-    doc.setFontSize(8);
-    doc.text(`RECIBO Nº  ${d.numero || "——"}`, badgeX + badgeW / 2, badgeY + 16, { align: "center" });
+    doc.text("MAIS QUE", pageW - margin, 36, { align: "right" });
+    doc.text("UM PÁTIO,", pageW - margin, 47, { align: "right" });
+    doc.text("UM COMPROMISSO.", pageW - margin, 58, { align: "right" });
+    doc.setFontSize(11);
+    doc.text(`Nº  ${d.numero || "——"}`, pageW - margin, 76, { align: "right" });
+    const badgeW = d.pago ? 78 : 150;
     doc.setFillColor(...(d.pago ? [27, 154, 74] : [138, 90, 18]));
-    doc.roundedRect(badgeX + 8, badgeY + 24, badgeW - 16, 28, 4, 4, "F");
+    doc.roundedRect(pageW - margin - badgeW, 84, badgeW, 20, 3, 3, "F");
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(d.pago ? 13 : 8);
-    doc.text(d.pago ? "PAGO" : "AGUARDANDO PAGAMENTO", badgeX + badgeW / 2, badgeY + 42, { align: "center" });
-    doc.setFillColor(...gold);
-    doc.rect(0, headerH, pageW, 3, "F");
+    doc.setFontSize(d.pago ? 11 : 8);
+    doc.text(d.pago ? "PAGO" : "AGUARDANDO PAGAMENTO", pageW - margin - badgeW / 2, 97, { align: "center" });
 
-    let y = headerH + 28;
+    let y = 128;
     doc.setTextColor(18, 38, 31);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
@@ -1169,9 +1131,9 @@
     y += 16;
 
     const cols = [margin, margin + 250, margin + 330, margin + 420];
-    doc.setFillColor(...green);
+    doc.setFillColor(243, 244, 243);
     doc.rect(margin, y, pageW - margin * 2, 16, "F");
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(...ink);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.text("DESCRIÇÃO", cols[0] + 4, y + 11);
@@ -1201,19 +1163,15 @@
     }
     y += 10;
     const totalW = pageW - margin * 2;
-    doc.setFillColor(...green);
-    doc.roundedRect(margin, y, totalW, 32, 4, 4, "F");
-    doc.setFillColor(244, 231, 196);
-    doc.triangle(margin + totalW * 0.62, y, margin + totalW, y, margin + totalW, y + 32, "F");
-    doc.setFillColor(...gold);
-    doc.triangle(margin + totalW * 0.7, y + 32, margin + totalW, y, margin + totalW, y + 32, "F");
-    doc.setTextColor(255, 255, 255);
+    doc.setFillColor(238, 246, 241);
+    doc.setDrawColor(215, 230, 220);
+    doc.roundedRect(margin, y, totalW, 32, 4, 4, "FD");
+    doc.setTextColor(...ink);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.text("TOTAL PAGO", margin + 12, y + 21);
-    doc.setTextColor(16, 36, 28);
-    doc.setFontSize(18);
-    doc.text(money(t.total), pageW - margin - 12, y + 22, { align: "right" });
+    doc.setFontSize(16);
+    doc.text(money(t.total), pageW - margin - 12, y + 21, { align: "right" });
     y += 46;
     doc.setTextColor(18, 38, 31);
     doc.setFontSize(8);
@@ -1249,20 +1207,20 @@
     y += 12;
     doc.setFont("helvetica", "bold");
     doc.text(d.responsavel || "AMPLIGUARD", pageW / 2, y, { align: "center" });
-    const footY = pageH - 56;
-    doc.setFillColor(...green);
-    doc.rect(0, footY, pageW, 34, "F");
-    doc.setTextColor(255, 255, 255);
+    y += 18;
+    doc.setDrawColor(228, 231, 229);
+    doc.line(margin, y, pageW - margin, y);
+    y += 16;
+    doc.setTextColor(...ink);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.text(co.razao, margin, footY + 14);
+    doc.text(co.razao, margin, y);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.text(`CNPJ: ${co.cnpj}  ·  ${co.site}`, margin, footY + 26);
-    doc.text("GUARDA  ·  CUSTÓDIA  ·  REMOÇÃO DE VEÍCULOS", pageW - margin, footY + 20, { align: "right" });
-    doc.setTextColor(18, 38, 31);
-    doc.setFontSize(8);
-    doc.text(`${co.tel}     ${co.email}     ${co.endereco}`, margin, footY + 48);
+    doc.text("@ampliguard", pageW - margin, y, { align: "right" });
+    y += 12;
+    doc.text(`CNPJ: ${co.cnpj}`, margin, y);
+    y += 12;
+    doc.text(co.site, margin, y);
   }
 
   async function open(receivableId) {
