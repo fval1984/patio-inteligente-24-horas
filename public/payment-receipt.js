@@ -365,7 +365,7 @@
   }
 
   function statusBadge(d) {
-    if (d.pago) return `<div class="ag-status">✓ PAGO</div>`;
+    if (d.pago) return `<div class="ag-status"><span class="ag-check">✓</span> PAGO</div>`;
     return `<div class="ag-status ag-status--wait">AGUARDANDO PAGAMENTO</div>`;
   }
 
@@ -378,7 +378,7 @@
     out: `<svg viewBox="0 0 24 24"><path d="M9 6h11v12H9"/><path d="M13 12H4m0 0 3-3m-3 3 3 3"/></svg>`,
     clock: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></svg>`,
     pin: `<svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/></svg>`,
-    gem: `<svg viewBox="0 0 24 24"><path d="M3 9h18L12 21 3 9z"/><path d="M3 9 7 4h10l4 5"/><path d="M7 4l5 5 5-5"/></svg>`,
+    gem: `<svg viewBox="0 0 24 24"><path d="M12 3 14.2 9.8 21 12 14.2 14.2 12 21 9.8 14.2 3 12 9.8 9.8 12 3z"/></svg>`,
     phone: `<svg viewBox="0 0 24 24"><path d="M7 3h3l1.4 3.6-2 1.2a12 12 0 0 0 6.8 6.8l1.2-2L21 14v3a2 2 0 0 1-2.2 2A16 16 0 0 1 5 5.2 2 2 0 0 1 7 3z"/></svg>`,
     mail: `<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>`,
     shield: `<svg viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4.2 2.8 7.2 7 9 4.2-1.8 7-4.8 7-9V6l-7-3z"/></svg>`,
@@ -403,14 +403,11 @@
     const adjust = [];
     if (t.desc) adjust.push(`Descontos: ${esc(money(t.desc))}`);
     if (t.acres) adjust.push(`Acréscimos: ${esc(money(t.acres))}`);
-    const parceiroBits = [
-      d.parceiro ? `Parceiro: ${esc(d.parceiro)}` : "",
-      d.escritorio ? `Escritório: ${esc(d.escritorio)}` : "",
-      d.instituicao ? `Instituição financeira: ${esc(d.instituicao)}` : "",
-    ]
-      .filter(Boolean)
-      .map((line) => `<p class="ag-line">${line}</p>`)
-      .join("");
+    const parceiroLinha = [d.parceiro, d.escritorio, d.instituicao]
+      .map((item) => String(item || "").trim())
+      .filter((item, index, list) => item && item !== "—" && list.indexOf(item) === index)
+      .join(" / ");
+    const parceiroBits = `<p class="ag-line"><span>Parceiro:</span> ${esc(parceiroLinha || "—")}</p>`;
     const rppLoc = [d.rpp, d.localizador].filter((x) => x && x !== "—").join(" / ") || "—";
     const qr = qrDataUrl
       ? `<img src="${qrDataUrl}" alt="QR Code de autenticação do recibo" />`
@@ -426,8 +423,7 @@
         <div class="ag-hero-photo">
           <img src="${esc(absUrl(PHOTO))}" alt="" />
           <div class="ag-badge">
-            <small>RECIBO Nº</small>
-            <strong>${esc(d.numero || "——")}</strong>
+            <small>RECIBO Nº <b>${esc(d.numero || "——")}</b></small>
             ${statusBadge(d)}
           </div>
         </div>
@@ -450,8 +446,8 @@
           </section>
         </div>
         <div class="ag-facts">
-          ${fact(ICO.cal, "Entrada", `${showDate(d.entradaYmd)} ${d.entradaHora || ""}`.trim())}
-          ${fact(ICO.out, "Saída", `${showDate(d.saidaYmd)} ${d.saidaHora || ""}`.trim())}
+          ${fact(ICO.cal, "Entrada", [showDate(d.entradaYmd), d.entradaHora].filter((x) => x && x !== "—").join("\n"))}
+          ${fact(ICO.out, "Saída", [showDate(d.saidaYmd), d.saidaHora].filter((x) => x && x !== "—").join("\n"))}
           ${fact(ICO.clock, "Período", periodoLabel(d))}
           ${fact(ICO.pin, "Local", d.local || co.local)}
         </div>
@@ -485,7 +481,7 @@
           </div>
           <div class="ag-qr">
             ${qr}
-            <small>Documento autenticado via QR Code</small>
+            <small>Documento autenticado<br />via QR Code</small>
           </div>
         </div>
         ${d.observacoes ? `<p class="ag-line" style="margin-top:8px"><span>Observações:</span> ${esc(d.observacoes)}</p>` : ""}
@@ -1007,7 +1003,7 @@
   }
 
   function openPrintWindow() {
-    const css = `${location.origin}/payment-receipt.css?v=20261005recibo5`;
+    const css = `${location.origin}/payment-receipt.css?v=20261005recibo6`;
     const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${esc(pdfName())}</title>
       <link rel="stylesheet" href="${css}" />
       <style>body{margin:0;background:#fff}.ag-sheet{box-shadow:none;width:auto;min-height:0}</style>
@@ -1127,14 +1123,12 @@
     doc.setDrawColor(232, 205, 140);
     doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 5, 5, "S");
     doc.setFontSize(8);
-    doc.text("RECIBO Nº", badgeX + badgeW / 2, badgeY + 14, { align: "center" });
-    doc.setFontSize(13);
-    doc.text(d.numero || "——", badgeX + badgeW / 2, badgeY + 30, { align: "center" });
-    doc.setFillColor(...(d.pago ? [21, 122, 69] : [138, 90, 18]));
-    doc.roundedRect(badgeX + 8, badgeY + 36, badgeW - 16, 18, 3, 3, "F");
+    doc.text(`RECIBO Nº  ${d.numero || "——"}`, badgeX + badgeW / 2, badgeY + 16, { align: "center" });
+    doc.setFillColor(...(d.pago ? [27, 154, 74] : [138, 90, 18]));
+    doc.roundedRect(badgeX + 8, badgeY + 24, badgeW - 16, 28, 4, 4, "F");
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(d.pago ? 9 : 7);
-    doc.text(d.pago ? "PAGO" : "AGUARDANDO PAGAMENTO", badgeX + badgeW / 2, badgeY + 48, { align: "center" });
+    doc.setFontSize(d.pago ? 13 : 8);
+    doc.text(d.pago ? "PAGO" : "AGUARDANDO PAGAMENTO", badgeX + badgeW / 2, badgeY + 42, { align: "center" });
     doc.setFillColor(...gold);
     doc.rect(0, headerH, pageW, 3, "F");
 
