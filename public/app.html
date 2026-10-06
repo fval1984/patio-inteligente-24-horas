@@ -4800,6 +4800,26 @@
         letter-spacing: 0.06em;
         text-transform: uppercase;
       }
+      #patioContent [data-subview="removidos"] .patio-vrp-select-col {
+        width: 42px;
+        text-align: center;
+      }
+      #patioContent [data-subview="removidos"] tr.patio-vrp-selected {
+        background: rgba(138, 154, 58, 0.16);
+      }
+      [data-theme="light"] #patioContent [data-subview="removidos"] tr.patio-vrp-selected {
+        background: rgba(138, 154, 58, 0.22);
+      }
+      #patioContent [data-subview="removidos"] tr.patio-vrp-selected .patio-mob-compact-row {
+        box-shadow: inset 4px 0 0 0 #8a9a3a;
+        border-color: #8a9a3a;
+      }
+      .patio-vrp-mob-check {
+        display: inline-flex;
+        align-items: center;
+        flex: 0 0 auto;
+        margin: 0;
+      }
       .patio-inicio-panel {
         margin-bottom: 20px;
         padding: 20px 22px 22px;
@@ -7331,7 +7351,7 @@
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260917header1" />
     <link rel="stylesheet" href="/finance-action-ui.css?v=20260921ops1" />
-    <link rel="stylesheet" href="/payment-receipt.css?v=20261005recibo9" />
+    <link rel="stylesheet" href="/payment-receipt.css?v=20261005recibo10" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260917header1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
@@ -7968,6 +7988,20 @@
             </div>
             <div class="section-card patio-subview hidden" data-subview="removidos">
               <div class="pill">VRP</div>
+              <form id="patioVrpPlacaForm" class="filter-bar" style="margin: 0 0 12px" action="#" novalidate>
+                <label for="patioVrpPlaca">Placa</label>
+                <input id="patioVrpPlaca" type="text" maxlength="8" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="Buscar placa" aria-label="Buscar por placa" />
+                <button type="submit">Buscar</button>
+                <button type="button" class="secondary" id="patioVrpPlacaLimpar">Limpar</button>
+              </form>
+              <p id="patioVrpPlacaHint" class="notice hidden" style="margin: 0 0 12px"></p>
+              <div id="patioVrpLoteBar" class="hidden" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px">
+                <label style="display:flex;align-items:center;gap:6px;margin:0">
+                  <input type="checkbox" id="patioVrpSelectAll" />
+                  Selecionar todos
+                </label>
+                <strong id="patioVrpSelCount">0 registros selecionados</strong>
+              </div>
               <div class="table-wrap">
                 <table class="table stacked patio-vehicle-table">
                 <thead class="patio-mob-thead">
@@ -7982,6 +8016,7 @@
                 </thead>
                 <thead class="patio-desk-thead">
                   <tr>
+                    <th class="patio-vrp-select-col"><input type="checkbox" id="patioVrpSelectHead" title="Selecionar todos" aria-label="Selecionar todos" /></th>
                     <th>Placa</th>
                     <th>Registo</th>
                     <th>Veículo</th>
@@ -10123,7 +10158,7 @@
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
     <script src="/finance-module.js?v=20261005recibo1"></script>
-    <script src="/payment-receipt.js?v=20261005recibo9"></script>
+    <script src="/payment-receipt.js?v=20261005recibo10"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
@@ -17826,8 +17861,8 @@
           #viewPatio [data-subview="vsc"] table tbody td:nth-child(6) {
             display: none !important;
           }
-          #viewPatio [data-subview="removidos"] table thead th:nth-child(7),
-          #viewPatio [data-subview="removidos"] table tbody td:nth-child(7) {
+          #viewPatio [data-subview="removidos"] table thead th:nth-child(8),
+          #viewPatio [data-subview="removidos"] table tbody td:nth-child(8) {
             display: none !important;
           }
           `;
@@ -17897,8 +17932,8 @@
           #viewPatio [data-subview="vsc"] table tbody td:nth-child(6) {
             display: none !important;
           }
-          #viewPatio [data-subview="removidos"] table thead th:nth-child(7),
-          #viewPatio [data-subview="removidos"] table tbody td:nth-child(7) {
+          #viewPatio [data-subview="removidos"] table thead th:nth-child(8),
+          #viewPatio [data-subview="removidos"] table tbody td:nth-child(8) {
             display: none !important;
           }
           #vehicleForm.operador-simplified .field-operador-hide { display: none !important; }
@@ -20217,10 +20252,12 @@
         return `<span class="patio-mob-compact-line">${dot}<span class="vei-plate-with-status">${plate}</span><span class="patio-mob-compact-meta">${modelo}</span></span>`;
       }
 
-      function buildPatioMobileListCellsHtml(v, colspan) {
+      function buildPatioMobileListCellsHtml(v, colspan, leadingHtml) {
+        const lead = leadingHtml || "";
         return `
             <td class="patio-mob-only patio-mob-compact-cell" colspan="${colspan}">
               <div class="patio-mob-compact-row">
+                ${lead}
                 <span class="patio-mob-compact-text">${buildPatioMobileCompactLine(v)}</span>
                 <button type="button" class="patio-mob-info-btn secondary" data-action="patio_acoes" data-id="${v.id}" aria-label="Ações do veículo" title="Ações">Info</button>
               </div>
@@ -20851,43 +20888,81 @@
       let patioAguardandoRolarTopo = false;
       let patioCobrancaDocAtual = null;
 
+      function patioTextoSelecao(n) {
+        return `${n} registro${n === 1 ? "" : "s"} selecionado${n === 1 ? "" : "s"}`;
+      }
+
+      function patioAplicarBuscaPlacaNoTopo(opts) {
+        const fonte = opts.fonte || [];
+        const topoIds = opts.topoIds;
+        const getId = opts.getId;
+        const getPlaca = opts.getPlaca;
+        let busca = opts.busca || "";
+        let aviso = opts.aviso || "";
+        let achou = !!opts.achou;
+        let destaque = opts.destaque || "";
+        let rolar = !!opts.rolar;
+        const q = normalizePlateSearch(busca);
+        if (q) {
+          const hits = fonte.filter((item) => plateNormMatchesQuery(normalizePlateSearch(getPlaca(item) || ""), q));
+          achou = hits.length > 0;
+          if (!hits.length) {
+            aviso = opts.msgNenhuma;
+          } else {
+            for (let i = hits.length - 1; i >= 0; i -= 1) {
+              const id = String(getId(hits[i]));
+              const pos = topoIds.indexOf(id);
+              if (pos >= 0) topoIds.splice(pos, 1);
+              topoIds.unshift(id);
+            }
+            destaque = String(getId(hits[0]));
+            rolar = true;
+            const placaTxt = getPlaca(hits[0]) || "Placa";
+            aviso = hits.length === 1 ? opts.msgUma(placaTxt) : opts.msgVarias(hits.length);
+          }
+          busca = "";
+        }
+        const porId = new Map(fonte.map((item) => [String(getId(item)), item]));
+        for (let i = topoIds.length - 1; i >= 0; i -= 1) {
+          if (!porId.has(topoIds[i])) topoIds.splice(i, 1);
+        }
+        const topo = topoIds.map((id) => porId.get(id)).filter(Boolean);
+        const topoSet = new Set(topoIds);
+        const list = topo.concat(fonte.filter((item) => !topoSet.has(String(getId(item)))));
+        return { list, busca, aviso, achou, destaque, rolar };
+      }
+
+      function patioAlternarChecksLista(checkSelector, selecionados, marcado) {
+        document.querySelectorAll(checkSelector).forEach((el) => {
+          el.checked = marcado;
+          if (marcado) selecionados.add(String(el.value));
+          else selecionados.delete(String(el.value));
+        });
+      }
+
       function renderFechamentoCicloTable(tbody, items) {
         if (!tbody) return;
         const fonte = (items || []).filter((r) => state.vehicles.some((v) => v.id === r.vehicle_id));
-        const q = typeof normalizePlateSearch === "function" ? normalizePlateSearch(patioAguardandoPlacaBusca) : "";
-        if (q) {
-          const hits = fonte.filter((r) => {
-            const vehicle = state.vehicles.find((v) => v.id === r.vehicle_id);
-            const placa = typeof normalizePlateSearch === "function" ? normalizePlateSearch(vehicle?.placa || "") : "";
-            return typeof plateNormMatchesQuery === "function" ? plateNormMatchesQuery(placa, q) : placa.includes(q);
-          });
-          patioAguardandoPlacaAchou = hits.length > 0;
-          if (!hits.length) {
-            patioAguardandoPlacaAviso = "Nenhuma placa encontrada em Aguardando Faturamento.";
-          } else {
-            for (let i = hits.length - 1; i >= 0; i -= 1) {
-              const id = String(hits[i].id);
-              const pos = patioAguardandoTopoIds.indexOf(id);
-              if (pos >= 0) patioAguardandoTopoIds.splice(pos, 1);
-              patioAguardandoTopoIds.unshift(id);
-            }
-            patioAguardandoTopoDestaque = String(hits[0].id);
-            patioAguardandoRolarTopo = true;
-            const placaTxt = state.vehicles.find((v) => v.id === hits[0].vehicle_id)?.placa || "Placa";
-            patioAguardandoPlacaAviso =
-              hits.length === 1
-                ? `${placaTxt} no topo da lista. Marque o registro e busque outra placa.`
-                : `${hits.length} placas no topo da lista. Marque os registros e busque outra placa.`;
-          }
-          patioAguardandoPlacaBusca = "";
-        }
-        const porId = new Map(fonte.map((r) => [String(r.id), r]));
-        for (let i = patioAguardandoTopoIds.length - 1; i >= 0; i -= 1) {
-          if (!porId.has(patioAguardandoTopoIds[i])) patioAguardandoTopoIds.splice(i, 1);
-        }
-        const topo = patioAguardandoTopoIds.map((id) => porId.get(id)).filter(Boolean);
-        const topoSet = new Set(patioAguardandoTopoIds);
-        const list = topo.concat(fonte.filter((r) => !topoSet.has(String(r.id))));
+        const ordenado = patioAplicarBuscaPlacaNoTopo({
+          fonte,
+          topoIds: patioAguardandoTopoIds,
+          busca: patioAguardandoPlacaBusca,
+          aviso: patioAguardandoPlacaAviso,
+          achou: patioAguardandoPlacaAchou,
+          destaque: patioAguardandoTopoDestaque,
+          rolar: patioAguardandoRolarTopo,
+          getId: (r) => r.id,
+          getPlaca: (r) => state.vehicles.find((v) => v.id === r.vehicle_id)?.placa || "",
+          msgNenhuma: "Nenhuma placa encontrada em Aguardando Faturamento.",
+          msgUma: (placaTxt) => `${placaTxt} no topo da lista. Marque o registro e busque outra placa.`,
+          msgVarias: (n) => `${n} placas no topo da lista. Marque os registros e busque outra placa.`,
+        });
+        patioAguardandoPlacaBusca = ordenado.busca;
+        patioAguardandoPlacaAviso = ordenado.aviso;
+        patioAguardandoPlacaAchou = ordenado.achou;
+        patioAguardandoTopoDestaque = ordenado.destaque;
+        patioAguardandoRolarTopo = ordenado.rolar;
+        const list = ordenado.list;
         const rows = fonte;
         const totalEl = document.getElementById("patioAguardandoFaturamentoTotal");
         if (totalEl) {
@@ -20983,7 +21058,7 @@
         const all = document.getElementById("patioAguardandoSelectAll");
         const head = document.getElementById("patioAguardandoSelectHead");
         if (bar) bar.classList.toggle("hidden", n < 1);
-        if (countEl) countEl.textContent = `${n} registro${n === 1 ? "" : "s"} selecionado${n === 1 ? "" : "s"}`;
+        if (countEl) countEl.textContent = patioTextoSelecao(n);
         const todos = idsNaTela.length > 0 && idsNaTela.every((id) => patioAguardandoSelecionados.has(id));
         if (all) all.checked = todos;
         if (head) head.checked = todos;
@@ -20993,11 +21068,7 @@
 
       function patioAguardandoAlternarTodos(marcado) {
         patioCobrancaLimparAviso();
-        document.querySelectorAll(".patio-aguardando-check").forEach((el) => {
-          el.checked = marcado;
-          if (marcado) patioAguardandoSelecionados.add(String(el.value));
-          else patioAguardandoSelecionados.delete(String(el.value));
-        });
+        patioAlternarChecksLista(".patio-aguardando-check", patioAguardandoSelecionados, marcado);
         patioAguardandoAtualizarSelecao();
       }
 
@@ -21413,16 +21484,85 @@
         if (ev.target.id === "patioCobrancaPreviewModal") patioCobrancaFecharPreview();
       });
 
+      const patioVrpSelecionados = new Set();
+      const patioVrpTopoIds = [];
+      let patioVrpIdsVigentes = new Set();
+      let patioVrpPlacaBusca = "";
+      let patioVrpPlacaAviso = "";
+      let patioVrpPlacaAchou = false;
+      let patioVrpTopoDestaque = "";
+      let patioVrpRolarTopo = false;
+
+      function patioVrpAtualizarSelecao() {
+        for (const id of [...patioVrpSelecionados]) {
+          if (patioVrpIdsVigentes.size && !patioVrpIdsVigentes.has(id)) patioVrpSelecionados.delete(id);
+        }
+        const idsNaTela = [
+          ...new Set([...document.querySelectorAll("#tableRemovidos .patio-vrp-check")].map((el) => String(el.value))),
+        ];
+        document.querySelectorAll("#tableRemovidos .patio-vrp-check").forEach((el) => {
+          const on = patioVrpSelecionados.has(String(el.value));
+          el.checked = on;
+          el.closest("tr")?.classList.toggle("patio-vrp-selected", on);
+        });
+        const n = patioVrpSelecionados.size;
+        const bar = document.getElementById("patioVrpLoteBar");
+        const countEl = document.getElementById("patioVrpSelCount");
+        const all = document.getElementById("patioVrpSelectAll");
+        const head = document.getElementById("patioVrpSelectHead");
+        if (bar) bar.classList.toggle("hidden", n < 1);
+        if (countEl) countEl.textContent = patioTextoSelecao(n);
+        const todos = idsNaTela.length > 0 && idsNaTela.every((id) => patioVrpSelecionados.has(id));
+        if (all) all.checked = todos;
+        if (head) head.checked = todos;
+      }
+
+      function patioVrpAlternarTodos(marcado) {
+        patioAlternarChecksLista("#tableRemovidos .patio-vrp-check", patioVrpSelecionados, marcado);
+        patioVrpAtualizarSelecao();
+      }
+
       function renderRemovedVehicles(tbody, items) {
-        if (!items.length) {
-          setEmptyRow(tbody, "Nenhum veículo removido.", 10);
+        if (!tbody) return;
+        const fonte = items || [];
+        const ordenado = patioAplicarBuscaPlacaNoTopo({
+          fonte,
+          topoIds: patioVrpTopoIds,
+          busca: patioVrpPlacaBusca,
+          aviso: patioVrpPlacaAviso,
+          achou: patioVrpPlacaAchou,
+          destaque: patioVrpTopoDestaque,
+          rolar: patioVrpRolarTopo,
+          getId: (v) => v.id,
+          getPlaca: (v) => v.placa || "",
+          msgNenhuma: "Nenhuma placa encontrada no VRP.",
+          msgUma: (placaTxt) => `${placaTxt} no topo da lista. Marque o registro e busque outra placa.`,
+          msgVarias: (n) => `${n} placas no topo da lista. Marque os registros e busque outra placa.`,
+        });
+        patioVrpPlacaBusca = ordenado.busca;
+        patioVrpPlacaAviso = ordenado.aviso;
+        patioVrpPlacaAchou = ordenado.achou;
+        patioVrpTopoDestaque = ordenado.destaque;
+        patioVrpRolarTopo = ordenado.rolar;
+        const hint = document.getElementById("patioVrpPlacaHint");
+        if (hint) {
+          hint.textContent = patioVrpPlacaAviso;
+          hint.classList.toggle("hidden", !patioVrpPlacaAviso);
+        }
+        patioVrpIdsVigentes = new Set(fonte.map((v) => String(v.id)));
+        for (const id of [...patioVrpSelecionados]) {
+          if (!patioVrpIdsVigentes.has(id)) patioVrpSelecionados.delete(id);
+        }
+        if (!fonte.length) {
+          setEmptyRow(tbody, "Nenhum veículo removido.", 11);
+          patioVrpSelecionados.clear();
+          patioVrpAtualizarSelecao();
           return;
         }
         const semValores = hidesFinancialValues();
-        tbody.innerHTML = items
+        tbody.innerHTML = ordenado.list
           .map((v) => {
             const total = calcTotal(v);
-            const status = v.status === "REMOVIDO" ? "Removido" : "Outro";
             const localizador =
               state.partners.find((p) => p.id === v.localizador_id)?.nome || "-";
             const rpfNome = vehicleRpfNome(v);
@@ -21432,10 +21572,15 @@
               : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
 
             const actionsCell = buildPatioVehicleActionsHtml(v, { listContext: "vrp" });
+            const marcado = patioVrpSelecionados.has(String(v.id)) ? " checked" : "";
+            const destaque = String(v.id) === String(patioVrpTopoDestaque) ? ' style="outline: 2px solid #8a9a3a"' : "";
+            const rowSel = patioVrpSelecionados.has(String(v.id)) ? "patio-vrp-selected" : "";
+            const check = `<input type="checkbox" class="patio-vrp-check" value="${escapeHtml(String(v.id))}"${marcado} aria-label="Selecionar ${escapeHtml(v.placa || "veículo")}" />`;
 
             return `
-              <tr data-vehicle-row="${v.id}">
-                ${buildPatioMobileListCellsHtml(v, 10)}
+              <tr class="${rowSel}" data-vehicle-row="${v.id}"${destaque}>
+                ${buildPatioMobileListCellsHtml(v, 11, `<label class="patio-vrp-mob-check">${check}</label>`)}
+                <td class="patio-desk-only patio-vrp-select-col" data-label="Selecionar">${check}</td>
                 <td class="patio-desk-only" data-label="Placa">${plateVisualHtml(v.placa, "sm")}</td>
                 <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td class="patio-desk-only" data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
@@ -21450,7 +21595,53 @@
             `;
           })
           .join("");
+        patioVrpAtualizarSelecao();
+        if (patioVrpRolarTopo && patioVrpTopoDestaque) {
+          patioVrpRolarTopo = false;
+          tbody.querySelector(`tr[data-vehicle-row="${patioVrpTopoDestaque}"]`)?.scrollIntoView({ block: "nearest" });
+        }
       }
+
+      function bindPatioVrpSelecaoOnce() {
+        if (bindPatioVrpSelecaoOnce._done) return;
+        bindPatioVrpSelecaoOnce._done = true;
+        document.getElementById("patioVrpPlacaForm")?.addEventListener("submit", (ev) => {
+          ev.preventDefault();
+          patioVrpPlacaBusca = document.getElementById("patioVrpPlaca")?.value || "";
+          if (typeof renderVehicles === "function") renderVehicles();
+          const campo = document.getElementById("patioVrpPlaca");
+          if (campo && patioVrpPlacaAchou) {
+            campo.value = "";
+            campo.focus();
+          }
+        });
+        document.getElementById("patioVrpPlacaLimpar")?.addEventListener("click", () => {
+          patioVrpPlacaBusca = "";
+          patioVrpPlacaAviso = "";
+          patioVrpPlacaAchou = false;
+          patioVrpTopoIds.length = 0;
+          patioVrpTopoDestaque = "";
+          patioVrpRolarTopo = false;
+          const campo = document.getElementById("patioVrpPlaca");
+          if (campo) campo.value = "";
+          if (typeof renderVehicles === "function") renderVehicles();
+          campo?.focus();
+        });
+        document.getElementById("patioVrpSelectAll")?.addEventListener("change", (ev) => {
+          patioVrpAlternarTodos(!!ev.target.checked);
+        });
+        document.getElementById("patioVrpSelectHead")?.addEventListener("change", (ev) => {
+          patioVrpAlternarTodos(!!ev.target.checked);
+        });
+        document.getElementById("tableRemovidos")?.addEventListener("change", (ev) => {
+          const chk = ev.target.closest(".patio-vrp-check");
+          if (!chk) return;
+          if (chk.checked) patioVrpSelecionados.add(String(chk.value));
+          else patioVrpSelecionados.delete(String(chk.value));
+          patioVrpAtualizarSelecao();
+        });
+      }
+      bindPatioVrpSelecaoOnce();
 
       function buildNfseText(vehicle) {
         const dias = calcDays(vehicle);
@@ -24055,8 +24246,12 @@
       document.getElementById("comprovantePagamentoConfirmarBtn")?.addEventListener("click", () => {
         void confirmarComprovantePagamento();
       });
+      document.getElementById("comprovantePagamentoEditBtn")?.addEventListener("click", () => {
+        toggleComprovanteEditor();
+      });
+      document.getElementById("comprovantePagamentoEditor")?.addEventListener("input", onComprovanteEditorInput);
       document.getElementById("comprovantePagamentoPrintBtn")?.addEventListener("click", () => {
-        printComprovantePagamentoAtual();
+        void printComprovantePagamentoAtual();
       });
       document.getElementById("comprovantePagamentoPdfBtn")?.addEventListener("click", () => {
         void downloadComprovantePagamentoAtual();
@@ -24472,6 +24667,108 @@
         pendingBaixaReceber = null;
       }
 
+      function comprovanteSplitDataHora(value) {
+        if (value == null || value === "") return { data: "", hora: "" };
+        const s = String(value).trim();
+        const data = formatDateBr(s);
+        const dataOk = data && data !== "-" ? data : "";
+        if (isCalendarYmd(s)) return { data: dataOk, hora: "" };
+        const date = new Date(s);
+        if (Number.isNaN(date.getTime())) return { data: dataOk, hora: "" };
+        const hasTime = /T\d{2}:\d{2}/.test(s) || /\s\d{2}:\d{2}/.test(s);
+        if (!hasTime) return { data: dataOk, hora: "" };
+        const hora = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+        if (hora === "00:00" && !/T00:00|\s00:00/.test(s)) return { data: dataOk, hora: "" };
+        return { data: dataOk, hora };
+      }
+
+      function comprovanteLinhasIniciais(payload, breakdown) {
+        const linhas = [];
+        if (breakdown && Number(breakdown.diariasTotal) > 0) {
+          linhas.push({
+            descricao: "Guarda e custódia / estadias",
+            qtd: String(breakdown.dias || 1),
+            unit: formatCurrency(breakdown.valorDiaria),
+            total: formatCurrency(breakdown.diariasTotal),
+          });
+        }
+        if (breakdown && Number(breakdown.taxaRemocao) > 0) {
+          linhas.push({
+            descricao: "Remoção do veículo",
+            qtd: "1",
+            unit: formatCurrency(breakdown.taxaRemocao),
+            total: formatCurrency(breakdown.taxaRemocao),
+          });
+        }
+        if (breakdown && Number(breakdown.taxasAdicionais) > 0) {
+          linhas.push({
+            descricao: "Taxas adicionais",
+            qtd: "1",
+            unit: formatCurrency(breakdown.taxasAdicionais),
+            total: formatCurrency(breakdown.taxasAdicionais),
+          });
+        }
+        const desconto = Math.max(0, Number(payload?.desconto) || 0);
+        if (desconto > 0) {
+          linhas.push({
+            descricao: "Desconto",
+            qtd: "1",
+            unit: formatCurrency(desconto),
+            total: formatCurrency(-desconto),
+          });
+        }
+        if (!linhas.length) {
+          const valor = Number(payload?.valorRecebido) || 0;
+          linhas.push({
+            descricao: String(payload?.observacao || "").trim() || "Pagamento",
+            qtd: "1",
+            unit: formatCurrency(valor),
+            total: formatCurrency(valor),
+          });
+        }
+        return linhas;
+      }
+
+      const CP_EDIT_KEYS = [
+        "numero",
+        "devedor",
+        "doc",
+        "parceiro",
+        "placa",
+        "marcaModelo",
+        "rppLoc",
+        "entradaData",
+        "entradaHora",
+        "saidaData",
+        "saidaHora",
+        "periodo",
+        "localNome",
+        "forma",
+        "pagamentoEm",
+        "valorTotal",
+      ];
+
+      function comprovanteCaptureEdits(data) {
+        if (!data?._editado) return null;
+        const snap = { linhas: (data.linhas || []).map((linha) => ({ ...linha })) };
+        CP_EDIT_KEYS.forEach((key) => {
+          snap[key] = data[key];
+        });
+        return snap;
+      }
+
+      function comprovanteApplyEdits(data, snap) {
+        if (!data || !snap) return data;
+        CP_EDIT_KEYS.forEach((key) => {
+          if (snap[key] != null) data[key] = snap[key];
+        });
+        if (Array.isArray(snap.linhas)) data.linhas = snap.linhas.map((linha) => ({ ...linha }));
+        data._editado = true;
+        data.qr = "";
+        data.qrText = "";
+        return data;
+      }
+
       function comprovanteDash(value) {
         const text = String(value == null ? "" : value).trim();
         if (!text || text === "-" || text === "—") return "—";
@@ -24501,8 +24798,28 @@
         const faturamento = [tipoLabel, idCompact ? `Ref. ${idCompact}` : ""].filter(Boolean).join(" · ");
         const desconto = Math.max(0, Number(payload?.desconto) || 0);
         const dias = vehicle ? calcDays(vehicle) : 0;
+        const fat = faturamentoRealRecebimento(receivable, vehicle);
+        const doc = String(fat.doc || "").trim();
+        const pagador = String(fat.nome || devedor || "").trim();
+        const parceiro = rppNome && rppNome !== "—" ? rppNome : "";
+        const marca = String(vehicle?.marca || "").trim();
+        const modelo = String(vehicle?.modelo || "").trim();
+        const entradaPartes = comprovanteSplitDataHora(vehicle?.data_entrada);
+        const saidaPartes = comprovanteSplitDataHora(vehicle?.data_saida);
+        const cfg = state.settings || {};
+        let breakdown = null;
+        try {
+          if (vehicle) breakdown = receivableFinanceBreakdown(receivable, vehicle);
+        } catch (e) {
+          breakdown = null;
+        }
+        const linhas = comprovanteLinhasIniciais(payload, breakdown);
+        const diarias = breakdown && Number(breakdown.dias) > 0 ? Number(breakdown.dias) : dias;
+        const pago = payload?.pendente !== true;
+        const dataPagamento = payload?.dataMov ? formatDateBr(payload.dataMov) : "";
+        const rppLoc = [parceiro, rpv].filter((item, index, arr) => item && arr.indexOf(item) === index).join(" / ");
         return {
-          dataPagamento: payload?.dataMov ? formatDateBr(payload.dataMov) : "",
+          dataPagamento,
           horaConfirmacao: hora,
           dataHoraConfirmacao: `${dataConf} ${hora}`,
           valorRecebido: formatCurrency(payload?.valorRecebido),
@@ -24511,22 +24828,42 @@
           forma: String(payload?.formaPagamento || "").trim(),
           referencia,
           faturamento,
-          devedor,
+          devedor: pagador,
+          doc,
           contato: String(dest.contato || "").trim(),
           servico: receivable.receivable_category ? receivableCategoryLabel(receivable.receivable_category) : "",
           observacao: String(payload?.observacao || "").trim(),
           placa: String(vehicle?.placa || "").trim(),
-          marca: String(vehicle?.marca || "").trim(),
-          modelo: String(vehicle?.modelo || "").trim(),
+          marca,
+          modelo,
+          marcaModelo: [marca, modelo].filter(Boolean).join(" "),
           cor: String(vehicle?.cor || "").trim(),
           rpv,
-          rpp: rppNome && rppNome !== "—" ? rppNome : "",
-          entrada: vehicle?.data_entrada ? formatDateBr(vehicle.data_entrada) : "",
-          saida: vehicle?.data_saida ? formatDateBr(vehicle.data_saida) : "",
-          periodo: dias ? `${dias} dias` : "",
+          rpp: parceiro,
+          parceiro,
+          rppLoc,
+          entrada: entradaPartes.data,
+          saida: saidaPartes.data,
+          entradaData: entradaPartes.data,
+          entradaHora: entradaPartes.hora,
+          saidaData: saidaPartes.data,
+          saidaHora: saidaPartes.hora,
+          periodo: diarias ? `${diarias} ${diarias === 1 ? "diária" : "diárias"}` : "",
+          localNome: `Pátio ${String(cfg.nome_patio || "AMPLIGUARD").trim() || "AMPLIGUARD"}`,
+          numero: idCompact || "—",
+          linhas,
+          valorTotal: formatCurrency(payload?.valorRecebido),
+          pagamentoEm: [dataPagamento, hora].filter(Boolean).join(" - "),
+          pago,
+          empresaRazao: "AMPLIGUARD GUARDA E CUSTÓDIA DE BENS LTDA",
+          empresaCnpj: typeof reciboCnpjExibicao === "function" ? reciboCnpjExibicao(cfg) : String(cfg.cnpj || "").trim(),
+          empresaSite: "www.ampliguard.com.br",
           confirmadoPor: currentPatioOperatorLabel(),
           hasVehicle: !!vehicle,
           vehicleId: vehicle?.id || "",
+          qr: "",
+          qrText: "",
+          _editado: false,
         };
       }
 
@@ -24752,6 +25089,237 @@
         return match ? match[1] : "";
       }
 
+      const CP_LOGO = "/assets/ampliguard-logo-official.png?v=20261005cp1";
+      let comprovanteCssCache = "";
+      let cpPreviewTimer = 0;
+
+      function cpIcon(name) {
+        const common =
+          'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+        if (name === "cal") return `<svg ${common}><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>`;
+        if (name === "out")
+          return `<svg ${common}><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M9 14h6M14 12l2 2-2 2"/></svg>`;
+        if (name === "clock") return `<svg ${common}><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></svg>`;
+        if (name === "pin")
+          return `<svg ${common}><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/></svg>`;
+        if (name === "pay")
+          return `<svg ${common}><path d="M12 3l2.2 4.5L19 8.2l-3.5 3.4.8 4.9L12 14.8 7.7 16.5l.8-4.9L5 8.2l4.8-.7L12 3z"/></svg>`;
+        if (name === "check")
+          return `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg>`;
+        if (name === "ig")
+          return `<svg viewBox="0 0 24 24" fill="none" stroke="#1c2420" stroke-width="1.6" aria-hidden="true"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.4" cy="6.6" r="0.9" fill="#1c2420" stroke="none"/></svg>`;
+        return "";
+      }
+
+      function comprovanteDocRotulo(doc) {
+        const digits = String(doc || "").replace(/\D/g, "");
+        if (digits.length === 14) return "CNPJ";
+        if (digits.length === 11) return "CPF";
+        return "CPF/CNPJ";
+      }
+
+      function comprovanteParseCents(value) {
+        const raw = String(value == null ? "" : value).trim();
+        if (!raw) return 0;
+        const neg = /^-/.test(raw) || /^\(.*\)$/.test(raw);
+        const s = raw.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+        const n = Number(s);
+        if (!Number.isFinite(n)) return 0;
+        return Math.round(Math.abs(n) * 100) * (neg ? -1 : 1);
+      }
+
+      function comprovanteLinhaTotal(qtd, unit) {
+        const q = Number(String(qtd || "").trim().replace(/\./g, "").replace(",", "."));
+        const cents = comprovanteParseCents(unit);
+        if (!Number.isFinite(q) || !q || !cents) return "";
+        return formatCurrency((q * cents) / 100);
+      }
+
+      function comprovanteQrPayload(data) {
+        if (!data) return "";
+        return [
+          "AMPLIGUARD",
+          `Nº ${comprovanteDash(data.numero)}`,
+          `Placa ${comprovanteDash(data.placa)}`,
+          `Pagador ${comprovanteDash(data.devedor)}`,
+          `Total ${comprovanteDash(data.valorTotal || data.valorRecebido)}`,
+          `Forma ${comprovanteDash(data.forma)}`,
+          `Pagamento ${comprovanteDash(data.pagamentoEm || data.dataHoraConfirmacao)}`,
+        ].join("\n");
+      }
+
+      async function comprovanteCssText() {
+        if (comprovanteCssCache) return comprovanteCssCache;
+        try {
+          const r = await fetch("/comprovante-pagamento.css?v=20261005cp2", { cache: "no-cache" });
+          comprovanteCssCache = r.ok ? await r.text() : "";
+        } catch (e) {
+          comprovanteCssCache = "";
+        }
+        return comprovanteCssCache;
+      }
+
+      async function comprovanteEnsureQrLib() {
+        if (window.QRCode?.CorrectLevel) return;
+        await new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = "/vendor/qrcode.min.js?v=20261005recibo1";
+          s.onload = () => resolve();
+          s.onerror = () => reject(new Error("qrcode"));
+          document.head.appendChild(s);
+        });
+      }
+
+      async function comprovanteFillQr(data) {
+        const text = comprovanteQrPayload(data);
+        if (!data || !text || (data.qr && data.qrText === text)) return data?.qr || "";
+        try {
+          await comprovanteEnsureQrLib();
+          const holder = document.createElement("div");
+          holder.setAttribute("aria-hidden", "true");
+          holder.style.cssText = "position:fixed;left:-9999px;top:0;width:240px;height:240px;";
+          document.body.appendChild(holder);
+          new window.QRCode(holder, {
+            text,
+            width: 240,
+            height: 240,
+            colorDark: "#14221c",
+            colorLight: "#ffffff",
+            correctLevel: window.QRCode.CorrectLevel.M,
+          });
+          const canvas = holder.querySelector("canvas");
+          const url = canvas ? canvas.toDataURL("image/png") : "";
+          holder.remove();
+          if (!url) return "";
+          data.qr = url;
+          data.qrText = text;
+          const img = document.querySelector("#comprovantePagamentoPreview .cp-qr-img");
+          if (img) img.src = url;
+          return url;
+        } catch (e) {
+          console.warn("qr comprovante", e);
+          return "";
+        }
+      }
+
+      function comprovanteSheetMarkup(data) {
+        const d = data || {};
+        const dash = comprovanteDash;
+        const logo = `${location.origin}${CP_LOGO}`;
+        const pago = d.pago !== false;
+        const linhas = Array.isArray(d.linhas) && d.linhas.length ? d.linhas : [];
+        const rows = linhas
+          .map(
+            (linha) => `<tr>
+            <td>${escapeHtml(dash(linha.descricao))}</td>
+            <td class="q">${escapeHtml(dash(linha.qtd))}</td>
+            <td class="num">${escapeHtml(dash(linha.unit))}</td>
+            <td class="num">${escapeHtml(dash(linha.total))}</td>
+          </tr>`
+          )
+          .join("");
+        const qr = d.qr
+          ? `<img class="cp-qr-img" src="${d.qr}" alt="QR Code do comprovante" />`
+          : `<div class="cp-qr-box"></div>`;
+        return `<article class="cp-sheet">
+        <header class="cp-top">
+          <img class="cp-logo" src="${escapeHtml(logo)}" alt="AMPLIGUARD" />
+          <div class="cp-side">
+            <p class="cp-slogan">MAIS QUE<br />UM PÁTIO,<br />UM COMPROMISSO.</p>
+            <p class="cp-num">Nº ${escapeHtml(dash(d.numero))}</p>
+            <div class="cp-status${pago ? "" : " wait"}">${pago ? `${cpIcon("check")} PAGO` : "AGUARDANDO PAGAMENTO"}</div>
+          </div>
+        </header>
+        <h1 class="cp-title">RECIBO DE PAGAMENTO</h1>
+        <div class="cp-cols">
+          <section class="cp-col">
+            <p class="cp-k">DADOS DO PAGADOR</p>
+            <p class="cp-line">${escapeHtml(dash(d.devedor))}</p>
+            <p class="cp-line">${escapeHtml(comprovanteDocRotulo(d.doc))}: ${escapeHtml(dash(d.doc))}</p>
+            <p class="cp-line">Parceiro: ${escapeHtml(dash(d.parceiro))}</p>
+          </section>
+          <section class="cp-col">
+            <p class="cp-k">DADOS DO VEÍCULO</p>
+            <p class="cp-line">Placa: ${escapeHtml(dash(d.placa))}</p>
+            <p class="cp-line">Marca/Modelo: ${escapeHtml(dash(d.marcaModelo || [d.marca, d.modelo].filter(Boolean).join(" ")))}</p>
+            <p class="cp-line">RPP / Localizador: ${escapeHtml(dash(d.rppLoc || d.rpp || d.rpv))}</p>
+          </section>
+        </div>
+        <div class="cp-facts">
+          <div class="cp-fact">${cpIcon("cal")}<small>Entrada</small><strong>${escapeHtml(dash(d.entradaData || d.entrada))}</strong>${d.entradaHora ? `<span>${escapeHtml(d.entradaHora)}</span>` : ""}</div>
+          <div class="cp-fact">${cpIcon("out")}<small>Saída</small><strong>${escapeHtml(dash(d.saidaData || d.saida))}</strong>${d.saidaHora ? `<span>${escapeHtml(d.saidaHora)}</span>` : ""}</div>
+          <div class="cp-fact">${cpIcon("clock")}<small>Período</small><strong>${escapeHtml(dash(d.periodo))}</strong></div>
+          <div class="cp-fact">${cpIcon("pin")}<small>Local</small><strong>${escapeHtml(dash(d.localNome))}</strong></div>
+        </div>
+        <table class="cp-table">
+          <thead>
+            <tr><th>DESCRIÇÃO</th><th class="q">QTD.</th><th class="num">VALOR UNIT.</th><th class="num">TOTAL</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="cp-total"><b>TOTAL PAGO</b><span>${escapeHtml(dash(d.valorTotal || d.valorRecebido))}</span></div>
+        <div class="cp-lower">
+          <div>
+            <div class="cp-pay">
+              <div class="cp-pay-col">${cpIcon("pay")}<small>FORMA DE PAGAMENTO</small><strong>${escapeHtml(dash(d.forma))}</strong></div>
+              <div class="cp-pay-col">${cpIcon("cal")}<small>PAGAMENTO REALIZADO EM</small><strong>${escapeHtml(dash(d.pagamentoEm || d.dataHoraConfirmacao))}</strong></div>
+            </div>
+            <p class="cp-declare">Declaramos, para os devidos fins, o recebimento do valor total acima discriminado, referente aos serviços indicados neste documento.</p>
+            <div class="cp-sign"><i></i><small>Responsável pelo Recebimento</small><b>AMPLIGUARD</b></div>
+          </div>
+          <div class="cp-qr">${qr}<small>Documento autenticado<br />via QR Code</small></div>
+        </div>
+        <footer class="cp-foot">
+          <p><b>${escapeHtml(dash(d.empresaRazao))}</b> | CNPJ: ${escapeHtml(dash(d.empresaCnpj))}<br />${escapeHtml(dash(d.empresaSite))}</p>
+          <div class="cp-ig">${cpIcon("ig")} @ampliguard</div>
+        </footer>
+      </article>`;
+      }
+
+      function comprovanteEditorMarkup(data) {
+        const d = data || {};
+        const field = (key, label, value) =>
+          `<label>${escapeHtml(label)}<input data-cp="${escapeHtml(key)}" value="${escapeHtml(value || "")}" /></label>`;
+        const linhas = (Array.isArray(d.linhas) ? d.linhas : [])
+          .map(
+            (linha, index) => `<tr>
+            <td><input data-cp-line="${index}" data-cp-field="descricao" value="${escapeHtml(linha.descricao || "")}" /></td>
+            <td><input data-cp-line="${index}" data-cp-field="qtd" value="${escapeHtml(linha.qtd || "")}" /></td>
+            <td><input data-cp-line="${index}" data-cp-field="unit" value="${escapeHtml(linha.unit || "")}" /></td>
+            <td><input data-cp-line="${index}" data-cp-field="total" value="${escapeHtml(linha.total || "")}" /></td>
+          </tr>`
+          )
+          .join("");
+        return `<h4>Dados deste comprovante</h4>
+        <p class="cp-note">A correção vale só para este comprovante. O cadastro do veículo e o Caixa não são alterados.</p>
+        <div class="cp-editor-grid">
+          ${field("numero", "Nº", d.numero)}
+          ${field("devedor", "Pagador", d.devedor)}
+          ${field("doc", "CPF ou CNPJ", d.doc)}
+          ${field("parceiro", "Parceiro", d.parceiro)}
+          ${field("placa", "Placa", d.placa)}
+          ${field("marcaModelo", "Marca / modelo", d.marcaModelo)}
+          ${field("rppLoc", "RPP / localizador", d.rppLoc)}
+          ${field("entradaData", "Entrada", d.entradaData || d.entrada)}
+          ${field("entradaHora", "Hora da entrada", d.entradaHora)}
+          ${field("saidaData", "Saída", d.saidaData || d.saida)}
+          ${field("saidaHora", "Hora da saída", d.saidaHora)}
+          ${field("periodo", "Período", d.periodo)}
+          ${field("localNome", "Local", d.localNome)}
+          ${field("forma", "Forma de pagamento", d.forma)}
+          ${field("pagamentoEm", "Pagamento realizado em", d.pagamentoEm)}
+          ${field("valorTotal", "Total pago", d.valorTotal || d.valorRecebido)}
+        </div>
+        <table class="cp-lines">
+          <thead><tr><th>Descrição</th><th>Qtd.</th><th>Valor unit.</th><th>Total</th></tr></thead>
+          <tbody>${linhas}</tbody>
+        </table>`;
+      }
+
+      function comprovantePrintCssExtra() {
+        return `@page{size:A4 portrait;margin:8mm}html,body{margin:0;padding:0;background:#fff}body{display:flex;justify-content:center}.cp-sheet{box-shadow:none}`;
+      }
+
       function buildComprovantePagamentoHtml(data) {
         const logo = `${location.origin}/assets/ampliguard-marca.png?v=20260917logo2`;
         const cls = {
@@ -24780,6 +25348,152 @@ ${body}
 </body></html>`;
       }
 
+      function pullComprovanteEditor() {
+        const root = document.getElementById("comprovantePagamentoEditor");
+        const data = comprovantePagamentoAtual;
+        if (!root || root.classList.contains("hidden") || !data) return;
+        let mudou = false;
+        root.querySelectorAll("[data-cp]").forEach((el) => {
+          const key = el.dataset.cp;
+          if (data[key] !== el.value) mudou = true;
+          data[key] = el.value;
+        });
+        root.querySelectorAll("[data-cp-line]").forEach((el) => {
+          const index = Number(el.dataset.cpLine);
+          const field = el.dataset.cpField;
+          if (!data.linhas?.[index] || !field) return;
+          if (data.linhas[index][field] !== el.value) mudou = true;
+          data.linhas[index][field] = el.value;
+        });
+        if (mudou) {
+          data._editado = true;
+          data.qr = "";
+          data.qrText = "";
+        }
+      }
+
+      function renderComprovantePagamentoVista() {
+        const data = comprovantePagamentoAtual;
+        const preview = document.getElementById("comprovantePagamentoPreview");
+        if (preview) preview.innerHTML = data ? comprovanteSheetMarkup(data) : "";
+        const resumo = document.getElementById("comprovantePagamentoResumo");
+        if (resumo && data) {
+          const bits = [
+            data.placa ? `Placa ${data.placa}` : "",
+            data.valorTotal || data.valorRecebido ? `Valor ${data.valorTotal || data.valorRecebido}` : "",
+            data.forma || "",
+          ].filter(Boolean);
+          resumo.textContent = bits.join(" · ") || "Pagamento confirmado.";
+        }
+        if (data) void comprovanteFillQr(data);
+      }
+
+      function renderComprovanteEditor() {
+        const box = document.getElementById("comprovantePagamentoEditor");
+        if (!box || !comprovantePagamentoAtual || box.classList.contains("hidden")) return;
+        box.innerHTML = comprovanteEditorMarkup(comprovantePagamentoAtual);
+      }
+
+      function toggleComprovanteEditor() {
+        const box = document.getElementById("comprovantePagamentoEditor");
+        if (!box) return;
+        box.classList.toggle("hidden");
+        const btn = document.getElementById("comprovantePagamentoEditBtn");
+        const aberto = !box.classList.contains("hidden");
+        if (btn) btn.textContent = aberto ? "Fechar edição" : "Editar dados";
+        if (aberto) renderComprovanteEditor();
+      }
+
+      function onComprovanteEditorInput(event) {
+        const data = comprovantePagamentoAtual;
+        const alvo = event.target;
+        if (!data || !alvo?.dataset) return;
+        if (alvo.dataset.cp) {
+          data[alvo.dataset.cp] = alvo.value;
+          data._editado = true;
+        }
+        if (alvo.dataset.cpLine != null && alvo.dataset.cpField && data.linhas?.[Number(alvo.dataset.cpLine)]) {
+          const index = Number(alvo.dataset.cpLine);
+          data.linhas[index][alvo.dataset.cpField] = alvo.value;
+          data._editado = true;
+          if (alvo.dataset.cpField === "qtd" || alvo.dataset.cpField === "unit") {
+            const total = comprovanteLinhaTotal(data.linhas[index].qtd, data.linhas[index].unit);
+            if (total) {
+              data.linhas[index].total = total;
+              const totalInput = document.querySelector(
+                `#comprovantePagamentoEditor [data-cp-line="${index}"][data-cp-field="total"]`
+              );
+              if (totalInput) totalInput.value = total;
+            }
+          }
+        }
+        data.qr = "";
+        data.qrText = "";
+        clearTimeout(cpPreviewTimer);
+        cpPreviewTimer = setTimeout(renderComprovantePagamentoVista, 160);
+      }
+
+      function printComprovanteDocumento(html) {
+        const iframe = document.createElement("iframe");
+        iframe.setAttribute("title", "Comprovante de Pagamento");
+        iframe.setAttribute("aria-hidden", "true");
+        iframe.style.cssText = "position:fixed;left:-2400px;top:0;width:210mm;height:297mm;border:0;pointer-events:none;";
+        document.body.appendChild(iframe);
+        const win = iframe.contentWindow;
+        if (!win) {
+          iframe.remove();
+          alert("Não foi possível preparar a impressão neste navegador.");
+          return;
+        }
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+        let started = false;
+        const removeIframe = () => {
+          try {
+            iframe.remove();
+          } catch (e) {
+            /* ignore */
+          }
+        };
+        const go = () => {
+          if (started) return;
+          started = true;
+          try {
+            win.focus();
+            win.print();
+          } catch (e) {
+            alert("Não foi possível abrir a impressão do comprovante.");
+          }
+          setTimeout(removeIframe, 800);
+        };
+        const imgs = [...win.document.images];
+        if (!imgs.length) {
+          setTimeout(go, 80);
+          return;
+        }
+        let pending = imgs.length;
+        const done = () => {
+          pending -= 1;
+          if (pending <= 0) setTimeout(go, 60);
+        };
+        imgs.forEach((img) => {
+          if (img.complete) done();
+          else {
+            img.onload = done;
+            img.onerror = done;
+          }
+        });
+        setTimeout(go, 1500);
+      }
+
+      async function comprovanteHtmlParaImpressao(data) {
+        if (data && data === comprovantePagamentoAtual) pullComprovanteEditor();
+        await comprovanteFillQr(data);
+        const css = await comprovanteCssText();
+        return buildComprovantePagamentoHtml(data, css);
+      }
+
       let pendingComprovanteCaixa = null;
 
       function setComprovanteAguardandoCaixa(on) {
@@ -24795,6 +25509,9 @@ ${body}
 
       function closeComprovantePagamentoModal() {
         document.getElementById("comprovantePagamentoModal")?.classList.add("hidden");
+        document.getElementById("comprovantePagamentoEditor")?.classList.add("hidden");
+        const editBtn = document.getElementById("comprovantePagamentoEditBtn");
+        if (editBtn) editBtn.textContent = "Editar dados";
         pendingComprovanteCaixa = null;
         setComprovanteAguardandoCaixa(false);
       }
@@ -24866,6 +25583,37 @@ ${body}
           cursor += lineMm;
         });
         return cursor + style.after;
+      }
+
+      async function comprovanteRasterCanvas(data) {
+        await comprovanteFillQr(data);
+        const host = document.createElement("div");
+        host.setAttribute("aria-hidden", "true");
+        host.style.cssText = "position:fixed;left:-2400px;top:0;width:190mm;background:#fff;";
+        host.innerHTML = comprovanteSheetMarkup(data);
+        document.body.appendChild(host);
+        try {
+          const imgs = [...host.querySelectorAll("img")];
+          await Promise.race([
+            Promise.all(
+              imgs.map(
+                (img) =>
+                  img.complete
+                    ? Promise.resolve()
+                    : new Promise((resolve) => {
+                        img.onload = resolve;
+                        img.onerror = resolve;
+                      })
+              )
+            ),
+            new Promise((resolve) => setTimeout(resolve, 1600)),
+          ]);
+          const sheet = host.querySelector(".cp-sheet");
+          const h2c = await loadHtml2Canvas();
+          return await h2c(sheet, { scale: 2, backgroundColor: "#ffffff", useCORS: true });
+        } finally {
+          host.remove();
+        }
       }
 
       async function buildComprovantePagamentoPdfDoc(data) {
@@ -25040,6 +25788,7 @@ ${body}
         pendingComprovanteCaixa = null;
         setComprovanteAguardandoCaixa(false);
         try {
+          const edits = comprovanteCaptureEdits(comprovantePagamentoAtual);
           comprovantePagamentoAtual = collectComprovantePagamentoData({
             receivable: result.receivable,
             vehicle: result.vehicle,
@@ -25051,6 +25800,7 @@ ${body}
             observacao: job.observacao,
             confirmedAt: new Date(),
           });
+          comprovanteApplyEdits(comprovantePagamentoAtual, edits);
         } catch (errComprovante) {
           console.error("comprovante pagamento", errComprovante);
         }
