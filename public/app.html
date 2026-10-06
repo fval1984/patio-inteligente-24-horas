@@ -2978,7 +2978,8 @@
         padding: 6px 10px;
         font-size: 12px;
       }
-      #vnpFiltersBar select {
+      #vnpFiltersBar select,
+      #patioVrpPlacaForm select {
         min-width: 180px;
         max-width: 260px;
         padding: 6px 10px;
@@ -4441,7 +4442,9 @@
           min-width: 0;
         }
         #vnpFiltersBar select,
-        #vnpFiltersBar input {
+        #vnpFiltersBar input,
+        #patioVrpPlacaForm select,
+        #patioVrpPlacaForm input {
           width: 100%;
           max-width: none;
           min-width: 0;
@@ -7991,6 +7994,10 @@
               <form id="patioVrpPlacaForm" class="filter-bar" style="margin: 0 0 12px" action="#" novalidate>
                 <label for="patioVrpPlaca">Placa</label>
                 <input id="patioVrpPlaca" type="text" maxlength="8" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="Buscar placa" aria-label="Buscar por placa" />
+                <label for="patioVrpParceiro">Parceiro</label>
+                <select id="patioVrpParceiro" aria-label="Parceiro">
+                  <option value="">Todos os parceiros</option>
+                </select>
                 <button type="submit">Buscar</button>
                 <button type="button" class="secondary" id="patioVrpPlacaLimpar">Limpar</button>
               </form>
@@ -14802,6 +14809,7 @@
             vnpFilterPatioId = "";
           }
         }
+        syncPatioVrpParceiroSelect();
       }
 
       function syncVlsFilterSelects() {
@@ -21487,6 +21495,7 @@
       const patioVrpSelecionados = new Set();
       const patioVrpTopoIds = [];
       let patioVrpIdsVigentes = new Set();
+      let patioVrpParceiroId = "";
       let patioVrpPlacaBusca = "";
       let patioVrpPlacaAviso = "";
       let patioVrpPlacaAchou = false;
@@ -21522,9 +21531,33 @@
         patioVrpAtualizarSelecao();
       }
 
+      function syncPatioVrpParceiroSelect() {
+        const parc = document.getElementById("patioVrpParceiro");
+        if (!parc || typeof allPartnersSorted !== "function") return;
+        const cur = String(patioVrpParceiroId || "");
+        const opts = allPartnersSorted()
+          .map((p) => {
+            const id = String(p.id);
+            return `<option value="${escapeHtml(id)}"${id === cur ? " selected" : ""}>${escapeHtml(p.nome || "-")}</option>`;
+          })
+          .join("");
+        parc.innerHTML = `<option value="">Todos os parceiros</option>${opts}`;
+        if (cur && [...parc.options].some((o) => o.value === cur)) parc.value = cur;
+        else {
+          parc.value = "";
+          patioVrpParceiroId = "";
+        }
+      }
+
+      function patioVrpVeiculoDoParceiro(v) {
+        if (!patioVrpParceiroId) return true;
+        return String(v?.localizador_id || "") === String(patioVrpParceiroId);
+      }
+
       function renderRemovedVehicles(tbody, items) {
         if (!tbody) return;
-        const fonte = items || [];
+        const lista = items || [];
+        const fonte = lista.filter(patioVrpVeiculoDoParceiro);
         const ordenado = patioAplicarBuscaPlacaNoTopo({
           fonte,
           topoIds: patioVrpTopoIds,
@@ -21554,7 +21587,13 @@
           if (!patioVrpIdsVigentes.has(id)) patioVrpSelecionados.delete(id);
         }
         if (!fonte.length) {
-          setEmptyRow(tbody, "Nenhum veículo removido.", 11);
+          setEmptyRow(
+            tbody,
+            lista.length && patioVrpParceiroId
+              ? "Nenhum veículo removido com o parceiro selecionado."
+              : "Nenhum veículo removido.",
+            11
+          );
           patioVrpSelecionados.clear();
           patioVrpAtualizarSelecao();
           return;
@@ -21624,8 +21663,15 @@
           patioVrpRolarTopo = false;
           const campo = document.getElementById("patioVrpPlaca");
           if (campo) campo.value = "";
+          patioVrpParceiroId = "";
+          const parceiro = document.getElementById("patioVrpParceiro");
+          if (parceiro) parceiro.value = "";
           if (typeof renderVehicles === "function") renderVehicles();
           campo?.focus();
+        });
+        document.getElementById("patioVrpParceiro")?.addEventListener("change", (ev) => {
+          patioVrpParceiroId = ev.target.value || "";
+          if (typeof renderVehicles === "function") renderVehicles();
         });
         document.getElementById("patioVrpSelectAll")?.addEventListener("change", (ev) => {
           patioVrpAlternarTodos(!!ev.target.checked);
