@@ -22342,16 +22342,75 @@
         cdfFilaAtualizarCabecalho();
       }
 
-      function openCdfFaturamentoLote(ids) {
-        const lista = [...new Set((ids || []).map((id) => String(id)).filter(Boolean))].filter((id) => {
+      /**
+       * Bloqueia só título que já está em Entradas (ou ciclo já quitado / irmão já lançado).
+       * `financeiro_aprovado_contas_receber` sozinha não basta: registros antigos ficam
+       * visíveis em Aguardando Faturamento enquanto o CDF ainda não foi gerado.
+       */
+      function cdfReceivableMotivoForaDoFaturamento(rec) {
+        if (!rec) return "não encontrado";
+        const pago =
+          (typeof receivableFinanceStatus === "function" && receivableFinanceStatus(rec) === "PAGO") ||
+          rec.status === "PAGO" ||
+          (typeof receivableFluxoFinanceiroQuitado === "function" && receivableFluxoFinanceiroQuitado(rec));
+        if (pago) return "já está em Entradas";
+        if (typeof receivableHasPaidSiblingCycle === "function" && receivableHasPaidSiblingCycle(rec)) {
+          return "já está em Entradas";
+        }
+        if (typeof receivableIsContaReceberFinanceiro === "function" && receivableIsContaReceberFinanceiro(rec)) {
+          return "já está em Entradas";
+        }
+        if (typeof openContaReceberSibling === "function" && openContaReceberSibling(rec)) {
+          return "já está em Entradas";
+        }
+        return "";
+      }
+
+      function cdfPlacaDoRecebivel(rec) {
+        const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(rec?.vehicle_id));
+        return String(vehicle?.placa || "").trim();
+      }
+
+      function cdfSepararFilaFaturamento(ids) {
+        const pendentes = [];
+        const ignorados = [];
+        const vistos = new Set();
+        for (const bruto of ids || []) {
+          const id = String(bruto || "").trim();
+          if (!id || vistos.has(id)) continue;
+          vistos.add(id);
           const rec = (state.receivables || []).find((x) => String(x.id) === id);
-          return rec && !(typeof receivableAprovadoParaContasReceber === "function" && receivableAprovadoParaContasReceber(rec));
-        });
-        if (!lista.length) {
+          if (!rec) {
+            ignorados.push({ id, placa: "", motivo: "não encontrado" });
+            continue;
+          }
+          const motivo = cdfReceivableMotivoForaDoFaturamento(rec);
+          if (motivo) {
+            ignorados.push({ id, placa: cdfPlacaDoRecebivel(rec), motivo });
+            continue;
+          }
+          pendentes.push(id);
+        }
+        return { pendentes, ignorados };
+      }
+      window.cdfSepararFilaFaturamento = cdfSepararFilaFaturamento;
+
+      function openCdfFaturamentoLote(ids) {
+        const { pendentes, ignorados } = cdfSepararFilaFaturamento(ids);
+        if (!pendentes.length) {
           alert("Nenhum registro pendente. Os selecionados já estão em Entradas ou não foram encontrados.");
           return;
         }
-        filaFaturamento = { ids: lista.slice(), index: 0, ok: 0, memoria: null };
+        if (ignorados.length) {
+          const linhas = ignorados.map((item) => {
+            const quem = item.placa ? item.placa : `ID ${item.id}`;
+            return `${quem}: ${item.motivo}`;
+          });
+          alert(
+            `Os registros pendentes seguem para o faturamento.\n\nIgnorados por já estarem faturados ou não encontrados:\n${linhas.join("\n")}`
+          );
+        }
+        filaFaturamento = { ids: pendentes.slice(), index: 0, ok: 0, memoria: null };
         cdfFilaAbrirIndice();
       }
       window.openCdfFaturamentoLote = openCdfFaturamentoLote;
