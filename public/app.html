@@ -2979,7 +2979,8 @@
         font-size: 12px;
       }
       #vnpFiltersBar select,
-      #patioVrpPlacaForm select {
+      #patioVrpPlacaForm select,
+      #patioAguardandoPlacaForm select {
         min-width: 180px;
         max-width: 260px;
         padding: 6px 10px;
@@ -4444,7 +4445,9 @@
         #vnpFiltersBar select,
         #vnpFiltersBar input,
         #patioVrpPlacaForm select,
-        #patioVrpPlacaForm input {
+        #patioVrpPlacaForm input,
+        #patioAguardandoPlacaForm select,
+        #patioAguardandoPlacaForm input {
           width: 100%;
           max-width: none;
           min-width: 0;
@@ -8049,6 +8052,10 @@
               <form id="patioAguardandoPlacaForm" class="filter-bar" style="margin: 0 0 12px" action="#" novalidate>
                 <label for="patioAguardandoPlaca">Placa</label>
                 <input id="patioAguardandoPlaca" type="text" maxlength="8" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="Buscar placa" aria-label="Buscar por placa" />
+                <label for="patioAguardandoParceiro">Parceiro</label>
+                <select id="patioAguardandoParceiro" aria-label="Parceiro">
+                  <option value="">Todos os parceiros</option>
+                </select>
                 <button type="submit">Buscar</button>
                 <button type="button" class="secondary" id="patioAguardandoPlacaLimpar">Limpar</button>
               </form>
@@ -14810,6 +14817,7 @@
           }
         }
         syncPatioVrpParceiroSelect();
+        syncPatioAguardandoParceiroSelect();
       }
 
       function syncVlsFilterSelects() {
@@ -20858,8 +20866,15 @@
           patioAguardandoRolarTopo = false;
           const campo = document.getElementById("patioAguardandoPlaca");
           if (campo) campo.value = "";
+          patioAguardandoParceiroId = "";
+          const parceiro = document.getElementById("patioAguardandoParceiro");
+          if (parceiro) parceiro.value = "";
           if (typeof renderVehicles === "function") renderVehicles();
           campo?.focus();
+        });
+        document.getElementById("patioAguardandoParceiro")?.addEventListener("change", (ev) => {
+          patioAguardandoParceiroId = ev.target.value || "";
+          if (typeof renderVehicles === "function") renderVehicles();
         });
         document.getElementById("patioAguardandoSelectAll")?.addEventListener("change", (ev) => {
           patioAguardandoAlternarTodos(!!ev.target.checked);
@@ -20889,6 +20904,7 @@
 
       const patioAguardandoSelecionados = new Set();
       const patioAguardandoTopoIds = [];
+      let patioAguardandoParceiroId = "";
       let patioAguardandoPlacaBusca = "";
       let patioAguardandoPlacaAviso = "";
       let patioAguardandoPlacaAchou = false;
@@ -20948,9 +20964,22 @@
         });
       }
 
+      function patioAguardandoRegistroDoParceiro(r) {
+        if (!patioAguardandoParceiroId) return true;
+        const pid = String(patioAguardandoParceiroId);
+        const vehicle = (state.vehicles || []).find((v) => v.id === r.vehicle_id);
+        if (!vehicle) return false;
+        if (String(vehicle.localizador_id || "") === pid) return true;
+        if (String(vehicle.responsavel_financeiro_id || "") === pid) return true;
+        const nomeSel = patioCobrancaNormNome((state.partners || []).find((p) => String(p.id) === pid)?.nome || "");
+        if (!nomeSel) return false;
+        return patioCobrancaNormNome(patioCobrancaRpfExibido(r, vehicle)) === nomeSel;
+      }
+
       function renderFechamentoCicloTable(tbody, items) {
         if (!tbody) return;
-        const fonte = (items || []).filter((r) => state.vehicles.some((v) => v.id === r.vehicle_id));
+        const lista = (items || []).filter((r) => state.vehicles.some((v) => v.id === r.vehicle_id));
+        const fonte = lista.filter(patioAguardandoRegistroDoParceiro);
         const ordenado = patioAplicarBuscaPlacaNoTopo({
           fonte,
           topoIds: patioAguardandoTopoIds,
@@ -20988,10 +21017,16 @@
           hint.textContent = patioAguardandoPlacaAviso;
           hint.classList.toggle("hidden", !patioAguardandoPlacaAviso);
         }
+        const idsFonte = new Set(fonte.map((r) => String(r.id)));
+        for (const id of [...patioAguardandoSelecionados]) {
+          if (!idsFonte.has(id)) patioAguardandoSelecionados.delete(id);
+        }
         if (!fonte.length) {
           setEmptyRow(
             tbody,
-            "Nenhum veículo aguardando faturamento. Depois de concluir o ciclo no pátio (VRP), o registro aparece aqui até emitir a nota fiscal ou a cobrança.",
+            lista.length && patioAguardandoParceiroId
+              ? "Nenhum veículo aguardando faturamento com o parceiro selecionado."
+              : "Nenhum veículo aguardando faturamento. Depois de concluir o ciclo no pátio (VRP), o registro aparece aqui até emitir a nota fiscal ou a cobrança.",
             9
           );
           patioAguardandoSelecionados.clear();
@@ -21531,22 +21566,33 @@
         patioVrpAtualizarSelecao();
       }
 
-      function syncPatioVrpParceiroSelect() {
-        const parc = document.getElementById("patioVrpParceiro");
-        if (!parc || typeof allPartnersSorted !== "function") return;
-        const cur = String(patioVrpParceiroId || "");
+      function fillPatioParceiroSelect(selectEl, currentId) {
+        if (!selectEl || typeof allPartnersSorted !== "function") return String(currentId || "");
+        const cur = String(currentId || "");
         const opts = allPartnersSorted()
           .map((p) => {
             const id = String(p.id);
             return `<option value="${escapeHtml(id)}"${id === cur ? " selected" : ""}>${escapeHtml(p.nome || "-")}</option>`;
           })
           .join("");
-        parc.innerHTML = `<option value="">Todos os parceiros</option>${opts}`;
-        if (cur && [...parc.options].some((o) => o.value === cur)) parc.value = cur;
-        else {
-          parc.value = "";
-          patioVrpParceiroId = "";
+        selectEl.innerHTML = `<option value="">Todos os parceiros</option>${opts}`;
+        if (cur && [...selectEl.options].some((o) => o.value === cur)) {
+          selectEl.value = cur;
+          return cur;
         }
+        selectEl.value = "";
+        return "";
+      }
+
+      function syncPatioVrpParceiroSelect() {
+        patioVrpParceiroId = fillPatioParceiroSelect(document.getElementById("patioVrpParceiro"), patioVrpParceiroId);
+      }
+
+      function syncPatioAguardandoParceiroSelect() {
+        patioAguardandoParceiroId = fillPatioParceiroSelect(
+          document.getElementById("patioAguardandoParceiro"),
+          patioAguardandoParceiroId
+        );
       }
 
       function patioVrpVeiculoDoParceiro(v) {
