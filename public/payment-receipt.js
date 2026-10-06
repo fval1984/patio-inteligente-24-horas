@@ -14,9 +14,7 @@
  * Aguardando Faturamento → CDF → Entradas → Caixa.
  */
 (function () {
-  const LOGO = "/assets/ampliguard-header-system-trim.png?v=20261005recibo9";
-  const PHOTO = "/assets/ampliguard-recibo-patio-lot.jpg?v=20261005recibo4";
-  const SKYLINE = "/assets/ampliguard-recibo-skyline.jpg?v=20261005recibo9";
+  const LOGO = "/assets/ampliguard-logo-official.png?v=20261005recibo10";
   const FORMAS = ["Dinheiro", "PIX", "Cartão Débito", "Cartão Crédito", "Transferência", "Boleto", "Cheque"];
 
   let draft = null;
@@ -371,7 +369,13 @@
   }
 
   function fact(icon, label, value) {
-    return `<div class="ag-fact"><div class="ag-ico">${icon}</div><div><small>${esc(label)}</small><strong>${esc(value || "—")}</strong></div></div>`;
+    const parts = String(value || "—")
+      .split("\n")
+      .map((item) => item.trim())
+      .filter((item) => item && item !== "—");
+    const main = parts[0] || "—";
+    const sub = parts.slice(1).join(" ");
+    return `<div class="ag-fact"><div class="ag-ico">${icon}</div><div><small>${esc(label)}</small><strong>${esc(main)}</strong>${sub ? `<span>${esc(sub)}</span>` : ""}</div></div>`;
   }
 
   const ICO = {
@@ -416,22 +420,15 @@
       : `<small>${d.token ? "QR Code indisponível neste momento." : "O QR Code é gerado ao salvar."}</small>`;
     const quando = [showDate(d.pagamentoYmd), d.pagamentoHora].filter((x) => x && x !== "—").join(" - ") || "—";
     return `<article class="ag-sheet" id="agReciboPrintRoot">
-      <header class="ag-hero">
-        <div class="ag-hero-brand">
-          <img class="ag-logo" src="${esc(absUrl(LOGO))}" alt="AMPLIGUARD — Pátio de guarda de veículos" />
-          <p class="ag-slogan">MAIS QUE UM PÁTIO,<br />UM COMPROMISSO.</p>
-        </div>
-        <div class="ag-hero-photo">
-          <img src="${esc(absUrl(PHOTO))}" alt="" />
-          <div class="ag-badge">
-            <small>RECIBO Nº <b>${esc(d.numero || "——")}</b></small>
-            ${statusBadge(d)}
-          </div>
+      <header class="ag-top">
+        <img class="ag-logo" src="${esc(absUrl(LOGO))}" alt="AMPLIGUARD — Pátio de guarda de veículos" />
+        <div class="ag-side">
+          <p class="ag-slogan">MAIS QUE<br />UM PÁTIO,<br />UM COMPROMISSO.</p>
+          <p class="ag-num">Nº ${esc(d.numero || "——")}</p>
+          ${statusBadge(d)}
         </div>
       </header>
-      <div class="ag-hero-gold"></div>
-      <div class="ag-body">
-        <h1 class="ag-title">RECIBO DE PAGAMENTO</h1>
+      <h1 class="ag-title">RECIBO DE PAGAMENTO</h1>
         <div class="ag-cols">
           <section>
             <h2 class="ag-kicker">DADOS DO PAGADOR</h2>
@@ -464,14 +461,14 @@
           <div class="ag-lower-main">
             <div class="ag-pay-meta">
               <div class="ag-pay-item">
-                <div class="ag-ico">${ICO.cal}</div>
+                <div class="ag-ico">${ICO.gem}</div>
                 <div>
                   <h2 class="ag-kicker">FORMA DE PAGAMENTO</h2>
                   <strong>${esc(d.formaPagamento || "—")}</strong>
                 </div>
               </div>
               <div class="ag-pay-item">
-                <div class="ag-ico">${ICO.gem}</div>
+                <div class="ag-ico">${ICO.cal}</div>
                 <div>
                   <h2 class="ag-kicker">PAGAMENTO REALIZADO EM</h2>
                   <strong>${esc(quando)}</strong>
@@ -491,24 +488,10 @@
             <small>Documento autenticado<br />via QR Code</small>
           </div>
         </div>
-      </div>
       <footer class="ag-foot">
-        <div>
-          <p><strong>${esc(co.razao)}</strong></p>
-          <p>CNPJ: ${esc(co.cnpj)} · ${esc(co.site)}</p>
-        </div>
-        <div class="ag-marks">
-          <div class="ag-mark">${ICO.shield}<span>GUARDA</span></div>
-          <div class="ag-mark">${ICO.lock}<span>CUSTÓDIA</span></div>
-          <div class="ag-mark">${ICO.truck}<span>REMOÇÃO DE VEÍCULOS</span></div>
-        </div>
+        <p><strong>${esc(co.razao)}</strong> | CNPJ: ${esc(co.cnpj)}<br />${esc(co.site)}</p>
+        <div class="ag-ig">${ICO.ig} @ampliguard</div>
       </footer>
-      <div class="ag-contact">
-        <span>${ICO.phone}${esc(co.tel)}</span>
-        <span>${ICO.mail}${esc(co.email)}</span>
-        <span>${ICO.pin}${esc(co.endereco)}</span>
-        <div class="ag-skyline"><img src="${esc(absUrl(SKYLINE))}" alt="" /></div>
-      </div>
     </article>`;
   }
 
@@ -1005,10 +988,10 @@
   }
 
   function openPrintWindow() {
-    const css = `${location.origin}/payment-receipt.css?v=20261005recibo9`;
+    const css = `${location.origin}/payment-receipt.css?v=20261005recibo10`;
     const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${esc(pdfName())}</title>
       <link rel="stylesheet" href="${css}" />
-      <style>body{margin:0;background:#fff}.ag-sheet{box-shadow:none;width:auto;min-height:0}</style>
+      <style>@page{size:A4 portrait;margin:8mm}body{margin:0;background:#fff}.ag-sheet{box-shadow:none;width:190mm;min-height:0;margin:0 auto}</style>
       </head><body>${sheetHtml()}</body></html>`;
     if (typeof printHtmlInHiddenIframe === "function") {
       printHtmlInHiddenIframe(html, { iframeTitle: "Recibo de pagamento" });
@@ -1086,51 +1069,33 @@
     const co = companyBits();
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 36;
-    const ink = [20, 24, 22];
-    const green = [1, 38, 30];
-    const headerH = 132;
-    doc.setFillColor(...green);
-    doc.rect(0, 0, pageW, headerH, "F");
-    const photo = await toDataUrl(PHOTO);
-    if (photo) {
-      try {
-        doc.addImage(photo, "JPEG", pageW * 0.42, 0, pageW * 0.58, headerH);
-      } catch {
-        /* foto opcional */
-      }
-    }
-    doc.setFillColor(...green);
-    doc.rect(0, 0, pageW * 0.46, headerH, "F");
-    doc.triangle(pageW * 0.46, 0, pageW * 0.46, headerH, pageW * 0.64, headerH, "F");
+    const ink = [28, 36, 32];
     const logo = await toDataUrl(LOGO);
     if (logo) {
       try {
-        doc.addImage(logo, "PNG", 22, 16, 200, 44);
+        doc.addImage(logo, "PNG", margin, 28, 250, 48);
       } catch {
         /* logo opcional */
       }
     }
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(44, 53, 50);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.text("MAIS QUE UM PÁTIO,", 24, 74);
-    doc.text("UM COMPROMISSO.", 24, 86);
-    const badgeW = d.pago ? 118 : 156;
-    const badgeX = pageW - badgeW - 16;
-    doc.setFillColor(...green);
-    doc.roundedRect(badgeX, 58, badgeW, 58, 4, 4, "F");
-    doc.setDrawColor(232, 205, 140);
-    doc.roundedRect(badgeX, 58, badgeW, 58, 4, 4, "S");
+    doc.text("MAIS QUE", pageW - margin, 36, { align: "right" });
+    doc.text("UM PÁTIO,", pageW - margin, 47, { align: "right" });
+    doc.text("UM COMPROMISSO.", pageW - margin, 58, { align: "right" });
+    doc.setTextColor(...ink);
+    doc.setFontSize(12);
+    doc.text(`Nº ${d.numero || "——"}`, pageW - margin, 76, { align: "right" });
+    const badgeText = d.pago ? "PAGO" : "AGUARDANDO PAGAMENTO";
+    const badgeW = d.pago ? 58 : 132;
+    doc.setFillColor(...(d.pago ? [8, 122, 92] : [141, 106, 20]));
+    doc.roundedRect(pageW - margin - badgeW, 82, badgeW, 16, 2, 2, "F");
+    doc.setTextColor(255, 255, 255);
     doc.setFontSize(8);
-    doc.text(`RECIBO Nº  ${d.numero || "——"}`, badgeX + badgeW / 2, 76, { align: "center" });
-    doc.setFillColor(...(d.pago ? [27, 154, 74] : [138, 90, 18]));
-    doc.roundedRect(badgeX + 8, 86, badgeW - 16, 22, 3, 3, "F");
-    doc.setFontSize(d.pago ? 11 : 7);
-    doc.text(d.pago ? "PAGO" : "AGUARDANDO PAGAMENTO", badgeX + badgeW / 2, 101, { align: "center" });
-    doc.setFillColor(198, 161, 91);
-    doc.rect(0, headerH, pageW, 3, "F");
+    doc.text(badgeText, pageW - margin - badgeW / 2, 93, { align: "center" });
 
-    let y = headerH + 28;
+    let y = 124;
     doc.setTextColor(18, 38, 31);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
@@ -1167,9 +1132,9 @@
     y += 16;
 
     const cols = [margin, margin + 250, margin + 330, margin + 420];
-    doc.setFillColor(...green);
+    doc.setFillColor(228, 232, 230);
     doc.rect(margin, y, pageW - margin * 2, 16, "F");
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(...ink);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.text("DESCRIÇÃO", cols[0] + 4, y + 11);
@@ -1199,15 +1164,13 @@
     }
     y += 10;
     const totalW = pageW - margin * 2;
-    doc.setFillColor(...green);
-    doc.roundedRect(margin, y, totalW, 32, 4, 4, "F");
-    doc.setFillColor(244, 231, 196);
-    doc.triangle(margin + totalW * 0.62, y, margin + totalW, y, margin + totalW, y + 32, "F");
-    doc.setTextColor(255, 255, 255);
+    doc.setFillColor(217, 230, 225);
+    doc.setDrawColor(197, 221, 212);
+    doc.roundedRect(margin, y, totalW, 32, 4, 4, "FD");
+    doc.setTextColor(26, 36, 32);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.text("TOTAL PAGO", margin + 12, y + 21);
-    doc.setTextColor(16, 36, 28);
     doc.setFontSize(16);
     doc.text(money(t.total), pageW - margin - 12, y + 21, { align: "right" });
     y += 46;
@@ -1245,19 +1208,18 @@
     y += 12;
     doc.setFont("helvetica", "bold");
     doc.text(d.responsavel || "AMPLIGUARD", pageW / 2, y, { align: "center" });
-    y += 16;
-    doc.setFillColor(...green);
-    doc.rect(0, y, pageW, 36, "F");
-    doc.setTextColor(255, 255, 255);
+    y += 18;
+    doc.setDrawColor(228, 231, 229);
+    doc.line(margin, y, pageW - margin, y);
+    y += 14;
+    doc.setTextColor(60, 69, 65);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.text(co.razao, margin, y + 14);
+    doc.text(`${co.razao}  |  CNPJ: ${co.cnpj}`, margin, y);
     doc.setFont("helvetica", "normal");
-    doc.text(`CNPJ: ${co.cnpj}  ·  ${co.site}`, margin, y + 26);
-    doc.text("GUARDA   ·   CUSTÓDIA   ·   REMOÇÃO", pageW - margin, y + 20, { align: "right" });
-    doc.setTextColor(...ink);
-    doc.setFontSize(8);
-    doc.text(`${co.tel}    ${co.email}    ${co.endereco}`, margin, y + 50);
+    doc.text(co.site, margin, y + 11);
+    doc.setFont("helvetica", "bold");
+    doc.text("@ampliguard", pageW - margin, y + 4, { align: "right" });
   }
 
   async function open(receivableId) {
