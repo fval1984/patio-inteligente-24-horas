@@ -12,7 +12,8 @@
               if (
                 k === "amplipatio_triagem_em_contas_ids" ||
                 k === "amplipatio_receivable_aguarda_fechamento_patio_ids" ||
-                k === "amplipatio_finance_aguardando_dismissed_v1"
+                k === "amplipatio_finance_aguardando_dismissed_v1" ||
+                k.indexOf("amplipatio_recibo_") === 0
               ) {
                 return;
               }
@@ -9410,6 +9411,16 @@
               <input id="nfseThermalNome" type="text" maxlength="160" autocomplete="organization" placeholder="Razão Social" />
             </div>
           </div>
+          <div id="reciboTomadorExtra" class="form-grid hidden">
+            <div class="full">
+              <label for="reciboTomadorEndereco">Endereço</label>
+              <input id="reciboTomadorEndereco" type="text" maxlength="180" autocomplete="street-address" placeholder="Rua, número, bairro, cidade/UF" />
+            </div>
+            <div class="full">
+              <label for="reciboTomadorCep">CEP</label>
+              <input id="reciboTomadorCep" type="text" maxlength="9" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" />
+            </div>
+          </div>
           <p id="nfseThermalCnpjStatus" class="notice" style="margin: 8px 0 0">
             Selecione CPF ou CNPJ para continuar.
           </p>
@@ -9417,6 +9428,26 @@
             <button type="button" id="nfseThermalPrintBtn" disabled>IMPRIMIR CDF</button>
             <button type="button" class="secondary" id="nfseThermalPdfBtn" disabled>Baixar PDF</button>
             <button type="button" class="secondary" id="nfseThermalCloseBtn">Fechar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="reciboPreviewModal" class="modal-backdrop hidden">
+        <div class="modal" style="max-width: 1080px; width: 96vw">
+          <div class="modal-header">
+            <div>
+              <h3>RECIBO</h3>
+              <p class="notice" style="margin: 4px 0 0; font-size: 12px">Pré-visualização do recibo. A impressão e o PDF usam este mesmo documento.</p>
+            </div>
+            <button type="button" class="modal-close" id="reciboPreviewCloseX">Fechar</button>
+          </div>
+          <div id="reciboPreviewFit" style="background: #dfe5ec; padding: 12px; overflow: auto; max-height: 72vh">
+            <div id="reciboPreviewHost"></div>
+          </div>
+          <div class="form-actions">
+            <button type="button" id="reciboPreviewPrintBtn">Imprimir</button>
+            <button type="button" class="secondary" id="reciboPreviewPdfBtn">Baixar PDF</button>
+            <button type="button" class="secondary" id="reciboPreviewCloseBtn">Fechar</button>
           </div>
         </div>
       </div>
@@ -10191,6 +10222,7 @@
     <script src="/partners-cadastro-ui.js?v=20260909partners2"></script>
     <script src="/dashboard-metrics-service.js?v=20260909execops1"></script>
     <script src="/amplipatio-dashboard.js?v=20260909ind1"></script>
+    <script src="/recibo-documento.js?v=20261020recibo4"></script>
     <script src="/vehicle-entry-inspection-checklist.js?v=20260915vistoria1"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260915vistoria1"></script>
     <script src="/vehicle-entry-inspection-document.js?v=20260917logo1"></script>
@@ -22242,7 +22274,12 @@
             "Escolha CPF ou CNPJ. Só o formulário escolhido abre para preenchimento. O recibo não gera faturamento, não envia o registro para Entradas e não registra pagamento.";
         }
         document.getElementById("nfseThermalPdfBtn")?.classList.remove("hidden");
-        if (nfseThermalPrintBtn) nfseThermalPrintBtn.textContent = "IMPRIMIR RECIBO";
+        document.getElementById("reciboTomadorExtra")?.classList.remove("hidden");
+        const endEl = document.getElementById("reciboTomadorEndereco");
+        const cepEl = document.getElementById("reciboTomadorCep");
+        if (endEl) endEl.value = "";
+        if (cepEl) cepEl.value = "";
+        if (nfseThermalPrintBtn) nfseThermalPrintBtn.textContent = "VISUALIZAR";
       }
 
       function setCdfFaturarMode(on, receivableId) {
@@ -22264,6 +22301,7 @@
             : "Controle de Faturamento. Escolha CPF ou CNPJ. Só o formulário escolhido abre para preenchimento.";
         }
         extra?.classList.toggle("hidden", !on);
+        document.getElementById("reciboTomadorExtra")?.classList.add("hidden");
         document.getElementById("nfseThermalTipoIntro")?.classList.remove("hidden");
         document.getElementById("nfseThermalTipoChoice")?.classList.remove("hidden");
         document.getElementById("nfseThermalPdfBtn")?.classList.remove("hidden");
@@ -22955,9 +22993,167 @@
       }
 
       function printOpenRecibo() {
-        const data = currentCdrPrintData();
-        if (!data) return;
-        printNfseThermalTicket(buildReciboPrintHtml(data), 80, "RECIBO");
+        abrirPreviaRecibo();
+      }
+
+      function reciboNumeroDoVeiculo(vehicleId) {
+        const year = new Date().getFullYear();
+        const mapKey = "amplipatio_recibo_numeros_v1";
+        let map = {};
+        try {
+          map = JSON.parse(localStorage.getItem(mapKey) || "{}") || {};
+        } catch (e) {
+          map = {};
+        }
+        const id = String(vehicleId || "");
+        if (id && map[id]) return map[id];
+        const seqKey = "amplipatio_recibo_seq_" + year;
+        const seq = Number(localStorage.getItem(seqKey) || "0") + 1;
+        const numero = String(seq).padStart(4, "0") + "/" + year;
+        try {
+          localStorage.setItem(seqKey, String(seq));
+          if (id) {
+            map[id] = numero;
+            localStorage.setItem(mapKey, JSON.stringify(map));
+          }
+        } catch (e) {
+          /* ignore */
+        }
+        return numero;
+      }
+
+      function reciboEnderecoCampos() {
+        const endereco = String(document.getElementById("reciboTomadorEndereco")?.value || "").trim();
+        const cep = String(document.getElementById("reciboTomadorCep")?.value || "").trim();
+        return { endereco, cep };
+      }
+
+      function reciboCompletarEnderecoDoParceiro() {
+        const endEl = document.getElementById("reciboTomadorEndereco");
+        const cepEl = document.getElementById("reciboTomadorCep");
+        if (!endEl || endEl.value.trim()) return;
+        const bruto = nfseThermalTipo === "PF" ? nfseThermalResponsavelCpf?.value : nfseThermalCnpj?.value;
+        const digits = String(bruto || "").replace(/\D/g, "");
+        if (digits.length < 11) return;
+        const partner = (state.partners || []).find((p) => String(p.cpf || "").replace(/\D/g, "") === digits);
+        if (!partner) return;
+        const cidadeUf = [partner.cidade, partner.estado].filter(Boolean).join("/");
+        const linha = [partner.endereco, partner.numero, partner.bairro, cidadeUf].filter(Boolean).join(", ");
+        if (linha) endEl.value = linha;
+        if (cepEl && !cepEl.value.trim() && partner.cep) cepEl.value = partner.cep;
+      }
+
+      function collectReciboDocumentoData() {
+        const base = currentCdrPrintData();
+        if (!base) return null;
+        const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(nfseThermalVehicleId));
+        if (!vehicle) return null;
+        reciboCompletarEnderecoDoParceiro();
+        const { endereco, cep } = reciboEnderecoCampos();
+        const dias = calcDays(vehicle);
+        const unit = Number(vehicle.valor_diaria) || 0;
+        const total = calcTotal(vehicle);
+        const entrada = vehicle.data_entrada ? formatDateBr(vehicle.data_entrada) : "";
+        const saidaRaw = vehicle.data_saida ? formatDateBr(vehicle.data_saida) : formatDateBr(new Date());
+        const saida = saidaRaw === "-" ? "" : saidaRaw;
+        const marca = String(vehicle.marca || "").trim();
+        const modelo = String(vehicle.modelo || "").trim();
+        const moeda = typeof window.reciboFormatMoeda === "function" ? window.reciboFormatMoeda : formatCurrency;
+        const extenso = typeof window.reciboValorPorExtenso === "function" ? window.reciboValorPorExtenso(total) : "";
+        return {
+          numero: reciboNumeroDoVeiculo(vehicle.id),
+          emissao: formatDateBr(new Date()),
+          nome: base.tipo === "PF" ? base.responsavelNome : base.razao,
+          documento: base.tipo === "PF" ? base.responsavelCpf : base.cnpj,
+          endereco,
+          cep,
+          placa: vehicle.placa || "",
+          veiculo: [marca, modelo].filter(Boolean).join("/"),
+          instituicao: partnerNomeById(vehicle.financeira_id) || "",
+          periodo: entrada && entrada !== "-" && saida ? entrada + " a " + saida : "",
+          quantidade: dias === 1 ? "1 diária" : dias + " diárias",
+          valorUnitario: moeda(unit),
+          valorTotal: moeda(total),
+          totalExtenso: extenso,
+        };
+      }
+
+      function reciboAjustarPrevia() {
+        const fit = document.getElementById("reciboPreviewFit");
+        const sheet = document.querySelector("#reciboPreviewHost .ag-recibo");
+        if (!fit || !sheet) return;
+        const largura = Math.max(280, fit.clientWidth - 24);
+        const escala = Math.min(1, largura / 1024);
+        sheet.style.transformOrigin = "top left";
+        sheet.style.transform = "scale(" + escala + ")";
+        const host = document.getElementById("reciboPreviewHost");
+        if (host) {
+          host.style.height = Math.ceil(682 * escala) + "px";
+          host.style.width = Math.ceil(1024 * escala) + "px";
+        }
+      }
+
+      function abrirPreviaRecibo() {
+        const data = collectReciboDocumentoData();
+        if (!data || typeof window.buildReciboAmpliguardSheet !== "function") return;
+        const host = document.getElementById("reciboPreviewHost");
+        const modal = document.getElementById("reciboPreviewModal");
+        if (!host || !modal) return;
+        host.innerHTML = window.buildReciboAmpliguardSheet(data);
+        modal.classList.remove("hidden");
+        requestAnimationFrame(reciboAjustarPrevia);
+      }
+
+      function fecharPreviaRecibo() {
+        document.getElementById("reciboPreviewModal")?.classList.add("hidden");
+      }
+
+      function imprimirReciboA4() {
+        const data = collectReciboDocumentoData();
+        if (!data || typeof window.buildReciboAmpliguardHtml !== "function") return;
+        const html = window.buildReciboAmpliguardHtml(data);
+        const iframe = document.createElement("iframe");
+        iframe.setAttribute("title", "RECIBO");
+        iframe.setAttribute("aria-hidden", "true");
+        iframe.style.cssText = "position:fixed;left:0;top:0;width:1123px;height:794px;border:0;opacity:0;pointer-events:none;z-index:-1;";
+        document.body.appendChild(iframe);
+        const win = iframe.contentWindow;
+        if (!win) {
+          iframe.remove();
+          alert("Não foi possível preparar a impressão neste navegador.");
+          return;
+        }
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+        const remover = () => {
+          try {
+            iframe.remove();
+          } catch (e) {
+            /* ignore */
+          }
+        };
+        const disparar = () => {
+          try {
+            win.focus();
+            win.print();
+          } catch (e) {
+            /* ignore */
+          }
+          setTimeout(remover, 800);
+        };
+        const esperar = () => {
+          const fonte = win.document.fonts?.ready || Promise.resolve();
+          Promise.resolve(fonte).then(() => setTimeout(disparar, 120));
+        };
+        const img = win.document.querySelector(".ag-recibo-bg");
+        if (img && !img.complete) {
+          img.addEventListener("load", esperar, { once: true });
+          img.addEventListener("error", esperar, { once: true });
+          setTimeout(esperar, 1500);
+        } else {
+          esperar();
+        }
       }
 
       function currentCdrPrintData() {
@@ -23071,18 +23267,49 @@
       }
 
       async function downloadOpenReciboPdf() {
-        const data = currentCdrPrintData();
-        if (!data) return;
+        const data = collectReciboDocumentoData();
+        if (!data || typeof window.buildReciboAmpliguardSheet !== "function") return;
         const btn = document.getElementById("nfseThermalPdfBtn");
+        const btnPrevia = document.getElementById("reciboPreviewPdfBtn");
         if (btn) btn.disabled = true;
+        if (btnPrevia) btnPrevia.disabled = true;
+        const host = document.createElement("div");
+        host.style.cssText = "position:fixed;left:0;top:0;width:1024px;height:682px;opacity:0;pointer-events:none;z-index:-1;";
+        host.innerHTML = window.buildReciboAmpliguardSheet(data);
+        document.body.appendChild(host);
         try {
-          const doc = await buildThermalBlocksPdfDoc(reciboPdfBlocks(data));
+          const img = host.querySelector(".ag-recibo-bg");
+          if (img && !img.complete) {
+            await new Promise((resolve) => {
+              img.addEventListener("load", resolve, { once: true });
+              img.addEventListener("error", resolve, { once: true });
+              setTimeout(resolve, 2000);
+            });
+          }
+          if (document.fonts?.ready) await document.fonts.ready;
+          const h2c = await loadHtml2Canvas();
+          const canvas = await h2c(host.querySelector(".ag-recibo") || host, {
+            backgroundColor: "#ffffff",
+            scale: 3,
+            useCORS: true,
+          });
+          await loadJsPdf();
+          const jsPdfCtor = window.jspdf?.jsPDF;
+          if (!jsPdfCtor) throw new Error("jsPDF indisponível");
+          const doc = new jsPdfCtor({ orientation: "landscape", unit: "mm", format: "a4" });
+          const pageW = 297;
+          const pageH = 210;
+          const imgH = pageW * (682 / 1024);
+          const y = (pageH - imgH) / 2;
+          doc.addImage(canvas.toDataURL("image/png"), "PNG", 0, y, pageW, imgH);
           const placa = String(data.placa || "recibo").replace(/[^\w.-]+/g, "") || "recibo";
-          doc.save(`recibo-${placa}.pdf`);
+          doc.save("recibo-" + placa + ".pdf");
         } catch (e) {
           console.error(e);
           alert("Não foi possível gerar o PDF do recibo.");
         } finally {
+          host.remove();
+          if (btnPrevia) btnPrevia.disabled = false;
           syncNfseThermalPrintState();
         }
       }
@@ -24353,6 +24580,15 @@
       document.getElementById("nfseThermalPdfBtn")?.addEventListener("click", () => {
         if (nfseThermalModal?.dataset.modo === "recibo") void downloadOpenReciboPdf();
         else void downloadOpenNfseThermalPdf();
+      });
+      document.getElementById("reciboPreviewCloseX")?.addEventListener("click", fecharPreviaRecibo);
+      document.getElementById("reciboPreviewCloseBtn")?.addEventListener("click", fecharPreviaRecibo);
+      document.getElementById("reciboPreviewPrintBtn")?.addEventListener("click", imprimirReciboA4);
+      document.getElementById("reciboPreviewPdfBtn")?.addEventListener("click", () => {
+        void downloadOpenReciboPdf();
+      });
+      window.addEventListener("resize", () => {
+        if (!document.getElementById("reciboPreviewModal")?.classList.contains("hidden")) reciboAjustarPrevia();
       });
       closeControleRecebimentoModal?.addEventListener("click", () => closeControleRecebimentoModalFn());
       controleRecebimentoCloseBtn?.addEventListener("click", () => closeControleRecebimentoModalFn());
