@@ -3650,6 +3650,7 @@
       .table td.actions button[data-action="nfse"],
       .table td.actions button[data-action="cobranca_email"],
       .table td.actions button[data-action="nfse_termica"],
+      .table td.actions button[data-action="recibo"],
       .table td.actions button[data-action="comprovante_pagamento"] {
         border-color: rgba(212, 175, 55, 0.45);
         background: rgba(212, 175, 55, 0.13);
@@ -3693,6 +3694,7 @@
       [data-theme="light"] .table td.actions button[data-action="nfse"],
       [data-theme="light"] .table td.actions button[data-action="cobranca_email"],
       [data-theme="light"] .table td.actions button[data-action="nfse_termica"],
+      [data-theme="light"] .table td.actions button[data-action="recibo"],
       [data-theme="light"] .table td.actions button[data-action="comprovante_pagamento"] {
         background: rgba(212, 175, 55, 0.12);
         color: #b8941f;
@@ -20323,6 +20325,7 @@
               ${nfseActionButtonHtml(v)}
               ${cobrancaEmailActionButtonHtml(v)}
               ${nfseThermalActionButtonHtml(v)}
+              ${reciboActionButtonHtml(v)}
               ${comprovantePagamentoActionButtonHtml(v)}
               ${
                 vnpShouldShowVistoriaViewButton(v)
@@ -20369,6 +20372,7 @@
               ${nfseActionButtonHtml(v)}
               ${cobrancaEmailActionButtonHtml(v)}
               ${nfseThermalActionButtonHtml(v)}
+              ${reciboActionButtonHtml(v)}
               ${comprovantePagamentoActionButtonHtml(v)}
               <button class="secondary" data-action="voltar" data-id="${v.id}" title="Volta um passo no fluxo">Voltar</button>
               ${
@@ -21759,6 +21763,10 @@
         return `<button type="button" class="secondary" data-action="nfse_termica" data-id="${vehicle.id}">Imprimir CDF</button>`;
       }
 
+      function reciboActionButtonHtml(vehicle) {
+        return `<button type="button" class="secondary" data-action="recibo" data-id="${vehicle.id}">RECIBO</button>`;
+      }
+
       function comprovantePagamentoActionButtonHtml(vehicle) {
         const rec = recebimentoPagoDoVeiculo(vehicle);
         if (!rec) return "";
@@ -22201,6 +22209,42 @@
 </body></html>`;
       }
 
+      function reciboDadosPagamentoLinhas() {
+        return [
+          "Favorecido: AMPLIGUARD GUARDA E CUSTODIA DE BENS LTDA",
+          "CNPJ: 57.936.119/0001-98",
+          "Banco: Banco Inter (077)",
+          "Agência: 0001",
+          "Conta Corrente PJ: 44506284-3",
+          "PIX (CNPJ): 57.936.119/0001-98",
+        ];
+      }
+
+      function buildReciboPrintHtml(data) {
+        const linhas = reciboDadosPagamentoLinhas()
+          .map((linha) => `  <p class="line">${escapeHtml(linha)}</p>`)
+          .join("\n");
+        const pagamento = `  <hr class="sep" />\n  <p class="sec">DADOS PARA PAGAMENTO</p>\n${linhas}\n  <hr class="sep" />\n  <p class="foot-brand">AMPLIGUARD</p>`;
+        return buildCdrPrintHtml(data)
+          .replace("<title>Controle de Faturamento</title>", "<title>RECIBO</title>")
+          .replace('<p class="sigla">CDF</p>', '<p class="sigla">RECIBO</p>')
+          .replace(/[ \t]*<hr class="sep" \/>\r?\n[ \t]*<p class="foot-brand">AMPLIGUARD<\/p>/, pagamento);
+      }
+
+      function aplicarModoRecibo() {
+        if (!nfseThermalModal) return;
+        nfseThermalModal.dataset.modo = "recibo";
+        const title = document.getElementById("nfseThermalTitle");
+        const sub = document.getElementById("nfseThermalSubtitle");
+        if (title) title.textContent = "RECIBO";
+        if (sub) {
+          sub.textContent =
+            "Escolha CPF ou CNPJ. Só o formulário escolhido abre para preenchimento. O recibo não gera faturamento, não envia o registro para Entradas e não registra pagamento.";
+        }
+        document.getElementById("nfseThermalPdfBtn")?.classList.remove("hidden");
+        if (nfseThermalPrintBtn) nfseThermalPrintBtn.textContent = "IMPRIMIR RECIBO";
+      }
+
       function setCdfFaturarMode(on, receivableId) {
         if (!nfseThermalModal) return;
         if (on) {
@@ -22248,6 +22292,7 @@
         nfseThermalTipo = "";
         setNfseThermalTipo("");
         setCdfFaturarMode(!!opts?.faturar, opts?.receivableId);
+        if (opts?.recibo && !opts?.faturar) aplicarModoRecibo();
         if (opts?.faturar && opts.receivableId) {
           const rec = (state.receivables || []).find((x) => String(x.id) === String(opts.receivableId));
           const dest = rec && typeof receivableDestinatarioCobranca === "function" ? receivableDestinatarioCobranca(rec) : {};
@@ -22828,6 +22873,7 @@
       }
 
       async function concluirCdfFaturamento() {
+        if (nfseThermalModal?.dataset.modo === "recibo") return;
         syncNfseThermalPrintState();
         if (!nfseThermalPrintBtn || nfseThermalPrintBtn.disabled) return;
         const tipoPessoa = nfseThermalTipo === "PF" || nfseThermalTipo === "PJ" ? nfseThermalTipo : "";
@@ -22908,6 +22954,12 @@
         printNfseThermalTicket(html, 80);
       }
 
+      function printOpenRecibo() {
+        const data = currentCdrPrintData();
+        if (!data) return;
+        printNfseThermalTicket(buildReciboPrintHtml(data), 80, "RECIBO");
+      }
+
       function currentCdrPrintData() {
         syncNfseThermalPrintState();
         const pdfBtn = document.getElementById("nfseThermalPdfBtn");
@@ -22986,6 +23038,21 @@
         return blocks;
       }
 
+      function reciboPdfBlocks(data) {
+        const blocks = cdrPdfBlocks(data).map((block) =>
+          block.kind === "title" && block.text === "CDF" ? { kind: "title", text: "RECIBO" } : block
+        );
+        const foot = blocks.findIndex((block) => block.kind === "foot");
+        const pagamento = [
+          { kind: "sec", text: "DADOS PARA PAGAMENTO" },
+          ...reciboDadosPagamentoLinhas().map((text) => ({ kind: "line", text })),
+          { kind: "sep", text: "" },
+        ];
+        if (foot >= 0) blocks.splice(foot, 0, ...pagamento);
+        else blocks.push(...pagamento);
+        return blocks;
+      }
+
       async function downloadOpenNfseThermalPdf() {
         const data = currentCdrPrintData();
         if (!data) return;
@@ -22998,6 +23065,23 @@
         } catch (e) {
           console.error(e);
           alert("Não foi possível gerar o PDF do CDR.");
+        } finally {
+          syncNfseThermalPrintState();
+        }
+      }
+
+      async function downloadOpenReciboPdf() {
+        const data = currentCdrPrintData();
+        if (!data) return;
+        const btn = document.getElementById("nfseThermalPdfBtn");
+        if (btn) btn.disabled = true;
+        try {
+          const doc = await buildThermalBlocksPdfDoc(reciboPdfBlocks(data));
+          const placa = String(data.placa || "recibo").replace(/[^\w.-]+/g, "") || "recibo";
+          doc.save(`recibo-${placa}.pdf`);
+        } catch (e) {
+          console.error(e);
+          alert("Não foi possível gerar o PDF do recibo.");
         } finally {
           syncNfseThermalPrintState();
         }
@@ -24261,11 +24345,14 @@
         setNfseThermalWidthMm(Number(nfseThermalWidth.value));
       });
       nfseThermalPrintBtn?.addEventListener("click", () => {
-        if (nfseThermalModal?.dataset.modo === "faturar") void concluirCdfFaturamento();
+        const modo = nfseThermalModal?.dataset.modo;
+        if (modo === "faturar") void concluirCdfFaturamento();
+        else if (modo === "recibo") printOpenRecibo();
         else printOpenNfseThermal();
       });
       document.getElementById("nfseThermalPdfBtn")?.addEventListener("click", () => {
-        void downloadOpenNfseThermalPdf();
+        if (nfseThermalModal?.dataset.modo === "recibo") void downloadOpenReciboPdf();
+        else void downloadOpenNfseThermalPdf();
       });
       closeControleRecebimentoModal?.addEventListener("click", () => closeControleRecebimentoModalFn());
       controleRecebimentoCloseBtn?.addEventListener("click", () => closeControleRecebimentoModalFn());
@@ -28219,6 +28306,11 @@ ${body}
 
         if (action === "nfse_termica") {
           openNfseThermalModal(vehicle);
+          return;
+        }
+
+        if (action === "recibo") {
+          openNfseThermalModal(vehicle, { recibo: true });
           return;
         }
 
