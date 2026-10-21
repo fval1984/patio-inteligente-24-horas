@@ -130,7 +130,7 @@
   function filterGroupOfPartnerTipo(tipo) {
     const code = normalizePartnerTipo(tipo);
     if (code === "INSTITUICAO_FINANCEIRA") return "instituicoes";
-    if (code === "GUINCHEIRO" || code === "TRANSPORTADORA" || code === "PRESTADOR_SERVICO") return "reboqueiros";
+    if (code === "GUINCHEIRO" || code === "TRANSPORTADORA" || code === "PRESTADOR_SERVICO" || code === "EMPRESA_REBOQUE" || code === "REBOQUEIRO_AUTONOMO") return "reboqueiros";
     if (code === "LEILOEIRO") return "leiloeiros";
     if (code === "PATIO_APREENSAO") return "patios";
     if (code === "OFICIAL_JUSTICA" || code === "ASSESSORIA") return "oficiais";
