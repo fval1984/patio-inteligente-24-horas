@@ -13,6 +13,8 @@
     { code: "OFICIAL_JUSTICA", label: "Oficial de Justiça", badge: "purple" },
     { code: "TRANSPORTADORA", label: "Reboqueiro", badge: "orange" },
     { code: "LOCALIZADOR", label: "Localizador", badge: "blue" },
+    { code: "EMPRESA_REBOQUE", label: "Empresa de reboque", badge: "orange" },
+    { code: "REBOQUEIRO_AUTONOMO", label: "Reboqueiro autônomo", badge: "orange" },
     { code: "PRESTADOR_SERVICO", label: "Reboqueiro", badge: "orange" },
     { code: "ASSESSORIA", label: "Oficial de Justiça", badge: "purple" },
   ];
@@ -59,6 +61,16 @@
       searchPlaceholder: "Nome, CNPJ/CPF, cidade…",
       title: "Financeiras",
       hasCarteiraManagers: false,
+    },
+    reboque: {
+      id: "reboque",
+      label: "Reboque e Transporte",
+      tipos: ["EMPRESA_REBOQUE", "REBOQUEIRO_AUTONOMO"],
+      defaultTipo: "EMPRESA_REBOQUE",
+      lockTipo: true,
+      novoLabel: "+ Nova empresa de reboque",
+      searchPlaceholder: "Nome, razão social, CPF, CNPJ ou placa",
+      title: "Reboque e Transporte",
     },
   };
 
@@ -237,6 +249,8 @@
     if (t === "LEILOEIRO") return "LEILOEIRO";
     if (t === "PATIO_APREENSAO" || t === "PATIO") return "PATIO_APREENSAO";
     if (t === "OFICIAL_JUSTICA" || t === "OFICIAL") return "OFICIAL_JUSTICA";
+    if (t === "EMPRESA_REBOQUE" || t === "EMPRESA_DE_REBOQUE") return "EMPRESA_REBOQUE";
+    if (t === "REBOQUEIRO_AUTONOMO" || t === "AUTONOMO") return "REBOQUEIRO_AUTONOMO";
     if (t === "LOCALIZADOR" || t === "PARCEIRO" || !t) return "LOCALIZADOR";
     return t;
   }
@@ -248,6 +262,7 @@
     if (raw === "leiloeiros" || raw === "leiloeiro") return "leiloeiros";
     if (raw === "patios" || raw === "patio" || raw === "patio_apreensao") return "patios";
     if (raw === "financeiras" || raw === "financeira" || raw === "instituicao_financeira") return "financeiras";
+    if (raw === "reboque" || raw === "reboque_transporte" || raw === "reboque-transporte") return "reboque";
     if (
       raw === "localizadores" ||
       raw === "localizador" ||
@@ -272,6 +287,7 @@
     if (code === "LEILOEIRO") return "leiloeiros";
     if (code === "PATIO_APREENSAO") return "patios";
     if (code === "INSTITUICAO_FINANCEIRA") return "financeiras";
+    if (code === "EMPRESA_REBOQUE" || code === "REBOQUEIRO_AUTONOMO") return "reboque";
     return "localizadores";
   }
 
@@ -314,6 +330,10 @@
         return "Pátio";
       case "OFICIAL_JUSTICA":
         return "Oficial de Justiça";
+      case "EMPRESA_REBOQUE":
+        return "Empresa de reboque";
+      case "REBOQUEIRO_AUTONOMO":
+        return "Reboqueiro autônomo";
       default:
         return partnerTipoLabel(t);
     }
