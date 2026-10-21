@@ -3762,7 +3762,7 @@
       :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .subtitle {
         line-height: 1.55;
       }
-      :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) {
+      :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav, #rtSubnav) {
         border: 1px solid rgba(148, 163, 184, 0.2);
         border-radius: 14px;
         padding: 10px 12px;
@@ -3773,14 +3773,14 @@
         background: linear-gradient(160deg, rgba(15, 23, 42, 0.36), rgba(2, 6, 23, 0.2));
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
       }
-      :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) button {
+      :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav, #rtSubnav) button {
         border-radius: 10px;
         padding: 7px 12px;
         font-size: 12px;
         font-weight: 700;
         letter-spacing: 0.01em;
       }
-      :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) button.active {
+      :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav, #rtSubnav) button.active {
         border-color: rgba(56, 189, 248, 0.75);
         background: linear-gradient(140deg, rgba(56, 189, 248, 0.22), rgba(14, 165, 233, 0.2));
         color: #e0f2fe;
@@ -3818,10 +3818,10 @@
       :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .table tbody tr:hover {
         background: rgba(56, 189, 248, 0.1);
       }
-      [data-theme="light"] :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) {
+      [data-theme="light"] :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav, #rtSubnav) {
         background: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(241, 245, 249, 0.9));
       }
-      [data-theme="light"] :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) button.active {
+      [data-theme="light"] :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav, #rtSubnav) button.active {
         color: #075985;
       }
       [data-theme="light"] :is(#viewPatio, #viewParceiros, #viewConfiguracoes, #viewLista, #viewEscritorios) .filter-bar {
@@ -7412,7 +7412,7 @@
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
               <span class="dashboard-system-btn__kicker">Relacionamento</span>
               <span class="dashboard-system-btn__title">Parceiros</span>
-              <span class="dashboard-system-btn__desc">Escritório, financeira, leiloeiro, pátio e localizador.</span>
+              <span class="dashboard-system-btn__desc">Escritório, financeira, leiloeiro, pátio, localizador e reboque.</span>
               <span class="dashboard-system-btn__go">Abrir parceiros →</span>
             </button>
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenLista">
@@ -8114,6 +8114,7 @@
             <button type="button" data-subview="leiloeiros">Leiloeiro</button>
             <button type="button" data-subview="patios">Pátio</button>
             <button type="button" data-subview="localizadores">Localizador</button>
+            <button type="button" data-subview="reboque">Reboque e Transporte</button>
           </div>
 
           <div class="partner-subview hidden" data-subview="dashboard" hidden aria-hidden="true">
@@ -8271,6 +8272,10 @@
               </div>
               <div id="aoRelatorioRoot"></div>
             </div>
+          </div>
+
+          <div class="partner-subview hidden" data-subview="reboque">
+            <div id="reboqueTransporteRoot"></div>
           </div>
         </div>
 
@@ -8876,6 +8881,35 @@
               <div>
                 <label>Parceiro</label>
                 <select id="vehicleLocator" title="Parceiro que trouxe o veículo ao pátio"></select>
+              </div>
+              <div id="vehicleTowFields" class="full hidden">
+                <p class="notice" style="margin:0 0 8px">Transporte na entrada. O valor, se informado, fica a contratar e não gera pagamento sozinho.</p>
+                <div class="form-grid">
+                  <div id="vehicleTowDriverWrap">
+                    <label for="vehicleTowDriver">Motorista da empresa</label>
+                    <select id="vehicleTowDriver"></select>
+                  </div>
+                  <div>
+                    <label for="vehicleTowTruck">Caminhão</label>
+                    <select id="vehicleTowTruck"></select>
+                  </div>
+                  <div>
+                    <label for="vehicleTowOrigem">Origem</label>
+                    <input id="vehicleTowOrigem" type="text" />
+                  </div>
+                  <div>
+                    <label for="vehicleTowDestino">Destino</label>
+                    <input id="vehicleTowDestino" type="text" />
+                  </div>
+                  <div id="vehicleTowValorWrap">
+                    <label for="vehicleTowValor">Valor combinado (opcional)</label>
+                    <input id="vehicleTowValor" type="number" step="0.01" min="0" />
+                  </div>
+                  <div>
+                    <label for="vehicleTowObs">Observações do transporte</label>
+                    <input id="vehicleTowObs" type="text" />
+                  </div>
+                </div>
               </div>
               <div class="field-operador-hide">
                 <label for="vehicleFinancialResponsibleSearch">RPP — responsável financeiro / pagamento</label>
@@ -10172,6 +10206,7 @@
             <button type="button" data-header-partner-sub="leiloeiros">Leiloeiro</button>
             <button type="button" data-header-partner-sub="patios">Pátio</button>
             <button type="button" data-header-partner-sub="localizadores">Localizador</button>
+            <button type="button" data-header-partner-sub="reboque">Reboque e Transporte</button>
           </div>
         </details>
 
@@ -10220,6 +10255,8 @@
     <script src="/partners-cadastro-service.js?v=20260909partners2"></script>
     <script src="/partner-managers-service.js?v=20260909partners2"></script>
     <script src="/partners-cadastro-ui.js?v=20260909partners2"></script>
+    <script src="/reboque-transporte-service.js?v=20261021reboque1"></script>
+    <script src="/reboque-transporte-ui.js?v=20261021reboque1"></script>
     <script src="/dashboard-metrics-service.js?v=20260909execops1"></script>
     <script src="/amplipatio-dashboard.js?v=20260909ind1"></script>
     <script src="/recibo-documento.js?v=20261020recibo4"></script>
@@ -20592,7 +20629,8 @@
           card("financeiras", "Financeiras", counts.financeiras || 0) +
           card("leiloeiros", "Leiloeiros", counts.leiloeiros || 0) +
           card("patios", "Pátios", counts.patios || 0) +
-          card("localizadores", "Localizadores", counts.localizadores || 0);
+          card("localizadores", "Localizadores", counts.localizadores || 0) +
+          card("reboque", "Reboque", counts.reboque || 0);
       }
 
       function renderPartnersDashboard() {
@@ -20617,6 +20655,7 @@
       function resolvePartnerModule(sub) {
         const raw = String(sub || "").trim().toLowerCase();
         if (raw === "escritorios" || raw === "escritorio") return "escritorios";
+        if (raw === "reboque" || raw === "reboque_transporte" || raw === "reboque-transporte") return "reboque";
         const svc = window.partnersCadastroService;
         if (svc && typeof svc.resolvePartnerCategoryId === "function") {
           if (
@@ -20682,9 +20721,45 @@
           if (typeof window.advocacyOfficesUi?.setSubview === "function") window.advocacyOfficesUi.setSubview("cadastro");
           if (typeof window.advocacyOfficesUi?.renderCadastro === "function") window.advocacyOfficesUi.renderCadastro();
         }
+        if (resolved === "reboque" && typeof window.reboqueTransporteRender === "function") {
+          window.reboqueTransporteRender(
+            {
+              partners: state.partners || [],
+              vehicles: state.vehicles || [],
+              payables: state.payables || [],
+            },
+            reboqueModuleCtx()
+          );
+        }
       }
 
       window.setPartnerView = setPartnerView;
+
+      function reboqueModuleCtx() {
+        return {
+          escapeHtml,
+          formatCurrency,
+          effectiveUserId,
+          supabase,
+          runSupabaseWrite: typeof runSupabaseWrite === "function" ? runSupabaseWrite : null,
+          requireSupabaseSessionForWrite:
+            typeof requireSupabaseSessionForWrite === "function" ? requireSupabaseSessionForWrite : null,
+          userEmail: state.user?.email || "",
+          readOnly: !!(isVisualizador || isGestorPista || isVistoriador),
+          hidesFinancialValues: hidesFinancialValues(),
+          loadPartners,
+          loadPayables: typeof loadPayables === "function" ? loadPayables : null,
+          alertSupabaseError: typeof alertSupabaseError === "function" ? alertSupabaseError : null,
+          insertPayable: typeof insertPayableWithSchemaFallback === "function" ? insertPayableWithSchemaFallback : null,
+          getState: function () {
+            return {
+              partners: state.partners || [],
+              vehicles: state.vehicles || [],
+              payables: state.payables || [],
+            };
+          },
+        };
+      }
 
       function syncPartnerFormForCurrentView() {
         if (partnerNameLabel) partnerNameLabel.textContent = "Nome";
@@ -24313,6 +24388,12 @@
         refreshVehiclePlatePreviewInput();
         const novoEscBtn = document.getElementById("vehicleAdvocacyOfficeNew");
         if (novoEscBtn) novoEscBtn.classList.toggle("hidden", !!(isGestorPista || isVistoriador || isVisualizador));
+        if (typeof window.reboqueSyncVehicleTowFields === "function") {
+          window.reboqueSyncVehicleTowFields(Object.assign({}, reboqueModuleCtx(), {
+            vehicleId: editingVehicleId,
+            prefill: true,
+          }));
+        }
         vehicleModal.classList.remove("hidden");
       }
 
@@ -27392,6 +27473,12 @@ ${body}
         openPartnerSubview(button.getAttribute("data-subview"));
       });
 
+      vehicleLocator?.addEventListener("change", () => {
+        if (typeof window.reboqueSyncVehicleTowFields === "function") {
+          window.reboqueSyncVehicleTowFields(reboqueModuleCtx());
+        }
+      });
+
       document.getElementById("escritoriosSubnav")?.addEventListener("click", (event) => {
         const button = event.target.closest("button[data-ao-sub]");
         if (!button) return;
@@ -27770,6 +27857,10 @@ ${body}
         }
         const newOfficeId = tryPayload.advocacy_office_id || null;
         const histVehicleId = editingVehicleId || savedNewVehicle?.id;
+        const towDraft = typeof window.reboqueReadVehicleTowDraft === "function" ? window.reboqueReadVehicleTowDraft() : null;
+        const towPartnerId = vehicleLocator?.value || "";
+        const towPlaca = tryPayload.placa;
+        const towEntrada = tryPayload.data_entrada;
         if (histVehicleId && !degradedGroups.includes("advocacy")) {
           await recordAdvocacyOfficeLinkHistory(histVehicleId, previousOfficeId, newOfficeId);
         }
@@ -27782,6 +27873,22 @@ ${body}
         vehicleFormMode = "create";
         vehicleForm.classList.remove("registro-cr-only", "initial-register-simplified");
         vehicleModal.classList.add("hidden");
+        if (towDraft && histVehicleId && typeof window.reboqueSaveServiceFromVehicle === "function") {
+          const towResult = await window.reboqueSaveServiceFromVehicle(
+            Object.assign({}, reboqueModuleCtx(), {
+              draft: towDraft,
+              vehicleId: histVehicleId,
+              partnerId: towPartnerId,
+              placa: towPlaca,
+              dataRemocao: towEntrada,
+              userId: effectiveUserId(),
+              partners: state.partners || [],
+              vehicles: state.vehicles || [],
+              payables: state.payables || [],
+            })
+          );
+          if (towResult && towResult.message && !towResult.ok) alert(towResult.message);
+        }
         if (wasCr && histVehicleId) {
           await supabase.from("vehicle_events").insert({
             vehicle_id: histVehicleId,
@@ -30008,6 +30115,7 @@ ${body}
           localizadores: 1,
           financeiras: 1,
           reboqueiros: 1,
+          reboque: 1,
           oficiais: 1,
           transportadoras: 1,
           prestadores: 1,
