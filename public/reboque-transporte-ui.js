@@ -8,7 +8,7 @@
   let ctx = {};
   let data = { partners: [], vehicles: [], payables: [] };
   let cache = emptyCache();
-  let ui = { tab: "empresas", q: "", status: "", categoria: "", de: "", ate: "", partnerId: "" };
+  let ui = { tab: "empresas", q: "", status: "", categoria: "", de: "", ate: "", partnerId: "", pagePartnerId: "" };
   let bound = false;
   let lastVehicleOpts = {};
 
@@ -131,6 +131,7 @@
       "#rtModal .full{grid-column:1 / -1}" +
       "#rtModal .rt-errors{margin:0 0 12px;padding:10px 12px;border-radius:8px;background:#fee2e2;color:#b91c1c}" +
       "#reboqueTransporteRoot .rt-actions{display:flex;flex-wrap:wrap;gap:6px}" +
+      "#reboqueTransporteRoot tr[data-rt-open]{cursor:pointer}" +
       "@media (max-width:800px){#rtModal .form-grid{grid-template-columns:1fr}" +
       "#reboqueTransporteRoot table.rt-cards thead{display:none}" +
       "#reboqueTransporteRoot table.rt-cards tr{display:block;margin:0 0 12px;border:1px solid rgba(148,163,184,.28);border-radius:12px;padding:8px}" +
@@ -253,9 +254,56 @@
     });
   }
 
+  function reboquePageOptions(partner, mount) {
+    const id = partner && partner.id;
+    const kind = kindOf(partner);
+    const bank = (cache.banking || []).find(function (b) {
+      return String(b.partner_id) === String(id);
+    });
+    return {
+      mount: mount,
+      kind: kind,
+      readOnly: readOnly(),
+      seeFinance: seeFinance(),
+      banking: seeFinance() ? bank || null : null,
+      trucks: (cache.trucks || []).filter(function (t) {
+        return String(t.owner_partner_id) === String(id);
+      }),
+      drivers: kind === "EMPRESA"
+        ? (cache.drivers || []).filter(function (d) {
+            return String(d.company_partner_id) === String(id);
+          })
+        : [],
+      towServices: (cache.services || []).map(function (s) {
+        const fin = financeOf(s.id);
+        const copy = Object.assign({}, s);
+        if (seeFinance() && fin && fin.valor_contratado != null) copy.valor = fin.valor_contratado;
+        return copy;
+      }),
+      state: { partners: data.partners || [], vehicles: data.vehicles || [], receivables: [] },
+      onBack: function () {
+        ui.pagePartnerId = "";
+        paint();
+      },
+      onEdit: function () {
+        if (kind === "EMPRESA") openCompany(id);
+        else openAutonomous(id);
+      },
+    };
+  }
+
   function paint() {
     const root = document.getElementById("reboqueTransporteRoot");
     if (!root) return;
+    if (ui.pagePartnerId) {
+      const partner = findPartner(ui.pagePartnerId);
+      if (partner && typeof global.openPartnerDetailPage === "function") {
+        root.innerHTML = "";
+        global.openPartnerDetailPage(partner, reboquePageOptions(partner, root));
+        return;
+      }
+      ui.pagePartnerId = "";
+    }
     if (!root.querySelector("#rtBody") || root.dataset.tab !== ui.tab) {
       root.dataset.tab = ui.tab;
       root.innerHTML = shell();
@@ -352,7 +400,7 @@
           ["Telefone", esc(p.telefone || p.whatsapp || "—")],
           ["Situação", statusTag(p.status)],
           ["Ações", actionButtons("empresa", p.id, p.status)],
-        ]);
+        ], 'data-rt-open="empresa" data-id="' + esc(p.id) + '"');
       }),
       "Nenhuma empresa de reboque encontrada."
     );
@@ -405,7 +453,7 @@
           ["Telefone", esc(p.telefone || p.whatsapp || "—")],
           ["Situação", statusTag(p.status)],
           ["Ações", actionButtons("autonomo", p.id, p.status)],
-        ]);
+        ], 'data-rt-open="autonomo" data-id="' + esc(p.id) + '"');
       }),
       "Nenhum reboqueiro autônomo encontrado."
     );
@@ -493,8 +541,8 @@
     return '<div class="table-wrap"><table class="table rt-cards"><thead><tr>' + th + "</tr></thead><tbody>" + body + "</tbody></table></div>";
   }
 
-  function row(cells) {
-    return "<tr>" + cells.map(function (c) {
+  function row(cells, attrs) {
+    return "<tr" + (attrs ? " " + attrs : "") + ">" + cells.map(function (c) {
       return '<td data-label="' + esc(c[0]) + '">' + c[1] + "</td>";
     }).join("") + "</tr>";
   }
@@ -541,6 +589,17 @@
     if (tab && document.getElementById("reboqueTransporteRoot")?.contains(tab)) {
       ui.tab = tab.getAttribute("data-rt-tab") || "empresas";
       ui.partnerId = "";
+      ui.pagePartnerId = "";
+      paint();
+      return;
+    }
+    const openRow = e.target.closest("[data-rt-open]");
+    if (
+      openRow &&
+      document.getElementById("reboqueTransporteRoot")?.contains(openRow) &&
+      !e.target.closest("button, a, input, select, textarea")
+    ) {
+      ui.pagePartnerId = openRow.getAttribute("data-id") || "";
       paint();
       return;
     }
@@ -558,7 +617,12 @@
       paint();
     } else if (action === "novo") openCreate();
     else if (action === "imprimir") printReport();
-    else if (action === "ver") openDetail(kind, id);
+    else if (action === "ver") {
+      if (kind === "empresa" || kind === "autonomo") {
+        ui.pagePartnerId = id || "";
+        paint();
+      } else openDetail(kind, id);
+    }
     else if (action === "editar") openEdit(kind, id);
     else if (action === "historico") {
       ui.tab = "historico";
