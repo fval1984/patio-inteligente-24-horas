@@ -17,6 +17,9 @@
   let _contatos = [];
   let _documentos = [];
   let _historico = [];
+  let _pagePartnerId = "";
+  let _pageOptions = null;
+  let _pageHistSearch = "";
 
   const DOC_TIPOS = [
     { value: "CONTRATO", label: "Contrato" },
@@ -91,6 +94,19 @@
       .pc-table-empty { text-align: center; color: #64748b; padding: 28px 16px !important; }
       .pc-table .actions { white-space: nowrap; display: flex; gap: 6px; flex-wrap: wrap; }
       .pc-table .actions button { font-size: 0.78rem; padding: 4px 10px; }
+      #partnerCadastroRoot tr[data-partner-id],
+      #reboqueTransporteRoot tr[data-rt-open] { cursor: pointer; }
+      .pc-page-hidden { display: none !important; }
+      .pc-partner-page { display: flex; flex-direction: column; gap: 14px; }
+      .pc-partner-page .pc-page-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; justify-content: space-between; }
+      .pc-partner-page .pc-page-head h2 { margin: 0; }
+      .pc-partner-page .pc-ro {
+        min-height: 38px; padding: 8px 10px; border-radius: 8px;
+        border: 1px solid var(--border, #e2e8f0); background: var(--card, #fff); color: var(--text, #0f2744);
+      }
+      .pc-partner-page .form-grid label { display: block; margin-bottom: 4px; font-size: 0.8rem; color: var(--muted, #64748b); }
+      .pc-partner-page .ao-mgr-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin: 0 0 10px; }
+      .pc-partner-page .ao-mgr-head h4 { margin: 0; font-size: 1rem; }
       .partner-tipo-badge {
         display: inline-block; padding: 3px 10px; border-radius: 999px;
         font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em;
@@ -933,16 +949,19 @@
     );
   }
 
-  function renderManagersKind(kind, title, addLabel) {
+  function renderManagersKind(kind, title, addLabel, opts) {
+    opts = opts || {};
     const mgrSvc = global.partnerManagersService;
     const parentId = editingPartnerId;
     const list = (global.__ampliState && global.__ampliState.partnerManagers) || [];
-    const searchId = kind === "CARTEIRA" ? "pcMgrSearchCarteira" : "pcMgrSearchCobranca";
+    const idPrefix = opts.idPrefix || "pcMgrSearch";
+    const searchId = idPrefix + (kind === "CARTEIRA" ? "Carteira" : "Cobranca");
     const searchVal = (document.getElementById(searchId) && document.getElementById(searchId).value) || "";
     const rows = parentId && mgrSvc
       ? mgrSvc.listForParent(list, { partner_id: parentId }, kind, searchVal)
       : [];
-    const manage = canManagePartners() && !_modalReadonly;
+    const readonly = opts.readonly != null ? !!opts.readonly : !!_modalReadonly;
+    const manage = canManagePartners() && !readonly;
     const addBtn =
       manage && parentId
         ? '<button type="button" class="secondary" data-pc-mgr-add="' +
@@ -1358,11 +1377,23 @@
     document.getElementById("pcManagerModal")?.classList.remove("hidden");
   }
 
+  function pageManagerOpts() {
+    return { readonly: !canManagePartners(), idPrefix: "pcPageMgrSearch" };
+  }
+
   function refreshManagerPanels() {
     const ret = document.querySelector('#partnerForm [data-pc-panel="retomados"]');
     const fin = document.querySelector('#partnerForm [data-pc-panel="financeiro"]');
     if (ret) ret.innerHTML = renderManagersKind("CARTEIRA", "Gestores de Carteira", "+ Adicionar Gestor de Carteira");
     if (fin) fin.innerHTML = renderManagersKind("COBRANCA", "Gestores de Cobrança", "+ Adicionar Gestor de Cobrança");
+    const pageCarteira = document.getElementById("pcPageMgrCarteira");
+    const pageCobranca = document.getElementById("pcPageMgrCobranca");
+    if (pageCarteira) {
+      pageCarteira.innerHTML = renderManagersKind("CARTEIRA", "Setor de Retomados — Gestores de Carteira", "+ Adicionar Gestor de Carteira", pageManagerOpts());
+    }
+    if (pageCobranca) {
+      pageCobranca.innerHTML = renderManagersKind("COBRANCA", "Financeiro — Gestores de Cobrança", "+ Adicionar Gestor de Cobrança", pageManagerOpts());
+    }
   }
 
   function effectiveUserId(ctx) {
@@ -1755,8 +1786,7 @@
         const partner = getFn ? getFn(_lastState, id) : null;
         if (!partner) return;
         if (action === "detalhes") {
-          editingPartnerId = partner.id || null;
-          openModal(partner, "detalhes", ctx);
+          openPartnerPage(partner);
         } else if (action === "editar") {
           partnersCadastroOpenEdit(partner);
         } else if (action === "toggle") {
@@ -1766,6 +1796,16 @@
         }
       });
     });
+
+    if (!root.dataset.pcPageNav) {
+      root.dataset.pcPageNav = "1";
+      root.addEventListener("click", function (e) {
+        if (e.target.closest("button, a, input, select, textarea, label")) return;
+        const tr = e.target.closest("tr[data-partner-id]");
+        if (!tr || !root.contains(tr)) return;
+        openPartnerPageById(tr.getAttribute("data-partner-id"));
+      });
+    }
 
     const filterBar = document.getElementById("pcFilterBar");
     if (filterBar && !filterBar.dataset.pcBound) {
@@ -1795,6 +1835,489 @@
     });
   }
 
+  function roField(label, value, full) {
+    const text = String(value != null ? value : "").trim();
+    return (
+      '<div class="' +
+      (full ? "full" : "") +
+      '"><label>' +
+      escapeHtmlDefault(label) +
+      '</label><div class="pc-ro">' +
+      escapeHtmlDefault(text || "—") +
+      "</div></div>"
+    );
+  }
+
+  function formatHistoryWhen(row) {
+    if (row.data || row.hora) return [row.data, row.hora].filter(Boolean).join(" ") || "—";
+    const at = String(row.at || "");
+    if (!at) return "—";
+    const d = new Date(at);
+    if (Number.isNaN(d.getTime())) return at;
+    return d.toLocaleString("pt-BR");
+  }
+
+  function seeFinanceNow(options) {
+    if (options && typeof options.seeFinance === "boolean") return options.seeFinance;
+    return !global.isGestorPista && !global.isVisualizador;
+  }
+
+  function pageState(options) {
+    if (options && options.state) return options.state;
+    return _lastState || { partners: [], vehicles: [], receivables: [] };
+  }
+
+  function partnerCategoryOf(partner) {
+    const fn = svc() && svc().partnerCategoryOfTipo;
+    return fn ? fn(partner && partner.tipo) : "localizadores";
+  }
+
+  function categoryHasCarteiraFor(partner) {
+    const tabs = (svc() && svc().PARTNER_CATEGORY_TABS) || {};
+    const meta = tabs[partnerCategoryOf(partner)] || {};
+    return meta.hasCarteiraManagers !== false;
+  }
+
+  function extraPerfilFields(tipo) {
+    const code = (svc() && svc().normalizePartnerTipo ? svc().normalizePartnerTipo(tipo) : tipo) || "";
+    if (code === "EMPRESA_REBOQUE") return [{ key: "responsavel", label: "Nome do responsável" }];
+    if (code === "REBOQUEIRO_AUTONOMO") {
+      return [
+        { key: "tipo_pessoa", label: "Tipo de prestador" },
+        { key: "nome_empresarial", label: "Nome empresarial" },
+        { key: "cpf", label: "CPF" },
+      ];
+    }
+    return [];
+  }
+
+  function perfilDisplay(key, value) {
+    if (key === "tipo_pessoa") {
+      const v = String(value || "").toUpperCase();
+      if (v === "PJ") return "Pessoa jurídica";
+      if (v === "PF") return "Pessoa física";
+    }
+    return value;
+  }
+
+  function renderSpecificFields(partner) {
+    const tipo = partner.tipo;
+    const fieldsFn = svc() && svc().fieldsForTipo;
+    const all = fieldsFn ? fieldsFn(tipo) : [];
+    const tipoFields = all.filter(function (f) {
+      return f.group === "tipo";
+    });
+    const extra = extraPerfilFields(tipo).filter(function (f) {
+      return !tipoFields.some(function (x) {
+        return x.key === f.key;
+      });
+    });
+    const perfil = partner.perfil || {};
+    const chunks = tipoFields.concat(extra).map(function (f) {
+      return roField(f.label, perfilDisplay(f.key, perfil[f.key]), f.span === "full");
+    });
+    if (!chunks.length) return "";
+    return (
+      '<section class="section-card"><h3 style="margin:0 0 12px">Informações específicas</h3><div class="form-grid">' +
+      chunks.join("") +
+      "</div></section>"
+    );
+  }
+
+  function renderContactsBlock(partner) {
+    const list = partner.contatos || [];
+    if (!list.length) return "";
+    const rows = list
+      .map(function (c) {
+        return (
+          "<tr><td data-label=\"Nome\">" +
+          escapeHtmlDefault(c.nome || "—") +
+          "</td><td data-label=\"Cargo\">" +
+          escapeHtmlDefault(c.cargo || "—") +
+          "</td><td data-label=\"Telefone\">" +
+          escapeHtmlDefault(c.telefone || "—") +
+          "</td><td data-label=\"WhatsApp\">" +
+          escapeHtmlDefault(c.whatsapp || "—") +
+          "</td><td data-label=\"E-mail\">" +
+          escapeHtmlDefault(c.email || "—") +
+          "</td><td data-label=\"Principal\">" +
+          (c.principal ? "Sim" : "—") +
+          "</td></tr>"
+        );
+      })
+      .join("");
+    return (
+      '<section class="section-card"><h3 style="margin:0 0 12px">Contatos</h3><div class="table-wrap"><table class="table stacked"><thead><tr><th>Nome</th><th>Cargo</th><th>Telefone</th><th>WhatsApp</th><th>E-mail</th><th>Principal</th></tr></thead><tbody>' +
+      rows +
+      "</tbody></table></div></section>"
+    );
+  }
+
+  function renderDocsBlock(partner) {
+    const list = partner.documentos || [];
+    if (!list.length) return "";
+    const rows = list
+      .map(function (d) {
+        const nome = escapeHtmlDefault(d.nome || "Documento");
+        const cell = d.url
+          ? '<a href="' + escapeHtmlDefault(d.url) + '" target="_blank" rel="noopener">' + nome + "</a>"
+          : nome;
+        return "<tr><td data-label=\"Nome\">" + cell + "</td><td data-label=\"Tipo\">" + escapeHtmlDefault(d.tipo || "—") + "</td></tr>";
+      })
+      .join("");
+    return (
+      '<section class="section-card"><h3 style="margin:0 0 12px">Documentos</h3><div class="table-wrap"><table class="table stacked"><thead><tr><th>Nome</th><th>Tipo</th></tr></thead><tbody>' +
+      rows +
+      "</tbody></table></div></section>"
+    );
+  }
+
+  function renderBankBlock(banking, seeFinance) {
+    if (!seeFinance || !banking) return "";
+    const fields = [
+      ["Inscrição estadual", banking.inscricao_estadual],
+      ["Banco", banking.banco],
+      ["Agência", banking.agencia],
+      ["Conta", banking.conta],
+      ["Tipo de conta", banking.tipo_conta],
+      ["Chave PIX", banking.chave_pix],
+    ];
+    return (
+      '<section class="section-card"><h3 style="margin:0 0 12px">Dados para pagamento</h3><div class="form-grid">' +
+      fields.map(function (f) {
+        return roField(f[0], f[1]);
+      }).join("") +
+      "</div></section>"
+    );
+  }
+
+  function renderMiniTable(title, heads, rows, empty) {
+    const body = rows.length
+      ? rows.join("")
+      : '<tr><td colspan="' + heads.length + '" class="notice" style="text-align:center;padding:16px">' + escapeHtmlDefault(empty) + "</td></tr>";
+    return (
+      '<section class="section-card"><h3 style="margin:0 0 12px">' +
+      escapeHtmlDefault(title) +
+      '</h3><div class="table-wrap"><table class="table stacked"><thead><tr>' +
+      heads.map(function (h) {
+        return "<th>" + escapeHtmlDefault(h) + "</th>";
+      }).join("") +
+      "</tr></thead><tbody>" +
+      body +
+      "</tbody></table></div></section>"
+    );
+  }
+
+  function renderReboqueBlocks(options) {
+    const kind = options && options.kind;
+    const trucks = (options && options.trucks) || [];
+    const drivers = (options && options.drivers) || [];
+    let html = "";
+    if (options && (options.kind === "EMPRESA" || options.kind === "AUTONOMO" || trucks.length)) {
+      html += renderMiniTable(
+        "Caminhões",
+        ["Placa", "Modelo", "Situação"],
+        trucks.map(function (t) {
+          return (
+            "<tr><td data-label=\"Placa\">" +
+            escapeHtmlDefault(t.placa || "—") +
+            "</td><td data-label=\"Modelo\">" +
+            escapeHtmlDefault(t.modelo || t.tipo_equipamento || "—") +
+            "</td><td data-label=\"Situação\">" +
+            escapeHtmlDefault(t.status || "—") +
+            "</td></tr>"
+          );
+        }),
+        "Nenhum caminhão vinculado."
+      );
+    }
+    if (kind === "EMPRESA") {
+      html += renderMiniTable(
+        "Motoristas",
+        ["Nome", "CPF", "Situação"],
+        drivers.map(function (d) {
+          return (
+            "<tr><td data-label=\"Nome\">" +
+            escapeHtmlDefault(d.nome || "—") +
+            "</td><td data-label=\"CPF\">" +
+            escapeHtmlDefault(d.cpf || "—") +
+            "</td><td data-label=\"Situação\">" +
+            escapeHtmlDefault(d.status || "—") +
+            "</td></tr>"
+          );
+        }),
+        "Nenhum motorista vinculado."
+      );
+    }
+    return html;
+  }
+
+  function historyRowsFor(partner, options) {
+    const build = (svc() && svc().buildPartnerHistory) || global.buildPartnerHistory;
+    if (!build) return { vehicles: [], rows: [] };
+    const state = pageState(options);
+    const q = String(_pageHistSearch || "").trim().toLowerCase();
+    const built = build(partner, {
+      vehicles: state.vehicles || [],
+      receivables: state.receivables || [],
+      towServices: (options && options.towServices) || [],
+      seeFinance: seeFinanceNow(options),
+    });
+    if (!q) return built;
+    built.rows = (built.rows || []).filter(function (r) {
+      const hay = [r.tipo, r.veiculo, r.placa, r.detalhe, r.responsavel, r.data, r.hora].join(" ").toLowerCase();
+      return hay.indexOf(q) >= 0;
+    });
+    return built;
+  }
+
+  function renderHistoryBlock(partner, options) {
+    const built = historyRowsFor(partner, options);
+    const vehicles = built.vehicles || [];
+    const noPatio = vehicles.filter(function (v) {
+      return String(v.status || "").toUpperCase() !== "REMOVIDO" && !v.data_saida;
+    }).length;
+    const baixados = vehicles.filter(function (v) {
+      return String(v.status || "").toUpperCase() === "REMOVIDO" || !!v.data_saida;
+    }).length;
+    const remocoes = ((options && options.towServices) || []).filter(function (s) {
+      return String(s.partner_id || "") === String(partner.id || "");
+    }).length;
+    const rows = built.rows || [];
+    const summary = vehicles.length
+      ? "Veículos vinculados: " + vehicles.length + " · No pátio: " + noPatio + " · Com saída: " + baixados
+      : remocoes
+        ? "Remoções vinculadas: " + remocoes
+        : rows.length
+          ? "Sem veículos vinculados. Há alterações cadastrais deste parceiro."
+          : "Nenhum registro vinculado a este parceiro.";
+    const body = rows.length
+      ? rows
+          .map(function (r) {
+            return (
+              "<tr><td data-label=\"Data\">" +
+              escapeHtmlDefault(formatHistoryWhen(r)) +
+              "</td><td data-label=\"Tipo\">" +
+              escapeHtmlDefault(r.tipo || "—") +
+              "</td><td data-label=\"Veículo\">" +
+              escapeHtmlDefault(r.veiculo || "—") +
+              "</td><td data-label=\"Placa\">" +
+              escapeHtmlDefault(r.placa || "—") +
+              "</td><td data-label=\"Detalhe\">" +
+              escapeHtmlDefault(r.detalhe || "—") +
+              "</td><td data-label=\"Responsável\">" +
+              escapeHtmlDefault(r.responsavel || "—") +
+              "</td></tr>"
+            );
+          })
+          .join("")
+      : '<tr><td colspan="6" class="notice" style="text-align:center;padding:16px">Nenhum registro vinculado a este parceiro.</td></tr>';
+    return (
+      '<section class="section-card"><h3 style="margin:0 0 8px">Histórico</h3><p class="notice" style="margin:0 0 10px">' +
+      escapeHtmlDefault(summary) +
+      '</p><label style="display:block;margin:0 0 10px">Pesquisar no histórico<input type="search" id="pcPageHistSearch" value="' +
+      escapeHtmlDefault(_pageHistSearch) +
+      '" placeholder="Placa, veículo, tipo…" /></label><div class="table-wrap"><table class="table stacked"><thead><tr><th>Data</th><th>Tipo</th><th>Veículo</th><th>Placa</th><th>Detalhe</th><th>Responsável</th></tr></thead><tbody>' +
+      body +
+      "</tbody></table></div></section>"
+    );
+  }
+
+  function renderPartnerPageHtml(partner, options) {
+    options = options || {};
+    const normFn = global.normalizePartnerRecord || (svc() && svc().normalizePartnerRecord);
+    const p = normFn ? normFn(partner || {}) : partner || {};
+    const labelFn = global.partnerTipoLabel || (svc() && svc().partnerTipoLabel);
+    const tipoLabel = labelFn ? labelFn(p.tipo) : p.tipo || "Parceiro";
+    const cat = partnerCategoryOf(p);
+    const tabs = (svc() && svc().PARTNER_CATEGORY_TABS) || {};
+    const catLabel = (tabs[cat] && tabs[cat].label) || tipoLabel;
+    const st = String(p.status || "ATIVO").toUpperCase() === "INATIVO" ? "Inativo" : "Ativo";
+    const stClass = st === "Inativo" ? "pc-status-inativo" : "pc-status-ativo";
+    const manage = canManagePartners() && !(options && options.readOnly);
+    const editBtn = manage ? '<button type="button" data-pc-page="editar">Editar</button>' : "";
+    const common = ((svc() && svc().COMMON_FIELDS) || []).filter(function (f) {
+      return f.key !== "tipo";
+    });
+    const dados = common
+      .map(function (f) {
+        const raw = f.key === "status" ? st : p[f.key];
+        return roField(f.label, raw, f.span === "full");
+      })
+      .join("");
+    const carteira = categoryHasCarteiraFor(p)
+      ? '<section class="section-card" id="pcPageMgrCarteira">' +
+        renderManagersKind("CARTEIRA", "Setor de Retomados — Gestores de Carteira", "+ Adicionar Gestor de Carteira", pageManagerOpts()) +
+        "</section>"
+      : "";
+    return (
+      '<div class="pc-partner-page">' +
+      '<div class="pc-page-head"><div><h2>' +
+      escapeHtmlDefault(p.nome || "Parceiro") +
+      '</h2><p class="notice" style="margin:6px 0 0">' +
+      escapeHtmlDefault(catLabel) +
+      " · " +
+      escapeHtmlDefault(tipoLabel) +
+      ' · <span class="' +
+      stClass +
+      '">' +
+      escapeHtmlDefault(st) +
+      "</span></p></div><div class=\"actions\">" +
+      '<button type="button" class="secondary" data-pc-page="voltar">Voltar</button>' +
+      editBtn +
+      "</div></div>" +
+      '<section class="section-card"><h3 style="margin:0 0 12px">Dados cadastrais</h3><div class="form-grid">' +
+      dados +
+      "</div></section>" +
+      renderSpecificFields(p) +
+      renderContactsBlock(p) +
+      renderDocsBlock(p) +
+      renderBankBlock(options.banking, seeFinanceNow(options)) +
+      renderReboqueBlocks(options) +
+      carteira +
+      '<section class="section-card" id="pcPageMgrCobranca">' +
+      renderManagersKind("COBRANCA", "Financeiro — Gestores de Cobrança", "+ Adicionar Gestor de Cobrança", pageManagerOpts()) +
+      "</section>" +
+      renderHistoryBlock(p, options) +
+      "</div>"
+    );
+  }
+
+  function bindPartnerPage(host) {
+    if (!host || host.dataset.pcPageBound) return;
+    host.dataset.pcPageBound = "1";
+    host.addEventListener("click", async function (e) {
+      const back = e.target.closest("[data-pc-page='voltar']");
+      if (back) {
+        const backFn = _pageOptions && _pageOptions.onBack;
+        _pagePartnerId = "";
+        _pageHistSearch = "";
+        if (typeof backFn === "function") {
+          _pageOptions = null;
+          backFn();
+        } else closePartnerPage();
+        return;
+      }
+      const edit = e.target.closest("[data-pc-page='editar']");
+      if (edit) {
+        if (_pageOptions && typeof _pageOptions.onEdit === "function") _pageOptions.onEdit();
+        else {
+          const partner = currentPagePartner();
+          if (partner) partnersCadastroOpenEdit(partner);
+        }
+        return;
+      }
+      const add = e.target.closest("[data-pc-mgr-add]");
+      if (add) {
+        fillPartnerManagerForm(add.getAttribute("data-pc-mgr-add"), null);
+        return;
+      }
+      const editMgr = e.target.closest("[data-pc-mgr-edit]");
+      const tog = e.target.closest("[data-pc-mgr-toggle]");
+      const del = e.target.closest("[data-pc-mgr-del]");
+      const mgrSvc = global.partnerManagersService;
+      const list = (global.__ampliState && global.__ampliState.partnerManagers) || [];
+      if (editMgr && mgrSvc) {
+        const m = mgrSvc.listForParent(list, { partner_id: editingPartnerId }).find(function (x) {
+          return String(x.id) === String(editMgr.getAttribute("data-pc-mgr-edit"));
+        });
+        if (m) fillPartnerManagerForm(m.kind, m);
+        return;
+      }
+      if (tog && typeof global.togglePartnerManager === "function") {
+        await global.togglePartnerManager(tog.getAttribute("data-pc-mgr-toggle"));
+        refreshManagerPanels();
+        return;
+      }
+      if (del && typeof global.deletePartnerManager === "function") {
+        await global.deletePartnerManager(del.getAttribute("data-pc-mgr-del"));
+        refreshManagerPanels();
+        refreshTable(_lastCtx || {});
+      }
+    });
+    host.addEventListener("input", function (e) {
+      if (e.target && e.target.id === "pcPageHistSearch") {
+        _pageHistSearch = e.target.value || "";
+        const partner = currentPagePartner();
+        const section = host.querySelector("#pcPageHistSearch") && host.querySelector("#pcPageHistSearch").closest("section");
+        if (partner && section) {
+          const next = document.createElement("div");
+          next.innerHTML = renderHistoryBlock(partner, _pageOptions || {});
+          section.replaceWith(next.firstChild);
+          const input = document.getElementById("pcPageHistSearch");
+          if (input) {
+            input.focus();
+            const n = input.value.length;
+            input.setSelectionRange(n, n);
+          }
+        }
+        return;
+      }
+      if (e.target && e.target.getAttribute("data-pc-mgr-search")) refreshManagerPanels();
+    });
+  }
+
+  function currentPagePartner() {
+    const getFn = global.GetPartner || (svc() && svc().GetPartner);
+    if (getFn && _pagePartnerId) {
+      const fromOpts = _pageOptions && _pageOptions.state;
+      const live = getFn(fromOpts || _lastState, _pagePartnerId);
+      if (live) return live;
+      if (fromOpts && _lastState) {
+        const alt = getFn(_lastState, _pagePartnerId);
+        if (alt) return alt;
+      }
+    }
+    return (_pageOptions && _pageOptions.partner) || null;
+  }
+
+  function closePartnerPage() {
+    _pagePartnerId = "";
+    _pageOptions = null;
+    _pageHistSearch = "";
+    const page = document.getElementById("pcPartnerPage");
+    if (page && page.parentElement && page.parentElement.id === "partnerCadastroRoot") page.remove();
+    const root = document.getElementById("partnerCadastroRoot");
+    if (!root) return;
+    Array.prototype.forEach.call(root.children, function (el) {
+      el.classList.remove("pc-page-hidden");
+    });
+  }
+
+  function openPartnerPage(partner, options) {
+    const normFn = global.normalizePartnerRecord || (svc() && svc().normalizePartnerRecord);
+    const p = normFn ? normFn(partner || {}) : partner || {};
+    if (!p || !p.id) return;
+    options = options || {};
+    options.partner = p;
+    _pagePartnerId = p.id;
+    _pageOptions = options;
+    _pageHistSearch = "";
+    editingPartnerId = p.id;
+    const mount = options.mount || document.getElementById("partnerCadastroRoot");
+    if (!mount) return;
+    if (!options.mount) {
+      Array.prototype.forEach.call(mount.children, function (el) {
+        if (el.id !== "pcPartnerPage") el.classList.add("pc-page-hidden");
+      });
+    }
+    let page = mount.querySelector("#pcPartnerPage");
+    if (!page) {
+      page = document.createElement("div");
+      page.id = "pcPartnerPage";
+      mount.appendChild(page);
+    }
+    page.classList.remove("pc-page-hidden");
+    page.innerHTML = renderPartnerPageHtml(p, options);
+    bindPartnerPage(page);
+  }
+
+  function openPartnerPageById(id) {
+    const getFn = global.GetPartner || (svc() && svc().GetPartner);
+    const partner = getFn ? getFn(_lastState, id) : null;
+    if (partner) openPartnerPage(partner);
+  }
+
   function partnersCadastroRender(stateLike, ctx) {
     injectStylesOnce();
     bindGlobalOnce();
@@ -1804,10 +2327,18 @@
     const root = resolveMountRoot();
     if (!root) return;
 
+    const keepId = _pagePartnerId;
+    const keepOpts = _pageOptions;
     syncFiltersFromDom();
     const list = getFilteredList();
     root.innerHTML = renderShell(list, ctx || {});
     bindRootEvents(root, ctx || {});
+    if (keepId && !(keepOpts && keepOpts.mount)) {
+      const getFn = global.GetPartner || (svc() && svc().GetPartner);
+      const partner = getFn ? getFn(_lastState, keepId) : null;
+      if (partner && partnerCategoryOf(partner) === _category) openPartnerPage(partner, keepOpts || {});
+      else _pagePartnerId = "";
+    }
   }
 
   function partnersCadastroOpenCreate() {
@@ -1818,7 +2349,13 @@
 
   function partnersCadastroSetCategory(id) {
     const resolve = svc() && svc().resolvePartnerCategoryId;
-    _category = resolve ? resolve(id) : id || "localizadores";
+    const next = resolve ? resolve(id) : id || "localizadores";
+    if (next !== _category) {
+      _pagePartnerId = "";
+      _pageOptions = null;
+      _pageHistSearch = "";
+    }
+    _category = next;
     _filters.tipo = "";
     _filters.search = "";
   }
@@ -1843,6 +2380,7 @@
     ensurePartnerManagerModal();
   }
 
+  global.openPartnerDetailPage = openPartnerPage;
   global.partnersCadastroRender = partnersCadastroRender;
   global.partnersCadastroOpenCreate = partnersCadastroOpenCreate;
   global.partnersCadastroSetCategory = partnersCadastroSetCategory;
