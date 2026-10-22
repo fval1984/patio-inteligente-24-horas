@@ -806,6 +806,170 @@
     return [];
   }
 
+  const VEHICLE_STATUS_LABELS = {
+    AGUARDANDO_VISTORIA: "Aguardando vistoria",
+    NO_PATIO: "No pátio",
+    LIBERACAO_SOLICITADA: "Liberação solicitada",
+    LIBERACAO_CONFIRMADA: "Liberação confirmada",
+    REMOVIDO: "Retirado do pátio",
+  };
+
+  function partnerHistoryRole(partner) {
+    const cat = partnerCategoryOfTipo(partner && partner.tipo);
+    if (cat === "financeiras") return "financeira_id";
+    if (cat === "leiloeiros") return "leiloeiro_id";
+    if (cat === "patios") return "patio_parceiro_id";
+    if (cat === "localizadores") return "localizador_id";
+    return "";
+  }
+
+  function vehicleBelongsToPartner(partner, vehicle) {
+    const key = partnerHistoryRole(partner);
+    const id = String((partner && partner.id) || "");
+    if (!key || !id || !vehicle) return false;
+    return String(vehicle[key] || "") === id;
+  }
+
+  function vehicleStatusLabel(vehicle) {
+    const code = String((vehicle && vehicle.status) || "");
+    return VEHICLE_STATUS_LABELS[code] || code;
+  }
+
+  function vehicleTitle(vehicle) {
+    return [vehicle && vehicle.marca, vehicle && vehicle.modelo].filter(Boolean).join(" ");
+  }
+
+  function historySortKey(row) {
+    const at = String((row && row.at) || "");
+    if (/^\d{4}-\d{2}-\d{2}/.test(at)) return at;
+    const data = String((row && row.data) || "");
+    const m = data.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (m) return m[3] + "-" + m[2] + "-" + m[1] + "T" + (row.hora || "00:00");
+    return at;
+  }
+
+  /**
+   * Histórico só com registros já gravados e ligados a este parceiro.
+   * Cada categoria usa o vínculo próprio do veículo (ou o serviço de reboque).
+   */
+  function buildPartnerHistory(partner, ctx) {
+    ctx = ctx || {};
+    const p = normalizePartnerRecord(partner || {});
+    const id = String(p.id || "");
+    const vehicles = (ctx.vehicles || []).filter(function (v) {
+      return vehicleBelongsToPartner(p, v);
+    });
+    const vehicleById = {};
+    vehicles.forEach(function (v) {
+      vehicleById[String(v.id)] = v;
+    });
+    const rows = [];
+
+    vehicles.forEach(function (v) {
+      const placa = v.placa || "";
+      const nome = vehicleTitle(v);
+      const situacao = vehicleStatusLabel(v);
+      if (v.data_entrada) {
+        rows.push({
+          at: v.data_entrada,
+          tipo: "Entrada",
+          veiculo: nome,
+          placa: placa,
+          detalhe: situacao,
+          responsavel: "",
+        });
+      }
+      if (v.data_saida) {
+        rows.push({
+          at: v.data_saida,
+          tipo: "Saída",
+          veiculo: nome,
+          placa: placa,
+          detalhe: situacao,
+          responsavel: "",
+        });
+      } else if (v.data_entrada || v.status) {
+        rows.push({
+          at: v.data_entrada || "",
+          tipo: "Permanência",
+          veiculo: nome,
+          placa: placa,
+          detalhe: situacao,
+          responsavel: "",
+        });
+      }
+      if (v.vistoria_data || v.vistoria_responsavel) {
+        rows.push({
+          at: v.vistoria_data || v.data_entrada || "",
+          tipo: "Vistoria",
+          veiculo: nome,
+          placa: placa,
+          detalhe: situacao,
+          responsavel: v.vistoria_responsavel || "",
+        });
+      }
+    });
+
+    if (ctx.seeFinance !== false) {
+      (ctx.receivables || []).forEach(function (r) {
+        const vehicle = vehicleById[String(r && r.vehicle_id || "")];
+        if (!vehicle) return;
+        const bits = [];
+        if (r.status) bits.push(String(r.status));
+        if (r.valor != null && r.valor !== "") bits.push(String(r.valor));
+        rows.push({
+          at: r.faturado_em || r.updated_at || r.period_end || r.created_at || "",
+          tipo: "Faturamento",
+          veiculo: vehicleTitle(vehicle),
+          placa: vehicle.placa || "",
+          detalhe: bits.join(" · "),
+          responsavel: "",
+          valor: r.valor,
+        });
+      });
+    }
+
+    asArray(p.historico).forEach(function (h) {
+      rows.push({
+        at: h.data || "",
+        data: h.data || "",
+        hora: h.hora || "",
+        tipo: "Alteração cadastral",
+        veiculo: "",
+        placa: "",
+        detalhe: [h.acao, h.detalhe].filter(Boolean).join(" — "),
+        responsavel: h.usuario || "",
+      });
+    });
+
+    (ctx.towServices || []).forEach(function (s) {
+      if (!s || String(s.partner_id || "") !== id) return;
+      const bits = [];
+      if (s.origem || s.destino) bits.push([s.origem, s.destino].filter(Boolean).join(" → "));
+      if (s.cancelado) bits.push("Cancelado");
+      if (ctx.seeFinance !== false && s.valor != null && s.valor !== "") bits.push(String(s.valor));
+      rows.push({
+        at: s.data_remocao || "",
+        tipo: "Remoção",
+        veiculo: "",
+        placa: s.placa_veiculo || "",
+        detalhe: bits.join(" · "),
+        responsavel: s.registrado_por || "",
+      });
+    });
+
+    rows.sort(function (a, b) {
+      return historySortKey(b).localeCompare(historySortKey(a));
+    });
+
+    return {
+      partnerId: id,
+      role: partnerHistoryRole(p),
+      vehicles: vehicles,
+      rows: rows,
+    };
+  }
+
   function GetPartner(listOrState, id) {
     const list = resolvePartnerList(listOrState);
     const found = list.find(function (p) {
@@ -846,6 +1010,9 @@
     filterPartners: filterPartners,
     normalizePartnerRecord: normalizePartnerRecord,
     buildPartnerSummary: buildPartnerSummary,
+    partnerHistoryRole: partnerHistoryRole,
+    vehicleBelongsToPartner: vehicleBelongsToPartner,
+    buildPartnerHistory: buildPartnerHistory,
     pushHistorico: pushHistorico,
     toDbPayload: toDbPayload,
     CreatePartner: CreatePartner,
@@ -874,5 +1041,7 @@
   global.UpdatePartner = UpdatePartner;
   global.GetPartner = GetPartner;
   global.ListPartners = ListPartners;
+  global.buildPartnerHistory = buildPartnerHistory;
   global.partnersCadastroService = partnersCadastroService;
+  if (typeof module !== "undefined" && module.exports) module.exports = partnersCadastroService;
 })(typeof window !== "undefined" ? window : globalThis);
