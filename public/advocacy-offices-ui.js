@@ -72,6 +72,7 @@
       .ao-kpi span { display: block; font-size: .72rem; color: var(--muted, #64748b); text-transform: uppercase; letter-spacing: .04em; }
       .ao-kpi strong { font-size: 1.25rem; color: var(--text, #0f2744); }
       .ao-rank tr[data-ao-office] { cursor: pointer; }
+      #aoCadastroRoot tr[data-ao-office-row] { cursor: pointer; }
       .ao-chart { display: flex; align-items: flex-end; gap: 8px; min-height: 140px; padding: 8px 4px 0; }
       .ao-bar { flex: 1; min-width: 18px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; }
       .ao-bar i { display: block; width: 100%; max-width: 36px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg,#38bdf8,#0284c7); min-height: 4px; }
@@ -166,7 +167,7 @@
                         </tr>`;
                       })
                       .join("");
-                    return `<tr>
+                    return `<tr data-ao-office-row="${esc(o.id)}">
                       <td data-label="Nome">${esc(o.name)}</td>
                       <td data-label="CNPJ">${esc(o.cnpj || "—")}</td>
                       <td data-label="Cidade/UF">${esc(cidadeUf)}</td>
@@ -1203,6 +1204,13 @@
       }
       if (del && canManage() && typeof global.deleteAdvocacyOffice === "function") {
         await global.deleteAdvocacyOffice(del.getAttribute("data-ao-del"));
+      }
+      if (!view && !edit && !tog && !del) {
+        const row = e.target.closest("tr[data-ao-office-row]");
+        if (row && !e.target.closest("button, a, input, select, textarea")) {
+          const o = offices.find((x) => String(x.id) === row.getAttribute("data-ao-office-row"));
+          if (o) fillOfficeForm(o, true);
+        }
       }
     });
     document.getElementById("aoGenerateReport")?.addEventListener("click", () => {
