@@ -10259,7 +10259,7 @@
     <script src="/reboque-transporte-ui.js?v=20261022parceiro1"></script>
     <script src="/dashboard-metrics-service.js?v=20260909execops1"></script>
     <script src="/amplipatio-dashboard.js?v=20260909ind1"></script>
-    <script src="/recibo-documento.js?v=20261020recibo4"></script>
+    <script src="/recibo-documento.js?v=20261022recibo5"></script>
     <script src="/vehicle-entry-inspection-checklist.js?v=20260915vistoria1"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20260915vistoria1"></script>
     <script src="/vehicle-entry-inspection-document.js?v=20260917logo1"></script>
@@ -23071,28 +23071,60 @@
         abrirPreviaRecibo();
       }
 
-      function reciboNumeroDoVeiculo(vehicleId) {
-        const year = new Date().getFullYear();
-        const mapKey = "amplipatio_recibo_numeros_v1";
-        let map = {};
-        try {
-          map = JSON.parse(localStorage.getItem(mapKey) || "{}") || {};
-        } catch (e) {
-          map = {};
-        }
+      function reciboNumeroConhecido(vehicleId) {
         const id = String(vehicleId || "");
-        if (id && map[id]) return map[id];
-        const seqKey = "amplipatio_recibo_seq_" + year;
-        const seq = Number(localStorage.getItem(seqKey) || "0") + 1;
-        const numero = String(seq).padStart(4, "0") + "/" + year;
+        if (!id) return "";
         try {
-          localStorage.setItem(seqKey, String(seq));
-          if (id) {
-            map[id] = numero;
-            localStorage.setItem(mapKey, JSON.stringify(map));
-          }
+          const map = JSON.parse(localStorage.getItem("amplipatio_recibo_numeros_v1") || "{}") || {};
+          return String(map[id] || "");
+        } catch (e) {
+          return "";
+        }
+      }
+
+      function reciboGuardarNumeroLocal(vehicleId, numero) {
+        const id = String(vehicleId || "");
+        const oficial = String(numero || "").trim();
+        if (!id || !oficial) return;
+        try {
+          const map = JSON.parse(localStorage.getItem("amplipatio_recibo_numeros_v1") || "{}") || {};
+          map[id] = oficial;
+          localStorage.setItem("amplipatio_recibo_numeros_v1", JSON.stringify(map));
         } catch (e) {
           /* ignore */
+        }
+      }
+
+      async function reciboGarantirNumero(vehicleId) {
+        const id = String(vehicleId || "");
+        const uid = effectiveUserId();
+        if (!id || !uid || !supabase) {
+          alert("Não foi possível numerar o recibo. Entre novamente no sistema.");
+          return null;
+        }
+        const piso = Number(localStorage.getItem("amplipatio_recibo_seq_" + new Date().getFullYear()) || "0");
+        const { data, error } = await supabase.rpc("assign_ampliguard_recibo_numero", {
+          p_user: uid,
+          p_vehicle: id,
+          p_known: reciboNumeroConhecido(id) || null,
+          p_floor: Number.isFinite(piso) && piso > 0 ? Math.floor(piso) : 0,
+        });
+        if (error || !data) {
+          console.error(error);
+          alert("Não foi possível numerar o recibo. A numeração oficial precisa estar aplicada no banco.");
+          return null;
+        }
+        const numero = String(data);
+        reciboGuardarNumeroLocal(id, numero);
+        const partes = numero.split("/");
+        const seqOficial = Number(partes[0]);
+        const anoOficial = Number(partes[1]);
+        if (anoOficial === new Date().getFullYear() && Number.isFinite(seqOficial) && seqOficial > piso) {
+          try {
+            localStorage.setItem("amplipatio_recibo_seq_" + anoOficial, String(seqOficial));
+          } catch (e) {
+            /* ignore */
+          }
         }
         return numero;
       }
@@ -23118,11 +23150,13 @@
         if (cepEl && !cepEl.value.trim() && partner.cep) cepEl.value = partner.cep;
       }
 
-      function collectReciboDocumentoData() {
+      async function collectReciboDocumentoData() {
         const base = currentCdrPrintData();
         if (!base) return null;
         const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(nfseThermalVehicleId));
         if (!vehicle) return null;
+        const numero = await reciboGarantirNumero(vehicle.id);
+        if (!numero) return null;
         reciboCompletarEnderecoDoParceiro();
         const { endereco, cep } = reciboEnderecoCampos();
         const dias = calcDays(vehicle);
@@ -23136,7 +23170,7 @@
         const moeda = typeof window.reciboFormatMoeda === "function" ? window.reciboFormatMoeda : formatCurrency;
         const extenso = typeof window.reciboValorPorExtenso === "function" ? window.reciboValorPorExtenso(total) : "";
         return {
-          numero: reciboNumeroDoVeiculo(vehicle.id),
+          numero,
           emissao: formatDateBr(new Date()),
           nome: base.tipo === "PF" ? base.responsavelNome : base.razao,
           documento: base.tipo === "PF" ? base.responsavelCpf : base.cnpj,
@@ -23163,13 +23197,13 @@
         sheet.style.transform = "scale(" + escala + ")";
         const host = document.getElementById("reciboPreviewHost");
         if (host) {
-          host.style.height = Math.ceil(682 * escala) + "px";
+          host.style.height = Math.ceil(sheet.offsetHeight * escala) + "px";
           host.style.width = Math.ceil(1024 * escala) + "px";
         }
       }
 
-      function abrirPreviaRecibo() {
-        const data = collectReciboDocumentoData();
+      async function abrirPreviaRecibo() {
+        const data = await collectReciboDocumentoData();
         if (!data || typeof window.buildReciboAmpliguardSheet !== "function") return;
         const host = document.getElementById("reciboPreviewHost");
         const modal = document.getElementById("reciboPreviewModal");
@@ -23183,8 +23217,8 @@
         document.getElementById("reciboPreviewModal")?.classList.add("hidden");
       }
 
-      function imprimirReciboA4() {
-        const data = collectReciboDocumentoData();
+      async function imprimirReciboA4() {
+        const data = await collectReciboDocumentoData();
         if (!data || typeof window.buildReciboAmpliguardHtml !== "function") return;
         const html = window.buildReciboAmpliguardHtml(data);
         const iframe = document.createElement("iframe");
@@ -23342,14 +23376,14 @@
       }
 
       async function downloadOpenReciboPdf() {
-        const data = collectReciboDocumentoData();
+        const data = await collectReciboDocumentoData();
         if (!data || typeof window.buildReciboAmpliguardSheet !== "function") return;
         const btn = document.getElementById("nfseThermalPdfBtn");
         const btnPrevia = document.getElementById("reciboPreviewPdfBtn");
         if (btn) btn.disabled = true;
         if (btnPrevia) btnPrevia.disabled = true;
         const host = document.createElement("div");
-        host.style.cssText = "position:fixed;left:0;top:0;width:1024px;height:682px;opacity:0;pointer-events:none;z-index:-1;";
+        host.style.cssText = "position:fixed;left:0;top:0;width:1024px;height:auto;opacity:0;pointer-events:none;z-index:-1;";
         host.innerHTML = window.buildReciboAmpliguardSheet(data);
         document.body.appendChild(host);
         try {
@@ -23374,9 +23408,16 @@
           const doc = new jsPdfCtor({ orientation: "landscape", unit: "mm", format: "a4" });
           const pageW = 297;
           const pageH = 210;
-          const imgH = pageW * (682 / 1024);
-          const y = (pageH - imgH) / 2;
-          doc.addImage(canvas.toDataURL("image/png"), "PNG", 0, y, pageW, imgH);
+          const ratio = canvas.width ? canvas.height / canvas.width : 682 / 1024;
+          let drawW = pageW;
+          let drawH = pageW * ratio;
+          if (drawH > pageH) {
+            drawH = pageH;
+            drawW = pageH / ratio;
+          }
+          const x = (pageW - drawW) / 2;
+          const y = (pageH - drawH) / 2;
+          doc.addImage(canvas.toDataURL("image/png"), "PNG", x, y, drawW, drawH);
           const placa = String(data.placa || "recibo").replace(/[^\w.-]+/g, "") || "recibo";
           doc.save("recibo-" + placa + ".pdf");
         } catch (e) {
