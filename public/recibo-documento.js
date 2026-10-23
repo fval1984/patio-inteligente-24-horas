@@ -195,10 +195,172 @@
     );
   }
 
+  var DESCRICAO_SERVICO =
+    "Serviços de guarda e custódia do veículo automotor, referentes às estadias no pátio da AMPLIGUARD.";
+
+  function reciboTexto(value) {
+    var text = String(value == null ? "" : value).trim();
+    if (!text || text === "-" || text === "—") return "—";
+    return text;
+  }
+
+  function reciboCdrExtraCss() {
+    return (
+      ".ticket .obs{white-space:pre-wrap;min-height:18mm;margin:0.8mm 0 0;}" +
+      ".ticket .sign-block{margin-top:1mm;page-break-inside:avoid;break-inside:avoid;}" +
+      ".ticket .sign-space{height:18mm;}" +
+      ".ticket .sign-line{border:0;border-top:1px solid #000;width:62mm;height:0;margin:0 auto 1.4mm;}" +
+      ".ticket .sign-label,.ticket .sign-meta{margin:0;text-align:center;}" +
+      ".ticket .sign-label{font-size:11px;font-weight:800;letter-spacing:0.02em;}" +
+      ".ticket .sign-meta{margin-top:0.5mm;font-size:11px;}"
+    );
+  }
+
+  function buildReciboCdrBlocks(data) {
+    data = data || {};
+    var blocks = [
+      { kind: "title", text: "RECIBO" },
+      { kind: "title", text: "PRESTAÇÃO DE SERVIÇOS" },
+      { kind: "sec", text: "DADOS DO RECIBO" },
+      { kind: "line", text: "Nº do recibo: " + reciboTexto(data.numero) },
+      { kind: "line", text: "Data de emissão: " + reciboTexto(data.emissao) },
+      { kind: "sep", text: "" },
+      { kind: "sec", text: "DADOS DO TOMADOR" },
+      { kind: "line", text: "Nome / Razão social: " + reciboTexto(data.nome) },
+      { kind: "line", text: "CPF / CNPJ: " + reciboTexto(data.documento) },
+    ];
+    if (String(data.endereco || "").trim()) blocks.push({ kind: "line", text: "Endereço: " + String(data.endereco).trim() });
+    if (String(data.cep || "").trim()) blocks.push({ kind: "line", text: "CEP: " + String(data.cep).trim() });
+    blocks.push(
+      { kind: "sep", text: "" },
+      { kind: "sec", text: "DADOS DO VEÍCULO" },
+      { kind: "hot", text: "RPP: " + reciboTexto(data.rpp) },
+      { kind: "placa", text: "Placa: " + reciboTexto(data.placa) },
+      { kind: "line", text: "Veículo: " + reciboTexto(data.veiculo) },
+      { kind: "line", text: "Cor: " + reciboTexto(data.cor) }
+    );
+    if (String(data.instituicao || "").trim()) {
+      blocks.push({ kind: "line", text: "Instituição financeira: " + String(data.instituicao).trim() });
+    }
+    blocks.push(
+      { kind: "line", text: "Data de Entrada: " + reciboTexto(data.entrada) },
+      { kind: "line", text: "Data de Saída: " + reciboTexto(data.saida) },
+      { kind: "line", text: "Período: " + reciboTexto(data.periodo) },
+      { kind: "line", text: "Quantidade: " + reciboTexto(data.quantidade) },
+      { kind: "sep", text: "" },
+      { kind: "sec", text: "DESCRIÇÃO DOS SERVIÇOS" },
+      { kind: "line", text: data.descricao || DESCRICAO_SERVICO },
+      { kind: "line", text: "Valor unitário: " + reciboTexto(data.valorUnitario) },
+      { kind: "total", text: "VALOR TOTAL: " + reciboTexto(data.valorTotal) },
+      { kind: "line", text: "Valor por extenso: " + reciboTexto(data.totalExtenso) },
+      { kind: "sep", text: "" },
+      { kind: "sec", text: "DADOS PARA PAGAMENTO" }
+    );
+    (data.pagamento || []).forEach(function (linha) {
+      blocks.push({ kind: "line", text: String(linha) });
+    });
+    blocks.push({ kind: "sep", text: "" }, { kind: "sec", text: "INFORMAÇÕES ADICIONAIS / OBSERVAÇÕES" });
+    var obs = String(data.observacoes || "").replace(/\s+$/g, "").replace(/^\s+/g, "");
+    if (!obs) blocks.push({ kind: "gap", mm: 16 });
+    else {
+      obs.split(/\n/).forEach(function (linha) {
+        if (!String(linha).trim()) blocks.push({ kind: "gap", mm: 3.2 });
+        else blocks.push({ kind: "line", text: linha });
+      });
+    }
+    blocks.push(
+      { kind: "sep", text: "" },
+      { kind: "gap", mm: 16 },
+      { kind: "rule", text: "" },
+      { kind: "sec", text: "RESPONSÁVEL PELO PÁTIO — AMPLIGUARD" }
+    );
+    if (String(data.responsavelPatioNome || "").trim()) {
+      blocks.push({ kind: "line", text: "Nome: " + String(data.responsavelPatioNome).trim() });
+    }
+    if (String(data.responsavelPatioCpf || "").trim()) {
+      blocks.push({ kind: "line", text: "CPF: " + String(data.responsavelPatioCpf).trim() });
+    }
+    blocks.push(
+      { kind: "sep", text: "" },
+      { kind: "foot", text: "AMPLIGUARD" },
+      { kind: "foot-tag", text: "Guarda, Custódia e Remoção de Veículos" }
+    );
+    return blocks;
+  }
+
+  function buildReciboCdrBody(data, imagem) {
+    data = data || {};
+    var logo = imagem || "/assets/ampliguard-marca.png?v=20260917logo2";
+    var obs = String(data.observacoes || "").replace(/\s+$/g, "").replace(/^\s+/g, "");
+    var nomePatio = String(data.responsavelPatioNome || "").trim();
+    var cpfPatio = String(data.responsavelPatioCpf || "").trim();
+    var endereco = String(data.endereco || "").trim();
+    var cep = String(data.cep || "").trim();
+    var instituicao = String(data.instituicao || "").trim();
+    var pagamento = (data.pagamento || [])
+      .map(function (linha) {
+        return '<p class="line">' + esc(linha) + "</p>";
+      })
+      .join("");
+    return (
+      '<div class="ticket cdr-print">' +
+      '<img class="logo" src="' + esc(logo) + '" alt="AMPLIGUARD" />' +
+      '<p class="title">RECIBO</p>' +
+      '<p class="sigla">PRESTAÇÃO DE SERVIÇOS</p>' +
+      '<p class="sec">DADOS DO RECIBO</p>' +
+      '<p class="line">Nº do recibo: ' + esc(reciboTexto(data.numero)) + "</p>" +
+      '<p class="line">Data de emissão: ' + esc(reciboTexto(data.emissao)) + "</p>" +
+      '<hr class="sep" />' +
+      '<p class="sec">DADOS DO TOMADOR</p>' +
+      '<p class="line">Nome / Razão social: ' + esc(reciboTexto(data.nome)) + "</p>" +
+      '<p class="line">CPF / CNPJ: ' + esc(reciboTexto(data.documento)) + "</p>" +
+      (endereco ? '<p class="line">Endereço: ' + esc(endereco) + "</p>" : "") +
+      (cep ? '<p class="line">CEP: ' + esc(cep) + "</p>" : "") +
+      '<hr class="sep" />' +
+      '<p class="sec">DADOS DO VEÍCULO</p>' +
+      '<p class="line hot">RPP: ' + esc(reciboTexto(data.rpp)) + "</p>" +
+      '<p class="line hot-placa">Placa: ' + esc(reciboTexto(data.placa)) + "</p>" +
+      '<p class="line">Veículo: ' + esc(reciboTexto(data.veiculo)) + "</p>" +
+      '<p class="line">Cor: ' + esc(reciboTexto(data.cor)) + "</p>" +
+      (instituicao ? '<p class="line">Instituição financeira: ' + esc(instituicao) + "</p>" : "") +
+      '<p class="line">Data de Entrada: ' + esc(reciboTexto(data.entrada)) + "</p>" +
+      '<p class="line">Data de Saída: ' + esc(reciboTexto(data.saida)) + "</p>" +
+      '<p class="line">Período: ' + esc(reciboTexto(data.periodo)) + "</p>" +
+      '<p class="line">Quantidade: ' + esc(reciboTexto(data.quantidade)) + "</p>" +
+      '<hr class="sep" />' +
+      '<p class="sec">DESCRIÇÃO DOS SERVIÇOS</p>' +
+      '<p class="line">' + esc(data.descricao || DESCRICAO_SERVICO) + "</p>" +
+      '<p class="line">Valor unitário: ' + esc(reciboTexto(data.valorUnitario)) + "</p>" +
+      '<p class="total">VALOR TOTAL: ' + esc(reciboTexto(data.valorTotal)) + "</p>" +
+      '<p class="line">Valor por extenso: ' + esc(reciboTexto(data.totalExtenso)) + "</p>" +
+      '<hr class="sep" />' +
+      '<p class="sec">DADOS PARA PAGAMENTO</p>' +
+      pagamento +
+      '<hr class="sep" />' +
+      '<p class="sec">INFORMAÇÕES ADICIONAIS / OBSERVAÇÕES</p>' +
+      '<p class="line obs">' + esc(obs) + "</p>" +
+      '<hr class="sep" />' +
+      '<div class="sign-block">' +
+      '<div class="sign-space"></div>' +
+      '<hr class="sign-line" />' +
+      '<p class="sign-label">RESPONSÁVEL PELO PÁTIO — AMPLIGUARD</p>' +
+      (nomePatio ? '<p class="sign-meta">Nome: ' + esc(nomePatio) + "</p>" : "") +
+      (cpfPatio ? '<p class="sign-meta">CPF: ' + esc(cpfPatio) + "</p>" : "") +
+      "</div>" +
+      '<hr class="sep" />' +
+      '<p class="foot-brand">AMPLIGUARD</p>' +
+      '<p class="foot-tag">Guarda, Custódia e Remoção de Veículos</p>' +
+      "</div>"
+    );
+  }
+
   var root = typeof window !== "undefined" ? window : globalThis;
   root.reciboFormatMoeda = moeda;
   root.reciboValorPorExtenso = valorPorExtenso;
   root.reciboDocumentoCss = css;
+  root.reciboCdrExtraCss = reciboCdrExtraCss;
+  root.buildReciboCdrBody = buildReciboCdrBody;
+  root.buildReciboCdrBlocks = buildReciboCdrBlocks;
   root.buildReciboAmpliguardSheet = function (data, imagem) {
     return "<style>" + css() + "</style>" + sheetHtml(data, imagem);
   };
@@ -206,6 +368,12 @@
     return printHtml(data, imagem);
   };
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { valorPorExtenso: valorPorExtenso, buildReciboAmpliguardSheet: root.buildReciboAmpliguardSheet };
+    module.exports = {
+      valorPorExtenso: valorPorExtenso,
+      buildReciboAmpliguardSheet: root.buildReciboAmpliguardSheet,
+      buildReciboCdrBody: buildReciboCdrBody,
+      buildReciboCdrBlocks: buildReciboCdrBlocks,
+      reciboCdrExtraCss: reciboCdrExtraCss,
+    };
   }
 })();
