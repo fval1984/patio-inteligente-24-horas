@@ -4,6 +4,24 @@
 -- Escritório continua em advocacy_offices; carteira do escritório permanece em advocacy_office_managers.
 -- Esta tabela cobre: carteira/cobrança de partners + cobrança (e carteira extra) de escritórios.
 
+CREATE OR REPLACE FUNCTION public.patio_data_owner_match(p_owner uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT p_owner IS NOT NULL AND (
+    auth.uid() = p_owner
+    OR EXISTS (
+      SELECT 1
+      FROM public.track_managers tm
+      WHERE tm.user_id = auth.uid()
+        AND tm.owner_user_id = p_owner
+    )
+  );
+$$;
+
 ALTER TABLE public.partners ADD COLUMN IF NOT EXISTS nome_fantasia text;
 
 ALTER TABLE public.advocacy_offices ADD COLUMN IF NOT EXISTS trade_name text;
