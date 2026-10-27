@@ -8917,7 +8917,7 @@
                   <input
                     id="vehicleFinancialResponsibleSearch"
                     type="search"
-                    placeholder="Pesquisar RPP (parceiro ou gestor de carteira)..."
+                    placeholder="Pesquisar RPP (parceiro, gestor de carteira ou de cobrança)..."
                     autocomplete="off"
                   />
                   <input type="hidden" id="vehicleFinancialResponsible" value="" />
@@ -10265,9 +10265,9 @@
     <script src="/partners-dashboard.js?v=20260605partners601"></script>
     <script src="/financial-partner-metrics-service.js?v=20260727fpdash"></script>
     <script src="/financial-partner-dashboard-ui.js?v=20260902contrast1"></script>
-    <script src="/partners-cadastro-service.js?v=20261022parceiro1"></script>
+    <script src="/partners-cadastro-service.js?v=20261027gestor2"></script>
     <script src="/partner-managers-service.js?v=20260909partners2"></script>
-    <script src="/partners-cadastro-ui.js?v=20261027gestor1"></script>
+    <script src="/partners-cadastro-ui.js?v=20261027gestor2"></script>
     <script src="/reboque-transporte-service.js?v=20261021reboque1"></script>
     <script src="/reboque-transporte-ui.js?v=20261022parceiro1"></script>
     <script src="/dashboard-metrics-service.js?v=20260909execops1"></script>
@@ -19796,11 +19796,12 @@
           const rec = mgrSvc && mgrSvc.normalizeManagerRecord ? mgrSvc.normalizeManagerRecord(raw) : raw;
           if (!rec || !rec.id) return;
           const kind = String(rec.kind || "CARTEIRA").toUpperCase();
-          if (kind !== "CARTEIRA") return;
+          if (kind !== "CARTEIRA" && kind !== "COBRANCA") return;
           if (String(rec.status || "ATIVO").toUpperCase() === "INATIVO" && String(rec.id) !== keep) return;
           push({
             id: String(rec.id),
             name: String(rec.name || "").trim(),
+            kind: kind,
             office_id: rec.advocacy_office_id || null,
             partner_id: rec.partner_id || null,
             officeManagerId: null,
@@ -19824,7 +19825,8 @@
         carteiraManagersForRpp(keepId).forEach((m) => {
           const nome = String(m.name || "").trim() || "-";
           const parent = rppParentLabel(m);
-          const label = parent ? `${nome} · ${parent}` : nome;
+          const papel = String(m.kind || "").toUpperCase() === "COBRANCA" ? "Cobrança" : "";
+          const label = [nome, parent, papel].filter(Boolean).join(" · ");
           items.push({
             id: String(m.id),
             nome,
