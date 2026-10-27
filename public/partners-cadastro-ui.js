@@ -1309,14 +1309,14 @@
 
   function ensurePartnerManagerModal() {
     let modal = document.getElementById("pcManagerModal");
-    if (modal) return modal;
+    if (!modal) {
     modal = document.createElement("div");
     modal.id = "pcManagerModal";
     modal.className = "modal-backdrop hidden";
     modal.innerHTML =
       '<div class="modal"><div class="modal-header"><h3 id="pcManagerModalTitle">Gestor</h3>' +
       '<button type="button" class="modal-close" id="pcCloseManagerModal">Fechar</button></div>' +
-      '<form id="pcManagerForm"><div id="pcManagerFormErrors" class="pc-form-errors hidden"></div>' +
+      '<form id="pcManagerForm" action="#" method="post" novalidate><div id="pcManagerFormErrors" class="pc-form-errors hidden"></div>' +
       '<input type="hidden" id="pcMgrKind" />' +
       '<p class="notice" style="margin:0 0 12px">Este gestor fica vinculado a este parceiro (vários gestores por setor).</p>' +
       '<div class="form-grid">' +
@@ -1329,10 +1329,73 @@
       '<div><label for="pcMgrStatus">Status</label><select id="pcMgrStatus"><option value="ATIVO">Ativo</option><option value="INATIVO">Inativo</option></select></div>' +
       '<div class="full"><label for="pcMgrNotes">Observações</label><textarea id="pcMgrNotes" rows="3"></textarea></div>' +
       "</div>" +
-      '<div class="form-actions"><button type="submit" id="pcMgrSave">Salvar</button>' +
+      '<div class="form-actions"><button type="submit" id="pcMgrSave" form="pcManagerForm">Salvar</button>' +
       '<button type="button" class="secondary" id="pcMgrCancel">Cancelar</button></div></form></div>';
     document.body.appendChild(modal);
+    }
+    bindPartnerManagerForm();
     return modal;
+  }
+
+  let _mgrSaving = false;
+
+  async function submitPartnerManagerForm(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (_mgrSaving) return;
+    _mgrSaving = true;
+    try {
+    const mgrSvc = global.partnerManagersService;
+    if (!mgrSvc || typeof global.savePartnerManager !== "function") return;
+    const payload = mgrSvc.normalizeManagerPayload({
+      name: document.getElementById("pcMgrName")?.value,
+      cpf: document.getElementById("pcMgrCpf")?.value,
+      phone: document.getElementById("pcMgrPhone")?.value,
+      whatsapp: document.getElementById("pcMgrWhatsapp")?.value,
+      email: document.getElementById("pcMgrEmail")?.value,
+      role_title: document.getElementById("pcMgrRole")?.value,
+      notes: document.getElementById("pcMgrNotes")?.value,
+      status: document.getElementById("pcMgrStatus")?.value,
+      kind: document.getElementById("pcMgrKind")?.value,
+    });
+    const parent = { partner_id: editingPartnerId };
+    const errors = mgrSvc.validateManager(
+      payload,
+      (global.__ampliState && global.__ampliState.partnerManagers) || [],
+      parent,
+      _editingMgrId
+    );
+    const errBox = document.getElementById("pcManagerFormErrors");
+    if (errors.length) {
+      if (errBox) {
+        errBox.classList.remove("hidden");
+        errBox.innerHTML = "<ul>" + errors.map(function (x) {
+          return "<li>" + escapeHtmlDefault(x) + "</li>";
+        }).join("") + "</ul>";
+      }
+      return;
+    }
+    const ok = await global.savePartnerManager(parent, _editingMgrId, payload);
+    if (ok) {
+      closePartnerManagerModal();
+      refreshManagerPanels();
+      refreshTable(_lastCtx || {});
+    }
+    } finally {
+      _mgrSaving = false;
+    }
+  }
+
+  function bindPartnerManagerForm() {
+    const mgrForm = document.getElementById("pcManagerForm");
+    if (!mgrForm || mgrForm.dataset.pcBound) return;
+    mgrForm.dataset.pcBound = "1";
+    mgrForm.addEventListener("submit", submitPartnerManagerForm);
+    document.getElementById("pcMgrSave")?.addEventListener("click", submitPartnerManagerForm);
+    document.getElementById("pcMgrCancel")?.addEventListener("click", closePartnerManagerModal);
+    document.getElementById("pcCloseManagerModal")?.addEventListener("click", closePartnerManagerModal);
   }
 
   let _editingMgrId = null;
@@ -1669,6 +1732,8 @@
       form.addEventListener("submit", function (e) {
         e.preventDefault();
         if (_modalReadonly) return;
+        const submitter = e.submitter;
+        if (submitter && (submitter.id === "pcMgrSave" || submitter.closest("#pcManagerModal"))) return;
         partnersCadastroSubmit();
       });
     }
@@ -1709,51 +1774,7 @@
       });
     }
 
-    const mgrForm = document.getElementById("pcManagerForm");
-    if (mgrForm && !mgrForm.dataset.pcBound) {
-      mgrForm.dataset.pcBound = "1";
-      mgrForm.addEventListener("submit", async function (e) {
-        e.preventDefault();
-        const mgrSvc = global.partnerManagersService;
-        if (!mgrSvc || typeof global.savePartnerManager !== "function") return;
-        const payload = mgrSvc.normalizeManagerPayload({
-          name: document.getElementById("pcMgrName")?.value,
-          cpf: document.getElementById("pcMgrCpf")?.value,
-          phone: document.getElementById("pcMgrPhone")?.value,
-          whatsapp: document.getElementById("pcMgrWhatsapp")?.value,
-          email: document.getElementById("pcMgrEmail")?.value,
-          role_title: document.getElementById("pcMgrRole")?.value,
-          notes: document.getElementById("pcMgrNotes")?.value,
-          status: document.getElementById("pcMgrStatus")?.value,
-          kind: document.getElementById("pcMgrKind")?.value,
-        });
-        const parent = { partner_id: editingPartnerId };
-        const errors = mgrSvc.validateManager(
-          payload,
-          (global.__ampliState && global.__ampliState.partnerManagers) || [],
-          parent,
-          _editingMgrId
-        );
-        const errBox = document.getElementById("pcManagerFormErrors");
-        if (errors.length) {
-          if (errBox) {
-            errBox.classList.remove("hidden");
-            errBox.innerHTML = "<ul>" + errors.map(function (x) {
-              return "<li>" + escapeHtmlDefault(x) + "</li>";
-            }).join("") + "</ul>";
-          }
-          return;
-        }
-        const ok = await global.savePartnerManager(parent, _editingMgrId, payload);
-        if (ok) {
-          closePartnerManagerModal();
-          refreshManagerPanels();
-          refreshTable(ctx);
-        }
-      });
-      document.getElementById("pcMgrCancel")?.addEventListener("click", closePartnerManagerModal);
-      document.getElementById("pcCloseManagerModal")?.addEventListener("click", closePartnerManagerModal);
-    }
+    bindPartnerManagerForm();
 
     const closeBtn = document.getElementById("closePartnerModal");
     const cancelBtn = document.getElementById("cancelPartnerForm");
@@ -1822,6 +1843,9 @@
   function bindGlobalOnce() {
     if (_bound) return;
     _bound = true;
+    document.addEventListener("submit", function (e) {
+      if (e.target && e.target.id === "pcManagerForm") submitPartnerManagerForm(e);
+    }, true);
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") {
         const mgr = document.getElementById("pcManagerModal");
