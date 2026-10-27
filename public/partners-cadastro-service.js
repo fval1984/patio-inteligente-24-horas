@@ -58,7 +58,7 @@
       defaultTipo: "INSTITUICAO_FINANCEIRA",
       lockTipo: true,
       novoLabel: "+ Nova financeira",
-      searchPlaceholder: "Nome, CNPJ/CPF, cidade…",
+      searchPlaceholder: "Nome, gestor de cobrança, CNPJ/CPF, cidade…",
       title: "Financeiras",
       hasCarteiraManagers: false,
     },
@@ -427,7 +427,8 @@
       })
       .filter(function (rec) {
         if (!rec || String(rec.partner_id || "") !== String(partnerId || "")) return false;
-        return String(rec.kind || "CARTEIRA").toUpperCase() === "CARTEIRA";
+        const kind = String(rec.kind || "CARTEIRA").toUpperCase();
+        return kind === "CARTEIRA" || kind === "COBRANCA";
       })
       .map(function (rec) {
         return String(rec.name || "");
