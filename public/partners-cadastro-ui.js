@@ -391,13 +391,18 @@
     return categoryMeta().hasCarteiraManagers !== false;
   }
 
-  function carteiraGestorRows(partner, ctx) {
+  function managerListRows(partner, ctx, kind, showCarteira) {
     const mgrSvc = global.partnerManagersService;
     const list = (global.__ampliState && global.__ampliState.partnerManagers) || [];
     if (!mgrSvc || !partner || !partner.id) return "";
-    const gestores = mgrSvc.listForParent(list, { partner_id: partner.id }, mgrSvc.KIND_CARTEIRA);
+    const isCobranca = kind === mgrSvc.KIND_COBRANCA;
+    const gestores = mgrSvc.listForParent(list, { partner_id: partner.id }, kind);
     const showTipo = !categoryMeta().lockTipo || !!categoryMeta().includeUnknown;
-    const tipoCell = showTipo ? '<td data-label="Tipo">Gestor de carteira</td>' : "";
+    const papel = isCobranca ? "Gestor de cobrança" : "Gestor de carteira";
+    const tipoCell = showTipo ? '<td data-label="Tipo">' + papel + "</td>" : "";
+    const carteiraCell = showCarteira
+      ? '<td data-label="Carteira">' + (isCobranca ? "—" : "Gestor de carteira") + "</td>"
+      : "";
     const cidadeUf = [partner.cidade, partner.estado].filter(Boolean).join("/") || "—";
     return gestores
       .map(function (m) {
@@ -422,8 +427,10 @@
           '<td data-label="Telefone">' +
           esc(m.phone || m.whatsapp || "—", ctx) +
           "</td>" +
-          '<td data-label="Carteira">Gestor de carteira</td>' +
-          '<td data-label="Cobrança">—</td>' +
+          carteiraCell +
+          '<td data-label="Cobrança">' +
+          (isCobranca ? "Gestor de cobrança" : "—") +
+          "</td>" +
           '<td data-label="Status"><span class="' +
           stClass +
           '">' +
@@ -440,7 +447,7 @@
     const meta = categoryMeta();
     const showCarteira = categoryHasCarteiraManagers();
     const showTipo = !meta.lockTipo || !!meta.includeUnknown;
-    const colSpan = (showTipo ? 9 : 8) + (showCarteira ? 1 : 0);
+    const colSpan = 7 + (showTipo ? 1 : 0) + (showCarteira ? 1 : 0);
     const manage = canManagePartners();
     if (!list.length) {
       return '<tr><td colspan="' + colSpan + '" class="pc-table-empty">Nenhum cadastro nesta aba.</td></tr>';
@@ -454,7 +461,8 @@
         const toggleLabel = st === "INATIVO" ? "Reativar" : "Inativar";
         const cidadeUf = [p.cidade, p.estado].filter(Boolean).join("/") || "—";
         const counts = partnerManagerCounts(p.id);
-        const carteiraRows = showCarteira ? carteiraGestorRows(p, ctx) : "";
+        const carteiraRows = showCarteira ? managerListRows(p, ctx, "CARTEIRA", true) : "";
+        const cobrancaRows = managerListRows(p, ctx, "COBRANCA", showCarteira);
         const tipoCell = showTipo ? "<td data-label=\"Tipo\">" + renderTipoBadge(p.tipo, ctx) + "</td>" : "";
         const edits = manage
           ? '<button type="button" class="secondary" data-pc-action="editar" data-id="' +
@@ -504,7 +512,8 @@
           edits +
           "</td>" +
           "</tr>" +
-          carteiraRows
+          carteiraRows +
+          cobrancaRows
         );
       })
       .join("");
