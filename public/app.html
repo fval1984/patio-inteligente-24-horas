@@ -22362,21 +22362,22 @@
         if (typeof window.reciboCdrExtraCss === "function") css += window.reciboCdrExtraCss();
         if (paper === "a4") {
           css +=
-            "@page{size:A4 portrait;margin:14mm;}" +
+            "@page{size:A4 portrait;margin:10mm;}" +
             "@media print{" +
             "html,body{width:auto !important;max-width:none !important;}" +
-            ".ticket.cdr-print{width:182mm !important;max-width:182mm !important;margin:0 auto !important;font-size:15px !important;}" +
-            ".ticket .logo{width:78mm !important;}" +
-            ".ticket .title{font-size:22px !important;}" +
-            ".ticket .sigla{font-size:16px !important;}" +
-            ".ticket .sec{font-size:13px !important;}" +
-            ".ticket .line,.ticket .hot{font-size:15px !important;}" +
-            ".ticket .hot-placa,.ticket .total{font-size:18px !important;}" +
-            ".ticket .foot-brand{font-size:16px !important;}" +
-            ".ticket .foot-tag,.ticket .sign-label,.ticket .sign-meta{font-size:13px !important;}" +
-            ".ticket .sign-line{width:110mm !important;}" +
-            ".ticket .sign-space{height:26mm !important;}" +
-            ".ticket .obs{min-height:24mm !important;}" +
+            ".ticket.cdr-print{width:190mm !important;max-width:190mm !important;margin:0 auto !important;font-size:12px !important;line-height:1.25 !important;}" +
+            ".ticket .logo{width:42mm !important;margin-bottom:1mm !important;}" +
+            ".ticket .title{font-size:16px !important;margin:0 !important;}" +
+            ".ticket .sigla{font-size:12px !important;margin:0 0 1mm !important;}" +
+            ".ticket .sec{font-size:11px !important;margin:1.5mm 0 0.6mm !important;}" +
+            ".ticket .line,.ticket .hot{font-size:12px !important;margin:0 !important;}" +
+            ".ticket .hot-placa,.ticket .total{font-size:13px !important;}" +
+            ".ticket .sep{margin:1.2mm 0 !important;}" +
+            ".ticket .foot-brand{font-size:12px !important;}" +
+            ".ticket .foot-tag,.ticket .sign-label,.ticket .sign-meta{font-size:11px !important;}" +
+            ".ticket .sign-line{width:90mm !important;}" +
+            ".ticket .sign-space{height:8mm !important;}" +
+            ".ticket .obs{min-height:0 !important;}" +
             "}";
         } else if (paper === "preview") {
           css += "html,body{width:auto !important;min-height:0 !important;background:#eef2f6 !important;}body{display:flex;justify-content:center;}";
@@ -23403,57 +23404,174 @@
         }
       }
 
-      async function buildReciboPdfDoc(blocks) {
+      async function buildReciboPdfDoc(data) {
         await loadJsPdf();
         const jsPdfCtor = window.jspdf?.jsPDF;
         if (!jsPdfCtor) throw new Error("jsPDF indisponível");
-        const measure = new jsPdfCtor({ unit: "mm", format: "a4" });
         const doc = new jsPdfCtor({ unit: "mm", format: "a4" });
-        const pageH = 297;
-        const bottom = pageH - 14;
-        const escala = 2;
-        const coluna = 80 * escala;
-        const ox = (210 - coluna) / 2;
-        let y = 12;
-        const novaPagina = () => {
-          doc.addPage();
-          y = 12;
+        const margin = 12;
+        const pageW = 210;
+        const width = pageW - margin * 2;
+        const colGap = 6;
+        const colW = (width - colGap) / 2;
+        const ink = [20, 28, 24];
+        const navy = [7, 24, 42];
+        let y = 10;
+
+        const texto = (value) => {
+          const s = String(value == null ? "" : value).trim();
+          return s && s !== "-" && s !== "—" ? s : "—";
         };
-        const cabe = (altura) => {
-          if (y + altura > bottom && y > 16) novaPagina();
+        const escrever = (value, x, top, maxW, size, font, align) => {
+          doc.setFont("helvetica", font || "normal");
+          doc.setFontSize(size);
+          doc.setTextColor(...ink);
+          const lines = doc.splitTextToSize(String(value || ""), maxW);
+          const lh = size * 0.4;
+          lines.forEach((line, i) => {
+            const tx = align === "right" ? x + maxW : align === "center" ? x + maxW / 2 : x;
+            doc.text(line, tx, top + size * 0.32 + i * lh, { align: align || "left" });
+          });
+          return top + Math.max(lines.length, 1) * lh;
         };
+        const secao = (titulo, x, top, w) => {
+          doc.setFillColor(...navy);
+          doc.rect(x, top, w, 5.2, "F");
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8);
+          doc.setTextColor(255, 255, 255);
+          doc.text(titulo, x + 2, top + 3.6);
+          return top + 7;
+        };
+        const bloco = (itens, x, top, w) => {
+          let cursor = top;
+          itens.filter(Boolean).forEach((item) => {
+            cursor = escrever(item, x, cursor, w, 8.5, "normal", "left") + 0.4;
+          });
+          return cursor;
+        };
+
         const logo = await loadReciboLogoDataUrl();
         if (logo) {
-          let logoW = 58 * escala;
-          let logoH = 16 * escala;
+          let logoW = 42;
+          let logoH = 11;
           try {
-            const props = measure.getImageProperties(logo.dataUrl);
+            const props = doc.getImageProperties(logo.dataUrl);
             logoH = (props.height * logoW) / props.width;
-            if (logoH > 22 * escala) {
-              logoH = 22 * escala;
+            if (logoH > 12) {
+              logoH = 12;
               logoW = (props.width * logoH) / props.height;
             }
           } catch (e) {
-            logoH = 16 * escala;
-            logoW = 58 * escala;
+            logoH = 11;
           }
           try {
-            doc.addImage(logo.dataUrl, logo.type, ox + (coluna - logoW) / 2, y, logoW, logoH);
-            y += logoH + 2;
+            doc.addImage(logo.dataUrl, logo.type, margin, y, logoW, logoH);
           } catch (e) {
-            /* segue sem a imagem se o arquivo não puder ser lido */
+            /* segue sem a imagem */
           }
         }
-        (blocks || []).forEach((block, index, lista) => {
-          if (block.kind === "gap") {
-            let precisa = 0;
-            for (let i = index; i < lista.length; i += 1) precisa += comprovantePdfBlockHeight(measure, lista[i], escala);
-            if (y + precisa > bottom && y > 20) novaPagina();
-          }
-          const altura = comprovantePdfBlockHeight(measure, block, escala);
-          if (block.kind !== "gap") cabe(altura);
-          y = drawComprovantePdfBlock(doc, block, y, ox, escala);
-        });
+        escrever("RECIBO", margin + 48, y, 70, 16, "bold", "left");
+        escrever("Nº " + texto(data.numero), margin + width - 62, y, 62, 9, "bold", "right");
+        escrever("Emissão " + texto(data.emissao), margin + width - 62, y + 4.6, 62, 8, "normal", "right");
+        escrever("PRESTAÇÃO DE SERVIÇOS", margin + 48, y + 7.2, 90, 8, "bold", "left");
+        y += 16;
+
+        const tomador = [
+          "Nome / Razão social: " + texto(data.nome),
+          "CPF / CNPJ: " + texto(data.documento),
+          String(data.endereco || "").trim() ? "Endereço: " + String(data.endereco).trim() : "",
+          String(data.cep || "").trim() ? "CEP: " + String(data.cep).trim() : "",
+        ];
+        const veiculo = [
+          "RPP: " + texto(data.rpp),
+          "Placa: " + texto(data.placa),
+          "Veículo: " + texto(data.veiculo) + (String(data.cor || "").trim() ? "  ·  Cor: " + String(data.cor).trim() : ""),
+          String(data.instituicao || "").trim() ? "Instituição: " + String(data.instituicao).trim() : "",
+          "Entrada: " + texto(data.entrada) + "    Saída: " + texto(data.saida),
+          "Período: " + texto(data.periodo),
+          "Quantidade: " + texto(data.quantidade),
+        ];
+        const yTomador = secao("DADOS DO TOMADOR", margin, y, colW);
+        const yVeiculo = secao("DADOS DO VEÍCULO", margin + colW + colGap, y, colW);
+        const fimTomador = bloco(tomador, margin, yTomador, colW);
+        const fimVeiculo = bloco(veiculo, margin + colW + colGap, yVeiculo, colW);
+        y = Math.max(fimTomador, fimVeiculo) + 3;
+
+        y = secao("DESCRIÇÃO DOS SERVIÇOS", margin, y, width);
+        const descricao =
+          String(data.descricao || "").trim() ||
+          "Serviços de guarda e custódia do veículo automotor, referentes às estadias no pátio da AMPLIGUARD.";
+        y = escrever(descricao, margin, y, width, 8.5, "normal", "left") + 1.2;
+        y = escrever(
+          "Valor unitário: " + texto(data.valorUnitario) + "      Quantidade: " + texto(data.quantidade),
+          margin,
+          y,
+          width,
+          8.5,
+          "normal",
+          "left"
+        );
+        y += 1.6;
+        doc.setFillColor(...navy);
+        doc.roundedRect(margin, y, width, 9, 1.2, 1.2, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(255, 255, 255);
+        doc.text("VALOR TOTAL", margin + 3, y + 6.1);
+        doc.text(texto(data.valorTotal), margin + width - 3, y + 6.1, { align: "right" });
+        y += 11;
+        y = escrever("Valor por extenso: " + texto(data.totalExtenso), margin, y, width, 8.5, "bold", "left") + 3;
+
+        const pagamento = (data.pagamento || []).map((linha) => String(linha || "").trim()).filter(Boolean);
+        if (pagamento.length) {
+          y = secao("DADOS PARA PAGAMENTO", margin, y, width);
+          const meio = Math.ceil(pagamento.length / 2);
+          const esq = bloco(pagamento.slice(0, meio), margin, y, colW);
+          const dir = bloco(pagamento.slice(meio), margin + colW + colGap, y, colW);
+          y = Math.max(esq, dir) + 3;
+        }
+
+        const obs = String(data.observacoes || "").trim();
+        if (obs) {
+          y = secao("INFORMAÇÕES ADICIONAIS / OBSERVAÇÕES", margin, y, width);
+          const room = 250 - y;
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8.5);
+          const linhas = doc.splitTextToSize(obs, width);
+          const lh = 8.5 * 0.4;
+          const max = Math.max(1, Math.floor(room / lh));
+          const usadas = linhas.slice(0, max);
+          if (linhas.length > max) usadas[usadas.length - 1] = String(usadas[usadas.length - 1]).replace(/\s+\S*$/, "") + "…";
+          y = escrever(usadas.join("\n"), margin, y, width, 8.5, "normal", "left") + 2;
+        }
+
+        y += 8;
+        doc.setDrawColor(...navy);
+        doc.setLineWidth(0.35);
+        doc.line(margin + 28, y, margin + width - 28, y);
+        y += 1.5;
+        y = escrever("RESPONSÁVEL PELO PÁTIO — AMPLIGUARD", margin, y, width, 8, "bold", "center");
+        const nomePatio = String(data.responsavelPatioNome || "").trim();
+        const cpfPatio = String(data.responsavelPatioCpf || "").trim();
+        if (nomePatio || cpfPatio) {
+          y = escrever(
+            [nomePatio ? "Nome: " + nomePatio : "", cpfPatio ? "CPF: " + cpfPatio : ""].filter(Boolean).join("      "),
+            margin,
+            y + 0.4,
+            width,
+            8,
+            "normal",
+            "center"
+          );
+        }
+        y += 3;
+        doc.setDrawColor(180, 188, 196);
+        doc.setLineWidth(0.2);
+        doc.line(margin, y, margin + width, y);
+        y += 1.2;
+        y = escrever("AMPLIGUARD", margin, y, width, 9, "bold", "center");
+        escrever("Guarda, Custódia e Remoção de Veículos", margin, y, width, 7.5, "normal", "center");
         return doc;
       }
 
@@ -23465,7 +23583,7 @@
         if (btn) btn.disabled = true;
         if (btnPrevia) btnPrevia.disabled = true;
         try {
-          const doc = await buildReciboPdfDoc(window.buildReciboCdrBlocks(data));
+          const doc = await buildReciboPdfDoc(data);
           const placa = String(data.placa || "recibo").replace(/[^\w.-]+/g, "") || "recibo";
           doc.save("recibo-" + placa + ".pdf");
         } catch (e) {
