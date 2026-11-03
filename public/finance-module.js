@@ -33,6 +33,7 @@
   let financeFilterReceberRppId = "";
   let finReceberQuick = "todos";
   let finReceberCadernetaKey = "";
+  let financeFilterCadernetaPlaca = "";
   let finReceberRegistroId = "";
   let finPagarQuick = "todos";
   let finDashReceberQuick = "todos";
@@ -2237,9 +2238,35 @@
     return financeReceivableLabel(r);
   }
 
+  function financeClearCadernetaPlacaFilter() {
+    financeFilterCadernetaPlaca = "";
+    const el = document.getElementById("finReceberCadernetaPlaca");
+    if (el) el.value = "";
+  }
+
+  function financeCadernetaDisplayedList() {
+    const all = financeReceberTitlesForDevedor(finReceberCadernetaKey);
+    const withQuick =
+      finReceberQuick === "vencidos" || finReceberQuick === "hoje" || finReceberQuick === "a_vencer"
+        ? all.filter((r) => financeReceberMatchesQuick(r))
+        : all;
+    const plateNorm = financeNormalizePlate(
+      financeFilterCadernetaPlaca || document.getElementById("finReceberCadernetaPlaca")?.value || ""
+    );
+    if (!plateNorm) return { all, withQuick, list: withQuick, plateNorm: "" };
+    const vmap = financeVehicleById();
+    return {
+      all,
+      withQuick,
+      list: withQuick.filter((r) => financeReceivableMatchesPlateQuery(r, vmap.get(r.vehicle_id), plateNorm)),
+      plateNorm,
+    };
+  }
+
   function financeOpenReceberCaderneta(key) {
     const k = String(key || "").trim();
     if (!k) return;
+    if (finReceberCadernetaKey !== k) financeClearCadernetaPlacaFilter();
     finReceberCadernetaKey = k;
     finReceberRegistroId = "";
     financeRenderReceber();
@@ -2247,6 +2274,7 @@
 
   function financeCloseReceberCaderneta() {
     finReceberCadernetaKey = "";
+    financeClearCadernetaPlacaFilter();
     financeRowSelection.receber?.clear();
     financeRenderReceber();
   }
@@ -3178,13 +3206,16 @@
     const registroOpen = !!finReceberRegistroId;
     if (registroOpen) finReceberCadernetaKey = "";
 
-    const cadernetaAll = finReceberCadernetaKey ? financeReceberTitlesForDevedor(finReceberCadernetaKey) : [];
-    const cadernetaList =
-      finReceberQuick === "vencidos" || finReceberQuick === "hoje" || finReceberQuick === "a_vencer"
-        ? cadernetaAll.filter((r) => financeReceberMatchesQuick(r))
-        : cadernetaAll;
-    if (finReceberCadernetaKey && !cadernetaList.length) {
+    financeFilterCadernetaPlaca = (document.getElementById("finReceberCadernetaPlaca")?.value || "").trim();
+    const cadernetaView = finReceberCadernetaKey
+      ? financeCadernetaDisplayedList()
+      : { all: [], withQuick: [], list: [], plateNorm: "" };
+    const cadernetaAll = cadernetaView.all;
+    const cadernetaList = cadernetaView.list;
+    const cadernetaPlateNorm = cadernetaView.plateNorm;
+    if (finReceberCadernetaKey && !cadernetaAll.length) {
       finReceberCadernetaKey = "";
+      financeClearCadernetaPlacaFilter();
     }
     const cadernetaOpen = !!finReceberCadernetaKey && !registroOpen;
     subview?.classList.toggle("is-caderneta-open", cadernetaOpen);
@@ -3244,7 +3275,7 @@
 
     const tableList = cadernetaOpen ? cadernetaList : [];
     const totals = cadernetaOpen
-      ? financeReceberCadernetaTotals(cadernetaList)
+      ? financeReceberCadernetaTotals(cadernetaView.withQuick || cadernetaList)
       : { aberto: list.reduce((s, r) => s + Number(r.valor || 0), 0) };
     if (cadernetaOpen) {
       totals.recebido = financeReceberRecebidoDevedor(finReceberCadernetaKey);
@@ -3279,7 +3310,11 @@
     if (!tableList.length) {
       financePruneStaleRowSelection("receber");
       financeUpdateBatchBar("receber");
-      body.innerHTML = `<tr><td colspan="7" class="notice">Nenhum título nesta caderneta.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="7" class="notice">${
+        cadernetaPlateNorm
+          ? "Nenhum registro nesta caderneta com a placa informada."
+          : "Nenhum título nesta caderneta."
+      }</td></tr>`;
       return;
     }
     financePruneStaleRowSelection("receber");
@@ -7327,13 +7362,26 @@
     document.getElementById("finReceberCadernetaBack")?.addEventListener("click", () => {
       financeCloseReceberCaderneta();
     });
+    document.getElementById("finReceberCadernetaPlaca")?.addEventListener("input", () => {
+      if (currentFinanceView === "receber" && finReceberCadernetaKey) financeRenderReceber();
+    });
+    document.getElementById("finReceberCadernetaPlaca")?.addEventListener("search", () => {
+      if (currentFinanceView === "receber" && finReceberCadernetaKey) financeRenderReceber();
+    });
+    document.getElementById("finReceberCadernetaPlaca")?.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+    });
     document.getElementById("finReceberPlateForm")?.addEventListener("submit", (e) => {
       e.preventDefault();
       if (currentFinanceView === "receber") financeReceberTryOpenRegistroFromPlacaSubmit();
     });
     document.getElementById("finReceberPlaca")?.addEventListener("input", () => {
       const plateNorm = financeNormalizePlate(document.getElementById("finReceberPlaca")?.value);
-      if (plateNorm) finReceberCadernetaKey = "";
+      if (plateNorm) {
+        finReceberCadernetaKey = "";
+        financeClearCadernetaPlacaFilter();
+      }
       if (currentFinanceView === "receber") financeRenderReceber();
     });
     document.getElementById("finReceberPlaca")?.addEventListener("keydown", (e) => {
