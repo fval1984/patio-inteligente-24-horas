@@ -7359,10 +7359,10 @@
       }
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260917header1" />
-    <link rel="stylesheet" href="/finance-action-ui.css?v=20260921ops1" />
+    <link rel="stylesheet" href="/finance-action-ui.css?v=20261103cadernetaPlaca1" />
     <link rel="stylesheet" href="/payment-receipt.css?v=20261005recibo10" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
-    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20260917header1" />
+    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261103cadernetaPlaca1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20261001escritorio3" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
@@ -8513,6 +8513,21 @@
             <div id="finReceberCadernetaBar" class="fin-caderneta-bar hidden">
               <button type="button" class="secondary" id="finReceberCadernetaBack">← Voltar às cadernetas</button>
               <h3 id="finReceberCadernetaTitle">Caderneta</h3>
+              <div class="fin-caderneta-search">
+                <label for="finReceberCadernetaPlaca">Buscar placa</label>
+                <input
+                  id="finReceberCadernetaPlaca"
+                  type="search"
+                  inputmode="text"
+                  placeholder="Ex.: ABC1D23 ou ABC-1234"
+                  maxlength="20"
+                  autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="characters"
+                  spellcheck="false"
+                  aria-label="Buscar registros da caderneta por placa"
+                />
+              </div>
               <div id="finReceberCadernetaKpis" class="fin-caderneta-kpis"></div>
             </div>
             <div id="finReceberRegistro" class="fin-receber-registro hidden"></div>
@@ -10252,7 +10267,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20261005recibo1"></script>
+    <script src="/finance-module.js?v=20261103cadernetaPlaca1"></script>
     <script src="/payment-receipt.js?v=20261005recibo10"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
