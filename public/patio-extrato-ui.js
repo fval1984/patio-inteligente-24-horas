@@ -304,6 +304,7 @@
   function printReport() {
     const report = ensureReport();
     if (!report) return;
+    try {
     const css = `
       @page { size: A4; margin: 12mm; }
       body { margin:0; color:#111; }
@@ -321,7 +322,19 @@
       global.printHtmlInHiddenIframe(html, { iframeTitle: "Extrato do pátio" });
       return;
     }
-    window.print();
+    const w = window.open("", "_blank");
+    if (!w) {
+      alert("O navegador bloqueou a janela de impressão. Permita pop-ups para este site.");
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    w.print();
+    } catch (e) {
+      console.error(e);
+      alert(e.message || "Não foi possível imprimir o extrato.");
+    }
   }
 
   function wrapPdfText(pdf, text, maxWidth) {
@@ -503,23 +516,37 @@
     pdf.save(`extrato-patio-${stamp}.pdf`);
   }
 
-  async function onPdf() {
+  async function onPdf(btn) {
+    const prev = btn ? btn.textContent : "";
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "A gerar PDF…";
+    }
     try {
       await drawPdf();
     } catch (e) {
+      console.error(e);
       alert(e.message || "Não foi possível gerar o PDF.");
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = prev || "Gerar PDF";
+      }
     }
   }
 
-  function onClick(ev) {
-    const btn = ev.target.closest("[data-px-act]");
+  function handleUiClick(ev) {
+    const t = ev.target;
+    if (!t || typeof t.closest !== "function") return;
+    const btn = t.closest("[data-px-act]");
     if (!btn) {
-      if (ev.target.id === "patioExtratoPreview") {
+      if (t.id === "patioExtratoPreview") {
         previewOpen = false;
         renderPreviewLayer();
       }
       return;
     }
+    ev.preventDefault();
     const act = btn.getAttribute("data-px-act");
     if (act === "view") {
       if (!ensureReport()) return;
@@ -528,7 +555,7 @@
     } else if (act === "print") {
       printReport();
     } else if (act === "pdf") {
-      onPdf();
+      onPdf(btn);
     } else if (act === "close") {
       previewOpen = false;
       renderPreviewLayer();
@@ -572,8 +599,8 @@
   function bindOnce() {
     if (bound) return;
     bound = true;
-    document.addEventListener("click", onClick);
-    document.addEventListener("submit", onSubmit);
+    document.addEventListener("click", handleUiClick, true);
+    document.addEventListener("submit", onSubmit, true);
   }
 
   function onShow() {
