@@ -70,6 +70,12 @@
       #patioExtratoRoot .px-card.is-open { border-color:rgba(155,44,44,.28); }
       #patioExtratoRoot .px-card.is-open strong { color:#9b2c2c; }
       #patioExtratoRoot .px-periodo { margin:0; font-weight:600; color:#1e3a5f; }
+      #patioExtratoRoot .px-month { display:flex; flex-direction:column; gap:10px; padding:4px 0 18px; border-bottom:1px solid #e2e8f0; }
+      #patioExtratoRoot .px-month:last-child { border-bottom:0; }
+      #patioExtratoRoot .px-month h3 { margin:0; font-size:1.05rem; color:#1e3a5f; }
+      .px-doc-month { page-break-inside:avoid; margin:0 0 18px; padding:0 0 14px; border-bottom:1px solid #cbd5e1; font-family:system-ui,sans-serif; }
+      .px-doc-month h2 { margin:0 0 4px; font-size:14px; color:#1e3a5f; letter-spacing:.04em; }
+      .px-doc-month .px-doc-sum { margin-top:8px; }
       #patioExtratoRoot .table-wrap { overflow:auto; }
       #patioExtratoRoot table.px-table { width:100%; border-collapse:collapse; font-size:13px; }
       #patioExtratoRoot table.px-table th, #patioExtratoRoot table.px-table td { border-bottom:1px solid #e2e8f0; padding:8px 10px; text-align:left; vertical-align:top; }
@@ -153,7 +159,7 @@
       return null;
     }
     const st = state();
-    lastResumo = svc().buildResumoPeriodo({
+    lastResumo = svc().buildResumoMensal({
       fromYmd,
       toYmd,
       vehicles: st.vehicles || [],
@@ -254,32 +260,75 @@
     </div>`;
   }
 
-  function resumoCards(resumo) {
-    const s = resumo.summary;
+  function resumoMonthCards(month) {
+    const s = month.summary;
     return `
-      <p class="px-periodo">Período: ${esc(resumo.periodoLabel)}</p>
-      <div class="px-resumo">
-        <article class="px-card is-gerado">
-          <span>Valor total gerado</span>
-          <strong>${esc(money(s.gerado))}</strong>
-          <small>${esc(String(s.veiculos))} ciclo(s) finalizado(s) no período</small>
-        </article>
-        <article class="px-card is-ok">
-          <span>Valor recebido</span>
-          <strong>${esc(money(s.recebido))}</strong>
-          <small>Pagamentos desses ciclos, mesmo que em outra data</small>
-        </article>
-        <article class="px-card is-wait">
-          <span>Aguardando faturamento</span>
-          <strong>${esc(money(s.aguardandoFaturamento))}</strong>
-          <small>Saiu no período e ainda não foi faturado</small>
-        </article>
-        <article class="px-card is-open">
-          <span>Valor em aberto</span>
-          <strong>${esc(money(s.emAberto))}</strong>
-          <small>Já faturado e ainda não recebido</small>
-        </article>
-      </div>`;
+      <section class="px-month">
+        <h3>${esc(month.monthLabel)}</h3>
+        <p class="px-periodo">${esc(month.periodoLabel)}</p>
+        <div class="px-resumo">
+          <article class="px-card is-gerado">
+            <span>Valor total gerado</span>
+            <strong>${esc(money(s.gerado))}</strong>
+            <small>${esc(String(s.veiculos))} ciclo(s) finalizado(s) no mês</small>
+          </article>
+          <article class="px-card is-ok">
+            <span>Valor recebido</span>
+            <strong>${esc(money(s.recebido))}</strong>
+            <small>Pagamentos desses ciclos, mesmo que em outra data</small>
+          </article>
+          <article class="px-card is-wait">
+            <span>Aguardando faturamento</span>
+            <strong>${esc(money(s.aguardandoFaturamento))}</strong>
+            <small>Saiu no mês e ainda não foi faturado</small>
+          </article>
+          <article class="px-card is-open">
+            <span>Valor em aberto</span>
+            <strong>${esc(money(s.emAberto))}</strong>
+            <small>Já faturado e ainda não recebido</small>
+          </article>
+        </div>
+      </section>`;
+  }
+
+  function resumoCards(resumo) {
+    const months = resumo.months || [];
+    if (!months.length) {
+      return `<p class="px-empty">Nenhum mês no intervalo informado.</p>`;
+    }
+    return `<p class="px-periodo">Meses: ${esc(resumo.coberturaLabel)}</p>${months.map(resumoMonthCards).join("")}`;
+  }
+
+  function resumoDocumentHtml(resumo, opts) {
+    const forPrint = !!(opts && opts.forPrint);
+    const months = resumo.months || [];
+    const blocks = months
+      .map((month) => {
+        const s = month.summary;
+        return `<section class="px-doc-month">
+          <h2>${esc(month.monthLabel)}</h2>
+          <div class="px-doc-meta"><span>Período: ${esc(month.periodoLabel)}</span><span>${esc(String(s.veiculos))} veículo(s)</span></div>
+          <div class="px-doc-sum">
+            <span>Valor total gerado</span><strong>${esc(money(s.gerado))}</strong>
+            <span>Valor recebido</span><strong>${esc(money(s.recebido))}</strong>
+            <span>Aguardando faturamento</span><strong>${esc(money(s.aguardandoFaturamento))}</strong>
+            <span>Valor em aberto</span><strong>${esc(money(s.emAberto))}</strong>
+          </div>
+        </section>`;
+      })
+      .join("");
+    return `<div class="px-doc"${forPrint ? "" : ' id="pxPaperResumo"'}>
+      <header class="px-doc-head">
+        <img src="${esc(LOGO)}" alt="AMPLIGUARD" />
+        <h1>RESUMO FINANCEIRO POR PERÍODO</h1>
+        <div class="px-doc-meta">
+          <span>Meses: ${esc(resumo.coberturaLabel || "")}</span>
+          <span>Emissão: ${esc(resumo.emitidoEm || "")}</span>
+        </div>
+      </header>
+      ${blocks || "<p>Nenhum mês no intervalo informado.</p>"}
+      <p class="px-doc-brand">${esc(FOOTER)}</p>
+    </div>`;
   }
 
   function render() {
@@ -320,13 +369,20 @@
       : !isResumo
         ? `<p class="px-empty">Selecione o período e clique em Gerar extrato. Entram somente veículos com saída confirmada nas datas informadas.</p>`
         : "";
+    const resumoActions = isResumo && lastResumo
+      ? `<div class="px-actions">
+          <button type="button" class="secondary" data-px-act="view-resumo">Visualizar</button>
+          <button type="button" class="secondary" data-px-act="print-resumo">Imprimir</button>
+          <button type="button" data-px-act="pdf-resumo">Gerar PDF</button>
+        </div>`
+      : "";
     const resumoBlock = isResumo
       ? lastResumo
         ? resumoCards(lastResumo)
-        : `<p class="px-empty">Selecione o período e clique em Consultar. O painel considera só os veículos que efetivamente saíram no intervalo.</p>`
+        : `<p class="px-empty">Informe a data inicial e a data final e clique em Consultar. Cada mês do intervalo é apurado do dia 1 ao último dia, com os mesmos quatro indicadores.</p>`
       : "";
     const lede = isResumo
-      ? "Painel dos ciclos finalizados no período: quanto o pátio gerou, quanto já recebeu, o que ainda aguarda faturamento e o que já foi faturado e segue em aberto."
+      ? "Escolha o intervalo (por exemplo janeiro a outubro). O sistema monta um mês por vez, do início ao fim, para consulta e impressão."
       : "Consulta independente das listas do pátio. O valor gerado é o dos serviços dos veículos que efetivamente saíram no período — não o acumulado de quem ainda está no pátio.";
 
     el.innerHTML = `
@@ -344,6 +400,7 @@
         </label>
         <button type="submit">${isResumo ? "Consultar" : "Gerar extrato"}</button>
       </form>
+      ${resumoActions}
       ${actions}
       ${kpis}
       ${table}
@@ -366,12 +423,25 @@
 
   function renderPreviewLayer() {
     const host = previewHost();
-    if (!previewOpen || !lastReport) {
+    const isResumoPreview = previewOpen === "resumo";
+    const isExtratoPreview = previewOpen === "extrato" || previewOpen === true;
+    if (!previewOpen || (isResumoPreview && !lastResumo) || (isExtratoPreview && !lastReport)) {
       host.classList.add("hidden");
       host.innerHTML = "";
       return;
     }
     host.classList.remove("hidden");
+    if (isResumoPreview) {
+      host.innerHTML = `<div class="px-paper-wrap">
+        <div class="px-actions" style="margin-bottom:12px;justify-content:flex-end">
+          <button type="button" class="secondary" data-px-act="close">Fechar</button>
+          <button type="button" class="secondary" data-px-act="print-resumo">Imprimir</button>
+          <button type="button" data-px-act="pdf-resumo">Gerar PDF</button>
+        </div>
+        ${resumoDocumentHtml(lastResumo)}
+      </div>`;
+      return;
+    }
     host.innerHTML = `<div class="px-paper-wrap">
       <div class="px-actions" style="margin-bottom:12px;justify-content:flex-end">
         <button type="button" class="secondary" data-px-act="close">Fechar</button>
@@ -421,6 +491,165 @@
       console.error(e);
       alert(e.message || "Não foi possível imprimir o extrato.");
     }
+  }
+
+  function printHtmlDoc(title, bodyHtml) {
+    const css = `
+      @page { size: A4; margin: 12mm; }
+      body { margin:0; color:#111; }
+      .px-doc { box-shadow:none; padding:0; }
+      .px-doc-head img { height:48px; }
+      .px-doc-month { page-break-inside:avoid; }
+    `;
+    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" />
+      <title>${esc(title)}</title>
+      <style>${document.getElementById("patioExtratoStyles")?.textContent || ""}${css}</style>
+      </head><body>${bodyHtml}</body></html>`;
+    if (typeof global.printHtmlInHiddenIframe === "function") {
+      global.printHtmlInHiddenIframe(html, { iframeTitle: title });
+      return;
+    }
+    const w = window.open("", "_blank");
+    if (!w) {
+      alert("O navegador bloqueou a janela de impressão. Permita pop-ups para este site.");
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    w.print();
+  }
+
+  function ensureResumo() {
+    if (lastResumo) return lastResumo;
+    return buildResumo();
+  }
+
+  function printResumo() {
+    const resumo = ensureResumo();
+    if (!resumo) return;
+    try {
+      printHtmlDoc("Resumo financeiro por período", resumoDocumentHtml(resumo, { forPrint: true }));
+    } catch (e) {
+      console.error(e);
+      alert(e.message || "Não foi possível imprimir o resumo.");
+    }
+  }
+
+  async function drawResumoPdf() {
+    const resumo = ensureResumo();
+    if (!resumo) return;
+    if (typeof global.loadJsPdf !== "function") throw new Error("PDF indisponível");
+    await global.loadJsPdf();
+    const jsPdfCtor = global.jspdf?.jsPDF;
+    if (!jsPdfCtor) throw new Error("jsPDF indisponível");
+    const pdf = new jsPdfCtor({ unit: "pt", format: "a4", orientation: "portrait" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const mx = 42;
+    const contentW = pageW - mx * 2;
+    const footerY = pageH - 36;
+    const headerH = 64;
+    const logo = typeof global.loadReciboLogoDataUrl === "function" ? await global.loadReciboLogoDataUrl() : null;
+
+    const drawHeader = () => {
+      pdf.setFillColor(16, 17, 20);
+      pdf.rect(0, 0, pageW, headerH, "F");
+      if (logo) {
+        try {
+          const props = pdf.getImageProperties(logo.dataUrl);
+          const maxW = 220;
+          const maxH = 40;
+          let imgW = maxW;
+          let imgH = (props.height * imgW) / props.width;
+          if (imgH > maxH) {
+            imgH = maxH;
+            imgW = (props.width * imgH) / props.height;
+          }
+          pdf.addImage(logo.dataUrl, logo.type, (pageW - imgW) / 2, (headerH - imgH) / 2, imgW, imgH);
+        } catch (_e) {
+          pdf.setTextColor(255, 255, 255);
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(14);
+          pdf.text("AMPLIGUARD", pageW / 2, headerH / 2 + 5, { align: "center" });
+        }
+      } else {
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(14);
+        pdf.text("AMPLIGUARD", pageW / 2, headerH / 2 + 5, { align: "center" });
+      }
+      pdf.setDrawColor(212, 175, 55);
+      pdf.setLineWidth(1.4);
+      pdf.line(0, headerH, pageW, headerH);
+    };
+
+    const drawFooter = (page, pages) => {
+      pdf.setDrawColor(180, 180, 180);
+      pdf.line(mx, footerY, pageW - mx, footerY);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(70, 70, 70);
+      pdf.text(FOOTER, mx, footerY + 14);
+      pdf.text(`Página ${page}/${pages}`, pageW - mx, footerY + 14, { align: "right" });
+    };
+
+    drawHeader();
+    let y = headerH + 22;
+    pdf.setTextColor(16, 17, 20);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(13);
+    pdf.text("RESUMO FINANCEIRO POR PERÍODO", pageW / 2, y, { align: "center" });
+    y += 16;
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    pdf.text(`Meses: ${resumo.coberturaLabel || ""}`, mx, y);
+    pdf.text(`Emissão: ${resumo.emitidoEm || ""}`, pageW - mx, y, { align: "right" });
+    y += 18;
+
+    (resumo.months || []).forEach((month) => {
+      const blockH = 118;
+      if (y + blockH > footerY - 8) {
+        pdf.addPage();
+        drawHeader();
+        y = headerH + 22;
+      }
+      pdf.setFillColor(30, 58, 95);
+      pdf.rect(mx, y, contentW, 22, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(11);
+      pdf.text(month.monthLabel, mx + 10, y + 15);
+      y += 30;
+      pdf.setTextColor(16, 17, 20);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.text(`Período: ${month.periodoLabel}  ·  ${month.summary.veiculos} veículo(s)`, mx, y);
+      y += 16;
+      const lines = [
+        ["Valor total gerado", money(month.summary.gerado)],
+        ["Valor recebido", money(month.summary.recebido)],
+        ["Aguardando faturamento", money(month.summary.aguardandoFaturamento)],
+        ["Valor em aberto", money(month.summary.emAberto)],
+      ];
+      lines.forEach((pair) => {
+        pdf.text(pair[0], mx, y);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(pair[1], pageW - mx, y, { align: "right" });
+        pdf.setFont("helvetica", "normal");
+        y += 14;
+      });
+      y += 12;
+    });
+
+    const pages = pdf.internal.getNumberOfPages();
+    for (let i = 1; i <= pages; i++) {
+      pdf.setPage(i);
+      drawFooter(i, pages);
+    }
+    const first = (resumo.months && resumo.months[0] && resumo.months[0].ym) || "";
+    const last = (resumo.months && resumo.months[resumo.months.length - 1] && resumo.months[resumo.months.length - 1].ym) || "";
+    pdf.save(`resumo-financeiro-${first}_${last}.pdf`);
   }
 
   function wrapPdfText(pdf, text, maxWidth) {
@@ -602,14 +831,15 @@
     pdf.save(`extrato-patio-${stamp}.pdf`);
   }
 
-  async function onPdf(btn) {
+  async function onPdf(btn, kind) {
     const prev = btn ? btn.textContent : "";
     if (btn) {
       btn.disabled = true;
       btn.textContent = "A gerar PDF…";
     }
     try {
-      await drawPdf();
+      if (kind === "resumo") await drawResumoPdf();
+      else await drawPdf();
     } catch (e) {
       console.error(e);
       alert(e.message || "Não foi possível gerar o PDF.");
@@ -636,12 +866,20 @@
     const act = btn.getAttribute("data-px-act");
     if (act === "view") {
       if (!ensureReport()) return;
-      previewOpen = true;
+      previewOpen = "extrato";
       renderPreviewLayer();
     } else if (act === "print") {
       printReport();
     } else if (act === "pdf") {
       onPdf(btn);
+    } else if (act === "view-resumo") {
+      if (!ensureResumo()) return;
+      previewOpen = "resumo";
+      renderPreviewLayer();
+    } else if (act === "print-resumo") {
+      printResumo();
+    } else if (act === "pdf-resumo") {
+      onPdf(btn, "resumo");
     } else if (act === "close") {
       previewOpen = false;
       renderPreviewLayer();
