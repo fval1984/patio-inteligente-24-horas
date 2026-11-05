@@ -176,4 +176,21 @@ const part = svc.allocateCycleAmounts(
 );
 assert(part.recebido === 250 && part.emAberto === 750 && part.aguardandoFaturamento === 0, "parcial faturado");
 
+const mensal = svc.buildResumoMensal({
+  fromYmd: "2026-01-15",
+  toYmd: "2026-02-10",
+  vehicles: [entrouSaiuJan, entrouJanSaiuFev],
+  receivables: [
+    { id: "r-d", vehicle_id: "d", period_end: "2026-01-20", valor: 1000, status: "PAGO" },
+    { id: "r-b", vehicle_id: "b", period_end: "2026-02-03", valor: 500, status: "EM_ABERTO" },
+  ],
+  cash: [],
+  partners,
+});
+assert(mensal.months.length === 2, "janeiro e fevereiro, meses cheios");
+assert(mensal.months[0].fromYmd === "2026-01-01" && mensal.months[0].toYmd === "2026-01-31", "janeiro do dia 1 ao último");
+assert(mensal.months[1].fromYmd === "2026-02-01" && mensal.months[1].toYmd === "2026-02-28", "fevereiro completo");
+assert(mensal.months[0].summary.gerado === 1000, "janeiro só ciclos de janeiro");
+assert(mensal.months[1].summary.gerado === 500, "fevereiro só ciclos de fevereiro");
+
 console.log("patio-extrato-service.test.js ok");
