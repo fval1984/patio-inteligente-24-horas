@@ -431,6 +431,7 @@ export async function attachSignedPhotoUrls(
     const { data } = await admin.storage.from(PHOTO_STORAGE_BUCKET).createSignedUrls(paths, 60 * 60 * 12);
     const byPath = new Map<string, string>();
     (data || []).forEach((row) => {
+      if (row?.error) return;
       const path = String(row?.path || "").trim();
       const url = String(row?.signedUrl || "").trim();
       if (path && url) byPath.set(path, url);
