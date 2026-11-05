@@ -444,6 +444,91 @@
     };
   }
 
+  const MONTH_NAMES_PT = [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
+  ];
+
+  function monthLabelPt(ym) {
+    const m = String(ym || "").match(/^(\d{4})-(\d{2})$/);
+    if (!m) return String(ym || "—");
+    const name = MONTH_NAMES_PT[Number(m[2]) - 1] || m[2];
+    return `${name} de ${m[1]}`;
+  }
+
+  function monthBounds(ym) {
+    const m = String(ym || "").match(/^(\d{4})-(\d{2})$/);
+    if (!m) return null;
+    const y = Number(m[1]);
+    const mo = Number(m[2]);
+    const last = new Date(y, mo, 0).getDate();
+    return {
+      fromYmd: `${m[1]}-${m[2]}-01`,
+      toYmd: `${m[1]}-${m[2]}-${String(last).padStart(2, "0")}`,
+    };
+  }
+
+  function listMonths(fromYmd, toYmd) {
+    const a = toPeriodYmd(fromYmd).slice(0, 7);
+    const b = toPeriodYmd(toYmd).slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(a) || !/^\d{4}-\d{2}$/.test(b) || a > b) return [];
+    const out = [];
+    let y = Number(a.slice(0, 4));
+    let m = Number(a.slice(5, 7));
+    const ey = Number(b.slice(0, 4));
+    const em = Number(b.slice(5, 7));
+    while (y < ey || (y === ey && m <= em)) {
+      out.push(`${y}-${String(m).padStart(2, "0")}`);
+      m += 1;
+      if (m > 12) {
+        m = 1;
+        y += 1;
+      }
+      if (out.length > 36) break;
+    }
+    return out;
+  }
+
+  function buildResumoMensal(input) {
+    const fromYmd = toPeriodYmd(input?.fromYmd);
+    const toYmd = toPeriodYmd(input?.toYmd);
+    const yms = listMonths(fromYmd, toYmd);
+    const months = yms.map((ym) => {
+      const bounds = monthBounds(ym);
+      const resumo = buildResumoPeriodo(Object.assign({}, input, bounds));
+      return {
+        ym,
+        monthLabel: monthLabelPt(ym),
+        fromYmd: bounds.fromYmd,
+        toYmd: bounds.toYmd,
+        periodoLabel: resumo.periodoLabel,
+        summary: resumo.summary,
+      };
+    });
+    const first = months[0];
+    const last = months[months.length - 1];
+    return {
+      fromYmd,
+      toYmd,
+      months,
+      coberturaLabel: first && last
+        ? months.length === 1
+          ? first.monthLabel
+          : `${first.monthLabel} a ${last.monthLabel}`
+        : "—",
+    };
+  }
+
   const patioExtratoService = {
     toPeriodYmd,
     moneyNum,
@@ -454,8 +539,12 @@
     liveStatus,
     allocateCycleAmounts,
     defaultPeriod,
+    monthLabelPt,
+    monthBounds,
+    listMonths,
     buildExtrato,
     buildResumoPeriodo,
+    buildResumoMensal,
   };
 
   global.patioExtratoService = patioExtratoService;
