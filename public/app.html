@@ -7720,7 +7720,7 @@
                 <button type="button" class="secondary" data-subview="vsc">VSC</button>
                 <button type="button" class="secondary" data-subview="removidos">VRP</button>
                 <button type="button" class="secondary" data-subview="aguardando_faturamento">Aguardando faturamento</button>
-                <button type="button" class="secondary" data-subview="extrato_valores">Extrato de valores</button>
+                <button type="button" class="secondary" data-subview="extrato_valores">Extrato e resumo</button>
               </nav>
             </div>
             <div class="actions">
@@ -8048,7 +8048,7 @@
               </div>
             </div>
             <div class="section-card patio-subview hidden" data-subview="extrato_valores">
-              <div class="pill">Extrato de valores gerados</div>
+              <div class="pill">Extrato e resumo financeiro</div>
               <div id="patioExtratoRoot"></div>
             </div>
             <div class="section-card patio-subview hidden" data-subview="aguardando_faturamento">
@@ -10218,7 +10218,7 @@
             <button type="button" data-header-patio-sub="vsc">VSC</button>
             <button type="button" data-header-patio-sub="removidos">VRP</button>
             <button type="button" data-header-patio-sub="aguardando_faturamento">Aguardando faturamento</button>
-            <button type="button" data-header-patio-sub="extrato_valores">Extrato de valores</button>
+            <button type="button" data-header-patio-sub="extrato_valores">Extrato e resumo</button>
           </div>
         </details>
 
@@ -10306,8 +10306,8 @@
     <script src="/advocacy-offices-ui.js?v=20261022parceiro1"></script>
     <script src="/cobranca-service.js?v=20260910cob4"></script>
     <script src="/cobranca-ui.js?v=20260917logo1"></script>
-    <script src="/patio-extrato-service.js?v=20261105extrato1"></script>
-    <script src="/patio-extrato-ui.js?v=20261105extrato2"></script>
+    <script src="/patio-extrato-service.js?v=20261105resumo1"></script>
+    <script src="/patio-extrato-ui.js?v=20261105resumo1"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -11491,7 +11491,7 @@
         removidos: { title: "VRP", subtitle: "Veículos removidos do pátio" },
         fechando_ciclo: { title: "Aguardando faturamento", subtitle: "Ciclo concluído, aguardando NF ou cobrança" },
         aguardando_faturamento: { title: "Aguardando faturamento", subtitle: "Ciclo concluído, aguardando NF ou cobrança" },
-        extrato_valores: { title: "Extrato de valores", subtitle: "Valores gerados pelos veículos que saíram no período" },
+        extrato_valores: { title: "Extrato e resumo", subtitle: "Valores gerados e resumo financeiro dos ciclos finalizados no período" },
       };
 
       const MODULE_VIEWS = ["patio", "lista", "parceiros", "configuracoes", "financeiro", "biExecutivo", "escritorios", "cobranca"];
