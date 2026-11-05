@@ -2023,8 +2023,14 @@
     if (photos.length) {
       html += '<div class="vei-damage-photo-thumbs">';
       photos.forEach((photo, idx) => {
-        if (!photo?.preview) return;
-        html += `<figure><img src="${esc(photo.preview)}" alt="${esc(it.label)} ${idx + 1}"/>`;
+        const src = photo?.preview || "";
+        const usable = /^https?:/i.test(src) || String(src).indexOf("data:") === 0;
+        if (!usable && readOnly) {
+          html += `<figure><span class="vei-doc-photo-empty">Fotos removidas</span></figure>`;
+          return;
+        }
+        if (!usable) return;
+        html += `<figure><img src="${esc(src)}" alt="${esc(it.label)} ${idx + 1}" onerror="this.parentNode.innerHTML='<span class=\\'vei-doc-photo-empty\\'>Fotos removidas</span>'"/>`;
         if (!readOnly) {
           html += `<button type="button" class="vei-damage-photo-clear" data-damage-photo-clear="${esc(it.key)}" data-damage-photo-index="${idx}" aria-label="Excluir foto">×</button>`;
         }
@@ -2073,8 +2079,14 @@
     if (extras.length) {
       html += '<div class="vei-damage-photo-thumbs">';
       extras.forEach((photo, idx) => {
-        if (!photo?.preview) return;
-        html += `<figure><img src="${esc(photo.preview)}" alt="Avaria adicional ${idx + 1}"/>`;
+        const src = photo?.preview || "";
+        const usable = /^https?:/i.test(src) || String(src).indexOf("data:") === 0;
+        if (!usable && readOnly) {
+          html += `<figure><span class="vei-doc-photo-empty">Fotos removidas</span></figure>`;
+          return;
+        }
+        if (!usable) return;
+        html += `<figure><img src="${esc(src)}" alt="Avaria adicional ${idx + 1}" onerror="this.parentNode.innerHTML='<span class=\\'vei-doc-photo-empty\\'>Fotos removidas</span>'"/>`;
         if (!readOnly) {
           html += `<button type="button" class="vei-extra-avaria-clear" data-extra-avaria-clear="${idx}" aria-label="Excluir foto">×</button>`;
         }
@@ -2331,7 +2343,9 @@
             `<strong>${esc(d.area_label || d.item_key || "Área")}</strong> — ${esc(d.damage_type || "—")}` +
             (d.description ? `<div>${esc(d.description)}</div>` : "") +
             (d.notes ? `<div class="notice">${esc(d.notes)}</div>` : "") +
-            (d.photoPreview ? `<img src="${d.photoPreview}" alt="Foto avaria" style="max-width:120px;margin-top:6px;border-radius:8px"/>` : "") +
+            (d.photoPreview && (/^https?:/i.test(d.photoPreview) || String(d.photoPreview).indexOf("data:") === 0)
+              ? `<img src="${esc(d.photoPreview)}" alt="Foto avaria" style="max-width:120px;margin-top:6px;border-radius:8px" onerror="this.outerHTML='<span class=\\'vei-doc-photo-empty\\'>Fotos removidas</span>'"/>`
+              : "") +
             (!readOnly ? `<button type="button" class="secondary vei-remove-damage" data-damage-idx="${idx}" style="margin-top:6px">Remover</button>` : "") +
             `</div>`
         )
@@ -2798,7 +2812,7 @@
       const url = p.url || p.preview || "";
       const type = String(p.photo_type || p.type || "").trim();
       if (type === "avaria_extra" || /^avaria_extra/i.test(type)) {
-        if (url && !draft.extraDamagePhotos.some((x) => x.preview === url || x.storage_path === p.storage_path)) {
+        if (!draft.extraDamagePhotos.some((x) => (url && x.preview === url) || (p.storage_path && x.storage_path === p.storage_path))) {
           draft.extraDamagePhotos.push({
             preview: url,
             storage_path: p.storage_path,
@@ -2810,9 +2824,9 @@
       }
       if (type.startsWith("avaria_item_") || p.photo_category === "ITEM_DANIFICADO" || (p.damage_id && !/^avaria_extra/i.test(type))) {
         const key = p.item_key || String(type).replace(/^avaria_item_/, "");
-        if (key && url) {
+        if (key) {
           const list = itemDamagePhotoList(draft, key);
-          const exists = list.some((x) => x.preview === url || x.storage_path === p.storage_path);
+          const exists = list.some((x) => (url && x.preview === url) || (p.storage_path && x.storage_path === p.storage_path));
           if (!exists) {
             list.push({ preview: url, capturedAt: p.captured_at, storage_path: p.storage_path, item_key: key });
             setItemDamagePhotoList(draft, key, list);
@@ -2828,7 +2842,7 @@
         const blob = `${p.file_name || ""} ${p.storage_path || ""}`;
         key = slotKeys.find((k) => blob.indexOf(k) !== -1) || key;
       }
-      if (key && url && !draft.standardPhotos[key]) {
+      if (key && !draft.standardPhotos[key] && (url || p.storage_path)) {
         draft.standardPhotos[key] = {
           preview: url,
           capturedAt: p.captured_at,
@@ -3024,8 +3038,12 @@
     for (const p of photos || []) {
       let url = p.url || "";
       if (!url && p.storage_path && ctx.supabase) {
-        const signed = await ctx.supabase.storage.from(STORAGE_BUCKET).createSignedUrl(p.storage_path, 3600);
-        url = signed.data?.signedUrl || "";
+        try {
+          const signed = await ctx.supabase.storage.from(STORAGE_BUCKET).createSignedUrl(p.storage_path, 3600);
+          url = signed.data?.signedUrl || "";
+        } catch (e) {
+          url = "";
+        }
       }
       photoUrls.push({ ...p, url });
     }
