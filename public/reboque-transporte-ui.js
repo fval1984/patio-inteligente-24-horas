@@ -1625,6 +1625,10 @@
 
   global.reboqueTransporteBind = bindOnce;
   global.reboqueTransporteRender = render;
+  global.reboqueTransporteEnsureLoaded = ensureLoaded;
+  global.reboqueTransporteGetCache = function reboqueTransporteGetCache() {
+    return cache;
+  };
   global.reboqueSyncVehicleTowFields = syncVehicle;
   global.reboqueReadVehicleTowDraft = readVehicleDraft;
   global.reboqueSaveServiceFromVehicle = saveFromVehicle;
