@@ -326,8 +326,10 @@
       `<p class="vei-photo-step-title">${esc(slot.label.toUpperCase())}</p>` +
       '<div class="vei-photo-preview">' +
       (hasPhoto
-        ? `<img src="${esc(photo.preview)}" alt="${esc(slot.label)}"/>`
-        : '<div class="vei-photo-preview-empty">Nenhuma foto registrada para este item</div>') +
+        ? `<img src="${esc(photo.preview)}" alt="${esc(slot.label)}" onerror="this.outerHTML='<div class=\\'vei-photo-preview-empty\\'>Fotos removidas</div>'"/>`
+        : photo && photo.storage_path
+          ? '<div class="vei-photo-preview-empty">Fotos removidas</div>'
+          : '<div class="vei-photo-preview-empty">Nenhuma foto registrada para este item</div>') +
       "</div>" +
       (hasPhoto ? '<p class="vei-photo-done">✓ Registrada</p>' : "") +
       '<div class="vei-photo-actions">' +
@@ -444,7 +446,10 @@
         if (img.getAttribute("src") !== photo.preview) img.setAttribute("src", photo.preview);
         img.alt = slot.label || "";
       } else {
-        preview.innerHTML = '<div class="vei-photo-preview-empty">Nenhuma foto registrada para este item</div>';
+        preview.innerHTML =
+          photo && photo.storage_path
+            ? '<div class="vei-photo-preview-empty">Fotos removidas</div>'
+            : '<div class="vei-photo-preview-empty">Nenhuma foto registrada para este item</div>';
       }
     }
 
