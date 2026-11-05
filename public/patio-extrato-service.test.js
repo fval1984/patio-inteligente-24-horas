@@ -126,4 +126,54 @@ const primeiroDia = svc.vehicleExitedInPeriod(
 );
 assert(primeiroDia, "primeiro dia do período deve entrar");
 
+const parcialFat = vehicle({ id: "p1", placa: "PPP1P11", data_saida: "2026-01-12T10:00:00" });
+const parcialAguard = vehicle({ id: "p2", placa: "QQQ2Q22", data_saida: "2026-01-14T10:00:00" });
+const resumo = svc.buildResumoPeriodo({
+  ...jan,
+  vehicles: [
+    entrouDezSaiuJan,
+    entrouJanSaiuFev,
+    aindaNoPatio,
+    entrouSaiuJan,
+    saiuJanAguardandoFat,
+    parcialFat,
+    parcialAguard,
+  ],
+  receivables: receivables.concat([
+    {
+      id: "r-p1",
+      vehicle_id: "p1",
+      period_end: "2026-01-12",
+      valor: 1000,
+      status: "EM_ABERTO",
+      financeiro_aprovado_contas_receber: true,
+    },
+    { id: "r-p2", vehicle_id: "p2", period_end: "2026-01-14", valor: 1000, status: "EM_ABERTO" },
+  ]),
+  cash: [
+    { id: "c1", conta_id: "r-p1", tipo_conta: "RECEBER", valor: 300 },
+    { id: "c2", conta_id: "r-p2", tipo_conta: "RECEBER", valor: 400 },
+  ],
+  partners,
+});
+
+assert(resumo.summary.veiculos === 5, "resumo usa os mesmos ciclos finalizados");
+assert(resumo.summary.gerado === 5900, "gerado inclui parciais");
+assert(resumo.summary.recebido === 1700, "pago 1000 + parciais 300 e 400");
+assert(resumo.summary.emAberto === 700, "faturado com saldo 700 fica em aberto");
+assert(resumo.summary.aguardandoFaturamento === 3500, "não faturados: 2100+800+600");
+assert(
+  svc.moneyNum(resumo.summary.recebido + resumo.summary.aguardandoFaturamento + resumo.summary.emAberto) ===
+    resumo.summary.gerado,
+  "recebido + aguardando faturamento + em aberto = gerado"
+);
+
+const part = svc.allocateCycleAmounts(
+  1000,
+  { id: "x", status: "EM_ABERTO", financeiro_aprovado_contas_receber: true },
+  vehicle({ id: "x" }),
+  [{ conta_id: "x", tipo_conta: "RECEBER", valor: 250 }]
+);
+assert(part.recebido === 250 && part.emAberto === 750 && part.aguardandoFaturamento === 0, "parcial faturado");
+
 console.log("patio-extrato-service.test.js ok");
