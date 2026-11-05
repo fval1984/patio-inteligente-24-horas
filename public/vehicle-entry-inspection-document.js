@@ -301,6 +301,7 @@
       .vei-doc-photo-frame { width: 100%; height: auto; aspect-ratio: 4 / 3; max-width: none; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; }
       .vei-doc-photo-frame img { width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; object-position: center; display: block; }
       .vei-doc-photo-empty { font-size: 8pt; color: #94a3b8; padding: 8px; }
+      .vei-doc-photos-removed { margin: 0; padding: 12px 14px; border: 1px dashed #cbd5e1; border-radius: 8px; background: #f8fafc; color: #475569; font-size: 11pt; font-weight: 600; }
       .vei-doc-withdrawal { margin-top: 20px; padding-top: 14px; border-top: 2px solid #1e293b; break-inside: avoid-page; page-break-inside: avoid; }
       .vei-doc-withdrawal p { margin: 0 0 14px; text-align: justify; }
       .vei-doc-field-line { margin: 12px 0; }
@@ -783,10 +784,19 @@
       .join("");
   }
 
+  function isUsablePhotoUrl(url) {
+    const u = String(url || "").trim();
+    return /^https?:/i.test(u) || u.indexOf("data:") === 0;
+  }
+
+  function photosRemovedNotice() {
+    return '<p class="vei-doc-photos-removed">Fotos removidas</p>';
+  }
+
   function renderPhotoCell(label, url) {
-    const img = url
-      ? `<img src="${esc(url)}" alt="${esc(label)}" crossorigin="anonymous" loading="eager"/>`
-      : `<span class="vei-doc-photo-empty">Sem imagem</span>`;
+    const img = isUsablePhotoUrl(url)
+      ? `<img src="${esc(url)}" alt="${esc(label)}" crossorigin="anonymous" loading="eager" onerror="this.parentNode.innerHTML='<span class=\\'vei-doc-photo-empty\\'>Fotos removidas</span>'"/>`
+      : `<span class="vei-doc-photo-empty">Fotos removidas</span>`;
     return (
       `<div class="vei-doc-photo-cell">` +
       `<p class="vei-doc-photo-label">${esc(label)}</p>` +
@@ -796,10 +806,11 @@
   }
 
   function buildPhotoGrid(cells) {
-    if (!cells.length) return "";
+    const usable = (cells || []).filter((c) => isUsablePhotoUrl(c && c.url));
+    if (!usable.length) return "";
     const rows = [];
-    for (let i = 0; i < cells.length; i += PHOTO_GRID_COLUMNS) {
-      const slice = cells.slice(i, i + PHOTO_GRID_COLUMNS);
+    for (let i = 0; i < usable.length; i += PHOTO_GRID_COLUMNS) {
+      const slice = usable.slice(i, i + PHOTO_GRID_COLUMNS);
       rows.push(
         `<div class="vei-doc-photo-row">${slice.map((c) => renderPhotoCell(c.label, c.url)).join("")}</div>`
       );
@@ -882,26 +893,30 @@
     injectStylesOnce();
     const { standard, extraDamage, other } = organizePhotos(detail?.photos, detail?.damages);
     let html = "";
-    if (standard.length) html += buildPhotoGrid(standard);
-    if (other.length) {
+    const standardHtml = buildPhotoGrid(standard);
+    if (standardHtml) html += standardHtml;
+    const otherHtml = buildPhotoGrid(other);
+    if (otherHtml) {
       html +=
         '<p class="vei-doc-subsection-title" style="margin:12px 0 6px;font-size:11px;font-weight:700;color:#475569">Outras fotografias</p>' +
-        buildPhotoGrid(other);
+        otherHtml;
     }
     const itemPhotos = (detail?.photos || []).filter((p) => {
       const type = String(p.photo_type || "");
       if (type === "avaria_extra" || /^avaria_extra/i.test(type)) return false;
+      if (!isUsablePhotoUrl(p.url)) return false;
       return type.startsWith("avaria_item_") || p.item_key || p.photo_category === "ITEM_DANIFICADO";
     });
     if (itemPhotos.length) {
       html += buildGroupedItemDamagePhotosHtml(itemPhotos, null);
     }
-    if (extraDamage.length) {
+    const extraHtml = buildPhotoGrid(extraDamage);
+    if (extraHtml) {
       html +=
         '<p class="vei-doc-subsection-title" style="margin:12px 0 6px;font-size:11px;font-weight:700;color:#475569">Fotos adicionais de avarias</p>' +
-        buildPhotoGrid(extraDamage);
+        extraHtml;
     }
-    return html;
+    return html || photosRemovedNotice();
   }
 
   function buildPrintHtml(options) {
@@ -968,9 +983,14 @@
         ? `<div class="vei-doc-diagram">${rDiagram(normalizedDraft, true)}</div>`
         : "";
 
-    const standardPhotosHtml = standard.length ? buildPhotoGrid(standard) : "";
-    const extraPhotosHtml = extraDamage.length ? buildPhotoGrid(extraDamage) : "";
-    const otherPhotosHtml = other.length ? buildPhotoGrid(other) : "";
+    const standardPhotosHtml = buildPhotoGrid(standard);
+    const extraPhotosHtml = buildPhotoGrid(extraDamage);
+    const otherPhotosHtml = buildPhotoGrid(other);
+    const itemPhotosHtml = buildItemDamagePhotosSection(detail, normalizedDraft);
+    const photoSectionHtml =
+      standardPhotosHtml || otherPhotosHtml || extraPhotosHtml || itemPhotosHtml
+        ? `${standardPhotosHtml || otherPhotosHtml ? `<section class="vei-doc-section"><h3>Registro fotográfico</h3>${standardPhotosHtml}${otherPhotosHtml ? `<h4 style="margin-top:12px">Outras fotografias</h4>${otherPhotosHtml}` : ""}</section>` : ""}${itemPhotosHtml}${extraPhotosHtml ? `<section class="vei-doc-section"><h3>Fotos adicionais de avarias</h3>${extraPhotosHtml}</section>` : ""}`
+        : `<section class="vei-doc-section"><h3>Registro fotográfico</h3>${photosRemovedNotice()}</section>`;
 
     return (
       `<div class="vei-doc vei-print-root" id="veiPrintDocument">` +
@@ -989,13 +1009,7 @@
       (normalizedDraft.generalNotes
         ? `<section class="vei-doc-section"><h3>Observações gerais da vistoria</h3><div class="vei-doc-notes">${esc(normalizedDraft.generalNotes)}</div></section>`
         : "") +
-      (standardPhotosHtml || otherPhotosHtml
-        ? `<section class="vei-doc-section"><h3>Registro fotográfico</h3>${standardPhotosHtml}${otherPhotosHtml ? `<h4 style="margin-top:12px">Outras fotografias</h4>${otherPhotosHtml}` : ""}</section>`
-        : "") +
-      buildItemDamagePhotosSection(detail, normalizedDraft) +
-      (extraPhotosHtml
-        ? `<section class="vei-doc-section"><h3>Fotos adicionais de avarias</h3>${extraPhotosHtml}</section>`
-        : "") +
+      photoSectionHtml +
       `<section class="vei-doc-section vei-doc-withdrawal">` +
       `<h3>Termo de retirada do veículo</h3>` +
       `<p>Declaro, para os devidos fins, que estou retirando o veículo identificado nesta vistoria, responsabilizando-me pelo recebimento do veículo na data abaixo indicada.</p>` +
@@ -1072,9 +1086,9 @@
         ? `<section class="vei-doc-section"><h3>Diagrama de avarias — 4 vistas</h3><div class="vei-doc-diagram" id="veiDocDiagramHost">${diagramHtml}</div></section>`
         : "";
 
-    const standardPhotosHtml = standard.length ? buildPhotoGrid(standard) : "";
-    const extraPhotosHtml = extraDamage.length ? buildPhotoGrid(extraDamage) : "";
-    const otherPhotosHtml = other.length ? buildPhotoGrid(other) : "";
+    const standardPhotosHtml = buildPhotoGrid(standard);
+    const extraPhotosHtml = buildPhotoGrid(extraDamage);
+    const otherPhotosHtml = buildPhotoGrid(other);
 
     const notesVal = normalizedDraft.generalNotes || "";
 
@@ -1094,9 +1108,7 @@
       `<textarea class="vei-doc-notes-edit vei-notes" id="veiGeneralNotes" placeholder="Informações adicionais…">${esc(notesVal)}</textarea></section>` +
       (mobilePhotosHtml
         ? `<section class="vei-doc-section"><h3>Registro fotográfico</h3><div id="veiDocMobilePhotosHost">${mobilePhotosHtml}</div></section>`
-        : standardPhotosHtml || otherPhotosHtml
-          ? `<section class="vei-doc-section"><h3>Registro fotográfico</h3>${standardPhotosHtml}${otherPhotosHtml ? `<h4 style="margin-top:12px">Outras fotografias</h4>${otherPhotosHtml}` : ""}</section>`
-          : "") +
+        : `<section class="vei-doc-section"><h3>Registro fotográfico</h3>${standardPhotosHtml || otherPhotosHtml ? `${standardPhotosHtml}${otherPhotosHtml ? `<h4 style="margin-top:12px">Outras fotografias</h4>${otherPhotosHtml}` : ""}` : photosRemovedNotice()}</section>`) +
       (itemDamagePhotosHtml
         ? `<section class="vei-doc-section"><h3>Fotos dos itens danificados e fotos adicionais de avarias</h3><div id="veiDocItemDamagePhotosHost">${itemDamagePhotosHtml}</div></section>`
         : buildItemDamagePhotosSection(detail, normalizedDraft) +
