@@ -262,6 +262,78 @@
       : false;
   }
 
+  function cashIsEntrada(mov) {
+    if (typeof global.financeCashIsEntrada === "function") return !!global.financeCashIsEntrada(mov);
+    const t = String(mov?.tipo_conta || "").toUpperCase();
+    return t === "RECEBER" || t === "ENTRADA";
+  }
+
+  function cashAprovado(mov) {
+    if (typeof global.financeCashAprovadoCaixa === "function") return !!global.financeCashAprovadoCaixa(mov);
+    return true;
+  }
+
+  function receivedFromCash(receivable, cash) {
+    if (!receivable?.id) return 0;
+    let movs = (cash || []).filter((m) => String(m.conta_id) === String(receivable.id) && cashIsEntrada(m));
+    if (typeof global.financeDedupeCaixaMovs === "function") {
+      movs = global.financeDedupeCaixaMovs(movs) || movs;
+    }
+    let sum = 0;
+    for (const m of movs) {
+      if (!cashAprovado(m)) continue;
+      sum = moneyNum(sum + moneyNum(m.valor));
+    }
+    return sum;
+  }
+
+  function receivableMarkedPaid(receivable, vehicle) {
+    const st = String(receivable?.status || "").trim().toUpperCase();
+    if (st === "PAGO" || st === "RECEBIDO" || st === "BAIXADO" || st === "QUITADO") return true;
+    if (receivable) return false;
+    const pst = String(vehicle?.payment_status || "").toUpperCase();
+    return pst === "PAGO" || pst === "RECEBIDO" || pst === "QUITADO";
+  }
+
+  function cycleIsBilled(receivable, sitCode) {
+    if (!receivable) return false;
+    if (sitCode === "aguardando_pagamento" || sitCode === "faturado") return true;
+    if (typeof global.receivableFaturamentoConcluido === "function" && global.receivableFaturamentoConcluido(receivable)) {
+      return true;
+    }
+    if (typeof global.receivableIsContaReceberFinanceiro === "function" && global.receivableIsContaReceberFinanceiro(receivable)) {
+      return true;
+    }
+    if (receivable.financeiro_aprovado_contas_receber === true) return true;
+    const tipo = String(receivable.tipo_faturamento || "").trim().toUpperCase();
+    if (tipo === "NF" || tipo === "COBRANCA") return true;
+    return false;
+  }
+
+  /**
+   * Parte o valor gerado do ciclo em recebido / aguardando faturamento / em aberto.
+   * Pagamento parcial entra só pelo valor efetivamente recebido.
+   */
+  function allocateCycleAmounts(gerado, receivable, vehicle, cash) {
+    const total = moneyNum(gerado);
+    if (total <= 0) {
+      return { gerado: 0, recebido: 0, aguardandoFaturamento: 0, emAberto: 0 };
+    }
+    const sit = liveStatus(receivable, vehicle);
+    let recebido = receivedFromCash(receivable, cash);
+    if (receivableMarkedPaid(receivable, vehicle) && recebido <= 0) recebido = total;
+    if (recebido > total) recebido = total;
+    recebido = moneyNum(recebido);
+    const restante = moneyNum(total - recebido);
+    if (restante <= 0) {
+      return { gerado: total, recebido: total, aguardandoFaturamento: 0, emAberto: 0 };
+    }
+    if (cycleIsBilled(receivable, sit.code)) {
+      return { gerado: total, recebido, aguardandoFaturamento: 0, emAberto: restante };
+    }
+    return { gerado: total, recebido, aguardandoFaturamento: restante, emAberto: 0 };
+  }
+
   function buildExtrato(input) {
     const fromYmd = toPeriodYmd(input?.fromYmd);
     const toYmd = toPeriodYmd(input?.toYmd);
@@ -341,6 +413,37 @@
     };
   }
 
+  function buildResumoPeriodo(input) {
+    const extrato = buildExtrato(input);
+    const cash = Array.isArray(input?.cash) ? input.cash : [];
+    const vehicles = Array.isArray(input?.vehicles) ? input.vehicles : [];
+    const receivables = Array.isArray(input?.receivables) ? input.receivables : [];
+    const byVehicle = new Map(vehicles.map((v) => [String(v.id), v]));
+    const byReceivable = new Map(receivables.map((r) => [String(r.id), r]));
+    const summary = {
+      veiculos: extrato.rows.length,
+      gerado: 0,
+      recebido: 0,
+      aguardandoFaturamento: 0,
+      emAberto: 0,
+    };
+    for (const row of extrato.rows) {
+      const vehicle = byVehicle.get(String(row.vehicleId));
+      const receivable = row.receivableId ? byReceivable.get(String(row.receivableId)) || null : null;
+      const part = allocateCycleAmounts(row.valorGerado, receivable, vehicle, cash);
+      summary.gerado = moneyNum(summary.gerado + part.gerado);
+      summary.recebido = moneyNum(summary.recebido + part.recebido);
+      summary.aguardandoFaturamento = moneyNum(summary.aguardandoFaturamento + part.aguardandoFaturamento);
+      summary.emAberto = moneyNum(summary.emAberto + part.emAberto);
+    }
+    return {
+      fromYmd: extrato.fromYmd,
+      toYmd: extrato.toYmd,
+      periodoLabel: extrato.periodoLabel,
+      summary,
+    };
+  }
+
   const patioExtratoService = {
     toPeriodYmd,
     moneyNum,
@@ -349,8 +452,10 @@
     vehicleExitedInPeriod,
     pickReceivableForVehicle,
     liveStatus,
+    allocateCycleAmounts,
     defaultPeriod,
     buildExtrato,
+    buildResumoPeriodo,
   };
 
   global.patioExtratoService = patioExtratoService;
