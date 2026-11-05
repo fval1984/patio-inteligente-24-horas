@@ -8,7 +8,9 @@
   const FOOTER = "AMPLIGUARD – Guarda, Custódia e Remoção de Veículos";
   let bound = false;
   let lastReport = null;
+  let lastResumo = null;
   let previewOpen = false;
+  let screen = "extrato";
 
   function svc() {
     return global.patioExtratoService;
@@ -51,6 +53,23 @@
       #patioExtratoRoot .px-kpi strong { display:block; margin-top:4px; font-size:1.05rem; }
       #patioExtratoRoot .px-kpi.is-total { border-color:rgba(155,44,44,.35); background:linear-gradient(180deg,#fff,#f8fafc); }
       #patioExtratoRoot .px-kpi.is-total strong { color:#9b2c2c; font-size:1.2rem; }
+      #patioExtratoRoot .px-modes { display:flex; flex-wrap:wrap; gap:8px; }
+      #patioExtratoRoot .px-modes button.is-on { background:#1e3a5f; color:#fff; border-color:#1e3a5f; }
+      #patioExtratoRoot .px-resumo { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
+      #patioExtratoRoot .px-card { border:1px solid rgba(30,58,95,.18); border-radius:16px; padding:18px 18px 16px; background:#fff; box-shadow:0 8px 24px rgba(15,23,42,.06); }
+      #patioExtratoRoot .px-card span { display:block; font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#64748b; }
+      #patioExtratoRoot .px-card strong { display:block; margin-top:10px; font-size:1.45rem; font-variant-numeric:tabular-nums; color:#0f172a; }
+      #patioExtratoRoot .px-card small { display:block; margin-top:8px; color:#64748b; font-size:12px; }
+      #patioExtratoRoot .px-card.is-gerado { background:linear-gradient(180deg,#1e3a5f,#152a46); color:#fff; border-color:#1e3a5f; }
+      #patioExtratoRoot .px-card.is-gerado span, #patioExtratoRoot .px-card.is-gerado small { color:rgba(255,255,255,.78); }
+      #patioExtratoRoot .px-card.is-gerado strong { color:#f5d76e; font-size:1.7rem; }
+      #patioExtratoRoot .px-card.is-ok { border-color:rgba(21,128,61,.28); }
+      #patioExtratoRoot .px-card.is-ok strong { color:#15803d; }
+      #patioExtratoRoot .px-card.is-wait { border-color:rgba(180,83,9,.28); }
+      #patioExtratoRoot .px-card.is-wait strong { color:#b45309; }
+      #patioExtratoRoot .px-card.is-open { border-color:rgba(155,44,44,.28); }
+      #patioExtratoRoot .px-card.is-open strong { color:#9b2c2c; }
+      #patioExtratoRoot .px-periodo { margin:0; font-weight:600; color:#1e3a5f; }
       #patioExtratoRoot .table-wrap { overflow:auto; }
       #patioExtratoRoot table.px-table { width:100%; border-collapse:collapse; font-size:13px; }
       #patioExtratoRoot table.px-table th, #patioExtratoRoot table.px-table td { border-bottom:1px solid #e2e8f0; padding:8px 10px; text-align:left; vertical-align:top; }
@@ -121,6 +140,29 @@
     });
     lastReport.emitidoEm = new Date().toLocaleString("pt-BR");
     return lastReport;
+  }
+
+  function buildResumo() {
+    const { fromYmd, toYmd } = currentInputs();
+    if (!fromYmd || !toYmd) {
+      alert("Informe a data inicial e a data final.");
+      return null;
+    }
+    if (fromYmd > toYmd) {
+      alert("A data inicial não pode ser posterior à data final.");
+      return null;
+    }
+    const st = state();
+    lastResumo = svc().buildResumoPeriodo({
+      fromYmd,
+      toYmd,
+      vehicles: st.vehicles || [],
+      receivables: st.receivables || [],
+      cash: st.cash || [],
+      partners: st.partners || [],
+    });
+    lastResumo.emitidoEm = new Date().toLocaleString("pt-BR");
+    return lastResumo;
   }
 
   function kpi(label, value, extraClass) {
@@ -212,6 +254,34 @@
     </div>`;
   }
 
+  function resumoCards(resumo) {
+    const s = resumo.summary;
+    return `
+      <p class="px-periodo">Período: ${esc(resumo.periodoLabel)}</p>
+      <div class="px-resumo">
+        <article class="px-card is-gerado">
+          <span>Valor total gerado</span>
+          <strong>${esc(money(s.gerado))}</strong>
+          <small>${esc(String(s.veiculos))} ciclo(s) finalizado(s) no período</small>
+        </article>
+        <article class="px-card is-ok">
+          <span>Valor recebido</span>
+          <strong>${esc(money(s.recebido))}</strong>
+          <small>Pagamentos desses ciclos, mesmo que em outra data</small>
+        </article>
+        <article class="px-card is-wait">
+          <span>Aguardando faturamento</span>
+          <strong>${esc(money(s.aguardandoFaturamento))}</strong>
+          <small>Saiu no período e ainda não foi faturado</small>
+        </article>
+        <article class="px-card is-open">
+          <span>Valor em aberto</span>
+          <strong>${esc(money(s.emAberto))}</strong>
+          <small>Já faturado e ainda não recebido</small>
+        </article>
+      </div>`;
+  }
+
   function render() {
     const el = root();
     if (!el) return;
@@ -219,9 +289,10 @@
     const def = svc().defaultPeriod();
     const fromVal = document.getElementById("patioExtratoDe")?.value || def.fromYmd;
     const toVal = document.getElementById("patioExtratoAte")?.value || def.toYmd;
+    const isResumo = screen === "resumo";
     const report = lastReport;
     const s = report?.summary;
-    const kpis = report
+    const kpis = !isResumo && report
       ? `<div class="px-kpis">
           ${kpi("Veículos que saíram", String(s.veiculos))}
           ${kpi("Já recebido", money(s.recebido))}
@@ -231,14 +302,14 @@
           ${kpi("Valor total gerado", money(s.gerado), "is-total")}
         </div>`
       : "";
-    const actions = report
+    const actions = !isResumo && report
       ? `<div class="px-actions">
           <button type="button" class="secondary" data-px-act="view">Visualizar extrato</button>
           <button type="button" class="secondary" data-px-act="print">Imprimir extrato</button>
           <button type="button" data-px-act="pdf">Gerar PDF</button>
         </div>`
       : "";
-    const table = report
+    const table = !isResumo && report
       ? `<div class="table-wrap"><table class="table stacked px-table">
           <thead><tr>
             <th>Placa</th><th>Marca / modelo</th><th>Entrada</th><th>Saída</th>
@@ -246,10 +317,24 @@
           </tr></thead>
           <tbody>${tableBody(report.rows)}</tbody>
         </table></div>`
-      : `<p class="px-empty">Selecione o período e clique em Gerar extrato. Entram somente veículos com saída confirmada nas datas informadas.</p>`;
+      : !isResumo
+        ? `<p class="px-empty">Selecione o período e clique em Gerar extrato. Entram somente veículos com saída confirmada nas datas informadas.</p>`
+        : "";
+    const resumoBlock = isResumo
+      ? lastResumo
+        ? resumoCards(lastResumo)
+        : `<p class="px-empty">Selecione o período e clique em Consultar. O painel considera só os veículos que efetivamente saíram no intervalo.</p>`
+      : "";
+    const lede = isResumo
+      ? "Painel dos ciclos finalizados no período: quanto o pátio gerou, quanto já recebeu, o que ainda aguarda faturamento e o que já foi faturado e segue em aberto."
+      : "Consulta independente das listas do pátio. O valor gerado é o dos serviços dos veículos que efetivamente saíram no período — não o acumulado de quem ainda está no pátio.";
 
     el.innerHTML = `
-      <p class="px-lede">Consulta independente das listas do pátio. O valor gerado é o dos serviços dos veículos que efetivamente saíram no período — não o acumulado de quem ainda está no pátio.</p>
+      <div class="px-modes">
+        <button type="button" class="secondary${isResumo ? "" : " is-on"}" data-px-act="mode-extrato">Extrato de valores</button>
+        <button type="button" class="secondary${isResumo ? " is-on" : ""}" data-px-act="mode-resumo">Resumo financeiro por período</button>
+      </div>
+      <p class="px-lede">${esc(lede)}</p>
       <form id="patioExtratoForm" class="px-bar filter-bar" action="#" novalidate>
         <label for="patioExtratoDe">Data inicial
           <input id="patioExtratoDe" type="date" required value="${esc(fromVal)}" />
@@ -257,11 +342,12 @@
         <label for="patioExtratoAte">Data final
           <input id="patioExtratoAte" type="date" required value="${esc(toVal)}" />
         </label>
-        <button type="submit">Gerar extrato</button>
+        <button type="submit">${isResumo ? "Consultar" : "Gerar extrato"}</button>
       </form>
       ${actions}
       ${kpis}
       ${table}
+      ${resumoBlock}
     `;
     renderPreviewLayer();
   }
@@ -559,6 +645,12 @@
     } else if (act === "close") {
       previewOpen = false;
       renderPreviewLayer();
+    } else if (act === "mode-extrato") {
+      screen = "extrato";
+      render();
+    } else if (act === "mode-resumo") {
+      screen = "resumo";
+      render();
     }
   }
 
@@ -568,7 +660,9 @@
       jobs.push(Promise.resolve(global.reboqueTransporteEnsureLoaded()).catch(() => null));
     }
     const st = state();
-    if (!(st.receivables && st.receivables.length) && typeof global.refreshFinanceData === "function") {
+    const needFinance =
+      screen === "resumo" || !(st.receivables && st.receivables.length);
+    if (needFinance && typeof global.refreshFinanceData === "function") {
       jobs.push(Promise.resolve(global.refreshFinanceData({ preserveView: true })).catch(() => null));
     }
     if (jobs.length) await Promise.all(jobs);
@@ -579,19 +673,21 @@
     ev.preventDefault();
     previewOpen = false;
     const btn = ev.target.querySelector("button[type='submit']");
+    const isResumo = screen === "resumo";
     if (btn) {
       btn.disabled = true;
-      btn.textContent = "Gerando…";
+      btn.textContent = isResumo ? "Consultando…" : "Gerando…";
     }
     Promise.resolve(prepareData())
       .then(() => {
-        if (buildReport()) render();
+        const ok = isResumo ? buildResumo() : buildReport();
+        if (ok) render();
       })
       .finally(() => {
         const again = document.querySelector("#patioExtratoForm button[type='submit']");
         if (again) {
           again.disabled = false;
-          again.textContent = "Gerar extrato";
+          again.textContent = screen === "resumo" ? "Consultar" : "Gerar extrato";
         }
       });
   }
