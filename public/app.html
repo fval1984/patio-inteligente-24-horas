@@ -7720,6 +7720,7 @@
                 <button type="button" class="secondary" data-subview="vsc">VSC</button>
                 <button type="button" class="secondary" data-subview="removidos">VRP</button>
                 <button type="button" class="secondary" data-subview="aguardando_faturamento">Aguardando faturamento</button>
+                <button type="button" class="secondary" data-subview="extrato_valores">Extrato de valores</button>
               </nav>
             </div>
             <div class="actions">
@@ -8045,6 +8046,10 @@
                 <tbody id="tableRemovidos"></tbody>
                 </table>
               </div>
+            </div>
+            <div class="section-card patio-subview hidden" data-subview="extrato_valores">
+              <div class="pill">Extrato de valores gerados</div>
+              <div id="patioExtratoRoot"></div>
             </div>
             <div class="section-card patio-subview hidden" data-subview="aguardando_faturamento">
               <div class="pill">Aguardando faturamento</div>
@@ -10213,6 +10218,7 @@
             <button type="button" data-header-patio-sub="vsc">VSC</button>
             <button type="button" data-header-patio-sub="removidos">VRP</button>
             <button type="button" data-header-patio-sub="aguardando_faturamento">Aguardando faturamento</button>
+            <button type="button" data-header-patio-sub="extrato_valores">Extrato de valores</button>
           </div>
         </details>
 
@@ -10284,7 +10290,7 @@
     <script src="/partner-managers-service.js?v=20260909partners2"></script>
     <script src="/partners-cadastro-ui.js?v=20261027gestor2"></script>
     <script src="/reboque-transporte-service.js?v=20261021reboque1"></script>
-    <script src="/reboque-transporte-ui.js?v=20261022parceiro1"></script>
+    <script src="/reboque-transporte-ui.js?v=20261105extrato1"></script>
     <script src="/dashboard-metrics-service.js?v=20260909execops1"></script>
     <script src="/amplipatio-dashboard.js?v=20260909ind1"></script>
     <script src="/recibo-documento.js?v=20261023recibo6"></script>
@@ -10300,6 +10306,8 @@
     <script src="/advocacy-offices-ui.js?v=20261022parceiro1"></script>
     <script src="/cobranca-service.js?v=20260910cob4"></script>
     <script src="/cobranca-ui.js?v=20260917logo1"></script>
+    <script src="/patio-extrato-service.js?v=20261105extrato1"></script>
+    <script src="/patio-extrato-ui.js?v=20261105extrato1"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -11483,6 +11491,7 @@
         removidos: { title: "VRP", subtitle: "Veículos removidos do pátio" },
         fechando_ciclo: { title: "Aguardando faturamento", subtitle: "Ciclo concluído, aguardando NF ou cobrança" },
         aguardando_faturamento: { title: "Aguardando faturamento", subtitle: "Ciclo concluído, aguardando NF ou cobrança" },
+        extrato_valores: { title: "Extrato de valores", subtitle: "Valores gerados pelos veículos que saíram no período" },
       };
 
       const MODULE_VIEWS = ["patio", "lista", "parceiros", "configuracoes", "financeiro", "biExecutivo", "escritorios", "cobranca"];
@@ -17953,12 +17962,13 @@
           });
           document
             .querySelectorAll(
-              '#headerDetailsPatio [data-header-patio-sub="aguardando_faturamento"], #headerDetailsPatio [data-header-patio="new-vehicle"]'
+              '#headerDetailsPatio [data-header-patio-sub="aguardando_faturamento"], #headerDetailsPatio [data-header-patio-sub="extrato_valores"], #headerDetailsPatio [data-header-patio="new-vehicle"]'
             )
             .forEach((el) => el.classList.add("hidden"));
           document.getElementById("patioMenuNewVehicle")?.classList.add("hidden");
           patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.add("hidden");
           patioSubnav?.querySelector('[data-subview="aguardando_faturamento"]')?.classList.add("hidden");
+          patioSubnav?.querySelector('[data-subview="extrato_valores"]')?.classList.add("hidden");
           const vehicleDailyHide = document.getElementById("vehicleDaily");
           const vehicleDailyWrapHide = vehicleDailyHide?.closest("div");
           if (vehicleDailyWrapHide) vehicleDailyWrapHide.style.display = "none";
@@ -18025,11 +18035,12 @@
         });
         document
           .querySelectorAll(
-            '#headerDetailsPatio [data-header-patio-sub="aguardando_faturamento"]'
+            '#headerDetailsPatio [data-header-patio-sub="aguardando_faturamento"], #headerDetailsPatio [data-header-patio-sub="extrato_valores"]'
           )
           .forEach((el) => el.classList.add("hidden"));
         patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.add("hidden");
         patioSubnav?.querySelector('[data-subview="aguardando_faturamento"]')?.classList.add("hidden");
+        patioSubnav?.querySelector('[data-subview="extrato_valores"]')?.classList.add("hidden");
         const vehicleDailyHideG = document.getElementById("vehicleDaily");
         const vehicleDailyWrapHideG = vehicleDailyHideG?.closest("div");
         if (vehicleDailyWrapHideG) vehicleDailyWrapHideG.style.display = "none";
@@ -20595,7 +20606,8 @@
       }
 
       function setPatioView(view, opts = {}) {
-        if (isVisualizador) view = view === "aguardando_faturamento" || view === "fechando_ciclo" ? "no_patio" : view;
+        if (isVisualizador) view = view === "aguardando_faturamento" || view === "fechando_ciclo" || view === "extrato_valores" ? "no_patio" : view;
+        if (isGestorPista && view === "extrato_valores") view = "no_patio";
         if (isVistoriador) view = "vistoria";
         if (isAdmDesktopPc() && view === "vistoria") view = "no_patio";
         const silent = opts.silent === true;
@@ -20606,11 +20618,13 @@
         const isNone = !view || view === "none";
         const isDashboard = view === "dashboard";
         const isInicio = view === "inicio";
+        const isExtrato = view === "extrato_valores";
         const isContentView = !isNone && !isDashboard && !isInicio;
         patioSubnav?.querySelectorAll("button[data-subview]").forEach((btn) => {
           btn.classList.toggle("active", !isNone && btn.getAttribute("data-subview") === view);
         });
-        document.getElementById("patioPlateSearchBar")?.classList.toggle("hidden", isDashboard || isInicio);
+        document.getElementById("patioPlateSearchBar")?.classList.toggle("hidden", isDashboard || isInicio || isExtrato);
+        document.getElementById("patioFlyoutSummaryCards")?.classList.toggle("hidden", isExtrato);
         const patioRoot = document.getElementById("viewPatio");
         patioRoot?.classList.remove("patio-flyout-open", "patio-subview-fullscreen");
         patioRoot?.classList.toggle("patio-subtab-modal-open", isContentView && !isVistoriador);
@@ -20641,6 +20655,10 @@
           shownPanel.classList.remove("air-open");
           void shownPanel.offsetWidth;
           shownPanel.classList.add("air-open");
+        }
+        if (isExtrato && typeof window.patioExtratoUi?.onShow === "function") {
+          if (silent) window.patioExtratoUi.bindOnce();
+          else window.patioExtratoUi.onShow();
         }
       }
 
