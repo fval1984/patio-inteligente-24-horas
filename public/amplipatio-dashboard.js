@@ -489,10 +489,10 @@
     const cr = countRegistroPendente(vehicles);
     const attention = [
       { count: vistoria, label: "veículos aguardando vistoria", nav: isAdmDesktopPc ? "patio:no_patio" : "patio:vistoria" },
-      { count: faturamento, label: "veículos aguardando faturamento", nav: "patio:aguardando_faturamento" },
+      { count: faturamento, label: "veículos aguardando faturamento", nav: "financeiro:aguardando" },
       { count: m.ops.comPendencias, label: "veículos com documentação pendente", nav: "patio:no_patio" },
-      { count: m.ops.liberadosAguardandoRetirada, label: "veículos aguardando retirada", nav: "patio:vsc" },
-      { count: m.ops.aguardandoAutorizacao, label: "veículos aguardando autorização", nav: "patio:vsl" },
+      { count: m.ops.liberadosAguardandoRetirada, label: "veículos aguardando retirada", nav: "patio:no_patio" },
+      { count: m.ops.aguardandoAutorizacao, label: "veículos aguardando autorização", nav: "patio:no_patio" },
       { count: cr, label: "veículos com registro complementar pendente", nav: "patio:no_patio" },
     ];
     const pendenciasTotal = attention.reduce((s, x) => s + Number(x.count || 0), 0);
