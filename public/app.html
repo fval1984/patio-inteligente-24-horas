@@ -20258,13 +20258,26 @@
         btn.addEventListener("click", (event) => {
           event.preventDefault();
           event.stopPropagation();
-          if (isVistoriador || isVisualizador) return;
-          openVehicleModal("create");
-          if (vehicleModal) {
-            document.body.appendChild(vehicleModal);
-            vehicleModal.classList.remove("hidden");
-          }
+          openOriginalVehicleRegisterFromConsulta(btn.getAttribute("data-placa"));
         });
+      }
+
+      function openOriginalVehicleRegisterFromConsulta(placa) {
+        if (isVistoriador || isVisualizador) return;
+        const plate = String(placa || plateFilterPatio?.value || plateFilter?.value || "")
+          .trim()
+          .toUpperCase();
+        openVehicleModal("create", null, { placa: plate });
+        if (vehicleModal) {
+          document.body.appendChild(vehicleModal);
+          vehicleModal.classList.remove("hidden");
+        }
+        const plateEl = document.getElementById("vehiclePlate");
+        if (plateEl && plate) {
+          plateEl.value = plate;
+          plateEl.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        if (typeof refreshVehiclePlatePreviewInput === "function") refreshVehiclePlatePreviewInput();
       }
 
       function renderVehicles() {
@@ -24865,11 +24878,7 @@
           if (isVistoriador || isVisualizador) return;
           event.preventDefault();
           event.stopPropagation();
-          openVehicleModal("create");
-          if (vehicleModal) {
-            document.body.appendChild(vehicleModal);
-            vehicleModal.classList.remove("hidden");
-          }
+          openOriginalVehicleRegisterFromConsulta(registrar.getAttribute("data-placa"));
         },
         true
       );
