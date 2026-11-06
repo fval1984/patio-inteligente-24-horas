@@ -24836,6 +24836,13 @@
         closePatioMenu();
         openVehicleModal("create");
       });
+      document.addEventListener("click", (event) => {
+        const registrar = event.target.closest("#patioConsultaRegistrarBtn");
+        if (!registrar) return;
+        if (isVistoriador || isVisualizador) return;
+        event.preventDefault();
+        openVehicleModal("create");
+      });
 
       vehicleFinancialResponsible?.addEventListener("change", () => {
         applyOfficeFromCarteiraRpp();
@@ -27927,12 +27934,6 @@ ${body}
       });
 
       document.getElementById("viewPatio")?.addEventListener("click", (event) => {
-        const registrar = event.target.closest("#patioConsultaRegistrarBtn");
-        if (registrar) {
-          if (isVisualizador || isVistoriador) return;
-          openVehicleModal("create", null, { placa: registrar.getAttribute("data-placa") || "" });
-          return;
-        }
         const openBtn = event.target.closest("[data-consulta-open]");
         if (openBtn) {
           const id = openBtn.getAttribute("data-consulta-open");
