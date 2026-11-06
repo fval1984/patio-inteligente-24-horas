@@ -280,9 +280,9 @@
     const attention = [
       { count: remocao, tone: "red", label: "veículos aguardando remoção", nav: "patio:no_patio" },
       { count: vistoria, tone: "yellow", label: "veículos aguardando vistoria", nav: isAdm ? "patio:no_patio" : "patio:vistoria" },
-      { count: autorizacao, tone: "yellow", label: "veículos aguardando autorização", nav: "patio:vsl" },
+      { count: autorizacao, tone: "yellow", label: "veículos aguardando autorização", nav: "patio:no_patio" },
       { count: conferencia, tone: "yellow", label: "veículos aguardando conferência", nav: "patio:no_patio" },
-      { count: retirada, tone: "yellow", label: "veículos aguardando retirada", nav: "patio:vsc" },
+      { count: retirada, tone: "yellow", label: "veículos aguardando retirada", nav: "patio:no_patio" },
     ].filter((x) => x.count > 0);
 
     const pendencias = attention.reduce((s, x) => s + x.count, 0);
@@ -384,6 +384,11 @@
     const [view, sub] = String(target).split(":");
     if (view === "patio" && typeof global.openPatioSubview === "function") {
       global.openPatioSubview(sub || "inicio");
+      return;
+    }
+    if (view === "financeiro" && typeof global.openFinanceSubview === "function") {
+      if (typeof global.openMainView === "function") global.openMainView("financeiro");
+      global.openFinanceSubview(sub || "dashboard");
       return;
     }
     if (view === "lista" && typeof global.openListaSubview === "function") {
