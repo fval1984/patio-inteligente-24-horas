@@ -381,12 +381,13 @@
         ? resumoCards(lastResumo)
         : `<p class="px-empty">Informe a data inicial e a data final e clique em Consultar. Cada mês do intervalo é apurado do dia 1 ao último dia, com os mesmos quatro indicadores.</p>`
       : "";
+    const hideModes = !!global.__patioExtratoMenuSplit;
     const lede = isResumo
       ? "Escolha o intervalo (por exemplo janeiro a outubro). O sistema monta um mês por vez, do início ao fim, para consulta e impressão."
       : "Consulta independente das listas do pátio. O valor gerado é o dos serviços dos veículos que efetivamente saíram no período — não o acumulado de quem ainda está no pátio.";
 
     el.innerHTML = `
-      <div class="px-modes">
+      <div class="px-modes"${hideModes ? " hidden" : ""}>
         <button type="button" class="secondary${isResumo ? "" : " is-on"}" data-px-act="mode-extrato">Extrato de valores</button>
         <button type="button" class="secondary${isResumo ? " is-on" : ""}" data-px-act="mode-resumo">Resumo financeiro por período</button>
       </div>
@@ -944,5 +945,10 @@
     render();
   }
 
-  global.patioExtratoUi = { onShow, render, bindOnce };
+  function setScreen(mode) {
+    screen = mode === "resumo" ? "resumo" : "extrato";
+    global.__patioExtratoMenuSplit = true;
+  }
+
+  global.patioExtratoUi = { onShow, render, bindOnce, setScreen };
 })(typeof window !== "undefined" ? window : globalThis);
