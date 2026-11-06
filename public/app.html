@@ -3918,6 +3918,9 @@
         z-index: 200;
         padding: 20px;
       }
+      #vehicleModal.modal-backdrop {
+        z-index: 400 !important;
+      }
       .modal {
         width: min(680px, 92vw);
         background: rgba(15, 19, 26, 0.62);
@@ -20215,6 +20218,7 @@
                   : `<p class="notice" style="margin:0">O seu perfil não cadastra veículos.</p>`
               }
             </div>`;
+          bindPatioConsultaRegistrarBtn();
           return;
         }
         const onPatio = matches.filter((v) => isVehicleOnPatio(v));
@@ -20244,6 +20248,23 @@
               </div>`
             : "";
         host.innerHTML = cards + extra;
+        bindPatioConsultaRegistrarBtn();
+      }
+
+      function bindPatioConsultaRegistrarBtn() {
+        const btn = document.getElementById("patioConsultaRegistrarBtn");
+        if (!btn || btn.dataset.bound === "1") return;
+        btn.dataset.bound = "1";
+        btn.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (isVistoriador || isVisualizador) return;
+          openVehicleModal("create");
+          if (vehicleModal) {
+            document.body.appendChild(vehicleModal);
+            vehicleModal.classList.remove("hidden");
+          }
+        });
       }
 
       function renderVehicles() {
@@ -24836,13 +24857,22 @@
         closePatioMenu();
         openVehicleModal("create");
       });
-      document.addEventListener("click", (event) => {
-        const registrar = event.target.closest("#patioConsultaRegistrarBtn");
-        if (!registrar) return;
-        if (isVistoriador || isVisualizador) return;
-        event.preventDefault();
-        openVehicleModal("create");
-      });
+      document.addEventListener(
+        "click",
+        (event) => {
+          const registrar = event.target.closest("#patioConsultaRegistrarBtn");
+          if (!registrar) return;
+          if (isVistoriador || isVisualizador) return;
+          event.preventDefault();
+          event.stopPropagation();
+          openVehicleModal("create");
+          if (vehicleModal) {
+            document.body.appendChild(vehicleModal);
+            vehicleModal.classList.remove("hidden");
+          }
+        },
+        true
+      );
 
       vehicleFinancialResponsible?.addEventListener("change", () => {
         applyOfficeFromCarteiraRpp();
