@@ -3077,7 +3077,7 @@
       <div class="fin-card fin-card--saldo"><span class="fin-card-label">Saldo atual</span><strong>${escapeHtml(formatCurrency(m.saldo))}</strong><small>entradas − saídas</small></div>
       <div class="fin-card fin-card--gen"><span class="fin-card-label">Receita em geração</span><strong>${escapeHtml(formatCurrency(m.totalGeracao))}</strong><small>${m.veiculosPatio} no pátio</small></div>
       <div class="fin-card fin-card--late"><span class="fin-card-label">Contas vencidas</span><strong>${m.vencidas}</strong><small>${escapeHtml(formatCurrency(m.totalVencidas))}</small></div>
-      <div class="fin-card fin-card--open"><span class="fin-card-label">Aguardando faturamento (Pátio)</span><strong>${m.aguardandoFaturamento}</strong><small>ciclo concluído, ainda sem NF/cobrança</small></div>
+      <div class="fin-card fin-card--open"><span class="fin-card-label">Aguardando faturamento</span><strong>${m.aguardandoFaturamento}</strong><small>ciclo concluído, ainda sem NF/cobrança</small></div>
       <div class="fin-card fin-card--today"><span class="fin-card-label">Vencendo hoje</span><strong>${m.venceHoje}</strong><small>${m.proximas} nos próximos 7 dias</small></div>
     `;
   }
@@ -6906,10 +6906,6 @@
   }
 
   function financeRedirectAguardandoToPatio() {
-    if (typeof window.openPatioSubview === "function") {
-      window.openPatioSubview("aguardando_faturamento");
-      return true;
-    }
     return false;
   }
 
@@ -6919,16 +6915,31 @@
         '[data-finance-subview-btn="aguardando"], .finance-subview[data-finance-subview="aguardando"], #headerDetailsFinance [data-finance-subview="aguardando"]'
       )
       .forEach((el) => {
-        el.classList.add("hidden");
-        if (el.classList.contains("finance-subview")) el.hidden = true;
+        el.classList.remove("hidden");
+        if (el.classList.contains("finance-subview") && currentFinanceView !== "aguardando") {
+          /* visibilidade controlada por financeActivateSubview */
+        } else if (el.classList.contains("finance-subview")) {
+          el.hidden = false;
+        }
       });
+  }
+
+  function financeHostPatioAguardando() {
+    const host = document.getElementById("finPatioAguardandoHost");
+    const panel = document.querySelector('#patioContent [data-subview="aguardando_faturamento"], [data-subview="aguardando_faturamento"]');
+    if (!host || !panel) return;
+    if (panel.parentElement !== host) host.appendChild(panel);
+    panel.classList.remove("hidden");
   }
 
   function financeRenderSubviewContent(view) {
     if (view === "dashboard") financeRenderDashboard();
     else if (view === "em_patio") financeRenderEmPatio();
     else if (view === "receber") financeRenderReceber();
-    else if (view === "aguardando") financeRenderAguardando();
+    else if (view === "aguardando") {
+      financeHostPatioAguardando();
+      if (typeof window.renderVehicles === "function") window.renderVehicles();
+    }
     else if (view === "pagar") financeRenderPagar();
     else if (view === "caixa") financeRenderCaixa();
     else if (view === "contas") {
@@ -6944,8 +6955,7 @@
     if (!view || view === "none") return;
     const resolved = financeNormalizeFinanceView(view);
     if (resolved === "aguardando") {
-      financeHideAguardandoModuleUi();
-      if (financeRedirectAguardandoToPatio()) return;
+      financeHostPatioAguardando();
     }
     if (!FINANCE_SUBVIEWS.includes(resolved)) return;
     if (resolved === "caixa" && currentFinanceView && currentFinanceView !== "caixa" && currentFinanceView !== "none") {
@@ -6983,7 +6993,6 @@
   window.renderFinance = function renderFinance() {
     financePopulateFinanceRppFilters();
     financePurgeRecebidosUi();
-    financeHideAguardandoModuleUi();
     try {
       financeActivateSubview(currentFinanceView, { skipRender: true });
       if (currentFinanceView === "caixa") {
@@ -7221,7 +7230,6 @@
 
   async function financeApproveReceivable(receivableId) {
     if (typeof window.openPatioFaturamentoModal === "function") {
-      financeRedirectAguardandoToPatio();
       window.openPatioFaturamentoModal(receivableId);
       return;
     }
