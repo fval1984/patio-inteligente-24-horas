@@ -284,10 +284,14 @@ $$;
 COMMENT ON FUNCTION public.consultar_historico_publico_veiculo(text) IS
   'Consulta pública somente leitura do histórico do registro. Não devolve CPF, valores, documentos nem o id interno.';
 
-REVOKE ALL ON FUNCTION public.ensure_vehicle_public_token(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.ensure_vehicle_public_token(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.ensure_vehicle_public_token(uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.ensure_vehicle_public_token(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.ensure_vehicle_public_token(uuid) TO service_role;
 
-REVOKE ALL ON FUNCTION public.consultar_historico_publico_veiculo(text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.consultar_historico_publico_veiculo(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.consultar_historico_publico_veiculo(text) FROM anon;
+REVOKE ALL ON FUNCTION public.consultar_historico_publico_veiculo(text) FROM authenticated;
 GRANT EXECUTE ON FUNCTION public.consultar_historico_publico_veiculo(text) TO service_role;
 
 NOTIFY pgrst, 'reload schema';
