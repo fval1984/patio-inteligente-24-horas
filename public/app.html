@@ -7413,7 +7413,7 @@
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20261001escritorio3" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
-    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261109ficha1" />
+    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261109ficha2" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
   </head>
   <body class="auth-screen-active">
@@ -24648,7 +24648,7 @@
         vehicleIdFichaCapture.innerHTML = `
           <img src="/assets/ampliguard-logo-official.png?v=20261109qr1" alt="AMPLIGUARD" class="vif-logo" onerror="this.onerror=null;this.src='/assets/ampliguard-marca.png?v=20260917logo2'" />
           <p class="vif-kicker">${kicker}</p>
-          <h1 class="vif-plate">${escapeHtml(vehicle.placa || "—")}</h1>
+          <div class="vif-plate-visual">${plateVisualHtml(vehicle.placa, "lg")}</div>
           <p class="vif-model">${escapeHtml(modelo)}</p>
           ${photoHtml}
           <dl class="vif-meta">
