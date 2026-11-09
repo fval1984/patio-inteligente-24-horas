@@ -1,15 +1,21 @@
 /**
- * Etiquetas NIIMBOT B1 (203 dpi) e QR Code público do registro.
- * Não altera o fluxo de cadastro; só gera token se ainda não existir.
+ * Etiquetas AMPLIGUARD em PNG para o aplicativo NIIMBOT B1.
+ * Não imprime pelo navegador. O QR público permanece o mesmo no registro.
  */
 (function (global) {
-  const DPI = 203;
-  const LOGO_OFFICIAL = "/assets/ampliguard-logo-official.png?v=20261109qr1";
+  const NIIMBOT_DPI = 203;
+  const EXPORT_SCALE = 3;
+  const DPI = NIIMBOT_DPI * EXPORT_SCALE;
+  const BLACK = "#000000";
+  const WHITE = "#ffffff";
+  const CNPJ = "57.936.119/0001-98";
+  const TAGLINE = "GUARDA E CUSTÓDIA DE BENS";
+  const LOGO_OFFICIAL = "/assets/ampliguard-logo-official.png?v=20261109qr2";
   const LOGO_MARCA = "/assets/ampliguard-marca.png?v=20260917logo2";
   const QR_SRC = "/vendor/qrcode.min.js?v=20261005recibo1";
 
-  const WINDSHIELD = { wMm: 50, hMm: 30, name: "para-brisa" };
-  const KEY = { wMm: 25, hMm: 78, bodyMm: 38, strapMm: 40, name: "chave" };
+  const WINDSHIELD = { wMm: 50, hMm: 30 };
+  const KEY = { wMm: 25, hMm: 30 };
 
   let logoImg = null;
   let modalBound = false;
@@ -33,6 +39,10 @@
     } catch (e) {
       return "";
     }
+  }
+
+  function plateText(vehicle) {
+    return String((vehicle && vehicle.placa) || "").trim().toUpperCase() || "—";
   }
 
   function db() {
@@ -70,7 +80,7 @@
     return logoImg;
   }
 
-  async function qrDataUrl(text, size) {
+  async function qrImage(text, size) {
     await ensureQrLib();
     const holder = document.createElement("div");
     holder.setAttribute("aria-hidden", "true");
@@ -80,16 +90,15 @@
       text,
       width: size,
       height: size,
-      colorDark: "#14221c",
-      colorLight: "#ffffff",
+      colorDark: BLACK,
+      colorLight: WHITE,
       correctLevel: global.QRCode.CorrectLevel.M,
     });
     const canvas = holder.querySelector("canvas");
     const url = canvas ? canvas.toDataURL("image/png") : "";
     holder.remove();
     if (!url) throw new Error("qr");
-    const img = await loadImage(url);
-    return img;
+    return loadImage(url);
   }
 
   function drawContain(ctx, img, x, y, w, h) {
@@ -102,82 +111,67 @@
     ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
   }
 
-  async function renderWindshield(vehicle, token) {
-    const w = mmToPx(WINDSHIELD.wMm);
-    const h = mmToPx(WINDSHIELD.hMm);
+  function makeCanvas(wMm, hMm) {
     const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
+    canvas.width = mmToPx(wMm);
+    canvas.height = mmToPx(hMm);
     const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = WHITE;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    return { canvas, ctx, w: canvas.width, h: canvas.height };
+  }
+
+  function fillCentered(ctx, text, y, fontPx, weight) {
+    ctx.fillStyle = BLACK;
+    ctx.font = `${weight || 700} ${fontPx}px Arial, Helvetica, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, ctx.canvas.width / 2, y);
+  }
+
+  async function renderWindshield(vehicle, token) {
+    const { canvas, ctx, w, h } = makeCanvas(WINDSHIELD.wMm, WINDSHIELD.hMm);
     const logo = await getLogo();
-    const qrSize = mmToPx(16);
-    const pad = mmToPx(1.4);
-    const qr = await qrDataUrl(publicHistoryUrl(token), qrSize);
-    drawContain(ctx, logo, pad, pad, mmToPx(22), mmToPx(9));
-    ctx.fillStyle = "#14221c";
-    ctx.font = `700 ${mmToPx(6.2)}px sans-serif`;
-    ctx.textBaseline = "top";
-    const plate = String(vehicle.placa || "").toUpperCase();
-    ctx.fillText(plate, pad, mmToPx(11.2));
-    ctx.font = `500 ${mmToPx(2.6)}px sans-serif`;
-    ctx.fillStyle = "#3d5a4c";
-    ctx.fillText(formatEntryLabel(vehicle.data_entrada) || "Entrada", pad, mmToPx(19.2));
-    ctx.fillText("AMPLIGUARD", pad, mmToPx(23.2));
-    ctx.drawImage(qr, w - qrSize - pad, (h - qrSize) / 2, qrSize, qrSize);
-    ctx.strokeStyle = "#e6eee9";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0.5, 0.5, w - 1, h - 1);
+    const qrSize = mmToPx(12.4);
+    const qr = await qrImage(publicHistoryUrl(token), qrSize);
+    drawContain(ctx, logo, mmToPx(4), mmToPx(1.1), w - mmToPx(8), mmToPx(6.4));
+    fillCentered(ctx, plateText(vehicle), mmToPx(9.4), mmToPx(4.4), 800);
+    fillCentered(ctx, formatEntryLabel(vehicle.data_entrada) || "", mmToPx(13.1), mmToPx(2.15), 600);
+    ctx.drawImage(qr, (w - qrSize) / 2, mmToPx(15.4), qrSize, qrSize);
     return canvas;
   }
 
-  async function renderKey(vehicle, token) {
-    const w = mmToPx(KEY.wMm);
-    const h = mmToPx(KEY.hMm);
-    const strap = mmToPx(KEY.strapMm);
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, w, h);
-
-    const logo = await getLogo();
-    const pad = mmToPx(1.2);
-    const holeKeepout = mmToPx(8);
+  function drawVerticalPlate(ctx, plate, x, y, fontPx, angle) {
     ctx.save();
-    ctx.translate(w / 2, holeKeepout + (strap - holeKeepout) / 2);
-    ctx.rotate(-Math.PI / 2);
-    const logoBandW = strap - holeKeepout - pad * 2;
-    const logoBandH = w - pad * 2;
-    drawContain(ctx, logo, -logoBandW / 2, -logoBandH / 2, logoBandW, logoBandH);
-    ctx.restore();
-
-    ctx.strokeStyle = "#d8e3dc";
-    ctx.setLineDash([4, 3]);
-    ctx.beginPath();
-    ctx.moveTo(pad, strap);
-    ctx.lineTo(w - pad, strap);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    const bodyY = strap + pad;
-    const bodyH = h - strap - pad * 2;
-    const plate = String(vehicle.placa || "").toUpperCase();
-    ctx.fillStyle = "#14221c";
-    ctx.font = `700 ${mmToPx(4.2)}px sans-serif`;
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = BLACK;
+    ctx.font = `700 ${fontPx}px Arial, Helvetica, sans-serif`;
     ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    ctx.fillText(plate, w / 2, bodyY);
-    const qrSize = mmToPx(16);
-    const qr = await qrDataUrl(publicHistoryUrl(token), qrSize);
-    ctx.drawImage(qr, (w - qrSize) / 2, h - pad - qrSize, qrSize, qrSize);
-    ctx.font = `500 ${mmToPx(2.1)}px sans-serif`;
-    ctx.fillStyle = "#3d5a4c";
-    ctx.fillText("AMPLIGUARD", w / 2, bodyY + mmToPx(6));
-    ctx.textAlign = "left";
-    void bodyH;
+    ctx.textBaseline = "middle";
+    ctx.fillText(plate, 0, 0);
+    ctx.restore();
+  }
+
+  async function renderKeyFront(vehicle, token) {
+    const { canvas, ctx, w, h } = makeCanvas(KEY.wMm, KEY.hMm);
+    const plate = plateText(vehicle);
+    const qrSize = mmToPx(16.2);
+    const qr = await qrImage(publicHistoryUrl(token), qrSize);
+    ctx.drawImage(qr, (w - qrSize) / 2, (h - qrSize) / 2, qrSize, qrSize);
+    drawVerticalPlate(ctx, plate, mmToPx(2.15), h / 2, mmToPx(2.35), -Math.PI / 2);
+    drawVerticalPlate(ctx, plate, w - mmToPx(2.15), h / 2, mmToPx(2.35), Math.PI / 2);
+    return canvas;
+  }
+
+  async function renderKeyBack(vehicle) {
+    const { canvas, ctx, w } = makeCanvas(KEY.wMm, KEY.hMm);
+    const logo = await getLogo();
+    drawContain(ctx, logo, mmToPx(2.2), mmToPx(4.2), w - mmToPx(4.4), mmToPx(14.5));
+    fillCentered(ctx, TAGLINE, mmToPx(21.2), mmToPx(1.55), 700);
+    fillCentered(ctx, `CNPJ: ${CNPJ}`, mmToPx(24.4), mmToPx(1.7), 700);
     return canvas;
   }
 
@@ -188,31 +182,8 @@
     a.click();
   }
 
-  function printCanvas(canvas, wMm, hMm) {
-    const url = canvas.toDataURL("image/png");
-    const win = window.open("", "_blank", "noopener,noreferrer,width=480,height=640");
-    if (!win) {
-      alert("Permita pop-ups para imprimir a etiqueta.");
-      return;
-    }
-    win.document.write(`<!doctype html><html><head><title>Etiqueta AMPLIGUARD</title>
-<style>
-  @page { size: ${wMm}mm ${hMm}mm; margin: 0; }
-  html, body { margin: 0; padding: 0; width: ${wMm}mm; height: ${hMm}mm; }
-  img { width: ${wMm}mm; height: ${hMm}mm; display: block; }
-  @media print { html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-</style></head><body><img src="${url}" alt="Etiqueta" /></body></html>`);
-    win.document.close();
-    win.focus();
-    setTimeout(() => {
-      try {
-        win.print();
-      } catch (e) {}
-    }, 350);
-  }
-
   function fileName(vehicle, kind) {
-    const placa = String(vehicle.placa || "veiculo").replace(/\s+/g, "");
+    const placa = String((vehicle && vehicle.placa) || "veiculo").replace(/\s+/g, "");
     return `ampliguard-${kind}-${placa}.png`;
   }
 
@@ -245,14 +216,21 @@
     slot.appendChild(img);
   }
 
-  async function fillPreviews(vehicle, token) {
+  async function buildCanvases(vehicle, token) {
     const wind = await renderWindshield(vehicle, token);
-    const key = await renderKey(vehicle, token);
-    showPreview(wind, "vlPreviewWindshield", "200px");
-    showPreview(key, "vlPreviewKey", "90px");
+    const keyFront = await renderKeyFront(vehicle, token);
+    const keyBack = await renderKeyBack(vehicle);
+    return { wind, keyFront, keyBack };
+  }
+
+  async function fillPreviews(vehicle, token) {
+    const canvases = await buildCanvases(vehicle, token);
+    showPreview(canvases.wind, "vlPreviewWindshield", "220px");
+    showPreview(canvases.keyFront, "vlPreviewKeyFront", "110px");
+    showPreview(canvases.keyBack, "vlPreviewKeyBack", "110px");
     const urlEl = document.getElementById("vlPublicUrl");
     if (urlEl) urlEl.value = publicHistoryUrl(token);
-    return { wind, key };
+    return canvases;
   }
 
   function currentVehicleFromState(id) {
@@ -278,6 +256,15 @@
     }
   }
 
+  function downloadKind(kind) {
+    const modal = document.getElementById("vehicleLabelsModal");
+    const pack = modal && modal._vl;
+    if (!pack || !pack.canvases) return;
+    if (kind === "wind") downloadCanvas(pack.canvases.wind, fileName(pack.vehicle, "parabrisa-50x30"));
+    if (kind === "keyFront") downloadCanvas(pack.canvases.keyFront, fileName(pack.vehicle, "chave-frente-25x30"));
+    if (kind === "keyBack") downloadCanvas(pack.canvases.keyBack, fileName(pack.vehicle, "chave-verso-25x30"));
+  }
+
   function bindModalOnce() {
     if (modalBound) return;
     modalBound = true;
@@ -287,26 +274,9 @@
     modal?.addEventListener("click", (e) => {
       if (e.target === modal) close();
     });
-    document.getElementById("vlPrintWindshield")?.addEventListener("click", () => {
-      const pack = modal && modal._vl;
-      if (!pack) return;
-      printCanvas(pack.canvases.wind, WINDSHIELD.wMm, WINDSHIELD.hMm);
-    });
-    document.getElementById("vlDownloadWindshield")?.addEventListener("click", () => {
-      const pack = modal && modal._vl;
-      if (!pack) return;
-      downloadCanvas(pack.canvases.wind, fileName(pack.vehicle, "parabrisa-50x30"));
-    });
-    document.getElementById("vlPrintKey")?.addEventListener("click", () => {
-      const pack = modal && modal._vl;
-      if (!pack) return;
-      printCanvas(pack.canvases.key, KEY.wMm, KEY.hMm);
-    });
-    document.getElementById("vlDownloadKey")?.addEventListener("click", () => {
-      const pack = modal && modal._vl;
-      if (!pack) return;
-      downloadCanvas(pack.canvases.key, fileName(pack.vehicle, "chave-25x78"));
-    });
+    document.getElementById("vlDownloadWindshield")?.addEventListener("click", () => downloadKind("wind"));
+    document.getElementById("vlDownloadKeyFront")?.addEventListener("click", () => downloadKind("keyFront"));
+    document.getElementById("vlDownloadKeyBack")?.addEventListener("click", () => downloadKind("keyBack"));
     document.getElementById("vlCopyUrl")?.addEventListener("click", async () => {
       const el = document.getElementById("vlPublicUrl");
       const text = el && el.value;
@@ -330,6 +300,7 @@
     ensureToken,
     openForVehicle,
     currentVehicleFromState,
-    sizes: { DPI, WINDSHIELD, KEY },
+    downloadKind,
+    sizes: { DPI, NIIMBOT_DPI, WINDSHIELD, KEY },
   };
 })(typeof window !== "undefined" ? window : globalThis);
