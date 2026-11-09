@@ -19,11 +19,36 @@
   }
 
   function plateLabel(placa) {
-    return (
-      String(placa || "")
-        .toUpperCase()
-        .replace(/[^A-Z0-9]/g, "") || "—"
-    );
+    return String(placa || "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
+  }
+
+  async function loadSameRecord(vehicle) {
+    if (!vehicle || !vehicle.id) {
+      throw new Error("Registro do veículo não identificado.");
+    }
+    const id = String(vehicle.id);
+    const client = db();
+    if (client) {
+      const { data, error } = await client
+        .from("vehicles")
+        .select("id,placa,public_token")
+        .eq("id", id)
+        .maybeSingle();
+      if (!error && data && String(data.id) === id) {
+        return {
+          id: data.id,
+          placa: data.placa,
+          public_token: data.public_token || vehicle.public_token || "",
+        };
+      }
+    }
+    return {
+      id: vehicle.id,
+      placa: vehicle.placa,
+      public_token: vehicle.public_token || "",
+    };
   }
 
   async function ensureQrLib() {
@@ -181,19 +206,26 @@
   }
 
   async function buildPngCanvas(vehicle) {
-    if (!vehicle) throw new Error("Veículo não informado.");
-    const token = await ensureToken(vehicle);
+    const record = await loadSameRecord(vehicle);
+    const placa = plateLabel(record.placa);
+    if (!placa) {
+      throw new Error("Este registro não tem placa cadastrada.");
+    }
+    const token = await ensureToken(record);
+    if (String(record.id) !== String(vehicle.id)) {
+      throw new Error("A placa e o QR Code não correspondem ao mesmo registro.");
+    }
     const code = await buildQrModel(publicHistoryUrl(token));
-    return composePlateAndQr(code, vehicle.placa);
+    return { canvas: composePlateAndQr(code, placa), placa, id: record.id };
   }
 
   async function downloadForVehicle(vehicle) {
-    const canvas = await buildPngCanvas(vehicle);
+    const built = await buildPngCanvas(vehicle);
+    const canvas = built && built.canvas;
     if (!canvas || canvas.width <= canvas.height) {
       throw new Error("Falha ao montar a imagem da placa com o QR Code.");
     }
-    const placa = plateLabel(vehicle.placa);
-    downloadCanvas(canvas, `ampliguard-qr-${placa || "veiculo"}.png`);
+    downloadCanvas(canvas, `ampliguard-qr-${built.placa}.png`);
     return canvas;
   }
 
