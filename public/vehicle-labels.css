@@ -1,4 +1,4 @@
-.vl-modal .modal { max-width: 560px; }
+.vl-modal .modal { max-width: 640px; }
 .vl-preview-wrap {
   display: flex;
   flex-wrap: wrap;
@@ -13,6 +13,7 @@
   border-radius: 10px;
   padding: 10px;
   text-align: center;
+  min-width: 140px;
 }
 .vl-preview-card h4 { margin: 0 0 8px; font-size: 13px; }
 .vl-preview-card canvas,
