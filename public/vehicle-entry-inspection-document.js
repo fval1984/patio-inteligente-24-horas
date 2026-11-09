@@ -422,6 +422,18 @@
     return `<div class="vei-doc-field"><span>${esc(label)}</span><strong>${esc(v)}</strong></div>`;
   }
 
+  function destinacaoVehicleGrid(vehicle) {
+    const destRaw = String(vehicle?.destinacao || "").toUpperCase();
+    let html = "";
+    if (destRaw === "RESTITUICAO") {
+      html += metaField("Destinação", "Restituição");
+      html += metaField("Responsável pela restituição", vehicle?.restituicao_responsavel_nome || "—");
+    } else if (destRaw === "LEILAO") {
+      html += metaField("Destinação", "Leilão");
+    }
+    return html;
+  }
+
   function classificationShort(id) {
     const map = { BOM: "B", REGULAR: "R", DANIFICADO: "D", SEM_TESTE: "S", INEXISTENTE: "I", SEM_ACESSO_TRANCADO: "SA" };
     return map[id] || "";
@@ -954,7 +966,8 @@
       metaField("Data de saída", vehicle?.data_saida ? fmt(vehicle?.data_saida) : "—") +
       metaField("RPV (localizador)", partnerName(ctx, vehicle?.localizador_id)) +
       metaField("RPF (responsável financeiro)", rpfNome) +
-      metaField("Leiloeiro", leiloeiro !== "—" ? leiloeiro : null);
+      metaField("Leiloeiro", leiloeiro !== "—" ? leiloeiro : null) +
+      destinacaoVehicleGrid(vehicle);
 
     if (vehicle?.vistoria_km) vehicleGrid += metaField("Quilometragem (cadastro LV)", vehicle.vistoria_km);
     if (vehicle?.observacoes) vehicleGrid += metaField("Observações do veículo", vehicle.observacoes);
@@ -1013,7 +1026,11 @@
       `<section class="vei-doc-section vei-doc-withdrawal">` +
       `<h3>Termo de retirada do veículo</h3>` +
       `<p>Declaro, para os devidos fins, que estou retirando o veículo identificado nesta vistoria, responsabilizando-me pelo recebimento do veículo na data abaixo indicada.</p>` +
-      `<div class="vei-doc-field-line"><label>Nome completo:</label><div class="vei-doc-line"></div></div>` +
+      `<div class="vei-doc-field-line"><label>Nome completo:</label><div class="vei-doc-line">${
+        String(vehicle?.destinacao || "").toUpperCase() === "RESTITUICAO"
+          ? esc(vehicle?.restituicao_responsavel_nome || "")
+          : ""
+      }</div></div>` +
       `<div class="vei-doc-field-line"><label>CPF:</label><div class="vei-doc-line"></div></div>` +
       `<div class="vei-doc-field-line"><label>Data da retirada:</label><div class="vei-doc-line">____ / ____ / ______</div></div>` +
       `<div class="vei-doc-field-line"><label>Assinatura do responsável:</label><div class="vei-doc-sign-line"></div></div>` +
@@ -1057,7 +1074,8 @@
       metaField("Data de saída", vehicle?.data_saida ? fmt(vehicle?.data_saida) : "—") +
       metaField("RPV (localizador)", partnerName(ctx, vehicle?.localizador_id)) +
       metaField("RPF (responsável financeiro)", rpfNome) +
-      metaField("Leiloeiro", leiloeiro !== "—" ? leiloeiro : null);
+      metaField("Leiloeiro", leiloeiro !== "—" ? leiloeiro : null) +
+      destinacaoVehicleGrid(vehicle);
 
     if (vehicle?.vistoria_km) vehicleGrid += metaField("Quilometragem (cadastro LV)", vehicle.vistoria_km);
     if (vehicle?.observacoes) vehicleGrid += metaField("Observações do veículo", vehicle.observacoes);
@@ -1118,7 +1136,11 @@
       `<section class="vei-doc-section vei-doc-withdrawal">` +
       `<h3>Termo de retirada do veículo</h3>` +
       `<p>Declaro, para os devidos fins, que estou retirando o veículo identificado nesta vistoria, responsabilizando-me pelo recebimento do veículo na data abaixo indicada.</p>` +
-      `<div class="vei-doc-field-line"><label>Nome completo:</label><div class="vei-doc-line"></div></div>` +
+      `<div class="vei-doc-field-line"><label>Nome completo:</label><div class="vei-doc-line">${
+        String(vehicle?.destinacao || "").toUpperCase() === "RESTITUICAO"
+          ? esc(vehicle?.restituicao_responsavel_nome || "")
+          : ""
+      }</div></div>` +
       `<div class="vei-doc-field-line"><label>CPF:</label><div class="vei-doc-line"></div></div>` +
       `<div class="vei-doc-field-line"><label>Data da retirada:</label><div class="vei-doc-line">____ / ____ / ______</div></div>` +
       `<div class="vei-doc-field-line"><label>Assinatura do responsável:</label><div class="vei-doc-sign-line"></div></div>` +
