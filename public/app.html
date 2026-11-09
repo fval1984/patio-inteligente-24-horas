@@ -8962,6 +8962,24 @@
                   </label>
                 </div>
               </div>
+              <div class="full" id="vehicleDestinacaoWrap">
+                <label for="vehicleDestinacao">Destinação do veículo</label>
+                <select id="vehicleDestinacao">
+                  <option value="">Não informado</option>
+                  <option value="RESTITUICAO">Restituição</option>
+                  <option value="LEILAO">Leilão</option>
+                </select>
+              </div>
+              <div class="full hidden" id="vehicleRestituicaoRespWrap">
+                <label for="vehicleRestituicaoResponsavel">Nome do responsável pela restituição</label>
+                <input
+                  id="vehicleRestituicaoResponsavel"
+                  type="text"
+                  maxlength="180"
+                  autocomplete="name"
+                  placeholder="Nome completo de quem recebe o veículo"
+                />
+              </div>
               <div class="field-operador-hide field-cr-only">
                 <label>Valor da diária</label>
                 <input id="vehicleDaily" type="number" step="0.01" placeholder="150.00" required />
@@ -9403,6 +9421,20 @@
                 <label id="libRemoveuLabel">Quem removeu o veículo?</label>
                 <p class="wf-field-hint" id="libRemoveuHint">Parceiro que efetivou a saída do pátio.</p>
                 <select id="libRemoveu"></select>
+              </div>
+              <div id="libRowDestinacao" class="wf-field">
+                <label for="libDestinacao">Destinação do veículo</label>
+                <p class="wf-field-hint">Informe se a saída é restituição ou leilão. O responsável só é pedido na restituição.</p>
+                <select id="libDestinacao">
+                  <option value="">Não informado</option>
+                  <option value="RESTITUICAO">Restituição</option>
+                  <option value="LEILAO">Leilão</option>
+                </select>
+              </div>
+              <div id="libRowRestituicaoResp" class="wf-field hidden" aria-hidden="true">
+                <label for="libRestituicaoResponsavel">Nome do responsável pela restituição</label>
+                <p class="wf-field-hint">Nome completo da pessoa responsável por receber o veículo.</p>
+                <input id="libRestituicaoResponsavel" type="text" maxlength="180" autocomplete="name" placeholder="Nome completo" />
               </div>
               <div id="libRowObservacao" class="wf-field">
                 <label for="libObservacao">Observação</label>
@@ -10557,6 +10589,13 @@
       const libResponsavelPagamento = document.getElementById("libResponsavelPagamento");
       const libSolicitanteRemocao = document.getElementById("libSolicitanteRemocao");
       const libRemoveu = document.getElementById("libRemoveu");
+      const libRowDestinacao = document.getElementById("libRowDestinacao");
+      const libRowRestituicaoResp = document.getElementById("libRowRestituicaoResp");
+      const libDestinacao = document.getElementById("libDestinacao");
+      const libRestituicaoResponsavel = document.getElementById("libRestituicaoResponsavel");
+      const vehicleDestinacao = document.getElementById("vehicleDestinacao");
+      const vehicleRestituicaoRespWrap = document.getElementById("vehicleRestituicaoRespWrap");
+      const vehicleRestituicaoResponsavel = document.getElementById("vehicleRestituicaoResponsavel");
 
       const openPayableForm = document.getElementById("openPayableForm");
       const payableModal = document.getElementById("payableModal");
@@ -17479,6 +17518,14 @@
         const uid = effectiveUserId();
         let { error } = await supabase.from("vehicles").update(patch).eq("id", vehicleId).eq("user_id", uid);
         if (error && /column|schema cache|PGRST204/i.test(error.message || "")) {
+          if (/destinacao|restituicao_responsavel_nome/i.test(error.message || "")) {
+            error = Object.assign(error, {
+              message:
+                (error.message || "") +
+                "\n\nNo Supabase → SQL Editor, execute supabase/vehicles_restituicao_responsavel.sql e tente de novo.",
+            });
+            return error;
+          }
           const lean = { ...patch };
           delete lean.liberacao_solicitada_em;
           delete lean.liberacao_solicitada_por;
@@ -20672,6 +20719,95 @@
           input.checked = wanted !== "" && input.value === wanted;
         });
       }
+
+      function normalizeDestinacao(raw) {
+        const s = String(raw || "")
+          .trim()
+          .toUpperCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, "_");
+        if (s === "RESTITUICAO") return "RESTITUICAO";
+        if (s === "LEILAO") return "LEILAO";
+        return "";
+      }
+
+      function destinacaoLabelPt(raw) {
+        const d = normalizeDestinacao(raw);
+        if (d === "RESTITUICAO") return "Restituição";
+        if (d === "LEILAO") return "Leilão";
+        return "";
+      }
+
+      function readVehicleDestinacao() {
+        return normalizeDestinacao(vehicleDestinacao?.value);
+      }
+
+      function readVehicleRestituicaoResponsavel() {
+        return String(vehicleRestituicaoResponsavel?.value || "").trim();
+      }
+
+      function syncVehicleDestinacaoUi() {
+        const isRest = readVehicleDestinacao() === "RESTITUICAO";
+        if (vehicleRestituicaoRespWrap) {
+          vehicleRestituicaoRespWrap.classList.toggle("hidden", !isRest);
+          vehicleRestituicaoRespWrap.setAttribute("aria-hidden", isRest ? "false" : "true");
+        }
+      }
+
+      function setVehicleDestinacaoFields(vehicle) {
+        if (vehicleDestinacao) vehicleDestinacao.value = normalizeDestinacao(vehicle && vehicle.destinacao);
+        if (vehicleRestituicaoResponsavel) {
+          vehicleRestituicaoResponsavel.value = String((vehicle && vehicle.restituicao_responsavel_nome) || "");
+        }
+        syncVehicleDestinacaoUi();
+      }
+
+      function syncLibDestinacaoUi() {
+        const isRest = normalizeDestinacao(libDestinacao?.value) === "RESTITUICAO";
+        setWorkflowFieldVisibility(libRowRestituicaoResp, isRest);
+        if (libRowDestinacao) setWorkflowFieldVisibility(libRowDestinacao, true);
+        if (libActionWrap) libActionWrap.classList.remove("hidden");
+      }
+
+      function readLibDestinacaoPayload() {
+        const destinacao = normalizeDestinacao(libDestinacao?.value);
+        const restituicaoResponsavel = String(libRestituicaoResponsavel?.value || "").trim();
+        return { destinacao, restituicaoResponsavel };
+      }
+
+      function destinacaoPatchFromUi(ui, existing) {
+        const dest = normalizeDestinacao(ui && ui.destinacao) || normalizeDestinacao(existing && existing.destinacao);
+        const nomeUi = String((ui && ui.restituicaoResponsavel) || "").trim();
+        const nomeExist = String((existing && existing.restituicao_responsavel_nome) || "").trim();
+        const patch = {};
+        if (dest) patch.destinacao = dest;
+        if (dest === "RESTITUICAO") {
+          patch.restituicao_responsavel_nome = nomeUi || nomeExist;
+        } else if (nomeExist) {
+          patch.restituicao_responsavel_nome = nomeExist;
+        }
+        return patch;
+      }
+
+      function assertRestituicaoResponsavel(dest, nome) {
+        if (normalizeDestinacao(dest) !== "RESTITUICAO") return true;
+        if (String(nome || "").trim()) return true;
+        alert("Informe o nome completo do responsável pela restituição.");
+        return false;
+      }
+
+      function destEventNote(ui) {
+        const d = normalizeDestinacao(ui && ui.destinacao);
+        if (d === "RESTITUICAO") {
+          return ` Destinação: restituição. Responsável: ${String((ui && ui.restituicaoResponsavel) || "-").trim() || "-"}.`;
+        }
+        if (d === "LEILAO") return " Destinação: leilão.";
+        return "";
+      }
+
+      vehicleDestinacao?.addEventListener("change", syncVehicleDestinacaoUi);
+      libDestinacao?.addEventListener("change", syncLibDestinacaoUi);
 
       function closePatioActionsMenus() {
         document.querySelectorAll(".patio-actions-menu").forEach((el) => {
@@ -24683,6 +24819,11 @@
         if (financeira) vinculos.push(vifMetaRow("Instituição financeira", financeira));
         if (escritorio && escritorio !== "—") vinculos.push(vifMetaRow("Escritório responsável", escritorio));
         if (leiloeiro) vinculos.push(vifMetaRow("Leilão / leiloeiro", leiloeiro));
+        const destLab = destinacaoLabelPt(vehicle.destinacao);
+        if (destLab) vinculos.push(vifMetaRow("Destinação", destLab));
+        if (normalizeDestinacao(vehicle.destinacao) === "RESTITUICAO") {
+          vinculos.push(vifMetaRow("Responsável pela restituição", vehicle.restituicao_responsavel_nome || "—"));
+        }
 
         let financeHtml = "";
         if (kind === 2) {
@@ -24859,6 +25000,11 @@
           Escritório: ${escapeHtml((window.advocacyOfficesService && window.advocacyOfficesService.officeName(vehicle.advocacy_office_id, state.advocacyOffices)) || "Sem escritório informado")}<br />
           Gestor de carteira: ${escapeHtml((window.advocacyOfficesService && window.advocacyOfficesService.managerName(vehicle.advocacy_office_manager_id, state.advocacyOfficeManagers)) || "Sem gestor informado")}<br />
           Entrada: ${formatDateTime(vehicle.data_entrada)} • Saída: ${formatDateTime(vehicle.data_saida)}<br />
+          Destinação: ${escapeHtml(destinacaoLabelPt(vehicle.destinacao) || "Não informada")}${
+            normalizeDestinacao(vehicle.destinacao) === "RESTITUICAO"
+              ? `<br />Responsável pela restituição: ${escapeHtml(vehicle.restituicao_responsavel_nome || "—")}`
+              : ""
+          }<br />
           Valor de referência (diárias): ${formatCurrency(calcTotal(vehicle))}<br />
           <span class="notice">Cobrança e pagamento: módulo Financeiro (após encerrar o ciclo no pátio).</span><br />
           <span class="notice">Ciclos financeiros:</span><br />
@@ -24931,7 +25077,15 @@
                 `<button type="button" class="patio-prio-btn" data-action="confirmar" data-id="${vehicle.id}">VRP</button>`
               );
             }
-            fichaSectionSlv.innerHTML = `${situacao}<div class="ficha-inline-actions">${botoes.join("")}</div>`;
+            const destInfo =
+              normalizeDestinacao(vehicle.destinacao) === "RESTITUICAO"
+                ? `<p class="notice" style="margin:8px 0 0"><strong>Restituição</strong> — responsável: <strong>${escapeHtml(
+                    vehicle.restituicao_responsavel_nome || "não informado"
+                  )}</strong></p>`
+                : normalizeDestinacao(vehicle.destinacao) === "LEILAO"
+                  ? `<p class="notice" style="margin:8px 0 0"><strong>Destinação:</strong> leilão</p>`
+                  : "";
+            fichaSectionSlv.innerHTML = `${situacao}${destInfo}<div class="ficha-inline-actions">${botoes.join("")}</div>`;
         }
 
         if (fichaSectionVistoria) {
@@ -25138,6 +25292,7 @@
           if (rppMgr && !vehicle.advocacy_office_id) applyOfficeFromCarteiraRpp();
           document.getElementById("vehicleNotes").value = vehicle.observacoes || "";
           setVehicleChaveCondicaoField(vehicle.chave_condicao);
+          setVehicleDestinacaoFields(vehicle);
           const inspectionDateEl = document.getElementById("vehicleInspectionDate");
           const inspectionResponsibleEl = document.getElementById("vehicleInspectionResponsible");
           const inspectionKmEl = document.getElementById("vehicleInspectionKm");
@@ -25176,6 +25331,7 @@
           bindVehicleRppPicker();
           syncVehicleRppPickerDisplay();
           setVehicleChaveCondicaoField("");
+          setVehicleDestinacaoFields(null);
         }
         const vd = document.getElementById("vehicleDaily");
         const entryInput = document.getElementById("vehicleEntry");
@@ -25753,6 +25909,8 @@
         if (!(state.partners || []).length && !findCarteiraManagerById(rpp.id)) {
           return alert("Cadastre parceiros ou gestores de carteira antes de concluir esta ação.");
         }
+        const destUi = readLibDestinacaoPayload();
+        if (!assertRestituicaoResponsavel(destUi.destinacao, destUi.restituicaoResponsavel)) return;
         liberacaoModal.classList.add("hidden");
         if (liberacaoModalResolver) {
           liberacaoModalResolver({
@@ -25767,6 +25925,8 @@
             removeu: rem.nome,
             removeuPartnerId: rem.id,
             observacao: String(document.getElementById("libObservacao")?.value || "").trim(),
+            destinacao: destUi.destinacao,
+            restituicaoResponsavel: destUi.restituicaoResponsavel,
           });
           liberacaoModalResolver = null;
         }
@@ -28221,6 +28381,11 @@ ${body}
             const firstRemoveu = [...libRemoveu.options].find((o) => o.value);
             if (firstRemoveu) libRemoveu.value = firstRemoveu.value;
           }
+          if (libDestinacao) libDestinacao.value = normalizeDestinacao(values.destinacao);
+          if (libRestituicaoResponsavel) {
+            libRestituicaoResponsavel.value = String(values.restituicaoResponsavel || "").trim();
+          }
+          syncLibDestinacaoUi();
 
           liberacaoModal.classList.remove("hidden");
         });
@@ -28524,6 +28689,11 @@ ${body}
           leiloeiro_id: initialCreate ? null : vehicleAuctioneer?.value || null,
           observacoes: document.getElementById("vehicleNotes").value.trim(),
           chave_condicao: readVehicleChaveCondicao() || null,
+          destinacao: readVehicleDestinacao() || null,
+          restituicao_responsavel_nome:
+            readVehicleDestinacao() === "RESTITUICAO"
+              ? readVehicleRestituicaoResponsavel()
+              : editingVehicleData?.restituicao_responsavel_nome || null,
           status: editingVehicleData?.status || "NO_PATIO",
           payment_status: editingVehicleData?.payment_status || "EM_ABERTO",
           nfse_status: editingVehicleData?.nfse_status || "NAO_SOLICITADA",
@@ -28551,6 +28721,10 @@ ${body}
         }
         if (!editingVehicleId && !payload.chave_condicao) {
           alert("Selecione a condição da chave: C/CHAVE, S/CHAVE ou TRANCADO.");
+          return;
+        }
+        if (payload.destinacao === "RESTITUICAO" && !String(payload.restituicao_responsavel_nome || "").trim()) {
+          alert("Informe o nome completo do responsável pela restituição.");
           return;
         }
         if (!normalizePlateSearch(payload.placa)) {
@@ -28659,6 +28833,12 @@ ${body}
           delete o.chave_condicao;
           return o;
         };
+        const stripDestinacaoFrom = (p) => {
+          const o = { ...p };
+          delete o.destinacao;
+          delete o.restituicao_responsavel_nome;
+          return o;
+        };
         const advancedKindsFromError = (msg) => {
           const m = msg || "";
           const kinds = [];
@@ -28670,6 +28850,7 @@ ${body}
           if (/pending_adm_review|registered_by_gestor|adm_reviewed_at/i.test(m)) kinds.push("admreview");
           if (/registro_concluido|patio_parceiro_id|financeira_id/i.test(m)) kinds.push("regcr");
           if (/chave_condicao/i.test(m)) kinds.push("chave");
+          if (/destinacao|restituicao_responsavel_nome/i.test(m)) kinds.push("destinacao");
           if (/AGUARDANDO_VISTORIA|check constraint|vehicles_status/i.test(m)) kinds.push("status");
           return kinds;
         };
@@ -28699,6 +28880,14 @@ ${body}
             );
             return;
           }
+          if (kinds.includes("destinacao") && (payload.destinacao || payload.restituicao_responsavel_nome)) {
+            alert(
+              "Não foi possível gravar a destinação / responsável pela restituição: a tabela vehicles ainda não tem as colunas destinacao e restituicao_responsavel_nome.\n\n" +
+                "No Supabase → SQL Editor, execute supabase/vehicles_restituicao_responsavel.sql e tente salvar de novo.\n\n" +
+                (error.message || "")
+            );
+            return;
+          }
           if (kinds.includes("entryflow") && !editingVehicleId) {
             alert(
               "Não foi possível cadastrar o veículo no fluxo de vistoria eletrônica.\n\n" +
@@ -28721,6 +28910,7 @@ ${body}
               if (!editingVehicleId) tryPayload.pending_adm_review = true;
             }
             else if (k === "chave") tryPayload = stripChaveCondicaoFrom(tryPayload);
+            else if (k === "destinacao") tryPayload = stripDestinacaoFrom(tryPayload);
             else if (k === "status" && !editingVehicleId) {
               alert(
                 "Não foi possível cadastrar o veículo no pátio (status No pátio).\n\n" +
@@ -28751,6 +28941,7 @@ ${body}
             partes.push("concluir registro / pátio parceiro (registro_concluido)");
           }
           if (degradedGroups.includes("chave")) partes.push("condição da chave");
+          if (degradedGroups.includes("destinacao")) partes.push("destinação / responsável pela restituição");
           const sqlHints = [];
           if (degradedGroups.some((k) => ["vistoria", "leiloeiro", "rpf"].includes(k))) {
             sqlHints.push("supabase/vehicles_recursos_avancados.sql");
@@ -28767,6 +28958,9 @@ ${body}
           }
           if (degradedGroups.includes("chave")) {
             sqlHints.push("supabase/vehicles_chave_condicao.sql");
+          }
+          if (degradedGroups.includes("destinacao")) {
+            sqlHints.push("supabase/vehicles_restituicao_responsavel.sql");
           }
           if (degradedGroups.includes("advocacy")) {
             sqlHints.push("supabase/advocacy_offices.sql e supabase/advocacy_office_managers.sql");
@@ -29936,6 +30130,8 @@ ${body}
               solicitante: actors.solicitante,
               confirmador: actors.confirmador,
               responsavelFinanceiro: actors.responsavelFinanceiro,
+              destinacao: vehicle.destinacao,
+              restituicaoResponsavel: vehicle.restituicao_responsavel_nome,
             },
             readonly: { solicitante: true },
           });
@@ -29951,6 +30147,7 @@ ${body}
             liberacao_confirmada_em: agora,
             liberacao_confirmada_por: operador,
             liberacao_confirmada_obs: obs || null,
+            ...destinacaoPatchFromUi(libData, vehicle),
           };
           if (rppPartnerId) {
             vehiclePatch.responsavel_financeiro_id = rppPartnerId;
@@ -30023,6 +30220,7 @@ ${body}
             descricao:
               `Liberação confirmada (VSC). Confirmador: ${confirmador || "-"}. RPP: ${responsavel}. ` +
               `Registado por ${operador}. As diárias continuam a contar até a retirada física (VRP).` +
+              destEventNote(libData) +
               (obs ? ` Observação: ${obs}` : ""),
           });
           await loadVehicles();
@@ -30058,6 +30256,8 @@ ${body}
               confirmador: actors.confirmador,
               responsavelFinanceiro: actors.responsavelFinanceiro,
               solicitanteRemocao: actors.solicitanteRemocao,
+              destinacao: vehicle.destinacao,
+              restituicaoResponsavel: vehicle.restituicao_responsavel_nome,
             },
             readonly: {
               solicitante: true,
@@ -30074,6 +30274,7 @@ ${body}
               remocao_solicitada: true,
               remocao_solicitada_por: por,
               remocao_solicitada_em: agora,
+              ...destinacaoPatchFromUi(remData, vehicle),
             })
             .eq("id", id)
             .eq("user_id", effectiveUserId());
@@ -30237,6 +30438,10 @@ ${body}
             title: "Solicitação de liberação (VSL)",
             submitLabel: "Registar solicitação",
             requiredFields: ["solicitante"],
+            values: {
+              destinacao: vehicle.destinacao,
+              restituicaoResponsavel: vehicle.restituicao_responsavel_nome,
+            },
           });
           if (!libData) return;
           const solicitanteId = String(libData.solicitantePartnerId || "").trim();
@@ -30256,6 +30461,7 @@ ${body}
             descricao:
               `Solicitação de liberação registada (VSL). Solicitante: ${solicitante}. ` +
               `Registado por ${operador}. O veículo continua no pátio e as diárias seguem a contar.` +
+              destEventNote(libData) +
               (obs ? ` Observação: ${obs}` : ""),
           });
           const upErr = await updateVehiclePatioFields(id, {
@@ -30263,6 +30469,7 @@ ${body}
             liberacao_solicitada_em: agora,
             liberacao_solicitada_por: operador,
             liberacao_solicitada_obs: obs || null,
+            ...destinacaoPatchFromUi(libData, vehicle),
           });
           if (upErr) {
             alert(upErr.message);
@@ -30293,6 +30500,14 @@ ${body}
             const st = liveVehicle.status || vehicle.status;
             if (!isVscStatus(st)) {
               alert("A saída física só pode ser confirmada quando o veículo estiver no VSC (liberação confirmada).");
+              return;
+            }
+            if (
+              !assertRestituicaoResponsavel(
+                liveVehicle.destinacao || vehicle.destinacao,
+                liveVehicle.restituicao_responsavel_nome || vehicle.restituicao_responsavel_nome
+              )
+            ) {
               return;
             }
             if (!confirm("Confirma a saída física deste veículo do pátio?")) return;
@@ -30385,6 +30600,8 @@ ${body}
               responsavelFinanceiro: actors.responsavelFinanceiro,
               solicitanteRemocao: actors.solicitanteRemocao,
               removeu: actors.removeu,
+              destinacao: liveVehicle.destinacao || vehicle.destinacao,
+              restituicaoResponsavel: liveVehicle.restituicao_responsavel_nome || vehicle.restituicao_responsavel_nome,
             },
             readonly: {
               solicitante: true,
@@ -30402,7 +30619,8 @@ ${body}
               vehicle_id: id,
               tipo: "REMOVIDO",
               responsavel,
-              descricao: `Remoção efetivada — veículo removido do pátio. PREV_STATUS=${previousStatus}`,
+              descricao:
+                `Remoção efetivada — veículo removido do pátio. PREV_STATUS=${previousStatus}` + destEventNote(vrpData),
             })
           );
           if (eventError) {
@@ -30421,9 +30639,17 @@ ${body}
             remocao_solicitada: false,
             remocao_solicitada_por: null,
             remocao_solicitada_em: null,
+            ...destinacaoPatchFromUi(vrpData, liveVehicle),
           });
           updatedVehicle = updFull.data;
           vehicleError = updFull.error;
+          if (vehicleError && /destinacao|restituicao_responsavel_nome/i.test(vehicleError.message || "")) {
+            alertSupabaseError(
+              vehicleError,
+              "Não foi possível gravar o responsável pela restituição. Execute supabase/vehicles_restituicao_responsavel.sql no SQL Editor."
+            );
+            return;
+          }
           if (vehicleError && /column|schema cache|PGRST204/i.test(vehicleError.message || "")) {
             const updMin = await runVrpVehicleUpdate({ status: "REMOVIDO", data_saida: dataSaida });
             updatedVehicle = updMin.data;
