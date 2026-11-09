@@ -3688,6 +3688,8 @@
       .table td.actions button[data-action="cobranca"],
       .table td.actions button[data-action="nota"],
       .table td.actions button[data-action="ficha"],
+      .table td.actions button[data-action="ficha_tipo1"],
+      .table td.actions button[data-action="ficha_tipo2"],
       .table td.actions button[data-action="nfse"],
       .table td.actions button[data-action="cobranca_email"],
       .table td.actions button[data-action="nfse_termica"],
@@ -3732,6 +3734,8 @@
       [data-theme="light"] .table td.actions button[data-action="cobranca"],
       [data-theme="light"] .table td.actions button[data-action="nota"],
       [data-theme="light"] .table td.actions button[data-action="ficha"],
+      [data-theme="light"] .table td.actions button[data-action="ficha_tipo1"],
+      [data-theme="light"] .table td.actions button[data-action="ficha_tipo2"],
       [data-theme="light"] .table td.actions button[data-action="nfse"],
       [data-theme="light"] .table td.actions button[data-action="cobranca_email"],
       [data-theme="light"] .table td.actions button[data-action="nfse_termica"],
@@ -7405,10 +7409,11 @@
     <link rel="stylesheet" href="/finance-action-ui.css?v=20261103cadernetaPlaca1" />
     <link rel="stylesheet" href="/payment-receipt.css?v=20261005recibo10" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
-    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261103cadernetaPlaca1" />
+    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261109ficha1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20261001escritorio3" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
+    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261109ficha1" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
   </head>
   <body class="auth-screen-active">
@@ -9444,6 +9449,19 @@
         </div>
       </div>
 
+      <div id="vehicleIdFichaModal" class="modal-backdrop hidden">
+        <div class="modal vehicle-id-ficha-modal">
+          <div class="modal-header">
+            <h3 id="vehicleIdFichaTitle">Ficha do veículo</h3>
+            <div class="actions">
+              <button type="button" class="secondary" id="downloadVehicleIdFichaPdf">Baixar PDF</button>
+              <button type="button" class="modal-close" id="closeVehicleIdFichaModal">Fechar</button>
+            </div>
+          </div>
+          <div id="vehicleIdFichaCapture" class="vif-capture"></div>
+        </div>
+      </div>
+
       <div id="nfseModal" class="modal-backdrop hidden">
         <div class="modal">
           <div class="modal-header">
@@ -11019,6 +11037,9 @@
         return { error: error || null, skipped: false };
       }
 
+      const vehicleIdFichaModal = document.getElementById("vehicleIdFichaModal");
+      const vehicleIdFichaTitle = document.getElementById("vehicleIdFichaTitle");
+      const vehicleIdFichaCapture = document.getElementById("vehicleIdFichaCapture");
       const fichaModal = document.getElementById("fichaModal");
       const patioVehicleActionsModal = document.getElementById("patioVehicleActionsModal");
       const closePatioVehicleActionsModal = document.getElementById("closePatioVehicleActionsModal");
@@ -20487,7 +20508,7 @@
         } else if (vnpShouldShowVistoriaStartButton(v)) {
           parts.push(`<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`);
         }
-        parts.push(`<button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>`);
+        parts.push(patioFichaMenuButtonsHtml(v));
         parts.push(`<button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>`);
         if (isVscStatus(v.status)) {
           parts.push(
@@ -20549,7 +20570,8 @@
               <div class="patio-mob-compact-row">
                 ${lead}
                 <span class="patio-mob-compact-text">${buildPatioMobileCompactLine(v)}</span>
-                <button type="button" class="patio-mob-info-btn secondary" data-action="patio_acoes" data-id="${v.id}" aria-label="Ações do veículo" title="Ações">Info</button>
+                ${patioVehicleStatusButtonHtml(v, v.status === "REMOVIDO" ? "vrp" : "vnp")}
+                <button type="button" class="patio-mob-info-btn secondary" data-action="patio_acoes" data-id="${v.id}" aria-label="Ações do veículo" title="Ações">Ações</button>
               </div>
             </td>`;
       }
@@ -20576,24 +20598,89 @@
         patioVehicleActionsModal.classList.remove("hidden");
       }
 
+      function patioFichaMenuButtonsHtml(v) {
+        return (
+          `<button class="secondary" data-action="ficha_tipo1" data-id="${v.id}">Ficha tipo 1 — Identificação</button>` +
+          `<button class="secondary" data-action="ficha_tipo2" data-id="${v.id}">Ficha tipo 2 — Identificação e financeiro</button>`
+        );
+      }
+
+      function patioVehicleStatusButtonHtml(v, listContext) {
+        const kind = listContext === "vrp" || String(v?.status || "") === "REMOVIDO" ? "vrp" : patioStageOfVehicle(v);
+        const map = {
+          vrp: { label: "VRP", title: "Status do veículo: removido (VRP)", cls: "is-vrp" },
+          vsl: { label: "VSL", title: "Status do veículo: solicitação de liberação (VSL)", cls: "is-vsl" },
+          vsc: { label: "VSC", title: "Status do veículo: liberação confirmada (VSC)", cls: "is-vsc" },
+          vnp: { label: "VNP", title: "Status do veículo: no pátio (VNP)", cls: "" },
+        };
+        const m = map[kind] || map.vnp;
+        return `<button type="button" class="patio-status-btn ${m.cls}" data-action="patio_status" data-id="${v.id}" title="${m.title}" aria-label="${m.title}">${m.label}</button>`;
+      }
+
+      function closePatioActionsMenus() {
+        document.querySelectorAll(".patio-actions-menu").forEach((el) => {
+          el.classList.add("hidden");
+          el.style.top = "";
+          el.style.right = "";
+          el.style.left = "";
+        });
+        document.querySelectorAll(".patio-actions-toggle[aria-expanded='true']").forEach((el) => {
+          el.setAttribute("aria-expanded", "false");
+        });
+      }
+
+      function togglePatioActionsMenu(button) {
+        const wrap = button.closest(".patio-actions-dd");
+        const menu = wrap?.querySelector(".patio-actions-menu");
+        if (!menu) return;
+        const willOpen = menu.classList.contains("hidden");
+        closePatioActionsMenus();
+        if (!willOpen) return;
+        menu.classList.remove("hidden");
+        button.setAttribute("aria-expanded", "true");
+        const r = button.getBoundingClientRect();
+        menu.style.position = "fixed";
+        menu.style.left = "auto";
+        menu.style.right = `${Math.max(8, window.innerWidth - r.right)}px`;
+        menu.style.top = `${Math.min(r.bottom + 4, window.innerHeight - 24)}px`;
+        menu.style.zIndex = "4200";
+        requestAnimationFrame(() => {
+          const mh = menu.offsetHeight || 0;
+          if (r.bottom + 8 + mh > window.innerHeight - 8) {
+            menu.style.top = `${Math.max(8, r.top - mh - 4)}px`;
+          }
+        });
+      }
+
+      function wrapPatioActionsCompactHtml(v, innerHtml, listContext) {
+        return `<div class="patio-actions-compact">
+            ${patioVehicleStatusButtonHtml(v, listContext)}
+            <div class="patio-actions-dd">
+              <button type="button" class="secondary patio-actions-toggle" data-action="patio_acoes_menu" data-id="${v.id}" aria-haspopup="menu" aria-expanded="false">Ações</button>
+              <div class="patio-actions-menu hidden" role="menu">${innerHtml}</div>
+            </div>
+          </div>`;
+      }
+
       function buildPatioVehicleActionsHtml(v, opts = {}) {
         const listContext = opts.listContext || "vnp";
+        const compact = opts.compact === true;
+        let inner = "";
         if (isVisualizador) {
           const viewBtn = vnpShouldShowVistoriaViewButton(v)
             ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
             : "";
-          return `${viewBtn}<button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button><button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>`;
-        }
-        if (isGestorPista) {
-            if (listContext === "vrp") {
-            return `<span class="notice">Sem permissão de ação</span><button class="secondary" data-action="historico" data-id="${v.id}">Histórico</button><button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>`;
+          inner = `${viewBtn}${patioFichaMenuButtonsHtml(v)}<button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>`;
+        } else if (isGestorPista) {
+          if (listContext === "vrp") {
+            inner = `<span class="notice">Sem permissão de ação</span><button class="secondary" data-action="historico" data-id="${v.id}">Histórico</button>${patioFichaMenuButtonsHtml(v)}<button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>`;
+          } else {
+            inner = buildGestorPistaVnpActions(v);
           }
-          return buildGestorPistaVnpActions(v);
-        }
-        if (listContext === "vrp") {
-          return `
+        } else if (listContext === "vrp") {
+          inner = `
               <button class="patio-prio-btn" data-action="historico" data-id="${v.id}">Histórico</button>
-              <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
+              ${patioFichaMenuButtonsHtml(v)}
               <button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>
               <button class="secondary" data-action="voltar" data-id="${v.id}" title="Desfaz remoção feita por engano e volta para o passo anterior">Voltar</button>
               ${nfseActionButtonHtml(v)}
@@ -20613,36 +20700,35 @@
               }
               <button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>
               <button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>
-              <span class="tag success">Removido</span>
             `;
-        }
-        let fluxoBtn = crActionButtonHtml(v);
-        if (isPendingAdmReview(v)) {
-          fluxoBtn +=
-            `<button class="secondary" data-action="editar" data-id="${v.id}">Revisar registro</button>` +
-            `<button class="secondary" data-action="validar_adm_review" data-id="${v.id}">Validar registro</button>`;
-        } else if (!isRegistroPendente(v) && (v.status === "NO_PATIO" || v.status === "AGUARDANDO_VISTORIA")) {
-          fluxoBtn += `<button class="secondary" data-action="solicitar" data-id="${v.id}">Liberação solicitada</button>`;
-        } else if (v.status === "LIBERACAO_SOLICITADA") {
-          fluxoBtn += `<button class="patio-prio-btn" data-action="confirmar_liberacao" data-id="${v.id}">VSL</button>`;
-        } else if (canEfetivarRemocaoVrp(v)) {
-          fluxoBtn += `<button class="patio-prio-btn" data-action="confirmar" data-id="${v.id}">VRP</button>`;
-        }
-        const veiBtn = vnpShouldShowVistoriaViewButton(v)
-          ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>` +
-            (vnpShouldShowVistoriaEditButton(v)
-              ? `<button class="secondary" data-action="editar_vistoria" data-id="${v.id}">Editar vistoria</button>`
-              : "") +
-            (vnpShouldShowVistoriaDeleteButton(v)
-              ? `<button class="secondary" data-action="apagar_vistoria" data-id="${v.id}">Apagar vistoria</button>`
-              : "")
-          : vnpShouldShowVistoriaStartButton(v)
-            ? `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`
-            : "";
-        return `
+        } else {
+          let fluxoBtn = crActionButtonHtml(v);
+          if (isPendingAdmReview(v)) {
+            fluxoBtn +=
+              `<button class="secondary" data-action="editar" data-id="${v.id}">Revisar registro</button>` +
+              `<button class="secondary" data-action="validar_adm_review" data-id="${v.id}">Validar registro</button>`;
+          } else if (!isRegistroPendente(v) && (v.status === "NO_PATIO" || v.status === "AGUARDANDO_VISTORIA")) {
+            fluxoBtn += `<button class="secondary" data-action="solicitar" data-id="${v.id}">Liberação solicitada</button>`;
+          } else if (v.status === "LIBERACAO_SOLICITADA") {
+            fluxoBtn += `<button class="patio-prio-btn" data-action="confirmar_liberacao" data-id="${v.id}">VSL</button>`;
+          } else if (canEfetivarRemocaoVrp(v)) {
+            fluxoBtn += `<button class="patio-prio-btn" data-action="confirmar" data-id="${v.id}">VRP</button>`;
+          }
+          const veiBtn = vnpShouldShowVistoriaViewButton(v)
+            ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>` +
+              (vnpShouldShowVistoriaEditButton(v)
+                ? `<button class="secondary" data-action="editar_vistoria" data-id="${v.id}">Editar vistoria</button>`
+                : "") +
+              (vnpShouldShowVistoriaDeleteButton(v)
+                ? `<button class="secondary" data-action="apagar_vistoria" data-id="${v.id}">Apagar vistoria</button>`
+                : "")
+            : vnpShouldShowVistoriaStartButton(v)
+              ? `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`
+              : "";
+          inner = `
               ${fluxoBtn}
               ${veiBtn}
-              <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
+              ${patioFichaMenuButtonsHtml(v)}
               <button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>
               ${nfseActionButtonHtml(v)}
               ${cobrancaEmailActionButtonHtml(v)}
@@ -20657,6 +20743,8 @@
                   : ""
               }
             `;
+        }
+        return compact ? wrapPatioActionsCompactHtml(v, inner, listContext) : inner;
       }
 
       function buildVnpUnifiedRowHtml(v, opts = {}) {
@@ -20702,7 +20790,7 @@
         }
         const situacaoHtml = situacaoTags.length > 0 ? `<div class="vnp-situacao">${situacaoTags.join("")}</div>` : "";
 
-        const actionsCell = buildPatioVehicleActionsHtml(v, { listContext: "vnp" });
+        const actionsCell = buildPatioVehicleActionsHtml(v, { listContext: "vnp", compact: true });
 
         return `
           <tr class="${rowClass}" data-vehicle-row="${v.id}">
@@ -22009,7 +22097,7 @@
               ? "-"
               : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
 
-            const actionsCell = buildPatioVehicleActionsHtml(v, { listContext: "vrp" });
+            const actionsCell = buildPatioVehicleActionsHtml(v, { listContext: "vrp", compact: true });
             const marcado = patioVrpSelecionados.has(String(v.id)) ? " checked" : "";
             const destaque = String(v.id) === String(patioVrpTopoDestaque) ? ' style="outline: 2px solid #8a9a3a"' : "";
             const rowSel = patioVrpSelecionados.has(String(v.id)) ? "patio-vrp-selected" : "";
@@ -24422,6 +24510,220 @@
         await openFicha(v);
       };
 
+      function pickVehicleMainPhotoUrl(photos) {
+        const list = (photos || []).filter((p) => p && p.url);
+        if (!list.length) return "";
+        const rank = (p) => {
+          const type = String(p.photo_type || p.type || "").toLowerCase();
+          const cat = String(p.photo_category || "").toUpperCase();
+          if (type === "front" || type === "frente") return 0;
+          if (type === "diag_front_left") return 1;
+          if (type.includes("front") && !type.includes("avaria")) return 2;
+          if (cat === "EXTERIOR") return 3;
+          if (type.startsWith("avaria") || cat === "ITEM_DANIFICADO" || cat === "AVARIAS") return 9;
+          return 6;
+        };
+        return [...list].sort((a, b) => rank(a) - rank(b))[0].url || "";
+      }
+
+      async function loadVehicleMainPhotoUrl(vehicle) {
+        if (!vehicle?.id) return "";
+        try {
+          const insp = getInspectionIndexEntry(vehicle.id);
+          if (insp && window.vehicleEntryInspection?.loadInspectionDetail) {
+            const detail = await window.vehicleEntryInspection.loadInspectionDetail(
+              buildVehicleInspectionCtx(),
+              insp.id,
+              vehicle.id
+            );
+            const fromDetail = pickVehicleMainPhotoUrl(detail?.photos || []);
+            if (fromDetail) return fromDetail;
+          }
+          if (!supabase) return "";
+          let query = supabase
+            .from("vehicle_entry_inspection_photos")
+            .select("storage_path,photo_type,photo_category,url,inspection_id");
+          if (insp?.id) query = query.eq("inspection_id", insp.id);
+          else query = query.eq("vehicle_id", vehicle.id);
+          const { data } = await query.limit(40);
+          const withUrls = [];
+          for (const p of data || []) {
+            let url = p.url || "";
+            if (!url && p.storage_path) {
+              try {
+                const signed = await supabase.storage
+                  .from("vehicle-inspection-photos")
+                  .createSignedUrl(p.storage_path, 3600);
+                url = signed.data?.signedUrl || "";
+              } catch (e) {
+                url = "";
+              }
+            }
+            if (url) withUrls.push({ ...p, url });
+          }
+          return pickVehicleMainPhotoUrl(withUrls);
+        } catch (e) {
+          console.warn("loadVehicleMainPhotoUrl", e);
+          return "";
+        }
+      }
+
+      function vifMetaRow(label, value) {
+        return `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value || "—")}</dd></div>`;
+      }
+
+      async function openVehicleIdFicha(vehicle, tipo) {
+        if (!vehicleIdFichaModal || !vehicleIdFichaCapture || !vehicle) return;
+        const kind = Number(tipo) === 2 ? 2 : 1;
+        vehicleIdFichaModal.dataset.fichaTipo = String(kind);
+        vehicleIdFichaModal.dataset.openVehicleId = vehicle.id;
+        if (vehicleIdFichaTitle) {
+          vehicleIdFichaTitle.textContent =
+            kind === 2
+              ? `Ficha tipo 2 — ${vehicle.placa || "veículo"}`
+              : `Ficha tipo 1 — ${vehicle.placa || "veículo"}`;
+        }
+        vehicleIdFichaCapture.innerHTML = `<p class="vif-empty">A carregar ficha…</p>`;
+        vehicleIdFichaModal.classList.remove("hidden");
+
+        const modelo = [vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "—";
+        const financeira = partnerNomeById(vehicle.financeira_id) || "";
+        const escritorio = vehicleAdvocacyOfficeNome(vehicle);
+        const leiloeiro = partnerNomeById(vehicle.leiloeiro_id) || "";
+        const photoUrl = await loadVehicleMainPhotoUrl(vehicle);
+        const photoHtml = photoUrl
+          ? `<img class="vif-photo" alt="Fotografia do veículo" src="${escapeHtml(photoUrl)}" />`
+          : "";
+
+        let events = [];
+        try {
+          const { data, error } = await supabase
+            .from("vehicle_events")
+            .select("*")
+            .eq("vehicle_id", vehicle.id)
+            .order("data_evento", { ascending: true });
+          if (!error) events = data || [];
+        } catch (e) {
+          events = [];
+        }
+
+        let timelineHtml = "";
+        if (events.length) {
+          timelineHtml = `<ol class="vif-timeline">${events
+            .map((evt) => {
+              const title = formatPatioEventTitle(evt.tipo);
+              const when = formatDateTime(evt.data_evento);
+              const extra = evt.descricao ? ` — ${evt.descricao}` : "";
+              return `<li><strong>${escapeHtml(title)}${escapeHtml(extra)}</strong><time>${escapeHtml(
+                when || "—"
+              )}</time></li>`;
+            })
+            .join("")}</ol>`;
+        } else {
+          timelineHtml = `<p class="vif-empty">Ainda não há acontecimentos registrados para consulta.</p>`;
+        }
+
+        const vinculos = [];
+        if (financeira) vinculos.push(vifMetaRow("Instituição financeira", financeira));
+        if (escritorio && escritorio !== "—") vinculos.push(vifMetaRow("Escritório responsável", escritorio));
+        if (leiloeiro) vinculos.push(vifMetaRow("Leilão / leiloeiro", leiloeiro));
+
+        let financeHtml = "";
+        if (kind === 2) {
+          const dias = calcDays(vehicle);
+          const horas = calcHours(vehicle);
+          const hideMoney = hidesFinancialValues();
+          const vd = Number(vehicle.valor_diaria);
+          const diariaTxt = Number.isFinite(vd) && vd > 0 ? formatCurrency(vd) : "—";
+          const totalTxt = formatCurrency(calcTotal(vehicle));
+          financeHtml = `<section class="vif-finance"><h2>Permanência e valores</h2><dl class="vif-meta">${vifMetaRow(
+            "Quantidade de dias no pátio",
+            String(dias)
+          )}${vifMetaRow("Quantidade de horas no pátio", String(horas))}${
+            hideMoney ? "" : vifMetaRow("Valor da diária", diariaTxt) + vifMetaRow("Valor total acumulado", totalTxt)
+          }</dl>${hideMoney ? `<p class="vif-empty">Valores não exibidos neste perfil.</p>` : ""}</section>`;
+        }
+
+        const kicker = kind === 2 ? "Identificação e financeiro" : "Identificação do veículo";
+        vehicleIdFichaCapture.innerHTML = `
+          <img src="/assets/ampliguard-logo-official.png?v=20261109qr1" alt="AMPLIGUARD" class="vif-logo" onerror="this.onerror=null;this.src='/assets/ampliguard-marca.png?v=20260917logo2'" />
+          <p class="vif-kicker">${kicker}</p>
+          <h1 class="vif-plate">${escapeHtml(vehicle.placa || "—")}</h1>
+          <p class="vif-model">${escapeHtml(modelo)}</p>
+          ${photoHtml}
+          <dl class="vif-meta">
+            ${vifMetaRow("Cor", vehicle.cor || "—")}
+            ${vifMetaRow("Entrada no pátio", formatDateTime(vehicle.data_entrada) || "—")}
+          </dl>
+          ${
+            vinculos.length
+              ? `<section><h2>Informações vinculadas</h2><dl class="vif-meta">${vinculos.join("")}</dl></section>`
+              : ""
+          }
+          ${financeHtml}
+          <section>
+            <h2>Histórico</h2>
+            ${timelineHtml}
+          </section>
+          <p class="vif-foot">AMPLIGUARD</p>
+        `;
+      }
+
+      function closeVehicleIdFichaModalFn() {
+        if (!vehicleIdFichaModal) return;
+        vehicleIdFichaModal.classList.add("hidden");
+        delete vehicleIdFichaModal.dataset.openVehicleId;
+        delete vehicleIdFichaModal.dataset.fichaTipo;
+      }
+
+      async function downloadVehicleIdFichaPdfFn() {
+        if (!vehicleIdFichaCapture || vehicleIdFichaModal?.classList.contains("hidden")) return;
+        let h2c;
+        try {
+          await loadJsPdf();
+          h2c = await loadHtml2Canvas();
+        } catch (e) {
+          alert("Não foi possível carregar a ferramenta de PDF. Verifique a internet.");
+          return;
+        }
+        const jsPdfCtor = window.jspdf?.jsPDF;
+        if (!h2c || !jsPdfCtor) return;
+        try {
+          const canvas = await h2c(vehicleIdFichaCapture, {
+            backgroundColor: "#ffffff",
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+          });
+          const img = canvas.toDataURL("image/jpeg", 0.92);
+          const pdf = new jsPdfCtor({ unit: "mm", format: "a4" });
+          const pageW = 210;
+          const pageH = 297;
+          const margin = 12;
+          const imgW = pageW - margin * 2;
+          const imgH = (canvas.height * imgW) / canvas.width;
+          let heightLeft = imgH;
+          let position = margin;
+          pdf.addImage(img, "JPEG", margin, position, imgW, imgH);
+          heightLeft -= pageH - margin * 2;
+          while (heightLeft > 0) {
+            position = margin - (imgH - heightLeft);
+            pdf.addPage();
+            pdf.addImage(img, "JPEG", margin, position, imgW, imgH);
+            heightLeft -= pageH - margin * 2;
+          }
+          const tipo = vehicleIdFichaModal.dataset.fichaTipo === "2" ? "tipo2" : "tipo1";
+          const placa = String(vehicleIdFichaTitle?.textContent || "veiculo")
+            .replace(/[^\w.-]+/g, "-")
+            .replace(/^-|-$/g, "")
+            .slice(0, 40);
+          pdf.save(`ficha-${tipo}-${placa || "veiculo"}.pdf`);
+        } catch (e) {
+          console.error(e);
+          alert("Não foi possível gerar o PDF neste aparelho.");
+        }
+      }
+
       async function openFicha(vehicle) {
         if (fichaModalTitle) {
           fichaModalTitle.textContent = `Ficha — ${vehicle.placa || "veículo"}`;
@@ -25088,6 +25390,12 @@
         fichaModal.classList.add("hidden");
         delete fichaModal.dataset.openVehicleId;
       });
+      document.getElementById("closeVehicleIdFichaModal")?.addEventListener("click", () => {
+        closeVehicleIdFichaModalFn();
+      });
+      document.getElementById("downloadVehicleIdFichaPdf")?.addEventListener("click", () => {
+        void downloadVehicleIdFichaPdfFn();
+      });
       closePatioVehicleActionsModal?.addEventListener("click", () => {
         closePatioVehicleActionsModalFn();
       });
@@ -25404,11 +25712,12 @@
         workflowModalConfig = null;
       });
 
-      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, lancamentoModal, fichaModal, patioVehicleActionsModal, nfseModal, cobrancaEmailModal, nfseThermalModal, controleRecebimentoModal, textModal, reciboModal, receberBaixaModal, pagarBaixaModal].filter(Boolean).forEach((modal) => {
+      [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, lancamentoModal, fichaModal, vehicleIdFichaModal, patioVehicleActionsModal, nfseModal, cobrancaEmailModal, nfseThermalModal, controleRecebimentoModal, textModal, reciboModal, receberBaixaModal, pagarBaixaModal].filter(Boolean).forEach((modal) => {
         modal.addEventListener("click", (event) => {
           if (event.target === modal) {
             modal.classList.add("hidden");
             if (modal === fichaModal) delete fichaModal.dataset.openVehicleId;
+            if (modal === vehicleIdFichaModal) closeVehicleIdFichaModalFn();
             if (modal === patioVehicleActionsModal) delete patioVehicleActionsModal.dataset.openVehicleId;
             if (modal === dateModal && dateModalResolver) {
               dateModalResolver(null);
@@ -28878,17 +29187,11 @@ ${body}
         });
       }
 
-      async function handleVnpVehicleAction(button) {
+      async function handleVnpVehicleAction(button, clickEvent) {
         const id = button.getAttribute("data-id");
         const action = button.getAttribute("data-action");
-        if (isVisualizador && action !== "ficha" && action !== "ver_vistoria" && action !== "patio_acoes" && action !== "baixar_qr") {
-          alert("O perfil Visualizador é somente consulta. Não é possível alterar dados.");
-          return;
-        }
-        if (isVistoriador && action !== "vistoria" && action !== "baixar_qr") {
-          alert("Este perfil só pode realizar vistorias.");
-          return;
-        }
+
+        if (action === "patio_status") return;
 
         if (action === "patio_acoes") {
           const vehicleInfo = state.vehicles.find((v) => v.id === id);
@@ -28898,6 +29201,30 @@ ${body}
           return;
         }
 
+        if (action === "patio_acoes_menu") {
+          if (clickEvent && typeof clickEvent.stopPropagation === "function") clickEvent.stopPropagation();
+          togglePatioActionsMenu(button);
+          return;
+        }
+
+        if (
+          isVisualizador &&
+          action !== "ficha" &&
+          action !== "ficha_tipo1" &&
+          action !== "ficha_tipo2" &&
+          action !== "historico" &&
+          action !== "ver_vistoria" &&
+          action !== "baixar_qr"
+        ) {
+          alert("O perfil Visualizador é somente consulta. Não é possível alterar dados.");
+          return;
+        }
+        if (isVistoriador && action !== "vistoria" && action !== "baixar_qr") {
+          alert("Este perfil só pode realizar vistorias.");
+          return;
+        }
+
+        closePatioActionsMenus();
         closePatioVehicleActionsModalFn();
 
         const patioWriteActions = new Set([
@@ -29029,7 +29356,17 @@ ${body}
         if (!vehicle) return;
 
         if (isGestorPista) {
-          const gestorAllowed = new Set(["ficha", "vistoria", "ver_vistoria", "patio_acoes", "confirmar", "baixar_qr"]);
+          const gestorAllowed = new Set([
+            "ficha",
+            "ficha_tipo1",
+            "ficha_tipo2",
+            "historico",
+            "vistoria",
+            "ver_vistoria",
+            "patio_acoes",
+            "confirmar",
+            "baixar_qr",
+          ]);
           if (!gestorAllowed.has(action)) {
             alert("O gestor de pista não pode executar esta ação.");
             return;
@@ -29129,7 +29466,17 @@ ${body}
           return;
         }
 
-        if (action === "ficha" || action === "historico") {
+        if (action === "ficha_tipo1" || action === "historico") {
+          await openVehicleIdFicha(vehicle, 1);
+          return;
+        }
+
+        if (action === "ficha_tipo2") {
+          await openVehicleIdFicha(vehicle, 2);
+          return;
+        }
+
+        if (action === "ficha") {
           await openFicha(vehicle);
           return;
         }
@@ -30206,7 +30553,8 @@ ${body}
           async (event) => {
             const button = event.target.closest("button[data-action]");
             if (!button) return;
-            await handleVnpVehicleAction(button);
+            if (button.getAttribute("data-action") === "patio_acoes_menu") event.stopPropagation();
+            await handleVnpVehicleAction(button, event);
           },
           true
         );
@@ -30217,14 +30565,21 @@ ${body}
       patioVehicleActionsModal?.addEventListener("click", async (event) => {
         const button = event.target.closest("button[data-action]");
         if (!button || !patioVehicleActionsModal.contains(button)) return;
-        await handleVnpVehicleAction(button);
+        await handleVnpVehicleAction(button, event);
       });
 
       fichaModal?.addEventListener("click", async (event) => {
         const button = event.target.closest("button[data-action]");
         if (!button || !fichaModal.contains(button)) return;
-        await handleVnpVehicleAction(button);
+        await handleVnpVehicleAction(button, event);
       });
+
+      document.addEventListener("click", (event) => {
+        if (event.target.closest(".patio-actions-dd")) return;
+        closePatioActionsMenus();
+      });
+      window.addEventListener("resize", closePatioActionsMenus);
+      window.addEventListener("scroll", closePatioActionsMenus, true);
 
       document.getElementById("viewParceiros").addEventListener("click", async (event) => {
         const kpi = event.target.closest("[data-partner-kpi]");
