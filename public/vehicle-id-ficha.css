@@ -1,0 +1,208 @@
+/* Fichas de identificação do pátio + menu compacto de Ações */
+
+#viewPatio .table td.actions {
+  overflow: visible;
+  min-width: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.patio-actions-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.patio-status-btn {
+  cursor: default;
+  min-width: 52px;
+  padding: 6px 10px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(15, 61, 46, 0.28) !important;
+  background: #0f3d2e !important;
+  color: #fff !important;
+}
+
+.patio-status-btn.is-vsl,
+.patio-status-btn.is-vsc {
+  background: #1d4ed8 !important;
+  border-color: rgba(29, 78, 216, 0.35) !important;
+}
+
+.patio-status-btn.is-vrp {
+  background: #166534 !important;
+  border-color: rgba(22, 101, 52, 0.35) !important;
+}
+
+.patio-actions-toggle {
+  white-space: nowrap;
+}
+
+.patio-actions-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: min(280px, calc(100vw - 24px));
+  max-height: min(70vh, 480px);
+  overflow: auto;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #d5e0d8);
+  background: var(--card, #fff);
+  box-shadow: 0 16px 40px rgba(15, 61, 46, 0.18);
+}
+
+.patio-actions-menu.hidden {
+  display: none !important;
+}
+
+.patio-actions-menu button {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.vehicle-id-ficha-modal {
+  max-width: 520px;
+  width: calc(100% - 24px);
+}
+
+.vif-capture {
+  background: #fff;
+  color: #14221c;
+  border-radius: 16px;
+  padding: 22px 20px 18px;
+}
+
+.vif-logo {
+  display: block;
+  width: min(220px, 70%);
+  height: auto;
+  margin: 0 auto 12px;
+}
+
+.vif-kicker {
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  color: #4d6a5c;
+  margin: 0 0 6px;
+}
+
+.vif-plate {
+  text-align: center;
+  font-size: 28px;
+  letter-spacing: 0.12em;
+  margin: 0 0 4px;
+}
+
+.vif-model {
+  text-align: center;
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
+.vif-photo {
+  display: block;
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin: 0 0 16px;
+  background: #e8efe9;
+}
+
+.vif-capture h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #4d6a5c;
+  margin: 18px 0 8px;
+}
+
+.vif-meta {
+  margin: 0;
+}
+
+.vif-meta div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e3ece6;
+}
+
+.vif-meta dt {
+  color: #4d6a5c;
+  font-size: 13px;
+}
+
+.vif-meta dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+
+.vif-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 3px solid #0f3d2e;
+}
+
+.vif-timeline li {
+  padding: 0 0 14px 14px;
+  position: relative;
+}
+
+.vif-timeline li::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 6px;
+  width: 11px;
+  height: 11px;
+  background: #0f3d2e;
+  border-radius: 50%;
+}
+
+.vif-timeline strong {
+  display: block;
+  font-size: 15px;
+}
+
+.vif-timeline time {
+  font-size: 13px;
+  color: #4d6a5c;
+}
+
+.vif-empty,
+.vif-foot {
+  text-align: center;
+  color: #4d6a5c;
+  font-size: 13px;
+}
+
+.vif-foot {
+  margin: 22px 0 0;
+}
+
+.vif-finance {
+  background: #f4f8f5;
+  border-radius: 12px;
+  padding: 4px 12px 8px;
+  margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+  .patio-actions-toggle,
+  .patio-mob-info-btn {
+    min-height: 40px;
+    min-width: 72px;
+  }
+}
