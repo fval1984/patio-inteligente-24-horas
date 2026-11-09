@@ -9,9 +9,11 @@
   const OUT_W = 2046;
   const OUT_H = 1368;
 
-  function publicHistoryUrl(token) {
+  function publicHistoryUrl(token, ficha) {
     const origin = typeof location !== "undefined" ? location.origin : "";
-    return `${origin}/v/${String(token || "").trim()}`;
+    const base = `${origin}/v/${String(token || "").trim()}`;
+    const tipo = Number(ficha) === 2 ? 2 : 1;
+    return tipo === 2 ? `${base}?ficha=2` : base;
   }
 
   function db() {
@@ -205,7 +207,7 @@
     return token;
   }
 
-  async function buildPngCanvas(vehicle) {
+  async function buildPngCanvas(vehicle, ficha) {
     const record = await loadSameRecord(vehicle);
     const placa = plateLabel(record.placa);
     if (!placa) {
@@ -215,18 +217,24 @@
     if (String(record.id) !== String(vehicle.id)) {
       throw new Error("A placa e o QR Code não correspondem ao mesmo registro.");
     }
-    const code = await buildQrModel(publicHistoryUrl(token));
+    const code = await buildQrModel(publicHistoryUrl(token, ficha));
     return { canvas: composePlateAndQr(code, placa), placa, id: record.id };
   }
 
   async function downloadForVehicle(vehicle) {
-    const built = await buildPngCanvas(vehicle);
-    const canvas = built && built.canvas;
-    if (!canvas || canvas.width <= canvas.height) {
+    const one = await buildPngCanvas(vehicle, 1);
+    if (!one.canvas || one.canvas.width <= one.canvas.height) {
       throw new Error("Falha ao montar a imagem da placa com o QR Code.");
     }
-    downloadCanvas(canvas, `ampliguard-qr-${built.placa}.png`);
-    return canvas;
+    downloadCanvas(one.canvas, `ampliguard-qr-${one.placa}-parabrisa.png`);
+    const two = await buildPngCanvas(vehicle, 2);
+    if (two.canvas && two.canvas.width > two.canvas.height) {
+      await new Promise(function (resolve) {
+        setTimeout(resolve, 450);
+      });
+      downloadCanvas(two.canvas, `ampliguard-qr-${two.placa}-chave.png`);
+    }
+    return one.canvas;
   }
 
   global.vehicleQr = {
