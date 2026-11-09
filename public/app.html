@@ -7408,7 +7408,7 @@
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261103cadernetaPlaca1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20261001escritorio3" />
-    <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr1" />
+    <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
   </head>
   <body class="auth-screen-active">
@@ -9039,8 +9039,9 @@
               </div>
             </div>
             <div id="vehicleLabelActions" class="form-actions vehicle-label-actions hidden">
-              <button type="button" class="secondary" id="vehiclePrintWindshield">Imprimir etiqueta do para-brisa</button>
-              <button type="button" class="secondary" id="vehiclePrintKey">Imprimir etiqueta da chave</button>
+              <button type="button" class="secondary" id="vehicleDownloadWindshield">Baixar etiqueta do para-brisa</button>
+              <button type="button" class="secondary" id="vehicleDownloadKeyFront">Baixar etiqueta da chave — frente</button>
+              <button type="button" class="secondary" id="vehicleDownloadKeyBack">Baixar etiqueta da chave — verso</button>
             </div>
             <div class="form-actions">
               <button type="submit">Salvar</button>
@@ -9450,28 +9451,31 @@
           <div class="modal-header">
             <div>
               <h3 id="vehicleLabelsTitle">Etiquetas do veículo</h3>
-              <p class="notice" style="margin: 4px 0 0; font-size: 12px">Pré-visualização em tamanho real NIIMBOT B1 (203 dpi). O QR Code não muda ao reimprimir.</p>
+              <p class="notice" style="margin: 4px 0 0; font-size: 12px">PNG para o aplicativo NIIMBOT B1. O QR Code não muda ao baixar de novo.</p>
             </div>
             <button type="button" class="modal-close" id="closeVehicleLabelsModal">Fechar</button>
           </div>
-          <p class="vl-hint">A impressão direta no navegador pode ser redimensionada pela caixa de diálogo. Para a B1, baixe o PNG e importe no aplicativo NIIMBOT na medida correspondente (50×30 mm no para-brisa; 25×78 mm na chave, corpo 38 mm + alça 40 mm).</p>
+          <p class="vl-hint">Importe no app NIIMBOT: para-brisa 50×30 mm; chave 25×30 mm (a alça de 40 mm é da etiqueta física e não entra no arquivo). Fundo branco, elementos pretos.</p>
           <div class="vl-preview-wrap">
             <div class="vl-preview-card">
               <h4>Para-brisa 50×30 mm</h4>
               <div id="vlPreviewWindshield"></div>
             </div>
             <div class="vl-preview-card">
-              <h4>Chave 25×38 mm + alça 40 mm</h4>
-              <div id="vlPreviewKey"></div>
+              <h4>Chave frente 25×30 mm</h4>
+              <div id="vlPreviewKeyFront"></div>
+            </div>
+            <div class="vl-preview-card">
+              <h4>Chave verso 25×30 mm</h4>
+              <div id="vlPreviewKeyBack"></div>
             </div>
           </div>
           <label for="vlPublicUrl">Endereço público do histórico</label>
           <input id="vlPublicUrl" type="text" readonly />
           <div class="form-actions vl-actions">
-            <button type="button" id="vlPrintWindshield">Imprimir etiqueta do para-brisa</button>
-            <button type="button" class="secondary" id="vlDownloadWindshield">Baixar PNG para-brisa</button>
-            <button type="button" id="vlPrintKey">Imprimir etiqueta da chave</button>
-            <button type="button" class="secondary" id="vlDownloadKey">Baixar PNG chave</button>
+            <button type="button" id="vlDownloadWindshield">Baixar etiqueta do para-brisa</button>
+            <button type="button" id="vlDownloadKeyFront">Baixar etiqueta da chave — frente</button>
+            <button type="button" id="vlDownloadKeyBack">Baixar etiqueta da chave — verso</button>
             <button type="button" class="secondary" id="vlCopyUrl">Copiar endereço público</button>
           </div>
         </div>
@@ -10393,7 +10397,7 @@
     <script src="/vehicle-entry-inspection-document.js?v=20261105fotos1"></script>
     <script src="/vehicle-entry-inspection.js?v=20261105fotos1"></script>
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
-    <script src="/vehicle-labels.js?v=20261109qr1"></script>
+    <script src="/vehicle-labels.js?v=20261109qr2"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script src="/advocacy-offices-service.js?v=20261001escritorio3"></script>
@@ -24948,11 +24952,18 @@
         }
         if (window.vehicleLabels?.openForVehicle) await window.vehicleLabels.openForVehicle(vehicle);
       }
-      document.getElementById("vehiclePrintWindshield")?.addEventListener("click", () => {
-        void openVehicleLabelsFromForm();
+      async function downloadVehicleLabelFromForm(kind) {
+        await openVehicleLabelsFromForm();
+        if (window.vehicleLabels?.downloadKind) window.vehicleLabels.downloadKind(kind);
+      }
+      document.getElementById("vehicleDownloadWindshield")?.addEventListener("click", () => {
+        void downloadVehicleLabelFromForm("wind");
       });
-      document.getElementById("vehiclePrintKey")?.addEventListener("click", () => {
-        void openVehicleLabelsFromForm();
+      document.getElementById("vehicleDownloadKeyFront")?.addEventListener("click", () => {
+        void downloadVehicleLabelFromForm("keyFront");
+      });
+      document.getElementById("vehicleDownloadKeyBack")?.addEventListener("click", () => {
+        void downloadVehicleLabelFromForm("keyBack");
       });
 
       openPartnerForm.addEventListener("click", () => {
