@@ -7413,7 +7413,7 @@
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20261001escritorio3" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
-    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261109ficha2" />
+    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261109chave1" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
   </head>
   <body class="auth-screen-active">
@@ -8944,6 +8944,23 @@
               <div class="field-create-only">
                 <label>Cor</label>
                 <input id="vehicleColor" type="text" placeholder="Prata" />
+              </div>
+              <div class="full" id="vehicleChaveCondicaoWrap">
+                <label>Condição da chave</label>
+                <div class="chave-condicao-options" role="radiogroup" aria-label="Condição da chave">
+                  <label class="chave-opt is-c-chave">
+                    <input type="radio" name="vehicleChaveCondicao" value="C_CHAVE" />
+                    C/CHAVE
+                  </label>
+                  <label class="chave-opt is-s-chave">
+                    <input type="radio" name="vehicleChaveCondicao" value="S_CHAVE" />
+                    S/CHAVE
+                  </label>
+                  <label class="chave-opt is-trancado">
+                    <input type="radio" name="vehicleChaveCondicao" value="TRANCADO" />
+                    TRANCADO
+                  </label>
+                </div>
               </div>
               <div class="field-operador-hide field-cr-only">
                 <label>Valor da diária</label>
@@ -20545,6 +20562,8 @@
         html += row("RPV", escapeHtml(rpv));
         html += row("RPP", escapeHtml(rpp));
         html += row("Entrada", escapeHtml(formatDateTime(v.data_entrada)));
+        const chaveChip = patioChaveCondicaoBadgeHtml(v);
+        if (chaveChip) html += row("Chave", chaveChip);
         html += row("Dias no pátio", escapeHtml(String(dias)));
         if (isGestorPista || isVisualizador) {
           html += `<p class="notice patio-mob-info-notice">Valores não exibidos neste perfil.</p>`;
@@ -20614,7 +20633,44 @@
           vnp: { label: "VNP", title: "Status do veículo: no pátio (VNP)", cls: "" },
         };
         const m = map[kind] || map.vnp;
-        return `<button type="button" class="patio-status-btn ${m.cls}" data-action="patio_status" data-id="${v.id}" title="${m.title}" aria-label="${m.title}">${m.label}</button>`;
+        const statusBtn = `<button type="button" class="patio-status-btn ${m.cls}" data-action="patio_status" data-id="${v.id}" title="${m.title}" aria-label="${m.title}">${m.label}</button>`;
+        return `<span class="patio-status-with-key">${statusBtn}${patioChaveCondicaoBadgeHtml(v)}</span>`;
+      }
+
+      function normalizeChaveCondicao(raw) {
+        const s = String(raw || "")
+          .trim()
+          .toUpperCase()
+          .replace(/\s+/g, "_")
+          .replace(/\//g, "_");
+        if (s === "C_CHAVE" || s === "CCHAVE") return "C_CHAVE";
+        if (s === "S_CHAVE" || s === "SCHAVE") return "S_CHAVE";
+        if (s === "TRANCADO") return "TRANCADO";
+        return "";
+      }
+
+      function patioChaveCondicaoBadgeHtml(v) {
+        const k = normalizeChaveCondicao(v && v.chave_condicao);
+        if (!k) return "";
+        const map = {
+          C_CHAVE: { label: "C/CHAVE", cls: "is-c-chave" },
+          S_CHAVE: { label: "S/CHAVE", cls: "is-s-chave" },
+          TRANCADO: { label: "TRANCADO", cls: "is-trancado" },
+        };
+        const m = map[k];
+        return `<span class="chave-condicao-chip ${m.cls}" title="Condição da chave: ${m.label}">${m.label}</span>`;
+      }
+
+      function readVehicleChaveCondicao() {
+        const el = document.querySelector('input[name="vehicleChaveCondicao"]:checked');
+        return normalizeChaveCondicao(el && el.value);
+      }
+
+      function setVehicleChaveCondicaoField(value) {
+        const wanted = normalizeChaveCondicao(value);
+        document.querySelectorAll('input[name="vehicleChaveCondicao"]').forEach((input) => {
+          input.checked = wanted !== "" && input.value === wanted;
+        });
       }
 
       function closePatioActionsMenus() {
@@ -25081,6 +25137,7 @@
           const rppMgr = findCarteiraManagerById(vehicle.responsavel_financeiro_id);
           if (rppMgr && !vehicle.advocacy_office_id) applyOfficeFromCarteiraRpp();
           document.getElementById("vehicleNotes").value = vehicle.observacoes || "";
+          setVehicleChaveCondicaoField(vehicle.chave_condicao);
           const inspectionDateEl = document.getElementById("vehicleInspectionDate");
           const inspectionResponsibleEl = document.getElementById("vehicleInspectionResponsible");
           const inspectionKmEl = document.getElementById("vehicleInspectionKm");
@@ -25118,6 +25175,7 @@
           fillVehicleAdvocacyManagerSelect("");
           bindVehicleRppPicker();
           syncVehicleRppPickerDisplay();
+          setVehicleChaveCondicaoField("");
         }
         const vd = document.getElementById("vehicleDaily");
         const entryInput = document.getElementById("vehicleEntry");
@@ -28465,6 +28523,7 @@ ${body}
           assessoria_id: null,
           leiloeiro_id: initialCreate ? null : vehicleAuctioneer?.value || null,
           observacoes: document.getElementById("vehicleNotes").value.trim(),
+          chave_condicao: readVehicleChaveCondicao() || null,
           status: editingVehicleData?.status || "NO_PATIO",
           payment_status: editingVehicleData?.payment_status || "EM_ABERTO",
           nfse_status: editingVehicleData?.nfse_status || "NAO_SOLICITADA",
@@ -28489,6 +28548,10 @@ ${body}
         if (!initialCreate) {
           payload.patio_parceiro_id = patioParceiroId || null;
           payload.financeira_id = financeiraId || null;
+        }
+        if (!editingVehicleId && !payload.chave_condicao) {
+          alert("Selecione a condição da chave: C/CHAVE, S/CHAVE ou TRANCADO.");
+          return;
         }
         if (!normalizePlateSearch(payload.placa)) {
           alert("Informe uma placa válida.");
@@ -28591,6 +28654,11 @@ ${body}
           delete o.financeira_id;
           return o;
         };
+        const stripChaveCondicaoFrom = (p) => {
+          const o = { ...p };
+          delete o.chave_condicao;
+          return o;
+        };
         const advancedKindsFromError = (msg) => {
           const m = msg || "";
           const kinds = [];
@@ -28601,6 +28669,7 @@ ${body}
           if (/entry_inspection_flow|(\bcor\b)/i.test(m)) kinds.push("entryflow");
           if (/pending_adm_review|registered_by_gestor|adm_reviewed_at/i.test(m)) kinds.push("admreview");
           if (/registro_concluido|patio_parceiro_id|financeira_id/i.test(m)) kinds.push("regcr");
+          if (/chave_condicao/i.test(m)) kinds.push("chave");
           if (/AGUARDANDO_VISTORIA|check constraint|vehicles_status/i.test(m)) kinds.push("status");
           return kinds;
         };
@@ -28618,6 +28687,14 @@ ${body}
             alert(
               "Não foi possível gravar a financeira: a tabela vehicles ainda não tem a coluna financeira_id.\n\n" +
                 "No Supabase → SQL Editor, execute supabase/vehicles_financeira_id.sql e atualize a página.\n\n" +
+                (error.message || "")
+            );
+            return;
+          }
+          if (kinds.includes("chave") && payload.chave_condicao) {
+            alert(
+              "Não foi possível gravar a condição da chave: a tabela vehicles ainda não tem a coluna chave_condicao.\n\n" +
+                "No Supabase → SQL Editor, execute supabase/vehicles_chave_condicao.sql e tente salvar de novo.\n\n" +
                 (error.message || "")
             );
             return;
@@ -28643,6 +28720,7 @@ ${body}
               tryPayload = stripRegCrFrom(tryPayload);
               if (!editingVehicleId) tryPayload.pending_adm_review = true;
             }
+            else if (k === "chave") tryPayload = stripChaveCondicaoFrom(tryPayload);
             else if (k === "status" && !editingVehicleId) {
               alert(
                 "Não foi possível cadastrar o veículo no pátio (status No pátio).\n\n" +
@@ -28672,6 +28750,7 @@ ${body}
           if (degradedGroups.includes("regcr")) {
             partes.push("concluir registro / pátio parceiro (registro_concluido)");
           }
+          if (degradedGroups.includes("chave")) partes.push("condição da chave");
           const sqlHints = [];
           if (degradedGroups.some((k) => ["vistoria", "leiloeiro", "rpf"].includes(k))) {
             sqlHints.push("supabase/vehicles_recursos_avancados.sql");
@@ -28685,6 +28764,9 @@ ${body}
           if (degradedGroups.includes("regcr")) {
             sqlHints.push("supabase/vehicles_registro_complementar.sql");
             sqlHints.push("supabase/vehicles_financeira_id.sql");
+          }
+          if (degradedGroups.includes("chave")) {
+            sqlHints.push("supabase/vehicles_chave_condicao.sql");
           }
           if (degradedGroups.includes("advocacy")) {
             sqlHints.push("supabase/advocacy_offices.sql e supabase/advocacy_office_managers.sql");
