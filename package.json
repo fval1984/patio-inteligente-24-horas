@@ -19,6 +19,7 @@
     "db:apply-reboque-transporte": "node scripts/apply-reboque-transporte.cjs",
     "db:apply-vehicles-public-qr": "node scripts/apply-vehicles-public-qr.cjs",
     "db:apply-vehicles-chave-condicao": "node scripts/apply-vehicles-chave-condicao.cjs",
+    "db:apply-vehicles-restituicao-responsavel": "node scripts/apply-vehicles-restituicao-responsavel.cjs",
     "db:apply-cobrancas": "node scripts/apply-cobrancas.cjs",
     "db:apply-finance-june-migration": "node scripts/apply-finance-june-migration.cjs",
     "dev": "next dev",
