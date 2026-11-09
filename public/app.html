@@ -9039,9 +9039,7 @@
               </div>
             </div>
             <div id="vehicleLabelActions" class="form-actions vehicle-label-actions hidden">
-              <button type="button" class="secondary" id="vehicleDownloadWindshield">Baixar etiqueta do para-brisa</button>
-              <button type="button" class="secondary" id="vehicleDownloadKeyFront">Baixar etiqueta da chave — QR Code</button>
-              <button type="button" class="secondary" id="vehicleDownloadKeyBack">Baixar etiqueta da chave — Logomarca</button>
+              <button type="button" class="secondary" id="vehicleDownloadQr">Baixar QR Code</button>
             </div>
             <div class="form-actions">
               <button type="submit">Salvar</button>
@@ -9442,41 +9440,6 @@
               <h4 class="ficha-section-title">LV · Laudo de vistoria</h4>
               <div id="fichaSectionVistoria"></div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="vehicleLabelsModal" class="modal-backdrop hidden vl-modal">
-        <div class="modal">
-          <div class="modal-header">
-            <div>
-              <h3 id="vehicleLabelsTitle">Etiquetas do veículo</h3>
-              <p class="notice" style="margin: 4px 0 0; font-size: 12px">PNG para o aplicativo NIIMBOT B1. O QR Code não muda ao baixar de novo.</p>
-            </div>
-            <button type="button" class="modal-close" id="closeVehicleLabelsModal">Fechar</button>
-          </div>
-          <p class="vl-hint">Importe no aplicativo NIIMBOT B1 Series: para-brisa 50×30 mm; chave 25×30 mm. A alça de 40 mm é da etiqueta física e não entra no PNG.</p>
-          <div class="vl-preview-wrap">
-            <div class="vl-preview-card">
-              <h4>Para-brisa 50×30 mm</h4>
-              <div id="vlPreviewWindshield"></div>
-            </div>
-            <div class="vl-preview-card">
-              <h4>Chave — QR Code 25×30 mm</h4>
-              <div id="vlPreviewKeyFront"></div>
-            </div>
-            <div class="vl-preview-card">
-              <h4>Chave — Logomarca 25×30 mm</h4>
-              <div id="vlPreviewKeyBack"></div>
-            </div>
-          </div>
-          <label for="vlPublicUrl">Endereço público do histórico</label>
-          <input id="vlPublicUrl" type="text" readonly />
-          <div class="form-actions vl-actions">
-            <button type="button" id="vlDownloadWindshield">Baixar etiqueta do para-brisa</button>
-            <button type="button" id="vlDownloadKeyFront">Baixar etiqueta da chave — QR Code</button>
-            <button type="button" id="vlDownloadKeyBack">Baixar etiqueta da chave — Logomarca</button>
-            <button type="button" class="secondary" id="vlCopyUrl">Copiar endereço público</button>
           </div>
         </div>
       </div>
@@ -10397,7 +10360,7 @@
     <script src="/vehicle-entry-inspection-document.js?v=20261105fotos1"></script>
     <script src="/vehicle-entry-inspection.js?v=20261105fotos1"></script>
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
-    <script src="/vehicle-labels.js?v=20261109qr4"></script>
+    <script src="/vehicle-qr.js?v=20261109qr5"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script src="/advocacy-offices-service.js?v=20261001escritorio3"></script>
@@ -20525,7 +20488,7 @@
           parts.push(`<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`);
         }
         parts.push(`<button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>`);
-        parts.push(`<button class="secondary" data-action="etiquetas" data-id="${v.id}">Etiquetas</button>`);
+        parts.push(`<button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>`);
         if (isVscStatus(v.status)) {
           parts.push(
             `<button class="secondary" data-action="confirmar" data-id="${v.id}">Confirmar saída</button>`
@@ -20619,11 +20582,11 @@
           const viewBtn = vnpShouldShowVistoriaViewButton(v)
             ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
             : "";
-          return `${viewBtn}<button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button><button class="secondary" data-action="etiquetas" data-id="${v.id}">Etiquetas</button>`;
+          return `${viewBtn}<button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button><button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>`;
         }
         if (isGestorPista) {
             if (listContext === "vrp") {
-            return `<span class="notice">Sem permissão de ação</span><button class="secondary" data-action="historico" data-id="${v.id}">Histórico</button><button class="secondary" data-action="etiquetas" data-id="${v.id}">Etiquetas</button>`;
+            return `<span class="notice">Sem permissão de ação</span><button class="secondary" data-action="historico" data-id="${v.id}">Histórico</button><button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>`;
           }
           return buildGestorPistaVnpActions(v);
         }
@@ -20631,7 +20594,7 @@
           return `
               <button class="patio-prio-btn" data-action="historico" data-id="${v.id}">Histórico</button>
               <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
-              <button class="secondary" data-action="etiquetas" data-id="${v.id}">Etiquetas</button>
+              <button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>
               <button class="secondary" data-action="voltar" data-id="${v.id}" title="Desfaz remoção feita por engano e volta para o passo anterior">Voltar</button>
               ${nfseActionButtonHtml(v)}
               ${cobrancaEmailActionButtonHtml(v)}
@@ -20680,7 +20643,7 @@
               ${fluxoBtn}
               ${veiBtn}
               <button class="secondary" data-action="ficha" data-id="${v.id}">Ficha</button>
-              <button class="secondary" data-action="etiquetas" data-id="${v.id}">Etiquetas</button>
+              <button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>
               ${nfseActionButtonHtml(v)}
               ${cobrancaEmailActionButtonHtml(v)}
               ${nfseThermalActionButtonHtml(v)}
@@ -24943,27 +24906,18 @@
         vehicleModal.classList.add("hidden");
       });
 
-      async function openVehicleLabelsFromForm() {
+      document.getElementById("vehicleDownloadQr")?.addEventListener("click", async () => {
         const id = editingVehicleId;
         const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(id)) || editingVehicleData;
         if (!vehicle) {
-          alert("Salve o cadastro antes de imprimir as etiquetas.");
+          alert("Salve o cadastro antes de baixar o QR Code.");
           return;
         }
-        if (window.vehicleLabels?.openForVehicle) await window.vehicleLabels.openForVehicle(vehicle);
-      }
-      async function downloadVehicleLabelFromForm(kind) {
-        await openVehicleLabelsFromForm();
-        if (window.vehicleLabels?.downloadKind) window.vehicleLabels.downloadKind(kind);
-      }
-      document.getElementById("vehicleDownloadWindshield")?.addEventListener("click", () => {
-        void downloadVehicleLabelFromForm("wind");
-      });
-      document.getElementById("vehicleDownloadKeyFront")?.addEventListener("click", () => {
-        void downloadVehicleLabelFromForm("keyFront");
-      });
-      document.getElementById("vehicleDownloadKeyBack")?.addEventListener("click", () => {
-        void downloadVehicleLabelFromForm("keyBack");
+        try {
+          if (window.vehicleQr?.downloadForVehicle) await window.vehicleQr.downloadForVehicle(vehicle);
+        } catch (e) {
+          alert(e && e.message ? e.message : "Não foi possível baixar o QR Code.");
+        }
       });
 
       openPartnerForm.addEventListener("click", () => {
@@ -28504,10 +28458,6 @@ ${body}
           alert(
             "Veículo cadastrado. Fica no VNP. Use «CR — Concluir registro» para escritório, leiloeiro, pátio, localizador e diária. Depois disso entra na fila de vistoria."
           );
-          const fresh = (state.vehicles || []).find((v) => String(v.id) === String(histVehicleId)) || savedNewVehicle;
-          if (fresh && window.vehicleLabels?.openForVehicle) {
-            await window.vehicleLabels.openForVehicle(fresh);
-          }
         }
       });
 
@@ -28931,11 +28881,11 @@ ${body}
       async function handleVnpVehicleAction(button) {
         const id = button.getAttribute("data-id");
         const action = button.getAttribute("data-action");
-        if (isVisualizador && action !== "ficha" && action !== "ver_vistoria" && action !== "patio_acoes" && action !== "etiquetas") {
+        if (isVisualizador && action !== "ficha" && action !== "ver_vistoria" && action !== "patio_acoes" && action !== "baixar_qr") {
           alert("O perfil Visualizador é somente consulta. Não é possível alterar dados.");
           return;
         }
-        if (isVistoriador && action !== "vistoria" && action !== "etiquetas") {
+        if (isVistoriador && action !== "vistoria" && action !== "baixar_qr") {
           alert("Este perfil só pode realizar vistorias.");
           return;
         }
@@ -29079,7 +29029,7 @@ ${body}
         if (!vehicle) return;
 
         if (isGestorPista) {
-          const gestorAllowed = new Set(["ficha", "vistoria", "ver_vistoria", "patio_acoes", "confirmar", "etiquetas"]);
+          const gestorAllowed = new Set(["ficha", "vistoria", "ver_vistoria", "patio_acoes", "confirmar", "baixar_qr"]);
           if (!gestorAllowed.has(action)) {
             alert("O gestor de pista não pode executar esta ação.");
             return;
@@ -29184,9 +29134,11 @@ ${body}
           return;
         }
 
-        if (action === "etiquetas") {
-          if (window.vehicleLabels?.openForVehicle) {
-            await window.vehicleLabels.openForVehicle(vehicle);
+        if (action === "baixar_qr") {
+          try {
+            if (window.vehicleQr?.downloadForVehicle) await window.vehicleQr.downloadForVehicle(vehicle);
+          } catch (e) {
+            alert(e && e.message ? e.message : "Não foi possível baixar o QR Code.");
           }
           return;
         }
