@@ -94,11 +94,15 @@
   margin: 0 0 6px;
 }
 
-.vif-plate {
-  text-align: center;
-  font-size: 28px;
-  letter-spacing: 0.12em;
-  margin: 0 0 4px;
+.vif-plate-visual {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 10px;
+}
+
+.vif-plate-visual .vp-plate-wrap,
+.vif-plate-visual .vp-plate {
+  margin: 0 auto;
 }
 
 .vif-model {
