@@ -1,15 +1,15 @@
 /**
- * PNG do QR Code público + placa visual AMPLIGUARD (lado a lado). Sem etiqueta extra, sem impressão.
+ * PNG: placa em texto vertical (esquerda) + QR do registro (direita).
+ * Sem etiqueta, sem impressão, sem logotipo.
  */
 (function (global) {
   const BLACK = "#000000";
   const WHITE = "#ffffff";
   const QR_INNER = 1100;
-  const QUIET = 110;
-  const GAP = 90;
-  const OUTER = 90;
+  const QUIET = 90;
+  const OUTER = 70;
+  const GAP = 36;
   const QR_SRC = "/vendor/qrcode.min.js?v=20261005recibo1";
-  const H2C_SRC = "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js";
 
   function publicHistoryUrl(token) {
     const origin = typeof location !== "undefined" ? location.origin : "";
@@ -18,6 +18,22 @@
 
   function db() {
     return global.supabaseClient || (typeof supabase !== "undefined" ? supabase : null);
+  }
+
+  function plateLabel(placa) {
+    const ui = global.vehiclePlateUI;
+    if (ui && typeof ui.analyzePlate === "function") {
+      const info = ui.analyzePlate(placa);
+      const shown = String((info && info.display) || placa || "")
+        .trim()
+        .toUpperCase();
+      return shown || "—";
+    }
+    const clean = String(placa || "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
+    if (/^[A-Z]{3}[0-9]{4}$/.test(clean)) return `${clean.slice(0, 3)}-${clean.slice(3)}`;
+    return clean || "—";
   }
 
   async function ensureQrLib() {
@@ -29,20 +45,6 @@
       s.onerror = () => reject(new Error("qrcode"));
       document.head.appendChild(s);
     });
-  }
-
-  async function ensureHtml2Canvas() {
-    if (typeof global.loadHtml2Canvas === "function") return global.loadHtml2Canvas();
-    if (global.html2canvas) return global.html2canvas;
-    await new Promise((resolve, reject) => {
-      const s = document.createElement("script");
-      s.src = H2C_SRC;
-      s.onload = () => resolve();
-      s.onerror = () => reject(new Error("html2canvas"));
-      document.head.appendChild(s);
-    });
-    if (!global.html2canvas) throw new Error("html2canvas");
-    return global.html2canvas;
   }
 
   async function renderQrInnerCanvas(text) {
@@ -71,44 +73,19 @@
     return canvas;
   }
 
-  function plateHtml(placa) {
-    if (global.vehiclePlateUI && typeof global.vehiclePlateUI.renderHtml === "function") {
-      return global.vehiclePlateUI.renderHtml(placa, { size: "lg", showEmpty: true, wrap: true });
-    }
-    const t = String(placa || "—");
-    return `<span class="vp-plate-wrap"><span class="vp-plate">${t}</span></span>`;
-  }
-
-  async function capturePlateCanvas(placa) {
-    const h2c = await ensureHtml2Canvas();
-    const holder = document.createElement("div");
-    holder.setAttribute("aria-hidden", "true");
-    holder.style.cssText =
-      "position:fixed;left:-9999px;top:0;background:#ffffff;padding:12px;z-index:-1;";
-    holder.innerHTML = plateHtml(placa);
-    document.body.appendChild(holder);
-    const node = holder.querySelector(".vp-plate") || holder;
-    try {
-      return await h2c(node, {
-        backgroundColor: "#ffffff",
-        scale: 5,
-        useCORS: true,
-        logging: false,
-      });
-    } finally {
-      holder.remove();
-    }
-  }
-
-  function composeQrAndPlate(qrCanvas, plateCanvas) {
+  function composePlateAndQr(qrCanvas, placa) {
+    const label = plateLabel(placa);
     const qrBlock = QR_INNER + QUIET * 2;
-    const plateNatW = Math.max(1, plateCanvas.width);
-    const plateNatH = Math.max(1, plateCanvas.height);
-    const plateH = Math.round(QR_INNER * 0.58);
-    const plateW = Math.round((plateH * plateNatW) / plateNatH);
-    const contentH = Math.max(qrBlock, plateH);
-    const width = OUTER * 2 + qrBlock + GAP + plateW;
-    const height = OUTER * 2 + contentH;
+    const measure = document.createElement("canvas").getContext("2d");
+    let fontPx = Math.round(QR_INNER * 0.16);
+    measure.font = `900 ${fontPx}px Arial, Helvetica, sans-serif`;
+    while (measure.measureText(label).width > QR_INNER * 0.96 && fontPx > 28) {
+      fontPx -= 2;
+      measure.font = `900 ${fontPx}px Arial, Helvetica, sans-serif`;
+    }
+    const plateCol = Math.ceil(fontPx * 1.15);
+    const width = OUTER * 2 + plateCol + GAP + qrBlock;
+    const height = OUTER * 2 + qrBlock;
 
     const canvas = document.createElement("canvas");
     canvas.width = width;
@@ -117,13 +94,21 @@
     ctx.fillStyle = WHITE;
     ctx.fillRect(0, 0, width, height);
 
-    const qrX = OUTER + QUIET;
-    const qrY = OUTER + Math.round((contentH - QR_INNER) / 2);
+    const qrX = OUTER + plateCol + GAP + QUIET;
+    const qrY = OUTER + QUIET;
     ctx.drawImage(qrCanvas, qrX, qrY, QR_INNER, QR_INNER);
 
-    const plateX = OUTER + qrBlock + GAP;
-    const plateY = OUTER + Math.round((contentH - plateH) / 2);
-    ctx.drawImage(plateCanvas, plateX, plateY, plateW, plateH);
+    const colX = OUTER + plateCol / 2;
+    const colY = OUTER + qrBlock / 2;
+    ctx.save();
+    ctx.translate(colX, colY);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = BLACK;
+    ctx.font = `900 ${fontPx}px Arial, Helvetica, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, 0, 0);
+    ctx.restore();
     return canvas;
   }
 
@@ -180,8 +165,7 @@
     if (!vehicle) return;
     const token = await ensureToken(vehicle);
     const qrCanvas = await renderQrInnerCanvas(publicHistoryUrl(token));
-    const plateCanvas = await capturePlateCanvas(vehicle.placa);
-    const canvas = composeQrAndPlate(qrCanvas, plateCanvas);
+    const canvas = composePlateAndQr(qrCanvas, vehicle.placa);
     const placa = String(vehicle.placa || "veiculo").replace(/\s+/g, "");
     downloadCanvas(canvas, `ampliguard-qr-${placa}.png`);
   }
