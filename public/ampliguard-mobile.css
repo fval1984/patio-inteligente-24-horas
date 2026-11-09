@@ -809,6 +809,7 @@
     margin-top: 2px;
   }
 
+  #patioVehicleActionsModal .patio-vehicle-actions-body button,
   #patioVehicleActionsModal .patio-vehicle-actions-body button.secondary,
   #patioVehicleActionsModal .patio-vehicle-actions-body .nfse-action-btn {
     width: 100%;
