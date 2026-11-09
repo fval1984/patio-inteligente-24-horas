@@ -1,29 +1,2 @@
-.vl-modal .modal { max-width: 640px; }
-.vl-preview-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  justify-content: center;
-  align-items: flex-start;
-  margin: 8px 0 14px;
-}
-.vl-preview-card {
-  background: #f4f7f5;
-  border: 1px solid var(--border, #d5e0d9);
-  border-radius: 10px;
-  padding: 10px;
-  text-align: center;
-  min-width: 140px;
-}
-.vl-preview-card h4 { margin: 0 0 8px; font-size: 13px; }
-.vl-preview-card canvas,
-.vl-preview-card img {
-  display: block;
-  margin: 0 auto;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,.12);
-}
-.vl-hint { font-size: 12px; line-height: 1.45; margin: 0 0 10px; }
-.vl-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .vehicle-label-actions { margin-top: 10px; flex-wrap: wrap; }
 .vehicle-label-actions.hidden { display: none !important; }
