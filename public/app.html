@@ -24777,6 +24777,8 @@
               ? `Ficha tipo 2 — ${vehicle.placa || "veículo"}`
               : `Ficha tipo 1 — ${vehicle.placa || "veículo"}`;
         }
+        const fichaDlBtn = document.getElementById("downloadVehicleIdFichaPdf");
+        if (fichaDlBtn) fichaDlBtn.textContent = kind === 2 ? "Baixar PNG" : "Baixar PDF";
         vehicleIdFichaCapture.innerHTML = `<p class="vif-empty">A carregar ficha…</p>`;
         vehicleIdFichaModal.classList.remove("hidden");
 
@@ -24939,22 +24941,82 @@
         vehicleIdFichaModal.classList.add("hidden");
         vehicleIdFichaModal.querySelector(".modal")?.classList.remove("vehicle-id-ficha-modal--cobranca");
         vehicleIdFichaCapture?.classList.remove("vif-capture--tipo2");
+        const fichaDlBtn = document.getElementById("downloadVehicleIdFichaPdf");
+        if (fichaDlBtn) fichaDlBtn.textContent = "Baixar PDF";
         delete vehicleIdFichaModal.dataset.openVehicleId;
         delete vehicleIdFichaModal.dataset.fichaTipo;
       }
 
       async function downloadVehicleIdFichaPdfFn() {
         if (!vehicleIdFichaCapture || vehicleIdFichaModal?.classList.contains("hidden")) return;
+        const tipo = vehicleIdFichaModal.dataset.fichaTipo === "2" ? "tipo2" : "tipo1";
+        const placa = String(vehicleIdFichaTitle?.textContent || "veiculo")
+          .replace(/[^\w.-]+/g, "-")
+          .replace(/^-|-$/g, "")
+          .slice(0, 40);
         let h2c;
         try {
-          await loadJsPdf();
+          if (tipo !== "tipo2") await loadJsPdf();
           h2c = await loadHtml2Canvas();
         } catch (e) {
-          alert("Não foi possível carregar a ferramenta de PDF. Verifique a internet.");
+          alert(
+            tipo === "tipo2"
+              ? "Não foi possível carregar a ferramenta de imagem. Verifique a internet."
+              : "Não foi possível carregar a ferramenta de PDF. Verifique a internet."
+          );
+          return;
+        }
+        if (!h2c) return;
+        if (tipo === "tipo2") {
+          try {
+            const source = await h2c(vehicleIdFichaCapture, {
+              backgroundColor: "#ffffff",
+              scale: 2,
+              useCORS: true,
+              allowTaint: true,
+            });
+            const cupomMm = 80;
+            const cupomDpi = 203;
+            const targetW = Math.round((cupomMm / 25.4) * cupomDpi);
+            const ratio = targetW / source.width;
+            const targetH = Math.max(1, Math.round(source.height * ratio));
+            const out = document.createElement("canvas");
+            out.width = targetW;
+            out.height = targetH;
+            const ctx = out.getContext("2d");
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, targetW, targetH);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(source, 0, 0, targetW, targetH);
+            await new Promise((resolve, reject) => {
+              out.toBlob(
+                (blob) => {
+                  if (!blob) {
+                    reject(new Error("png"));
+                    return;
+                  }
+                  const a = document.createElement("a");
+                  const url = URL.createObjectURL(blob);
+                  a.href = url;
+                  a.download = `ficha-tipo2-${placa || "veiculo"}.png`;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  setTimeout(() => URL.revokeObjectURL(url), 2000);
+                  resolve();
+                },
+                "image/png"
+              );
+            });
+          } catch (e) {
+            console.error(e);
+            alert("Não foi possível gerar a imagem PNG neste aparelho.");
+          }
           return;
         }
         const jsPdfCtor = window.jspdf?.jsPDF;
-        if (!h2c || !jsPdfCtor) return;
+        if (!jsPdfCtor) return;
         try {
           const canvas = await h2c(vehicleIdFichaCapture, {
             backgroundColor: "#ffffff",
@@ -24968,35 +25030,18 @@
           const pageH = 297;
           const margin = 12;
           const imgW = pageW - margin * 2;
-          let imgH = (canvas.height * imgW) / canvas.width;
-          const tipo = vehicleIdFichaModal.dataset.fichaTipo === "2" ? "tipo2" : "tipo1";
-          if (tipo === "tipo2") {
-            const maxH = pageH - margin * 2;
-            let w = imgW;
-            let h = imgH;
-            if (h > maxH) {
-              const scale = maxH / h;
-              w = imgW * scale;
-              h = maxH;
-            }
-            pdf.addImage(img, "JPEG", margin + (imgW - w) / 2, margin, w, h);
-          } else {
-            let heightLeft = imgH;
-            let position = margin;
+          const imgH = (canvas.height * imgW) / canvas.width;
+          let heightLeft = imgH;
+          let position = margin;
+          pdf.addImage(img, "JPEG", margin, position, imgW, imgH);
+          heightLeft -= pageH - margin * 2;
+          while (heightLeft > 0) {
+            position = margin - (imgH - heightLeft);
+            pdf.addPage();
             pdf.addImage(img, "JPEG", margin, position, imgW, imgH);
             heightLeft -= pageH - margin * 2;
-            while (heightLeft > 0) {
-              position = margin - (imgH - heightLeft);
-              pdf.addPage();
-              pdf.addImage(img, "JPEG", margin, position, imgW, imgH);
-              heightLeft -= pageH - margin * 2;
-            }
           }
-          const placa = String(vehicleIdFichaTitle?.textContent || "veiculo")
-            .replace(/[^\w.-]+/g, "-")
-            .replace(/^-|-$/g, "")
-            .slice(0, 40);
-          pdf.save(`ficha-${tipo}-${placa || "veiculo"}.pdf`);
+          pdf.save(`ficha-tipo1-${placa || "veiculo"}.pdf`);
         } catch (e) {
           console.error(e);
           alert("Não foi possível gerar o PDF neste aparelho.");
