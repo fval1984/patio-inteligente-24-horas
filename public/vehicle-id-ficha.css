@@ -38,6 +38,74 @@
   border-color: rgba(22, 101, 52, 0.35) !important;
 }
 
+.patio-status-with-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chave-condicao-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.chave-condicao-chip::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+
+.chave-condicao-chip.is-c-chave {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.chave-condicao-chip.is-s-chave {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.chave-condicao-chip.is-trancado {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.chave-condicao-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chave-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid #d5e0d8;
+}
+
+.chave-opt.is-c-chave { background: #f0fdf4; }
+.chave-opt.is-s-chave { background: #fefce8; }
+.chave-opt.is-trancado { background: #fef2f2; }
+
+.chave-opt input { margin: 0; }
+
 .patio-actions-toggle {
   white-space: nowrap;
 }
@@ -208,5 +276,15 @@
   .patio-mob-info-btn {
     min-height: 40px;
     min-width: 72px;
+  }
+
+  .patio-mob-compact-row .patio-status-with-key {
+    flex: 0 1 auto;
+    max-width: 46%;
+  }
+
+  .chave-condicao-chip {
+    font-size: 9px;
+    padding: 3px 6px;
   }
 }
