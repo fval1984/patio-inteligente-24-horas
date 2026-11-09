@@ -33,6 +33,8 @@ const nextConfig = {
       { source: "/app", headers: [...htmlUtf8, ...noStore] },
       { source: "/amplipatio", headers: [...htmlUtf8, ...noStore] },
       { source: "/patio", headers: [...htmlUtf8, ...noStore] },
+      { source: "/v/:path*", headers: noStore },
+      { source: "/api/vehicles/public-history", headers: noStore },
     ];
   },
 };
