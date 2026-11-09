@@ -7413,7 +7413,7 @@
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20261001escritorio3" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
-    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261109chave1" />
+    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261109ficha2" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
   </head>
   <body class="auth-screen-active">
@@ -10428,6 +10428,7 @@
     <script src="/vehicle-entry-inspection.js?v=20261105fotos1"></script>
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
     <script src="/vehicle-qr.js?v=20261109qr9"></script>
+    <script src="/vehicle-ficha-tipo2-pix.js?v=20261109pix1"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script src="/advocacy-offices-service.js?v=20261001escritorio3"></script>
@@ -24769,6 +24770,7 @@
         const kind = Number(tipo) === 2 ? 2 : 1;
         vehicleIdFichaModal.dataset.fichaTipo = String(kind);
         vehicleIdFichaModal.dataset.openVehicleId = vehicle.id;
+        vehicleIdFichaModal.querySelector(".modal")?.classList.toggle("vehicle-id-ficha-modal--cobranca", kind === 2);
         if (vehicleIdFichaTitle) {
           vehicleIdFichaTitle.textContent =
             kind === 2
@@ -24784,8 +24786,91 @@
         const leiloeiro = partnerNomeById(vehicle.leiloeiro_id) || "";
         const photoUrl = await loadVehicleMainPhotoUrl(vehicle);
         const photoHtml = photoUrl
-          ? `<img class="vif-photo" alt="Fotografia do veículo" src="${escapeHtml(photoUrl)}" />`
+          ? `<img class="vif-photo${kind === 2 ? " vif-photo--compact" : ""}" alt="Fotografia do veículo" src="${escapeHtml(photoUrl)}" />`
           : "";
+
+        if (kind === 2) {
+          const hideMoney = hidesFinancialValues();
+          const dias = calcDays(vehicle);
+          const horas = calcHours(vehicle);
+          const vd = Number(vehicle.valor_diaria);
+          const totalNum = Number(calcTotal(vehicle) || 0);
+          const diariaTxt = Number.isFinite(vd) && vd > 0 ? formatCurrency(vd) : "—";
+          const totalTxt = formatCurrency(totalNum);
+          const statusTxt = patioConsultaSituacaoLabel(vehicle);
+          const chaveKey = normalizeChaveCondicao(vehicle.chave_condicao);
+          const chaveMap = {
+            C_CHAVE: { emoji: "🟢", label: "C/CHAVE", cls: "is-c-chave" },
+            S_CHAVE: { emoji: "🟡", label: "S/CHAVE", cls: "is-s-chave" },
+            TRANCADO: { emoji: "🔴", label: "TRANCADO", cls: "is-trancado" },
+          };
+          const chaveInfo = chaveMap[chaveKey];
+          const chaveHtml = chaveInfo
+            ? `<span class="chave-condicao-chip vif-chave-chip ${chaveInfo.cls}">${chaveInfo.emoji} ${chaveInfo.label}</span>`
+            : "";
+          let pixHtml = "";
+          const pixApi = window.vehicleFichaTipo2Pix;
+          if (hideMoney) {
+            pixHtml = `<p class="vif-empty">Valores e Pix não são exibidos neste perfil.</p>`;
+          } else if (!pixApi) {
+            pixHtml = `<p class="vif-empty">Não foi possível carregar o gerador Pix da ficha.</p>`;
+          } else if (!(Number.isFinite(totalNum) && totalNum > 0)) {
+            pixHtml = `<p class="vif-empty">Não há valor de diária para montar o Pix desta ficha.</p>`;
+          } else {
+            const payload = pixApi.buildPayload(totalNum, `AMPLIGUARD ${vehicle.placa || ""}`.trim());
+            const check = pixApi.validate(payload, totalNum);
+            if (!check.ok) {
+              pixHtml = `<p class="vif-empty">Não foi possível validar o QR Code Pix. A ficha não exibe cobrança bancária.</p>`;
+            } else {
+              const qrUrl = await pixApi.qrDataUrl(check.payload);
+              pixHtml = qrUrl
+                ? `<div class="vif-pix">
+                  <img class="vif-pix-qr" alt="QR Code Pix para pagamento" src="${qrUrl}" />
+                  <div class="vif-pix-side">
+                    <p class="vif-pix-kicker">Pix · pagamento</p>
+                    <p class="vif-pix-amount">${escapeHtml(totalTxt)}</p>
+                    <p class="vif-pix-hint">O valor entra no código Pix e aparece no aplicativo do banco. Gerar o QR não dá baixa no financeiro.</p>
+                    <p class="vif-pix-favorecido">AMPLIGUARD · CNPJ 57.936.119/0001-98</p>
+                  </div>
+                </div>`
+                : `<p class="vif-empty">Não foi possível desenhar o QR Code Pix.</p>`;
+            }
+          }
+          vehicleIdFichaCapture.classList.add("vif-capture--tipo2");
+          vehicleIdFichaCapture.innerHTML = `
+            <img src="/assets/ampliguard-logo-official.png?v=20261109qr1" alt="AMPLIGUARD" class="vif-logo" onerror="this.onerror=null;this.src='/assets/ampliguard-marca.png?v=20260917logo2'" />
+            <p class="vif-kicker">Permanência e cobrança</p>
+            <div class="vif-plate-visual">${plateVisualHtml(vehicle.placa, "lg")}</div>
+            <p class="vif-model">${escapeHtml(modelo)}</p>
+            ${photoHtml}
+            <dl class="vif-meta">
+              ${vifMetaRow("Marca / modelo", modelo)}
+              ${vifMetaRow("Cor", vehicle.cor || "—")}
+              ${vifMetaRow("Instituição financeira", financeira || "Sem financeira informada")}
+              ${vifMetaRow("Entrada no pátio", formatDateTime(vehicle.data_entrada) || "—")}
+              ${vifMetaRow("Saída do pátio", vehicle.data_saida ? formatDateTime(vehicle.data_saida) : "Ainda no pátio")}
+            </dl>
+            <section class="vif-status-row">
+              <div>
+                <h2>Status do veículo</h2>
+                <p class="vif-status-value">${escapeHtml(statusTxt)}</p>
+              </div>
+              ${chaveHtml ? `<div><h2>Condição da chave</h2><p class="vif-chave-wrap">${chaveHtml}</p></div>` : ""}
+            </section>
+            <section class="vif-finance vif-finance--destaque">
+              <h2>Permanência no pátio</h2>
+              <dl class="vif-meta">
+                ${vifMetaRow("Quantidade de dias", String(dias))}
+                ${vifMetaRow("Quantidade de horas", String(horas))}
+                ${hideMoney ? "" : vifMetaRow("Valor da diária", diariaTxt)}
+              </dl>
+              ${hideMoney ? "" : `<p class="vif-total-label">Valor total devido</p><p class="vif-total">${escapeHtml(totalTxt)}</p>`}
+            </section>
+            <section class="vif-pix-wrap"><h2>Pagamento Pix</h2>${pixHtml}</section>
+            <p class="vif-foot">AMPLIGUARD</p>
+          `;
+          return;
+        }
 
         let events = [];
         try {
@@ -24825,26 +24910,10 @@
           vinculos.push(vifMetaRow("Responsável pela restituição", vehicle.restituicao_responsavel_nome || "—"));
         }
 
-        let financeHtml = "";
-        if (kind === 2) {
-          const dias = calcDays(vehicle);
-          const horas = calcHours(vehicle);
-          const hideMoney = hidesFinancialValues();
-          const vd = Number(vehicle.valor_diaria);
-          const diariaTxt = Number.isFinite(vd) && vd > 0 ? formatCurrency(vd) : "—";
-          const totalTxt = formatCurrency(calcTotal(vehicle));
-          financeHtml = `<section class="vif-finance"><h2>Permanência e valores</h2><dl class="vif-meta">${vifMetaRow(
-            "Quantidade de dias no pátio",
-            String(dias)
-          )}${vifMetaRow("Quantidade de horas no pátio", String(horas))}${
-            hideMoney ? "" : vifMetaRow("Valor da diária", diariaTxt) + vifMetaRow("Valor total acumulado", totalTxt)
-          }</dl>${hideMoney ? `<p class="vif-empty">Valores não exibidos neste perfil.</p>` : ""}</section>`;
-        }
-
-        const kicker = kind === 2 ? "Identificação e financeiro" : "Identificação do veículo";
+        vehicleIdFichaCapture.classList.remove("vif-capture--tipo2");
         vehicleIdFichaCapture.innerHTML = `
           <img src="/assets/ampliguard-logo-official.png?v=20261109qr1" alt="AMPLIGUARD" class="vif-logo" onerror="this.onerror=null;this.src='/assets/ampliguard-marca.png?v=20260917logo2'" />
-          <p class="vif-kicker">${kicker}</p>
+          <p class="vif-kicker">Identificação do veículo</p>
           <div class="vif-plate-visual">${plateVisualHtml(vehicle.placa, "lg")}</div>
           <p class="vif-model">${escapeHtml(modelo)}</p>
           ${photoHtml}
@@ -24857,7 +24926,6 @@
               ? `<section><h2>Informações vinculadas</h2><dl class="vif-meta">${vinculos.join("")}</dl></section>`
               : ""
           }
-          ${financeHtml}
           <section>
             <h2>Histórico</h2>
             ${timelineHtml}
@@ -24869,6 +24937,8 @@
       function closeVehicleIdFichaModalFn() {
         if (!vehicleIdFichaModal) return;
         vehicleIdFichaModal.classList.add("hidden");
+        vehicleIdFichaModal.querySelector(".modal")?.classList.remove("vehicle-id-ficha-modal--cobranca");
+        vehicleIdFichaCapture?.classList.remove("vif-capture--tipo2");
         delete vehicleIdFichaModal.dataset.openVehicleId;
         delete vehicleIdFichaModal.dataset.fichaTipo;
       }
@@ -24898,18 +24968,30 @@
           const pageH = 297;
           const margin = 12;
           const imgW = pageW - margin * 2;
-          const imgH = (canvas.height * imgW) / canvas.width;
-          let heightLeft = imgH;
-          let position = margin;
-          pdf.addImage(img, "JPEG", margin, position, imgW, imgH);
-          heightLeft -= pageH - margin * 2;
-          while (heightLeft > 0) {
-            position = margin - (imgH - heightLeft);
-            pdf.addPage();
+          let imgH = (canvas.height * imgW) / canvas.width;
+          const tipo = vehicleIdFichaModal.dataset.fichaTipo === "2" ? "tipo2" : "tipo1";
+          if (tipo === "tipo2") {
+            const maxH = pageH - margin * 2;
+            let w = imgW;
+            let h = imgH;
+            if (h > maxH) {
+              const scale = maxH / h;
+              w = imgW * scale;
+              h = maxH;
+            }
+            pdf.addImage(img, "JPEG", margin + (imgW - w) / 2, margin, w, h);
+          } else {
+            let heightLeft = imgH;
+            let position = margin;
             pdf.addImage(img, "JPEG", margin, position, imgW, imgH);
             heightLeft -= pageH - margin * 2;
+            while (heightLeft > 0) {
+              position = margin - (imgH - heightLeft);
+              pdf.addPage();
+              pdf.addImage(img, "JPEG", margin, position, imgW, imgH);
+              heightLeft -= pageH - margin * 2;
+            }
           }
-          const tipo = vehicleIdFichaModal.dataset.fichaTipo === "2" ? "tipo2" : "tipo1";
           const placa = String(vehicleIdFichaTitle?.textContent || "veiculo")
             .replace(/[^\w.-]+/g, "-")
             .replace(/^-|-$/g, "")
