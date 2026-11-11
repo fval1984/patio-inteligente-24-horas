@@ -5844,6 +5844,7 @@
     "financeiras",
     "lancamentos",
     "relatorios",
+    "notas_transporte",
   ];
 
   const FIN_CADASTRO_TIPO_LABELS = {
@@ -6949,6 +6950,9 @@
     else if (view === "financeiras") financeRenderFinanceiras();
     else if (view === "lancamentos") financeRenderLancamentos();
     else if (view === "relatorios") financeRenderRelatorios();
+    else if (view === "notas_transporte" && typeof window.financeNotasTransporteRefresh === "function") {
+      window.financeNotasTransporteRefresh();
+    }
   }
 
   function financeActivateSubview(view, opts = {}) {
