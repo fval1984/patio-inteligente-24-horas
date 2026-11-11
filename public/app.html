@@ -5429,6 +5429,79 @@
         color: var(--primary-strong);
         font-weight: 600;
       }
+      .fin-nt-wrap { max-width: 920px; }
+      .fin-nt-lead {
+        margin: 0 0 14px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+      .fin-nt-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .fin-nt-form label {
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--silver);
+        margin-bottom: 6px;
+      }
+      .fin-nt-form input {
+        width: 100%;
+      }
+      .fin-nt-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 14px 0 0;
+      }
+      #viewFinanceiro .fin-nt-btn-copy {
+        background: linear-gradient(135deg, #9b2c2c, #6b1f1f);
+        color: #fff8f6;
+        box-shadow: 0 8px 18px rgba(155, 44, 44, 0.28);
+      }
+      .fin-nt-hint {
+        min-height: 1.3em;
+        margin: 8px 0 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--success);
+      }
+      .fin-nt-hint.is-error { color: var(--error); }
+      .fin-nt-preview {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        border-left: 4px solid #9b2c2c;
+        background: var(--card);
+        border-radius: 10px;
+      }
+      .fin-nt-preview h3 {
+        margin: 0 0 8px;
+        font-size: 0.95rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--primary-strong);
+      }
+      .fin-nt-preview-text {
+        margin: 0;
+        line-height: 1.55;
+        white-space: normal;
+        word-break: break-word;
+      }
+      .fin-nt-pay {
+        margin: 10px 0 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      @media (max-width: 720px) {
+        .fin-nt-form { grid-template-columns: 1fr; }
+        .fin-nt-actions button { flex: 1 1 calc(50% - 8px); }
+      }
       #finDespTipoChoice button.active {
         background: var(--primary-weak);
         border-color: rgba(212, 175, 55, 0.45);
@@ -8390,6 +8463,7 @@
             <button type="button" data-finance-subview-btn="receber">Entradas</button>
             <button type="button" data-finance-subview-btn="pagar">Saídas</button>
             <button type="button" data-finance-subview-btn="caixa">Caixa</button>
+            <button type="button" data-finance-subview-btn="notas_transporte">Notas de Transporte</button>
           </div>
           <div id="finSearchResults" class="fin-search-results hidden"></div>
           <p id="finRecebidosRecoverHint" class="notice hidden" style="margin: 0 0 10px"></p>
@@ -8727,6 +8801,49 @@
                 <thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Origem</th><th>Valor</th><th>Ações</th></tr></thead>
                 <tbody id="finCaixaBody"></tbody>
               </table>
+            </div>
+          </div>
+
+          <div class="finance-subview hidden" data-finance-subview="notas_transporte">
+            <div class="fin-nt-wrap">
+              <p class="fin-nt-lead">Preencha os dados do transporte para montar a descrição padronizada e copiá-la no emissor de notas fiscais. Esta tela não emite NF-e e não exige veículo cadastrado no pátio.</p>
+              <form id="finNtForm" class="section-card fin-nt-form" action="#" novalidate>
+                <div>
+                  <label for="finNtVeiculo">Veículo</label>
+                  <input id="finNtVeiculo" name="veiculo" type="text" placeholder="Modelo ou descrição" autocomplete="off" />
+                </div>
+                <div>
+                  <label for="finNtPlaca">Placa</label>
+                  <input id="finNtPlaca" name="placa" type="text" placeholder="ABC1D23" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+                </div>
+                <div>
+                  <label for="finNtData">Data</label>
+                  <input id="finNtData" name="data" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" autocomplete="off" />
+                </div>
+                <div>
+                  <label for="finNtValor">Valor total</label>
+                  <input id="finNtValor" name="valor" type="text" inputmode="decimal" placeholder="R$ 0,00" autocomplete="off" />
+                </div>
+                <div>
+                  <label for="finNtOrigem">Origem</label>
+                  <input id="finNtOrigem" name="origem" type="text" placeholder="Local de retirada" autocomplete="off" />
+                </div>
+                <div>
+                  <label for="finNtDestino">Destino</label>
+                  <input id="finNtDestino" name="destino" type="text" placeholder="Local de entrega" autocomplete="off" />
+                </div>
+              </form>
+              <div class="fin-nt-actions">
+                <button type="button" id="finNtGerar">GERAR TEXTO</button>
+                <button type="button" class="fin-nt-btn-copy" id="finNtCopiar">COPIAR TEXTO</button>
+                <button type="button" class="secondary" id="finNtLimpar">LIMPAR CAMPOS</button>
+              </div>
+              <p id="finNtCopyHint" class="fin-nt-hint" aria-live="polite"></p>
+              <div class="fin-nt-preview" id="finNtPreviewBox">
+                <h3>Prévia da Nota de Transporte</h3>
+                <p id="finNtPreview" class="fin-nt-preview-text"></p>
+                <p class="fin-nt-pay">Os dados para pagamento são fixos e entram automaticamente no texto.</p>
+              </div>
             </div>
           </div>
 
@@ -10357,6 +10474,7 @@
             <button type="button" data-finance-subview="receber">Entradas</button>
             <button type="button" data-finance-subview="pagar">Saídas</button>
             <button type="button" data-finance-subview="caixa">Caixa</button>
+            <button type="button" data-finance-subview="notas_transporte">Notas de Transporte</button>
           </div>
         </details>
 
@@ -10401,7 +10519,8 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20261106patioReorg1"></script>
+    <script src="/finance-module.js?v=20261111nt1"></script>
+    <script src="/finance-notas-transporte.js?v=20261111nt1"></script>
     <script src="/payment-receipt.js?v=20261005recibo10"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
@@ -17744,6 +17863,7 @@
         caixa: "Caixa",
         cadastros: "Configurações",
         contas: "Contas",
+        notas_transporte: "Notas de Transporte",
       };
 
       function bindAppContextMenuOnce() {
