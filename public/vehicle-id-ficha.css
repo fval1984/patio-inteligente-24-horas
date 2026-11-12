@@ -139,6 +139,25 @@
   width: calc(100% - 24px);
 }
 
+.vehicle-id-ficha-modal .modal-header {
+  overflow: visible;
+}
+
+.vehicle-id-ficha-modal .modal-header .actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+#vehicleIdFichaAcoesWrap.hidden {
+  display: none !important;
+}
+
+#patioContent tbody tr[data-vehicle-row]:not([data-receivable-row]) {
+  cursor: pointer;
+}
+
 .vehicle-id-ficha-modal--cobranca {
   max-width: 720px;
 }
