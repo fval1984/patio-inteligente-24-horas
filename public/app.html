@@ -1224,12 +1224,38 @@
       }
       #viewPatio .patio-hub-tabs.hidden { display: none !important; }
       #viewPatio .patio-hub-tabs button { width: auto; flex: 0 1 auto; }
-      #viewPatio #patioFlyoutSummaryCards,
-      #viewPatio #patioPlateSearchBar { display: none !important; }
-      #viewPatio .patio-hub-plate-search {
-        max-width: none;
-        justify-content: flex-start;
-        margin: 0 0 14px;
+      #viewPatio #patioFlyoutSummaryCards { display: none !important; }
+      #patioPlateSearchBar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+        flex: 1 1 auto;
+        min-width: 0;
+        margin: 0;
+      }
+      #patioPlateSearchBar.hidden { display: none !important; }
+      #patioPlateSearchBar .header-plate-search {
+        margin-left: 0;
+      }
+      #patioContent.modal-backdrop.tab-view-modal .modal-header {
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
+        margin-bottom: 10px;
+      }
+      #patioContent.modal-backdrop.tab-view-modal .modal-header > div:first-child {
+        flex: 0 1 auto;
+        min-width: 0;
+      }
+      #patioContent.modal-backdrop.tab-view-modal .modal-header #patioPlateSearchBar {
+        order: 2;
+        flex: 1 1 220px;
+      }
+      #patioContent.modal-backdrop.tab-view-modal .modal-header .modal-close {
+        order: 3;
+        flex: 0 0 auto;
         margin-left: 0;
       }
       #viewPatio .patio-toolbar {
@@ -7385,6 +7411,11 @@
           flex: 0 0 auto;
         }
         #viewPatio .patio-toolbar .actions {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 8px;
           align-self: flex-end;
         }
         .patio-inicio-panel {
@@ -7860,7 +7891,34 @@
                 <button type="button" class="secondary hidden" data-patio-extra="1" data-subview="vistoria">Vistoria</button>
               </nav>
             </div>
-            <div class="actions">
+            <div class="actions patio-toolbar-actions">
+              <div id="patioPlateSearchBar" class="hidden">
+                <form id="plateSearchFormPatio" class="header-plate-search" action="#" novalidate>
+                  <div class="header-plate-search-primary">
+                    <label for="plateFilterPatio" class="header-plate-label sr-only">Consultar Placa</label>
+                    <input
+                      id="plateFilterPatio"
+                      name="plate"
+                      type="text"
+                      inputmode="text"
+                      maxlength="8"
+                      autocomplete="off"
+                      autocorrect="off"
+                      autocapitalize="characters"
+                      spellcheck="false"
+                      data-vp-editor-input
+                      data-vp-size="md"
+                      aria-label="Consultar placa"
+                    />
+                    <button type="submit" id="plateSearchOkPatio">OK</button>
+                  </div>
+                  <div class="header-plate-search-secondary">
+                    <button type="button" class="secondary" id="patioPlateGoInicio">Início</button>
+                    <button type="button" class="secondary" id="clearPlateFilterPatio">Limpar</button>
+                  </div>
+                </form>
+                <p id="patioPlateSearchHint" class="notice plate-search-hint header-plate-search-hint hidden" aria-live="polite"></p>
+              </div>
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar módulo">X</button>
             </div>
           </div>
@@ -7914,34 +7972,6 @@
               <div id="patioDashOpsCards" class="patio-ops-cards"></div>
             </section>
           </div>
-          <div id="patioPlateSearchBar">
-          <p id="patioPlateSearchHint" class="notice plate-search-hint hidden" style="margin: 6px 0 10px"></p>
-          <form
-            id="plateSearchFormPatio"
-            class="filter-bar patio-plate-bar"
-            style="margin: 0 0 12px"
-            action="#"
-            novalidate
-          >
-            <label for="plateFilterPatio">Placa</label>
-            <input
-              id="plateFilterPatio"
-              name="plate"
-              type="text"
-              inputmode="text"
-              maxlength="8"
-              autocomplete="off"
-              autocorrect="off"
-              autocapitalize="characters"
-              spellcheck="false"
-              data-vp-editor-input
-              data-vp-size="md"
-              aria-label="Placa do veículo"
-            />
-            <button type="submit" id="plateSearchOkPatio">OK</button>
-            <button type="button" class="secondary" id="clearPlateFilterPatio">Limpar</button>
-          </form>
-          </div>
           <div id="patioContent" class="hidden" style="margin-top: 18px;">
             <div id="patioHubTabs" class="subnav patio-hub-tabs hidden" role="tablist" aria-label="Listas do pátio">
               <button type="button" role="tab" data-patio-hub="vnp" class="active">VNP — Veículos no pátio</button>
@@ -7986,29 +8016,6 @@
               <p class="notice" style="margin: 0 0 12px">
                 Veículos ainda no pátio, do mais recente para o mais antigo. A prioridade de liberação permanece: <strong>VSC</strong>, depois <strong>VSL</strong>, em seguida os demais.
               </p>
-              <form id="vnpPlateSearchForm" class="header-plate-search patio-hub-plate-search" action="#" novalidate>
-                <div class="header-plate-search-primary">
-                  <label for="vnpFilterPlaca" class="header-plate-label sr-only">Placa</label>
-                  <input
-                    id="vnpFilterPlaca"
-                    name="plate"
-                    type="text"
-                    inputmode="text"
-                    maxlength="8"
-                    autocomplete="off"
-                    autocorrect="off"
-                    autocapitalize="characters"
-                    spellcheck="false"
-                    data-vp-editor-input
-                    data-vp-size="md"
-                    aria-label="Placa do veículo"
-                  />
-                  <button type="submit" id="vnpPlateSearchOk">OK</button>
-                </div>
-                <div class="header-plate-search-secondary">
-                  <button type="button" class="secondary" id="vnpFiltersClear">Limpar</button>
-                </div>
-              </form>
               <div id="vnpFiltersBar" class="hidden" hidden>
                 <select id="vnpFilterParceiro"><option value="">Todos os parceiros</option></select>
                 <select id="vnpFilterFinanceira"><option value="">Todas as instituições</option></select>
@@ -8155,29 +8162,6 @@
             </div>
             <div class="section-card patio-subview hidden" data-subview="removidos">
               <div class="pill">VRP — Veículos removidos do pátio</div>
-              <form id="patioVrpPlacaForm" class="header-plate-search patio-hub-plate-search" action="#" novalidate>
-                <div class="header-plate-search-primary">
-                  <label for="patioVrpPlaca" class="header-plate-label sr-only">Placa</label>
-                  <input
-                    id="patioVrpPlaca"
-                    name="plate"
-                    type="text"
-                    inputmode="text"
-                    maxlength="8"
-                    autocomplete="off"
-                    autocorrect="off"
-                    autocapitalize="characters"
-                    spellcheck="false"
-                    data-vp-editor-input
-                    data-vp-size="md"
-                    aria-label="Placa do veículo"
-                  />
-                  <button type="submit" id="patioVrpPlacaOk">OK</button>
-                </div>
-                <div class="header-plate-search-secondary">
-                  <button type="button" class="secondary" id="patioVrpPlacaLimpar">Limpar</button>
-                </div>
-              </form>
               <select id="patioVrpParceiro" class="hidden" hidden><option value="">Todos os parceiros</option></select>
               <p id="patioVrpPlacaHint" class="notice hidden" style="margin: 0 0 12px"></p>
               <div id="patioVrpLoteBar" class="hidden" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px">
@@ -11915,8 +11899,45 @@
         document.getElementById("configTabModal")?.classList.add("hidden");
       }
 
+      function patioToolbarActionsHost() {
+        return (
+          document.querySelector("#viewPatio .patio-toolbar-actions") ||
+          document.querySelector("#viewPatio .patio-toolbar .actions")
+        );
+      }
+
+      function rehomePatioPlateSearchBar() {
+        const bar = document.getElementById("patioPlateSearchBar");
+        const host = patioToolbarActionsHost();
+        if (!bar || !host || host.contains(bar)) return;
+        const closeBtn = host.querySelector(".close-view");
+        if (closeBtn) closeBtn.before(bar);
+        else host.appendChild(bar);
+      }
+
+      function mountPatioPlateSearchBar(showOnHub) {
+        const bar = document.getElementById("patioPlateSearchBar");
+        if (!bar) return;
+        bar.classList.toggle("hidden", !showOnHub);
+        if (!showOnHub) {
+          rehomePatioPlateSearchBar();
+          return;
+        }
+        const patioContent = document.getElementById("patioContent");
+        const modalHeader = patioContent?.querySelector(":scope > .modal.modal--wide > .modal-header");
+        if (modalHeader) {
+          const closeBtn = modalHeader.querySelector("[data-tab-modal-close]");
+          if (closeBtn) closeBtn.before(bar);
+          else if (!modalHeader.contains(bar)) modalHeader.appendChild(bar);
+          return;
+        }
+        rehomePatioPlateSearchBar();
+      }
+
       function unwrapTabModalShell(el) {
         if (!el?.dataset?.tabModalReady) return;
+        const plateBar = document.getElementById("patioPlateSearchBar");
+        if (plateBar && el.contains(plateBar)) rehomePatioPlateSearchBar();
         const body = el.querySelector(":scope > .modal.modal--wide > .tab-modal-body, :scope > .tab-modal-panel > .tab-modal-body");
         if (body) {
           while (body.firstChild) el.appendChild(body.firstChild);
@@ -11956,9 +11977,7 @@
         const viewPatio = document.getElementById("viewPatio");
         const patioContent = document.getElementById("patioContent");
         if (patioContent && viewPatio && !viewPatio.contains(patioContent)) {
-          const plateBar = document.getElementById("patioPlateSearchBar");
-          if (plateBar) plateBar.insertAdjacentElement("afterend", patioContent);
-          else viewPatio.appendChild(patioContent);
+          viewPatio.appendChild(patioContent);
         }
 
         const partnerTabModalEl = document.getElementById("partnerTabModal");
@@ -17676,7 +17695,6 @@
         document.querySelectorAll("#patioSubnav [data-patio-extra], #headerDetailsPatio [data-patio-extra]").forEach((el) => {
           el.classList.add("hidden");
         });
-        document.getElementById("patioPlateSearchBar")?.classList.add("hidden");
       }
 
       function syncPatioStageTabCounts(counts) {
@@ -21281,7 +21299,6 @@
         patioSubnav?.querySelectorAll("button[data-subview]").forEach((btn) => {
           btn.classList.toggle("active", !isNone && btn.getAttribute("data-subview") === navKey);
         });
-        document.getElementById("patioPlateSearchBar")?.classList.add("hidden");
         document.getElementById("patioFlyoutSummaryCards")?.classList.add("hidden");
         const hubTabs = document.getElementById("patioHubTabs");
         if (hubTabs) {
@@ -21311,6 +21328,7 @@
             }
           }
         }
+        mountPatioPlateSearchBar(isPatioHub && !isVistoriador);
         let shownPanel = null;
         patioSubviews.forEach((panel) => {
           if (panel.closest("#viewFinanceiro")) return;
@@ -31924,11 +31942,13 @@ ${body}
       if (plateSearchFormPatio) {
         plateSearchFormPatio.addEventListener("submit", (event) => {
           event.preventDefault();
-          if (!plateFilter || !plateFilterPatio) return;
-          plateFilter.value = plateFilterPatio.value;
-          applyPlateSearchFromDashboard();
+          runHubPlateConsulta(plateFilterPatio?.value || "");
         });
       }
+
+      document.getElementById("patioPlateGoInicio")?.addEventListener("click", () => {
+        openPatioSubview("inicio");
+      });
 
       clearPlateFilter?.addEventListener("click", () => {
         plateFilter.value = "";
@@ -31941,17 +31961,12 @@ ${body}
 
       if (clearPlateFilterPatio) {
         clearPlateFilterPatio.addEventListener("click", () => {
-          if (plateFilter) {
-            plateFilter.value = "";
-            plateFilter.dispatchEvent(new Event("input", { bubbles: true }));
-          }
           if (plateFilterPatio) {
             plateFilterPatio.value = "";
             plateFilterPatio.dispatchEvent(new Event("input", { bubbles: true }));
+            plateFilterPatio.focus();
           }
-          plateQuery = "";
-          setPlateSearchHints("", false);
-          renderVehicles();
+          document.getElementById("patioPlateSearchHint")?.classList.add("hidden");
         });
       }
 
