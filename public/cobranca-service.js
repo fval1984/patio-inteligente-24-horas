@@ -345,6 +345,8 @@
       tipoCode: tipo,
       tipoLabel: partnerTipoLabel(tipo),
       filterGroup: filterGroupOfPartnerTipo(tipo),
+      whatsapp: p?.whatsapp || p?.telefone || "",
+      programa: !!(p?.perfil && p.perfil.programa_cliente_parceiro),
     };
   }
 
