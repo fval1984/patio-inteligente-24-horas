@@ -9293,7 +9293,8 @@
               </div>
             </div>
             <div id="vehicleLabelActions" class="form-actions vehicle-label-actions hidden">
-              <button type="button" class="secondary" id="vehicleDownloadQr">Baixar QR Code</button>
+              <button type="button" class="secondary" id="vehicleDownloadQrTipo1">Baixar QR Code Tipo 1</button>
+              <button type="button" class="secondary" id="vehicleDownloadQrTipo2">Baixar QR Code Tipo 2</button>
             </div>
             <div class="form-actions">
               <button type="submit">Salvar</button>
@@ -10647,7 +10648,7 @@
     <script src="/vehicle-entry-inspection-document.js?v=20261105fotos1"></script>
     <script src="/vehicle-entry-inspection.js?v=20261105fotos1"></script>
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
-    <script src="/vehicle-qr.js?v=20261109qr10"></script>
+    <script src="/vehicle-qr.js?v=20261112qr12"></script>
     <script src="/vehicle-ficha-tipo2-pix.js?v=20261109pix1"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
@@ -20884,7 +20885,7 @@
           parts.push(`<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`);
         }
         parts.push(patioFichaMenuButtonsHtml(v));
-        parts.push(`<button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>`);
+        parts.push(patioQrDownloadButtonsHtml(v));
         if (isVscStatus(v.status)) {
           parts.push(
             `<button class="secondary" data-action="confirmar" data-id="${v.id}">Confirmar saída</button>`
@@ -20979,6 +20980,13 @@
         return (
           `<button class="secondary" data-action="ficha_tipo1" data-id="${v.id}">Ficha tipo 1 — Identificação</button>` +
           `<button class="secondary" data-action="ficha_tipo2" data-id="${v.id}">Ficha tipo 2 — Identificação e financeiro</button>`
+        );
+      }
+
+      function patioQrDownloadButtonsHtml(v) {
+        return (
+          `<button class="secondary" data-action="baixar_qr_tipo1" data-id="${v.id}">Baixar QR Code Tipo 1</button>` +
+          `<button class="secondary" data-action="baixar_qr_tipo2" data-id="${v.id}">Baixar QR Code Tipo 2</button>`
         );
       }
 
@@ -21200,10 +21208,10 @@
           const viewBtn = vnpShouldShowVistoriaViewButton(v)
             ? `<button class="secondary" data-action="ver_vistoria" data-id="${v.id}">Vistoria</button>`
             : "";
-          inner = `${viewBtn}${patioFichaMenuButtonsHtml(v)}<button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>`;
+          inner = `${viewBtn}${patioFichaMenuButtonsHtml(v)}${patioQrDownloadButtonsHtml(v)}`;
         } else if (isGestorPista) {
           if (listContext === "vrp") {
-            inner = `<span class="notice">Sem permissão de ação</span><button class="secondary" data-action="historico" data-id="${v.id}">Histórico</button>${patioFichaMenuButtonsHtml(v)}<button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>`;
+            inner = `<span class="notice">Sem permissão de ação</span><button class="secondary" data-action="historico" data-id="${v.id}">Histórico</button>${patioFichaMenuButtonsHtml(v)}${patioQrDownloadButtonsHtml(v)}`;
           } else {
             inner = buildGestorPistaVnpActions(v);
           }
@@ -21211,7 +21219,7 @@
           inner = `
               <button class="patio-prio-btn" data-action="historico" data-id="${v.id}">Histórico</button>
               ${patioFichaMenuButtonsHtml(v)}
-              <button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>
+              ${patioQrDownloadButtonsHtml(v)}
               <button class="secondary" data-action="voltar" data-id="${v.id}" title="Desfaz remoção feita por engano e volta para o passo anterior">Voltar</button>
               ${nfseActionButtonHtml(v)}
               ${cobrancaEmailActionButtonHtml(v)}
@@ -21259,7 +21267,7 @@
               ${fluxoBtn}
               ${veiBtn}
               ${patioFichaMenuButtonsHtml(v)}
-              <button class="secondary" data-action="baixar_qr" data-id="${v.id}">Baixar QR Code</button>
+              ${patioQrDownloadButtonsHtml(v)}
               ${nfseActionButtonHtml(v)}
               ${cobrancaEmailActionButtonHtml(v)}
               ${nfseThermalActionButtonHtml(v)}
@@ -25926,7 +25934,7 @@
         vehicleModal.classList.add("hidden");
       });
 
-      document.getElementById("vehicleDownloadQr")?.addEventListener("click", async () => {
+      async function downloadVehicleQrFromForm(tipo) {
         const id = editingVehicleId;
         const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(id)) || editingVehicleData;
         if (!vehicle) {
@@ -25937,11 +25945,13 @@
           if (!window.vehicleQr || typeof window.vehicleQr.downloadForVehicle !== "function") {
             throw new Error("Gerador do QR Code não carregou. Atualize a página.");
           }
-          await window.vehicleQr.downloadForVehicle(vehicle);
+          await window.vehicleQr.downloadForVehicle(vehicle, tipo);
         } catch (e) {
           alert(e && e.message ? e.message : "Não foi possível baixar o QR Code.");
         }
-      });
+      }
+      document.getElementById("vehicleDownloadQrTipo1")?.addEventListener("click", () => downloadVehicleQrFromForm(1));
+      document.getElementById("vehicleDownloadQrTipo2")?.addEventListener("click", () => downloadVehicleQrFromForm(2));
 
       openPartnerForm.addEventListener("click", () => {
         if (typeof window.partnersCadastroOpenCreate === "function") {
@@ -29978,12 +29988,20 @@ ${body}
           action !== "ficha_tipo2" &&
           action !== "historico" &&
           action !== "ver_vistoria" &&
-          action !== "baixar_qr"
+          action !== "baixar_qr" &&
+          action !== "baixar_qr_tipo1" &&
+          action !== "baixar_qr_tipo2"
         ) {
           alert("O perfil Visualizador é somente consulta. Não é possível alterar dados.");
           return;
         }
-        if (isVistoriador && action !== "vistoria" && action !== "baixar_qr") {
+        if (
+          isVistoriador &&
+          action !== "vistoria" &&
+          action !== "baixar_qr" &&
+          action !== "baixar_qr_tipo1" &&
+          action !== "baixar_qr_tipo2"
+        ) {
           alert("Este perfil só pode realizar vistorias.");
           return;
         }
@@ -30130,6 +30148,8 @@ ${body}
             "patio_acoes",
             "confirmar",
             "baixar_qr",
+            "baixar_qr_tipo1",
+            "baixar_qr_tipo2",
           ]);
           if (!gestorAllowed.has(action)) {
             alert("O gestor de pista não pode executar esta ação.");
@@ -30246,12 +30266,13 @@ ${body}
           return;
         }
 
-        if (action === "baixar_qr") {
+        if (action === "baixar_qr" || action === "baixar_qr_tipo1" || action === "baixar_qr_tipo2") {
           try {
             if (!window.vehicleQr || typeof window.vehicleQr.downloadForVehicle !== "function") {
               throw new Error("Gerador do QR Code não carregou. Atualize a página.");
             }
-            await window.vehicleQr.downloadForVehicle(vehicle);
+            const tipo = action === "baixar_qr_tipo2" ? 2 : 1;
+            await window.vehicleQr.downloadForVehicle(vehicle, tipo);
           } catch (e) {
             alert(e && e.message ? e.message : "Não foi possível baixar o QR Code.");
           }
