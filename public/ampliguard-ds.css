@@ -509,7 +509,7 @@ button {
   transition: background var(--ag-ease), border-color var(--ag-ease), color var(--ag-ease);
 }
 
-button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.close-view):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn):not(.exec-ops-kpi):not(.exec-ops-link):not(.exec-ops-attn button):not(.exec-ops-period button):not(.fin-simple-card):not(.fin-simple-attn):not(.fin-simple-recent button):not(.dashboard-system-btn):not(.header-menu-dropdown button):not(.cmd-ops-kpi):not(.cmd-ops-attn button):not(.cmd-ops-link):not(.fin-act-kpi):not(.ao-card):not(.ao-band):not(.ao-attn):not(.ao-bucket):not(.ao-sort):not(.ao-clear):not(.patio-hub-kpi):not(.ag-sidebar-toggle):not(.ag-dash-chip) {
+button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.close-view):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn):not(.exec-ops-kpi):not(.exec-ops-link):not(.exec-ops-attn button):not(.exec-ops-period button):not(.fin-simple-card):not(.fin-simple-attn):not(.fin-simple-recent button):not(.dashboard-system-btn):not(.header-menu-dropdown button):not(.cmd-ops-kpi):not(.cmd-ops-attn button):not(.cmd-ops-link):not(.fin-act-kpi):not(.ao-card):not(.ao-band):not(.ao-attn):not(.ao-bucket):not(.ao-sort):not(.ao-clear):not(.patio-hub-kpi):not(.ag-sidebar-toggle):not(.cob-kpi) {
   background: var(--ag-graphite) !important;
   color: #fff !important;
   border: 1px solid var(--ag-graphite) !important;
@@ -1353,100 +1353,26 @@ body.ag-ficha-open {
 }
 
 #viewDashboard .toolbar {
-  margin: 0 0 14px;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  display: none;
 }
-#viewDashboard .toolbar h2 {
-  font-size: 1.15rem;
-  letter-spacing: -0.02em;
+#viewDashboard .cob-shell {
+  padding: 4px 0 8px;
 }
-#viewDashboard .toolbar .subtitle {
-  margin: 4px 0 0;
-  color: var(--ag-muted, #6b7280);
-  font-size: 13px;
-}
-.ag-dash {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.ag-dash .section-card {
-  padding: 14px !important;
-}
-.ag-dash-h {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--ag-graphite, #20242b);
-}
-.ag-dash-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin: 0 0 12px;
-  padding: 4px;
-  width: auto;
-  border: 1px solid var(--ag-border, #e5e7eb);
-  border-radius: 10px;
-  background: #f4f6f8;
-}
-.ag-dash-chip {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: auto;
-  min-height: 34px;
-  margin: 0;
-  padding: 6px 12px;
-  border: 0;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(32, 36, 43, 0.06);
-  color: inherit;
+#viewDashboard .cob-kpi {
+  width: 100%;
   font: inherit;
   text-align: left;
   cursor: pointer;
+  box-shadow: none;
+  min-height: 0;
 }
-.ag-dash-chip span {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--ag-muted, #6b7280);
+#viewDashboard .cob-kpi:hover,
+#viewDashboard .cob-card:hover {
+  border-color: var(--cob-accent, #1e3a5f);
 }
-.ag-dash-chip strong {
-  font-size: 12px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  min-width: 1.5em;
-  color: var(--ag-graphite, #20242b);
-}
-.ag-dash-chip:hover strong {
-  color: var(--ag-red, #c62828);
-}
-.ag-dash .table-wrap {
-  margin: 0;
-}
-.ag-dash .table tbody td {
-  font-size: 12px;
-}
-.ag-dash-row {
+#viewDashboard .cob-card {
   cursor: pointer;
 }
-.ag-dash-row:hover td {
-  background: #eef2f6;
-}
-.ag-dash .table td.num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  white-space: nowrap;
-}
-@media (max-width: 700px) {
-  .ag-dash-strip { width: 100%; }
+#viewDashboard .cob-kpis {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
 }
