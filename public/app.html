@@ -47,6 +47,11 @@
           });
         }
       })();
+      try {
+        if (localStorage.getItem("ampliguard_nav_collapsed") !== "0") {
+          document.documentElement.classList.add("ag-nav-collapsed");
+        }
+      } catch (e) {}
     </script>
     <meta charset="utf-8" />
     <meta name="amplipatio-build" content="mobile-open-v1" />
@@ -7586,7 +7591,7 @@
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261109ficha1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112ui2" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112ui3" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha7" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
@@ -11701,6 +11706,7 @@
         const btn = document.getElementById("agSidebarToggle");
         const apply = (collapsed) => {
           document.body.classList.toggle("ag-nav-collapsed", collapsed);
+          document.documentElement.classList.toggle("ag-nav-collapsed", collapsed);
           btn?.setAttribute("aria-expanded", collapsed ? "false" : "true");
           if (btn) {
             btn.title = collapsed ? "Expandir menu" : "Recolher menu";
@@ -11708,7 +11714,20 @@
             if (sr) sr.textContent = collapsed ? "Expandir menu" : "Recolher menu";
           }
         };
-        apply(localStorage.getItem(KEY) === "1");
+        const stored = (() => {
+          try {
+            return localStorage.getItem(KEY);
+          } catch (e) {
+            return "1";
+          }
+        })();
+        const collapsed = stored !== "0";
+        if (stored === null) {
+          try {
+            localStorage.setItem(KEY, "1");
+          } catch (e) {}
+        }
+        apply(collapsed);
         btn?.addEventListener("click", (event) => {
           event.preventDefault();
           event.stopPropagation();
