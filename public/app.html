@@ -7591,9 +7591,9 @@
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261109ficha1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112ui4" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112ui5" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
-    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha8" />
+    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha9" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
   </head>
   <body class="auth-screen-active">
@@ -7636,8 +7636,8 @@
               autocapitalize="characters"
               spellcheck="false"
               data-vp-editor-input
-              data-vp-size="md"
-              aria-label="Placa do veículo"
+                    data-vp-size="sm"
+                    aria-label="Placa do veículo"
             />
             <button type="submit" id="plateSearchOk">OK</button>
           </div>
@@ -9714,18 +9714,18 @@
 
       <div id="vehicleIdFichaModal" class="modal-backdrop hidden">
         <div class="modal vehicle-id-ficha-modal">
-          <div class="modal-header">
+          <div class="modal-header vif-panel-head">
             <h3 id="vehicleIdFichaTitle">Ficha do veículo</h3>
-            <div class="actions">
-              <div class="patio-actions-dd hidden" id="vehicleIdFichaAcoesWrap">
-                <button type="button" class="secondary patio-actions-toggle" id="vehicleIdFichaAcoesBtn" data-action="patio_acoes_menu" aria-haspopup="menu" aria-expanded="false">AÇÕES</button>
-                <div class="patio-actions-menu hidden" id="vehicleIdFichaAcoesMenu" role="menu"></div>
-              </div>
-              <button type="button" class="secondary" id="downloadVehicleIdFichaPdf">Baixar PDF</button>
-              <button type="button" class="modal-close" id="closeVehicleIdFichaModal" aria-label="Fechar painel">×</button>
-            </div>
+            <button type="button" class="modal-close" id="closeVehicleIdFichaModal" aria-label="Fechar painel">×</button>
           </div>
           <div id="vehicleIdFichaCapture" class="vif-capture"></div>
+          <div class="vif-panel-footer">
+            <div class="patio-actions-dd hidden" id="vehicleIdFichaAcoesWrap">
+              <button type="button" class="secondary patio-actions-toggle" id="vehicleIdFichaAcoesBtn" data-action="patio_acoes_menu" aria-haspopup="menu" aria-expanded="false">AÇÕES</button>
+              <div class="patio-actions-menu hidden" id="vehicleIdFichaAcoesMenu" role="menu"></div>
+            </div>
+            <button type="button" class="secondary" id="downloadVehicleIdFichaPdf">Baixar PDF</button>
+          </div>
         </div>
       </div>
 
@@ -21139,12 +21139,18 @@
         if (!button || !menu) return;
         const wrap = button.closest(".patio-actions-dd");
         if (wrap && wrap.id === "vehicleIdFichaAcoesWrap") {
-          menu.style.position = "absolute";
-          menu.style.left = "auto";
-          menu.style.right = "0";
-          menu.style.top = "calc(100% + 4px)";
+          const r = button.getBoundingClientRect();
+          const panel = document.getElementById("vehicleIdFichaModal")?.querySelector(".vehicle-id-ficha-modal");
+          const pr = panel?.getBoundingClientRect();
+          const maxH = Math.min(360, Math.max(160, r.top - 16));
+          menu.style.position = "fixed";
+          menu.style.left = `${Math.max(8, (pr ? pr.left : r.left) + 8)}px`;
+          menu.style.right = `${Math.max(8, window.innerWidth - (pr ? pr.right : r.right) + 8)}px`;
+          menu.style.width = "auto";
+          menu.style.top = "auto";
+          menu.style.bottom = `${Math.max(8, window.innerHeight - r.top + 6)}px`;
           menu.style.zIndex = "80";
-          menu.style.maxHeight = "min(60vh, 420px)";
+          menu.style.maxHeight = `${maxH}px`;
           return;
         }
         const r = button.getBoundingClientRect();
