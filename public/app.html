@@ -7591,7 +7591,7 @@
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261109ficha1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20261112plate12" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112dash3" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112dash4" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha9" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
@@ -7801,7 +7801,12 @@
             </div>
           </div>
           <div class="filter-bar hub-dash-filters hidden" hidden aria-hidden="true">
-            <select id="hubDashFilterPeriod"><option value="today" selected>Hoje</option></select>
+            <select id="hubDashFilterPeriod">
+              <option value="7d">7 dias</option>
+              <option value="30d" selected>30 dias</option>
+              <option value="90d">90 dias</option>
+              <option value="custom">Personalizado</option>
+            </select>
             <select id="hubDashFilterPartner"><option value="">Todos</option></select>
             <select id="hubDashFilterStatus"><option value="">Todos</option></select>
             <input type="search" id="hubDashFilterSearch" />
@@ -10627,8 +10632,8 @@
     <script src="/partners-cadastro-ui.js?v=20261112pp1"></script>
     <script src="/reboque-transporte-service.js?v=20261021reboque1"></script>
     <script src="/reboque-transporte-ui.js?v=20261105extrato1"></script>
-    <script src="/dashboard-metrics-service.js?v=20260909execops1"></script>
-    <script src="/amplipatio-dashboard.js?v=20261112dash3"></script>
+    <script src="/dashboard-metrics-service.js?v=20261112dash4"></script>
+    <script src="/amplipatio-dashboard.js?v=20261112dash4"></script>
     <script src="/recibo-documento.js?v=20261023recibo6"></script>
     <script src="/vehicle-entry-inspection-checklist.js?v=20260915vistoria1"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20261105fotos1"></script>
