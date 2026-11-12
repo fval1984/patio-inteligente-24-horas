@@ -505,13 +505,21 @@ button {
 }
 
 button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.close-view):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn):not(.exec-ops-kpi):not(.exec-ops-link):not(.exec-ops-attn button):not(.exec-ops-period button):not(.fin-simple-card):not(.fin-simple-attn):not(.fin-simple-recent button):not(.dashboard-system-btn):not(.header-menu-dropdown button):not(.cmd-ops-kpi):not(.cmd-ops-attn button):not(.cmd-ops-link):not(.fin-act-kpi):not(.ao-card):not(.ao-band):not(.ao-attn):not(.ao-bucket):not(.ao-sort):not(.ao-clear):not(.patio-hub-kpi):not(.ag-sidebar-toggle) {
-  background: var(--ag-red) !important;
+  background: var(--ag-graphite) !important;
   color: #fff !important;
-  border: 1px solid var(--ag-red) !important;
+  border: 1px solid var(--ag-graphite) !important;
   box-shadow: none !important;
-  font-weight: 650;
-  min-height: var(--ag-control-h);
+  font-weight: 600;
+  min-height: 34px;
   letter-spacing: 0;
+}
+
+.header-plate-search button[type="submit"],
+#vehicleIdFichaAcoesBtn,
+.auth-login-form button[type="submit"] {
+  background: var(--ag-red) !important;
+  border-color: var(--ag-red) !important;
+  color: #fff !important;
 }
 
 button.secondary,
@@ -1025,4 +1033,202 @@ body.auth-screen-active #authorizationPanel:not(.hidden) {
 
 body.app-module-patio #viewPatio > .patio-toolbar h2 {
   display: none;
+}
+
+/* ---- Refino premium 2.0 ---- */
+:root {
+  --ag-topbar-h: 48px;
+  --ag-control-h: 32px;
+  --ag-radius: 8px;
+  --ag-radius-sm: 6px;
+}
+
+.ag-header-kicker {
+  display: none !important;
+}
+
+.ag-header-title {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--ag-text) !important;
+}
+
+header .header-plate-search,
+.ag-topbar-search {
+  max-width: none !important;
+  margin: 0 auto !important;
+  justify-content: center !important;
+  gap: 6px !important;
+}
+
+header .header-plate-search button,
+header .header-plate-search button.secondary,
+.header-plate-search button[type="submit"] {
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.header-logout-btn {
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
+}
+
+.ag-topbar-right .user {
+  font-size: 12px !important;
+  color: var(--ag-muted) !important;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html header,
+header {
+  height: var(--ag-topbar-h) !important;
+  min-height: var(--ag-topbar-h) !important;
+}
+
+.table thead th {
+  background: #fff !important;
+  color: var(--ag-muted) !important;
+  border-bottom: 1px solid var(--ag-border) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em;
+  padding: 8px 10px !important;
+}
+
+.table tbody td {
+  padding: 9px 10px !important;
+  border-bottom: 1px solid #eef0f3 !important;
+}
+
+.table tbody tr:nth-child(even) {
+  background: transparent !important;
+}
+
+.table tbody tr:hover {
+  background: #f7f8fa !important;
+}
+
+.panel,
+.section-card {
+  padding: 14px !important;
+  box-shadow: none !important;
+}
+
+#viewPatio.patio-module-shell,
+#viewParceiros.partners-module-shell,
+#viewConfiguracoes.config-module-shell,
+#viewLista.lista-module-shell,
+#viewFinanceiro.finance-module-shell,
+#viewDashboard.dashboard-shell,
+#viewBiExecutivo.bi-executivo-shell,
+#viewEscritorios {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.exec-ops-kpi,
+.cmd-ops-kpi,
+.fin-act-kpi,
+.fin-simple-card {
+  min-height: 88px !important;
+  padding: 12px 14px !important;
+  box-shadow: none !important;
+}
+
+.exec-ops-kpi strong,
+.cmd-ops-kpi strong,
+.fin-simple-card strong {
+  font-size: 1.55rem !important;
+  font-weight: 700 !important;
+}
+
+button.secondary,
+.modal-close {
+  min-height: 32px !important;
+}
+
+@media (min-width: 901px) {
+  html.ag-nav-collapsed body:not(.auth-screen-active),
+  body:not(.auth-screen-active).ag-nav-collapsed {
+    --ag-rail: var(--ag-sidebar-w-collapsed);
+  }
+
+  body:not(.auth-screen-active) #dashboardSystemEntry {
+    background: #1f242c !important;
+  }
+
+  body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn.active,
+  body:not(.auth-screen-active).app-module-patio:has(#viewPatio:not(.hidden)) #dashboardOpenPatio,
+  body:not(.auth-screen-active).app-module-finance #dashboardOpenFinance,
+  body:not(.auth-screen-active).app-module-lista #dashboardOpenLista,
+  body:not(.auth-screen-active):has(#viewParceiros:not(.hidden)) #dashboardOpenParceiros,
+  body:not(.auth-screen-active):has(#viewConfiguracoes:not(.hidden)) #dashboardOpenConfiguracoes,
+  body:not(.auth-screen-active):has(#viewDashboard:not(.hidden)) #dashboardOpenHome {
+    background: rgba(255, 255, 255, 0.08) !important;
+    box-shadow: inset 2px 0 0 var(--ag-red) !important;
+  }
+
+  #patioContent.modal-backdrop.tab-view-modal:not(.hidden) {
+    position: fixed !important;
+    inset: auto !important;
+    top: var(--ag-topbar-h) !important;
+    left: var(--ag-rail) !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 12px 16px 16px !important;
+    margin: 0 !important;
+    background: var(--ag-bg) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    z-index: 24 !important;
+    display: flex !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+  }
+
+  [data-theme="light"] #patioContent.modal-backdrop.tab-view-modal {
+    background: var(--ag-bg) !important;
+  }
+
+  #patioContent.modal-backdrop.tab-view-modal > .modal.modal--wide {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    max-height: none !important;
+    border: 1px solid var(--ag-border) !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  #patioContent.modal-backdrop.tab-view-modal .modal-header {
+    padding: 8px 10px 8px 12px;
+    margin-bottom: 0 !important;
+    min-height: 40px;
+  }
+
+  #patioContent.modal-backdrop.tab-view-modal .modal-close {
+    min-height: 28px !important;
+    padding: 0 10px !important;
+    font-size: 12px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  html header,
+  header {
+    height: auto !important;
+    min-height: 0 !important;
+  }
 }
