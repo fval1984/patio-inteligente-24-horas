@@ -138,6 +138,23 @@
     return "";
   }
 
+  function programHintHtml() {
+    const prog = global.partnerProgram;
+    if (!prog || !currentMeta) return "";
+    const p =
+      (global.state?.partners || []).find((x) => String(x.id) === String(currentMeta.id)) ||
+      { perfil: { programa_cliente_parceiro: currentMeta.programa } };
+    const ym = svc().todayYmd().slice(0, 7);
+    const items = svc()
+      .openLines()
+      .filter((l) => svc().lineMatchesPartner(l, currentSubject))
+      .map((l) => ({ receivable: { period_end: l.saida, id: l.receivableId }, vehicle: l.vehicle, vehicle_id: l.vehicleId }));
+    const cycles = prog.countCyclesInMonth(items, ym);
+    const tar = prog.tariffFor(p, cycles);
+    const close = prog.closingForMonth(ym);
+    return `<p class="notice">${esc(tar.label)} · Ciclos neste mês: ${cycles} · Fechamento ${esc(close.fechamento)} · Vencimento ${esc(close.vencimento)}. O valor do título já gravado não é recalculado aqui.</p>`;
+  }
+
   function renderPartner(el) {
     const all = svc().openLines().filter((l) => svc().lineMatchesPartner(l, currentSubject));
     const lines = svc().filterLines(all, { status: lineStatus, search: lineSearch, de: periodDe, ate: periodAte });
@@ -201,6 +218,7 @@
           <button type="button" class="cob-btn secondary" data-cob-back="list">← Voltar</button>
           <h2 style="margin-top:10px">Cobrança</h2>
           <p class="cob-sub"><strong>Parceiro:</strong> ${esc(currentMeta.nome)} · <strong>Tipo:</strong> ${esc(currentMeta.tipoLabel)}</p>
+          ${programHintHtml()}
         </div>
       </div>
       <div class="cob-kpis">
@@ -303,6 +321,7 @@
           <button type="button" class="cob-btn secondary" data-cob-back="partner">← VOLTAR</button>
           <button type="button" class="cob-btn" data-cob-pdf="1">BAIXAR PDF</button>
           <button type="button" class="cob-btn secondary" data-cob-print="1">IMPRIMIR</button>
+          <button type="button" class="cob-btn secondary" data-cob-whatsapp="1">WhatsApp</button>
         </div>
       </div>
       ${paperHtml(doc)}
@@ -601,6 +620,18 @@
     }
   }
 
+  function shareWhatsapp() {
+    const doc = previewDoc;
+    if (!doc) return;
+    const digits = String(currentMeta?.whatsapp || "").replace(/\D/g, "");
+    const num = String(doc.numero || 0).padStart(6, "0");
+    const text = `AMPLIGUARD — Cobrança ${num}\nCliente: ${doc.parceiroNome}\nVeículos: ${doc.veiculos}\nPeríodo: ${doc.periodoLabel}\nTotal: ${money(doc.total)}\nSituação: em aberto (remoção do pátio não quita o valor).`;
+    const url = digits
+      ? `https://wa.me/55${digits.replace(/^55/, "")}?text=${encodeURIComponent(text)}`
+      : `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank", "noopener");
+  }
+
   async function openHistory(id, act) {
     const row = historyRows.find((h) => String(h.id) === String(id));
     if (!row) return;
@@ -734,6 +765,10 @@
     }
     if (e.target.closest("[data-cob-print]")) {
       onPrint();
+      return;
+    }
+    if (e.target.closest("[data-cob-whatsapp]")) {
+      shareWhatsapp();
       return;
     }
     const pageBtn = e.target.closest("[data-cob-page]");
