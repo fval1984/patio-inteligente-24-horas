@@ -78,23 +78,23 @@
     <style>
       :root {
         color-scheme: light;
-        --bg: #d9d4cc;
-        --card: #fbf8f3;
-        --text: #121314;
-        --muted: #3a4046;
-        --gold: #8a5a32;
-        --gold-strong: #6f4324;
-        --gold-light: #c4a06a;
-        --silver: #6f7478;
-        --primary: #161719;
-        --primary-strong: #000000;
-        --primary-weak: rgba(22, 23, 25, 0.08);
-        --border: #9a948a;
-        --shadow: 0 10px 24px rgba(18, 19, 20, 0.12);
-        --shadow-soft: 0 8px 18px rgba(22, 23, 25, 0.08);
-        --success: #2f6b3a;
-        --error: #9b2c2c;
-        --radius: 4px;
+        --bg: #f7f8fa;
+        --card: #ffffff;
+        --text: #252a32;
+        --muted: #667085;
+        --gold: #c62828;
+        --gold-strong: #ab1f1f;
+        --gold-light: #ef9a9a;
+        --silver: #667085;
+        --primary: #c62828;
+        --primary-strong: #ab1f1f;
+        --primary-weak: rgba(198, 40, 40, 0.1);
+        --border: #e4e7ec;
+        --shadow: 0 1px 2px rgba(37, 42, 50, 0.06);
+        --shadow-soft: 0 1px 2px rgba(37, 42, 50, 0.04);
+        --success: #2e7d32;
+        --error: #c62828;
+        --radius: 10px;
         /* Margens globais: lateral alinhada ao espaço cabeçalho ↔ conteúdo */
         --app-gutter-x: 28px;
         --app-gutter-y: 28px;
@@ -102,20 +102,20 @@
       }
       [data-theme="light"] {
         color-scheme: light;
-        --bg: #d9d4cc;
-        --card: #fbf8f3;
-        --text: #121314;
-        --muted: #3a4046;
-        --gold: #8a5a32;
-        --gold-strong: #6f4324;
-        --gold-light: #c4a06a;
-        --silver: #6f7478;
-        --primary: #161719;
-        --primary-strong: #000000;
-        --primary-weak: rgba(22, 23, 25, 0.08);
-        --border: #9a948a;
-        --shadow: 0 10px 24px rgba(18, 19, 20, 0.12);
-        --shadow-soft: 0 8px 18px rgba(22, 23, 25, 0.08);
+        --bg: #f7f8fa;
+        --card: #ffffff;
+        --text: #252a32;
+        --muted: #667085;
+        --gold: #c62828;
+        --gold-strong: #ab1f1f;
+        --gold-light: #ef9a9a;
+        --silver: #667085;
+        --primary: #c62828;
+        --primary-strong: #ab1f1f;
+        --primary-weak: rgba(198, 40, 40, 0.1);
+        --border: #e4e7ec;
+        --shadow: 0 1px 2px rgba(37, 42, 50, 0.06);
+        --shadow-soft: 0 1px 2px rgba(37, 42, 50, 0.04);
       }
       [data-theme="dark"] {
         color-scheme: dark;
@@ -7581,9 +7581,9 @@
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261109ficha1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261001escritorio3" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112ui1" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
-    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha5" />
+    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha6" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
   </head>
   <body class="auth-screen-active">
@@ -7611,30 +7611,35 @@
         <div class="app-subheader-row">
           <nav class="dashboard-system-entry header-module-nav" id="dashboardSystemEntry" aria-label="Módulos do sistema">
             <button type="button" class="dashboard-system-btn" id="dashboardOpenHome">
+              <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
               <span class="dashboard-system-btn__kicker">Painel</span>
               <span class="dashboard-system-btn__title">Dashboard</span>
               <span class="dashboard-system-btn__desc">Visão operacional do pátio.</span>
               <span class="dashboard-system-btn__go">Abrir dashboard →</span>
             </button>
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenPatio">
+              <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span>
               <span class="dashboard-system-btn__kicker">Operação</span>
-              <span class="dashboard-system-btn__title">PATIO</span>
+              <span class="dashboard-system-btn__title">Pátio</span>
               <span class="dashboard-system-btn__desc">Acompanhe veículos, entradas, saídas e fluxo operacional.</span>
               <span class="dashboard-system-btn__go">Abrir pátio →</span>
             </button>
             <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
+              <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16V9"/><path d="M12 16V7"/><path d="M16 16v-5"/></svg></span>
               <span class="dashboard-system-btn__kicker">Financeiro</span>
               <span class="dashboard-system-btn__title">Financeiro</span>
               <span class="dashboard-system-btn__desc">Receita em geração, contas a receber, pagamentos e caixa.</span>
               <span class="dashboard-system-btn__go">Abrir financeiro →</span>
             </button>
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
+              <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="3"/><path d="M20 8v6"/><path d="M17 11h6"/></svg></span>
               <span class="dashboard-system-btn__kicker">Relacionamento</span>
               <span class="dashboard-system-btn__title">Parceiros</span>
               <span class="dashboard-system-btn__desc">Escritório, financeira, leiloeiro, pátio, localizador e reboque.</span>
               <span class="dashboard-system-btn__go">Abrir parceiros →</span>
             </button>
             <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenLista">
+              <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg></span>
               <span class="dashboard-system-btn__kicker">Relatórios</span>
               <span class="dashboard-system-btn__title">Lista</span>
               <span class="dashboard-system-btn__desc">Acesse listagens operacionais, histórico e consultas rápidas.</span>
@@ -7645,10 +7650,14 @@
               class="dashboard-system-btn dashboard-system-btn--finance"
               id="dashboardOpenConfiguracoes"
             >
+              <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.3.6.9 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>
               <span class="dashboard-system-btn__kicker">Sistema</span>
               <span class="dashboard-system-btn__title">Configurações</span>
               <span class="dashboard-system-btn__desc">Ajuste dados, usuários e parâmetros operacionais.</span>
               <span class="dashboard-system-btn__go">Abrir configurações →</span>
+            </button>
+            <button type="button" id="agSidebarToggle" class="ag-sidebar-toggle" aria-expanded="true" aria-controls="dashboardSystemEntry" title="Recolher menu">
+              <span>Recolher menu</span>
             </button>
           </nav>
           <div class="app-subheader-right">
@@ -11678,6 +11687,30 @@
         document.getElementById("appSubheader")?.classList.toggle("hidden", !loggedIn);
       }
 
+      (function bindAmpliguardSidebarToggle() {
+        const KEY = "ampliguard_nav_collapsed";
+        const btn = document.getElementById("agSidebarToggle");
+        const apply = (collapsed) => {
+          document.body.classList.toggle("ag-nav-collapsed", collapsed);
+          btn?.setAttribute("aria-expanded", collapsed ? "false" : "true");
+          if (btn) {
+            const label = btn.querySelector("span");
+            if (label) label.textContent = collapsed ? "Expandir" : "Recolher menu";
+            btn.title = collapsed ? "Expandir menu" : "Recolher menu";
+          }
+        };
+        apply(localStorage.getItem(KEY) === "1");
+        btn?.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const next = !document.body.classList.contains("ag-nav-collapsed");
+          try {
+            localStorage.setItem(KEY, next ? "1" : "0");
+          } catch (e) {}
+          apply(next);
+        });
+      })();
+
       let appInitPromise = null;
       let appInitUserId = null;
       let appLaunchConfigConsumed = false;
@@ -15428,11 +15461,11 @@
       /** Identificação visual VNP (no pátio), VLP (liberação) vs VRP (removido). */
       function patioRegistoBadgeHtml(kind) {
         const map = {
-          vrp: { label: "VRP", cls: "tag success", title: "Veículo removido (VRP)" },
-          vsl: { label: "VSL", cls: "tag notice", title: "Solicitação de liberação (VSL)" },
-          vsc: { label: "VSC", cls: "tag notice", title: "Liberação confirmada (VSC)" },
-          vlp: { label: "VSL", cls: "tag notice", title: "Solicitação de liberação (VSL)" },
-          vnp: { label: "VNP", cls: "tag warning", title: "Veículo no pátio (VNP)" },
+          vrp: { label: "VRP", cls: "tag tag--vrp success", title: "Veículo removido (VRP)" },
+          vsl: { label: "VSL", cls: "tag tag--vsl", title: "Solicitação de liberação (VSL)" },
+          vsc: { label: "VSC", cls: "tag tag--vsc", title: "Liberação confirmada (VSC)" },
+          vlp: { label: "VSL", cls: "tag tag--vsl", title: "Solicitação de liberação (VSL)" },
+          vnp: { label: "VNP", cls: "tag tag--vnp warning", title: "Veículo no pátio (VNP)" },
         };
         const m = map[kind] || map.vnp;
         return `<span class="${m.cls}" style="margin-right:6px;vertical-align:middle;white-space:nowrap" title="${m.title}">${m.label}</span>`;
@@ -20516,7 +20549,7 @@
           const target = pickMostRecentPlateVehicle(onPatio.length ? onPatio : matches);
           renderPatioConsultaPlacaResult({ plate: plateFilter.value, matches, target });
           renderVehicles();
-          if (target) void openVehicleIdFicha(target, 1);
+          if (target) void openVehicleIdFicha(target, 2);
           return;
         }
         plateQuery = "";
