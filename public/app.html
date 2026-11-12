@@ -7486,7 +7486,7 @@
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20261001escritorio3" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
-    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261109ficha2" />
+    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha3" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
   </head>
   <body class="auth-screen-active">
@@ -9620,6 +9620,10 @@
           <div class="modal-header">
             <h3 id="vehicleIdFichaTitle">Ficha do veículo</h3>
             <div class="actions">
+              <div class="patio-actions-dd hidden" id="vehicleIdFichaAcoesWrap">
+                <button type="button" class="secondary patio-actions-toggle" id="vehicleIdFichaAcoesBtn" data-action="patio_acoes_menu" aria-haspopup="menu" aria-expanded="false">AÇÕES</button>
+                <div class="patio-actions-menu hidden" id="vehicleIdFichaAcoesMenu" role="menu"></div>
+              </div>
               <button type="button" class="secondary" id="downloadVehicleIdFichaPdf">Baixar PDF</button>
               <button type="button" class="modal-close" id="closeVehicleIdFichaModal">Fechar</button>
             </div>
@@ -20380,20 +20384,24 @@
           return;
         }
         setPlateSearchHints("", false);
-        plateQuery = raw;
         syncPatioPlateInputFromHeader();
         const matches = findVehiclesByPlateNorm(norm);
         goToPatioForPlateSearch();
         if (matches.length) {
+          plateQuery = raw;
           const onPatio = matches.filter((v) => isVehicleOnPatio(v));
           const target = pickMostRecentPlateVehicle(onPatio.length ? onPatio : matches);
           renderPatioConsultaPlacaResult({ plate: plateFilter.value, matches, target });
-          openPatioSubview("consultar_placa");
           renderVehicles();
-        } else {
-          renderPatioConsultaPlacaResult({ plate: plateFilter.value, matches: [] });
-          openPatioSubview("consultar_placa");
-          renderVehicles();
+          if (target) void openVehicleIdFicha(target, 1);
+          return;
+        }
+        plateQuery = "";
+        renderPatioConsultaPlacaResult({ emptyQuery: true });
+        renderVehicles();
+        if (typeof closeVehicleIdFichaModalFn === "function") closeVehicleIdFichaModalFn();
+        if (!isVisualizador && !isVistoriador) {
+          openOriginalVehicleRegisterFromConsulta(plateFilter.value);
         }
       }
 
@@ -24885,9 +24893,31 @@
         return `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value || "—")}</dd></div>`;
       }
 
+      function syncVehicleIdFichaActions(vehicle, kind) {
+        const wrap = document.getElementById("vehicleIdFichaAcoesWrap");
+        const menu = document.getElementById("vehicleIdFichaAcoesMenu");
+        const btn = document.getElementById("vehicleIdFichaAcoesBtn");
+        if (!wrap || !menu) return;
+        if (Number(kind) !== 1 || !vehicle) {
+          wrap.classList.add("hidden");
+          menu.innerHTML = "";
+          if (btn) btn.removeAttribute("data-id");
+          return;
+        }
+        const listContext = vehicle.status === "REMOVIDO" ? "vrp" : "vnp";
+        wrap.classList.remove("hidden");
+        if (btn) btn.setAttribute("data-id", vehicle.id);
+        menu.innerHTML = buildPatioVehicleActionsHtml(vehicle, { listContext, compact: false });
+      }
+
       async function openVehicleIdFicha(vehicle, tipo) {
         if (!vehicleIdFichaModal || !vehicleIdFichaCapture || !vehicle) return;
         const kind = Number(tipo) === 2 ? 2 : 1;
+        if (typeof closePatioVehicleActionsModalFn === "function") closePatioVehicleActionsModalFn();
+        if (fichaModal && !fichaModal.classList.contains("hidden") && kind === 1) {
+          fichaModal.classList.add("hidden");
+          delete fichaModal.dataset.openVehicleId;
+        }
         vehicleIdFichaModal.dataset.fichaTipo = String(kind);
         vehicleIdFichaModal.dataset.openVehicleId = vehicle.id;
         vehicleIdFichaModal.querySelector(".modal")?.classList.toggle("vehicle-id-ficha-modal--cobranca", kind === 2);
@@ -24900,6 +24930,7 @@
         const fichaDlBtn = document.getElementById("downloadVehicleIdFichaPdf");
         if (fichaDlBtn) fichaDlBtn.textContent = kind === 2 ? "Baixar PNG" : "Baixar PDF";
         vehicleIdFichaCapture.innerHTML = `<p class="vif-empty">A carregar ficha…</p>`;
+        syncVehicleIdFichaActions(vehicle, kind);
         vehicleIdFichaModal.classList.remove("hidden");
 
         const modelo = [vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "—";
@@ -25065,6 +25096,7 @@
         if (fichaDlBtn) fichaDlBtn.textContent = "Baixar PDF";
         delete vehicleIdFichaModal.dataset.openVehicleId;
         delete vehicleIdFichaModal.dataset.fichaTipo;
+        syncVehicleIdFichaActions(null, 0);
       }
 
       async function downloadVehicleIdFichaPdfFn() {
@@ -25403,9 +25435,23 @@
       }
 
       async function refreshFichaIfOpen(vehicleId) {
-        if (!vehicleId || !fichaModal || fichaModal.classList.contains("hidden")) return;
+        if (!vehicleId) return;
         const v = state.vehicles.find((x) => x.id === vehicleId);
-        if (v) await openFicha(v);
+        if (fichaModal && !fichaModal.classList.contains("hidden")) {
+          if (v) await openFicha(v);
+        }
+        if (
+          vehicleIdFichaModal &&
+          !vehicleIdFichaModal.classList.contains("hidden") &&
+          String(vehicleIdFichaModal.dataset.openVehicleId || "") === String(vehicleId)
+        ) {
+          if (!v) {
+            closeVehicleIdFichaModalFn();
+            return;
+          }
+          const tipo = vehicleIdFichaModal.dataset.fichaTipo === "2" ? 2 : 1;
+          await openVehicleIdFicha(v, tipo);
+        }
       }
 
       function renderPartners() {
@@ -28793,7 +28839,7 @@ ${body}
         if (fichaBtn) {
           const id = fichaBtn.getAttribute("data-consulta-ficha");
           const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(id));
-          if (vehicle) openFicha(vehicle);
+          if (vehicle) void openVehicleIdFicha(vehicle, 1);
         }
       });
 
@@ -29988,6 +30034,7 @@ ${body}
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
           closePatioVehicleActionsModalFn();
+          closeVehicleIdFichaModalFn();
           await loadVehicles();
           return;
         }
@@ -31119,6 +31166,15 @@ ${body}
           },
           true
         );
+        patioContent.addEventListener("click", async (event) => {
+          if (event.target.closest("button, a, input, select, textarea, label, .patio-actions-dd, .patio-actions-menu")) return;
+          const row = event.target.closest("tr[data-vehicle-row]");
+          if (!row || !patioContent.contains(row) || row.hasAttribute("data-receivable-row")) return;
+          const id = row.getAttribute("data-vehicle-row");
+          const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(id));
+          if (!vehicle) return;
+          await openVehicleIdFicha(vehicle, 1);
+        });
       }
 
       bindPatioVehicleTableActions();
@@ -31132,6 +31188,12 @@ ${body}
       fichaModal?.addEventListener("click", async (event) => {
         const button = event.target.closest("button[data-action]");
         if (!button || !fichaModal.contains(button)) return;
+        await handleVnpVehicleAction(button, event);
+      });
+
+      vehicleIdFichaModal?.addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-action]");
+        if (!button || !vehicleIdFichaModal.contains(button)) return;
         await handleVnpVehicleAction(button, event);
       });
 
