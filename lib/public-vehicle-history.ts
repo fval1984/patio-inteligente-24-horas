@@ -38,6 +38,88 @@ export function publicVehicleStatusLabel(status: string | null | undefined): str
   return raw || "Em guarda no pátio";
 }
 
+export function chavePublicLabel(raw: string | null | undefined): { label: string; cls: string } | null {
+  const s = String(raw || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_")
+    .replace(/\//g, "_");
+  if (s === "C_CHAVE" || s === "CCHAVE") return { label: "C/CHAVE", cls: "is-c-chave" };
+  if (s === "S_CHAVE" || s === "SCHAVE") return { label: "S/CHAVE", cls: "is-s-chave" };
+  if (s === "TRANCADO") return { label: "TRANCADO", cls: "is-trancado" };
+  return null;
+}
+
+export function splitEntryDateTime(
+  iso: string | null | undefined,
+  label?: string | null
+): { date: string; time: string } {
+  if (iso) {
+    const d = new Date(String(iso));
+    if (!Number.isNaN(d.getTime())) {
+      return {
+        date: d.toLocaleDateString("pt-BR", { timeZone: "America/Recife" }),
+        time: d.toLocaleTimeString("pt-BR", {
+          timeZone: "America/Recife",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+    }
+  }
+  const text = String(label || "").trim();
+  const match = text.match(/^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})/);
+  if (match) return { date: match[1], time: match[2] };
+  return { date: text || "—", time: "—" };
+}
+
+export type LiberationStep = {
+  code: string;
+  title: string;
+  at: string | null;
+  at_label: string | null;
+  current: boolean;
+};
+
+export function liberationSteps(
+  timeline: PublicVehicleTimelineItem[] | null | undefined
+): LiberationStep[] {
+  const by: Record<string, PublicVehicleTimelineItem> = {};
+  (timeline || []).forEach((item) => {
+    if (item && item.code) by[item.code] = item;
+  });
+  const defs = [
+    { code: "EM_GUARDA", title: "Em guarda" },
+    { code: "VSL", title: "Liberação solicitada (VSL)" },
+    { code: "VSC", title: "Liberação confirmada (VSC)" },
+    { code: "VRP", title: "Removido do pátio (VRP)" },
+  ];
+  const guarda = by.EM_GUARDA || by.REGISTRADO;
+  const out: LiberationStep[] = [];
+  if (guarda) {
+    out.push({
+      code: "EM_GUARDA",
+      title: defs[0].title,
+      at: guarda.at,
+      at_label: guarda.at_label,
+      current: false,
+    });
+  }
+  defs.slice(1).forEach((d) => {
+    const hit = by[d.code];
+    if (!hit) return;
+    out.push({
+      code: d.code,
+      title: d.title,
+      at: hit.at,
+      at_label: hit.at_label,
+      current: false,
+    });
+  });
+  if (out.length) out[out.length - 1].current = true;
+  return out;
+}
+
 type TimelineSource = {
   data_entrada?: string | null;
   data_saida?: string | null;
