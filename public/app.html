@@ -7591,9 +7591,9 @@
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261109ficha1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112ui3" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112ui4" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
-    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha7" />
+    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha8" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
   </head>
   <body class="auth-screen-active">
@@ -9722,7 +9722,7 @@
                 <div class="patio-actions-menu hidden" id="vehicleIdFichaAcoesMenu" role="menu"></div>
               </div>
               <button type="button" class="secondary" id="downloadVehicleIdFichaPdf">Baixar PDF</button>
-              <button type="button" class="modal-close" id="closeVehicleIdFichaModal">Fechar</button>
+              <button type="button" class="modal-close" id="closeVehicleIdFichaModal" aria-label="Fechar painel">×</button>
             </div>
           </div>
           <div id="vehicleIdFichaCapture" class="vif-capture"></div>
@@ -25125,7 +25125,14 @@
         if (fichaDlBtn) fichaDlBtn.textContent = kind === 2 ? "Baixar PNG" : "Baixar PDF";
         vehicleIdFichaCapture.innerHTML = `<p class="vif-empty">A carregar ficha…</p>`;
         syncVehicleIdFichaActions(vehicle, kind);
+        document.body.classList.add("ag-ficha-open");
+        document.documentElement.classList.add("ag-ficha-open");
+        document.querySelectorAll("#tableNoPatio tr.is-ficha-open, #tableRemovidos tr.is-ficha-open").forEach((tr) => {
+          tr.classList.remove("is-ficha-open");
+        });
+        document.querySelector(`#tableNoPatio tr[data-vehicle-row="${vehicle.id}"], #tableRemovidos tr[data-vehicle-row="${vehicle.id}"]`)?.classList.add("is-ficha-open");
         vehicleIdFichaModal.classList.remove("hidden");
+        vehicleIdFichaModal.querySelector(".vehicle-id-ficha-modal")?.scrollTo?.(0, 0);
 
         const modelo = [vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "—";
         const financeira = partnerNomeById(vehicle.financeira_id) || "";
@@ -25284,6 +25291,11 @@
       function closeVehicleIdFichaModalFn() {
         if (!vehicleIdFichaModal) return;
         vehicleIdFichaModal.classList.add("hidden");
+        document.body.classList.remove("ag-ficha-open");
+        document.documentElement.classList.remove("ag-ficha-open");
+        document.querySelectorAll("#tableNoPatio tr.is-ficha-open, #tableRemovidos tr.is-ficha-open").forEach((tr) => {
+          tr.classList.remove("is-ficha-open");
+        });
         vehicleIdFichaModal.querySelector(".modal")?.classList.remove("vehicle-id-ficha-modal--cobranca");
         vehicleIdFichaCapture?.classList.remove("vif-capture--tipo2");
         const fichaDlBtn = document.getElementById("downloadVehicleIdFichaPdf");
@@ -26423,9 +26435,9 @@
       [vehicleModal, partnerModal, dateModal, liberacaoModal, payableModal, lancamentoModal, fichaModal, vehicleIdFichaModal, patioVehicleActionsModal, nfseModal, cobrancaEmailModal, nfseThermalModal, controleRecebimentoModal, textModal, reciboModal, receberBaixaModal, pagarBaixaModal].filter(Boolean).forEach((modal) => {
         modal.addEventListener("click", (event) => {
           if (event.target === modal) {
+            if (modal === vehicleIdFichaModal) return;
             modal.classList.add("hidden");
             if (modal === fichaModal) delete fichaModal.dataset.openVehicleId;
-            if (modal === vehicleIdFichaModal) closeVehicleIdFichaModalFn();
             if (modal === patioVehicleActionsModal) delete patioVehicleActionsModal.dataset.openVehicleId;
             if (modal === dateModal && dateModalResolver) {
               dateModalResolver(null);
