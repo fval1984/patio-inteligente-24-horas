@@ -7486,7 +7486,7 @@
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20261001escritorio3" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
-    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha3" />
+    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha4" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
   </head>
   <body class="auth-screen-active">
@@ -20393,7 +20393,7 @@
           const target = pickMostRecentPlateVehicle(onPatio.length ? onPatio : matches);
           renderPatioConsultaPlacaResult({ plate: plateFilter.value, matches, target });
           renderVehicles();
-          if (target) void openVehicleIdFicha(target, 1);
+          if (target) void openVehicleIdFicha(target, 2);
           return;
         }
         plateQuery = "";
@@ -24898,7 +24898,7 @@
         const menu = document.getElementById("vehicleIdFichaAcoesMenu");
         const btn = document.getElementById("vehicleIdFichaAcoesBtn");
         if (!wrap || !menu) return;
-        if (Number(kind) !== 1 || !vehicle) {
+        if (Number(kind) !== 2 || !vehicle) {
           wrap.classList.add("hidden");
           menu.innerHTML = "";
           if (btn) btn.removeAttribute("data-id");
@@ -24914,7 +24914,7 @@
         if (!vehicleIdFichaModal || !vehicleIdFichaCapture || !vehicle) return;
         const kind = Number(tipo) === 2 ? 2 : 1;
         if (typeof closePatioVehicleActionsModalFn === "function") closePatioVehicleActionsModalFn();
-        if (fichaModal && !fichaModal.classList.contains("hidden") && kind === 1) {
+        if (fichaModal && !fichaModal.classList.contains("hidden") && kind === 2) {
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
         }
@@ -28839,7 +28839,7 @@ ${body}
         if (fichaBtn) {
           const id = fichaBtn.getAttribute("data-consulta-ficha");
           const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(id));
-          if (vehicle) void openVehicleIdFicha(vehicle, 1);
+          if (vehicle) void openVehicleIdFicha(vehicle, 2);
         }
       });
 
@@ -31168,12 +31168,12 @@ ${body}
         );
         patioContent.addEventListener("click", async (event) => {
           if (event.target.closest("button, a, input, select, textarea, label, .patio-actions-dd, .patio-actions-menu")) return;
-          const row = event.target.closest("tr[data-vehicle-row]");
+          const row = event.target.closest("#tableNoPatio tr[data-vehicle-row], #tableRemovidos tr[data-vehicle-row]");
           if (!row || !patioContent.contains(row) || row.hasAttribute("data-receivable-row")) return;
           const id = row.getAttribute("data-vehicle-row");
           const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(id));
           if (!vehicle) return;
-          await openVehicleIdFicha(vehicle, 1);
+          await openVehicleIdFicha(vehicle, 2);
         });
       }
 
