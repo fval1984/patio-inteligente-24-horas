@@ -3,7 +3,7 @@
  * Depende de globals definidos em app.html (state, calcTotal, formatCurrency, etc.).
  */
 (function () {
-  let currentFinanceView = "dashboard";
+  let currentFinanceView = "cobrancas";
   let financeCaixaReturnView = "dashboard";
   let financeCaixaEditId = "";
   let financeCaixaDeleteId = "";
@@ -6901,7 +6901,8 @@
     if (view === "recebidos") return "caixa";
     if (view === "recorrentes") return "pagar";
     if (view === "diarias") return "em_patio";
-    if (view === "historico") return "dashboard";
+    if (view === "historico") return "caixa";
+    if (view === "dashboard") return "cobrancas";
     if (view === "conferir_pix") return "pix";
     if (view === "movimentacoes") return "caixa";
     if (view === "configuracoes") return "cadastros";
