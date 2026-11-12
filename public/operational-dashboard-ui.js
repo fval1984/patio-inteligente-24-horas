@@ -269,7 +269,6 @@
         : `${diariasHoje.count} ${diariasLabel} · só o dia de hoje, sem acúmulo`;
     const entradas = Number(k.entradasHoje || 0);
     const saidas = Number(k.saidasHoje || 0);
-    const saldo = entradas - saidas;
     const vistoria = countVistoria(vehicles, k.aguardandoVistoria);
     const remocao = countRemocao(vehicles);
     const autorizacao = Number(m.fila?.aguardandoAutorizacao || 0);
@@ -287,8 +286,6 @@
 
     const pendencias = attention.reduce((s, x) => s + x.count, 0);
     const recent = (m.ultimasMovimentacoes || []).slice(0, 6);
-    const saldoCls = saldo > 0 ? "cmd-ops-today--pos" : saldo < 0 ? "cmd-ops-today--neg" : "";
-    const saldoTxt = saldo > 0 ? `+${saldo}` : String(saldo);
 
     const metaEl = document.getElementById("patioOpsMeta");
     if (metaEl) {
@@ -349,14 +346,6 @@
         <section class="cmd-ops-block">
           <h3>Precisa da minha atenção</h3>
           ${attnHtml}
-        </section>
-        <section class="cmd-ops-block">
-          <h3>Movimentação de hoje</h3>
-          <div class="cmd-ops-today">
-            <div><span>Entradas</span><strong>${esc(String(entradas), ctx)}</strong></div>
-            <div><span>Saídas</span><strong>${esc(String(saidas), ctx)}</strong></div>
-            <div class="${saldoCls}"><span>Saldo</span><strong>${esc(saldoTxt, ctx)}</strong></div>
-          </div>
         </section>
         <section class="cmd-ops-block">
           <div class="cmd-ops-mov-head">
