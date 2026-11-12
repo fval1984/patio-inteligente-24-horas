@@ -452,9 +452,13 @@
     }
     if (view === "patio") {
       if (typeof global.openPatioSubview === "function") {
-        global.openPatioSubview(sub || "inicio");
+        global.openPatioSubview(sub || "no_patio");
         return;
       }
+    }
+    if (view === "parceiros" && typeof global.showMainView === "function") {
+      global.showMainView("parceiros");
+      return;
     }
     if (view === "lista" && typeof global.openListaSubview === "function") {
       global.openListaSubview(sub || "vnp");
@@ -462,7 +466,7 @@
     }
     if (view === "financeiro") {
       if (typeof global.openFinanceSubview === "function") {
-        global.openFinanceSubview(sub || "dashboard");
+        global.openFinanceSubview(sub || "cobrancas");
         return;
       }
     }
@@ -475,97 +479,232 @@
     }
   }
 
+  function ymdToday() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function vehicleStage(v) {
+    if (typeof global.patioStageOfVehicle === "function") return global.patioStageOfVehicle(v);
+    const s = String(v?.status || "").toUpperCase();
+    if (s === "REMOVIDO") return "vrp";
+    if (s === "LIBERACAO_SOLICITADA") return "vsl";
+    if (s === "LIBERACAO_CONFIRMADA" || s.includes("REMOCAO_CONFIRMADA")) return "vsc";
+    return "vnp";
+  }
+
+  function chaveKind(v) {
+    if (typeof global.normalizeChaveCondicao === "function") return global.normalizeChaveCondicao(v?.chave_condicao);
+    return String(v?.chave_condicao || "").toUpperCase();
+  }
+
+  function stayDays(v) {
+    if (typeof global.calcDays === "function") return Number(global.calcDays(v) || 0);
+    if (!v?.data_entrada) return 0;
+    const start = new Date(v.data_entrada);
+    const end = v.data_saida ? new Date(v.data_saida) : new Date();
+    return Math.max(1, Math.ceil((end - start) / 86400000));
+  }
+
+  function moneyFmt(ctx, n) {
+    if (ctx && typeof ctx.formatCurrency === "function") return ctx.formatCurrency(n);
+    return Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  }
+
+  function kpiBtn(nav, label, value, meta) {
+    return `<button type="button" class="ag-home-kpi" data-hub-nav="${escapeHtml(nav)}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(String(value))}</strong>
+      ${meta ? `<small>${escapeHtml(meta)}</small>` : ""}
+    </button>`;
+  }
+
+  function buildHomeBoard(data, ctx) {
+    const vehicles = data.vehicles || [];
+    const today = ymdToday();
+    const ym = today.slice(0, 7);
+    const hideMoney = !!(ctx?.isGestorPista || ctx?.isVisualizador || global.isGestorPista || global.hidesFinancialValues?.());
+    let vnp = 0;
+    let vsl = 0;
+    let vsc = 0;
+    let vrp = 0;
+    let inToday = 0;
+    let outToday = 0;
+    let cChave = 0;
+    let sChave = 0;
+    let trancado = 0;
+    let staySum = 0;
+    let stayN = 0;
+    vehicles.forEach((v) => {
+      const st = vehicleStage(v);
+      const yIn = String(v.data_entrada || "").slice(0, 10);
+      const yOut = String(v.data_saida || "").slice(0, 10);
+      if (yIn === today) inToday += 1;
+      if (yOut === today) outToday += 1;
+      if (st === "vrp") {
+        vrp += 1;
+        return;
+      }
+      vnp += 1;
+      if (st === "vsl") vsl += 1;
+      if (st === "vsc") vsc += 1;
+      const k = chaveKind(v);
+      if (k === "C_CHAVE") cChave += 1;
+      else if (k === "S_CHAVE") sChave += 1;
+      else if (k === "TRANCADO") trancado += 1;
+      staySum += stayDays(v);
+      stayN += 1;
+    });
+    const avgStay = stayN ? (staySum / stayN).toFixed(1).replace(".", ",") : "—";
+
+    const recs = data.receivables || [];
+    const aguardando = recs.filter((r) =>
+      typeof global.receivableIsAguardandoFaturamentoFinanceiro === "function"
+        ? global.receivableIsAguardandoFaturamentoFinanceiro(r)
+        : false
+    );
+    const aFaturar = aguardando.reduce((s, r) => s + Number(r.valor || 0), 0);
+    const open =
+      typeof global.financeContasReceberList === "function" ? global.financeContasReceberList() : recs.filter((r) => String(r.status || "").toUpperCase() === "EM_ABERTO");
+    const vencidos = open.filter((r) =>
+      typeof global.financeReceivableDisplayStatus === "function"
+        ? global.financeReceivableDisplayStatus(r) === "Vencido" || global.financeReceivableDisplayStatus(r) === "Atrasado"
+        : false
+    );
+    const aReceber = open.filter((r) => !vencidos.includes(r));
+    const aReceberVal = aReceber.reduce((s, r) => s + Number(r.valor || 0), 0);
+    const vencidoVal = vencidos.reduce((s, r) => s + Number(r.valor || 0), 0);
+    const dueSoon = open.filter((r) => {
+      const due =
+        typeof global.financeContaDueYmd === "function" ? global.financeContaDueYmd(r, "receivable") : String(r.period_end || "").slice(0, 10);
+      if (!due) return false;
+      const d = new Date(`${due}T12:00:00`);
+      const t = new Date(`${today}T12:00:00`);
+      const diff = (d - t) / 86400000;
+      return diff >= 0 && diff <= 7;
+    });
+    const cash = data.cash || [];
+    const recebidoMes = cash.reduce((s, mov) => {
+      const ymd =
+        typeof global.financeCaixaMovCompetenciaYmd === "function"
+          ? global.financeCaixaMovCompetenciaYmd(mov)
+          : String(mov.data_movimento || mov.created_at || "").slice(0, 10);
+      if (!ymd || ymd.slice(0, 7) !== ym) return s;
+      const entrada = typeof global.financeCashIsEntrada === "function" ? global.financeCashIsEntrada(mov) : String(mov.tipo || "").toUpperCase() === "ENTRADA";
+      if (!entrada) return s;
+      const val = typeof global.financeCashMovValor === "function" ? global.financeCashMovValor(mov) : Number(mov.valor || 0);
+      return s + Number(val || 0);
+    }, 0);
+    const faturadoMes = recs.reduce((s, r) => {
+      const end = String(r.period_end || r.created_at || "").slice(0, 10);
+      if (!end || end.slice(0, 7) !== ym) return s;
+      if (!(Number(r.valor || 0) > 0)) return s;
+      return s + Number(r.valor || 0);
+    }, 0);
+    const pixPend = (global.financePixUi && Array.isArray(global.financePixUi._cache) ? global.financePixUi._cache : []).length;
+
+    const prog = global.partnerProgram;
+    const partners = (data.partners || []).filter((p) => {
+      if (String(p.status || "ATIVO").toUpperCase() === "INATIVO") return false;
+      return prog ? prog.isPartnerProgram(p) : p?.perfil?.programa_cliente_parceiro === true;
+    });
+    const vmap = new Map(vehicles.map((v) => [String(v.id), v]));
+    const partnerRows = partners
+      .map((p) => {
+        const items = recs
+          .filter((r) => {
+            const veh = r.vehicle_id ? vmap.get(String(r.vehicle_id)) : null;
+            const pid = String(p.id);
+            return (
+              String(veh?.financeira_id || "") === pid ||
+              String(veh?.localizador_id || "") === pid ||
+              String(r.partner_id || r.parceiro_id || "") === pid
+            );
+          })
+          .map((r) => ({ receivable: r, vehicle: vmap.get(String(r.vehicle_id)), vehicle_id: r.vehicle_id }));
+        const cycles = prog ? prog.countCyclesInMonth(items, ym) : items.filter((i) => String(i.receivable?.period_end || "").slice(0, 7) === ym).length;
+        const tar = prog ? prog.tariffFor(p, cycles) : { label: "—", diaria: 0, faixa: "—" };
+        const close = prog ? prog.closingForMonth(ym) : { fechamento: "—", vencimento: "—" };
+        return { nome: p.nome || "Parceiro", cycles, tar, close };
+      })
+      .sort((a, b) => b.cycles - a.cycles)
+      .slice(0, 8);
+
+    const fmt = (n) => (hideMoney ? "—" : moneyFmt(ctx, n));
+    return { vnp, vsl, vsc, vrp, inToday, outToday, cChave, sChave, trancado, avgStay, hideMoney, aFaturar, aReceberVal, vencidoVal, recebidoMes, faturadoMes, dueSoon, pixPend, partners, partnerRows, fmt };
+  }
+
   function amplipatioDashboardRender(data, ctx) {
     const root = document.getElementById("hubDashRoot");
     if (!root) return;
-    syncFiltersFromDom();
-    syncPeriodChips();
-    const isGestorPista = !!(ctx?.isGestorPista || global.isGestorPista || ctx?.isVisualizador || global.isVisualizador);
-    const isAdmDesktopPc = !!(ctx?.isAdmDesktopPc || global.isAdmDesktopPc?.());
-    const m = getMetrics(data);
-    const vehicles = data.vehicles || [];
-    const vistoria = countAguardandoVistoria(vehicles) || m.ops.aguardandoVistoria;
-    const faturamento = isGestorPista ? 0 : countAguardandoFaturamento(data);
-    const cr = countRegistroPendente(vehicles);
-    const attention = [
-      { count: vistoria, label: "veículos aguardando vistoria", nav: isAdmDesktopPc ? "patio:no_patio" : "patio:vistoria" },
-      { count: faturamento, label: "veículos aguardando faturamento", nav: "financeiro:aguardando" },
-      { count: m.ops.comPendencias, label: "veículos com documentação pendente", nav: "patio:no_patio" },
-      { count: m.ops.liberadosAguardandoRetirada, label: "veículos aguardando retirada", nav: "patio:no_patio" },
-      { count: m.ops.aguardandoAutorizacao, label: "veículos aguardando autorização", nav: "patio:no_patio" },
-      { count: cr, label: "veículos com registro complementar pendente", nav: "patio:no_patio" },
-    ];
-    const pendenciasTotal = attention.reduce((s, x) => s + Number(x.count || 0), 0);
-    const recent = recentPatioMovements(vehicles, 8);
     const greetEl = document.getElementById("execOpsGreeting");
     const dateEl = document.getElementById("execOpsDate");
     const rangeEl = document.getElementById("execOpsRange");
     if (greetEl) greetEl.textContent = greetingName(ctx);
     if (dateEl) dateEl.textContent = formatLongDate();
-    if (rangeEl) rangeEl.textContent = m.periodLabel || periodCaption(_filterPeriod);
+    if (rangeEl) rangeEl.textContent = "visão geral";
     const alertsEl = document.getElementById("hubDashAlerts");
     if (alertsEl) {
       alertsEl.innerHTML = "";
       alertsEl.hidden = true;
     }
-
-    const entradaLabel = _filterPeriod === "today" ? "Entradas hoje" : "Entradas";
-    const saidaLabel = _filterPeriod === "today" ? "Saídas hoje" : "Saídas";
-    const cap = periodCaption(_filterPeriod);
+    const b = buildHomeBoard(data, ctx);
+    const partnerTable = b.partnerRows.length
+      ? `<div class="table-wrap"><table class="table ag-home-table">
+          <thead><tr><th>Cliente</th><th>Ciclos no mês</th><th>Faixa</th><th>Fechamento</th><th>Vencimento</th></tr></thead>
+          <tbody>${b.partnerRows
+            .map(
+              (r) => `<tr>
+                <td>${escapeHtml(r.nome)}</td>
+                <td>${escapeHtml(String(r.cycles))}</td>
+                <td>${escapeHtml(r.tar.label)}</td>
+                <td>${escapeHtml(r.close.fechamento)}</td>
+                <td>${escapeHtml(r.close.vencimento)}</td>
+              </tr>`
+            )
+            .join("")}</tbody></table></div>`
+      : `<p class="ag-home-empty">Nenhum cliente no Programa Parceiro neste momento.</p>`;
 
     root.innerHTML = `
-      <section class="exec-ops-kpis" aria-label="Indicadores principais">
-        <button type="button" class="exec-ops-kpi" data-hub-nav="patio:no_patio">
-          <span>Veículos no pátio</span>
-          <strong>${escapeHtml(String(m.onPatioCount))}</strong>
-          <small>agora na operação</small>
-        </button>
-        <button type="button" class="exec-ops-kpi" data-hub-nav="patio:no_patio">
-          <span>${escapeHtml(entradaLabel)}</span>
-          <strong>${escapeHtml(String(m.periodEntradas))}</strong>
-          <small>${escapeHtml(cap)}</small>
-        </button>
-        <button type="button" class="exec-ops-kpi" data-hub-nav="patio:removidos">
-          <span>${escapeHtml(saidaLabel)}</span>
-          <strong>${escapeHtml(String(m.periodSaidas))}</strong>
-          <small>${escapeHtml(cap)}</small>
-        </button>
-        <button type="button" class="exec-ops-kpi exec-ops-kpi--alert" data-hub-nav="exec:attention">
-          <span>Pendências</span>
-          <strong>${escapeHtml(String(pendenciasTotal))}</strong>
-          <small>itens que pedem ação</small>
-        </button>
-      </section>
-      ${renderAttention(attention)}
-      <section class="exec-ops-section">
-        <h3>Movimento do pátio</h3>
-        <p class="exec-ops-chart-legend"><span class="exec-ops-dot exec-ops-dot--in"></span> Entradas · <span class="exec-ops-dot exec-ops-dot--out"></span> Saídas</p>
-        ${barChartSvg(
-          m.dailyLabels,
-          [
-            { name: "Entradas", values: m.dailyEntradas },
-            { name: "Saídas", values: m.dailySaidas },
-          ],
-          ["#161719", "#8a5a32"],
-          180
-        )}
-      </section>
-      ${renderSituation(m.ops, m.onPatioCount)}
-      <section class="exec-ops-section">
-        <div class="exec-ops-mov-head">
-          <h3>Últimas movimentações</h3>
-          <button type="button" class="exec-ops-link" data-hub-nav="lista:vrp">Ver todas as movimentações →</button>
-        </div>
+      <div class="ag-home">
+        <section class="ag-home-sec" aria-label="Visão Geral do Pátio">
+          <h3>Visão Geral do Pátio</h3>
+          <div class="ag-home-grid">
+            ${kpiBtn("patio:no_patio", "No pátio", b.vnp, "veículos agora")}
+            ${kpiBtn("patio:no_patio", "VSL", b.vsl, "liberação solicitada")}
+            ${kpiBtn("patio:no_patio", "VSC", b.vsc, "liberação confirmada")}
+            ${kpiBtn("patio:removidos", "VRP", b.vrp, "removidos")}
+            ${kpiBtn("patio:no_patio", "Entradas hoje", b.inToday, "")}
+            ${kpiBtn("patio:removidos", "Saídas hoje", b.outToday, "")}
+            ${kpiBtn("patio:no_patio", "C/CHAVE", b.cChave, "")}
+            ${kpiBtn("patio:no_patio", "S/CHAVE", b.sChave, "")}
+            ${kpiBtn("patio:no_patio", "Trancados", b.trancado, "")}
+            ${kpiBtn("patio:no_patio", "Permanência média", b.avgStay === "—" ? "—" : `${b.avgStay} dias`, "veículos no pátio")}
+          </div>
+        </section>
         ${
-          recent.length
-            ? `<ul class="exec-ops-mov">${recent
-                .map(
-                  (r) => `<li><time>${escapeHtml(formatClock(r.at))}</time><span>${escapeHtml(r.tipo)}</span><strong>${escapeHtml(r.placa)}</strong></li>`
-                )
-                .join("")}</ul>`
-            : `<p class="exec-ops-empty">Ainda não há entradas ou saídas registradas.</p>`
+          b.hideMoney
+            ? ""
+            : `<section class="ag-home-sec" aria-label="Visão Financeira">
+          <h3>Visão Financeira</h3>
+          <div class="ag-home-grid">
+            ${kpiBtn("financeiro:aguardando", "A faturar", b.fmt(b.aFaturar), "ciclos encerrados")}
+            ${kpiBtn("financeiro:cobrancas", "Cobranças pendentes", b.fmt(b.aReceberVal), "em aberto e em dia")}
+            ${kpiBtn("financeiro:caixa", "Recebido no mês", b.fmt(b.recebidoMes), "entrada no caixa")}
+            ${kpiBtn("financeiro:receber", "Em atraso", b.fmt(b.vencidoVal), `${b.dueSoon.length} vencem em 7 dias`)}
+            ${kpiBtn("financeiro:cobrancas", "Faturamento do mês", b.fmt(b.faturadoMes), "títulos do período")}
+            ${kpiBtn("financeiro:pix", "PIX a conciliar", b.pixPend ? String(b.pixPend) : "0", "registros manuais")}
+          </div>
+        </section>`
         }
-      </section>
+        <section class="ag-home-sec" aria-label="Clientes Parceiros">
+          <h3>Clientes Parceiros</h3>
+          <div class="ag-home-grid ag-home-grid--3">
+            ${kpiBtn("parceiros", "Parceiros ativos", b.partners.length, "programa cliente parceiro")}
+          </div>
+          ${partnerTable}
+        </section>
+      </div>
     `;
   }
 
