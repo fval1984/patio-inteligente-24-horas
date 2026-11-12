@@ -1216,14 +1216,61 @@
         flex: 0 1 auto;
         white-space: nowrap;
       }
-      #viewPatio .patio-hub-tabs {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
+      #patioHubTabs.patio-hub-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
         margin: 0 0 14px;
+        width: 100%;
       }
-      #viewPatio .patio-hub-tabs.hidden { display: none !important; }
-      #viewPatio .patio-hub-tabs button { width: auto; flex: 0 1 auto; }
+      #patioHubTabs.patio-hub-tabs.hidden { display: none !important; }
+      #patioHubTabs .patio-hub-kpi {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        width: 100%;
+        min-height: 92px;
+        padding: 14px 12px;
+        margin: 0;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: color-mix(in srgb, var(--card, #111827) 88%, transparent);
+        color: inherit;
+        text-align: center;
+        cursor: pointer;
+        box-shadow: none;
+      }
+      #patioHubTabs .patio-hub-kpi strong {
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      #patioHubTabs .patio-hub-kpi-label {
+        font-size: 11px;
+        line-height: 1.2;
+        color: var(--muted);
+        font-weight: 500;
+        letter-spacing: 0;
+        text-transform: none;
+      }
+      #patioHubTabs .patio-hub-kpi-count {
+        font-size: 1.85rem;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.1;
+      }
+      #patioHubTabs .patio-hub-kpi.active {
+        border-color: var(--primary);
+        background: color-mix(in srgb, var(--primary-weak, rgba(212, 175, 55, 0.16)) 80%, transparent);
+      }
+      #patioContent [data-subview="no_patio"] > .pill,
+      #patioContent [data-subview="no_patio"] > .notice,
+      #patioContent [data-subview="removidos"] > .pill {
+        display: none !important;
+      }
       #viewPatio #patioFlyoutSummaryCards { display: none !important; }
       #patioPlateSearchBar {
         display: flex;
@@ -4279,6 +4326,9 @@
         max-height: none;
         display: flex;
         flex-direction: column;
+      }
+      #patioContent.modal-backdrop.tab-view-modal .tab-modal-body > #patioHubTabs {
+        flex: 0 0 auto;
       }
       #patioContent.modal-backdrop.tab-view-modal .tab-modal-body > .section-card.patio-subview:not(.hidden) {
         flex: 1 1 auto;
@@ -7973,9 +8023,17 @@
             </section>
           </div>
           <div id="patioContent" class="hidden" style="margin-top: 18px;">
-            <div id="patioHubTabs" class="subnav patio-hub-tabs hidden" role="tablist" aria-label="Listas do pátio">
-              <button type="button" role="tab" data-patio-hub="vnp" class="active">VNP — Veículos no pátio</button>
-              <button type="button" role="tab" data-patio-hub="vrp">VRP — Veículos removidos</button>
+            <div id="patioHubTabs" class="patio-hub-tabs hidden" role="tablist" aria-label="Listas do pátio">
+              <button type="button" role="tab" data-patio-hub="vnp" class="patio-hub-kpi active" aria-label="VNP — Veículos no pátio">
+                <strong>VNP</strong>
+                <span class="patio-hub-kpi-label">Quantidade de veículos</span>
+                <span class="patio-hub-kpi-count" data-patio-hub-count="vnp">0</span>
+              </button>
+              <button type="button" role="tab" data-patio-hub="vrp" class="patio-hub-kpi" aria-label="VRP — Veículos removidos do pátio">
+                <strong>VRP</strong>
+                <span class="patio-hub-kpi-label">Quantidade de veículos</span>
+                <span class="patio-hub-kpi-count" data-patio-hub-count="vrp">0</span>
+              </button>
             </div>
             <div id="patioFlyoutSummaryCards" class="grid hidden" style="margin-bottom: 12px" hidden>
               <div class="card"><div class="card-title" id="patioCardTitle1">VNP</div><div class="card-value" id="patioCardValue1">0</div><span class="tag warning" id="patioCardMeta1">-</span></div>
@@ -8012,10 +8070,6 @@
               </div>
             </div>
             <div class="section-card patio-subview hidden" data-subview="no_patio">
-              <div class="pill">VNP — Veículos no pátio</div>
-              <p class="notice" style="margin: 0 0 12px">
-                Veículos ainda no pátio, do mais recente para o mais antigo. A prioridade de liberação permanece: <strong>VSC</strong>, depois <strong>VSL</strong>, em seguida os demais.
-              </p>
               <div id="vnpFiltersBar" class="hidden" hidden>
                 <select id="vnpFilterParceiro"><option value="">Todos os parceiros</option></select>
                 <select id="vnpFilterFinanceira"><option value="">Todas as instituições</option></select>
@@ -8161,7 +8215,6 @@
               </div>
             </div>
             <div class="section-card patio-subview hidden" data-subview="removidos">
-              <div class="pill">VRP — Veículos removidos do pátio</div>
               <select id="patioVrpParceiro" class="hidden" hidden><option value="">Todos os parceiros</option></select>
               <p id="patioVrpPlacaHint" class="notice hidden" style="margin: 0 0 12px"></p>
               <div id="patioVrpLoteBar" class="hidden" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px">
@@ -11772,12 +11825,12 @@
 
       const PATIO_TAB_LABELS = {
         vistoria: { title: "Vistoria", subtitle: "Aguardando vistoria de entrada" },
-        consultar_placa: { title: "Pátio", subtitle: "Veículos no pátio e removidos" },
-        no_patio: { title: "Pátio", subtitle: "VNP — veículos no pátio · VRP — veículos removidos" },
-        vsl: { title: "Pátio", subtitle: "VNP — veículos no pátio · VRP — veículos removidos" },
-        vsc: { title: "Pátio", subtitle: "VNP — veículos no pátio · VRP — veículos removidos" },
-        vlp: { title: "Pátio", subtitle: "VNP — veículos no pátio · VRP — veículos removidos" },
-        removidos: { title: "Pátio", subtitle: "VRP — veículos removidos do pátio" },
+        consultar_placa: { title: "Pátio", subtitle: "" },
+        no_patio: { title: "Pátio", subtitle: "" },
+        vsl: { title: "Pátio", subtitle: "" },
+        vsc: { title: "Pátio", subtitle: "" },
+        vlp: { title: "Pátio", subtitle: "" },
+        removidos: { title: "Pátio", subtitle: "" },
         fechando_ciclo: { title: "Aguardando faturamento", subtitle: "Ciclo concluído, aguardando NF ou cobrança" },
         aguardando_faturamento: { title: "Aguardando faturamento", subtitle: "Ciclo concluído, aguardando NF ou cobrança" },
         extrato_valores: { title: "Extrato", subtitle: "Valores gerados pelos ciclos finalizados no período" },
@@ -17698,14 +17751,11 @@
       }
 
       function syncPatioStageTabCounts(counts) {
-        document.querySelectorAll("[data-patio-hub]").forEach((btn) => {
-          const hub = btn.getAttribute("data-patio-hub");
+        document.querySelectorAll("[data-patio-hub-count]").forEach((el) => {
+          const hub = el.getAttribute("data-patio-hub-count");
           const key = hub === "vrp" ? "removidos" : "no_patio";
-          if (!btn.dataset.baseLabel) {
-            btn.dataset.baseLabel = String(btn.textContent || "").replace(/\s*\(\d+\)\s*$/, "").trim();
-          }
           const n = counts[key];
-          btn.textContent = typeof n === "number" ? `${btn.dataset.baseLabel} (${n})` : btn.dataset.baseLabel;
+          if (typeof n === "number") el.textContent = String(n);
         });
       }
 
