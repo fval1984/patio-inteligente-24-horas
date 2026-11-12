@@ -737,6 +737,18 @@
       const f = tipoFields[i];
       html += renderFieldInput(f, perfil[f.key], "pcTipo_", readonly);
     }
+    const on = perfil.programa_cliente_parceiro === true || perfil.programa_cliente_parceiro === "true";
+    const ro = readonly ? " disabled" : "";
+    html +=
+      '<div class="pc-span-full" style="margin-top:8px">' +
+      '<label style="display:flex;gap:8px;align-items:flex-start">' +
+      '<input type="checkbox" data-pc-field="programa_cliente_parceiro" data-pc-group="tipo"' +
+      (on ? " checked" : "") +
+      ro +
+      " />" +
+      "<span><strong>Programa Cliente Parceiro</strong><br />" +
+      '<span class="notice" style="margin:0">Diária R$ 25,00 (NF do parceiro). A partir de 10 ciclos no mês: R$ 20,00. A partir de 15: R$ 15,00. Fechamento no último dia útil; vencimento dia 15 do mês seguinte. Cliente convencional permanece em R$ 30,00 com NF AMPLIGUARD.</span></span>' +
+      "</label></div>";
     return html;
   }
 
