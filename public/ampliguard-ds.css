@@ -1232,3 +1232,90 @@ button.secondary,
     min-height: 0 !important;
   }
 }
+
+:root {
+  --ag-ficha-w: 0px;
+}
+
+html.ag-ficha-open,
+body.ag-ficha-open {
+  --ag-ficha-w: 400px;
+}
+
+#tableNoPatio tr.is-ficha-open,
+#tableRemovidos tr.is-ficha-open {
+  background: #eef2f6 !important;
+}
+
+.table thead th {
+  background: #f4f6f8 !important;
+}
+
+@media (min-width: 901px) {
+  body:not(.auth-screen-active) .app-top-shell {
+    width: calc(100% - var(--ag-rail) - var(--ag-ficha-w)) !important;
+    transition: margin-left 180ms ease, width 180ms ease, margin-right 180ms ease;
+  }
+
+  body:not(.auth-screen-active) main {
+    margin-right: var(--ag-ficha-w) !important;
+    width: calc(100% - var(--ag-rail) - var(--ag-ficha-w)) !important;
+    transition: margin-left 180ms ease, width 180ms ease, margin-right 180ms ease;
+  }
+
+  #patioContent.modal-backdrop.tab-view-modal:not(.hidden) {
+    right: var(--ag-ficha-w) !important;
+    transition: right 180ms ease, left 180ms ease;
+  }
+
+  body:not(.auth-screen-active) #dashboardSystemEntry {
+    background: #f4f6f8 !important;
+    border-right: 1px solid #e5e7eb !important;
+  }
+
+  body:not(.auth-screen-active) #dashboardSystemEntry::before {
+    background: #c62828;
+  }
+
+  body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn {
+    background: transparent !important;
+    color: #5f6b7a !important;
+    justify-content: center !important;
+    box-shadow: none !important;
+  }
+
+  body:not(.auth-screen-active):not(.ag-nav-collapsed) #dashboardSystemEntry .dashboard-system-btn {
+    justify-content: flex-start !important;
+  }
+
+  body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn:hover {
+    background: rgba(36, 40, 48, 0.06) !important;
+    color: #20242b !important;
+  }
+
+  body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn.active,
+  body:not(.auth-screen-active).app-module-patio:has(#viewPatio:not(.hidden)) #dashboardOpenPatio,
+  body:not(.auth-screen-active).app-module-finance #dashboardOpenFinance,
+  body:not(.auth-screen-active).app-module-lista #dashboardOpenLista,
+  body:not(.auth-screen-active):has(#viewParceiros:not(.hidden)) #dashboardOpenParceiros,
+  body:not(.auth-screen-active):has(#viewConfiguracoes:not(.hidden)) #dashboardOpenConfiguracoes,
+  body:not(.auth-screen-active):has(#viewDashboard:not(.hidden)) #dashboardOpenHome {
+    background: #242830 !important;
+    color: #fff !important;
+    box-shadow: none !important;
+    border-radius: 10px !important;
+  }
+
+  body:not(.auth-screen-active) #agSidebarToggle {
+    background: #fff !important;
+    border-color: #e5e7eb !important;
+    color: #242830 !important;
+  }
+}
+
+@media (max-width: 900px) {
+  html.ag-ficha-open,
+  body.ag-ficha-open {
+    --ag-ficha-w: 0px;
+  }
+}
