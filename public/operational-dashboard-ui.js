@@ -232,9 +232,7 @@
   }
 
   function operationalDashboardRender(data, ctx) {
-    init();
-    injectStylesOnce();
-    hideLegacyInicio();
+    return;
 
     _lastData = data || { vehicles: [], partners: [], events: [] };
     _lastCtx = ctx || {};
