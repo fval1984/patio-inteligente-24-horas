@@ -1216,6 +1216,16 @@
         flex: 0 1 auto;
         white-space: nowrap;
       }
+      #viewPatio .patio-hub-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 14px;
+      }
+      #viewPatio .patio-hub-tabs.hidden { display: none !important; }
+      #viewPatio .patio-hub-tabs button { width: auto; flex: 0 1 auto; }
+      #viewPatio #patioFlyoutSummaryCards,
+      #viewPatio #patioPlateSearchBar { display: none !important; }
       #viewPatio .patio-toolbar {
         align-items: flex-start;
       }
@@ -7486,7 +7496,7 @@
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20261001escritorio3" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
-    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha4" />
+    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha5" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
   </head>
   <body class="auth-screen-active">
@@ -7835,13 +7845,13 @@
               <h2>Gestão de Pátio</h2>
               <nav id="patioSubnav" class="subnav patio-nav-inline" aria-label="Secções do pátio">
                 <button type="button" class="secondary" data-subview="inicio">Dashboard</button>
-                <button type="button" class="secondary" data-subview="consultar_placa">Consultar placa</button>
                 <button type="button" class="secondary" data-subview="no_patio">Pátio</button>
-                <button type="button" class="secondary" data-subview="removidos">Veículos removidos do pátio</button>
                 <button type="button" class="secondary" data-subview="extrato_valores">Extrato</button>
-                <button type="button" class="secondary" data-subview="resumo_valores">Resumo</button>
+                <button type="button" class="secondary hidden" data-patio-extra="1" data-subview="consultar_placa">Consultar placa</button>
+                <button type="button" class="secondary hidden" data-patio-extra="1" data-subview="removidos">Veículos removidos do pátio</button>
+                <button type="button" class="secondary hidden" data-patio-extra="1" data-subview="resumo_valores">Resumo</button>
                 <button type="button" class="secondary hidden" id="patioMenuNewVehicle">Registrar veículo</button>
-                <button type="button" class="secondary hidden" data-subview="vistoria">Vistoria</button>
+                <button type="button" class="secondary hidden" data-patio-extra="1" data-subview="vistoria">Vistoria</button>
               </nav>
             </div>
             <div class="actions">
@@ -7852,9 +7862,7 @@
           <div id="patioInicioPanel" class="patio-inicio-panel hidden">
             <div class="patio-inicio-head">
               <div>
-                <p class="dashboard-kicker">Operação do pátio</p>
                 <h3 id="patioInicioGreeting" class="js-user-ops-greeting">Olá</h3>
-                <p class="patio-inicio-lede">Visão geral da operação</p>
               </div>
               <div class="cmd-ops-meta" id="patioOpsMeta"></div>
             </div>
@@ -7929,7 +7937,11 @@
           </form>
           </div>
           <div id="patioContent" class="hidden" style="margin-top: 18px;">
-            <div id="patioFlyoutSummaryCards" class="grid" style="margin-bottom: 12px">
+            <div id="patioHubTabs" class="subnav patio-hub-tabs hidden" role="tablist" aria-label="Listas do pátio">
+              <button type="button" role="tab" data-patio-hub="vnp" class="active">VNP — Veículos no pátio</button>
+              <button type="button" role="tab" data-patio-hub="vrp">VRP — Veículos removidos</button>
+            </div>
+            <div id="patioFlyoutSummaryCards" class="grid hidden" style="margin-bottom: 12px" hidden>
               <div class="card"><div class="card-title" id="patioCardTitle1">VNP</div><div class="card-value" id="patioCardValue1">0</div><span class="tag warning" id="patioCardMeta1">-</span></div>
               <div class="card"><div class="card-title" id="patioCardTitle2">VRP</div><div class="card-value" id="patioCardValue2">0</div><span class="tag" id="patioCardMeta2">-</span></div>
               <div class="card"><div class="card-title" id="patioCardTitle3">Remoção solicitada</div><div class="card-value" id="patioCardValue3">0</div><span class="tag success" id="patioCardMeta3">-</span></div>
@@ -7964,9 +7976,9 @@
               </div>
             </div>
             <div class="section-card patio-subview hidden" data-subview="no_patio">
-              <div class="pill">Pátio</div>
+              <div class="pill">VNP — Veículos no pátio</div>
               <p class="notice" style="margin: 0 0 12px">
-                Todos os veículos ainda no pátio. A ordem é automática: <strong>VSC</strong> no topo, depois <strong>VSL</strong>, em seguida <strong>VNP</strong> do mais recente para o mais antigo.
+                Veículos ainda no pátio, do mais recente para o mais antigo. A prioridade de liberação permanece: <strong>VSC</strong>, depois <strong>VSL</strong>, em seguida os demais.
               </p>
               <div id="vnpFiltersBar" class="filter-bar" style="margin: 0 0 12px">
                 <label for="vnpFilterPlaca">Buscar placa</label>
@@ -8128,7 +8140,7 @@
               </div>
             </div>
             <div class="section-card patio-subview hidden" data-subview="removidos">
-              <div class="pill">Veículos removidos do pátio</div>
+              <div class="pill">VRP — Veículos removidos do pátio</div>
               <form id="patioVrpPlacaForm" class="filter-bar" style="margin: 0 0 12px" action="#" novalidate>
                 <label for="patioVrpPlaca">Placa</label>
                 <input id="patioVrpPlaca" type="text" maxlength="8" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="Buscar placa" aria-label="Buscar por placa" />
@@ -10460,13 +10472,13 @@
           <summary>Gestão de pátio</summary>
           <div class="header-menu-nested">
             <button type="button" data-header-patio-sub="inicio">Dashboard</button>
-            <button type="button" data-header-patio-sub="consultar_placa">Consultar placa</button>
             <button type="button" data-header-patio-sub="no_patio">Pátio</button>
-            <button type="button" data-header-patio-sub="removidos">Veículos removidos do pátio</button>
             <button type="button" data-header-patio-sub="extrato_valores">Extrato</button>
-            <button type="button" data-header-patio-sub="resumo_valores">Resumo</button>
+            <button type="button" class="hidden" data-patio-extra="1" data-header-patio-sub="consultar_placa">Consultar placa</button>
+            <button type="button" class="hidden" data-patio-extra="1" data-header-patio-sub="removidos">Veículos removidos do pátio</button>
+            <button type="button" class="hidden" data-patio-extra="1" data-header-patio-sub="resumo_valores">Resumo</button>
             <button type="button" class="hidden" data-header-patio="new-vehicle">Registrar veículo</button>
-            <button type="button" class="hidden" data-header-patio-sub="vistoria">Vistoria</button>
+            <button type="button" class="hidden" data-patio-extra="1" data-header-patio-sub="vistoria">Vistoria</button>
           </div>
         </details>
 
@@ -10533,7 +10545,7 @@
     <script src="/finance-action-ui.js?v=20260921caderneta1"></script>
     <script src="/patio-dashboard.js?v=20260715gestor"></script>
     <script src="/operational-metrics-service.js?v=20260727opsdash"></script>
-    <script src="/operational-dashboard-ui.js?v=20260909contrast1"></script>
+    <script src="/operational-dashboard-ui.js?v=20261112patio1"></script>
     <script src="/partners-dashboard.js?v=20260605partners601"></script>
     <script src="/financial-partner-metrics-service.js?v=20260727fpdash"></script>
     <script src="/financial-partner-dashboard-ui.js?v=20260902contrast1"></script>
@@ -11748,12 +11760,12 @@
 
       const PATIO_TAB_LABELS = {
         vistoria: { title: "Vistoria", subtitle: "Aguardando vistoria de entrada" },
-        consultar_placa: { title: "Consultar placa", subtitle: "Localizar veículos e iniciar novos cadastros" },
-        no_patio: { title: "Pátio", subtitle: "Todos os veículos ainda no pátio (VNP, VSL e VSC)" },
-        vsl: { title: "Pátio", subtitle: "Todos os veículos ainda no pátio (VNP, VSL e VSC)" },
-        vsc: { title: "Pátio", subtitle: "Todos os veículos ainda no pátio (VNP, VSL e VSC)" },
-        vlp: { title: "Pátio", subtitle: "Todos os veículos ainda no pátio (VNP, VSL e VSC)" },
-        removidos: { title: "Veículos removidos do pátio", subtitle: "Saídas registradas (VRP), do mais recente para o mais antigo" },
+        consultar_placa: { title: "Pátio", subtitle: "Veículos no pátio e removidos" },
+        no_patio: { title: "Pátio", subtitle: "VNP — veículos no pátio · VRP — veículos removidos" },
+        vsl: { title: "Pátio", subtitle: "VNP — veículos no pátio · VRP — veículos removidos" },
+        vsc: { title: "Pátio", subtitle: "VNP — veículos no pátio · VRP — veículos removidos" },
+        vlp: { title: "Pátio", subtitle: "VNP — veículos no pátio · VRP — veículos removidos" },
+        removidos: { title: "Pátio", subtitle: "VRP — veículos removidos do pátio" },
         fechando_ciclo: { title: "Aguardando faturamento", subtitle: "Ciclo concluído, aguardando NF ou cobrança" },
         aguardando_faturamento: { title: "Aguardando faturamento", subtitle: "Ciclo concluído, aguardando NF ou cobrança" },
         extrato_valores: { title: "Extrato", subtitle: "Valores gerados pelos ciclos finalizados no período" },
@@ -17620,19 +17632,21 @@
         return state.user?.email || "Utilizador";
       }
 
-      function syncPatioStageTabCounts(counts) {
-        const keys = ["no_patio", "removidos"];
-        patioSubnav?.querySelectorAll("button[data-subview]").forEach((btn) => {
-          const key = btn.getAttribute("data-subview");
-          if (!keys.includes(key)) return;
-          if (!btn.dataset.baseLabel) btn.dataset.baseLabel = String(btn.textContent || "").replace(/\s*\(\d+\)\s*$/, "").trim();
-          const n = counts[key];
-          btn.textContent = typeof n === "number" ? `${btn.dataset.baseLabel} (${n})` : btn.dataset.baseLabel;
+      function applyPatioSimplifiedNav() {
+        if (isVistoriador) return;
+        document.querySelectorAll("#patioSubnav [data-patio-extra], #headerDetailsPatio [data-patio-extra]").forEach((el) => {
+          el.classList.add("hidden");
         });
-        document.querySelectorAll("#headerDetailsPatio [data-header-patio-sub]").forEach((btn) => {
-          const key = btn.getAttribute("data-header-patio-sub");
-          if (!keys.includes(key)) return;
-          if (!btn.dataset.baseLabel) btn.dataset.baseLabel = String(btn.textContent || "").replace(/\s*\(\d+\)\s*$/, "").trim();
+        document.getElementById("patioPlateSearchBar")?.classList.add("hidden");
+      }
+
+      function syncPatioStageTabCounts(counts) {
+        document.querySelectorAll("[data-patio-hub]").forEach((btn) => {
+          const hub = btn.getAttribute("data-patio-hub");
+          const key = hub === "vrp" ? "removidos" : "no_patio";
+          if (!btn.dataset.baseLabel) {
+            btn.dataset.baseLabel = String(btn.textContent || "").replace(/\s*\(\d+\)\s*$/, "").trim();
+          }
           const n = counts[key];
           btn.textContent = typeof n === "number" ? `${btn.dataset.baseLabel} (${n})` : btn.dataset.baseLabel;
         });
@@ -18170,9 +18184,9 @@
         document.getElementById("patioMenuNewVehicle")?.classList.add("hidden");
         const patioTitleReset = document.querySelector("#viewPatio .patio-toolbar h2");
         if (patioTitleReset) patioTitleReset.textContent = "Gestão de Pátio";
-        patioSubnav?.querySelector('[data-subview="removidos"]')?.classList.remove("hidden");
-        patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.remove("hidden");
-        patioSubnav?.querySelector('[data-subview="aguardando_faturamento"]')?.classList.remove("hidden");
+        patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.add("hidden");
+        patioSubnav?.querySelector('[data-subview="aguardando_faturamento"]')?.classList.add("hidden");
+        applyPatioSimplifiedNav();
         const vehicleDailyReset = document.getElementById("vehicleDaily");
         const vehicleDailyWrap = vehicleDailyReset?.closest("div");
         if (vehicleDailyWrap) vehicleDailyWrap.style.display = "";
@@ -18273,6 +18287,7 @@
           window.isVistoriador = false;
           window.isVisualizador = true;
           applyMobileModuleNavRestrictions();
+          applyPatioSimplifiedNav();
           if (!opts.skipDefaultView) openDefaultHomeView();
           applyRegisteredUserGreeting();
           return;
@@ -18349,6 +18364,7 @@
         window.isVistoriador = false;
         window.isVisualizador = false;
         applyMobileModuleNavRestrictions();
+        applyPatioSimplifiedNav();
         if (!opts.skipDefaultView) openDefaultHomeView();
         applyRegisteredUserGreeting();
       }
@@ -20393,7 +20409,7 @@
           const target = pickMostRecentPlateVehicle(onPatio.length ? onPatio : matches);
           renderPatioConsultaPlacaResult({ plate: plateFilter.value, matches, target });
           renderVehicles();
-          if (target) void openVehicleIdFicha(target, 2);
+          if (target) void openVehicleIdFicha(target, 1);
           return;
         }
         plateQuery = "";
@@ -20944,21 +20960,27 @@
           el.style.top = "";
           el.style.right = "";
           el.style.left = "";
+          el.style.position = "";
+          el.style.zIndex = "";
+          el.style.maxHeight = "";
         });
         document.querySelectorAll(".patio-actions-toggle[aria-expanded='true']").forEach((el) => {
           el.setAttribute("aria-expanded", "false");
         });
       }
 
-      function togglePatioActionsMenu(button) {
+      function positionPatioActionsMenu(button, menu) {
+        if (!button || !menu) return;
         const wrap = button.closest(".patio-actions-dd");
-        const menu = wrap?.querySelector(".patio-actions-menu");
-        if (!menu) return;
-        const willOpen = menu.classList.contains("hidden");
-        closePatioActionsMenus();
-        if (!willOpen) return;
-        menu.classList.remove("hidden");
-        button.setAttribute("aria-expanded", "true");
+        if (wrap && wrap.id === "vehicleIdFichaAcoesWrap") {
+          menu.style.position = "absolute";
+          menu.style.left = "auto";
+          menu.style.right = "0";
+          menu.style.top = "calc(100% + 4px)";
+          menu.style.zIndex = "80";
+          menu.style.maxHeight = "min(60vh, 420px)";
+          return;
+        }
         const r = button.getBoundingClientRect();
         menu.style.position = "fixed";
         menu.style.left = "auto";
@@ -20971,6 +20993,21 @@
             menu.style.top = `${Math.max(8, r.top - mh - 4)}px`;
           }
         });
+      }
+
+      function togglePatioActionsMenu(button) {
+        const wrap = button.closest(".patio-actions-dd");
+        const menu =
+          (wrap && wrap.id === "vehicleIdFichaAcoesWrap"
+            ? document.getElementById("vehicleIdFichaAcoesMenu")
+            : wrap?.querySelector(".patio-actions-menu")) || null;
+        if (!menu) return;
+        const willOpen = menu.classList.contains("hidden");
+        closePatioActionsMenus();
+        if (!willOpen) return;
+        menu.classList.remove("hidden");
+        button.setAttribute("aria-expanded", "true");
+        positionPatioActionsMenu(button, menu);
       }
 
       function wrapPatioActionsCompactHtml(v, innerHtml, listContext) {
@@ -21185,6 +21222,8 @@
         if (isVistoriador) view = "vistoria";
         if (isAdmDesktopPc() && view === "vistoria") view = "no_patio";
         const silent = opts.silent === true;
+        if (view === "consultar_placa") view = "no_patio";
+        if (view === "resumo_valores") view = "extrato_valores";
         if (view === "liberacao_solicitada" || view === "vlp" || view === "vsl" || view === "vsc") view = "no_patio";
         if (view === "nfse_pendente") view = "no_patio";
         if (view === "fechando_ciclo" || view === "aguardando_faturamento") {
@@ -21199,20 +21238,22 @@
         const isDashboard = view === "dashboard";
         const isInicio = view === "inicio";
         const isExtrato = view === "extrato_valores" || view === "resumo_valores";
-        const isConsulta = view === "consultar_placa";
+        const isPatioHub = view === "no_patio" || view === "removidos";
         const isContentView = !isNone && !isDashboard && !isInicio;
+        const navKey = view === "removidos" ? "no_patio" : view;
         patioSubnav?.querySelectorAll("button[data-subview]").forEach((btn) => {
-          btn.classList.toggle("active", !isNone && btn.getAttribute("data-subview") === view);
+          btn.classList.toggle("active", !isNone && btn.getAttribute("data-subview") === navKey);
         });
-        document.getElementById("patioPlateSearchBar")?.classList.toggle("hidden", isDashboard || isInicio || isExtrato);
-        if (isConsulta) {
-          document.getElementById("patioPlateSearchBar")?.classList.remove("hidden");
-          if (!normalizePlateSearch(plateQuery) && typeof renderPatioConsultaPlacaResult === "function") {
-            renderPatioConsultaPlacaResult({ emptyQuery: true });
-          }
-          setTimeout(() => document.getElementById("plateFilterPatio")?.focus(), 40);
+        document.getElementById("patioPlateSearchBar")?.classList.add("hidden");
+        document.getElementById("patioFlyoutSummaryCards")?.classList.add("hidden");
+        const hubTabs = document.getElementById("patioHubTabs");
+        if (hubTabs) {
+          hubTabs.classList.toggle("hidden", !isPatioHub || !!isVistoriador);
+          hubTabs.querySelectorAll("[data-patio-hub]").forEach((btn) => {
+            const isVrp = btn.getAttribute("data-patio-hub") === "vrp";
+            btn.classList.toggle("active", isPatioHub && (isVrp ? view === "removidos" : view === "no_patio"));
+          });
         }
-        document.getElementById("patioFlyoutSummaryCards")?.classList.toggle("hidden", isExtrato);
         const patioRoot = document.getElementById("viewPatio");
         patioRoot?.classList.remove("patio-flyout-open", "patio-subview-fullscreen");
         patioRoot?.classList.toggle("patio-subtab-modal-open", isContentView && !isVistoriador);
@@ -24898,7 +24939,7 @@
         const menu = document.getElementById("vehicleIdFichaAcoesMenu");
         const btn = document.getElementById("vehicleIdFichaAcoesBtn");
         if (!wrap || !menu) return;
-        if (Number(kind) !== 2 || !vehicle) {
+        if ((Number(kind) !== 1 && Number(kind) !== 2) || !vehicle) {
           wrap.classList.add("hidden");
           menu.innerHTML = "";
           if (btn) btn.removeAttribute("data-id");
@@ -24914,7 +24955,7 @@
         if (!vehicleIdFichaModal || !vehicleIdFichaCapture || !vehicle) return;
         const kind = Number(tipo) === 2 ? 2 : 1;
         if (typeof closePatioVehicleActionsModalFn === "function") closePatioVehicleActionsModalFn();
-        if (fichaModal && !fichaModal.classList.contains("hidden") && kind === 2) {
+        if (fichaModal && !fichaModal.classList.contains("hidden")) {
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
         }
@@ -28825,6 +28866,12 @@ ${body}
         openPatioSubview(button.getAttribute("data-subview"));
       });
 
+      document.getElementById("patioHubTabs")?.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-patio-hub]");
+        if (!button) return;
+        openPatioSubview(button.getAttribute("data-patio-hub") === "vrp" ? "removidos" : "no_patio");
+      });
+
       document.getElementById("viewPatio")?.addEventListener("click", (event) => {
         const openBtn = event.target.closest("[data-consulta-open]");
         if (openBtn) {
@@ -28839,7 +28886,7 @@ ${body}
         if (fichaBtn) {
           const id = fichaBtn.getAttribute("data-consulta-ficha");
           const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(id));
-          if (vehicle) void openVehicleIdFicha(vehicle, 2);
+          if (vehicle) void openVehicleIdFicha(vehicle, 1);
         }
       });
 
@@ -31173,7 +31220,7 @@ ${body}
           const id = row.getAttribute("data-vehicle-row");
           const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(id));
           if (!vehicle) return;
-          await openVehicleIdFicha(vehicle, 2);
+          await openVehicleIdFicha(vehicle, 1);
         });
       }
 
@@ -31198,11 +31245,33 @@ ${body}
       });
 
       document.addEventListener("click", (event) => {
-        if (event.target.closest(".patio-actions-dd")) return;
+        if (event.target.closest(".patio-actions-dd, .patio-actions-menu")) return;
         closePatioActionsMenus();
       });
-      window.addEventListener("resize", closePatioActionsMenus);
-      window.addEventListener("scroll", closePatioActionsMenus, true);
+      window.addEventListener("resize", () => {
+        const fichaMenu = document.getElementById("vehicleIdFichaAcoesMenu");
+        const fichaBtn = document.getElementById("vehicleIdFichaAcoesBtn");
+        if (fichaMenu && fichaBtn && !fichaMenu.classList.contains("hidden")) {
+          positionPatioActionsMenu(fichaBtn, fichaMenu);
+          return;
+        }
+        closePatioActionsMenus();
+      });
+      window.addEventListener(
+        "scroll",
+        (event) => {
+          const t = event.target;
+          if (t && typeof t.closest === "function" && t.closest(".patio-actions-menu")) return;
+          const fichaMenu = document.getElementById("vehicleIdFichaAcoesMenu");
+          const fichaBtn = document.getElementById("vehicleIdFichaAcoesBtn");
+          if (fichaMenu && fichaBtn && !fichaMenu.classList.contains("hidden")) {
+            positionPatioActionsMenu(fichaBtn, fichaMenu);
+            return;
+          }
+          closePatioActionsMenus();
+        },
+        true
+      );
 
       document.getElementById("viewParceiros").addEventListener("click", async (event) => {
         const kpi = event.target.closest("[data-partner-kpi]");
@@ -31633,6 +31702,8 @@ ${body}
           setPatioView("vistoria");
           return;
         }
+        if (sub === "consultar_placa") sub = "no_patio";
+        if (sub === "resumo_valores") sub = "extrato_valores";
         if (sub === "liberacao_solicitada" || sub === "vlp" || sub === "vsl" || sub === "vsc") sub = "no_patio";
         if (sub === "nfse_pendente") sub = "no_patio";
         if (sub === "fechando_ciclo" || sub === "aguardando" || sub === "aguardando_faturamento") {
