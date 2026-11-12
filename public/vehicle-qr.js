@@ -104,7 +104,8 @@
     }
   }
 
-  function composePlateAndQr(code, placa) {
+  function composePlateAndQr(code, placa, ficha) {
+    const tipo = Number(ficha) === 2 ? 2 : 1;
     const label = plateLabel(placa);
     const canvas = document.createElement("canvas");
     canvas.width = OUT_W;
@@ -138,6 +139,11 @@
     ctx.restore();
 
     paintQrModules(ctx, code, qrX, qrY, qrSize);
+    ctx.fillStyle = BLACK;
+    ctx.font = `bold ${Math.round(padB * 0.38)}px Arial, Helvetica, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`QR TIPO ${tipo}`, qrX + qrSize / 2, qrY + qrSize + padB * 0.52);
     return canvas;
   }
 
@@ -218,22 +224,16 @@
       throw new Error("A placa e o QR Code não correspondem ao mesmo registro.");
     }
     const code = await buildQrModel(publicHistoryUrl(token, ficha));
-    return { canvas: composePlateAndQr(code, placa), placa, id: record.id };
+    return { canvas: composePlateAndQr(code, placa, ficha), placa, id: record.id };
   }
 
-  async function downloadForVehicle(vehicle) {
-    const one = await buildPngCanvas(vehicle, 1);
+  async function downloadForVehicle(vehicle, ficha) {
+    const tipo = Number(ficha) === 2 ? 2 : 1;
+    const one = await buildPngCanvas(vehicle, tipo);
     if (!one.canvas || one.canvas.width <= one.canvas.height) {
       throw new Error("Falha ao montar a imagem da placa com o QR Code.");
     }
-    downloadCanvas(one.canvas, `ampliguard-qr-${one.placa}-parabrisa.png`);
-    const two = await buildPngCanvas(vehicle, 2);
-    if (two.canvas && two.canvas.width > two.canvas.height) {
-      await new Promise(function (resolve) {
-        setTimeout(resolve, 450);
-      });
-      downloadCanvas(two.canvas, `ampliguard-qr-${two.placa}-chave.png`);
-    }
+    downloadCanvas(one.canvas, `ampliguard-qr-${one.placa}-tipo${tipo}.png`);
     return one.canvas;
   }
 
