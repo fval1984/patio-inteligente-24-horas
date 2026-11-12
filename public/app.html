@@ -7591,7 +7591,7 @@
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261109ficha1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20261112plate12" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112ui6" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112dash1" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha9" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
@@ -7794,15 +7794,10 @@
         <div id="viewDashboard" class="panel dashboard-shell exec-ops-shell">
           <div class="exec-ops-header">
             <div>
-              <p class="dashboard-kicker">Operação do pátio</p>
+              <p class="dashboard-kicker">Dashboard Geral</p>
               <h2 id="execOpsGreeting" class="js-user-ops-greeting">Olá</h2>
               <p class="dashboard-subtitle" id="execOpsDate"></p>
-              <p class="exec-ops-range-label">Período de análise: <span id="execOpsRange">Hoje</span></p>
-            </div>
-            <div class="exec-ops-period" role="group" aria-label="Período de análise">
-              <button type="button" data-exec-period="today" class="is-active">Hoje</button>
-              <button type="button" data-exec-period="7d">7 dias</button>
-              <button type="button" data-exec-period="30d">30 dias</button>
+              <p class="exec-ops-range-label hidden">Período: <span id="execOpsRange">visão geral</span></p>
             </div>
           </div>
           <div class="filter-bar hub-dash-filters exec-ops-filters-sr">
@@ -7953,7 +7948,7 @@
             <div class="patio-toolbar-text">
               <h2>Gestão de Pátio</h2>
               <nav id="patioSubnav" class="subnav patio-nav-inline" aria-label="Secções do pátio">
-                <button type="button" class="secondary" data-subview="inicio">Dashboard</button>
+                <button type="button" class="secondary hidden" data-subview="inicio">Dashboard</button>
                 <button type="button" class="secondary" data-subview="no_patio">Pátio</button>
                 <button type="button" class="secondary" data-subview="extrato_valores">Extrato</button>
                 <button type="button" class="secondary hidden" data-patio-extra="1" data-subview="consultar_placa">Consultar placa</button>
@@ -8558,7 +8553,7 @@
             <button type="button" data-finance-subview-btn="aguardando">A faturar</button>
             <button type="button" data-finance-subview-btn="cobrancas">Cobranças</button>
             <button type="button" data-finance-subview-btn="pix">Conferir PIX</button>
-            <button type="button" data-finance-subview-btn="dashboard" class="active">Histórico e relatórios</button>
+            <button type="button" data-finance-subview-btn="caixa">Histórico</button>
           </div>
           <div id="finSearchResults" class="fin-search-results hidden"></div>
           <p id="finRecebidosRecoverHint" class="notice hidden" style="margin: 0 0 10px"></p>
@@ -10581,7 +10576,7 @@
             <button type="button" data-finance-subview="aguardando">A faturar</button>
             <button type="button" data-finance-subview="cobrancas">Cobranças</button>
             <button type="button" data-finance-subview="pix">Conferir PIX</button>
-            <button type="button" data-finance-subview="dashboard">Histórico e relatórios</button>
+            <button type="button" data-finance-subview="caixa">Histórico</button>
           </div>
         </details>
 
@@ -10626,7 +10621,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20261112fin1"></script>
+    <script src="/finance-module.js?v=20261112dash1"></script>
     <script src="/finance-notas-transporte.js?v=20261111nt1"></script>
     <script src="/payment-receipt.js?v=20261005recibo10"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
@@ -10638,7 +10633,7 @@
     <script src="/finance-pix-ui.js?v=20261112pix1"></script>
     <script src="/patio-dashboard.js?v=20260715gestor"></script>
     <script src="/operational-metrics-service.js?v=20260727opsdash"></script>
-    <script src="/operational-dashboard-ui.js?v=20261112patio1"></script>
+    <script src="/operational-dashboard-ui.js?v=20261112dash1"></script>
     <script src="/partners-dashboard.js?v=20260605partners601"></script>
     <script src="/financial-partner-metrics-service.js?v=20260727fpdash"></script>
     <script src="/financial-partner-dashboard-ui.js?v=20260902contrast1"></script>
@@ -10648,7 +10643,7 @@
     <script src="/reboque-transporte-service.js?v=20261021reboque1"></script>
     <script src="/reboque-transporte-ui.js?v=20261105extrato1"></script>
     <script src="/dashboard-metrics-service.js?v=20260909execops1"></script>
-    <script src="/amplipatio-dashboard.js?v=20260909ind1"></script>
+    <script src="/amplipatio-dashboard.js?v=20261112dash1"></script>
     <script src="/recibo-documento.js?v=20261023recibo6"></script>
     <script src="/vehicle-entry-inspection-checklist.js?v=20260915vistoria1"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20261105fotos1"></script>
@@ -17998,7 +17993,7 @@
         }
         if ((isVisualizador || isGestorPista) && (cfg.view === "financeiro" || cfg.fin || isViewerForbiddenView(cfg.view))) {
           showMainView("patio");
-          setPatioView("inicio");
+          setPatioView("no_patio");
           return;
         }
         const view = cfg.view || (cfg.fin ? "financeiro" : null) || (cfg.patio ? "patio" : null);
@@ -18271,9 +18266,9 @@
         const onDashboard = !document.getElementById("viewDashboard")?.classList.contains("hidden");
         const onBi = !document.getElementById("viewBiExecutivo")?.classList.contains("hidden");
         if (onDashboard || onBi) {
-          navStack.splice(0, navStack.length, "patio", "patio:inicio");
+          navStack.splice(0, navStack.length, "patio", "patio:no_patio");
           showMainView("patio");
-          setPatioView("inicio");
+          setPatioView("no_patio");
         }
       }
 
@@ -18324,7 +18319,7 @@
         }
         const view = defaultHomeViewForRole();
         showMainView(view);
-        if (resolveViewForDevice(view) === "patio") setPatioView("inicio");
+        if (resolveViewForDevice(view) === "patio") setPatioView("no_patio");
       }
 
       function navigateDefaultViewForRole() {
@@ -25899,9 +25894,9 @@
         const top = navStack[navStack.length - 1];
         const onPatio = top === "patio" || (typeof top === "string" && top.startsWith("patio:"));
         if (!onPatio) return;
-        navStack.splice(0, navStack.length, "patio", "patio:inicio");
+        navStack.splice(0, navStack.length, "patio", "patio:no_patio");
         showMainView("patio");
-        setPatioView("inicio");
+        setPatioView("no_patio");
         setFinanceView("none");
       }
       patioFlyoutBackdrop?.addEventListener("click", returnToPainelFromPatioFlyout);
@@ -31788,7 +31783,7 @@ ${body}
         }
         if ((isVisualizador || isGestorPista) && isViewerForbiddenView(view)) {
           showMainView("patio");
-          setPatioView("inicio");
+          setPatioView("no_patio");
           return;
         }
         const top = navStack[navStack.length - 1];
@@ -31801,8 +31796,8 @@ ${body}
         showMainView(view);
 
         if (view === "patio") {
-          setPatioView("inicio");
-          navStack.push("patio:inicio");
+          setPatioView("no_patio");
+          navStack.push("patio:no_patio");
         }
         if (view === "parceiros") {
           setPartnerView("escritorios");
@@ -31814,7 +31809,7 @@ ${body}
           renderListaPanel();
         }
         if (view === "financeiro") {
-          setFinanceView("dashboard");
+          setFinanceView("cobrancas");
         }
         if (view === "biExecutivo") {
           if (typeof window.biExecutivoInit === "function") window.biExecutivoInit();
@@ -31875,6 +31870,7 @@ ${body}
           setPatioView("vistoria");
           return;
         }
+        if (sub === "inicio" || sub === "dashboard") sub = "no_patio";
         if (sub === "consultar_placa") sub = "no_patio";
         if (sub === "resumo_valores") sub = "extrato_valores";
         if (sub === "liberacao_solicitada" || sub === "vlp" || sub === "vsl" || sub === "vsc") sub = "no_patio";
@@ -32004,7 +32000,7 @@ ${body}
         if (top === "dashboard") return showMainView("dashboard");
         if (top === "patio") {
           showMainView("patio");
-          return setPatioView("inicio");
+          return setPatioView("no_patio");
         }
         if (top === "parceiros") {
           showMainView("parceiros");
@@ -32376,7 +32372,7 @@ ${body}
       if (typeof window.vehiclePlateUI?.initLiveInputs === "function") {
         window.vehiclePlateUI.initLiveInputs();
       }
-      setPatioView("inicio");
+      setPatioView("no_patio");
       setFinanceView("none");
       setPartnerView("none");
       if (typeof window.partnersDashboardInit === "function") window.partnersDashboardInit();
