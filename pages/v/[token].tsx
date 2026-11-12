@@ -3,17 +3,23 @@ import Head from "next/head";
 import Script from "next/script";
 import { useEffect, useMemo, useState } from "react";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { isPublicVehicleToken, type PublicVehicleHistory } from "@/lib/public-vehicle-history";
+import {
+  chavePublicLabel,
+  isPublicVehicleToken,
+  liberationSteps,
+  splitEntryDateTime,
+  type PublicVehicleHistory,
+} from "@/lib/public-vehicle-history";
 
 const LOGO = "/assets/ampliguard-logo-official.png?v=20261109qr1";
 const LOGO_FALLBACK = "/assets/ampliguard-marca.png?v=20260917logo2";
 /** Substitua public/assets/ampliguard-qr-splash.jpg para trocar a tela de carregamento. */
 const SPLASH_SRC = "/assets/ampliguard-qr-splash.jpg";
-const SPLASH_MS = 8000;
+const SPLASH_MS = 1200;
 
 type FichaTipo = 1 | 2;
 
-type Ficha2Extras = {
+type PublicExtras = {
   data_entrada: string | null;
   data_saida: string | null;
   valor_diaria: number | null;
@@ -21,7 +27,7 @@ type Ficha2Extras = {
 };
 
 type PageProps =
-  | { ok: true; fichaTipo: FichaTipo; data: PublicVehicleHistory; extras: Ficha2Extras | null }
+  | { ok: true; fichaTipo: FichaTipo; data: PublicVehicleHistory; extras: PublicExtras | null }
   | { ok: false; fichaTipo: FichaTipo; reason: "not_found" | "unavailable" };
 
 function parseFichaTipo(raw: string | string[] | undefined): FichaTipo {
@@ -38,14 +44,14 @@ function asIso(value: unknown): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-async function loadFicha2Extras(token: string): Promise<Ficha2Extras | null> {
+async function loadPublicExtras(token: string, fichaTipo: FichaTipo): Promise<PublicExtras | null> {
   try {
     const admin = getSupabaseAdmin();
-    const full = await admin
-      .from("vehicles")
-      .select("data_entrada,data_saida,valor_diaria,chave_condicao")
-      .ilike("public_token", token)
-      .maybeSingle();
+    const columns =
+      fichaTipo === 2
+        ? "data_entrada,data_saida,valor_diaria,chave_condicao"
+        : "data_entrada,data_saida,chave_condicao";
+    const full = await admin.from("vehicles").select(columns).ilike("public_token", token).maybeSingle();
     const row =
       full.data ||
       (
@@ -60,7 +66,7 @@ async function loadFicha2Extras(token: string): Promise<Ficha2Extras | null> {
     return {
       data_entrada: asIso(row.data_entrada),
       data_saida: asIso(row.data_saida),
-      valor_diaria: Number.isFinite(vd) && vd > 0 ? vd : null,
+      valor_diaria: fichaTipo === 2 && Number.isFinite(vd) && vd > 0 ? vd : null,
       chave_condicao: (row as { chave_condicao?: string }).chave_condicao
         ? String((row as { chave_condicao?: string }).chave_condicao)
         : null,
@@ -91,7 +97,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       }
       return { props: { ok: false, fichaTipo, reason: "not_found" } };
     }
-    const extras = fichaTipo === 2 ? await loadFicha2Extras(token) : null;
+    const extras = await loadPublicExtras(token, fichaTipo);
     return {
       props: {
         ok: true,
@@ -194,7 +200,7 @@ export default function PublicVehicleHistoryPage(props: PageProps) {
     tick();
   }, []);
 
-  const extras = props.ok && props.fichaTipo === 2 ? props.extras : null;
+  const extras = props.ok ? props.extras : null;
   const metrics = useMemo(
     () => stayMetrics(extras?.data_entrada || null, extras?.data_saida || null, extras?.valor_diaria || null),
     [extras]
@@ -276,7 +282,7 @@ export default function PublicVehicleHistoryPage(props: PageProps) {
           ) : props.fichaTipo === 2 ? (
             <FichaTipo2 data={props.data} extras={extras} metrics={metrics} pixUrl={pixUrl} pixError={pixError} />
           ) : (
-            <FichaTipo1 data={props.data} />
+            <FichaTipo1 data={props.data} extras={extras} />
           )}
         </div>
       </div>
@@ -284,12 +290,19 @@ export default function PublicVehicleHistoryPage(props: PageProps) {
   );
 }
 
-function FichaTipo1({ data }: { data: PublicVehicleHistory }) {
+function FichaTipo1({
+  data,
+  extras,
+}: {
+  data: PublicVehicleHistory;
+  extras: PublicExtras | null;
+}) {
   const d = data;
-  const modelo = [d.marca, d.modelo].filter(Boolean).join(" ") || "—";
-  const hasVinculos = !!(d.financeira || d.escritorio || d.leiloeiro);
+  const entry = splitEntryDateTime(extras?.data_entrada || d.data_entrada, d.data_entrada_label);
+  const chave = chavePublicLabel(extras?.chave_condicao);
+  const steps = liberationSteps(d.timeline);
   return (
-    <main className="pvh-card">
+    <main className="pvh-card pvh-card--tipo1">
       <img
         src={LOGO}
         alt="AMPLIGUARD"
@@ -298,61 +311,51 @@ function FichaTipo1({ data }: { data: PublicVehicleHistory }) {
           e.currentTarget.src = LOGO_FALLBACK;
         }}
       />
-      <p className="pvh-kicker">Histórico público do veículo</p>
-      <h1 className="pvh-plate">{esc(d.placa) || "—"}</h1>
-      <p className="pvh-model">{modelo}</p>
-      <span className="pvh-status">{esc(d.status_label)}</span>
-      <dl className="pvh-meta">
-        <div>
-          <dt>Cor</dt>
-          <dd>{esc(d.cor) || "—"}</dd>
-        </div>
-        <div>
-          <dt>Entrada no pátio</dt>
-          <dd>{esc(d.data_entrada_label) || "—"}</dd>
-        </div>
-      </dl>
-      {hasVinculos ? (
-        <section>
-          <h2>Informações vinculadas</h2>
-          <dl className="pvh-meta">
-            {d.financeira ? (
-              <div>
-                <dt>Instituição financeira</dt>
-                <dd>{esc(d.financeira)}</dd>
-              </div>
-            ) : null}
-            {d.escritorio ? (
-              <div>
-                <dt>Escritório responsável</dt>
-                <dd>{esc(d.escritorio)}</dd>
-              </div>
-            ) : null}
-            {d.leiloeiro ? (
-              <div>
-                <dt>Leilão / leiloeiro</dt>
-                <dd>{esc(d.leiloeiro)}</dd>
-              </div>
-            ) : null}
-          </dl>
-        </section>
-      ) : null}
+      <p className="pvh-kicker">Consulta simplificada</p>
       <section>
-        <h2>Histórico</h2>
-        {(d.timeline || []).length ? (
-          <ol className="pvh-timeline">
-            {(d.timeline || []).map((item) => (
-              <li key={`${item.code}-${item.at}`}>
-                <strong>{esc(item.title)}</strong>
-                <time>{esc(item.at_label) || "—"}</time>
+        <h2>Identificação</h2>
+        <p className="pvh-plate">{esc(d.placa) || "—"}</p>
+      </section>
+      <section>
+        <h2>Entrada no pátio</h2>
+        <dl className="pvh-meta">
+          <div>
+            <dt>Data</dt>
+            <dd>{entry.date}</dd>
+          </div>
+          <div>
+            <dt>Horário</dt>
+            <dd>{entry.time}</dd>
+          </div>
+        </dl>
+      </section>
+      <section>
+        <h2>Situação das chaves</h2>
+        {chave ? (
+          <p className="pvh-chave">
+            <span className={`pvh-chave-chip ${chave.cls}`}>{chave.label}</span>
+          </p>
+        ) : (
+          <p className="pvh-empty">Condição não informada.</p>
+        )}
+      </section>
+      <section>
+        <h2>Situação da liberação</h2>
+        {steps.length ? (
+          <ol className="pvh-steps">
+            {steps.map((step) => (
+              <li key={step.code} className={step.current ? "is-current" : "is-done"}>
+                <strong>{esc(step.title)}</strong>
+                {step.current ? <span className="pvh-now">Situação atual</span> : null}
+                <time>{esc(step.at_label) || "—"}</time>
               </li>
             ))}
           </ol>
         ) : (
-          <p className="pvh-empty">Ainda não há acontecimentos registrados para consulta.</p>
+          <p className="pvh-empty">Ainda não há etapas de liberação para exibir.</p>
         )}
       </section>
-      <p className="pvh-foot">Consulta somente leitura · AMPLIGUARD</p>
+      <p className="pvh-foot">Consulta pública · somente leitura · AMPLIGUARD</p>
     </main>
   );
 }
@@ -365,7 +368,7 @@ function FichaTipo2({
   pixError,
 }: {
   data: PublicVehicleHistory;
-  extras: Ficha2Extras | null;
+  extras: PublicExtras | null;
   metrics: { days: number; hours: number; total: number };
   pixUrl: string;
   pixError: string;
@@ -385,7 +388,7 @@ function FichaTipo2({
           e.currentTarget.src = LOGO_FALLBACK;
         }}
       />
-      <p className="pvh-kicker">Permanência e cobrança</p>
+      <p className="pvh-kicker">Consulta do Veículo</p>
       <h1 className="pvh-plate">{esc(d.placa) || "—"}</h1>
       <p className="pvh-model">{modelo}</p>
       <dl className="pvh-meta">
@@ -401,6 +404,12 @@ function FichaTipo2({
           <dt>Instituição financeira</dt>
           <dd>{esc(d.financeira) || "Sem financeira informada"}</dd>
         </div>
+        {d.escritorio ? (
+          <div>
+            <dt>Escritório responsável</dt>
+            <dd>{esc(d.escritorio)}</dd>
+          </div>
+        ) : null}
         <div>
           <dt>Entrada no pátio</dt>
           <dd>{esc(d.data_entrada_label) || "—"}</dd>
@@ -518,6 +527,20 @@ const globalCss = `
   }
   .pvh-timeline strong { display: block; font-size: 15px; }
   .pvh-timeline time { font-size: 13px; color: #4d6a5c; }
+  .pvh-steps { list-style: none; margin: 0; padding: 0; }
+  .pvh-steps li {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px;
+    padding: 10px 12px; margin: 0 0 8px; border-radius: 10px;
+    background: #f4f8f5; border: 1px solid #d7e4db;
+  }
+  .pvh-steps li.is-current {
+    background: #0f3d2e; color: #fff; border-color: #0f3d2e;
+  }
+  .pvh-steps strong { flex: 1 1 auto; font-size: 15px; }
+  .pvh-steps time { width: 100%; font-size: 13px; color: #4d6a5c; }
+  .pvh-steps li.is-current time, .pvh-now { color: #d7efe4; }
+  .pvh-now { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .pvh-card--tipo1 .pvh-plate { margin: 0; font-size: 30px; }
   .pvh-empty, .pvh-foot { text-align: center; color: #4d6a5c; font-size: 13px; }
   .pvh-foot { margin: 22px 0 0; }
   h1 { font-size: 22px; text-align: center; }
