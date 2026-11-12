@@ -1366,13 +1366,88 @@ body.ag-ficha-open {
   box-shadow: none;
   min-height: 0;
 }
+#viewDashboard .cob-chip {
+  background: var(--cob-card, #fffcf7) !important;
+  color: var(--cob-text, #101114) !important;
+  border: 1px solid var(--cob-line, #8f877c) !important;
+  font-weight: 600;
+}
+#viewDashboard .cob-chip.is-on,
+#viewDashboard .cob-chip.is-active {
+  background: var(--cob-accent, #1e3a5f) !important;
+  border-color: var(--cob-accent, #1e3a5f) !important;
+  color: #fff !important;
+}
 #viewDashboard .cob-kpi:hover,
 #viewDashboard .cob-card:hover {
   border-color: var(--cob-accent, #1e3a5f);
 }
-#viewDashboard .cob-card {
+#viewDashboard .cob-card[data-hub-nav] {
   cursor: pointer;
 }
-#viewDashboard .cob-kpis {
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+#viewDashboard .ag-dash-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 12px 0 4px;
+}
+#viewDashboard .ag-dash-layout .cob-card h3 {
+  margin-bottom: 8px;
+}
+#viewDashboard .ag-dash-kpis-6 {
+  grid-template-columns: repeat(6, minmax(120px, 1fr));
+}
+#viewDashboard .ag-dash-kpis-5 {
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+}
+#viewDashboard .ag-dash-legend {
+  display: flex;
+  gap: 16px;
+  margin: 8px 0 10px;
+  font-size: 0.82rem;
+  color: var(--cob-muted, #3d4450);
+}
+#viewDashboard .ag-dash-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+}
+#viewDashboard .ag-dash-custom label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--cob-muted, #3d4450);
+  font-size: 0.9rem;
+}
+#viewDashboard .ag-dash-custom input[type="date"] {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--cob-line, #8f877c);
+  background: var(--cob-card, #fffcf7);
+  color: var(--cob-text, #101114);
+  border-radius: 4px;
+}
+#viewDashboard .hub-chart-empty {
+  margin: 8px 0 0;
+  color: var(--cob-muted, #3d4450);
+}
+#viewDashboard .cob-table tbody tr[data-hub-nav] {
+  cursor: pointer;
+}
+@media (max-width: 1100px) {
+  #viewDashboard .ag-dash-kpis-6,
+  #viewDashboard .ag-dash-kpis-5 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 800px) {
+  #viewDashboard .ag-dash-layout {
+    grid-template-columns: 1fr;
+  }
+  #viewDashboard .ag-dash-kpis-6,
+  #viewDashboard .ag-dash-kpis-5 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
