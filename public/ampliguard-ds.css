@@ -1055,10 +1055,20 @@ body.app-module-patio #viewPatio > .patio-toolbar h2 {
 
 header .header-plate-search,
 .ag-topbar-search {
-  max-width: none !important;
-  margin: 0 auto !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
   justify-content: center !important;
+  justify-self: center !important;
+  max-width: 560px !important;
+  width: auto !important;
+  margin: 0 auto !important;
   gap: 6px !important;
+}
+
+header .header-plate-search .vp-plate-editor {
+  transform: none;
+  max-height: 32px;
 }
 
 header .header-plate-search button,
@@ -1069,6 +1079,15 @@ header .header-plate-search button.secondary,
   padding: 0 10px !important;
   font-size: 11px !important;
   font-weight: 600 !important;
+}
+
+body:not(.auth-screen-active) .header-menu-trigger,
+body:not(.auth-screen-active) #appHeaderMenuWrap {
+  display: none !important;
+}
+
+body.app-module-patio #viewPatio .patio-toolbar .close-view {
+  display: none !important;
 }
 
 .header-logout-btn {
@@ -1239,7 +1258,7 @@ button.secondary,
 
 html.ag-ficha-open,
 body.ag-ficha-open {
-  --ag-ficha-w: 400px;
+  --ag-ficha-w: clamp(380px, 32vw, 460px);
 }
 
 #tableNoPatio tr.is-ficha-open,
