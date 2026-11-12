@@ -258,13 +258,19 @@
     const recs = contasReceberAbertas();
     const today = todayYmd();
     const vencidos = recs.filter((r) => statusReceber(r) === "Vencido" || statusReceber(r) === "Atrasado");
+    const aReceberOnly = recs.filter((r) => statusReceber(r) !== "Vencido" && statusReceber(r) !== "Atrasado");
     const vencidoVal = vencidos.reduce((s, r) => s + Number(r.valor || 0), 0);
+    const aFaturarList =
+      typeof receivableIsAguardandoFaturamentoFinanceiro === "function"
+        ? (global.state?.receivables || []).filter((r) => receivableIsAguardandoFaturamentoFinanceiro(r))
+        : [];
+    const aFaturarVal = aFaturarList.reduce((s, r) => s + Number(r.valor || 0), 0);
     const st = opsDashState();
     const range = opsDashRange();
     const movs = cashInRange(range.from, range.to);
     const fluxo = cashTotals(movs);
     const fmt = ctx?.formatCurrency || money;
-    const aReceberVal = recs.reduce((s, r) => s + Number(r.valor || 0), 0);
+    const aReceberVal = aReceberOnly.reduce((s, r) => s + Number(r.valor || 0), 0);
     const saldoPeriodo = Number(fluxo.entradas || 0) - Number(fluxo.saidas || 0);
     const periods = [
       ["today", "Hoje"],
@@ -304,13 +310,19 @@
     root.innerHTML = `
       <div class="fin-simple-dash fin-ops-dash">
         ${periodBar}
-        <p class="notice" style="margin:0 0 12px">Recebido, saídas e saldo usam o período ${esc(range.label)}. A receber e em atraso mostram tudo que ainda está em aberto, inclusive dívidas antigas.</p>
+        <p class="notice" style="margin:0 0 12px">A faturar, a receber e vencidos não se somam entre si. Recebido usa só o que entrou no caixa no período ${esc(range.label)}. Liberar ou remover o veículo não quita o título.</p>
         <div class="fin-simple-grid fin-ops-kpis">
-          ${card("A receber", fmt(aReceberVal), `${recs.length} título(s) em aberto`, "receber:todos", "recv")}
-          ${card("Recebido", fmt(fluxo.entradas), "Entrou no período", "tela:recebidos", "in")}
-          ${card("Em atraso", fmt(vencidoVal), `${vencidos.length} título(s) vencido(s)`, "receber:vencidos", "late")}
-          ${card("Saídas", fmt(fluxo.saidas), "Saiu no período", "tela:saidas", "out")}
-          ${card("Saldo", fmt(saldoPeriodo), "Recebido − saídas", "tela:fluxo", saldoPeriodo < 0 ? "neg" : "saldo")}
+          ${card("A faturar", fmt(aFaturarVal), `${aFaturarList.length} ciclo(s) encerrado(s)`, "aguardando", "recv")}
+          ${card("A receber", fmt(aReceberVal), `${aReceberOnly.length} título(s) em dia`, "receber:todos", "in")}
+          ${card("Recebidos", fmt(fluxo.entradas), "Entrou no caixa no período", "tela:recebidos", "saldo")}
+          ${card("Vencidos", fmt(vencidoVal), `${vencidos.length} título(s) atrasado(s)`, "receber:vencidos", "late")}
+        </div>
+        <div class="fin-act-chips" aria-label="Histórico">
+          <button type="button" class="fin-act-chip" data-fin-simple-goto="caixa">Caixa</button>
+          <button type="button" class="fin-act-chip" data-fin-simple-goto="pagar">Saídas</button>
+          <button type="button" class="fin-act-chip" data-fin-simple-goto="notas_transporte">Notas de Transporte</button>
+          <button type="button" class="fin-act-chip" data-fin-simple-goto="cobrancas">Cobranças</button>
+          <button type="button" class="fin-act-chip" data-fin-simple-goto="pix">Conferir PIX</button>
         </div>
         ${chartHtml(range)}
         <h3 class="fin-simple-h">O que precisa da minha atenção</h3>
@@ -501,6 +513,22 @@
       opsDashState().screen = quick || "home";
       if (typeof setFinanceView === "function") setFinanceView("dashboard");
       else if (typeof financeRenderDashboard === "function") financeRenderDashboard();
+      return;
+    }
+    if (view === "aguardando") {
+      if (typeof setFinanceView === "function") setFinanceView("aguardando");
+      return;
+    }
+    if (view === "cobrancas") {
+      if (typeof setFinanceView === "function") setFinanceView("cobrancas");
+      return;
+    }
+    if (view === "pix") {
+      if (typeof setFinanceView === "function") setFinanceView("pix");
+      return;
+    }
+    if (view === "notas" || view === "notas_transporte") {
+      if (typeof setFinanceView === "function") setFinanceView("notas_transporte");
       return;
     }
     if (view === "pagar") {
