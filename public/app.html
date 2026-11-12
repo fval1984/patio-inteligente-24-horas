@@ -1217,54 +1217,59 @@
         white-space: nowrap;
       }
       #patioHubTabs.patio-hub-tabs {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-        margin: 0 0 14px;
-        width: 100%;
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin: 0 0 12px;
+        width: auto;
+        padding: 4px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: #f4f6f8;
       }
       #patioHubTabs.patio-hub-tabs.hidden { display: none !important; }
       #patioHubTabs .patio-hub-kpi {
-        display: flex;
-        flex-direction: column;
+        display: inline-flex;
+        flex-direction: row;
         align-items: center;
         justify-content: center;
-        gap: 4px;
-        width: 100%;
-        min-height: 92px;
-        padding: 14px 12px;
+        gap: 8px;
+        width: auto;
+        min-height: 34px;
+        padding: 6px 12px;
         margin: 0;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        background: color-mix(in srgb, var(--card, #111827) 88%, transparent);
+        border-radius: 8px;
+        border: 0;
+        background: transparent;
         color: inherit;
         text-align: center;
         cursor: pointer;
         box-shadow: none;
       }
       #patioHubTabs .patio-hub-kpi strong {
-        font-size: 13px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
       }
       #patioHubTabs .patio-hub-kpi-label {
-        font-size: 11px;
-        line-height: 1.2;
-        color: var(--muted);
-        font-weight: 500;
-        letter-spacing: 0;
-        text-transform: none;
+        display: none;
       }
       #patioHubTabs .patio-hub-kpi-count {
-        font-size: 1.85rem;
-        font-weight: 800;
+        font-size: 12px;
+        font-weight: 700;
         font-variant-numeric: tabular-nums;
-        line-height: 1.1;
+        line-height: 1;
+        min-width: 1.5em;
+        color: var(--muted);
       }
       #patioHubTabs .patio-hub-kpi.active {
-        border-color: var(--primary);
-        background: color-mix(in srgb, var(--primary-weak, rgba(212, 175, 55, 0.16)) 80%, transparent);
+        border-color: transparent;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(32, 36, 43, 0.06);
+      }
+      #patioHubTabs .patio-hub-kpi.active .patio-hub-kpi-count {
+        color: #c62828;
       }
       #patioContent [data-subview="no_patio"] > .pill,
       #patioContent [data-subview="no_patio"] > .notice,
@@ -7581,9 +7586,9 @@
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261109ficha1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20260813plate10" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112ui1" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112ui2" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
-    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha6" />
+    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha7" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
   </head>
   <body class="auth-screen-active">
@@ -7594,17 +7599,67 @@
     </noscript>
     <div class="app-top-shell">
       <header>
-        <div class="brand">
-          <img
-            id="brandLogo"
-            src="/assets/ampliguard-header-system-trim.png?v=1"
-            alt="AMPLIGUARD — Pátio de guarda de veículos"
-            class="brand-header-logo"
-          />
+        <div class="ag-topbar-left">
+          <button type="button" id="agSidebarToggle" class="ag-sidebar-toggle hidden" aria-expanded="true" aria-controls="dashboardSystemEntry" title="Recolher menu">
+            <span class="ag-hamburger" aria-hidden="true"></span>
+            <span class="sr-only">Menu</span>
+          </button>
+          <div class="brand">
+            <img
+              id="brandLogo"
+              src="/assets/ampliguard-header-system-trim.png?v=1"
+              alt="AMPLIGUARD — Pátio de guarda de veículos"
+              class="brand-header-logo"
+            />
+          </div>
+          <div class="ag-header-context" aria-live="polite">
+            <p class="ag-header-kicker" id="agModuleKicker">Sistema</p>
+            <h1 class="ag-header-title" id="agPageTitle">AMPLIGUARD</h1>
+          </div>
         </div>
-        <div class="ag-header-context" aria-live="polite">
-          <p class="ag-header-kicker" id="agModuleKicker">Sistema</p>
-          <h1 class="ag-header-title" id="agPageTitle">AMPLIGUARD</h1>
+        <form id="plateSearchForm" class="header-plate-search ag-topbar-search hidden" action="#" novalidate>
+          <div class="header-plate-search-primary">
+            <label for="plateFilter" class="header-plate-label sr-only">Placa</label>
+            <input
+              id="plateFilter"
+              name="plate"
+              type="text"
+              inputmode="text"
+              maxlength="8"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="characters"
+              spellcheck="false"
+              data-vp-editor-input
+              data-vp-size="md"
+              aria-label="Placa do veículo"
+            />
+            <button type="submit" id="plateSearchOk">OK</button>
+          </div>
+          <div class="header-plate-search-secondary">
+            <button type="button" class="secondary" id="goDashboardFromPlate">Início</button>
+            <button type="button" class="secondary" id="clearPlateFilter">Limpar</button>
+          </div>
+        </form>
+        <div class="ag-topbar-right">
+          <div class="user hidden" id="userInfo">Não autenticado</div>
+          <button type="button" id="headerLogoutBtn" class="secondary header-logout-btn hidden" title="Sair da conta">Sair</button>
+          <div id="appHeaderMenuWrap" class="header-app-menu-wrap">
+            <div class="header-menu-tray">
+              <button
+                type="button"
+                id="appHeaderMenuBtn"
+                class="header-menu-trigger"
+                aria-expanded="false"
+                aria-controls="appHeaderMenu"
+                aria-label="Abrir menu"
+              >
+                <span class="header-menu-bar" aria-hidden="true"></span>
+                <span class="header-menu-bar" aria-hidden="true"></span>
+                <span class="header-menu-bar" aria-hidden="true"></span>
+              </button>
+            </div>
+          </div>
         </div>
       </header>
       <div id="appSubheader" class="app-subheader hidden">
@@ -7656,54 +7711,7 @@
               <span class="dashboard-system-btn__desc">Ajuste dados, usuários e parâmetros operacionais.</span>
               <span class="dashboard-system-btn__go">Abrir configurações →</span>
             </button>
-            <button type="button" id="agSidebarToggle" class="ag-sidebar-toggle" aria-expanded="true" aria-controls="dashboardSystemEntry" title="Recolher menu">
-              <span>Recolher menu</span>
-            </button>
           </nav>
-          <div class="app-subheader-right">
-            <div class="user" id="userInfo">Não autenticado</div>
-            <div id="appHeaderMenuWrap" class="header-app-menu-wrap">
-              <div class="header-menu-tray">
-                <button
-                  type="button"
-                  id="appHeaderMenuBtn"
-                  class="header-menu-trigger"
-                  aria-expanded="false"
-                  aria-controls="appHeaderMenu"
-                  aria-label="Abrir menu"
-                >
-                  <span class="header-menu-bar" aria-hidden="true"></span>
-                  <span class="header-menu-bar" aria-hidden="true"></span>
-                  <span class="header-menu-bar" aria-hidden="true"></span>
-                </button>
-              </div>
-              <form id="plateSearchForm" class="header-plate-search" action="#" novalidate>
-                <div class="header-plate-search-primary">
-                  <label for="plateFilter" class="header-plate-label sr-only">Placa</label>
-                  <input
-                    id="plateFilter"
-                    name="plate"
-                    type="text"
-                    inputmode="text"
-                    maxlength="8"
-                    autocomplete="off"
-                    autocorrect="off"
-                    autocapitalize="characters"
-                    spellcheck="false"
-                    data-vp-editor-input
-                    data-vp-size="md"
-                    aria-label="Placa do veículo"
-                  />
-                  <button type="submit" id="plateSearchOk">OK</button>
-                </div>
-                <div class="header-plate-search-secondary">
-                  <button type="button" class="secondary" id="goDashboardFromPlate">Início</button>
-                  <button type="button" class="secondary" id="clearPlateFilter">Limpar</button>
-                  <button type="button" id="headerLogoutBtn" class="secondary header-logout-btn hidden" title="Sair da conta">Sair</button>
-                </div>
-              </form>
-            </div>
-          </div>
         </div>
         <p class="notice plate-search-hint header-plate-search-hint hidden" aria-live="polite"></p>
       </div>
@@ -8035,12 +8043,10 @@
             <div id="patioHubTabs" class="patio-hub-tabs hidden" role="tablist" aria-label="Listas do pátio">
               <button type="button" role="tab" data-patio-hub="vnp" class="patio-hub-kpi active" aria-label="VNP — Veículos no pátio">
                 <strong>VNP</strong>
-                <span class="patio-hub-kpi-label">Quantidade de veículos</span>
                 <span class="patio-hub-kpi-count" data-patio-hub-count="vnp">0</span>
               </button>
               <button type="button" role="tab" data-patio-hub="vrp" class="patio-hub-kpi" aria-label="VRP — Veículos removidos do pátio">
                 <strong>VRP</strong>
-                <span class="patio-hub-kpi-label">Quantidade de veículos</span>
                 <span class="patio-hub-kpi-count" data-patio-hub-count="vrp">0</span>
               </button>
             </div>
@@ -11685,6 +11691,9 @@
       function setHeaderLoggedInUI(loggedIn) {
         document.getElementById("headerLogoutBtn")?.classList.toggle("hidden", !loggedIn);
         document.getElementById("appSubheader")?.classList.toggle("hidden", !loggedIn);
+        document.getElementById("agSidebarToggle")?.classList.toggle("hidden", !loggedIn);
+        document.getElementById("plateSearchForm")?.classList.toggle("hidden", !loggedIn);
+        document.getElementById("userInfo")?.classList.toggle("hidden", !loggedIn);
       }
 
       (function bindAmpliguardSidebarToggle() {
@@ -11694,9 +11703,9 @@
           document.body.classList.toggle("ag-nav-collapsed", collapsed);
           btn?.setAttribute("aria-expanded", collapsed ? "false" : "true");
           if (btn) {
-            const label = btn.querySelector("span");
-            if (label) label.textContent = collapsed ? "Expandir" : "Recolher menu";
             btn.title = collapsed ? "Expandir menu" : "Recolher menu";
+            const sr = btn.querySelector(".sr-only");
+            if (sr) sr.textContent = collapsed ? "Expandir menu" : "Recolher menu";
           }
         };
         apply(localStorage.getItem(KEY) === "1");
@@ -21411,7 +21420,7 @@
             }
           }
         }
-        mountPatioPlateSearchBar(isPatioHub && !isVistoriador);
+        mountPatioPlateSearchBar(false);
         let shownPanel = null;
         patioSubviews.forEach((panel) => {
           if (panel.closest("#viewFinanceiro")) return;
