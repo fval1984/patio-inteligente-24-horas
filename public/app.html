@@ -1226,6 +1226,12 @@
       #viewPatio .patio-hub-tabs button { width: auto; flex: 0 1 auto; }
       #viewPatio #patioFlyoutSummaryCards,
       #viewPatio #patioPlateSearchBar { display: none !important; }
+      #viewPatio .patio-hub-plate-search {
+        max-width: none;
+        justify-content: flex-start;
+        margin: 0 0 14px;
+        margin-left: 0;
+      }
       #viewPatio .patio-toolbar {
         align-items: flex-start;
       }
@@ -7980,26 +7986,34 @@
               <p class="notice" style="margin: 0 0 12px">
                 Veículos ainda no pátio, do mais recente para o mais antigo. A prioridade de liberação permanece: <strong>VSC</strong>, depois <strong>VSL</strong>, em seguida os demais.
               </p>
-              <div id="vnpFiltersBar" class="filter-bar" style="margin: 0 0 12px">
-                <label for="vnpFilterPlaca">Buscar placa</label>
-                <input id="vnpFilterPlaca" type="text" maxlength="8" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="Placa" aria-label="Buscar por placa" />
-                <label for="vnpFilterParceiro">Parceiro</label>
-                <select id="vnpFilterParceiro" aria-label="Parceiro">
-                  <option value="">Todos os parceiros</option>
-                </select>
-                <label for="vnpFilterFinanceira">Instituição Financeira</label>
-                <select id="vnpFilterFinanceira" aria-label="Instituição Financeira">
-                  <option value="">Todas as instituições</option>
-                </select>
-                <label for="vnpFilterEscritorio">Escritório</label>
-                <select id="vnpFilterEscritorio" aria-label="Escritório">
-                  <option value="">Todos os escritórios</option>
-                </select>
-                <label for="vnpFilterPatio">Pátio</label>
-                <select id="vnpFilterPatio" aria-label="Pátio">
-                  <option value="">Todos os pátios</option>
-                </select>
-                <button type="button" class="secondary" id="vnpFiltersClear">Limpar filtros</button>
+              <form id="vnpPlateSearchForm" class="header-plate-search patio-hub-plate-search" action="#" novalidate>
+                <div class="header-plate-search-primary">
+                  <label for="vnpFilterPlaca" class="header-plate-label sr-only">Placa</label>
+                  <input
+                    id="vnpFilterPlaca"
+                    name="plate"
+                    type="text"
+                    inputmode="text"
+                    maxlength="8"
+                    autocomplete="off"
+                    autocorrect="off"
+                    autocapitalize="characters"
+                    spellcheck="false"
+                    data-vp-editor-input
+                    data-vp-size="md"
+                    aria-label="Placa do veículo"
+                  />
+                  <button type="submit" id="vnpPlateSearchOk">OK</button>
+                </div>
+                <div class="header-plate-search-secondary">
+                  <button type="button" class="secondary" id="vnpFiltersClear">Limpar</button>
+                </div>
+              </form>
+              <div id="vnpFiltersBar" class="hidden" hidden>
+                <select id="vnpFilterParceiro"><option value="">Todos os parceiros</option></select>
+                <select id="vnpFilterFinanceira"><option value="">Todas as instituições</option></select>
+                <select id="vnpFilterEscritorio"><option value="">Todos os escritórios</option></select>
+                <select id="vnpFilterPatio"><option value="">Todos os pátios</option></select>
               </div>
                 <div class="table-wrap">
                 <table class="table stacked patio-vehicle-table">
@@ -8141,16 +8155,30 @@
             </div>
             <div class="section-card patio-subview hidden" data-subview="removidos">
               <div class="pill">VRP — Veículos removidos do pátio</div>
-              <form id="patioVrpPlacaForm" class="filter-bar" style="margin: 0 0 12px" action="#" novalidate>
-                <label for="patioVrpPlaca">Placa</label>
-                <input id="patioVrpPlaca" type="text" maxlength="8" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="Buscar placa" aria-label="Buscar por placa" />
-                <label for="patioVrpParceiro">Parceiro</label>
-                <select id="patioVrpParceiro" aria-label="Parceiro">
-                  <option value="">Todos os parceiros</option>
-                </select>
-                <button type="submit">Buscar</button>
-                <button type="button" class="secondary" id="patioVrpPlacaLimpar">Limpar</button>
+              <form id="patioVrpPlacaForm" class="header-plate-search patio-hub-plate-search" action="#" novalidate>
+                <div class="header-plate-search-primary">
+                  <label for="patioVrpPlaca" class="header-plate-label sr-only">Placa</label>
+                  <input
+                    id="patioVrpPlaca"
+                    name="plate"
+                    type="text"
+                    inputmode="text"
+                    maxlength="8"
+                    autocomplete="off"
+                    autocorrect="off"
+                    autocapitalize="characters"
+                    spellcheck="false"
+                    data-vp-editor-input
+                    data-vp-size="md"
+                    aria-label="Placa do veículo"
+                  />
+                  <button type="submit" id="patioVrpPlacaOk">OK</button>
+                </div>
+                <div class="header-plate-search-secondary">
+                  <button type="button" class="secondary" id="patioVrpPlacaLimpar">Limpar</button>
+                </div>
               </form>
+              <select id="patioVrpParceiro" class="hidden" hidden><option value="">Todos os parceiros</option></select>
               <p id="patioVrpPlacaHint" class="notice hidden" style="margin: 0 0 12px"></p>
               <div id="patioVrpLoteBar" class="hidden" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px">
                 <label style="display:flex;align-items:center;gap:6px;margin:0">
@@ -15135,13 +15163,24 @@
       }
 
       function vehicleMatchesVnpFilters(v) {
-        if (!v) return false;
-        if (vnpFilterPlacaNorm && normalizePlateSearch(v.placa) !== vnpFilterPlacaNorm) return false;
-        if (vnpFilterParceiroId && String(v.localizador_id || "") !== String(vnpFilterParceiroId)) return false;
-        if (vnpFilterFinanceiraId && String(v.financeira_id || "") !== String(vnpFilterFinanceiraId)) return false;
-        if (vnpFilterEscritorioId && String(v.advocacy_office_id || "") !== String(vnpFilterEscritorioId)) return false;
-        if (vnpFilterPatioId && String(v.patio_parceiro_id || "") !== String(vnpFilterPatioId)) return false;
-        return true;
+        return !!v;
+      }
+
+      function runHubPlateConsulta(rawPlate) {
+        const raw = String(rawPlate || "").trim();
+        const norm = normalizePlateSearch(raw.toLowerCase());
+        if (!norm) return;
+        const matches = findVehiclesByPlateNorm(norm);
+        if (matches.length) {
+          const onPatio = matches.filter((v) => isVehicleOnPatio(v));
+          const target = pickMostRecentPlateVehicle(onPatio.length ? onPatio : matches);
+          if (target) void openVehicleIdFicha(target, 2);
+          return;
+        }
+        if (typeof closeVehicleIdFichaModalFn === "function") closeVehicleIdFichaModalFn();
+        if (!isVisualizador && !isVistoriador) {
+          openOriginalVehicleRegisterFromConsulta(raw);
+        }
       }
 
       function syncVnpFilterSelects() {
@@ -20615,9 +20654,7 @@
 
         renderVnpUnifiedTable(tableNoPatio, vnpOnPatio, {
           registoKind: "vnp",
-          emptyText: vnpOrganizationalFiltersOn() || vnpFilterPlacaNorm
-            ? "Nenhum veículo no pátio com os filtros selecionados."
-            : "Nenhum veículo no pátio.",
+          emptyText: "Nenhum veículo no pátio.",
         });
         if (window.vehicleEntryInspection?.renderAwaitingTable) {
           window.vehicleEntryInspection.renderAwaitingTable(tableVistoria, state.vehicles, buildVehicleInspectionCtx());
@@ -22495,13 +22532,7 @@
         bindPatioVrpSelecaoOnce._done = true;
         document.getElementById("patioVrpPlacaForm")?.addEventListener("submit", (ev) => {
           ev.preventDefault();
-          patioVrpPlacaBusca = document.getElementById("patioVrpPlaca")?.value || "";
-          if (typeof renderVehicles === "function") renderVehicles();
-          const campo = document.getElementById("patioVrpPlaca");
-          if (campo && patioVrpPlacaAchou) {
-            campo.value = "";
-            campo.focus();
-          }
+          runHubPlateConsulta(document.getElementById("patioVrpPlaca")?.value || "");
         });
         document.getElementById("patioVrpPlacaLimpar")?.addEventListener("click", () => {
           patioVrpPlacaBusca = "";
@@ -22510,17 +22541,10 @@
           patioVrpTopoIds.length = 0;
           patioVrpTopoDestaque = "";
           patioVrpRolarTopo = false;
+          patioVrpParceiroId = "";
           const campo = document.getElementById("patioVrpPlaca");
           if (campo) campo.value = "";
-          patioVrpParceiroId = "";
-          const parceiro = document.getElementById("patioVrpParceiro");
-          if (parceiro) parceiro.value = "";
-          if (typeof renderVehicles === "function") renderVehicles();
           campo?.focus();
-        });
-        document.getElementById("patioVrpParceiro")?.addEventListener("change", (ev) => {
-          patioVrpParceiroId = ev.target.value || "";
-          if (typeof renderVehicles === "function") renderVehicles();
         });
         document.getElementById("patioVrpSelectAll")?.addEventListener("change", (ev) => {
           patioVrpAlternarTodos(!!ev.target.checked);
@@ -28748,48 +28772,23 @@ ${body}
         renderVehicles();
       });
 
-      function applyVnpPlateFromInput(raw) {
-        const norm = normalizePlateSearch(raw);
-        vnpFilterPlacaNorm = norm.length >= 7 ? norm : "";
-        renderVehicles();
-      }
-
       function clearVnpOrganizationalFilters() {
         vnpFilterParceiroId = "";
         vnpFilterFinanceiraId = "";
         vnpFilterEscritorioId = "";
         vnpFilterPatioId = "";
         vnpFilterPlacaNorm = "";
-        if (plateFilter) plateFilter.value = "";
-        if (plateFilterPatio) plateFilterPatio.value = "";
         const placa = document.getElementById("vnpFilterPlaca");
         if (placa) placa.value = "";
-        plateQuery = "";
-        setPlateSearchHints("", false);
-        renderVehicles();
       }
 
-      document.getElementById("vnpFilterParceiro")?.addEventListener("change", (e) => {
-        vnpFilterParceiroId = e.target.value || "";
-        renderVehicles();
-      });
-      document.getElementById("vnpFilterFinanceira")?.addEventListener("change", (e) => {
-        vnpFilterFinanceiraId = e.target.value || "";
-        renderVehicles();
-      });
-      document.getElementById("vnpFilterEscritorio")?.addEventListener("change", (e) => {
-        vnpFilterEscritorioId = e.target.value || "";
-        renderVehicles();
-      });
-      document.getElementById("vnpFilterPatio")?.addEventListener("change", (e) => {
-        vnpFilterPatioId = e.target.value || "";
-        renderVehicles();
-      });
-      document.getElementById("vnpFilterPlaca")?.addEventListener("input", (e) => {
-        applyVnpPlateFromInput(e.target.value);
+      document.getElementById("vnpPlateSearchForm")?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        runHubPlateConsulta(document.getElementById("vnpFilterPlaca")?.value || "");
       });
       document.getElementById("vnpFiltersClear")?.addEventListener("click", () => {
         clearVnpOrganizationalFilters();
+        document.getElementById("vnpFilterPlaca")?.focus();
       });
 
       document.getElementById("listaSubnav")?.addEventListener("click", (e) => {
@@ -31220,7 +31219,7 @@ ${body}
           const id = row.getAttribute("data-vehicle-row");
           const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(id));
           if (!vehicle) return;
-          await openVehicleIdFicha(vehicle, 1);
+          await openVehicleIdFicha(vehicle, 2);
         });
       }
 
