@@ -5837,6 +5837,8 @@
     "em_patio",
     "contas",
     "aguardando",
+    "cobrancas",
+    "pix",
     "receber",
     "pagar",
     "caixa",
@@ -6899,6 +6901,8 @@
     if (view === "recebidos") return "caixa";
     if (view === "recorrentes") return "pagar";
     if (view === "diarias") return "em_patio";
+    if (view === "historico") return "dashboard";
+    if (view === "conferir_pix") return "pix";
     if (view === "movimentacoes") return "caixa";
     if (view === "configuracoes") return "cadastros";
     if (view === "financeiras") return "receber";
@@ -6933,6 +6937,14 @@
     panel.classList.remove("hidden");
   }
 
+  function financeHostCobrancas() {
+    const host = document.getElementById("finCobrancaHost");
+    const panel = document.getElementById("cobrancaRoot");
+    if (host && panel && panel.parentElement !== host) host.appendChild(panel);
+    if (typeof window.cobrancaUi?.mount === "function") window.cobrancaUi.mount();
+    else if (typeof window.cobrancaUi?.render === "function") window.cobrancaUi.render();
+  }
+
   function financeRenderSubviewContent(view) {
     if (view === "dashboard") financeRenderDashboard();
     else if (view === "em_patio") financeRenderEmPatio();
@@ -6950,6 +6962,12 @@
     else if (view === "financeiras") financeRenderFinanceiras();
     else if (view === "lancamentos") financeRenderLancamentos();
     else if (view === "relatorios") financeRenderRelatorios();
+    else if (view === "cobrancas") {
+      financeHostCobrancas();
+    }
+    else if (view === "pix" && typeof window.financePixUi?.refresh === "function") {
+      window.financePixUi.refresh();
+    }
     else if (view === "notas_transporte" && typeof window.financeNotasTransporteRefresh === "function") {
       window.financeNotasTransporteRefresh();
     }
@@ -6960,6 +6978,9 @@
     const resolved = financeNormalizeFinanceView(view);
     if (resolved === "aguardando") {
       financeHostPatioAguardando();
+    }
+    if (resolved === "cobrancas") {
+      financeHostCobrancas();
     }
     if (!FINANCE_SUBVIEWS.includes(resolved)) return;
     if (resolved === "caixa" && currentFinanceView && currentFinanceView !== "caixa" && currentFinanceView !== "none") {
