@@ -38,6 +38,75 @@
     return best;
   }
 
+  function chavePublicLabel(raw) {
+    const s = String(raw || "")
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "_")
+      .replace(/\//g, "_");
+    if (s === "C_CHAVE" || s === "CCHAVE") return { label: "C/CHAVE", cls: "is-c-chave" };
+    if (s === "S_CHAVE" || s === "SCHAVE") return { label: "S/CHAVE", cls: "is-s-chave" };
+    if (s === "TRANCADO") return { label: "TRANCADO", cls: "is-trancado" };
+    return null;
+  }
+
+  function splitEntryDateTime(iso, label) {
+    if (iso) {
+      const d = new Date(String(iso));
+      if (!Number.isNaN(d.getTime())) {
+        return {
+          date: d.toLocaleDateString("pt-BR", { timeZone: "America/Recife" }),
+          time: d.toLocaleTimeString("pt-BR", {
+            timeZone: "America/Recife",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        };
+      }
+    }
+    const text = String(label || "").trim();
+    const match = text.match(/^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})/);
+    if (match) return { date: match[1], time: match[2] };
+    return { date: text || "—", time: "—" };
+  }
+
+  function liberationSteps(timeline) {
+    const by = {};
+    (timeline || []).forEach((item) => {
+      if (item && item.code) by[item.code] = item;
+    });
+    const defs = [
+      { code: "EM_GUARDA", title: "Em guarda" },
+      { code: "VSL", title: "Liberação solicitada (VSL)" },
+      { code: "VSC", title: "Liberação confirmada (VSC)" },
+      { code: "VRP", title: "Removido do pátio (VRP)" },
+    ];
+    const guarda = by.EM_GUARDA || by.REGISTRADO;
+    const out = [];
+    if (guarda) {
+      out.push({
+        code: "EM_GUARDA",
+        title: defs[0].title,
+        at: guarda.at,
+        at_label: guarda.at_label || null,
+        current: false,
+      });
+    }
+    defs.slice(1).forEach((d) => {
+      const hit = by[d.code];
+      if (!hit) return;
+      out.push({
+        code: d.code,
+        title: d.title,
+        at: hit.at,
+        at_label: hit.at_label || null,
+        current: false,
+      });
+    });
+    if (out.length) out[out.length - 1].current = true;
+    return out;
+  }
+
   function buildPublicTimeline(vehicle, events) {
     const items = [];
     if (vehicle && vehicle.data_entrada) {
@@ -56,6 +125,9 @@
   return {
     isPublicVehicleToken,
     publicStatusLabel,
+    chavePublicLabel,
+    splitEntryDateTime,
+    liberationSteps,
     buildPublicTimeline,
   };
 });
