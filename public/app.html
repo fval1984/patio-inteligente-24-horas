@@ -7586,7 +7586,7 @@
       }
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260917header1" />
-    <link rel="stylesheet" href="/finance-action-ui.css?v=20261103cadernetaPlaca1" />
+    <link rel="stylesheet" href="/finance-action-ui.css?v=20261112fin1" />
     <link rel="stylesheet" href="/payment-receipt.css?v=20261005recibo10" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261109ficha1" />
@@ -8542,7 +8542,7 @@
           <div class="toolbar fin-act-pagehead">
             <div>
               <h2 style="margin: 0">Financeiro</h2>
-              <p class="fin-act-subtitle">Quanto receber, o que está atrasado, quanto entrou, quanto saiu e o saldo</p>
+              <p class="fin-act-subtitle">A faturar, cobranças, conferência de PIX e histórico — sem misturar valores pagos com pendentes</p>
               <p class="fin-act-period-range" id="finPeriodRangeLabel"></p>
             </div>
             <div class="actions fin-act-head-actions">
@@ -8555,12 +8555,10 @@
             </div>
           </div>
           <div class="finance-subnav" id="finSubnav">
-            <button type="button" data-finance-subview-btn="aguardando">Aguardando faturamento</button>
-            <button type="button" data-finance-subview-btn="dashboard" class="active">Visão Geral</button>
-            <button type="button" data-finance-subview-btn="receber">Entradas</button>
-            <button type="button" data-finance-subview-btn="pagar">Saídas</button>
-            <button type="button" data-finance-subview-btn="caixa">Caixa</button>
-            <button type="button" data-finance-subview-btn="notas_transporte">Notas de Transporte</button>
+            <button type="button" data-finance-subview-btn="aguardando">A faturar</button>
+            <button type="button" data-finance-subview-btn="cobrancas">Cobranças</button>
+            <button type="button" data-finance-subview-btn="pix">Conferir PIX</button>
+            <button type="button" data-finance-subview-btn="dashboard" class="active">Histórico e relatórios</button>
           </div>
           <div id="finSearchResults" class="fin-search-results hidden"></div>
           <p id="finRecebidosRecoverHint" class="notice hidden" style="margin: 0 0 10px"></p>
@@ -8604,6 +8602,15 @@
             <div id="finDashRoot" class="fin-exec-root"></div>
             <div class="fin-dash-compare-cards hub-dash-legacy-hidden" id="finDashCompareCards" hidden aria-hidden="true"></div>
             <div class="fin-cards hub-dash-legacy-hidden" id="finDashCards" hidden aria-hidden="true"></div>
+          </div>
+
+          <div class="finance-subview hidden" data-finance-subview="cobrancas">
+            <p class="notice">Selecione veículos do mesmo cliente para gerar uma cobrança. Remoção do pátio não quita o valor.</p>
+            <div id="finCobrancaHost"></div>
+          </div>
+
+          <div class="finance-subview hidden" data-finance-subview="pix">
+            <div id="finPixRoot"></div>
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="em_patio">
@@ -10571,12 +10578,10 @@
         <details class="header-menu-details" id="headerDetailsFinance">
           <summary>Financeiro</summary>
           <div class="header-menu-nested">
-            <button type="button" data-finance-subview="aguardando">Aguardando faturamento</button>
-            <button type="button" data-finance-subview="dashboard">Visão Geral</button>
-            <button type="button" data-finance-subview="receber">Entradas</button>
-            <button type="button" data-finance-subview="pagar">Saídas</button>
-            <button type="button" data-finance-subview="caixa">Caixa</button>
-            <button type="button" data-finance-subview="notas_transporte">Notas de Transporte</button>
+            <button type="button" data-finance-subview="aguardando">A faturar</button>
+            <button type="button" data-finance-subview="cobrancas">Cobranças</button>
+            <button type="button" data-finance-subview="pix">Conferir PIX</button>
+            <button type="button" data-finance-subview="dashboard">Histórico e relatórios</button>
           </div>
         </details>
 
@@ -10621,14 +10626,16 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20261111nt1"></script>
+    <script src="/finance-module.js?v=20261112fin1"></script>
     <script src="/finance-notas-transporte.js?v=20261111nt1"></script>
     <script src="/payment-receipt.js?v=20261005recibo10"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
-    <script src="/finance-simple-ui.js?v=20260924cdf1"></script>
+    <script src="/partner-program.js?v=20261112pp1"></script>
+    <script src="/finance-simple-ui.js?v=20261112fin1"></script>
     <script src="/finance-action-ui.js?v=20260921caderneta1"></script>
+    <script src="/finance-pix-ui.js?v=20261112pix1"></script>
     <script src="/patio-dashboard.js?v=20260715gestor"></script>
     <script src="/operational-metrics-service.js?v=20260727opsdash"></script>
     <script src="/operational-dashboard-ui.js?v=20261112patio1"></script>
@@ -10637,7 +10644,7 @@
     <script src="/financial-partner-dashboard-ui.js?v=20260902contrast1"></script>
     <script src="/partners-cadastro-service.js?v=20261027gestor2"></script>
     <script src="/partner-managers-service.js?v=20260909partners2"></script>
-    <script src="/partners-cadastro-ui.js?v=20261027gestor2"></script>
+    <script src="/partners-cadastro-ui.js?v=20261112pp1"></script>
     <script src="/reboque-transporte-service.js?v=20261021reboque1"></script>
     <script src="/reboque-transporte-ui.js?v=20261105extrato1"></script>
     <script src="/dashboard-metrics-service.js?v=20260909execops1"></script>
@@ -10655,8 +10662,8 @@
     <script src="/advocacy-offices-service.js?v=20261001escritorio3"></script>
     <script src="/advocacy-office-report-ui.js?v=20261001escritorio5"></script>
     <script src="/advocacy-offices-ui.js?v=20261022parceiro1"></script>
-    <script src="/cobranca-service.js?v=20260910cob4"></script>
-    <script src="/cobranca-ui.js?v=20260917logo1"></script>
+    <script src="/cobranca-service.js?v=20261112cob1"></script>
+    <script src="/cobranca-ui.js?v=20261112cob1"></script>
     <script src="/patio-extrato-service.js?v=20261105resumo2"></script>
     <script src="/patio-extrato-ui.js?v=20261106patioReorg1"></script>
     <script>
