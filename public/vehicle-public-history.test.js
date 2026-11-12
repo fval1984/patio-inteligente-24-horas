@@ -37,4 +37,17 @@ assert(fromEvents.some((x) => x.code === "VSL"), "vsl a partir de evento");
 assert(!fromEvents.some((x) => x.code === "VSC"), "não inventa vsc");
 assert(!fromEvents.some((x) => String(x.title).toLowerCase().indexOf("nfse") >= 0), "não expõe eventos internos");
 
+assert(hist.chavePublicLabel("C_CHAVE").label === "C/CHAVE", "chave c");
+assert(hist.chavePublicLabel("TRANCADO").label === "TRANCADO", "chave trancado");
+assert(hist.chavePublicLabel("") === null, "chave vazia");
+
+const split = hist.splitEntryDateTime(null, "09/11/2026 14:30");
+assert(split.date === "09/11/2026", "data entrada");
+assert(split.time === "14:30", "hora entrada");
+
+const steps = hist.liberationSteps(full.map((x) => ({ ...x, at_label: "x" })));
+assert(steps[0].title === "Em guarda", "etapa guarda");
+assert(steps[steps.length - 1].code === "VRP" && steps[steps.length - 1].current, "atual vrp");
+assert(!steps.some((s) => s.code === "REGISTRADO"), "sem etapa administrativa extra");
+
 console.log("vehicle-public-history.test.js ok");
