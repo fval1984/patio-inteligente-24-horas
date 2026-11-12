@@ -149,6 +149,7 @@
   overflow: visible;
   position: relative;
   z-index: 6;
+  background: #fff;
 }
 
 .vehicle-id-ficha-modal .modal-header .actions {
