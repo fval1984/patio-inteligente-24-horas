@@ -382,6 +382,11 @@ body.auth-screen-active .ag-header-context {
 
   body:not(.auth-screen-active) #agSidebarToggle {
     display: inline-flex !important;
+    margin-top: auto;
+    width: 100%;
+    min-height: 36px !important;
+    align-items: center;
+    justify-content: center;
   }
 
   body:not(.auth-screen-active).ag-nav-collapsed #dashboardSystemEntry .dashboard-system-btn {
@@ -1068,7 +1073,8 @@ header .header-plate-search,
 
 header .header-plate-search .vp-plate-editor {
   transform: none;
-  max-height: 32px;
+  max-height: none;
+  overflow: visible;
 }
 
 header .header-plate-search button,
