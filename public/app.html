@@ -9715,7 +9715,7 @@
       <div id="vehicleIdFichaModal" class="modal-backdrop hidden">
         <div class="modal vehicle-id-ficha-modal">
           <div class="modal-header vif-panel-head">
-            <h3 id="vehicleIdFichaTitle">Ficha do veículo</h3>
+            <h3 id="vehicleIdFichaTitle">Consulta do Veículo</h3>
             <button type="button" class="modal-close" id="closeVehicleIdFichaModal" aria-label="Fechar painel">×</button>
           </div>
           <div id="vehicleIdFichaCapture" class="vif-capture"></div>
@@ -25120,12 +25120,10 @@
         }
         vehicleIdFichaModal.dataset.fichaTipo = String(kind);
         vehicleIdFichaModal.dataset.openVehicleId = vehicle.id;
+        vehicleIdFichaModal.dataset.openPlate = String(vehicle.placa || "").trim();
         vehicleIdFichaModal.querySelector(".modal")?.classList.toggle("vehicle-id-ficha-modal--cobranca", kind === 2);
         if (vehicleIdFichaTitle) {
-          vehicleIdFichaTitle.textContent =
-            kind === 2
-              ? `Ficha tipo 2 — ${vehicle.placa || "veículo"}`
-              : `Ficha tipo 1 — ${vehicle.placa || "veículo"}`;
+          vehicleIdFichaTitle.textContent = "Consulta do Veículo";
         }
         const fichaDlBtn = document.getElementById("downloadVehicleIdFichaPdf");
         if (fichaDlBtn) fichaDlBtn.textContent = kind === 2 ? "Baixar PNG" : "Baixar PDF";
@@ -25307,6 +25305,7 @@
         const fichaDlBtn = document.getElementById("downloadVehicleIdFichaPdf");
         if (fichaDlBtn) fichaDlBtn.textContent = "Baixar PDF";
         delete vehicleIdFichaModal.dataset.openVehicleId;
+        delete vehicleIdFichaModal.dataset.openPlate;
         delete vehicleIdFichaModal.dataset.fichaTipo;
         syncVehicleIdFichaActions(null, 0);
       }
@@ -25314,7 +25313,7 @@
       async function downloadVehicleIdFichaPdfFn() {
         if (!vehicleIdFichaCapture || vehicleIdFichaModal?.classList.contains("hidden")) return;
         const tipo = vehicleIdFichaModal.dataset.fichaTipo === "2" ? "tipo2" : "tipo1";
-        const placa = String(vehicleIdFichaTitle?.textContent || "veiculo")
+        const placa = String(vehicleIdFichaModal.dataset.openPlate || vehicleIdFichaTitle?.textContent || "veiculo")
           .replace(/[^\w.-]+/g, "-")
           .replace(/^-|-$/g, "")
           .slice(0, 40);
