@@ -328,11 +328,16 @@
   }
 
   function recentPatioMovements(vehicles, limit) {
+    const today = ymdToday();
     const rows = [];
     (vehicles || []).forEach((v) => {
       const placa = String(v.placa || "—");
-      if (v.data_entrada) rows.push({ at: v.data_entrada, tipo: "Entrada", placa });
-      if (v.data_saida) rows.push({ at: v.data_saida, tipo: "Saída", placa });
+      if (v.data_entrada && String(v.data_entrada).slice(0, 10) === today) {
+        rows.push({ at: v.data_entrada, tipo: "Entrada", placa });
+      }
+      if (v.data_saida && String(v.data_saida).slice(0, 10) === today) {
+        rows.push({ at: v.data_saida, tipo: "Saída", placa });
+      }
     });
     rows.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
     return rows.slice(0, limit);
@@ -511,12 +516,18 @@
     return Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   }
 
-  function kpiBtn(nav, label, value, meta) {
-    return `<button type="button" class="ag-home-kpi" data-hub-nav="${escapeHtml(nav)}">
+  function metricChip(nav, label, value) {
+    return `<button type="button" class="ag-dash-chip" data-hub-nav="${escapeHtml(nav)}">
       <span>${escapeHtml(label)}</span>
       <strong>${escapeHtml(String(value))}</strong>
-      ${meta ? `<small>${escapeHtml(meta)}</small>` : ""}
     </button>`;
+  }
+
+  function finRow(nav, label, value) {
+    return `<tr class="ag-dash-row" data-hub-nav="${escapeHtml(nav)}" tabindex="0">
+      <td>${escapeHtml(label)}</td>
+      <td class="num">${escapeHtml(String(value))}</td>
+    </tr>`;
   }
 
   function buildHomeBoard(data, ctx) {
@@ -625,7 +636,12 @@
         const cycles = prog ? prog.countCyclesInMonth(items, ym) : items.filter((i) => String(i.receivable?.period_end || "").slice(0, 7) === ym).length;
         const tar = prog ? prog.tariffFor(p, cycles) : { label: "—", diaria: 0, faixa: "—" };
         const close = prog ? prog.closingForMonth(ym) : { fechamento: "—", vencimento: "—" };
-        return { nome: p.nome || "Parceiro", cycles, tar, close };
+        return {
+          nome: p.nome || "Parceiro",
+          cycles,
+          faixa: tar.diaria ? `R$ ${Number(tar.diaria).toFixed(2).replace(".", ",")}` : "—",
+          close,
+        };
       })
       .sort((a, b) => b.cycles - a.cycles)
       .slice(0, 8);
@@ -649,60 +665,89 @@
       alertsEl.hidden = true;
     }
     const b = buildHomeBoard(data, ctx);
-    const partnerTable = b.partnerRows.length
-      ? `<div class="table-wrap"><table class="table ag-home-table">
-          <thead><tr><th>Cliente</th><th>Ciclos no mês</th><th>Faixa</th><th>Fechamento</th><th>Vencimento</th></tr></thead>
-          <tbody>${b.partnerRows
-            .map(
-              (r) => `<tr>
-                <td>${escapeHtml(r.nome)}</td>
-                <td>${escapeHtml(String(r.cycles))}</td>
-                <td>${escapeHtml(r.tar.label)}</td>
-                <td>${escapeHtml(r.close.fechamento)}</td>
-                <td>${escapeHtml(r.close.vencimento)}</td>
-              </tr>`
-            )
-            .join("")}</tbody></table></div>`
-      : `<p class="ag-home-empty">Nenhum cliente no Programa Parceiro neste momento.</p>`;
+    const recent = recentPatioMovements(data.vehicles || [], 6);
+    const movBody = recent.length
+      ? recent
+          .map(
+            (r) => `<tr>
+              <td>${escapeHtml(formatClock(r.at))}</td>
+              <td>${escapeHtml(r.tipo)}</td>
+              <td>${escapeHtml(r.placa)}</td>
+            </tr>`
+          )
+          .join("")
+      : `<tr><td colspan="3">Nenhuma entrada ou saída hoje.</td></tr>`;
+    const partnerBody = b.partnerRows.length
+      ? b.partnerRows
+          .map(
+            (r) => `<tr data-hub-nav="parceiros" tabindex="0" class="ag-dash-row">
+              <td>${escapeHtml(r.nome)}</td>
+              <td>${escapeHtml(String(r.cycles))}</td>
+              <td>${escapeHtml(r.faixa)}</td>
+              <td>${escapeHtml(r.close.fechamento)}</td>
+              <td>${escapeHtml(r.close.vencimento)}</td>
+            </tr>`
+          )
+          .join("")
+      : `<tr><td colspan="5" class="notice">Nenhum cliente no Programa Parceiro.</td></tr>`;
 
     root.innerHTML = `
-      <div class="ag-home">
-        <section class="ag-home-sec" aria-label="Visão Geral do Pátio">
-          <h3>Visão Geral do Pátio</h3>
-          <div class="ag-home-grid">
-            ${kpiBtn("patio:no_patio", "No pátio", b.vnp, "veículos agora")}
-            ${kpiBtn("patio:no_patio", "VSL", b.vsl, "liberação solicitada")}
-            ${kpiBtn("patio:no_patio", "VSC", b.vsc, "liberação confirmada")}
-            ${kpiBtn("patio:removidos", "VRP", b.vrp, "removidos")}
-            ${kpiBtn("patio:no_patio", "Entradas hoje", b.inToday, "")}
-            ${kpiBtn("patio:removidos", "Saídas hoje", b.outToday, "")}
-            ${kpiBtn("patio:no_patio", "C/CHAVE", b.cChave, "")}
-            ${kpiBtn("patio:no_patio", "S/CHAVE", b.sChave, "")}
-            ${kpiBtn("patio:no_patio", "Trancados", b.trancado, "")}
-            ${kpiBtn("patio:no_patio", "Permanência média", b.avgStay === "—" ? "—" : `${b.avgStay} dias`, "veículos no pátio")}
+      <div class="ag-dash">
+        <section class="section-card">
+          <div class="toolbar" style="margin:0 0 10px;padding:0;border:0">
+            <div><h3 class="ag-dash-h">Operação do pátio</h3></div>
+            <div class="actions"><button type="button" class="secondary" data-hub-nav="patio:no_patio">Abrir pátio</button></div>
+          </div>
+          <div class="ag-dash-strip" role="group" aria-label="Indicadores do pátio">
+            ${metricChip("patio:no_patio", "Em guarda", b.vnp)}
+            ${metricChip("patio:no_patio", "VSL", b.vsl)}
+            ${metricChip("patio:no_patio", "VSC", b.vsc)}
+            ${metricChip("patio:removidos", "VRP", b.vrp)}
+            ${metricChip("patio:no_patio", "Entradas hoje", b.inToday)}
+            ${metricChip("patio:removidos", "Saídas hoje", b.outToday)}
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>Hora</th><th>Movimento</th><th>Placa</th></tr></thead>
+              <tbody>${movBody}</tbody>
+            </table>
           </div>
         </section>
         ${
           b.hideMoney
             ? ""
-            : `<section class="ag-home-sec" aria-label="Visão Financeira">
-          <h3>Visão Financeira</h3>
-          <div class="ag-home-grid">
-            ${kpiBtn("financeiro:aguardando", "A faturar", b.fmt(b.aFaturar), "ciclos encerrados")}
-            ${kpiBtn("financeiro:cobrancas", "Cobranças pendentes", b.fmt(b.aReceberVal), "em aberto e em dia")}
-            ${kpiBtn("financeiro:caixa", "Recebido no mês", b.fmt(b.recebidoMes), "entrada no caixa")}
-            ${kpiBtn("financeiro:receber", "Em atraso", b.fmt(b.vencidoVal), `${b.dueSoon.length} vencem em 7 dias`)}
-            ${kpiBtn("financeiro:cobrancas", "Faturamento do mês", b.fmt(b.faturadoMes), "títulos do período")}
-            ${kpiBtn("financeiro:pix", "PIX a conciliar", b.pixPend ? String(b.pixPend) : "0", "registros manuais")}
+            : `<section class="section-card">
+          <div class="toolbar" style="margin:0 0 10px;padding:0;border:0">
+            <div><h3 class="ag-dash-h">Financeiro</h3></div>
+            <div class="actions"><button type="button" class="secondary" data-hub-nav="financeiro:cobrancas">Abrir financeiro</button></div>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>Indicador</th><th class="num">Valor</th></tr></thead>
+              <tbody>
+                ${finRow("financeiro:aguardando", "A faturar", b.fmt(b.aFaturar))}
+                ${finRow("financeiro:cobrancas", "A receber", b.fmt(b.aReceberVal))}
+                ${finRow("financeiro:receber", "Cobranças vencidas", b.fmt(b.vencidoVal))}
+                ${finRow("financeiro:caixa", "Recebido no mês", b.fmt(b.recebidoMes))}
+              </tbody>
+            </table>
           </div>
         </section>`
         }
-        <section class="ag-home-sec" aria-label="Clientes Parceiros">
-          <h3>Clientes Parceiros</h3>
-          <div class="ag-home-grid ag-home-grid--3">
-            ${kpiBtn("parceiros", "Parceiros ativos", b.partners.length, "programa cliente parceiro")}
+        <section class="section-card">
+          <div class="toolbar" style="margin:0 0 10px;padding:0;border:0">
+            <div>
+              <h3 class="ag-dash-h">Clientes parceiros</h3>
+              <p class="notice" style="margin:4px 0 0">${escapeHtml(String(b.partners.length))} ativo(s) no programa</p>
+            </div>
+            <div class="actions"><button type="button" class="secondary" data-hub-nav="parceiros">Abrir parceiros</button></div>
           </div>
-          ${partnerTable}
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>Cliente</th><th>Ciclos no mês</th><th>Faixa</th><th>Fechamento</th><th>Vencimento</th></tr></thead>
+              <tbody>${partnerBody}</tbody>
+            </table>
+          </div>
         </section>
       </div>
     `;
