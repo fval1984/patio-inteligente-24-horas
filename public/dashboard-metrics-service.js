@@ -63,7 +63,7 @@
     return `${y}-${String(m).padStart(2, "0")}-${String(last).padStart(2, "0")}`;
   }
 
-  function resolvePeriodRange(period, asOf) {
+  function resolvePeriodRange(period, asOf, extra) {
     const curYm = yearMonthFromYmd(asOf);
     switch (period) {
       case "today":
@@ -72,6 +72,21 @@
         return { from: addDaysYmd(asOf, -6), to: asOf, label: "Últimos 7 dias" };
       case "30d":
         return { from: addDaysYmd(asOf, -29), to: asOf, label: "Últimos 30 dias" };
+      case "90d":
+        return { from: addDaysYmd(asOf, -89), to: asOf, label: "Últimos 90 dias" };
+      case "custom": {
+        extra = extra || {};
+        let from = isCalendarYmd(extra.from) ? extra.from : addDaysYmd(asOf, -29);
+        let to = isCalendarYmd(extra.to) ? extra.to : asOf;
+        if (from > to) {
+          const swap = from;
+          from = to;
+          to = swap;
+        }
+        const cap = addDaysYmd(from, 89);
+        if (to > cap) to = cap;
+        return { from, to, label: "Personalizado" };
+      }
       case "month":
         return { from: monthStartYm(curYm), to: asOf, label: "Mês atual" };
       case "year":
@@ -275,7 +290,7 @@
   function DashboardMetrics() {}
   DashboardMetrics.prototype.compute = function compute(snapshot, filters) {
     const asOfYmd = snapshot.asOfYmd || todayYmd();
-    const range = resolvePeriodRange(filters.period, asOfYmd);
+    const range = resolvePeriodRange(filters.period, asOfYmd, filters);
     const partners = snapshot.partners || [];
     const pmap = new Map(partners.map((p) => [String(p.id), p]));
     const vehicles = filterVehicles(snapshot.vehicles || [], partners, filters);
@@ -472,6 +487,8 @@
       snapshot.settings?.capacidade_patio ?? "",
       snapshot.asOfYmd || "",
       merged.period,
+      merged.from || "",
+      merged.to || "",
       merged.financeiraId || "",
       merged.parceiroId || "",
       merged.status || "",
