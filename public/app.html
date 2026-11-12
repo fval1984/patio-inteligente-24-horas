@@ -7591,7 +7591,7 @@
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261109ficha1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20261112plate12" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112dash1" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112dash2" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha9" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
@@ -7791,37 +7791,22 @@
         </div>
         <button type="button" id="logoutBtn" class="hidden" aria-hidden="true" tabindex="-1">Sair</button>
 
-        <div id="viewDashboard" class="panel dashboard-shell exec-ops-shell">
-          <div class="exec-ops-header">
+        <div id="viewDashboard" class="panel dashboard-shell">
+          <div class="toolbar">
             <div>
-              <p class="dashboard-kicker">Dashboard Geral</p>
-              <h2 id="execOpsGreeting" class="js-user-ops-greeting">Olá</h2>
-              <p class="dashboard-subtitle" id="execOpsDate"></p>
-              <p class="exec-ops-range-label hidden">Período: <span id="execOpsRange">visão geral</span></p>
+              <h2 style="margin: 0">Dashboard</h2>
+              <p class="subtitle" id="execOpsDate"></p>
+              <span id="execOpsGreeting" class="js-user-ops-greeting hidden"></span>
+              <span id="execOpsRange" class="hidden">visão geral</span>
             </div>
           </div>
-          <div class="filter-bar hub-dash-filters exec-ops-filters-sr">
-            <label for="hubDashFilterPeriod">Período</label>
-            <select id="hubDashFilterPeriod" title="Período de análise">
-              <option value="today" selected>Hoje</option>
-              <option value="7d">Últimos 7 dias</option>
-              <option value="30d">Últimos 30 dias</option>
-            </select>
-            <label for="hubDashFilterPartner">Parceiro</label>
+          <div class="filter-bar hub-dash-filters hidden" hidden aria-hidden="true">
+            <select id="hubDashFilterPeriod"><option value="today" selected>Hoje</option></select>
             <select id="hubDashFilterPartner"><option value="">Todos</option></select>
-            <label for="hubDashFilterStatus">Status veículo</label>
-            <select id="hubDashFilterStatus">
-              <option value="">Todos</option>
-              <option value="no_patio">No pátio (VNP)</option>
-              <option value="vsl">Solicitação (VSL)</option>
-              <option value="vsc">Liberação confirmada (VSC)</option>
-              <option value="vlp">Liberação (VSL+VSC)</option>
-              <option value="removido">Removidos (VRP)</option>
-            </select>
-            <label for="hubDashFilterSearch">Busca rápida</label>
-            <input type="search" id="hubDashFilterSearch" placeholder="Placa, parceiro, valor…" autocomplete="off" />
+            <select id="hubDashFilterStatus"><option value="">Todos</option></select>
+            <input type="search" id="hubDashFilterSearch" />
           </div>
-          <div id="hubDashAlerts" class="hub-dash-alerts" hidden aria-live="polite"></div>
+          <div id="hubDashAlerts" class="hub-dash-alerts hidden" hidden aria-live="polite"></div>
           <div id="hubDashRoot"></div>
           <div class="hub-dash-legacy-hidden" aria-hidden="true" hidden>
             <span id="cardVeiculos">0</span>
@@ -10643,7 +10628,7 @@
     <script src="/reboque-transporte-service.js?v=20261021reboque1"></script>
     <script src="/reboque-transporte-ui.js?v=20261105extrato1"></script>
     <script src="/dashboard-metrics-service.js?v=20260909execops1"></script>
-    <script src="/amplipatio-dashboard.js?v=20261112dash1"></script>
+    <script src="/amplipatio-dashboard.js?v=20261112dash2"></script>
     <script src="/recibo-documento.js?v=20261023recibo6"></script>
     <script src="/vehicle-entry-inspection-checklist.js?v=20260915vistoria1"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20261105fotos1"></script>
