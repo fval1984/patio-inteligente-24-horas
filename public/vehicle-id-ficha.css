@@ -154,7 +154,8 @@
   display: none !important;
 }
 
-#patioContent tbody tr[data-vehicle-row]:not([data-receivable-row]) {
+#tableNoPatio tr[data-vehicle-row],
+#tableRemovidos tr[data-vehicle-row]:not([data-receivable-row]) {
   cursor: pointer;
 }
 
