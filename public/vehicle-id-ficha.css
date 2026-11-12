@@ -144,22 +144,62 @@
   overflow: hidden !important;
 }
 
-@media (min-width: 901px) {
-  #vehicleIdFichaModal:not(.hidden) {
-    align-items: stretch !important;
-    justify-content: flex-end !important;
-    padding: 0 !important;
-    background: rgba(32, 36, 43, 0.28) !important;
-  }
+#vehicleIdFichaModal:not(.hidden) {
+  position: fixed !important;
+  top: var(--ag-topbar-h, 48px) !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+  width: var(--ag-ficha-w, 400px) !important;
+  height: auto !important;
+  inset: auto 0 0 auto !important;
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  z-index: 46 !important;
+  pointer-events: none;
+}
 
-  #vehicleIdFichaModal .vehicle-id-ficha-modal {
-    width: min(480px, 42vw);
-    max-width: 480px;
-    height: 100vh;
-    max-height: 100vh;
-    margin: 0;
-    border-radius: 0 !important;
-    border-left: 1px solid #e5e7eb;
+#vehicleIdFichaModal .vehicle-id-ficha-modal {
+  pointer-events: auto;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border: 0 !important;
+  border-left: 1px solid #e5e7eb !important;
+  box-shadow: -8px 0 24px rgba(32, 36, 43, 0.06) !important;
+  transform: translateX(0);
+  animation: agFichaIn 180ms ease;
+}
+
+@keyframes agFichaIn {
+  from { transform: translateX(16px); opacity: 0.65; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+#closeVehicleIdFichaModal {
+  width: 32px !important;
+  min-width: 32px;
+  min-height: 32px !important;
+  padding: 0 !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  font-weight: 400 !important;
+}
+
+@media (max-width: 900px) {
+  #vehicleIdFichaModal:not(.hidden) {
+    top: 0 !important;
+    width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
   }
 }
 
@@ -208,7 +248,7 @@
 }
 
 .vehicle-id-ficha-modal--cobranca {
-  max-width: 720px;
+  max-width: none;
 }
 
 .vif-capture {
