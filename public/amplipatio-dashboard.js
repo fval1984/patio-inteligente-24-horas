@@ -516,18 +516,11 @@
     return Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   }
 
-  function metricChip(nav, label, value) {
-    return `<button type="button" class="ag-dash-chip" data-hub-nav="${escapeHtml(nav)}">
+  function cobKpi(nav, label, value, extraClass) {
+    return `<button type="button" class="cob-kpi${extraClass ? ` ${extraClass}` : ""}" data-hub-nav="${escapeHtml(nav)}">
       <span>${escapeHtml(label)}</span>
       <strong>${escapeHtml(String(value))}</strong>
     </button>`;
-  }
-
-  function finRow(nav, label, value) {
-    return `<tr class="ag-dash-row" data-hub-nav="${escapeHtml(nav)}" tabindex="0">
-      <td>${escapeHtml(label)}</td>
-      <td class="num">${escapeHtml(String(value))}</td>
-    </tr>`;
   }
 
   function buildHomeBoard(data, ctx) {
@@ -636,10 +629,20 @@
         const cycles = prog ? prog.countCyclesInMonth(items, ym) : items.filter((i) => String(i.receivable?.period_end || "").slice(0, 7) === ym).length;
         const tar = prog ? prog.tariffFor(p, cycles) : { label: "—", diaria: 0, faixa: "—" };
         const close = prog ? prog.closingForMonth(ym) : { fechamento: "—", vencimento: "—" };
+        const pending = items.reduce((s, i) => {
+          const r = i.receivable;
+          if (!r) return s;
+          const wait =
+            typeof global.receivableIsAguardandoFaturamentoFinanceiro === "function"
+              ? global.receivableIsAguardandoFaturamentoFinanceiro(r)
+              : false;
+          return wait ? s + Number(r.valor || 0) : s;
+        }, 0);
         return {
           nome: p.nome || "Parceiro",
           cycles,
           faixa: tar.diaria ? `R$ ${Number(tar.diaria).toFixed(2).replace(".", ",")}` : "—",
+          pending,
           close,
         };
       })
@@ -665,90 +668,78 @@
       alertsEl.hidden = true;
     }
     const b = buildHomeBoard(data, ctx);
-    const recent = recentPatioMovements(data.vehicles || [], 6);
+    const recent = recentPatioMovements(data.vehicles || [], 8);
     const movBody = recent.length
       ? recent
           .map(
             (r) => `<tr>
-              <td>${escapeHtml(formatClock(r.at))}</td>
-              <td>${escapeHtml(r.tipo)}</td>
-              <td>${escapeHtml(r.placa)}</td>
+              <td data-label="Hora">${escapeHtml(formatClock(r.at))}</td>
+              <td data-label="Movimento">${escapeHtml(r.tipo)}</td>
+              <td data-label="Placa">${escapeHtml(r.placa)}</td>
             </tr>`
           )
           .join("")
       : `<tr><td colspan="3">Nenhuma entrada ou saída hoje.</td></tr>`;
-    const partnerBody = b.partnerRows.length
-      ? b.partnerRows
+    const partnerCards = b.partnerRows.length
+      ? `<div class="cob-grid">${b.partnerRows
           .map(
-            (r) => `<tr data-hub-nav="parceiros" tabindex="0" class="ag-dash-row">
-              <td>${escapeHtml(r.nome)}</td>
-              <td>${escapeHtml(String(r.cycles))}</td>
-              <td>${escapeHtml(r.faixa)}</td>
-              <td>${escapeHtml(r.close.fechamento)}</td>
-              <td>${escapeHtml(r.close.vencimento)}</td>
-            </tr>`
+            (r) => `<article class="cob-card" data-hub-nav="parceiros" tabindex="0" role="button">
+              <span class="cob-tipo">Programa parceiro</span>
+              <h3>${escapeHtml(r.nome)}</h3>
+              <div class="cob-metrics">
+                <div>Ciclos no mês<strong>${escapeHtml(String(r.cycles))}</strong></div>
+                <div>Faixa<strong>${escapeHtml(r.faixa)}</strong></div>
+                <div>A faturar<strong>${escapeHtml(b.hideMoney ? "—" : b.fmt(r.pending))}</strong></div>
+                <div>Fechamento<strong>${escapeHtml(r.close.fechamento)}</strong></div>
+              </div>
+            </article>`
           )
-          .join("")
-      : `<tr><td colspan="5" class="notice">Nenhum cliente no Programa Parceiro.</td></tr>`;
+          .join("")}</div>`
+      : `<p class="cob-empty">Nenhum cliente no Programa Parceiro.</p>`;
 
     root.innerHTML = `
-      <div class="ag-dash">
-        <section class="section-card">
-          <div class="toolbar" style="margin:0 0 10px;padding:0;border:0">
-            <div><h3 class="ag-dash-h">Operação do pátio</h3></div>
-            <div class="actions"><button type="button" class="secondary" data-hub-nav="patio:no_patio">Abrir pátio</button></div>
+      <div class="cob-shell">
+        <div class="cob-toolbar">
+          <div>
+            <h2>Dashboard</h2>
+            <p class="cob-sub">${escapeHtml(formatLongDate())} · Pátio, financeiro e clientes parceiros</p>
           </div>
-          <div class="ag-dash-strip" role="group" aria-label="Indicadores do pátio">
-            ${metricChip("patio:no_patio", "Em guarda", b.vnp)}
-            ${metricChip("patio:no_patio", "VSL", b.vsl)}
-            ${metricChip("patio:no_patio", "VSC", b.vsc)}
-            ${metricChip("patio:removidos", "VRP", b.vrp)}
-            ${metricChip("patio:no_patio", "Entradas hoje", b.inToday)}
-            ${metricChip("patio:removidos", "Saídas hoje", b.outToday)}
+          <div class="cob-actions-row" style="margin:0">
+            <button type="button" class="cob-btn secondary" data-hub-nav="patio:no_patio">Pátio</button>
+            ${b.hideMoney ? "" : `<button type="button" class="cob-btn secondary" data-hub-nav="financeiro:cobrancas">Cobranças</button>`}
+            <button type="button" class="cob-btn secondary" data-hub-nav="parceiros">Parceiros</button>
           </div>
-          <div class="table-wrap">
-            <table class="table">
-              <thead><tr><th>Hora</th><th>Movimento</th><th>Placa</th></tr></thead>
-              <tbody>${movBody}</tbody>
-            </table>
-          </div>
-        </section>
+        </div>
+        <h3>Pátio</h3>
+        <div class="cob-kpis" role="group" aria-label="Indicadores do pátio">
+          ${cobKpi("patio:no_patio", "Em guarda", b.vnp)}
+          ${cobKpi("patio:no_patio", "Liberação solicitada", b.vsl)}
+          ${cobKpi("patio:no_patio", "Liberação confirmada", b.vsc)}
+          ${cobKpi("patio:removidos", "Removidos", b.vrp)}
+          ${cobKpi("patio:no_patio", "Entradas hoje", b.inToday)}
+          ${cobKpi("patio:removidos", "Saídas hoje", b.outToday)}
+        </div>
+        <div class="cob-table-wrap">
+          <table class="cob-table">
+            <thead><tr><th>Hora</th><th>Movimento</th><th>Placa</th></tr></thead>
+            <tbody>${movBody}</tbody>
+          </table>
+        </div>
         ${
           b.hideMoney
             ? ""
-            : `<section class="section-card">
-          <div class="toolbar" style="margin:0 0 10px;padding:0;border:0">
-            <div><h3 class="ag-dash-h">Financeiro</h3></div>
-            <div class="actions"><button type="button" class="secondary" data-hub-nav="financeiro:cobrancas">Abrir financeiro</button></div>
-          </div>
-          <div class="table-wrap">
-            <table class="table">
-              <thead><tr><th>Indicador</th><th class="num">Valor</th></tr></thead>
-              <tbody>
-                ${finRow("financeiro:aguardando", "A faturar", b.fmt(b.aFaturar))}
-                ${finRow("financeiro:cobrancas", "A receber", b.fmt(b.aReceberVal))}
-                ${finRow("financeiro:receber", "Cobranças vencidas", b.fmt(b.vencidoVal))}
-                ${finRow("financeiro:caixa", "Recebido no mês", b.fmt(b.recebidoMes))}
-              </tbody>
-            </table>
-          </div>
-        </section>`
+            : `<h3 style="margin-top:22px">Financeiro</h3>
+        <div class="cob-kpis" role="group" aria-label="Indicadores financeiros">
+          ${cobKpi("financeiro:aguardando", "A faturar", b.fmt(b.aFaturar))}
+          ${cobKpi("financeiro:cobrancas", "A receber", b.fmt(b.aReceberVal))}
+          ${cobKpi("financeiro:receber", "Cobranças vencidas", b.fmt(b.vencidoVal), "is-late")}
+          ${cobKpi("financeiro:caixa", "Recebido no mês", b.fmt(b.recebidoMes))}
+          ${cobKpi("financeiro:pix", "PIX a conciliar", b.pixPend)}
+        </div>`
         }
-        <section class="section-card">
-          <div class="toolbar" style="margin:0 0 10px;padding:0;border:0">
-            <div>
-              <h3 class="ag-dash-h">Clientes parceiros</h3>
-              <p class="notice" style="margin:4px 0 0">${escapeHtml(String(b.partners.length))} ativo(s) no programa</p>
-            </div>
-            <div class="actions"><button type="button" class="secondary" data-hub-nav="parceiros">Abrir parceiros</button></div>
-          </div>
-          <div class="table-wrap">
-            <table class="table">
-              <thead><tr><th>Cliente</th><th>Ciclos no mês</th><th>Faixa</th><th>Fechamento</th><th>Vencimento</th></tr></thead>
-              <tbody>${partnerBody}</tbody>
-            </table>
-          </div>
-        </section>
+        <h3 style="margin-top:22px">Clientes parceiros</h3>
+        <p class="cob-sub">${escapeHtml(String(b.partners.length))} ativo(s) no programa</p>
+        ${partnerCards}
       </div>
     `;
   }
