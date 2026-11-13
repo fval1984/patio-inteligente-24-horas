@@ -1451,3 +1451,71 @@ body.ag-ficha-open {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Menu do celular: o botão fica no cabeçalho e abre o mesmo menu do sistema.
+   No desktop (a partir de 901px) o menu lateral continua no lugar e este botão segue oculto. */
+@media (max-width: 900px) {
+  body:not(.auth-screen-active) .app-top-shell {
+    z-index: 80;
+  }
+
+  body:not(.auth-screen-active) #appHeaderMenuWrap {
+    display: flex !important;
+    align-items: center;
+    flex: 0 0 auto;
+  }
+
+  body:not(.auth-screen-active) #appHeaderMenuWrap .header-menu-tray,
+  body:not(.auth-screen-active) #appHeaderMenuWrap .header-menu-trigger {
+    display: inline-flex !important;
+  }
+
+  body:not(.auth-screen-active) #appHeaderMenuWrap .header-menu-trigger {
+    width: 40px;
+    height: 40px;
+    min-height: 40px !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--ag-border, #dee2e6) !important;
+    background: #fff !important;
+    color: var(--ag-text, #20242b) !important;
+    box-shadow: none !important;
+  }
+
+  #appHeaderMenuPortal {
+    z-index: 1100;
+  }
+
+  #appHeaderMenuBackdrop {
+    z-index: 1100;
+  }
+
+  #appHeaderMenu.header-menu-dropdown:not(.hidden) {
+    z-index: 1101;
+    background: #fff !important;
+    color: #20242b !important;
+  }
+
+  #appHeaderMenu .header-menu-mobile-head,
+  #appHeaderMenu .header-menu-mobile-head strong,
+  #appHeaderMenu.header-menu-dropdown button,
+  #appHeaderMenu .header-menu-details > summary,
+  #appHeaderMenu .header-menu-nested button {
+    color: #20242b !important;
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    text-align: left;
+  }
+
+  #appHeaderMenu .header-menu-top.header-menu-top--current,
+  #appHeaderMenu .header-menu-details.header-menu-details--current > summary,
+  #appHeaderMenu button.active {
+    background: rgba(198, 40, 40, 0.12) !important;
+    color: #ab1f1f !important;
+  }
+
+  #appHeaderMenu .header-menu-item--danger {
+    color: #c62828 !important;
+  }
+}
