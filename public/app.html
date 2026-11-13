@@ -25350,12 +25350,58 @@
         }
         if (!h2c) return;
         if (tipo === "tipo2") {
+          const host = document.createElement("div");
           try {
-            const source = await h2c(vehicleIdFichaCapture, {
+            const box = vehicleIdFichaCapture.getBoundingClientRect();
+            const capW = Math.max(280, Math.ceil(box.width || vehicleIdFichaCapture.clientWidth || 420));
+            host.setAttribute("aria-hidden", "true");
+            host.style.cssText =
+              "position:fixed;left:-20000px;top:0;width:" +
+              capW +
+              "px;height:auto;max-height:none;overflow:visible;background:#ffffff;z-index:-1;pointer-events:none;";
+            const clone = vehicleIdFichaCapture.cloneNode(true);
+            clone.removeAttribute("id");
+            clone.style.setProperty("width", capW + "px", "important");
+            clone.style.setProperty("height", "auto", "important");
+            clone.style.setProperty("max-height", "none", "important");
+            clone.style.setProperty("min-height", "0", "important");
+            clone.style.setProperty("overflow", "visible", "important");
+            clone.style.setProperty("flex", "none", "important");
+            host.appendChild(clone);
+            document.body.appendChild(host);
+            await Promise.all(
+              [...host.querySelectorAll("img")].map(
+                (img) =>
+                  new Promise((resolve) => {
+                    if (img.complete) {
+                      resolve();
+                      return;
+                    }
+                    img.addEventListener("load", () => resolve(), { once: true });
+                    img.addEventListener("error", () => resolve(), { once: true });
+                  })
+              )
+            );
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            const w = Math.max(1, Math.ceil(clone.scrollWidth));
+            const h = Math.max(1, Math.ceil(clone.scrollHeight));
+            let scale = 2;
+            const maxSide = 16384;
+            if (Math.max(w, h) * scale > maxSide) scale = Math.max(1, maxSide / Math.max(w, h));
+            const source = await h2c(clone, {
               backgroundColor: "#ffffff",
-              scale: 2,
+              scale,
               useCORS: true,
               allowTaint: true,
+              logging: false,
+              width: w,
+              height: h,
+              windowWidth: w,
+              windowHeight: h,
+              scrollX: 0,
+              scrollY: 0,
+              x: 0,
+              y: 0,
             });
             const cupomMm = 80;
             const cupomDpi = 203;
@@ -25394,6 +25440,8 @@
           } catch (e) {
             console.error(e);
             alert("Não foi possível gerar a imagem PNG neste aparelho.");
+          } finally {
+            host.remove();
           }
           return;
         }
