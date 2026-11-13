@@ -5,6 +5,20 @@
     <script>
       (function () {
         var RESTORE_EPOCH = "20260902contrast1";
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (r) {
+              r.unregister();
+            });
+          });
+        }
+        if ("caches" in window) {
+          caches.keys().then(function (keys) {
+            keys.forEach(function (k) {
+              caches.delete(k);
+            });
+          });
+        }
         try {
           if (localStorage.getItem("amplipatio_restore_epoch") === RESTORE_EPOCH) return;
           Object.keys(localStorage).forEach(function (k) {
@@ -25,20 +39,6 @@
         } catch (e) {
           console.warn("amplipatio restore purge localStorage", e);
         }
-        if ("serviceWorker" in navigator) {
-          navigator.serviceWorker.getRegistrations().then(function (regs) {
-            regs.forEach(function (r) {
-              r.unregister();
-            });
-          });
-        }
-        if ("caches" in window) {
-          caches.keys().then(function (keys) {
-            keys.forEach(function (k) {
-              caches.delete(k);
-            });
-          });
-        }
         if (indexedDB && indexedDB.databases) {
           indexedDB.databases().then(function (dbs) {
             dbs.forEach(function (db) {
@@ -54,7 +54,7 @@
       } catch (e) {}
     </script>
     <meta charset="utf-8" />
-    <meta name="amplipatio-build" content="mobile-open-v1" />
+    <meta name="amplipatio-build" content="mobile-open-v2" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta
       name="viewport"
@@ -2480,6 +2480,11 @@
       body.auth-screen-active #themeToggle {
         display: none !important;
       }
+      /* O boot abre o pátio no body (z-index alto). No celular isso cobre o login. */
+      body.auth-screen-active #patioContent.modal-backdrop.tab-view-modal {
+        display: none !important;
+        pointer-events: none !important;
+      }
       body.auth-screen-active main {
         position: fixed;
         inset: 0;
@@ -2600,6 +2605,14 @@
         }
         .auth-screen__card {
           padding: 14px 14px 12px;
+        }
+        .auth-login-form input {
+          font-size: 16px !important;
+          min-height: 44px;
+        }
+        .auth-login-form button[type="submit"] {
+          min-height: 44px;
+          font-size: 16px;
         }
       }
       @media (min-width: 1200px) {
@@ -7589,7 +7602,7 @@
     <link rel="stylesheet" href="/finance-action-ui.css?v=20261112fin1" />
     <link rel="stylesheet" href="/payment-receipt.css?v=20261005recibo10" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
-    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261109ficha1" />
+    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261113mobile2" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20261112plate12" />
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112dash4" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
@@ -11692,6 +11705,12 @@
         document.getElementById("agSidebarToggle")?.classList.toggle("hidden", !loggedIn);
         document.getElementById("plateSearchForm")?.classList.toggle("hidden", !loggedIn);
         document.getElementById("userInfo")?.classList.toggle("hidden", !loggedIn);
+        requestAnimationFrame(() => syncMobileChromeOffset());
+      }
+
+      function concealPatioOverlayForAuth() {
+        document.getElementById("patioContent")?.classList.add("hidden");
+        document.getElementById("viewPatio")?.classList.remove("patio-subtab-modal-open", "patio-flyout-open", "patio-subview-fullscreen");
       }
 
       (function bindAmpliguardSidebarToggle() {
@@ -11856,6 +11875,17 @@
         }
       }
       window.isMobileLayout = isMobileLayout;
+
+      function syncMobileChromeOffset() {
+        try {
+          if (!isMobileLayout()) return;
+          const shell = document.querySelector(".app-top-shell");
+          if (!shell) return;
+          const h = Math.ceil(shell.getBoundingClientRect().height);
+          if (h > 0) document.documentElement.style.setProperty("--ag-mobile-top", h + "px");
+        } catch (e) {}
+      }
+      window.syncMobileChromeOffset = syncMobileChromeOffset;
 
       function isExecutiveDashboardView(view) {
         return view === "dashboard" || view === "biExecutivo";
@@ -17658,6 +17688,7 @@
         authorizationPanel?.classList.remove("hidden");
         appPanel.classList.add("hidden");
         document.body.classList.add("auth-screen-active");
+        concealPatioOverlayForAuth();
         showAuthBackdrop();
         setHeaderLoggedInUI(false);
         userInfo.textContent = user ? `Aguardando autorização — ${displayManagerIdentity(user.email || "")}` : "Aguardando autorização";
@@ -18158,6 +18189,7 @@
         authorizationPanel?.classList.add("hidden");
         appPanel.classList.add("hidden");
         document.body.classList.add("auth-screen-active");
+        concealPatioOverlayForAuth();
         showAuthBackdrop();
         setStatus("", "");
         setHeaderLoggedInUI(false);
@@ -18244,6 +18276,7 @@
       }
 
       function applyMobileExecutiveDashboardRestrictions() {
+        if (document.body.classList.contains("auth-screen-active")) return;
         const hideExec = !isGestorPista && isMobileLayout();
         document
           .querySelectorAll('#appHeaderMenu button[data-view="dashboard"], #appHeaderMenu button[data-view="biExecutivo"]')
@@ -21471,6 +21504,10 @@
           if (silent) window.patioExtratoUi.bindOnce();
           else window.patioExtratoUi.onShow();
         }
+        if (isContentView && document.body.classList.contains("auth-screen-active")) {
+          patioContent?.classList.add("hidden");
+        }
+        syncMobileChromeOffset();
       }
 
       function renderPartnerCategoryKpis() {
@@ -32371,11 +32408,14 @@ ${body}
       window.addEventListener("resize", () => {
         clearTimeout(window.__admPcResizeT);
         window.__admPcResizeT = setTimeout(() => {
+          syncMobileChromeOffset();
           applyAdmDesktopPcRestrictions();
           applyMobileExecutiveDashboardRestrictions();
           applyMobileModuleNavRestrictions();
         }, 180);
       });
+      if (document.body.classList.contains("auth-screen-active")) concealPatioOverlayForAuth();
+      syncMobileChromeOffset();
     </script>
   </body>
 </html>
