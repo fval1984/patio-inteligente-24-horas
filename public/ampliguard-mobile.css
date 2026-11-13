@@ -14,6 +14,12 @@
     overscroll-behavior-x: none;
   }
 
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
   /* Área útil — barra de gestos Android / notch */
   .app-top-shell {
     padding-left: env(safe-area-inset-left);
@@ -873,13 +879,35 @@
 }
 
 /* VNP/VLP/VRP no telemóvel: a lista tem de rolar até ao último cartão.
-   overflow:visible no table-wrap + overflow:hidden nos pais cortava o fundo. */
+   O painel fica abaixo do topo (logo, módulos, placa) para não cobrir o login nem o menu. */
 @media (max-width: 900px) {
+  body.auth-screen-active #patioContent.modal-backdrop.tab-view-modal {
+    display: none !important;
+    pointer-events: none !important;
+  }
+
+  body:not(.auth-screen-active) #patioContent.modal-backdrop.tab-view-modal:not(.hidden) {
+    top: var(--ag-mobile-top, 108px) !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    padding: 8px !important;
+    padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    z-index: 20 !important;
+    background: var(--ag-bg, #f0f2f5) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
   #patioContent.modal-backdrop.tab-view-modal > .modal.modal--wide {
     display: flex !important;
     flex-direction: column !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
     overflow: hidden !important;
   }
 
