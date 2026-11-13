@@ -7604,7 +7604,7 @@
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20260820vistoria7" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261113mobile2" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20261112plate12" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261112dash4" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261113nav2" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha9" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
@@ -11887,20 +11887,13 @@
       }
       window.syncMobileChromeOffset = syncMobileChromeOffset;
 
-      function isExecutiveDashboardView(view) {
-        return view === "dashboard" || view === "biExecutivo";
-      }
-
-      /** Dashboard/BI Executivo: somente desktop. No mobile abre o pátio. */
+      /** Mesmas áreas no celular e no computador. O vistoriador continua no pátio. */
       function resolveViewForDevice(view) {
-        if (isMobileLayout() && isExecutiveDashboardView(view)) return "patio";
         return view;
       }
 
       function defaultHomeViewForRole() {
         if (isVistoriador) return "patio";
-        if (isVisualizador || isGestorPista) return isMobileLayout() ? "patio" : "dashboard";
-        if (isMobileLayout()) return "patio";
         return "dashboard";
       }
 
@@ -18276,23 +18269,12 @@
       }
 
       function applyMobileExecutiveDashboardRestrictions() {
-        if (document.body.classList.contains("auth-screen-active")) return;
-        const hideExec = !isGestorPista && isMobileLayout();
         document
           .querySelectorAll('#appHeaderMenu button[data-view="dashboard"], #appHeaderMenu button[data-view="biExecutivo"]')
           .forEach((el) => {
-            el.classList.toggle("hidden", hideExec);
-            if (hideExec) el.setAttribute("aria-hidden", "true");
-            else el.removeAttribute("aria-hidden");
+            el.classList.remove("hidden");
+            el.removeAttribute("aria-hidden");
           });
-        if (!hideExec) return;
-        const onDashboard = !document.getElementById("viewDashboard")?.classList.contains("hidden");
-        const onBi = !document.getElementById("viewBiExecutivo")?.classList.contains("hidden");
-        if (onDashboard || onBi) {
-          navStack.splice(0, navStack.length, "patio", "patio:no_patio");
-          showMainView("patio");
-          setPatioView("no_patio");
-        }
       }
 
       function applyMobileModuleNavRestrictions() {
