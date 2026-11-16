@@ -127,6 +127,27 @@ finance.id = "viewFinanceiro";
 const antiga = fakeEl("finance-subview");
 finance.children.push(antiga);
 byId.viewFinanceiro = finance;
+sandbox.state = {
+  receivables: [{ id: "r1", vehicle_id: "v1", valor: 10, status: "EM_ABERTO" }],
+  vehicles: [{ id: "v1", placa: "QYT9E89", marca: "Ford", modelo: "Territory" }],
+  cash: [],
+  payables: [],
+  partners: [],
+  financeContacts: [],
+};
+const sujo = '[[finmeta:{"aprovado_caixa":true,"excluir_do_saldo":false}]]Diárias - QYT9E89 • Ford Territory';
+assert.equal(
+  sandbox.caixaOperacional.descricaoMovimento({ conta_id: "r1", tipo_conta: "ENTRADA", descricao: sujo }),
+  "QYT9E89 • Ford Territory"
+);
+assert.equal(
+  sandbox.caixaOperacional.descricaoMovimento({ tipo_conta: "ENTRADA", descricao: sujo }),
+  "QYT9E89 • Ford Territory"
+);
+assert.equal(
+  sandbox.caixaOperacional.descricaoMovimento({ tipo_conta: "SAIDA", descricao: "[[finmeta:{\"aprovado_caixa\":true}]]Aluguel" }),
+  "Aluguel"
+);
 sandbox.state = { receivables: [], cash: [], partners: [], vehicles: [], financeContacts: [] };
 const body = fakeEl("body");
 sandbox.document = {
