@@ -69,5 +69,8 @@ const lista = [
 assert.equal(svc.filterCharges(lista, { bucket: "pendentes", search: "abc1d23" }).length, 1);
 assert.equal(svc.filterCharges(lista, { bucket: "recebidos", search: "000011" }).length, 1);
 assert.equal(svc.filterCharges(lista, { bucket: "pendentes", search: "outro" }).length, 0);
+assert.equal(svc.saldoAposAbatimento(450, 100), 350);
+assert.equal(svc.saldoAposAbatimento(450, 0), 450);
+assert.equal(svc.saldoAposAbatimento(100, 150), 0);
 
 console.log("cobranca-faturamento.test.js ok");
