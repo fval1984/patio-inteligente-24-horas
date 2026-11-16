@@ -1384,36 +1384,7 @@
     else render();
   }
 
-  function offerAfterExit(vehicleId, message) {
-    const lines = svc().billableLines().filter((l) => String(l.vehicleId) === String(vehicleId));
-    if (!lines.length) return false;
-    const total = svc().summarizeLines(lines).total;
-    const placas = lines.map((l) => l.placa || "sem placa").join(", ");
-    document.getElementById("cobExitModal")?.remove();
-    const bd = document.createElement("div");
-    bd.id = "cobExitModal";
-    bd.className = "cob-modal-backdrop";
-    bd.innerHTML = `<div class="cob-modal" role="dialog">
-      <h3>Saída registrada</h3>
-      <p>${esc(message || "O veículo saiu do pátio. O pagamento não é obrigatório agora.")}</p>
-      <p><strong>${esc(placas)}</strong> · ${esc(money(total))}</p>
-      <div class="cob-actions-row">
-        <button type="button" class="cob-btn" data-cob-exit="agora">Cobrar agora</button>
-        <button type="button" class="cob-btn secondary" data-cob-exit="pendente">Deixar pendente</button>
-        <button type="button" class="cob-btn secondary" data-cob-exit="depois">Incluir em conjunto depois</button>
-      </div>
-    </div>`;
-    bd.addEventListener("click", (ev) => {
-      const act = ev.target.closest("[data-cob-exit]")?.getAttribute("data-cob-exit");
-      if (ev.target === bd) {
-        bd.remove();
-        return;
-      }
-      if (!act) return;
-      bd.remove();
-      if (act === "agora") openCompose("Nova cobrança", lines.map((l) => l.receivableId), "saida");
-    });
-    document.body.appendChild(bd);
+  function offerAfterExit(_vehicleId, _message) {
     return true;
   }
 
@@ -1456,6 +1427,10 @@
     mount,
     render,
     openConjunto(ids) {
+      if (typeof global.caixaOperacional?.cobrarSelecao === "function") {
+        global.caixaOperacional.cobrarSelecao(ids);
+        return;
+      }
       openCompose("Gerar cobrança", ids, "financeiro");
     },
     showCharges(bucket) {
