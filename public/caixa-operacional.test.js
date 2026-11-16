@@ -131,9 +131,9 @@ assert.equal(sandbox.caixaOperacional.captura("pagar"), false);
 setTimeout(() => {
   const metrics = byId.caixaOpMetrics;
   assert.ok(metrics, "indicadores criados");
-  assert.match(metrics.innerHTML, /A faturar/);
-  assert.match(metrics.innerHTML, /A receber/);
-  assert.match(metrics.innerHTML, /Recebido/);
+  assert.match(metrics.innerHTML, /Entradas/);
+  assert.match(metrics.innerHTML, /Saídas/);
+  assert.match(metrics.innerHTML, /Caixa/);
   const raiz = sandbox.document.getElementById("caixaOp");
   assert.match(raiz.innerHTML, /Nova cobrança/);
   console.log("caixa-operacional.test.js ok");
