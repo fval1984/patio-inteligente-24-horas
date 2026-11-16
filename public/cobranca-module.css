@@ -390,6 +390,85 @@ html[data-theme="dark"] .cob-btn.danger {
   margin-top: 12px;
 }
 
+.cob-main-actions,
+.cob-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 14px;
+}
+
+.cob-choice label,
+.cob-checkline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--cob-text);
+  font-weight: 600;
+}
+
+.cob-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.cob-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--cob-text);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.cob-form input,
+.cob-form select {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--cob-line);
+  background: var(--cob-card);
+  color: var(--cob-text);
+  font-size: 1rem;
+}
+
+.cob-checkline {
+  grid-column: 1 / -1;
+  font-weight: 600;
+}
+
+.cob-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 13, 16, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 80;
+  padding: 16px;
+}
+
+.cob-modal {
+  width: min(520px, 100%);
+  background: var(--cob-card, #fffcf7);
+  color: var(--cob-text, #101114);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.cob-modal h3 {
+  margin: 0 0 8px;
+}
+
+@media (min-width: 720px) {
+  .cob-modal-backdrop {
+    align-items: center;
+  }
+}
+
 @media (max-width: 900px) {
   .cob-kpis {
     grid-template-columns: 1fr 1fr;
@@ -412,6 +491,9 @@ html[data-theme="dark"] .cob-btn.danger {
     border: 0;
     padding: 4px 0;
     text-align: left !important;
+  }
+  .cob-form {
+    grid-template-columns: 1fr;
   }
   .cob-table td::before {
     content: attr(data-label);
