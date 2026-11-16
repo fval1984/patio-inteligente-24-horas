@@ -8301,7 +8301,7 @@
                 </label>
                 <strong id="patioAguardandoSelCount">0 registros selecionados</strong>
                 <button type="button" id="patioAguardandoFaturarSel">Faturar Selecionados</button>
-                <button type="button" class="secondary" id="patioAguardandoFaturarConjunto">Faturar em conjunto</button>
+                <button type="button" class="secondary" id="patioAguardandoFaturarConjunto">Gerar cobrança</button>
                 <button type="button" class="secondary hidden" id="patioAguardandoGerarCobranca">GERAR COBRANÇA</button>
               </div>
               <p id="patioCobrancaParceiroAviso" class="patio-cobranca-aviso hidden" role="alert"></p>
@@ -8540,8 +8540,8 @@
         <div id="viewFinanceiro" class="panel hidden finance-module-shell">
           <div class="toolbar fin-act-pagehead">
             <div>
-              <h2 style="margin: 0">Financeiro</h2>
-              <p class="fin-act-subtitle">A faturar, cobranças, conferência de PIX e histórico — sem misturar valores pagos com pendentes</p>
+              <h2 style="margin: 0">Caixa</h2>
+              <p class="fin-act-subtitle">A faturar, faturas emitidas e pagamentos recebidos no mesmo lugar</p>
               <p class="fin-act-period-range" id="finPeriodRangeLabel"></p>
             </div>
             <div class="actions fin-act-head-actions">
@@ -8553,12 +8553,13 @@
               <button class="secondary close-view" type="button" data-close-stack="true" aria-label="Fechar">X</button>
             </div>
           </div>
-          <div class="finance-subnav" id="finSubnav">
+          <div class="finance-subnav hidden" id="finSubnav" hidden aria-hidden="true">
             <button type="button" data-finance-subview-btn="aguardando">A faturar</button>
             <button type="button" data-finance-subview-btn="cobrancas">Cobranças</button>
             <button type="button" data-finance-subview-btn="pix">Conferir PIX</button>
             <button type="button" data-finance-subview-btn="caixa">Histórico</button>
           </div>
+          <div id="finCaixaHub" class="cob-shell fin-caixa-hub"></div>
           <div id="finSearchResults" class="fin-search-results hidden"></div>
           <p id="finRecebidosRecoverHint" class="notice hidden" style="margin: 0 0 10px"></p>
 
@@ -8604,7 +8605,7 @@
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="cobrancas">
-            <p class="notice">Selecione veículos do mesmo cliente para gerar uma cobrança. Remoção do pátio não quita o valor.</p>
+            <p class="notice">Cobrança emitida fica em Faturados até o recebimento. Remoção do pátio não quita o valor.</p>
             <div id="finCobrancaHost"></div>
           </div>
 
@@ -10579,10 +10580,7 @@
         <details class="header-menu-details" id="headerDetailsFinance">
           <summary>Financeiro</summary>
           <div class="header-menu-nested">
-            <button type="button" data-finance-subview="aguardando">A faturar</button>
-            <button type="button" data-finance-subview="cobrancas">Cobranças</button>
-            <button type="button" data-finance-subview="pix">Conferir PIX</button>
-            <button type="button" data-finance-subview="caixa">Histórico</button>
+            <button type="button" data-finance-subview="aguardando">Caixa</button>
           </div>
         </details>
 
@@ -10627,7 +10625,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20261116fat1"></script>
+    <script src="/finance-module.js?v=20261116caixa1"></script>
     <script src="/finance-notas-transporte.js?v=20261111nt1"></script>
     <script src="/payment-receipt.js?v=20261005recibo10"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
@@ -10663,8 +10661,9 @@
     <script src="/advocacy-offices-service.js?v=20261001escritorio3"></script>
     <script src="/advocacy-office-report-ui.js?v=20261001escritorio5"></script>
     <script src="/advocacy-offices-ui.js?v=20261022parceiro1"></script>
-    <script src="/cobranca-service.js?v=20261116fat1"></script>
-    <script src="/cobranca-ui.js?v=20261116fat1"></script>
+    <script src="/cobranca-service.js?v=20261116caixa1"></script>
+    <script src="/cobranca-ui.js?v=20261116caixa1"></script>
+    <script src="/finance-caixa-hub.js?v=20261116caixa1"></script>
     <script src="/patio-extrato-service.js?v=20261105resumo2"></script>
     <script src="/patio-extrato-ui.js?v=20261106patioReorg1"></script>
     <script>
@@ -22111,7 +22110,7 @@
         const conjuntoBtn = document.getElementById("patioAguardandoFaturarConjunto");
         if (conjuntoBtn) {
           conjuntoBtn.disabled = n < 1;
-          conjuntoBtn.textContent = n ? `Faturar em conjunto (${n})` : "Faturar em conjunto";
+          conjuntoBtn.textContent = n ? `Gerar cobrança (${n})` : "Gerar cobrança";
         }
         const todos = idsNaTela.length > 0 && idsNaTela.every((id) => patioAguardandoSelecionados.has(id));
         if (all) all.checked = todos;
@@ -31949,7 +31948,8 @@ ${body}
           renderListaPanel();
         }
         if (view === "financeiro") {
-          setFinanceView("cobrancas");
+          setFinanceView("aguardando");
+          if (typeof window.financeCaixaHub?.abrir === "function") window.financeCaixaHub.abrir("a_faturar");
         }
         if (view === "biExecutivo") {
           if (typeof window.biExecutivoInit === "function") window.biExecutivoInit();
