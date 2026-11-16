@@ -7,18 +7,18 @@
 }
 
 #viewFinanceiro.finance-module-shell {
-  --fin-act-blue: #1677ff;
-  --fin-act-blue-soft: #e8f1ff;
-  --fin-act-green: #16a34a;
-  --fin-act-green-soft: #ecfdf3;
-  --fin-act-red: #dc2626;
-  --fin-act-red-soft: #fef2f2;
-  --fin-act-amber: #d97706;
-  --fin-act-amber-soft: #fffbeb;
-  --fin-act-ink: #0f172a;
-  --fin-act-muted: #64748b;
-  --fin-act-line: #e2e8f0;
-  --fin-act-card: #ffffff;
+  --fin-act-blue: var(--ag-graphite);
+  --fin-act-blue-soft: var(--ag-surface-2);
+  --fin-act-green: var(--ag-success);
+  --fin-act-green-soft: var(--ag-success-bg);
+  --fin-act-red: var(--ag-danger);
+  --fin-act-red-soft: var(--ag-danger-bg);
+  --fin-act-amber: #8a6d12;
+  --fin-act-amber-soft: var(--ag-warning-bg);
+  --fin-act-ink: var(--ag-text);
+  --fin-act-muted: var(--ag-muted);
+  --fin-act-line: var(--ag-border);
+  --fin-act-card: var(--ag-surface);
   color: var(--fin-act-ink);
 }
 
@@ -146,7 +146,7 @@
 }
 
 #viewFinanceiro .fin-act-flow-stat {
-  background: #f8fafc;
+  background: var(--ag-surface-2);
   border-radius: 12px;
   padding: 12px;
 }
@@ -359,7 +359,7 @@
 }
 
 #viewFinanceiro .fin-caderneta-kpi {
-  background: #f8fafc;
+  background: var(--ag-surface-2);
   border: 1px solid var(--fin-act-line);
   border-radius: 12px;
   padding: 12px;
@@ -428,7 +428,7 @@
 }
 
 #viewFinanceiro .fin-receber-registro-field {
-  background: #f8fafc;
+  background: var(--ag-surface-2);
   border: 1px solid var(--fin-act-line);
   border-radius: 12px;
   padding: 10px 12px;
@@ -498,7 +498,7 @@
 }
 
 #viewFinanceiro .fin-act-table tbody tr:hover {
-  background: #f8fafc;
+  background: var(--ag-surface-2);
 }
 
 #viewFinanceiro .fin-act-empty {
@@ -551,7 +551,7 @@
 
 #finActDetailModal .fin-act-item-hist {
   grid-column: 1 / -1;
-  background: #f8fafc;
+  background: var(--ag-surface-2);
   border-radius: 10px;
   padding: 10px 12px;
 }
@@ -790,7 +790,7 @@
 }
 
 #viewFinanceiro .fin-act-fin-kpis div {
-  background: #f8fafc;
+  background: var(--ag-surface-2);
   border-radius: 12px;
   padding: 10px;
 }
