@@ -7,7 +7,7 @@
 
   const TELAS = new Set(["aguardando", "cobrancas", "caixa", "receber", "em_patio", "dashboard"]);
   let ativo = false;
-  let filtro = "entradas";
+  let filtro = "movimentacoes";
   let tipoMov = "";
   let q = "";
   let de = "";
@@ -522,18 +522,11 @@
     const finance = document.getElementById("viewFinanceiro");
     if (!finance) return;
     finance.classList.add("caixa-op-on");
+    const jaExiste = document.getElementById("caixaOp");
+    if (jaExiste && !document.getElementById("cxHead")) jaExiste.remove();
     if (document.getElementById("caixaOp")) {
       const mes = document.getElementById("caixaOpMes");
-      if (!mes) {
-        const tools = document.querySelector("#caixaOp .cx-tools");
-        if (tools) {
-          const label = document.createElement("label");
-          label.innerHTML = `Mês<input id="caixaOpMes" type="month" value="${esc(mesAtivo())}" />`;
-          tools.prepend(label);
-        }
-      } else if (!mes.value) {
-        mes.value = mesAtivo();
-      }
+      if (mes && !mes.value) mes.value = mesAtivo();
       built = true;
       return;
     }
@@ -541,18 +534,33 @@
     el.id = "caixaOp";
     el.className = "cx";
     el.innerHTML = `
+      <header class="cx-head" id="cxHead">
+        <div>
+          <p class="cx-kicker">AMPLIGUARD</p>
+          <h2>Financeiro</h2>
+        </div>
+        <div class="cx-head-tools">
+          <label>Mês<input id="caixaOpMes" type="month" value="${esc(mesAtivo())}" /></label>
+          <label class="cx-search">Busca<input id="caixaOpBusca" type="search" placeholder="Placa, cliente ou fatura" /></label>
+          <button type="button" class="cx-btn" id="caixaOpNova">+ Novo lançamento</button>
+        </div>
+      </header>
       <div class="cx-metrics" id="caixaOpMetrics"></div>
+      <div class="cx-filters" id="caixaOpFiltros">
+        <button type="button" class="cx-chip is-on" data-cx-filtro="movimentacoes">Movimentações</button>
+        <button type="button" class="cx-chip" data-cx-filtro="a_faturar">A faturar</button>
+        <button type="button" class="cx-chip" data-cx-filtro="a_receber">A receber</button>
+        <button type="button" class="cx-chip" data-cx-filtro="recebidos">Recebidos</button>
+        <button type="button" class="cx-chip" data-cx-filtro="despesas">Despesas</button>
+      </div>
       <div class="cx-tools">
-        <label>Mês<input id="caixaOpMes" type="month" value="${esc(mesAtivo())}" /></label>
-        <label>Busca<input id="caixaOpBusca" type="search" placeholder="Placa, cliente ou fatura" /></label>
         <label>De<input id="caixaOpDe" type="date" /></label>
         <label>Até<input id="caixaOpAte" type="date" /></label>
         <label>Tipo<select id="caixaOpTipo"><option value="">Todos</option><option value="entrada">Entradas</option><option value="saida">Saídas</option></select></label>
-        <button type="button" class="cx-btn" id="caixaOpNova">Nova cobrança</button>
       </div>
       <p id="caixaOpErro" class="cx-empty" hidden></p>
       <div id="caixaOpLista"></div>
-      <div id="caixaOpBar"></div>`;
+      <div id="caixaOpBar" class="cx-bar"></div>`;
     finance.appendChild(el);
     el.addEventListener("click", onClick);
     el.addEventListener("input", onInput);
@@ -588,11 +596,7 @@
     veiculoMap = null;
     try {
       pintarTotais();
-      const nova = document.getElementById("caixaOpNova");
-      if (nova) {
-        nova.hidden = filtro === "caixa";
-        nova.textContent = filtro === "saidas" ? "Nova despesa" : "Nova cobrança";
-      }
+      pintarFiltros();
       pintarLista();
       pintarBarra();
       const erro = document.getElementById("caixaOpErro");
@@ -714,25 +718,50 @@
     });
   }
 
+  function vistaAtual() {
+    if (filtro === "entradas" || filtro === "a_receber") return "a_receber";
+    if (filtro === "saidas" || filtro === "despesas") return "despesas";
+    if (filtro === "caixa" || filtro === "movimentacoes" || filtro === "historico") return "movimentacoes";
+    if (filtro === "recebido" || filtro === "recebidos") return "recebidos";
+    if (filtro === "a_faturar") return "a_faturar";
+    return "movimentacoes";
+  }
+
+  function saldoAReceberAcumulado() {
+    const busca = q;
+    const inicio = de;
+    const fim = ate;
+    q = "";
+    de = "";
+    ate = "";
+    const total = entradasPendentes()
+      .filter((item) => item.situacao === "Faturado" || item.situacao === "Parcial")
+      .reduce((s, item) => s + Number(item.saldo || 0), 0);
+    q = busca;
+    de = inicio;
+    ate = fim;
+    return total;
+  }
+
+  function pintarFiltros() {
+    const vista = vistaAtual();
+    document.querySelectorAll("[data-cx-filtro]").forEach((btn) => {
+      btn.classList.toggle("is-on", btn.getAttribute("data-cx-filtro") === vista);
+    });
+  }
+
   function pintarTotais() {
     const box = document.getElementById("caixaOpMetrics");
     if (!box) return;
     const apura = apurarMes(mesAtivo());
-    const receber = entradasPendentes().reduce((s, item) => s + Number(item.saldo || 0), 0);
-    const item = (id, nome, texto) =>
-      `<button type="button" class="cx-metric${filtro === id ? " is-on" : ""}" data-cx-filtro="${id}"><span>${nome}</span><strong>${esc(texto)}</strong></button>`;
+    const receber = saldoAReceberAcumulado();
+    const card = (classe, nome, valor, nota) =>
+      `<div class="cx-metric ${classe}"><span>${nome}</span><strong>${esc(money(valor))}</strong><small>${esc(nota)}</small></div>`;
     box.innerHTML =
-      item("entradas", "Entradas", money(receber)) +
-      item("saidas", "Saídas", money(apura.aPagar)) +
-      item("caixa", "Caixa", money(apura.resultado));
-    let resumo = document.getElementById("caixaOpResumo");
-    if (!resumo) {
-      resumo = document.createElement("p");
-      resumo.id = "caixaOpResumo";
-      resumo.className = "cx-total";
-      box.parentElement?.insertBefore(resumo, box);
-    }
-    resumo.textContent = `${nomeMes(apura.mes)} · Recebido ${money(apura.entradasRecebidas)} · Pago ${money(apura.saidasPagas)} · A pagar ${money(apura.aPagar)} · A receber ${money(receber)} · Resultado ${money(apura.resultado)}`;
+      card("cx-in", "Entradas recebidas", apura.entradasRecebidas, nomeMes(apura.mes)) +
+      card("cx-out", "Saídas pagas", apura.saidasPagas, nomeMes(apura.mes)) +
+      card("cx-wait", "Total a receber", receber, "Saldo acumulado") +
+      card("cx-result", "Resultado", apura.resultado, "Recebido menos pago");
   }
 
   function linhaHtml(line, grupoNome, situacao) {
@@ -831,9 +860,129 @@
     </div>`;
   }
 
+  function celula(label, html, classe) {
+    return `<td data-label="${esc(label)}" class="${classe || ""}">${html}</td>`;
+  }
+
+  function statusTag(nome, classe) {
+    return `<span class="cx-tag ${classe || ""}">${esc(nome)}</span>`;
+  }
+
+  function maisBotao(total, pagina) {
+    if (total <= pagina) return "";
+    return `<button type="button" class="cx-btn secondary" data-cx-mais="1">Mostrar mais ${total - pagina}</button>`;
+  }
+
+  function tabela(colunas, linhas, vazio) {
+    if (!linhas.length) return `<p class="cx-empty">${vazio}</p>`;
+    const head = colunas.map((c) => `<th class="${c.num ? "num" : ""}">${esc(c)}</th>`).join("");
+    return `<div class="cx-table-wrap"><table class="cx-table"><thead><tr>${head}</tr></thead><tbody>${linhas.join("")}</tbody></table></div>`;
+  }
+
+  function pintarVista() {
+    const box = document.getElementById("caixaOpLista");
+    const vista = vistaAtual();
+    const mes = nomeMes(mesAtivo());
+    if (vista === "movimentacoes") {
+      const apura = apurarMes(mesAtivo());
+      const movs = apura.movs.filter((mov) => {
+        if (!passaPeriodo(mov.data_movimento || mov.created_at)) return false;
+        if (tipoMov === "entrada" && !movimentoEhEntrada(mov)) return false;
+        if (tipoMov === "saida" && !movimentoEhSaida(mov)) return false;
+        const blob = `${mov.descricao || ""} ${mov.forma_pagamento || ""}`.toLowerCase();
+        return !q || blob.includes(q.toLowerCase());
+      });
+      const pagina = movs.slice(0, limiteLista);
+      const rows = pagina.map((mov) => {
+        const entrada = movimentoEhEntrada(mov);
+        return `<tr data-cx-open="caixa" data-cx-id="${esc(mov.id)}">
+          ${celula("Descrição", esc(mov.descricao || (entrada ? "Entrada" : "Saída")))}
+          ${celula("Data", esc(dataCurta(mov.data_movimento || mov.created_at)))}
+          ${celula("Forma", esc(mov.forma_pagamento || "—"))}
+          ${celula("Valor", esc(money(entrada ? mov.valor : -Number(mov.valor || 0))), "num")}
+          ${celula("Tipo", statusTag(entrada ? "Entrada" : "Saída", entrada ? "pago" : "saida"))}
+        </tr>`;
+      });
+      box.innerHTML = `<p class="cx-note">${esc(mes)} · só o dinheiro que entrou ou saiu. Resultado ${esc(money(apura.resultado))}.</p>${tabela(["Descrição", "Data", "Forma", "Valor", "Tipo"], rows, `Nenhuma movimentação em ${esc(mes)}.`)}${maisBotao(movs.length, pagina.length)}`;
+      return true;
+    }
+    if (vista === "recebidos") {
+      const apura = apurarMes(mesAtivo());
+      const movs = apura.movs.filter((mov) => movimentoEhEntrada(mov) && (!q || String(mov.descricao || "").toLowerCase().includes(q.toLowerCase())));
+      const pagina = movs.slice(0, limiteLista);
+      const rows = pagina.map((mov) => `<tr data-cx-open="caixa" data-cx-id="${esc(mov.id)}">
+        ${celula("Descrição", esc(mov.descricao || "Recebimento"))}
+        ${celula("Data", esc(dataCurta(mov.data_movimento || mov.created_at)))}
+        ${celula("Forma", esc(mov.forma_pagamento || "—"))}
+        ${celula("Valor", esc(money(mov.valor)), "num")}
+        ${celula("Status", statusTag("Recebido", "pago"))}
+      </tr>`);
+      box.innerHTML = `<p class="cx-note">Recebidos em ${esc(mes)}. Este valor não é o saldo a receber.</p>${tabela(["Descrição", "Data", "Forma", "Valor", "Status"], rows, `Nenhum recebimento em ${esc(mes)}.`)}${maisBotao(movs.length, pagina.length)}`;
+      return true;
+    }
+    if (vista === "despesas") {
+      const todas = saidasDoMes();
+      const apura = apurarMes(mesAtivo());
+      const pagina = todas.slice(0, limiteLista);
+      const rows = pagina.map((p) => {
+        const paga = despesaPaga(p);
+        return `<tr data-cx-open="despesa" data-cx-id="${esc(p.id)}">
+          ${celula("Descrição", esc(textoDespesa(p)))}
+          ${celula("Categoria", esc(p.categoria || p.payable_category || "Outras"))}
+          ${celula("Competência", esc(nomeMes(competenciaDespesa(p))))}
+          ${celula("Vencimento", esc(dataCurta(p.data_vencimento)))}
+          ${celula("Valor", esc(money(p.valor)), "num")}
+          ${celula("Situação", paga ? statusTag("Pago", "pago") : `<button type="button" class="cx-btn" data-cx-pagar="${esc(p.id)}">Pagar</button>`)}
+        </tr>`;
+      });
+      box.innerHTML = `<p class="cx-note">${esc(mes)} · a pagar ${esc(money(apura.aPagar))}. Saída efetiva do caixa: ${esc(money(apura.saidasPagas))}.</p>${tabela(["Descrição", "Categoria", "Competência", "Vencimento", "Valor", "Situação"], rows, `Nenhuma despesa de ${esc(mes)}. Meses futuros não entram aqui.`)}${maisBotao(todas.length, pagina.length)}`;
+      return true;
+    }
+    if (vista === "a_receber") {
+      const itens = entradasPendentes().filter((item) => item.situacao === "Faturado" || item.situacao === "Parcial");
+      const pagina = itens.slice(0, limiteLista);
+      const rows = pagina.map((item) => {
+        const recebido = Math.max(0, Number(item.valor || 0) - Number(item.saldo || 0));
+        const check = item.tipo === "fatura"
+          ? `<input class="cx-check" type="checkbox" data-cx-fat="${esc(item.id)}" ${selected.has(`fat:${item.id}`) ? "checked" : ""} aria-label="Selecionar" />`
+          : `<input class="cx-check" type="checkbox" data-cx-check="${esc(item.id)}" ${selected.has(item.id) ? "checked" : ""} aria-label="Selecionar" />`;
+        return `<tr data-cx-open="${esc(item.tipo)}" data-cx-id="${esc(item.id)}">
+          ${celula("", check, "cx-check-cell")}
+          ${celula("Cliente", esc(item.cliente || "Cliente"))}
+          ${celula("Placa", esc(item.titulo || "—"))}
+          ${celula("Valor", esc(money(item.valor)), "num")}
+          ${celula("Recebido", esc(money(recebido)), "num")}
+          ${celula("Saldo", esc(money(item.saldo)), "num")}
+          ${celula("Vencimento", esc(dataCurta(item.venc)))}
+          ${celula("Status", statusTag(item.situacao, "receber"))}
+        </tr>`;
+      });
+      box.innerHTML = `<p class="cx-note">Saldo acumulado a receber, inclusive cobranças de meses anteriores. Faturado ainda não é dinheiro recebido.</p>${tabela(["", "Cliente", "Placa / fatura", "Valor", "Recebido", "Saldo", "Vencimento", "Status"], rows, "Nenhuma conta a receber em aberto.")}${maisBotao(itens.length, pagina.length)}`;
+      return true;
+    }
+    if (vista === "a_faturar") {
+      const linhas = linhasAFaturar();
+      const pagina = linhas.slice(0, limiteLista);
+      const rows = pagina.map((line) => `<tr data-cx-open="veiculo" data-cx-id="${esc(line.receivableId)}">
+        ${celula("", `<input class="cx-check" type="checkbox" data-cx-check="${esc(line.receivableId)}" ${selected.has(line.receivableId) ? "checked" : ""} aria-label="Selecionar" />`, "cx-check-cell")}
+        ${celula("Cliente", esc(nomeLinha(line)))}
+        ${celula("Placa", esc(line.placa || line.veiculoNome || "Veículo"))}
+        ${celula("Valor", esc(money(line.valor)), "num")}
+        ${celula("Recebido", esc(money(line.abatimento || 0)), "num")}
+        ${celula("Saldo", esc(money(saldoLinha(line))), "num")}
+        ${celula("Vencimento", esc(dataCurta(line.saida || line.entrada)))}
+        ${celula("Status", statusTag("A faturar", ""))}
+      </tr>`);
+      box.innerHTML = `<p class="cx-note">Veículos ainda sem cobrança. Selecione vários do mesmo cliente para gerar uma fatura só.</p>${tabela(["", "Cliente", "Placa", "Valor", "Recebido", "Saldo", "Referência", "Status"], rows, "Nenhum valor pendente de cobrança.")}${maisBotao(linhas.length, pagina.length)}`;
+      return true;
+    }
+    return false;
+  }
+
   function pintarLista() {
     const box = document.getElementById("caixaOpLista");
     if (!box || !svc()) return;
+    if (pintarVista()) return;
     if (filtro === "entradas") {
       const itens = entradasPendentes();
       const aReceber = itens.filter((item) => item.situacao === "Faturado" || item.situacao === "Parcial").length;
@@ -1017,7 +1166,7 @@
     const veiculos = selecionadosVeiculos();
     const faturas = selecionadasFaturas();
     const n = veiculos.length || faturas.length;
-    if (!n || filtro === "recebido") {
+    if (!n || vistaAtual() === "recebidos" || vistaAtual() === "movimentacoes" || vistaAtual() === "despesas") {
       bar.innerHTML = "";
       return;
     }
@@ -1084,8 +1233,15 @@
       return;
     }
     if (e.target.closest("#caixaOpNova")) {
-      if (filtro === "saidas") abrirDespesa();
-      else abrirCobranca();
+      abrirNovo();
+      return;
+    }
+    if (e.target.closest("[data-cx-novo='cobranca']")) {
+      abrirCobranca();
+      return;
+    }
+    if (e.target.closest("[data-cx-novo='despesa']")) {
+      abrirDespesa();
       return;
     }
     if (e.target.closest("[data-cx-acao='cobrar']")) {
@@ -1102,6 +1258,8 @@
       const id = open.getAttribute("data-cx-id");
       if (tipo === "veiculo") mostrarVeiculo(id);
       else if (tipo === "fatura") mostrarFatura(id);
+      else if (tipo === "despesa") mostrarDespesa(id);
+      else if (tipo === "caixa") mostrarMovimento(id);
     }
   }
 
@@ -1158,6 +1316,10 @@
         <div><span>Saldo</span><strong>${esc(money(snap.saldo))}</strong></div>
         <div><span>Situação</span><strong>${esc(svc().chargeStatusLabel(row.status))}</strong></div>
       </div>
+      <div class="cx-actions">
+        ${snap.saldo > 0 ? `<button type="button" class="cx-btn" data-cx-receber-fat="${esc(row.id)}">Registrar recebimento</button>` : ""}
+        <button type="button" class="cx-btn secondary" data-cx-imprimir="1">Imprimir demonstrativo</button>
+      </div>
       <table class="cx-lines"><thead><tr><th>Placa</th><th>Serviço</th><th class="num">Valor</th></tr></thead>
       <tbody>${lines
         .map(
@@ -1167,9 +1329,104 @@
         .join("")}</tbody></table>
     </div>`;
     aside.addEventListener("click", (ev) => {
+      if (ev.target.closest("[data-cx-receber-fat]")) {
+        selected = new Set([`fat:${row.id}`]);
+        aside.remove();
+        abrirPagamento();
+        return;
+      }
+      if (ev.target.closest("[data-cx-imprimir]")) {
+        imprimirPainel(ident, aside.querySelector(".cx-panel")?.innerHTML || "");
+        return;
+      }
       if (ev.target === aside || ev.target.closest("[data-cx-fechar]")) aside.remove();
     });
     document.body.appendChild(aside);
+  }
+
+  function mostrarDespesa(id) {
+    const p = (dados()?.payables || []).find((item) => String(item.id) === String(id));
+    if (!p) return;
+    fecharCamadas();
+    const paga = despesaPaga(p);
+    const pagoEm = pagamentoDaDespesa(p);
+    const aside = document.createElement("div");
+    aside.id = "caixaOpDetail";
+    aside.className = "cx-detail";
+    aside.innerHTML = `<div class="cx-panel" role="dialog">
+      <button type="button" class="cx-btn secondary" data-cx-fechar="1">Fechar</button>
+      <h3>${esc(textoDespesa(p))}</h3>
+      <p>${esc(p.fornecedor || p.favorecido || "Sem favorecido")}</p>
+      <div class="cx-dl">
+        <div><span>Categoria</span><strong>${esc(p.categoria || p.payable_category || "Outras")}</strong></div>
+        <div><span>Competência</span><strong>${esc(nomeMes(competenciaDespesa(p)))}</strong></div>
+        <div><span>Vencimento</span><strong>${esc(dataCurta(p.data_vencimento))}</strong></div>
+        <div><span>Pagamento</span><strong>${pagoEm ? esc(dataCurta(pagoEm)) : "—"}</strong></div>
+        <div><span>Valor</span><strong>${esc(money(p.valor))}</strong></div>
+        <div><span>Situação</span><strong>${paga ? "Pago" : "Pendente"}</strong></div>
+      </div>
+      <p>Pendente não reduz o resultado. A saída entra no mês em que o pagamento foi confirmado.</p>
+      ${paga ? "" : `<div class="cx-actions"><button type="button" class="cx-btn" data-cx-pagar="${esc(p.id)}">Confirmar pagamento</button></div>`}
+    </div>`;
+    aside.addEventListener("click", (ev) => {
+      if (ev.target.closest("[data-cx-pagar]")) {
+        aside.remove();
+        confirmarSaida(p.id);
+        return;
+      }
+      if (ev.target === aside || ev.target.closest("[data-cx-fechar]")) aside.remove();
+    });
+    document.body.appendChild(aside);
+  }
+
+  function mostrarMovimento(id) {
+    const mov = movimentosCaixa().find((item) => String(item.id) === String(id));
+    if (!mov) return;
+    const entrada = movimentoEhEntrada(mov);
+    fecharCamadas();
+    const aside = document.createElement("div");
+    aside.id = "caixaOpDetail";
+    aside.className = "cx-detail";
+    aside.innerHTML = `<div class="cx-panel" role="dialog">
+      <button type="button" class="cx-btn secondary" data-cx-fechar="1">Fechar</button>
+      <h3>${esc(mov.descricao || (entrada ? "Entrada" : "Saída"))}</h3>
+      <div class="cx-dl">
+        <div><span>Data</span><strong>${esc(dataCurta(mov.data_movimento || mov.created_at))}</strong></div>
+        <div><span>Forma</span><strong>${esc(mov.forma_pagamento || "—")}</strong></div>
+        <div><span>Valor</span><strong>${esc(money(mov.valor))}</strong></div>
+        <div><span>Tipo</span><strong>${entrada ? "Entrada recebida" : "Saída paga"}</strong></div>
+        <div><span>Origem</span><strong>${esc(mov.conta_id || "Lançamento de caixa")}</strong></div>
+      </div>
+    </div>`;
+    aside.addEventListener("click", (ev) => {
+      if (ev.target === aside || ev.target.closest("[data-cx-fechar]")) aside.remove();
+    });
+    document.body.appendChild(aside);
+  }
+
+  function imprimirPainel(titulo, html) {
+    const doc = `<article><h1>${esc(titulo)}</h1>${html}</article>`;
+    if (typeof global.printHtmlInHiddenIframe === "function") {
+      global.printHtmlInHiddenIframe(doc, { iframeTitle: titulo });
+      return;
+    }
+    const janela = global.open?.("", "_blank");
+    if (!janela) return;
+    janela.document.write(doc);
+    janela.print();
+  }
+
+  function abrirNovo() {
+    const modal = document.getElementById("caixaOpModal");
+    if (!modal) return;
+    modal.innerHTML = `<div class="cx-modal-back"><div class="cx-dialog" role="dialog">
+      <h3>Novo lançamento</h3>
+      <p>Escolha o que vai registrar. Cobrança não é pagamento.</p>
+      <div class="cx-actions">
+        <button type="button" class="cx-btn" data-cx-novo="cobranca">Nova cobrança</button>
+        <button type="button" class="cx-btn secondary" data-cx-novo="despesa">Nova despesa</button>
+      </div>
+    </div></div>`;
   }
 
   function linhasParaCobrar() {
@@ -1578,6 +1835,14 @@
   }
 
   function onModalClick(e) {
+    if (e.target.closest("[data-cx-novo='cobranca']")) {
+      abrirCobranca();
+      return;
+    }
+    if (e.target.closest("[data-cx-novo='despesa']")) {
+      abrirDespesa();
+      return;
+    }
     if (e.target.classList?.contains("cx-modal-back")) fecharCamadas();
   }
 
