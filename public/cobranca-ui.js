@@ -1384,7 +1384,8 @@
     else render();
   }
 
-  function offerAfterExit(_vehicleId, _message) {
+  function offerAfterExit(vehicleId, _message) {
+    if (typeof global.caixaOperacional?.aposLiberacao === "function") global.caixaOperacional.aposLiberacao(vehicleId);
     return true;
   }
 
