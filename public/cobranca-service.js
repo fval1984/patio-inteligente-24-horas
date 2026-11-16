@@ -6,6 +6,7 @@
   "use strict";
 
   const PAGE_SIZE = 40;
+  let blockedReceivableIds = new Set();
   const FILTER_TIPOS = [
     { id: "todos", label: "Todos" },
     { id: "escritorios", label: "Escritórios de advocacia" },
@@ -300,7 +301,65 @@
       aging,
       statusLabel: displayStatus(r),
       links: receivablePartnerLinks(r, v),
+      servico: serviceLabel({ diarias, outros }),
     };
+  }
+
+  function roundMoney(n) {
+    const v = Number(n || 0);
+    if (!Number.isFinite(v)) return 0;
+    return Math.round(v * 100) / 100;
+  }
+
+  function serviceLabel(line) {
+    if (Number(line?.diarias || 0) > 0) return "Guarda e custódia";
+    if (Number(line?.outros || 0) > 0) return "Serviços e taxas";
+    return "Guarda e custódia";
+  }
+
+  function paymentSnapshot(total, received) {
+    const t = roundMoney(total);
+    const r = roundMoney(Math.max(0, received));
+    const capped = Math.min(r, t);
+    const saldo = roundMoney(Math.max(0, t - capped));
+    let status = "PENDENTE";
+    if (capped > 0 && saldo <= 0.009) status = "PAGO";
+    else if (capped > 0) status = "PARCIAL";
+    return { total: t, recebido: status === "PAGO" ? t : capped, saldo: status === "PAGO" ? 0 : saldo, status };
+  }
+
+  function chargeStatusLabel(status) {
+    const st = String(status || "").toUpperCase();
+    if (st === "PAGO") return "Pago";
+    if (st === "PARCIAL") return "Parcialmente pago";
+    if (st === "HISTORICO") return "Histórico";
+    return "Pendente";
+  }
+
+  function isActiveChargeStatus(status) {
+    const st = String(status || "").toUpperCase();
+    return st === "PENDENTE" || st === "PARCIAL";
+  }
+
+  function receivableIdsInActiveCharges(charges, items) {
+    const active = new Set(
+      (charges || []).filter((c) => isActiveChargeStatus(c.status)).map((c) => String(c.id))
+    );
+    const ids = new Set();
+    for (const it of items || []) {
+      if (!it?.receivable_id || !active.has(String(it.cobranca_id))) continue;
+      ids.add(String(it.receivable_id));
+    }
+    return ids;
+  }
+
+  function setBlockedReceivableIds(ids) {
+    blockedReceivableIds = new Set([...(ids || [])].map(String));
+    return blockedReceivableIds;
+  }
+
+  function isReceivableInActiveCharge(id) {
+    return blockedReceivableIds.has(String(id || ""));
   }
 
   function openLines() {
@@ -311,11 +370,84 @@
     for (const r of recs) {
       if (!r?.id) continue;
       const id = String(r.id);
-      if (seen.has(id) || hidden.has(id)) continue;
+      if (seen.has(id) || hidden.has(id) || blockedReceivableIds.has(id)) continue;
       if (!isReceivableEmAberto(r)) continue;
       seen.add(id);
       out.push(buildLine(r));
     }
+    return out;
+  }
+
+  function aguardandoLines() {
+    const fn = global.collectPatioAguardandoFaturamentoReceivables;
+    const list = typeof fn === "function" ? fn() : [];
+    const hidden = hiddenReceivableIds();
+    const out = [];
+    const seen = new Set();
+    for (const r of list || []) {
+      if (!r?.id) continue;
+      const id = String(r.id);
+      if (seen.has(id) || hidden.has(id) || blockedReceivableIds.has(id)) continue;
+      if (isPaidOrSettled(r) || isSemCobranca(r)) continue;
+      seen.add(id);
+      out.push(buildLine(r));
+    }
+    return out;
+  }
+
+  function billableLines() {
+    const map = new Map();
+    for (const line of openLines()) map.set(line.receivableId, line);
+    for (const line of aguardandoLines()) {
+      if (!map.has(line.receivableId)) map.set(line.receivableId, line);
+    }
+    return [...map.values()];
+  }
+
+  function clientCatalog() {
+    const out = [];
+    for (const p of state().partners || []) {
+      if (!p?.id || p.ativo === false) continue;
+      out.push({
+        kind: "partner",
+        id: String(p.id),
+        key: `partner:${p.id}`,
+        nome: p.nome || "Parceiro",
+        documento: p.documento || p.cnpj || p.cpf || "",
+        contato: p.whatsapp || p.telefone || "",
+        tipoLabel: partnerTipoLabel(normalizePartnerTipo(p.tipo)),
+      });
+    }
+    const offices =
+      (typeof global.advocacyOfficesService?.listCached === "function" ? global.advocacyOfficesService.listCached() : null) ||
+      state().advocacyOffices ||
+      [];
+    for (const o of offices) {
+      if (!o?.id) continue;
+      out.push({
+        kind: "advocacy_office",
+        id: String(o.id),
+        key: `advocacy_office:${o.id}`,
+        nome: o.name || o.nome || "Escritório",
+        documento: o.documento || o.cnpj || "",
+        contato: o.whatsapp || o.telefone || "",
+        tipoLabel: "Escritório de advocacia",
+      });
+    }
+    for (const c of state().financeContacts || []) {
+      if (!c?.id || c.ativo === false) continue;
+      if (String(c.tipo || "").toUpperCase() !== "CLIENTE") continue;
+      out.push({
+        kind: "finance_contact",
+        id: String(c.id),
+        key: `finance_contact:${c.id}`,
+        nome: c.nome || "Cliente",
+        documento: c.documento || "",
+        contato: c.telefone || c.contato || "",
+        tipoLabel: "Cliente cadastrado",
+      });
+    }
+    out.sort((a, b) => String(a.nome).localeCompare(String(b.nome), "pt-BR"));
     return out;
   }
 
@@ -541,11 +673,64 @@
     return data || [];
   }
 
-  async function persistCobranca({ supabase, uid, subject, meta, lines, sessionUser }) {
+  function itemPayload(cobrancaId, line) {
+    return {
+      cobranca_id: cobrancaId,
+      receivable_id: line.receivableId,
+      vehicle_id: line.vehicleId || null,
+      valor: Number(Number(line.valor || 0).toFixed(2)),
+      snapshot: {
+        veiculo: line.veiculoNome,
+        placa: line.placa,
+        servico: line.servico || serviceLabel(line),
+        entrada: line.entrada,
+        saida: line.saida,
+        dias: line.dias,
+        valor: line.valor,
+        diarias: line.diarias,
+        outros: line.outros,
+      },
+    };
+  }
+
+  function headerExtras(header, lines, client) {
+    const modo = client?.modo === "avulso" ? "avulso" : "cadastrado";
+    const placas = (lines || []).map((l) => l.placa).filter(Boolean).join(" ");
+    const ident = `FAT-${String(header.numero_cobranca || 0).padStart(6, "0")}`;
+    return {
+      ...header,
+      status: "PENDENTE",
+      valor_recebido: 0,
+      cliente_modo: modo,
+      cliente_documento: client?.documento || null,
+      cliente_contato: client?.contato || null,
+      identificador: ident,
+      origem: client?.origem || "financeiro",
+      busca_texto: [header.parceiro_nome, client?.documento, client?.contato, placas, ident].filter(Boolean).join(" "),
+    };
+  }
+
+  async function nextNumeroGlobal(uid, supabase) {
+    const { data, error } = await supabase
+      .from("cobrancas")
+      .select("numero_cobranca")
+      .eq("user_id", uid)
+      .order("numero_cobranca", { ascending: false })
+      .limit(1);
+    if (error) return null;
+    return Number(data?.[0]?.numero_cobranca || 0) + 1;
+  }
+
+  async function persistCobranca({ supabase, uid, subject, meta, lines, sessionUser, client }) {
     if (!supabase || !uid) throw new Error("Sessão indisponível.");
     const ids = dedupeReceivableIds(lines.map((l) => l.receivableId));
     if (ids.length !== lines.length) {
       throw new Error("Há lançamentos duplicados na seleção.");
+    }
+    await refreshBlockedReceivables(uid, supabase);
+    const ja = ids.filter((id) => blockedReceivableIds.has(id));
+    if (ja.length) {
+      throw new Error("Um ou mais registros já estão em uma cobrança ativa. Atualize a lista antes de faturar de novo.");
     }
     const sums = selectedSummary(lines);
     const existing = await loadHistory(subject, uid, supabase);
@@ -554,71 +739,81 @@
         "As tabelas de histórico ainda não existem. Execute supabase/cobrancas.sql no SQL Editor (não altera dados financeiros)."
       );
     }
-    const numero = nextNumeroLocal(Array.isArray(existing) ? existing : existing.rows);
-    const header = {
-      user_id: uid,
-      parceiro_origem: subject.kind === "advocacy_office" ? "advocacy_office" : "partner",
-      parceiro_id: subject.kind === "partner" ? subject.id : null,
-      advocacy_office_id: subject.kind === "advocacy_office" ? subject.id : null,
-      parceiro_nome: meta.nome,
-      parceiro_tipo: meta.tipoLabel,
-      numero_cobranca: numero,
-      data_geracao: new Date().toISOString(),
-      periodo_inicio: sums.periodo.inicio || null,
-      periodo_fim: sums.periodo.fim || null,
-      quantidade_veiculos: sums.veiculos,
-      valor_total: Number(sums.total.toFixed(2)),
-      usuario_id: sessionUser?.id || null,
-      usuario_email: sessionUser?.email || null,
-    };
-    const { data: created, error } = await supabase.from("cobrancas").insert(header).select("*").single();
-    if (error) {
-      if (String(error.code) === "23505" || /duplicate|unique/i.test(error.message || "")) {
-        header.numero_cobranca = numero + 1;
-        const retry = await supabase.from("cobrancas").insert(header).select("*").single();
-        if (retry.error) throw retry.error;
-        const createdRetry = retry.data;
-        const itemsRetry = lines.map((line) => ({
-          cobranca_id: createdRetry.id,
-          receivable_id: line.receivableId,
-          vehicle_id: line.vehicleId || null,
-          valor: Number(line.valor.toFixed(2)),
-          snapshot: {
-            veiculo: line.veiculoNome,
-            placa: line.placa,
-            entrada: line.entrada,
-            saida: line.saida,
-            dias: line.dias,
-            valor: line.valor,
-            diarias: line.diarias,
-            outros: line.outros,
-          },
-        }));
-        const { error: itemErrRetry } = await supabase.from("cobranca_itens").insert(itemsRetry);
-        if (itemErrRetry) throw itemErrRetry;
-        return createdRetry;
-      }
-      throw error;
-    }
-    const items = lines.map((line) => ({
-      cobranca_id: created.id,
-      receivable_id: line.receivableId,
-      vehicle_id: line.vehicleId || null,
-      valor: Number(line.valor.toFixed(2)),
-      snapshot: {
-        veiculo: line.veiculoNome,
-        placa: line.placa,
-        entrada: line.entrada,
-        saida: line.saida,
-        dias: line.dias,
-        valor: line.valor,
-        diarias: line.diarias,
-        outros: line.outros,
+    const globalNumero = await nextNumeroGlobal(uid, supabase);
+    const numero = globalNumero || nextNumeroLocal(Array.isArray(existing) ? existing : existing.rows);
+    const nome = String(client?.nome || meta?.nome || "").trim();
+    const origemCliente = client?.modo === "avulso" || subject?.kind === "avulso" || subject?.kind === "finance_contact" ? "avulso" : subject?.kind;
+    const header = headerExtras(
+      {
+        user_id: uid,
+        parceiro_origem: origemCliente === "advocacy_office" ? "advocacy_office" : origemCliente === "partner" ? "partner" : "avulso",
+        parceiro_id: subject?.kind === "partner" ? subject.id : null,
+        advocacy_office_id: subject?.kind === "advocacy_office" ? subject.id : null,
+        parceiro_nome: nome,
+        parceiro_tipo: client?.tipoLabel || meta?.tipoLabel || (client?.modo === "avulso" ? "Cliente avulso" : "Cliente"),
+        numero_cobranca: numero,
+        data_geracao: new Date().toISOString(),
+        periodo_inicio: sums.periodo.inicio || null,
+        periodo_fim: sums.periodo.fim || null,
+        quantidade_veiculos: sums.veiculos,
+        valor_total: Number(sums.total.toFixed(2)),
+        usuario_id: sessionUser?.id || null,
+        usuario_email: sessionUser?.email || null,
       },
-    }));
+      lines,
+      client
+    );
+    const created = await insertChargeRow(supabase, header, lines);
+    ids.forEach((id) => blockedReceivableIds.add(id));
+    void noteChargeOnVehicles(supabase, created, lines);
+    return created;
+  }
+
+  function stripChargeExtras(header) {
+    const copy = { ...header };
+    ["status", "valor_recebido", "cliente_modo", "cliente_documento", "cliente_contato", "identificador", "origem", "busca_texto"].forEach(
+      (key) => {
+        delete copy[key];
+      }
+    );
+    if (copy.parceiro_origem === "avulso") copy.parceiro_origem = "partner";
+    return copy;
+  }
+
+  async function insertChargeRow(supabase, header, lines) {
+    let row = { ...header };
+    let attempt = await supabase.from("cobrancas").insert(row).select("*").single();
+    if (attempt.error && /column|schema cache|PGRST204|check constraint|cobrancas_origem/i.test(attempt.error.message || "")) {
+      row = stripChargeExtras(row);
+      attempt = await supabase.from("cobrancas").insert(row).select("*").single();
+    }
+    if (attempt.error && (String(attempt.error.code) === "23505" || /duplicate|unique/i.test(attempt.error.message || ""))) {
+      row = { ...row, numero_cobranca: Number(row.numero_cobranca || 0) + 1 };
+      if (row.identificador) row.identificador = `FAT-${String(row.numero_cobranca).padStart(6, "0")}`;
+      attempt = await supabase.from("cobrancas").insert(row).select("*").single();
+    }
+    if (attempt.error) throw attempt.error;
+    const items = lines.map((line) => itemPayload(attempt.data.id, line));
     const { error: itemErr } = await supabase.from("cobranca_itens").insert(items);
     if (itemErr) throw itemErr;
-    return created;
+    return attempt.data;
+  }
+
+  async function noteChargeOnVehicles(supabase, charge, lines) {
+    const ident = charge?.identificador || `FAT-${String(charge?.numero_cobranca || 0).padStart(6, "0")}`;
+    for (const line of lines || []) {
+      if (!line.vehicleId) continue;
+      try {
+        await supabase.from("vehicle_events").insert({
+          vehicle_id: line.vehicleId,
+          tipo: "COBRANCA_AGRUPADA",
+          responsavel: charge?.parceiro_nome || "",
+          descricao: `Incluído na fatura ${ident}. Valor deste veículo mantido: ${Number(line.valor || 0).toFixed(2)}. Total da fatura: ${Number(charge?.valor_total || 0).toFixed(2)}.`,
+        });
+      } catch (_e) {
+        /* histórico do veículo é complementar; a fatura já foi gravada */
+      }
+    }
   }
 
   async function deleteCobranca(cobrancaId, uid, supabase) {
@@ -645,6 +840,7 @@
         vehicleId: String(it.vehicle_id || ""),
         veiculoNome: s.veiculo || "—",
         placa: s.placa || "",
+        servico: s.servico || serviceLabel(s),
         entrada: s.entrada || "",
         saida: s.saida || "",
         dias: s.dias,
@@ -653,6 +849,150 @@
         outros: Number(s.outros || 0),
       };
     });
+  }
+
+  async function refreshBlockedReceivables(uid, supabase) {
+    if (!supabase || !uid) return blockedReceivableIds;
+    const { data: charges, error } = await supabase
+      .from("cobrancas")
+      .select("id,status")
+      .eq("user_id", uid)
+      .in("status", ["PENDENTE", "PARCIAL"]);
+    if (error) {
+      if (/column|schema cache|status/i.test(error.message || "")) {
+        blockedReceivableIds = new Set();
+        return blockedReceivableIds;
+      }
+      console.warn("cobranca ativas", error);
+      return blockedReceivableIds;
+    }
+    const ids = (charges || []).map((c) => c.id).filter(Boolean);
+    if (!ids.length) {
+      blockedReceivableIds = new Set();
+      return blockedReceivableIds;
+    }
+    const { data: items, error: itemErr } = await supabase
+      .from("cobranca_itens")
+      .select("cobranca_id,receivable_id")
+      .in("cobranca_id", ids);
+    if (itemErr) {
+      console.warn("cobranca itens ativos", itemErr);
+      return blockedReceivableIds;
+    }
+    blockedReceivableIds = receivableIdsInActiveCharges(charges, items);
+    return blockedReceivableIds;
+  }
+
+  async function loadCharges(uid, supabase) {
+    if (!supabase || !uid) return { rows: [] };
+    const { data, error } = await supabase
+      .from("cobrancas")
+      .select("*")
+      .eq("user_id", uid)
+      .order("numero_cobranca", { ascending: false })
+      .limit(200);
+    if (error) {
+      if (/schema cache|does not exist|relation/i.test(error.message || "")) return { missingTable: true, rows: [] };
+      throw error;
+    }
+    return { rows: data || [] };
+  }
+
+  function chargeMatchesSearch(row, raw) {
+    const q = String(raw || "").trim().toLowerCase();
+    if (!q) return true;
+    const num = String(row?.numero_cobranca || 0).padStart(6, "0");
+    const blob = [row?.parceiro_nome, row?.identificador, row?.cliente_documento, row?.busca_texto, row?.parceiro_tipo, num]
+      .join(" ")
+      .toLowerCase();
+    return blob.includes(q);
+  }
+
+  function filterCharges(rows, { bucket, search }) {
+    const b = String(bucket || "pendentes");
+    return (rows || []).filter((row) => {
+      const st = String(row.status || "HISTORICO").toUpperCase();
+      if (b === "pendentes" && st !== "PENDENTE" && st !== "PARCIAL") return false;
+      if (b === "recebidos" && st !== "PAGO" && st !== "HISTORICO") return false;
+      return chargeMatchesSearch(row, search);
+    });
+  }
+
+  async function saveFinanceClient({ supabase, uid, nome, documento, contato }) {
+    if (!supabase || !uid) throw new Error("Sessão indisponível.");
+    const payload = {
+      user_id: uid,
+      tipo: "CLIENTE",
+      nome: String(nome || "").trim(),
+      documento: String(documento || "").trim() || null,
+      telefone: String(contato || "").trim() || null,
+      ativo: true,
+    };
+    if (!payload.nome) throw new Error("Informe o nome para salvar o cliente.");
+    const { data, error } = await supabase.from("finance_contacts").insert(payload).select("*").single();
+    if (error) {
+      if (/schema cache|does not exist|relation/i.test(error.message || "")) {
+        throw new Error("Não foi possível salvar o cliente. Execute supabase/finance_contacts.sql. A cobrança pode ser feita mesmo assim.");
+      }
+      throw error;
+    }
+    const st = state();
+    st.financeContacts = st.financeContacts || [];
+    st.financeContacts.push(data);
+    return data;
+  }
+
+  async function registerChargePayment({ supabase, uid, charge, amount, forma, dataMovimento }) {
+    if (!supabase || !uid || !charge?.id) throw new Error("Cobrança não encontrada.");
+    const st = String(charge.status || "").toUpperCase();
+    if (st === "PAGO" || st === "HISTORICO") throw new Error("Esta cobrança não aceita novo pagamento.");
+    const add = roundMoney(amount);
+    const saldo = roundMoney(Number(charge.valor_total || 0) - Number(charge.valor_recebido || 0));
+    if (!(add > 0)) throw new Error("Informe o valor recebido.");
+    if (add - saldo > 0.009) throw new Error("O valor recebido não pode ser maior que o saldo.");
+    const snap = paymentSnapshot(charge.valor_total, Number(charge.valor_recebido || 0) + add);
+    if (snap.status === "PAGO") {
+      const items = await loadHistoryItems(charge.id, supabase);
+      const lines = snapshotLinesFromItems(items);
+      if (typeof global.settleCobrancaReceivables !== "function") {
+        throw new Error("Não foi possível quitar os veículos. A fatura continua em aberto e nenhum pagamento foi lançado.");
+      }
+      const settled = await global.settleCobrancaReceivables(lines, {
+        dataMovimento: dataMovimento || todayYmd(),
+        formaPagamento: forma || "PIX",
+        observacao: `Fatura ${charge.identificador || charge.numero_cobranca} · ${charge.parceiro_nome || "cliente"}`,
+      });
+      if (!settled?.ok) {
+        throw new Error(
+          "O pagamento não foi lançado na fatura porque algum veículo não pôde ser quitado. Os que já estavam pagos permanecem pagos."
+        );
+      }
+    }
+    const pay = {
+      user_id: uid,
+      cobranca_id: charge.id,
+      valor: add,
+      forma: forma || "PIX",
+      data_pagamento: dataMovimento || todayYmd(),
+      observacao: snap.status === "PAGO" ? "Quitação da fatura" : "Pagamento parcial",
+    };
+    const ins = await supabase.from("cobranca_pagamentos").insert(pay).select("*").single();
+    if (ins.error) {
+      if (/schema cache|does not exist|relation/i.test(ins.error.message || "")) {
+        throw new Error("Execute supabase/cobrancas_faturamento.sql no SQL Editor para registrar pagamentos. Os valores dos veículos não foram alterados por este passo.");
+      }
+      throw ins.error;
+    }
+    const upd = await supabase
+      .from("cobrancas")
+      .update({ status: snap.status, valor_recebido: snap.recebido })
+      .eq("id", charge.id)
+      .eq("user_id", uid)
+      .select("*")
+      .single();
+    if (upd.error) throw upd.error;
+    if (snap.status === "PAGO") await refreshBlockedReceivables(uid, supabase);
+    return { charge: upd.data, pagamento: ins.data, snap };
   }
 
   global.cobrancaService = {
@@ -684,5 +1024,20 @@
     snapshotLinesFromItems,
     vehicleById,
     displayStatus,
+    roundMoney,
+    paymentSnapshot,
+    chargeStatusLabel,
+    serviceLabel,
+    receivableIdsInActiveCharges,
+    setBlockedReceivableIds,
+    isReceivableInActiveCharge,
+    billableLines,
+    clientCatalog,
+    refreshBlockedReceivables,
+    loadCharges,
+    filterCharges,
+    chargeMatchesSearch,
+    saveFinanceClient,
+    registerChargePayment,
   };
 })(typeof window !== "undefined" ? window : globalThis);
