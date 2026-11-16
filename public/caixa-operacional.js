@@ -12,6 +12,7 @@
   let q = "";
   let de = "";
   let ate = "";
+  let mesSelecionado = "";
   let selected = new Set();
   let collapsed = new Set();
   let charges = [];
@@ -64,6 +65,107 @@
     if (typeof global.financeTodayYmd === "function") return global.financeTodayYmd();
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function anoMes(data) {
+    const dia = String(data || "").slice(0, 10);
+    return /^\d{4}-\d{2}/.test(dia) ? dia.slice(0, 7) : "";
+  }
+
+  function mesAtual() {
+    return anoMes(today()) || anoMes(new Date().toISOString());
+  }
+
+  function mesAtivo() {
+    return mesSelecionado || mesAtual();
+  }
+
+  function nomeMes(ym) {
+    const [y, m] = String(ym || "").split("-");
+    const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+    const nome = meses[Number(m) - 1] || ym;
+    return y ? `${nome}/${y}` : nome;
+  }
+
+  function textoDespesa(p) {
+    return String(p?.descricao || "")
+      .replace(/\[\[finmeta:[\s\S]*?\]\]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim() || "Despesa";
+  }
+
+  function competenciaDespesa(p) {
+    return anoMes(p?.data_vencimento) || anoMes(p?.created_at);
+  }
+
+  function despesaPaga(p) {
+    return String(p?.status || "").toUpperCase() === "PAGO";
+  }
+
+  function dedupeDespesas(lista) {
+    const seen = new Set();
+    const out = [];
+    for (const p of lista || []) {
+      if (!p?.id || !(Number(p.valor || 0) > 0)) continue;
+      const key = [
+        textoDespesa(p).toLowerCase(),
+        String(p.fornecedor || p.favorecido || "").trim().toLowerCase(),
+        String(p.data_vencimento || "").slice(0, 10),
+        round(p.valor),
+      ].join("|");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(p);
+    }
+    return out;
+  }
+
+  function apurarMes(mes, origem) {
+    const referencia = anoMes(`${mes || mesAtivo()}-01`);
+    const base = origem || dados() || {};
+    const payables = base.payables || [];
+    const cashBruto = base.cash || [];
+    const cashDedup =
+      typeof global.financeDedupeCaixaMovs === "function" ? global.financeDedupeCaixaMovs(cashBruto) : cashBruto;
+    const vistosCaixa = new Set();
+    const cash = [];
+    for (const mov of cashDedup || []) {
+      if (!mov || mov.excluir_do_saldo === true) continue;
+      const chave = mov.conta_id
+        ? `${String(mov.tipo_conta || "").toUpperCase()}|${mov.conta_id}`
+        : String(mov.id || `avulso-${cash.length}`);
+      if (vistosCaixa.has(chave)) continue;
+      vistosCaixa.add(chave);
+      cash.push(mov);
+    }
+    const despesas = dedupeDespesas(payables).filter((p) => competenciaDespesa(p) === referencia);
+    const aPagarLista = despesas.filter((p) => !despesaPaga(p));
+    const movs = (cash || []).filter((mov) => mov && mov.excluir_do_saldo !== true && anoMes(mov.data_movimento || mov.created_at) === referencia);
+    let entradasRecebidas = 0;
+    let saidasPagas = 0;
+    for (const mov of movs) {
+      const valor = Number(mov.valor || 0);
+      if (movimentoEhSaida(mov)) saidasPagas += valor;
+      else if (movimentoEhEntrada(mov)) entradasRecebidas += valor;
+    }
+    const abertas = dedupeDespesas(payables.filter((p) => !despesaPaga(p)));
+    const porMes = {};
+    for (const p of abertas) {
+      const chave = competenciaDespesa(p) || "(sem mês)";
+      porMes[chave] = round((porMes[chave] || 0) + Number(p.valor || 0));
+    }
+    return {
+      mes: referencia,
+      despesas,
+      aPagarLista,
+      movs,
+      entradasRecebidas: round(entradasRecebidas),
+      saidasPagas: round(saidasPagas),
+      aPagar: round(aPagarLista.reduce((s, p) => s + Number(p.valor || 0), 0)),
+      resultado: round(entradasRecebidas - saidasPagas),
+      abertoTodosMeses: round(abertas.reduce((s, p) => s + Number(p.valor || 0), 0)),
+      abertoPorMes: porMes,
+    };
   }
 
   function uid() {
@@ -421,6 +523,17 @@
     if (!finance) return;
     finance.classList.add("caixa-op-on");
     if (document.getElementById("caixaOp")) {
+      const mes = document.getElementById("caixaOpMes");
+      if (!mes) {
+        const tools = document.querySelector("#caixaOp .cx-tools");
+        if (tools) {
+          const label = document.createElement("label");
+          label.innerHTML = `Mês<input id="caixaOpMes" type="month" value="${esc(mesAtivo())}" />`;
+          tools.prepend(label);
+        }
+      } else if (!mes.value) {
+        mes.value = mesAtivo();
+      }
       built = true;
       return;
     }
@@ -430,6 +543,7 @@
     el.innerHTML = `
       <div class="cx-metrics" id="caixaOpMetrics"></div>
       <div class="cx-tools">
+        <label>Mês<input id="caixaOpMes" type="month" value="${esc(mesAtivo())}" /></label>
         <label>Busca<input id="caixaOpBusca" type="search" placeholder="Placa, cliente ou fatura" /></label>
         <label>De<input id="caixaOpDe" type="date" /></label>
         <label>Até<input id="caixaOpAte" type="date" /></label>
@@ -452,6 +566,12 @@
   }
 
   function onInput(e) {
+    if (e.target.id === "caixaOpMes") {
+      mesSelecionado = e.target.value || mesAtual();
+      limiteLista = 200;
+      pintar();
+      return;
+    }
     if (e.target.id === "caixaOpBusca") q = e.target.value || "";
     if (e.target.id === "caixaOpDe") de = e.target.value || "";
     if (e.target.id === "caixaOpAte") ate = e.target.value || "";
@@ -578,36 +698,41 @@
       .sort((a, b) => (ordem[a.situacao] ?? 9) - (ordem[b.situacao] ?? 9) || String(a.cliente).localeCompare(String(b.cliente), "pt-BR"));
   }
 
-  function saidasPendentes() {
-    return (dados()?.payables || []).filter((p) => {
-      if (!p?.id) return false;
-      if (String(p.status || "").toUpperCase() === "PAGO") return false;
-      if (!(Number(p.valor || 0) > 0)) return false;
-      if (!passaPeriodo(p.data_vencimento || p.created_at)) return false;
-      const blob = `${p.descricao || ""} ${p.categoria || ""} ${p.fornecedor || ""} ${p.favorecido || ""}`.toLowerCase();
-      return !q || blob.includes(q.toLowerCase());
-    });
+  function pagamentoDaDespesa(p) {
+    const direta = ymd(p?.data_pagamento);
+    if (direta) return direta;
+    const mov = movimentosCaixa().find((m) => movimentoEhSaida(m) && String(m.conta_id || "") === String(p?.id || ""));
+    return mov ? ymd(mov.data_movimento || mov.created_at) : "";
   }
 
-  function saldoCaixa() {
-    let saldo = 0;
-    for (const mov of movimentosCaixa()) {
-      const valor = Number(mov.valor || 0);
-      if (movimentoEhSaida(mov)) saldo -= valor;
-      else if (movimentoEhEntrada(mov)) saldo += valor;
-    }
-    return round(saldo);
+  function saidasDoMes() {
+    const apura = apurarMes(mesAtivo());
+    return apura.despesas.filter((p) => {
+      if (!passaPeriodo(p.data_vencimento || p.created_at)) return false;
+      const blob = `${textoDespesa(p)} ${p.categoria || ""} ${p.fornecedor || ""} ${p.favorecido || ""}`.toLowerCase();
+      return !q || blob.includes(q.toLowerCase());
+    });
   }
 
   function pintarTotais() {
     const box = document.getElementById("caixaOpMetrics");
     if (!box) return;
+    const apura = apurarMes(mesAtivo());
+    const receber = entradasPendentes().reduce((s, item) => s + Number(item.saldo || 0), 0);
     const item = (id, nome, texto) =>
       `<button type="button" class="cx-metric${filtro === id ? " is-on" : ""}" data-cx-filtro="${id}"><span>${nome}</span><strong>${esc(texto)}</strong></button>`;
     box.innerHTML =
-      item("entradas", "Entradas", money(entradasPendentes().reduce((s, item) => s + Number(item.saldo || 0), 0))) +
-      item("saidas", "Saídas", money(saidasPendentes().reduce((s, p) => s + Number(p.valor || 0), 0))) +
-      item("caixa", "Caixa", money(saldoCaixa()));
+      item("entradas", "Entradas", money(receber)) +
+      item("saidas", "Saídas", money(apura.aPagar)) +
+      item("caixa", "Caixa", money(apura.resultado));
+    let resumo = document.getElementById("caixaOpResumo");
+    if (!resumo) {
+      resumo = document.createElement("p");
+      resumo.id = "caixaOpResumo";
+      resumo.className = "cx-total";
+      box.parentElement?.insertBefore(resumo, box);
+    }
+    resumo.textContent = `${nomeMes(apura.mes)} · Recebido ${money(apura.entradasRecebidas)} · Pago ${money(apura.saidasPagas)} · A pagar ${money(apura.aPagar)} · A receber ${money(receber)} · Resultado ${money(apura.resultado)}`;
   }
 
   function linhaHtml(line, grupoNome, situacao) {
@@ -723,38 +848,40 @@
       return;
     }
     if (filtro === "saidas") {
-      const todas = saidasPendentes();
+      const todas = saidasDoMes();
+      const apura = apurarMes(mesAtivo());
       const itens = todas.slice(0, limiteLista);
       const mais = todas.length > itens.length
         ? `<button type="button" class="cx-btn" data-cx-mais="1">Mostrar mais ${todas.length - itens.length}</button>`
         : "";
       box.innerHTML = itens.length
-        ? `<div class="cx-group">${itens
-            .map(
-              (p) => `<div class="cx-row">
+        ? `<p class="cx-total">${esc(nomeMes(apura.mes))} · A pagar ${esc(money(apura.aPagar))} · Pagas na competência ${esc(money(apura.despesas.filter(despesaPaga).reduce((s, p) => s + Number(p.valor || 0), 0)))}. O pagamento só reduz o Caixa na data em que o dinheiro saiu.</p><div class="cx-group">${itens
+            .map((p) => {
+              const paga = despesaPaga(p);
+              const pagoEm = pagamentoDaDespesa(p);
+              return `<div class="cx-row">
                 <span></span>
-                <span class="cx-title">${esc(p.descricao || "Despesa")}<br><small>${esc(p.categoria || "Outras")}</small></span>
-                <span class="cx-client">${esc(p.fornecedor || p.favorecido || "—")}<br><small>${esc(dataCurta(p.created_at))} · Venc. ${esc(dataCurta(p.data_vencimento))}</small></span>
+                <span class="cx-title">${esc(textoDespesa(p))}<br><small>${esc(p.categoria || p.payable_category || "Outras")}</small></span>
+                <span class="cx-client">${esc(p.fornecedor || p.favorecido || "—")}<br><small>Competência ${esc(nomeMes(competenciaDespesa(p)))} · Venc. ${esc(dataCurta(p.data_vencimento))}${pagoEm ? ` · Pago em ${esc(dataCurta(pagoEm))}` : ""}</small></span>
                 <span class="cx-num cx-hide-sm">${esc(money(p.valor))}</span>
-                <span class="cx-num cx-hide-sm">${esc(p.observacoes || "")}</span>
-                <span class="cx-num cx-values">${esc(money(p.valor))}</span>
-                <button type="button" class="cx-btn" data-cx-pagar="${esc(p.id)}">Pagar</button>
-              </div>`
-            )
+                <span class="cx-num cx-hide-sm">${paga ? "Pago" : "Pendente"}</span>
+                <span class="cx-num cx-values">${esc(money(paga ? 0 : p.valor))}</span>
+                ${paga ? `<span class="cx-tag pago">Pago</span>` : `<button type="button" class="cx-btn" data-cx-pagar="${esc(p.id)}">Pagar</button>`}
+              </div>`;
+            })
             .join("")}</div>${mais}`
-        : `<p class="cx-empty">Nenhuma despesa pendente.</p>`;
+        : `<p class="cx-empty">Nenhuma despesa de ${esc(nomeMes(mesAtivo()))}. Meses futuros não entram nesta conta.</p>`;
       return;
     }
     if (filtro === "caixa") {
-      const movs = movimentosCaixa().filter((mov) => {
+      const apura = apurarMes(mesAtivo());
+      const movs = apura.movs.filter((mov) => {
         if (!passaPeriodo(mov.data_movimento || mov.created_at)) return false;
         if (tipoMov === "entrada" && !movimentoEhEntrada(mov)) return false;
         if (tipoMov === "saida" && !movimentoEhSaida(mov)) return false;
         const blob = `${mov.descricao || ""} ${mov.forma_pagamento || ""} ${mov.categoria || ""}`.toLowerCase();
         return !q || blob.includes(q.toLowerCase());
       });
-      const entradas = movs.filter(movimentoEhEntrada).reduce((s, m) => s + Number(m.valor || 0), 0);
-      const saidas = movs.filter(movimentoEhSaida).reduce((s, m) => s + Number(m.valor || 0), 0);
       const pagina = movs.slice(0, limiteLista);
       const corpo = pagina
         .map((mov) => {
@@ -773,7 +900,7 @@
       const mais = movs.length > pagina.length
         ? `<button type="button" class="cx-btn" data-cx-mais="1">Mostrar mais ${movs.length - pagina.length}</button>`
         : "";
-      box.innerHTML = `<p class="cx-total">Saldo das movimentações confirmadas: ${esc(money(entradas - saidas))}${movs.length ? ` · ${pagina.length} de ${movs.length}` : ""}</p><div class="cx-group"><div class="cx-group-head"><span></span><span>Movimento</span><span>Data</span><span class="cx-num cx-hide-sm">Entrada</span><span class="cx-num cx-hide-sm">Saída</span><span class="cx-num">Valor</span><span></span></div>${corpo || `<p class="cx-empty">Nenhuma movimentação confirmada neste período.</p>`}</div>${mais}`;
+      box.innerHTML = `<p class="cx-total">${esc(nomeMes(apura.mes))} · Recebido ${esc(money(apura.entradasRecebidas))} · Pago ${esc(money(apura.saidasPagas))} · Resultado ${esc(money(apura.resultado))}. Conta só o dinheiro que entrou ou saiu neste mês.</p><div class="cx-group"><div class="cx-group-head"><span></span><span>Movimento</span><span>Data</span><span class="cx-num cx-hide-sm">Entrada</span><span class="cx-num cx-hide-sm">Saída</span><span class="cx-num">Valor</span><span></span></div>${corpo || `<p class="cx-empty">Nenhuma movimentação confirmada em ${esc(nomeMes(apura.mes))}.</p>`}</div>${mais}`;
       return;
     }
     if (filtro === "historico") {
@@ -1586,6 +1713,7 @@
       };
     },
     alocarPagamento,
+    apurarMes,
     gruposAFaturar,
   };
 })(typeof window !== "undefined" ? window : globalThis);
