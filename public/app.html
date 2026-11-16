@@ -10669,7 +10669,7 @@
     <script src="/cobranca-service.js?v=20261116cx6"></script>
     <script src="/cobranca-ui.js?v=20261116cx1"></script>
     <script src="/finance-caixa-hub.js?v=20261116caixa1"></script>
-    <script src="/caixa-operacional.js?v=20261116cx6"></script>
+    <script src="/caixa-operacional.js?v=20261116cx7"></script>
     <script src="/parceiro-caderneta.js?v=20261116cx4"></script>
     <script src="/patio-extrato-service.js?v=20261105resumo2"></script>
     <script src="/patio-extrato-ui.js?v=20261106patioReorg1"></script>
@@ -11182,10 +11182,13 @@
             cursor = candidato >= dataInicio ? candidato : addMonthsToYmd(candidato, freq === "anual" ? 12 : 1) || candidato;
           }
           const limite = dataFim || "";
-          const max = limite ? 36 : 12;
+          const hojeYm = typeof currentYearMonthLocal === "function" ? currentYearMonthLocal() : "";
+          const max = 36;
           for (let i = 0; i < max && cursor; i++) {
             if (limite && cursor > limite) break;
-            itens.push({ valor: Number(valor), due: cursor, pago: false });
+            const ymItem = yearMonthFromYmd(cursor);
+            if (i > 0 && hojeYm && ymItem > hojeYm) break;
+            itens.push({ valor: Number(valor), due: cursor, pago: false, competencia: ymItem });
             const next = addPeriodToYmd(cursor, freq);
             if (!next || next === cursor) break;
             cursor = next;
@@ -11207,7 +11210,7 @@
             modo: modoUp,
             natureza: String(natureza || "VARIAVEL").toUpperCase(),
             centro_custo: String(centroCusto || "").trim() || null,
-            competencia: competencia || yearMonthFromYmd(vencimento) || "",
+            competencia: item.competencia || yearMonthFromYmd(dueDate) || competencia || yearMonthFromYmd(vencimento) || "",
             origem_modulo: "CONTROLE_DESPESAS",
             cadastro_manual: true,
             fornecedor_texto: fornLabel,
