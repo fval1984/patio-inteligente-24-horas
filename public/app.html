@@ -7608,7 +7608,7 @@
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha9" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20261116fat1" />
-    <link rel="stylesheet" href="/caixa-operacional.css?v=20261116cx1" />
+    <link rel="stylesheet" href="/caixa-operacional.css?v=20261116cx2" />
   </head>
   <body class="auth-screen-active">
     <noscript>
@@ -10662,10 +10662,10 @@
     <script src="/advocacy-offices-service.js?v=20261001escritorio3"></script>
     <script src="/advocacy-office-report-ui.js?v=20261001escritorio5"></script>
     <script src="/advocacy-offices-ui.js?v=20261022parceiro1"></script>
-    <script src="/cobranca-service.js?v=20261116cx1"></script>
+    <script src="/cobranca-service.js?v=20261116cx2"></script>
     <script src="/cobranca-ui.js?v=20261116cx1"></script>
     <script src="/finance-caixa-hub.js?v=20261116caixa1"></script>
-    <script src="/caixa-operacional.js?v=20261116cx1"></script>
+    <script src="/caixa-operacional.js?v=20261116cx2"></script>
     <script src="/patio-extrato-service.js?v=20261105resumo2"></script>
     <script src="/patio-extrato-ui.js?v=20261106patioReorg1"></script>
     <script>
@@ -19153,14 +19153,30 @@
         maybeRefreshListaPanel();
       }
 
+      async function fetchAllUserRows(table) {
+        const uid = supabaseOwnerUserId();
+        if (!uid) return { data: [], error: null };
+        const rows = [];
+        let from = 0;
+        while (from < 50000) {
+          const { data, error } = await supabase
+            .from(table)
+            .select("*")
+            .eq("user_id", uid)
+            .order("created_at", { ascending: false })
+            .range(from, from + 999);
+          if (error) return { data: rows, error };
+          rows.push(...(data || []));
+          if (!data || data.length < 1000) break;
+          from += 1000;
+        }
+        return { data: rows, error: null };
+      }
+
       async function loadReceivables() {
         const uid = supabaseOwnerUserId();
         if (!uid) return;
-        const { data, error } = await supabase
-          .from("receivables")
-          .select("*")
-          .eq("user_id", uid)
-          .order("created_at", { ascending: false });
+        const { data, error } = await fetchAllUserRows("receivables");
         if (error) {
           logSupabaseLoadError("loadReceivables", error);
           window.financePersistAudit?.load?.({
@@ -19206,11 +19222,7 @@
       async function loadPayables() {
         const uid = supabaseOwnerUserId();
         if (!uid) return;
-        const { data, error } = await supabase
-          .from("payables")
-          .select("*")
-          .eq("user_id", uid)
-          .order("created_at", { ascending: false });
+        const { data, error } = await fetchAllUserRows("payables");
         if (error) {
           logSupabaseLoadError("loadPayables", error);
           return;
@@ -19222,11 +19234,7 @@
       async function loadCash() {
         const uid = supabaseOwnerUserId();
         if (!uid) return;
-        const { data, error } = await supabase
-          .from("cash_movements")
-          .select("*")
-          .eq("user_id", uid)
-          .order("created_at", { ascending: false });
+        const { data, error } = await fetchAllUserRows("cash_movements");
         if (error) {
           logSupabaseLoadError("loadCash", error);
           return;
