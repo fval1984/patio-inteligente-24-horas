@@ -1,12 +1,12 @@
 /**
- * Visão financeira orientada a ação — somente #viewFinanceiro.
+ * Visão financeira orientada a ação — somente :is(#viewFinanceiro, #parceiroCadernetaRoot).
  * Não altera outras telas.
  */
-#viewFinanceiro #finDashFilterBar {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) #finDashFilterBar {
   display: none;
 }
 
-#viewFinanceiro.finance-module-shell {
+:is(#viewFinanceiro, #parceiroCadernetaRoot).finance-module-shell {
   --fin-act-blue: var(--ag-graphite);
   --fin-act-blue-soft: var(--ag-surface-2);
   --fin-act-green: var(--ag-success);
@@ -22,15 +22,15 @@
   color: var(--fin-act-ink);
 }
 
-#viewFinanceiro .fin-act-periods {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-periods {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin: 0 0 16px;
 }
 
-#viewFinanceiro .fin-act-period-btn,
-#viewFinanceiro .fin-act-chip {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-period-btn,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-chip {
   appearance: none;
   border: 1px solid var(--fin-act-line);
   background: var(--fin-act-card);
@@ -43,14 +43,14 @@
   cursor: pointer;
 }
 
-#viewFinanceiro .fin-act-period-btn.is-active,
-#viewFinanceiro .fin-act-chip.is-active {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-period-btn.is-active,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-chip.is-active {
   background: var(--fin-act-blue);
   border-color: var(--fin-act-blue);
   color: #fff;
 }
 
-#viewFinanceiro .fin-act-custom {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-custom {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -58,25 +58,25 @@
   margin: -6px 0 16px;
 }
 
-#viewFinanceiro .fin-act-custom[hidden] {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-custom[hidden] {
   display: none !important;
 }
 
-#viewFinanceiro .fin-act-custom label {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-custom label {
   display: grid;
   gap: 4px;
   font-size: 0.78rem;
   color: var(--fin-act-muted);
 }
 
-#viewFinanceiro .fin-act-kpis {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   margin: 0 0 20px;
 }
 
-#viewFinanceiro .fin-act-kpi {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-kpi {
   background: var(--fin-act-card);
   border: 1px solid var(--fin-act-line);
   border-radius: 16px;
@@ -90,13 +90,13 @@
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
-#viewFinanceiro .fin-act-kpi:hover,
-#viewFinanceiro .fin-act-kpi:focus-visible {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-kpi:hover,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-kpi:focus-visible {
   border-color: #93c5fd;
   box-shadow: 0 10px 28px rgba(22, 119, 255, 0.1);
 }
 
-#viewFinanceiro .fin-act-kpi-label {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-kpi-label {
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -104,25 +104,25 @@
   color: var(--fin-act-muted);
 }
 
-#viewFinanceiro .fin-act-kpi-value {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-kpi-value {
   font-size: clamp(1.4rem, 2.4vw, 2rem);
   line-height: 1.15;
   font-weight: 800;
   color: var(--fin-act-ink);
 }
 
-#viewFinanceiro .fin-act-kpi-meta {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-kpi-meta {
   margin-top: auto;
   font-size: 0.8rem;
   color: var(--fin-act-muted);
 }
 
-#viewFinanceiro .fin-act-kpi--recv .fin-act-kpi-value { color: var(--fin-act-blue); }
-#viewFinanceiro .fin-act-kpi--paid .fin-act-kpi-value { color: var(--fin-act-green); }
-#viewFinanceiro .fin-act-kpi--late .fin-act-kpi-value { color: var(--fin-act-red); }
-#viewFinanceiro .fin-act-kpi--result.is-negative .fin-act-kpi-value { color: var(--fin-act-red); }
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-kpi--recv .fin-act-kpi-value { color: var(--fin-act-blue); }
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-kpi--paid .fin-act-kpi-value { color: var(--fin-act-green); }
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-kpi--late .fin-act-kpi-value { color: var(--fin-act-red); }
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-kpi--result.is-negative .fin-act-kpi-value { color: var(--fin-act-red); }
 
-#viewFinanceiro .fin-act-panel {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-panel {
   background: var(--fin-act-card);
   border: 1px solid var(--fin-act-line);
   border-radius: 16px;
@@ -130,7 +130,7 @@
   margin: 0 0 16px;
 }
 
-#viewFinanceiro .fin-act-panel h3 {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-panel h3 {
   margin: 0 0 12px;
   font-size: 0.95rem;
   letter-spacing: 0.04em;
@@ -138,20 +138,20 @@
   color: var(--fin-act-ink);
 }
 
-#viewFinanceiro .fin-act-flow-stats {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-flow-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin: 0 0 14px;
 }
 
-#viewFinanceiro .fin-act-flow-stat {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-flow-stat {
   background: var(--ag-surface-2);
   border-radius: 12px;
   padding: 12px;
 }
 
-#viewFinanceiro .fin-act-flow-stat span {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-flow-stat span {
   display: block;
   font-size: 0.75rem;
   color: var(--fin-act-muted);
@@ -159,18 +159,18 @@
   text-transform: uppercase;
 }
 
-#viewFinanceiro .fin-act-flow-stat strong {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-flow-stat strong {
   display: block;
   margin-top: 4px;
   font-size: 1.15rem;
 }
 
-#viewFinanceiro .fin-act-attention {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-attention {
   display: grid;
   gap: 10px;
 }
 
-#viewFinanceiro .fin-act-attention-item {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-attention-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -186,11 +186,11 @@
   font-weight: 700;
 }
 
-#viewFinanceiro .fin-act-attention-item:hover {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-attention-item:hover {
   border-color: #93c5fd;
 }
 
-#viewFinanceiro .fin-act-dot {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
@@ -199,23 +199,23 @@
   margin-right: 8px;
 }
 
-#viewFinanceiro .fin-act-dot--red { background: var(--fin-act-red); }
-#viewFinanceiro .fin-act-dot--amber { background: var(--fin-act-amber); }
-#viewFinanceiro .fin-act-dot--green { background: var(--fin-act-green); }
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-dot--red { background: var(--fin-act-red); }
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-dot--amber { background: var(--fin-act-amber); }
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-dot--green { background: var(--fin-act-green); }
 
-#viewFinanceiro .fin-act-chips {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin: 0 0 14px;
 }
 
-#viewFinanceiro .fin-act-launch-list {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-launch-list {
   display: grid;
   gap: 12px;
 }
 
-#viewFinanceiro .fin-act-launch {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-launch {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px 16px;
@@ -226,24 +226,24 @@
   padding: 16px;
 }
 
-#viewFinanceiro .fin-act-launch h4 {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-launch h4 {
   margin: 0 0 4px;
   font-size: 1.05rem;
 }
 
-#viewFinanceiro .fin-act-launch p {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-launch p {
   margin: 0;
   color: var(--fin-act-muted);
   font-size: 0.9rem;
 }
 
-#viewFinanceiro .fin-act-launch-amount {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-launch-amount {
   font-size: 1.25rem;
   font-weight: 800;
   text-align: right;
 }
 
-#viewFinanceiro .fin-act-status {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-status {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -253,27 +253,27 @@
   font-weight: 800;
 }
 
-#viewFinanceiro .fin-act-status--late {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-status--late {
   background: var(--fin-act-red-soft);
   color: var(--fin-act-red);
 }
 
-#viewFinanceiro .fin-act-status--soon {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-status--soon {
   background: var(--fin-act-amber-soft);
   color: var(--fin-act-amber);
 }
 
-#viewFinanceiro .fin-act-status--ok {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-status--ok {
   background: var(--fin-act-green-soft);
   color: var(--fin-act-green);
 }
 
-#viewFinanceiro .fin-act-status--open {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-status--open {
   background: var(--fin-act-blue-soft);
   color: var(--fin-act-blue);
 }
 
-#viewFinanceiro .fin-act-launch-actions {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-launch-actions {
   grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
@@ -281,48 +281,48 @@
   margin-top: 6px;
 }
 
-#viewFinanceiro .fin-act-launch-actions button {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-launch-actions button {
   min-height: 42px;
   border-radius: 10px;
   font-weight: 800;
 }
 
-#viewFinanceiro .finance-subview[data-finance-subview="receber"] .table-wrap {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subview[data-finance-subview="receber"] .table-wrap {
   display: none;
 }
 
-#viewFinanceiro .finance-subview[data-finance-subview="pagar"] .table-wrap {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subview[data-finance-subview="pagar"] .table-wrap {
   display: block;
 }
 
-#viewFinanceiro .finance-subview[data-finance-subview="pagar"] #finPagarCards,
-#viewFinanceiro .finance-subview[data-finance-subview="pagar"] #finPagarAlerts {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subview[data-finance-subview="pagar"] #finPagarCards,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subview[data-finance-subview="pagar"] #finPagarAlerts {
   display: none;
 }
 
-#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-caderneta-open .table-wrap {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subview[data-finance-subview="receber"].is-caderneta-open .table-wrap {
   display: block;
 }
 
-#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-caderneta-open #finReceberCards {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subview[data-finance-subview="receber"].is-caderneta-open #finReceberCards {
   display: none;
 }
 
-#viewFinanceiro .finance-subview[data-finance-subview="receber"]:not(.is-caderneta-open) .fin-batch-bar,
-#viewFinanceiro .finance-subview[data-finance-subview="receber"]:not(.is-caderneta-open) #finReceberSelectedSummary {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subview[data-finance-subview="receber"]:not(.is-caderneta-open) .fin-batch-bar,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subview[data-finance-subview="receber"]:not(.is-caderneta-open) #finReceberSelectedSummary {
   display: none;
 }
 
-#viewFinanceiro .fin-caderneta-bar {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-caderneta-bar {
   margin: 0 0 14px;
 }
 
-#viewFinanceiro .fin-caderneta-bar h3 {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-caderneta-bar h3 {
   margin: 12px 0 10px;
   font-size: 1.15rem;
 }
 
-#viewFinanceiro .fin-caderneta-search {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-caderneta-search {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -330,7 +330,7 @@
   margin: 0 0 12px;
 }
 
-#viewFinanceiro .fin-caderneta-search label {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-caderneta-search label {
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.03em;
@@ -338,7 +338,7 @@
   color: var(--fin-act-muted);
 }
 
-#viewFinanceiro .fin-caderneta-search input {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-caderneta-search input {
   width: 100%;
   min-height: 42px;
   border: 1px solid var(--fin-act-line);
@@ -351,21 +351,21 @@
   background: #fff;
 }
 
-#viewFinanceiro .fin-caderneta-kpis {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-caderneta-kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin: 0 0 8px;
 }
 
-#viewFinanceiro .fin-caderneta-kpi {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-caderneta-kpi {
   background: var(--ag-surface-2);
   border: 1px solid var(--fin-act-line);
   border-radius: 12px;
   padding: 12px;
 }
 
-#viewFinanceiro .fin-caderneta-kpi span {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-caderneta-kpi span {
   display: block;
   font-size: 0.75rem;
   font-weight: 700;
@@ -373,41 +373,41 @@
   color: var(--fin-act-muted);
 }
 
-#viewFinanceiro .fin-caderneta-kpi strong {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-caderneta-kpi strong {
   display: block;
   margin-top: 4px;
   font-size: 1.05rem;
 }
 
-#viewFinanceiro .fin-caderneta-card {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-caderneta-card {
   cursor: pointer;
 }
 
-#viewFinanceiro .fin-caderneta-card:hover,
-#viewFinanceiro .fin-caderneta-card:focus-within {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-caderneta-card:hover,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-caderneta-card:focus-within {
   border-color: #93c5fd;
 }
 
-#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-registro-open #finReceberCards,
-#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-registro-open .table-wrap,
-#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-registro-open #finReceberCadernetaBar,
-#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-registro-open .fin-batch-bar,
-#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-registro-open #finReceberSelectedSummary,
-#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-registro-open #finReceberBtnPrint,
-#viewFinanceiro .finance-subview[data-finance-subview="receber"].is-registro-open #finReceberBtnPdf {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subview[data-finance-subview="receber"].is-registro-open #finReceberCards,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subview[data-finance-subview="receber"].is-registro-open .table-wrap,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subview[data-finance-subview="receber"].is-registro-open #finReceberCadernetaBar,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subview[data-finance-subview="receber"].is-registro-open .fin-batch-bar,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subview[data-finance-subview="receber"].is-registro-open #finReceberSelectedSummary,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subview[data-finance-subview="receber"].is-registro-open #finReceberBtnPrint,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subview[data-finance-subview="receber"].is-registro-open #finReceberBtnPdf {
   display: none;
 }
 
-#viewFinanceiro .fin-placa-result-card {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-placa-result-card {
   cursor: pointer;
 }
 
-#viewFinanceiro .fin-placa-result-card:hover,
-#viewFinanceiro .fin-placa-result-card:focus-within {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-placa-result-card:hover,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-placa-result-card:focus-within {
   border-color: #93c5fd;
 }
 
-#viewFinanceiro .fin-receber-registro {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-receber-registro {
   background: #fff;
   border: 1px solid var(--fin-act-line);
   border-radius: 14px;
@@ -415,26 +415,26 @@
   margin: 0 0 16px;
 }
 
-#viewFinanceiro .fin-receber-registro-head h3 {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-receber-registro-head h3 {
   margin: 0 0 4px;
   font-size: 1.15rem;
 }
 
-#viewFinanceiro .fin-receber-registro-grid {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-receber-registro-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px 14px;
   margin: 14px 0 16px;
 }
 
-#viewFinanceiro .fin-receber-registro-field {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-receber-registro-field {
   background: var(--ag-surface-2);
   border: 1px solid var(--fin-act-line);
   border-radius: 12px;
   padding: 10px 12px;
 }
 
-#viewFinanceiro .fin-receber-registro-field span {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-receber-registro-field span {
   display: block;
   font-size: 0.72rem;
   font-weight: 700;
@@ -444,64 +444,64 @@
   margin-bottom: 4px;
 }
 
-#viewFinanceiro .fin-receber-registro-actions {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-receber-registro-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-#viewFinanceiro .fin-receber-registro-actions button {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-receber-registro-actions button {
   min-height: 42px;
   border-radius: 10px;
   font-weight: 800;
 }
 
 @media (max-width: 980px) {
-  #viewFinanceiro .fin-caderneta-search {
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-caderneta-search {
     max-width: none;
   }
 
-  #viewFinanceiro .fin-caderneta-kpis {
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-caderneta-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  #viewFinanceiro .fin-receber-registro-grid {
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-receber-registro-grid {
     grid-template-columns: 1fr;
   }
 }
 
-#viewFinanceiro .fin-act-table-wrap {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-table-wrap {
   overflow-x: auto;
 }
 
-#viewFinanceiro .fin-act-table {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-table {
   width: 100%;
   min-width: 0;
   border-collapse: collapse;
 }
 
-#viewFinanceiro .fin-act-table th,
-#viewFinanceiro .fin-act-table td {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-table th,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-table td {
   padding: 12px 10px;
   border-bottom: 1px solid var(--fin-act-line);
   text-align: left;
   font-size: 0.92rem;
 }
 
-#viewFinanceiro .fin-act-table th:nth-child(n + 2),
-#viewFinanceiro .fin-act-table td:nth-child(n + 2) {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-table th:nth-child(n + 2),
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-table td:nth-child(n + 2) {
   text-align: right;
 }
 
-#viewFinanceiro .fin-act-table tbody tr {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-table tbody tr {
   cursor: pointer;
 }
 
-#viewFinanceiro .fin-act-table tbody tr:hover {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-table tbody tr:hover {
   background: var(--ag-surface-2);
 }
 
-#viewFinanceiro .fin-act-empty {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-empty {
   margin: 0;
   padding: 18px;
   color: var(--fin-act-muted);
@@ -586,61 +586,61 @@
 }
 
 @media (max-width: 980px) {
-  #viewFinanceiro .fin-act-kpis {
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  #viewFinanceiro .fin-act-flow-stats {
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-flow-stats {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 640px) {
-  #viewFinanceiro .fin-act-kpis,
-  #viewFinanceiro .fin-act-launch {
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-kpis,
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-launch {
     grid-template-columns: 1fr;
   }
-  #viewFinanceiro .fin-act-launch-amount,
-  #viewFinanceiro .fin-act-table th:nth-child(n + 2),
-  #viewFinanceiro .fin-act-table td:nth-child(n + 2) {
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-launch-amount,
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-table th:nth-child(n + 2),
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-table td:nth-child(n + 2) {
     text-align: left;
   }
-  #viewFinanceiro .finance-subnav {
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subnav {
     overflow-x: auto;
     flex-wrap: nowrap;
   }
 }
 
-#viewFinanceiro .fin-act-pagehead {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-pagehead {
   align-items: flex-start;
   gap: 12px;
 }
 
-#viewFinanceiro .fin-act-subtitle {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-subtitle {
   margin: 4px 0 0;
   color: var(--fin-act-muted);
   font-size: 0.92rem;
 }
 
-#viewFinanceiro .fin-act-period-range {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-period-range {
   margin: 6px 0 0;
   font-weight: 800;
   font-size: 0.92rem;
   color: var(--fin-act-ink);
 }
 
-#viewFinanceiro .fin-act-head-actions {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-head-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
 
-#viewFinanceiro .fin-act-search-wrap {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-search-wrap {
   min-width: min(100%, 260px);
 }
 
-#viewFinanceiro .fin-act-search-wrap input,
-#viewFinanceiro #finLancamentosSearch {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-search-wrap input,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) #finLancamentosSearch {
   min-height: 42px;
   border-radius: 12px;
   border: 1px solid var(--fin-act-line);
@@ -648,7 +648,7 @@
   width: 100%;
 }
 
-#viewFinanceiro .fin-act-sr {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-sr {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -656,18 +656,18 @@
   clip: rect(0, 0, 0, 0);
 }
 
-#viewFinanceiro .finance-subnav {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subnav {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-#viewFinanceiro .finance-subnav button.active {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .finance-subnav button.active {
   background: var(--fin-act-blue);
   border-color: var(--fin-act-blue);
   color: #fff;
 }
 
-#viewFinanceiro .fin-act-home-head {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-home-head {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -675,26 +675,26 @@
   margin: 0 0 12px;
 }
 
-#viewFinanceiro .fin-act-home-head h2 {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-home-head h2 {
   margin: 0;
   font-size: 1.15rem;
 }
 
-#viewFinanceiro .fin-act-kpi-desc {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-kpi-desc {
   font-size: 0.8rem;
   color: var(--fin-act-muted);
   font-weight: 600;
 }
 
-#viewFinanceiro .fin-act-attention-grid,
-#viewFinanceiro .fin-act-report-grid {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-attention-grid,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-report-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
-#viewFinanceiro .fin-act-attention-card,
-#viewFinanceiro .fin-act-report {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-attention-card,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-report {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -708,32 +708,32 @@
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
-#viewFinanceiro .fin-act-report {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-report {
   cursor: default;
 }
 
-#viewFinanceiro .fin-act-attention-count {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-attention-count {
   font-size: 1.8rem;
   font-weight: 800;
   line-height: 1;
 }
 
-#viewFinanceiro .fin-act-attention-title {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-attention-title {
   font-weight: 800;
 }
 
-#viewFinanceiro .fin-act-attention-go {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-attention-go {
   margin-top: auto;
   color: var(--fin-act-blue);
   font-weight: 800;
   font-size: 0.86rem;
 }
 
-#viewFinanceiro .fin-act-attention-card--red .fin-act-attention-count { color: var(--fin-act-red); }
-#viewFinanceiro .fin-act-attention-card--amber .fin-act-attention-count { color: var(--fin-act-amber); }
-#viewFinanceiro .fin-act-attention-card--green .fin-act-attention-count { color: var(--fin-act-green); }
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-attention-card--red .fin-act-attention-count { color: var(--fin-act-red); }
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-attention-card--amber .fin-act-attention-count { color: var(--fin-act-amber); }
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-attention-card--green .fin-act-attention-count { color: var(--fin-act-green); }
 
-#viewFinanceiro .fin-act-section-head {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-section-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -741,11 +741,11 @@
   margin: 0 0 12px;
 }
 
-#viewFinanceiro .fin-act-section-head h3 {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-section-head h3 {
   margin: 0;
 }
 
-#viewFinanceiro .fin-act-linkish {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-linkish {
   border: 0;
   background: none;
   color: var(--fin-act-blue);
@@ -754,14 +754,14 @@
   padding: 0;
 }
 
-#viewFinanceiro .fin-act-history,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-history,
 #finActDetailModal .fin-act-history {
   margin: 0;
   padding-left: 18px;
   color: #475569;
 }
 
-#viewFinanceiro .fin-act-primary {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-primary {
   background: var(--fin-act-blue);
   color: #fff;
   border: 1px solid var(--fin-act-blue);
@@ -782,20 +782,20 @@
   text-align: right;
 }
 
-#viewFinanceiro .fin-act-fin-kpis {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-fin-kpis {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
   margin: 0 0 12px;
 }
 
-#viewFinanceiro .fin-act-fin-kpis div {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-fin-kpis div {
   background: var(--ag-surface-2);
   border-radius: 12px;
   padding: 10px;
 }
 
-#viewFinanceiro .fin-act-fin-kpis span {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-fin-kpis span {
   display: block;
   font-size: 0.72rem;
   color: var(--fin-act-muted);
@@ -804,14 +804,14 @@
 }
 
 @media (max-width: 980px) {
-  #viewFinanceiro .fin-act-attention-grid,
-  #viewFinanceiro .fin-act-report-grid,
-  #viewFinanceiro .fin-act-fin-kpis {
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-attention-grid,
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-report-grid,
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-fin-kpis {
     grid-template-columns: 1fr;
   }
 }
 
-#viewFinanceiro .fin-pix-form {
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-pix-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px 12px;
@@ -821,6 +821,6 @@
   border: 1px solid #e5e7eb;
   border-radius: 10px;
 }
-#viewFinanceiro .fin-pix-form .fin-pix-span { grid-column: 1 / -1; }
-#viewFinanceiro .fin-pix-form select[multiple] { width: 100%; min-height: 120px; }
-#viewFinanceiro .fin-pix-form button { justify-self: start; }
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-pix-form .fin-pix-span { grid-column: 1 / -1; }
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-pix-form select[multiple] { width: 100%; min-height: 120px; }
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-pix-form button { justify-self: start; }
