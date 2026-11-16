@@ -92,19 +92,98 @@
     return svc().saldoAposAbatimento(line.valor, line.abatimento);
   }
 
+  function statusRecebivel(r) {
+    if (typeof global.receivableFinanceStatus === "function") return String(global.receivableFinanceStatus(r) || "").toUpperCase();
+    return String(r?.status || "").trim().toUpperCase();
+  }
+
+  function ehPago(r) {
+    return ["PAGO", "RECEBIDO", "BAIXADO", "QUITADO"].includes(statusRecebivel(r));
+  }
+
+  function ehContaReceber(r) {
+    if (!r || ehPago(r)) return false;
+    if (typeof global.receivableIsContaReceberFinanceiro === "function") return !!global.receivableIsContaReceberFinanceiro(r);
+    return false;
+  }
+
+  function recebivelPorId(id) {
+    return (global.state?.receivables || []).find((r) => String(r.id) === String(id)) || null;
+  }
+
+  function veiculoDo(r) {
+    return (global.state?.vehicles || []).find((v) => String(v.id) === String(r?.vehicle_id)) || null;
+  }
+
+  function linhaDeRecebivel(r) {
+    const pronta = (svc()?.billableLines?.() || []).find((l) => l.receivableId === String(r.id));
+    if (pronta) return pronta;
+    const v = veiculoDo(r);
+    return {
+      receivableId: String(r.id),
+      vehicleId: r.vehicle_id ? String(r.vehicle_id) : "",
+      valor: Number(r.valor || 0),
+      abatimento: svc().abatimentoDoRecebivel(r.id),
+      placa: v?.placa || "",
+      veiculoNome: [v?.marca, v?.modelo].filter(Boolean).join(" ") || r.descricao || "Lançamento",
+      links: [],
+      servico: r.descricao || "",
+      entrada: r.period_start || r.created_at || "",
+      saida: r.period_end || r.updated_at || "",
+      receivable: r,
+    };
+  }
+
+  function nomeLinha(line) {
+    const peloVinculo = clienteDaLinha(line).nome;
+    if (peloVinculo !== "Sem cliente definido") return peloVinculo;
+    const r = line.receivable || recebivelPorId(line.receivableId);
+    const v = veiculoDo(r);
+    return r?.responsavel_pagamento || v?.responsavel || v?.cliente || peloVinculo;
+  }
+
+  function cabeNaBusca(line) {
+    const blob = `${line.placa} ${line.veiculoNome} ${nomeLinha(line)} ${line.receivableId}`.toLowerCase();
+    return !q || blob.includes(q.toLowerCase());
+  }
+
   function linhasAFaturar() {
     return (svc()?.billableLines?.() || []).filter((line) => {
+      const r = line.receivable || recebivelPorId(line.receivableId);
+      if (r && (ehContaReceber(r) || ehPago(r))) return false;
       if (saldoLinha(line) <= 0) return false;
       if (!noPeriodo(line.saida || line.entrada)) return false;
-      const blob = `${line.placa} ${line.veiculoNome} ${clienteDaLinha(line).nome}`.toLowerCase();
-      return !q || blob.includes(q.toLowerCase());
+      return cabeNaBusca(line);
     });
+  }
+
+  function linhasAReceber() {
+    const vistas = new Set();
+    const out = [];
+    for (const r of global.state?.receivables || []) {
+      if (!r?.id || !ehContaReceber(r)) continue;
+      if (svc().isReceivableInActiveCharge?.(r.id)) continue;
+      const line = linhaDeRecebivel(r);
+      if (saldoLinha(line) <= 0) continue;
+      if (!noPeriodo(line.saida || line.entrada || r.created_at)) continue;
+      if (!cabeNaBusca(line)) continue;
+      vistas.add(line.receivableId);
+      out.push(line);
+    }
+    return out;
+  }
+
+  function chaveGrupo(line) {
+    const cli = clienteDaLinha(line);
+    if (cli.key !== "sem") return cli;
+    const nome = nomeLinha(line);
+    return { key: `nome:${nome}`, nome };
   }
 
   function gruposAFaturar(linhas) {
     const map = new Map();
     for (const line of linhas) {
-      const cli = clienteDaLinha(line);
+      const cli = chaveGrupo(line);
       if (!map.has(cli.key)) map.set(cli.key, { ...cli, linhas: [] });
       map.get(cli.key).linhas.push(line);
     }
@@ -126,60 +205,114 @@
     return charges.filter((row) => {
       const st = String(row.status || "").toUpperCase();
       if (st === "HISTORICO") return false;
-      if (!(Number(row.valor_recebido || 0) > 0) && st !== "PAGO") return false;
-      if (!noPeriodo(row.data_geracao)) return false;
-      const ident = row.identificador || "";
+      if (st !== "PARCIAL" && !(Number(row.valor_recebido || 0) > 0)) return false;
+      if (st === "PAGO") return false;
+      if (!noPeriodo(row.data_vencimento || row.data_geracao)) return false;
+      const ident = row.identificador || `FAT-${String(row.numero_cobranca || 0).padStart(6, "0")}`;
       const blob = `${ident} ${row.parceiro_nome} ${row.busca_texto || ""}`.toLowerCase();
       return !q || blob.includes(q.toLowerCase());
     });
   }
 
   function recebidosAvulsos() {
-    const linhas = svc()?.billableLines?.() || [];
-    const porId = new Map(linhas.map((l) => [l.receivableId, l]));
-    const recs = global.state?.receivables || [];
     const out = [];
-    for (const r of recs) {
-      if (!r?.id || pagosReceivableIds.has(String(r.id))) continue;
-      const line = porId.get(String(r.id));
-      const recebido = line ? Number(line.abatimento || 0) : svc().abatimentoDoRecebivel(r.id);
-      if (!(recebido > 0)) continue;
-      const vehicle = (global.state?.vehicles || []).find((v) => String(v.id) === String(r.vehicle_id));
-      const placa = line?.placa || vehicle?.placa || "";
-      const nome = line ? clienteDaLinha(line).nome : vehicle?.responsavel || "Cliente";
-      const blob = `${placa} ${nome}`.toLowerCase();
-      if (q && !blob.includes(q.toLowerCase())) continue;
-      if (!noPeriodo(r.updated_at || r.created_at)) continue;
+    for (const r of global.state?.receivables || []) {
+      if (!r?.id) continue;
+      const line = linhaDeRecebivel(r);
+      const pago = ehPago(r);
+      const recebido = Number(line.abatimento || 0);
+      if (!pago && !(recebido > 0)) continue;
+      if (!noPeriodo(line.saida || line.entrada || r.updated_at || r.created_at)) continue;
+      if (!cabeNaBusca(line)) continue;
+      const total = Number(line.valor || 0);
       out.push({
         id: String(r.id),
-        placa: placa || line?.veiculoNome || "Veículo",
-        nome,
-        total: Number(r.valor || 0),
-        recebido,
-        saldo: svc().saldoAposAbatimento(r.valor, recebido),
-        pago: String(r.status || "").toUpperCase() === "PAGO" || recebido + 0.009 >= Number(r.valor || 0),
+        placa: line.placa || line.veiculoNome || "Lançamento",
+        nome: nomeLinha(line),
+        total,
+        recebido: pago ? Math.max(recebido, total) : recebido,
+        saldo: pago ? 0 : svc().saldoAposAbatimento(total, recebido),
+        pago,
       });
     }
     return out;
   }
 
-  function totais() {
-    const aFaturar = (svc()?.billableLines?.() || []).reduce((s, l) => s + saldoLinha(l), 0);
-    let aReceber = 0;
-    let recebido = 0;
-    for (const row of charges) {
-      const st = String(row.status || "").toUpperCase();
-      if (st === "HISTORICO") continue;
-      const snap = svc().paymentSnapshot(row.valor_total, row.valor_recebido || 0);
-      if (st === "PENDENTE" || st === "PARCIAL") {
-        aReceber += snap.saldo;
-        recebido += Number(row.valor_recebido || 0);
-      }
-    }
+  function linhasHistorico() {
+    const itens = [];
     for (const r of global.state?.receivables || []) {
-      if (r?.id) recebido += svc().abatimentoDoRecebivel(r.id);
+      if (!r?.id) continue;
+      const line = linhaDeRecebivel(r);
+      if (!noPeriodo(line.saida || line.entrada || r.created_at)) continue;
+      if (!cabeNaBusca(line)) continue;
+      const pago = ehPago(r);
+      const recebido = pago ? Math.max(Number(line.abatimento || 0), Number(line.valor || 0)) : Number(line.abatimento || 0);
+      itens.push({
+        tipo: "veiculo",
+        id: line.receivableId,
+        titulo: line.placa || line.veiculoNome || "Lançamento",
+        nome: nomeLinha(line),
+        total: Number(line.valor || 0),
+        recebido,
+        saldo: pago ? 0 : svc().saldoAposAbatimento(line.valor, line.abatimento),
+        situacao: pago ? "Recebido" : ehContaReceber(r) ? "A receber" : "A faturar",
+      });
     }
-    return { aFaturar: round(aFaturar), aReceber: round(aReceber), recebido: round(recebido) };
+    for (const row of charges) {
+      const ident = row.identificador || `FAT-${String(row.numero_cobranca || 0).padStart(6, "0")}`;
+      const blob = `${ident} ${row.parceiro_nome || ""} ${row.busca_texto || ""}`.toLowerCase();
+      if (q && !blob.includes(q.toLowerCase())) continue;
+      if (!noPeriodo(row.data_geracao || row.created_at)) continue;
+      const st = String(row.status || "HISTORICO").toUpperCase();
+      const snap = svc().paymentSnapshot(row.valor_total, row.valor_recebido || 0);
+      itens.push({
+        tipo: "fatura",
+        id: row.id,
+        titulo: ident,
+        nome: row.parceiro_nome || "Cliente",
+        total: Number(row.valor_total || 0),
+        recebido: Number(row.valor_recebido || 0),
+        saldo: st === "HISTORICO" ? 0 : snap.saldo,
+        situacao: st === "HISTORICO" ? "Fatura antiga" : svc().chargeStatusLabel(st),
+      });
+    }
+    for (const mov of global.state?.cash || []) {
+      if (mov?.conta_id && recebivelPorId(mov.conta_id)) continue;
+      const titulo = mov.descricao || "Movimento de caixa";
+      if (q && !String(titulo).toLowerCase().includes(q.toLowerCase())) continue;
+      if (!noPeriodo(mov.data_movimento || mov.created_at)) continue;
+      const entrada = ["RECEBER", "ENTRADA"].includes(String(mov.tipo_conta || "").toUpperCase());
+      itens.push({
+        tipo: "caixa",
+        id: mov.id,
+        titulo,
+        nome: entrada ? "Entrada" : "Saída",
+        total: Number(mov.valor || 0),
+        recebido: entrada ? Number(mov.valor || 0) : 0,
+        saldo: 0,
+        situacao: entrada ? "Recebido" : "Saída",
+      });
+    }
+    return itens;
+  }
+
+  function totais() {
+    const aFaturar = linhasAFaturar().reduce((s, l) => s + saldoLinha(l), 0);
+    let aReceber = linhasAReceber().reduce((s, l) => s + saldoLinha(l), 0);
+    for (const row of faturasAbertas()) {
+      aReceber += svc().paymentSnapshot(row.valor_total, row.valor_recebido || 0).saldo;
+    }
+    let recebido = 0;
+    for (const item of recebidosAvulsos()) {
+      recebido += item.pago ? Number(item.total || 0) : Number(item.recebido || 0);
+    }
+    for (const row of recebidos()) recebido += Number(row.valor_recebido || 0);
+    return {
+      aFaturar: round(aFaturar),
+      aReceber: round(aReceber),
+      recebido: round(recebido),
+      historico: (global.state?.receivables || []).length + charges.length,
+    };
   }
 
   function host() {
@@ -237,14 +370,19 @@
     const box = document.getElementById("caixaOpMetrics");
     if (!box) return;
     const t = totais();
-    const item = (id, nome, valor) =>
-      `<button type="button" class="cx-metric${filtro === id ? " is-on" : ""}" data-cx-filtro="${id}"><span>${nome}</span><strong>${esc(money(valor))}</strong></button>`;
-    box.innerHTML = item("a_faturar", "A faturar", t.aFaturar) + item("a_receber", "A receber", t.aReceber) + item("recebido", "Recebido", t.recebido);
+    const item = (id, nome, texto) =>
+      `<button type="button" class="cx-metric${filtro === id ? " is-on" : ""}" data-cx-filtro="${id}"><span>${nome}</span><strong>${esc(texto)}</strong></button>`;
+    box.innerHTML =
+      item("a_faturar", "A faturar", money(t.aFaturar)) +
+      item("a_receber", "A receber", money(t.aReceber)) +
+      item("recebido", "Recebido", money(t.recebido)) +
+      item("historico", "Histórico", `${t.historico} registros`);
   }
 
-  function linhaHtml(line, grupoNome) {
+  function linhaHtml(line, grupoNome, situacao) {
     const saldo = saldoLinha(line);
     const on = selected.has(line.receivableId) ? "checked" : "";
+    const tag = situacao || "A faturar";
     return `<div class="cx-row" data-cx-open="veiculo" data-cx-id="${esc(line.receivableId)}">
       <input class="cx-check" type="checkbox" data-cx-check="${esc(line.receivableId)}" ${on} aria-label="Selecionar ${esc(line.placa || "veículo")}" />
       <span class="cx-title">${esc(line.placa || line.veiculoNome || "Veículo")}</span>
@@ -252,7 +390,7 @@
       <span class="cx-num cx-hide-sm">${esc(money(line.valor))}</span>
       <span class="cx-num cx-hide-sm">${esc(money(line.abatimento || 0))}</span>
       <span class="cx-num cx-values">${esc(money(saldo))}</span>
-      <span class="cx-tag">A faturar</span>
+      <span class="cx-tag ${tag === "A receber" ? "receber" : ""}">${esc(tag)}</span>
     </div>`;
   }
 
@@ -277,13 +415,37 @@
   function pintarLista() {
     const box = document.getElementById("caixaOpLista");
     if (!box || !svc()) return;
-    if (filtro === "a_faturar") {
-      const grupos = gruposAFaturar(linhasAFaturar());
-      if (!grupos.length) {
-        box.innerHTML = `<p class="cx-empty">Nenhum valor pendente de cobrança.</p>`;
+    if (filtro === "historico") {
+      const itens = linhasHistorico();
+      if (!itens.length) {
+        box.innerHTML = `<p class="cx-empty">Nenhum registro financeiro neste período.</p>`;
         return;
       }
-      box.innerHTML = grupos
+      box.innerHTML = `<div class="cx-group">${itens
+        .map(
+          (item) => `<div class="cx-row" data-cx-open="${esc(item.tipo)}" data-cx-id="${esc(item.id)}">
+            <span></span>
+            <span class="cx-title">${esc(item.titulo)}</span>
+            <span class="cx-client">${esc(item.nome)}</span>
+            <span class="cx-num cx-hide-sm">${esc(money(item.total))}</span>
+            <span class="cx-num cx-hide-sm">${esc(money(item.recebido))}</span>
+            <span class="cx-num cx-values">${esc(money(item.saldo))}</span>
+            <span class="cx-tag ${item.situacao === "Recebido" ? "pago" : item.situacao === "A receber" ? "receber" : ""}">${esc(item.situacao)}</span>
+          </div>`
+        )
+        .join("")}</div>`;
+      return;
+    }
+    if (filtro === "a_faturar" || filtro === "a_receber") {
+      const linhas = filtro === "a_receber" ? linhasAReceber() : linhasAFaturar();
+      const grupos = gruposAFaturar(linhas);
+      const faturas = filtro === "a_receber" ? faturasAbertas() : [];
+      if (!grupos.length && !faturas.length) {
+        box.innerHTML = `<p class="cx-empty">${filtro === "a_receber" ? "Nenhuma cobrança em aberto." : "Nenhum valor pendente de cobrança."}</p>`;
+        return;
+      }
+      const tag = filtro === "a_receber" ? "A receber" : "A faturar";
+      const gruposHtml = grupos
         .map((g) => {
           const aberto = !collapsed.has(g.key);
           const total = g.linhas.reduce((s, l) => s + saldoLinha(l), 0);
@@ -297,15 +459,19 @@
               <span class="cx-num cx-hide-sm"></span>
               <span class="cx-num cx-hide-sm"></span>
               <strong class="cx-num cx-values">${esc(money(total))}</strong>
-              <span class="cx-tag">A faturar</span>
+              <span class="cx-tag ${tag === "A receber" ? "receber" : ""}">${tag}</span>
             </div>
-            ${aberto ? g.linhas.map((l) => linhaHtml(l, g.nome)).join("") : ""}
+            ${aberto ? g.linhas.map((l) => linhaHtml(l, g.nome, tag)).join("") : ""}
           </section>`;
         })
         .join("");
+      const faturasHtml = faturas.length
+        ? `<div class="cx-group">${faturas.map((row) => faturaHtml(row, "A receber", "receber")).join("")}</div>`
+        : "";
+      box.innerHTML = `${gruposHtml}${faturasHtml}`;
       return;
     }
-    const rows = filtro === "recebido" ? recebidos() : faturasAbertas();
+    const rows = filtro === "recebido" ? recebidos() : [];
     const avulsos = filtro === "recebido" ? recebidosAvulsos() : [];
     if (!rows.length && !avulsos.length) {
       box.innerHTML = `<p class="cx-empty">${filtro === "recebido" ? "Nenhum recebimento neste período." : "Nenhuma fatura em aberto."}</p>`;
@@ -338,7 +504,8 @@
 
   function selecionadosVeiculos() {
     const ids = new Set([...selected].filter((id) => !String(id).startsWith("fat:")));
-    return linhasAFaturar().filter((l) => ids.has(l.receivableId));
+    const pool = filtro === "a_receber" ? linhasAReceber() : linhasAFaturar();
+    return pool.filter((l) => ids.has(l.receivableId));
   }
 
   function selecionadasFaturas() {
@@ -385,7 +552,8 @@
     const group = e.target.closest("[data-cx-group]");
     if (group) {
       const key = group.getAttribute("data-cx-group");
-      const linhas = linhasAFaturar().filter((l) => clienteDaLinha(l).key === key);
+      const base = filtro === "a_receber" ? linhasAReceber() : linhasAFaturar();
+      const linhas = base.filter((l) => chaveGrupo(l).key === key);
       linhas.forEach((l) => (group.checked ? selected.add(l.receivableId) : selected.delete(l.receivableId)));
       pintarLista();
       pintarBarra();
@@ -419,7 +587,7 @@
       const tipo = open.getAttribute("data-cx-open");
       const id = open.getAttribute("data-cx-id");
       if (tipo === "veiculo") mostrarVeiculo(id);
-      else mostrarFatura(id);
+      else if (tipo === "fatura") mostrarFatura(id);
     }
   }
 
@@ -429,7 +597,8 @@
   }
 
   function mostrarVeiculo(id) {
-    const line = (svc().billableLines() || []).find((l) => l.receivableId === String(id));
+    const r = recebivelPorId(id);
+    const line = (svc().billableLines() || []).find((l) => l.receivableId === String(id)) || (r ? linhaDeRecebivel(r) : null);
     if (!line) return;
     fecharCamadas();
     const saldo = saldoLinha(line);
@@ -439,12 +608,12 @@
     aside.innerHTML = `<div class="cx-panel" role="dialog">
       <button type="button" class="cx-btn secondary" data-cx-fechar="1">Fechar</button>
       <h3>${esc(line.placa || line.veiculoNome)}</h3>
-      <p>${esc(clienteDaLinha(line).nome)} · ${esc(line.servico || "Guarda e custódia")}</p>
+      <p>${esc(nomeLinha(line))} · ${esc(line.servico || "Guarda e custódia")}</p>
       <div class="cx-dl">
         <div><span>Valor do serviço</span><strong>${esc(money(line.valor))}</strong></div>
         <div><span>Já recebido</span><strong>${esc(money(line.abatimento || 0))}</strong></div>
         <div><span>Saldo</span><strong>${esc(money(saldo))}</strong></div>
-        <div><span>Situação</span><strong>A faturar</strong></div>
+        <div><span>Situação</span><strong>${esc((() => { const rec = line.receivable || recebivelPorId(line.receivableId); if (rec && ehPago(rec)) return "Recebido"; if (rec && ehContaReceber(rec)) return "A receber"; return "A faturar"; })())}</strong></div>
       </div>
       <p>Período ${esc(svc().formatPeriodLabel(line.entrada, line.saida || svc().todayYmd()))}. A saída do pátio não quita este valor.</p>
     </div>`;
