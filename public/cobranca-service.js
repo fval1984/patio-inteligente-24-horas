@@ -94,10 +94,18 @@
     return set;
   }
 
+  let veiculosMapa = null;
+  let veiculosRef = null;
+
   function vehicleById(id) {
     if (!id) return null;
     const list = state().vehicles || [];
-    return list.find((v) => String(v.id) === String(id)) || null;
+    if (veiculosRef !== list) {
+      veiculosMapa = new Map();
+      for (const v of list) if (v?.id != null) veiculosMapa.set(String(v.id), v);
+      veiculosRef = list;
+    }
+    return veiculosMapa.get(String(id)) || null;
   }
 
   function partnerById(id) {
@@ -306,15 +314,27 @@
     return Math.round(v * 100) / 100;
   }
 
-  function abatimentoDoRecebivel(receivableId) {
-    let sum = 0;
-    for (const m of state().cash || []) {
-      if (String(m?.conta_id || "") !== String(receivableId || "")) continue;
-      const t = String(m.tipo_conta || "").toUpperCase();
+  let abatimentoPorConta = null;
+  let abatimentoCashRef = null;
+
+  function mapaAbatimento() {
+    const cash = state().cash || [];
+    if (abatimentoPorConta && abatimentoCashRef === cash) return abatimentoPorConta;
+    const map = new Map();
+    for (const m of cash) {
+      const t = String(m?.tipo_conta || "").toUpperCase();
       if (t !== "RECEBER" && t !== "ENTRADA") continue;
-      sum += Number(m.valor || 0);
+      const id = String(m?.conta_id || "");
+      if (!id) continue;
+      map.set(id, roundMoney((map.get(id) || 0) + Number(m.valor || 0)));
     }
-    return roundMoney(sum);
+    abatimentoPorConta = map;
+    abatimentoCashRef = cash;
+    return map;
+  }
+
+  function abatimentoDoRecebivel(receivableId) {
+    return mapaAbatimento().get(String(receivableId || "")) || 0;
   }
 
   function saldoAposAbatimento(valor, abatido) {
@@ -405,13 +425,30 @@
     return out;
   }
 
+  let linhasCache = null;
+
   function billableLines() {
+    const atual = state();
+    const recs = atual.receivables;
+    const cash = atual.cash;
+    const vehicles = atual.vehicles;
+    if (
+      linhasCache &&
+      linhasCache.recs === recs &&
+      linhasCache.cash === cash &&
+      linhasCache.vehicles === vehicles &&
+      linhasCache.blocked === blockedReceivableIds
+    ) {
+      return linhasCache.rows;
+    }
     const map = new Map();
     for (const line of openLines()) map.set(line.receivableId, line);
     for (const line of aguardandoLines()) {
       if (!map.has(line.receivableId)) map.set(line.receivableId, line);
     }
-    return [...map.values()];
+    const rows = [...map.values()];
+    linhasCache = { recs, cash, vehicles, blocked: blockedReceivableIds, rows };
+    return rows;
   }
 
   function clientCatalog() {
