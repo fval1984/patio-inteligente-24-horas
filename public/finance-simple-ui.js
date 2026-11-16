@@ -120,11 +120,11 @@
   }
 
   function stripMeta(text) {
-    const raw = String(text || "");
+    let raw = String(text || "");
     const mark = "[[finmeta:";
     const end = raw.lastIndexOf("]]");
-    if (raw.includes(mark) && end >= 0) return raw.slice(end + 2).trim();
-    return raw.trim();
+    if (raw.includes(mark) && end >= 0) raw = raw.slice(end + 2);
+    return raw.replace(/^\s*di[aá]rias\s*[—\-–:]\s*/i, "").replace(/\s+/g, " ").trim();
   }
 
   function monthLabel(ym) {
@@ -367,7 +367,8 @@
     const pay = !rec ? (global.state?.payables || []).find((p) => String(p.id) === String(mov?.conta_id || "")) : null;
     const vehicle = rec?.vehicle_id ? (global.state?.vehicles || []).find((v) => String(v.id) === String(rec.vehicle_id)) : null;
     const ident = rec && typeof global.financeReceivableDevedorIdentity === "function" ? global.financeReceivableDevedorIdentity(rec) : null;
-    const devedor = ident?.nome || pay?.fornecedor || stripMeta(mov?.descricao) || "—";
+    const veiculoTxt = [vehicle?.placa, [vehicle?.marca, vehicle?.modelo].filter(Boolean).join(" ")].filter(Boolean).join(" • ");
+    const devedor = ident?.nome || pay?.fornecedor || (vehicle ? veiculoTxt : "") || stripMeta(mov?.descricao) || "—";
     const placa = vehicle?.placa || "—";
     const rpp = rec && typeof global.financeReceberRppNome === "function" ? global.financeReceberRppNome(rec, vehicle) : "—";
     const rpv = vehicle && typeof global.financeVehicleRpvNome === "function" ? global.financeVehicleRpvNome(vehicle) : "—";
@@ -457,9 +458,9 @@
               ? formatDate(mov.data_movimento || mov.created_at)
               : String(mov.data_movimento || "").slice(0, 10);
           const desc =
-            typeof financeStripFinmeta === "function"
-              ? financeStripFinmeta(mov.descricao || "")
-              : String(mov.descricao || "—");
+            typeof financeDescricaoMovimentoVisivel === "function"
+              ? financeDescricaoMovimentoVisivel(mov) || stripMeta(mov.descricao || "")
+              : stripMeta(mov.descricao || "");
           return `<tr>
             <td data-label="Data">${esc(data || "—")}</td>
             <td data-label="Descrição">${esc(desc || "—")}</td>
