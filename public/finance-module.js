@@ -357,19 +357,52 @@
     return financeNormalizeQuemPagouText(mov?.descricao);
   }
 
+  function financeRotuloVeiculo(v) {
+    if (!v) return "";
+    const placa = String(v.placa || "").trim();
+    const nome = [v.marca, v.modelo].filter(Boolean).join(" ").trim();
+    if (placa && nome) return `${placa} • ${nome}`;
+    return placa || nome;
+  }
+
+  function financeDescricaoLimpa(texto) {
+    let s = financeTextAfterFinmeta(texto);
+    s = String(s || "")
+      .replace(/\[\[finmeta:[\s\S]*?\]\]/g, " ")
+      .replace(/^\s*di[aá]rias\s*[—\-–:]\s*/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!s || s.includes(FINANCE_META_PREFIX_LOCAL) || s.startsWith("{")) return "";
+    return s;
+  }
+
+  /** Texto de tela. Não grava nem remove o [[finmeta]] do banco. */
+  function financeDescricaoMovimentoVisivel(mov) {
+    if (!mov) return "";
+    const rec = typeof financeFindReceivableForMov === "function" ? financeFindReceivableForMov(mov) : null;
+    const v = rec?.vehicle_id ? financeVehicleById().get(rec.vehicle_id) : null;
+    const rotulo = financeRotuloVeiculo(v);
+    const limpo = financeDescricaoLimpa(mov.descricao);
+    if (rotulo && (v?.marca || v?.modelo)) return rotulo;
+    if (limpo) return limpo;
+    if (rotulo) return rotulo;
+    if (!rec && mov.conta_id) {
+      const pay = (state.payables || []).find((p) => String(p.id) === String(mov.conta_id));
+      const despesa = financeDescricaoLimpa(pay?.descricao || "");
+      if (despesa) return despesa;
+    }
+    return "";
+  }
+
   /** Caixa — coluna Descrição (texto digitado, não quem pagou). */
   function financeCaixaDescricaoEntrada(mov, rec) {
     rec = rec || financeFindReceivableForMov(mov);
     if (rec && financeIsManualReceivable(rec)) {
       const t = financeReceivableTypedFields(rec);
-      if (t.descricao && t.descricao !== "—") return t.descricao;
-      return financeDisplaySafeText(mov?.descricao) || "—";
+      if (t.descricao && t.descricao !== "—") return financeDescricaoLimpa(t.descricao) || t.descricao;
+      return financeDescricaoLimpa(mov?.descricao) || "—";
     }
-    const v = rec?.vehicle_id ? financeVehicleById().get(rec.vehicle_id) : null;
-    const desc = financeDisplaySafeText(mov?.descricao);
-    if (desc && desc !== "—") return desc;
-    if (v?.placa) return `Diárias — ${v.placa}`;
-    return "—";
+    return financeDescricaoMovimentoVisivel({ ...mov, conta_id: mov?.conta_id || rec?.id }) || "—";
   }
 
 
@@ -4567,7 +4600,7 @@
     const entrada = mov ? financeCashIsEntrada(mov) : !!rec;
     const desc = entrada
       ? financeCaixaDescricaoEntrada(mov, rec)
-      : financeStripFinmeta(mov?.descricao || pay?.descricao || pay?.fornecedor || "—");
+      : financeDescricaoMovimentoVisivel(mov) || financeDescricaoLimpa(pay?.descricao || pay?.fornecedor || "") || "—";
     const origem = mov ? financeCaixaOrigemLabel(mov, rec, pay) : "—";
     const valor = mov ? financeCashMovValor(mov) : Number(rec?.valor || pay?.valor || 0);
     const data = mov ? financeCaixaMovCompetenciaYmd(mov) : financeContaDueYmd(rec || pay, rec ? "receivable" : "payable");
@@ -4654,7 +4687,9 @@
         : null;
       const pay = !isEntrada ? (state.payables || []).find((p) => String(p.id) === String(mov.conta_id)) : null;
       const vehicle = rec ? financeVehicleById().get(rec.vehicle_id) : null;
-      const desc = isEntrada ? financeCaixaDescricaoEntrada(mov, rec) : financeStripFinmeta(mov.descricao || "");
+      const desc = isEntrada
+        ? financeCaixaDescricaoEntrada(mov, rec)
+        : financeDescricaoMovimentoVisivel(mov) || financeDescricaoLimpa(mov.descricao || "");
       return financeCaixaMovMatchesBusca(mov, rec, pay, vehicle, desc, financeCaixaOrigemLabel(mov, rec, pay));
     });
     if (!movs.length) {
@@ -4701,18 +4736,18 @@
           }
         } else {
           pagante = financeCashPaganteLabel(mov, rec, pay, v);
-          descText = financeStripFinmeta(mov.descricao || pay?.descricao || pay?.fornecedor || "—");
-          if (pay && typeof financeMetaUnpack === "function" && typeof financePayableMetaText === "function") {
-            const { text } = financeMetaUnpack(financePayableMetaText(pay));
-            if (text) descText = financeStripFinmeta(text);
-          }
+          descText = financeDescricaoMovimentoVisivel(mov) || financeDescricaoLimpa(pay?.fornecedor || "") || "—";
         }
         pagante = financeDisplaySafeText(pagante);
         descText = financeDisplaySafeText(descText);
         if (financeLooksLikeMetaNoise(pagante)) pagante = financeNormalizeQuemPagouText(mov?.descricao || rec?.responsavel_pagamento);
         if (financeLooksLikeMetaNoise(descText)) descText = pagante;
         const origem = financeCaixaOrigemLabel(mov, rec, pay);
-        const desc = auditBadge + escapeHtml(descText) + (v?.placa ? `<br /><span class="notice">${escapeHtml(v.placa)}</span>` : "");
+        const placaExtra =
+          v?.placa && !String(descText || "").toUpperCase().includes(String(v.placa).toUpperCase())
+            ? `<br /><span class="notice">${escapeHtml(v.placa)}</span>`
+            : "";
+        const desc = auditBadge + escapeHtml(descText) + placaExtra;
         const dataComp = financeCaixaMovCompetenciaYmd(mov);
         const movId = escapeHtml(String(mov.id || ""));
         const pagamentoConfirmado = isEntrada && rec && Number(mov.valor || rec.valor || 0) > 0;
@@ -4774,13 +4809,14 @@
   }
 
   function financeCaixaDescricaoEditavel(mov) {
-    const text = financeDisplaySafeText(mov?.descricao || "");
-    return text === "—" ? "" : text;
+    const text = financeDescricaoLimpa(mov?.descricao || "");
+    return text || "";
   }
 
   function financeCaixaDescricaoAtualizada(mov, texto) {
     const raw = String(mov?.descricao || "");
     const clean = String(texto || "").trim();
+    if (clean === financeDescricaoLimpa(raw)) return raw;
     if (raw.startsWith(FINANCE_META_PREFIX_LOCAL)) {
       const end = raw.indexOf("]]");
       if (end > 0) return `${raw.slice(0, end + 2)}${clean ? ` ${clean}` : ""}`;
@@ -6785,7 +6821,7 @@
           formatDate(mov.data_movimento || mov.created_at) || "—",
           financeCashIsEntrada(mov) ? "Entrada" : "Saída",
           formatCurrency(financeCashMovValor(mov)),
-          financeStripFinmeta(mov.descricao || ""),
+          financeDescricaoMovimentoVisivel(mov) || financeDescricaoLimpa(mov.descricao || ""),
         ]),
       recebimentos: () =>
         financeReceivablePaidList().map((r) => {
@@ -8366,6 +8402,7 @@
     finReceberCadernetaKey = "";
     finReceberRegistroId = "";
   };
+  window.financeDescricaoMovimentoVisivel = financeDescricaoMovimentoVisivel;
   window.financeCaixaMovCompetenciaYmd = financeCaixaMovCompetenciaYmd;
   window.financeReceivableCashCompetenciaYmd = financeReceivableCashCompetenciaYmd;
   window.financePayableCashCompetenciaYmd = financePayableCashCompetenciaYmd;
