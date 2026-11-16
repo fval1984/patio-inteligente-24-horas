@@ -35,7 +35,7 @@ html[data-theme="dark"] .cx {
 
 .cx-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   margin: 0 0 14px;
 }
@@ -350,7 +350,7 @@ html[data-theme="dark"] .cx-btn {
 
 @media (max-width: 800px) {
   .cx-metrics {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
   .cx-group-head,
   .cx-row {
