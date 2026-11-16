@@ -7,7 +7,8 @@
 
   const TELAS = new Set(["aguardando", "cobrancas", "caixa", "receber", "em_patio", "dashboard"]);
   let ativo = false;
-  let filtro = "a_faturar";
+  let filtro = "entradas";
+  let tipoMov = "";
   let q = "";
   let de = "";
   let ate = "";
@@ -404,6 +405,7 @@
         <label>Busca<input id="caixaOpBusca" type="search" placeholder="Placa, cliente ou fatura" /></label>
         <label>De<input id="caixaOpDe" type="date" /></label>
         <label>Até<input id="caixaOpAte" type="date" /></label>
+        <label>Tipo<select id="caixaOpTipo"><option value="">Todos</option><option value="entrada">Entradas</option><option value="saida">Saídas</option></select></label>
         <button type="button" class="cx-btn" id="caixaOpNova">Nova cobrança</button>
       </div>
       <div id="caixaOpLista"></div>
@@ -424,27 +426,140 @@
     if (e.target.id === "caixaOpBusca") q = e.target.value || "";
     if (e.target.id === "caixaOpDe") de = e.target.value || "";
     if (e.target.id === "caixaOpAte") ate = e.target.value || "";
+    if (e.target.id === "caixaOpTipo") tipoMov = e.target.value || "";
     pintarLista();
     pintarBarra();
   }
 
   function pintar() {
     pintarTotais();
+    const nova = document.getElementById("caixaOpNova");
+    if (nova) {
+      nova.hidden = filtro === "caixa";
+      nova.textContent = filtro === "saidas" ? "Nova despesa" : "Nova cobrança";
+    }
     pintarLista();
     pintarBarra();
+  }
+
+  function movimentosCaixa() {
+    const bruto = global.state?.cash || [];
+    const lista = typeof global.financeDedupeCaixaMovs === "function" ? global.financeDedupeCaixaMovs(bruto) : bruto;
+    return (lista || []).filter((mov) => mov && mov.excluir_do_saldo !== true);
+  }
+
+  function movimentoEhEntrada(mov) {
+    if (typeof global.financeCashIsEntrada === "function") return global.financeCashIsEntrada(mov);
+    const t = String(mov?.tipo_conta || "").toUpperCase();
+    return t === "RECEBER" || t === "ENTRADA";
+  }
+
+  function movimentoEhSaida(mov) {
+    if (typeof global.financeCashIsSaida === "function") return global.financeCashIsSaida(mov);
+    const t = String(mov?.tipo_conta || "").toUpperCase();
+    return t === "PAGAR" || t === "SAIDA" || t === "DESPESA";
+  }
+
+  function entradasPendentes() {
+    const itens = [];
+    const vistos = new Set();
+    const marcar = (ids) => ids.forEach((id) => id && vistos.add(String(id)));
+    for (const row of faturasAbertas()) {
+      const snap = svc().paymentSnapshot(row.valor_total, row.valor_recebido || 0);
+      itens.push({
+        tipo: "fatura",
+        id: row.id,
+        titulo: row.identificador || `FAT-${String(row.numero_cobranca || 0).padStart(6, "0")}`,
+        cliente: row.parceiro_nome || "Cliente",
+        data: row.data_geracao,
+        venc: row.data_vencimento,
+        valor: Number(row.valor_total || 0),
+        saldo: snap.saldo,
+        situacao: Number(row.valor_recebido || 0) > 0 ? "Parcial" : "Faturado",
+      });
+      marcar((itensPorCobranca.get(String(row.id)) || []).map((item) => item.receivable_id));
+    }
+    for (const fat of faturasAntigasEmAberto()) {
+      itens.push({
+        tipo: "fatura",
+        id: fat.row.id,
+        titulo: fat.row.identificador || `FAT-${String(fat.row.numero_cobranca || 0).padStart(6, "0")}`,
+        cliente: fat.row.parceiro_nome || "Cliente",
+        data: fat.row.data_geracao,
+        venc: fat.row.data_vencimento,
+        valor: Number(fat.row.valor_total || fat.saldo),
+        saldo: fat.saldo,
+        situacao: "Faturado",
+      });
+      marcar(fat.ids);
+    }
+    for (const line of linhasAReceber()) {
+      if (vistos.has(String(line.receivableId))) continue;
+      const r = line.receivable || recebivelPorId(line.receivableId);
+      itens.push({
+        tipo: "veiculo",
+        id: line.receivableId,
+        titulo: line.placa || line.veiculoNome || "Entrada",
+        cliente: r?.cobranca_destinatario_nome || nomeLinha(line),
+        data: r?.faturado_em || r?.contas_receber_em || line.saida || line.entrada,
+        venc: (typeof global.financeContaDueYmd === "function" ? global.financeContaDueYmd(r, "receivable") : "") || r?.data_vencimento || "",
+        valor: Number(line.valor || 0),
+        saldo: Number(line.valor || 0),
+        situacao: "Faturado",
+      });
+    }
+    for (const line of linhasAFaturar()) {
+      if (vistos.has(String(line.receivableId))) continue;
+      const r = line.receivable || recebivelPorId(line.receivableId);
+      itens.push({
+        tipo: "veiculo",
+        id: line.receivableId,
+        titulo: line.placa || line.veiculoNome || "Entrada",
+        cliente: nomeLinha(line),
+        data: line.saida || line.entrada,
+        venc: r?.data_vencimento || "",
+        valor: Number(line.valor || 0),
+        saldo: saldoLinha(line),
+        situacao: "Pendente",
+      });
+    }
+    return itens.filter((item) => {
+      if (!passaPeriodo(item.data || item.venc)) return false;
+      const blob = `${item.titulo} ${item.cliente} ${item.situacao}`.toLowerCase();
+      return !q || blob.includes(q.toLowerCase());
+    });
+  }
+
+  function saidasPendentes() {
+    return (global.state?.payables || []).filter((p) => {
+      if (!p?.id) return false;
+      if (String(p.status || "").toUpperCase() === "PAGO") return false;
+      if (!(Number(p.valor || 0) > 0)) return false;
+      if (!passaPeriodo(p.data_vencimento || p.created_at)) return false;
+      const blob = `${p.descricao || ""} ${p.categoria || ""} ${p.fornecedor || ""} ${p.favorecido || ""}`.toLowerCase();
+      return !q || blob.includes(q.toLowerCase());
+    });
+  }
+
+  function saldoCaixa() {
+    let saldo = 0;
+    for (const mov of movimentosCaixa()) {
+      const valor = Number(mov.valor || 0);
+      if (movimentoEhSaida(mov)) saldo -= valor;
+      else if (movimentoEhEntrada(mov)) saldo += valor;
+    }
+    return round(saldo);
   }
 
   function pintarTotais() {
     const box = document.getElementById("caixaOpMetrics");
     if (!box) return;
-    const t = totais();
     const item = (id, nome, texto) =>
       `<button type="button" class="cx-metric${filtro === id ? " is-on" : ""}" data-cx-filtro="${id}"><span>${nome}</span><strong>${esc(texto)}</strong></button>`;
     box.innerHTML =
-      item("a_faturar", "A faturar", money(t.aFaturar)) +
-      item("a_receber", "A receber", money(t.aReceber)) +
-      item("recebido", "Recebido", money(t.recebido)) +
-      item("historico", "Histórico", `${t.historico} registros`);
+      item("entradas", "Entradas", money(entradasPendentes().reduce((s, item) => s + Number(item.saldo || 0), 0))) +
+      item("saidas", "Saídas", money(saidasPendentes().reduce((s, p) => s + Number(p.valor || 0), 0))) +
+      item("caixa", "Caixa", money(saldoCaixa()));
   }
 
   function linhaHtml(line, grupoNome, situacao) {
@@ -531,9 +646,74 @@
     </div>`;
   }
 
+  function linhaMovimentoHtml(item) {
+    return `<div class="cx-row" data-cx-open="${esc(item.tipo)}" data-cx-id="${esc(item.id)}">
+      <span></span>
+      <span class="cx-title">${esc(item.titulo)}</span>
+      <span class="cx-client">${esc(item.cliente)}<br><small>${esc(dataCurta(item.data))} · Venc. ${esc(dataCurta(item.venc))}</small></span>
+      <span class="cx-num cx-hide-sm">${esc(money(item.valor))}</span>
+      <span class="cx-num cx-hide-sm">${esc(money(Number(item.valor || 0) - Number(item.saldo || 0)))}</span>
+      <span class="cx-num cx-values">${esc(money(item.saldo))}</span>
+      <span class="cx-tag ${item.situacao === "Pendente" ? "" : "receber"}">${esc(item.situacao)}</span>
+    </div>`;
+  }
+
   function pintarLista() {
     const box = document.getElementById("caixaOpLista");
     if (!box || !svc()) return;
+    if (filtro === "entradas") {
+      const itens = entradasPendentes();
+      box.innerHTML = itens.length
+        ? `<div class="cx-group"><div class="cx-group-head"><span></span><span>Placa / fatura</span><span>Cliente</span><span class="cx-num cx-hide-sm">Valor</span><span class="cx-num cx-hide-sm">Recebido</span><span class="cx-num">Saldo</span><span></span></div>${itens.map(linhaMovimentoHtml).join("")}</div>`
+        : `<p class="cx-empty">Nenhuma entrada pendente.</p>`;
+      return;
+    }
+    if (filtro === "saidas") {
+      const itens = saidasPendentes();
+      box.innerHTML = itens.length
+        ? `<div class="cx-group">${itens
+            .map(
+              (p) => `<div class="cx-row">
+                <span></span>
+                <span class="cx-title">${esc(p.descricao || "Despesa")}<br><small>${esc(p.categoria || "Outras")}</small></span>
+                <span class="cx-client">${esc(p.fornecedor || p.favorecido || "—")}<br><small>${esc(dataCurta(p.created_at))} · Venc. ${esc(dataCurta(p.data_vencimento))}</small></span>
+                <span class="cx-num cx-hide-sm">${esc(money(p.valor))}</span>
+                <span class="cx-num cx-hide-sm">${esc(p.observacoes || "")}</span>
+                <span class="cx-num cx-values">${esc(money(p.valor))}</span>
+                <button type="button" class="cx-btn" data-cx-pagar="${esc(p.id)}">Pagar</button>
+              </div>`
+            )
+            .join("")}</div>`
+        : `<p class="cx-empty">Nenhuma despesa pendente.</p>`;
+      return;
+    }
+    if (filtro === "caixa") {
+      const movs = movimentosCaixa().filter((mov) => {
+        if (!passaPeriodo(mov.data_movimento || mov.created_at)) return false;
+        if (tipoMov === "entrada" && !movimentoEhEntrada(mov)) return false;
+        if (tipoMov === "saida" && !movimentoEhSaida(mov)) return false;
+        const blob = `${mov.descricao || ""} ${mov.forma_pagamento || ""} ${mov.categoria || ""}`.toLowerCase();
+        return !q || blob.includes(q.toLowerCase());
+      });
+      const entradas = movs.filter(movimentoEhEntrada).reduce((s, m) => s + Number(m.valor || 0), 0);
+      const saidas = movs.filter(movimentoEhSaida).reduce((s, m) => s + Number(m.valor || 0), 0);
+      const corpo = movs
+        .map((mov) => {
+          const entrada = movimentoEhEntrada(mov);
+          return `<div class="cx-row" data-cx-open="caixa" data-cx-id="${esc(mov.id)}">
+            <span></span>
+            <span class="cx-title">${esc(mov.descricao || (entrada ? "Entrada" : "Saída"))}</span>
+            <span class="cx-client">${esc(dataCurta(mov.data_movimento || mov.created_at))} · ${esc(mov.forma_pagamento || "")}</span>
+            <span class="cx-num cx-hide-sm">${entrada ? esc(money(mov.valor)) : ""}</span>
+            <span class="cx-num cx-hide-sm">${entrada ? "" : esc(money(mov.valor))}</span>
+            <span class="cx-num cx-values">${esc(money(entrada ? mov.valor : -Number(mov.valor || 0)))}</span>
+            <span class="cx-tag ${entrada ? "pago" : "receber"}">${entrada ? "Entrada" : "Saída"}</span>
+          </div>`;
+        })
+        .join("");
+      box.innerHTML = `<p class="cx-total">Saldo das movimentações confirmadas: ${esc(money(entradas - saidas))}</p><div class="cx-group"><div class="cx-group-head"><span></span><span>Movimento</span><span>Data</span><span class="cx-num cx-hide-sm">Entrada</span><span class="cx-num cx-hide-sm">Saída</span><span class="cx-num">Valor</span><span></span></div>${corpo || `<p class="cx-empty">Nenhuma movimentação confirmada neste período.</p>`}</div>`;
+      return;
+    }
     if (filtro === "historico") {
       const itens = linhasHistorico();
       if (!itens.length) {
@@ -703,7 +883,17 @@
       pintar();
       return;
     }
-    if (e.target.closest("#caixaOpNova") || e.target.closest("[data-cx-acao='cobrar']")) {
+    const pagar = e.target.closest("[data-cx-pagar]");
+    if (pagar) {
+      confirmarSaida(pagar.getAttribute("data-cx-pagar"));
+      return;
+    }
+    if (e.target.closest("#caixaOpNova")) {
+      if (filtro === "saidas") abrirDespesa();
+      else abrirCobranca();
+      return;
+    }
+    if (e.target.closest("[data-cx-acao='cobrar']")) {
       abrirCobranca();
       return;
     }
@@ -1052,6 +1242,146 @@
     }
   }
 
+  function abrirDespesa() {
+    const modal = document.getElementById("caixaOpModal");
+    modal.innerHTML = `<div class="cx-modal-back"><form class="cx-dialog" id="caixaOpFormDespesa">
+      <h3>Nova despesa</h3>
+      <div class="cx-form">
+        <label>Descrição<input id="cxDespDesc" required /></label>
+        <label>Categoria<select id="cxDespCat"><option>Aluguel</option><option>Salários</option><option>Água</option><option>Energia</option><option>Manutenção</option><option>Fornecedores</option><option>Impostos</option><option>Outras</option></select></label>
+        <label>Favorecido<input id="cxDespFav" /></label>
+        <label>Valor<input id="cxDespValor" type="number" min="0.01" step="0.01" required /></label>
+        <label>Data<input id="cxDespData" type="date" value="${esc(today())}" required /></label>
+        <label>Vencimento<input id="cxDespVenc" type="date" value="${esc(today())}" required /></label>
+        <label class="full">Observações<input id="cxDespObs" /></label>
+        <label class="full"><input id="cxDespRec" type="checkbox" /> Repetir todo mês</label>
+      </div>
+      <button type="submit" class="cx-btn">Salvar despesa</button>
+    </form></div>`;
+    document.getElementById("caixaOpFormDespesa").addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      salvarDespesa();
+    });
+  }
+
+  async function salvarDespesa() {
+    if (typeof global.insertManualPayableLancamento !== "function") {
+      alert("Não foi possível gravar a despesa.");
+      return;
+    }
+    const recorrente = !!document.getElementById("cxDespRec")?.checked;
+    let res;
+    try {
+      res = await global.insertManualPayableLancamento({
+      descricao: document.getElementById("cxDespDesc")?.value?.trim(),
+      categoria: document.getElementById("cxDespCat")?.value || "Outras",
+      fornecedor: document.getElementById("cxDespFav")?.value?.trim() || "",
+      valor: Number(document.getElementById("cxDespValor")?.value || 0),
+      vencimento: document.getElementById("cxDespVenc")?.value || today(),
+      dataInicio: document.getElementById("cxDespData")?.value || today(),
+      dataFim: recorrente ? document.getElementById("cxDespData")?.value || today() : "",
+      observacoes: document.getElementById("cxDespObs")?.value?.trim() || "",
+      modo: recorrente ? "RECORRENTE" : "UNICA",
+      pago: false,
+      lancarNoCaixa: false,
+    });
+    } catch (err) {
+      alert(err.message || "Não foi possível gravar a despesa.");
+      return;
+    }
+    if (res?.error || (!res?.id && !(res?.ids || []).length)) {
+      alert(res?.error?.message || "Não foi possível gravar a despesa.");
+      return;
+    }
+    fecharCamadas();
+    if (typeof global.loadPayables === "function") await global.loadPayables();
+    pintar();
+  }
+
+  async function confirmarSaida(id) {
+    if (typeof global.finalizePayablePayment !== "function") {
+      alert("Não foi possível confirmar o pagamento.");
+      return;
+    }
+    const ok = await global.finalizePayablePayment(id, { dataMovimento: today() });
+    if (!ok) return;
+    if (typeof global.loadPayables === "function") await global.loadPayables();
+    if (typeof global.loadCash === "function") await global.loadCash();
+    pintar();
+  }
+
+  function maisDias(ymd, dias) {
+    const base = new Date(`${ymd || today()}T12:00:00`);
+    base.setDate(base.getDate() + dias);
+    return `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(base.getDate()).padStart(2, "0")}`;
+  }
+
+  function aposLiberacao(vehicleId) {
+    const linhas = (svc()?.billableLines?.() || []).filter((l) => String(l.vehicleId) === String(vehicleId) && saldoLinha(l) > 0);
+    if (!linhas.length) return;
+    const total = linhas.reduce((s, l) => s + Number(l.valor || 0), 0);
+    const abatido = linhas.reduce((s, l) => s + Number(l.abatimento || 0), 0);
+    const saldo = Math.max(0, total - abatido);
+    const catalog = svc().clientCatalog();
+    const modal = document.getElementById("caixaOpModal") || document.body.appendChild(document.createElement("div"));
+    modal.id = "caixaOpModal";
+    modal.innerHTML = `<div class="cx-modal-back"><form class="cx-dialog" id="caixaOpFormLibera">
+      <h3>Entrada da liberação</h3>
+      <p>${esc(linhas.map((l) => l.placa || "veículo").join(", "))}</p>
+      <div class="cx-dl">
+        <div><span>Valor</span><strong>${esc(money(total))}</strong></div>
+        <div><span>Já recebido</span><strong>${esc(money(abatido))}</strong></div>
+        <div><span>Saldo</span><strong>${esc(money(saldo))}</strong></div>
+      </div>
+      <div class="cx-form">
+        <label class="full">Responsável<select id="cxLibCliente"><option value="">Novo cliente</option>${catalog.map((c) => `<option value="${esc(c.nome)}">${esc(c.nome)}</option>`).join("")}</select></label>
+        <label class="full">Nome<input id="cxLibNome" placeholder="Se for um cliente novo" /></label>
+        <label><input type="radio" name="cxLibModo" value="vista" checked /> À vista</label>
+        <label><input type="radio" name="cxLibModo" value="faturado" /> Faturado</label>
+      </div>
+      <button type="submit" class="cx-btn">Confirmar entrada</button>
+    </form></div>`;
+    document.getElementById("caixaOpFormLibera").addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      concluirLiberacao(linhas, saldo);
+    });
+  }
+
+  async function concluirLiberacao(linhas, saldo) {
+    const modo = document.querySelector('input[name="cxLibModo"]:checked')?.value || "vista";
+    const nome = document.getElementById("cxLibCliente")?.value || document.getElementById("cxLibNome")?.value?.trim() || "";
+    const db = supabase();
+    const user = uid();
+    if (modo === "faturado") {
+      const venc = maisDias(today(), 15);
+      for (const line of linhas) {
+        if (!db || !user) break;
+        await db.from("receivables").update({ data_vencimento: venc, cobranca_destinatario_nome: nome || null }).eq("id", line.receivableId).eq("user_id", user);
+      }
+      fecharCamadas();
+      if (typeof global.loadReceivables === "function") await global.loadReceivables();
+      filtro = "entradas";
+      pintar();
+      return;
+    }
+    for (const line of linhas) {
+      if (typeof global.finalizeReceivablePayment !== "function") break;
+      await global.finalizeReceivablePayment(line.receivableId, Number(line.valor || 0), {
+        quiet: true,
+        skipReload: true,
+        dataMovimento: today(),
+        formaPagamento: "PIX",
+        observacao: nome ? `À vista · ${nome}` : "À vista",
+        valorOriginal: Number(line.valor || 0),
+      });
+    }
+    fecharCamadas();
+    if (typeof global.loadReceivables === "function") await global.loadReceivables();
+    if (typeof global.loadCash === "function") await global.loadCash();
+    filtro = "caixa";
+    pintar();
+  }
+
   function onModalClick(e) {
     if (e.target.classList?.contains("cx-modal-back")) fecharCamadas();
   }
@@ -1144,6 +1474,7 @@
     open,
     refresh,
     cobrarSelecao,
+    aposLiberacao,
     isActive: () => ativo,
     contagemAReceber() {
       const contas = linhasAReceber().length;
