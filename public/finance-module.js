@@ -6981,16 +6981,23 @@
   function financeActivateSubview(view, opts = {}) {
     if (!view || view === "none") return;
     const resolved = financeNormalizeFinanceView(view);
-    if (!opts.forceLegacy && typeof window.caixaOperacional?.captura === "function" && window.caixaOperacional.captura(resolved)) {
-      currentFinanceView = resolved;
-      const rootCaixa = financeRoot();
-      if (rootCaixa) {
-        rootCaixa.querySelectorAll(".finance-subview").forEach((panel) => {
-          panel.classList.add("hidden");
-          panel.hidden = true;
-        });
+    if (!opts.forceLegacy && typeof window.caixaOperacional?.captura === "function") {
+      try {
+        if (window.caixaOperacional.captura(resolved)) {
+          currentFinanceView = resolved;
+          const rootCaixa = financeRoot();
+          if (rootCaixa) {
+            rootCaixa.querySelectorAll(".finance-subview").forEach((panel) => {
+              panel.classList.add("hidden");
+              panel.hidden = true;
+            });
+          }
+          return;
+        }
+      } catch (err) {
+        console.error("financeiro", err);
+        document.getElementById("viewFinanceiro")?.classList.remove("caixa-op-on");
       }
-      return;
     }
     if (resolved === "aguardando") {
       financeHostPatioAguardando();
