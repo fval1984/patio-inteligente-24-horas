@@ -898,17 +898,24 @@
 
   async function loadCharges(uid, supabase) {
     if (!supabase || !uid) return { rows: [] };
-    const { data, error } = await supabase
-      .from("cobrancas")
-      .select("*")
-      .eq("user_id", uid)
-      .order("numero_cobranca", { ascending: false })
-      .limit(200);
-    if (error) {
-      if (/schema cache|does not exist|relation/i.test(error.message || "")) return { missingTable: true, rows: [] };
-      throw error;
+    const rows = [];
+    let from = 0;
+    while (from < 20000) {
+      const { data, error } = await supabase
+        .from("cobrancas")
+        .select("*")
+        .eq("user_id", uid)
+        .order("numero_cobranca", { ascending: false })
+        .range(from, from + 999);
+      if (error) {
+        if (/schema cache|does not exist|relation/i.test(error.message || "")) return { missingTable: true, rows };
+        throw error;
+      }
+      rows.push(...(data || []));
+      if (!data || data.length < 1000) break;
+      from += 1000;
     }
-    return { rows: data || [] };
+    return { rows };
   }
 
   function chargeMatchesSearch(row, raw) {
