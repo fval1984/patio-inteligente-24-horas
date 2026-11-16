@@ -527,14 +527,14 @@
     border-radius: var(--mob-btn-radius) !important;
   }
 
-  #viewFinanceiro .fin-row-actions button {
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-row-actions button {
     min-height: 32px !important;
     padding: 5px 8px !important;
     font-size: 10px !important;
     border-radius: var(--mob-btn-radius) !important;
   }
 
-  #viewFinanceiro .fin-row-actions {
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-row-actions {
     flex-wrap: wrap !important;
     gap: var(--mob-gap) !important;
   }
@@ -941,12 +941,12 @@
     padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
   }
 
-  #viewFinanceiro .fin-caderneta-search {
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-caderneta-search {
     max-width: none !important;
     width: 100%;
   }
 
-  #viewFinanceiro .fin-caderneta-search input {
+  :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-caderneta-search input {
     min-height: 44px !important;
     font-size: 16px !important;
   }
