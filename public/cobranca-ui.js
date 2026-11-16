@@ -42,6 +42,7 @@
       documento: "",
       contato: "",
       salvar: false,
+      vencimento: "",
       origem: "financeiro",
       selected: new Set(),
       client: null,
@@ -327,6 +328,8 @@
         <p><strong>Tipo:</strong> ${esc(doc.parceiroTipo)}</p>
         <p><strong>Data de emissão:</strong> ${esc(doc.dataEmissao)}</p>
         <p><strong>Período da cobrança:</strong> ${esc(doc.periodoLabel)}</p>
+        ${doc.vencimento ? `<p><strong>Vencimento:</strong> ${esc(d(doc.vencimento))}</p>` : ""}
+        ${Number(doc.abatimentos) > 0 ? `<p><strong>Abatimentos já recebidos:</strong> ${esc(money(doc.abatimentos))}</p>` : ""}
       </div>
       <div class="cob-preview-sum">
         <p><strong>Quantidade de veículos:</strong> ${esc(doc.veiculos)}</p>
@@ -384,6 +387,8 @@
       outros: sums.outros,
       total: sums.total,
       geradoEm,
+      vencimento: extra?.vencimento || compose.client?.vencimento || "",
+      abatimentos: (lines || []).reduce((s, l) => s + Number(l.abatimento || 0), 0),
       lines,
       cobrancaId: extra?.id || null,
     };
@@ -423,7 +428,12 @@
       alert("Selecione pelo menos um registro para gerar a cobrança.");
       return;
     }
-    const lines = svc().linesByReceivableIds(all, ids);
+    const lines = svc().linesByReceivableIds(all, ids).map((l) => ({
+      ...l,
+      valorOriginal: Number(l.valor || 0),
+      abatimento: Number(l.abatimento || 0),
+      valor: svc().saldoAposAbatimento(l.valor, l.abatimento),
+    }));
     if (lines.length !== ids.length) {
       alert("Há inconsistência entre o lançamento financeiro e o veículo. Atualize a lista e tente novamente.");
       return;
@@ -884,7 +894,8 @@
       const btn = document.getElementById("cobComposeGo");
       if (btn) {
         btn.disabled = !chosen.length;
-        btn.textContent = `Faturar em conjunto (${chosen.length}) · ${money(svc().summarizeLines(chosen).total)}`;
+        const saldo = chosen.reduce((s, l) => s + svc().saldoAposAbatimento(l.valor, l.abatimento), 0);
+        btn.textContent = `Gerar cobrança (${chosen.length}) · ${money(saldo)}`;
       }
       return;
     }
@@ -1024,6 +1035,8 @@
     if (contato) compose.contato = contato.value;
     const salvar = document.getElementById("cobAvulsoSalvar");
     if (salvar) compose.salvar = !!salvar.checked;
+    const venc = document.getElementById("cobVencimento");
+    if (venc) compose.vencimento = venc.value;
   }
 
   function clientFromCompose() {
@@ -1037,6 +1050,7 @@
         tipoLabel: "Cliente avulso",
         salvar: !!compose.salvar,
         origem: compose.origem || "financeiro",
+        vencimento: compose.vencimento || "",
         subject: { kind: "avulso", id: null },
       };
     }
@@ -1050,6 +1064,7 @@
       tipoLabel: found.tipoLabel,
       salvar: false,
       origem: compose.origem || "financeiro",
+      vencimento: compose.vencimento || "",
       subject: { kind: found.kind, id: found.id },
     };
   }
@@ -1068,7 +1083,7 @@
       .join("");
     const lines = svc().billableLines();
     const chosen = lines.filter((l) => compose.selected.has(l.receivableId));
-    const total = svc().summarizeLines(chosen).total;
+    const total = chosen.reduce((s, l) => s + svc().saldoAposAbatimento(l.valor, l.abatimento), 0);
     const rows = lines.length
       ? lines
           .map((line) => {
@@ -1079,10 +1094,12 @@
               <td data-label="Serviço">${esc(line.servico || svc().serviceLabel(line))}</td>
               <td data-label="Período">${esc(svc().formatPeriodLabel(line.entrada, line.saida || svc().todayYmd()))}</td>
               <td class="num" data-label="Valor">${esc(money(line.valor))}</td>
+              <td class="num" data-label="Abatido">${esc(money(line.abatimento || 0))}</td>
+              <td class="num" data-label="Saldo">${esc(money(svc().saldoAposAbatimento(line.valor, line.abatimento)))}</td>
             </tr>`;
           })
           .join("")
-      : `<tr><td colspan="5">Nenhum veículo com valor pendente disponível para faturar.</td></tr>`;
+      : `<tr><td colspan="7">Nenhum veículo com valor pendente disponível para faturar.</td></tr>`;
     const avulso = compose.modo === "avulso";
     el.innerHTML = `
       <div class="cob-toolbar">
@@ -1111,12 +1128,15 @@
       }
       <div class="cob-table-wrap">
         <table class="cob-table">
-          <thead><tr><th></th><th>Placa</th><th>Serviço</th><th>Período</th><th class="num">Valor</th></tr></thead>
+          <thead><tr><th></th><th>Placa</th><th>Serviço</th><th>Período</th><th class="num">Valor</th><th class="num">Abatido</th><th class="num">Saldo</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
+      <div class="cob-form">
+        <label>Vencimento da cobrança<input id="cobVencimento" type="date" value="${esc(compose.vencimento || "")}" /></label>
+      </div>
       <div class="cob-actions-row">
-        <button type="button" class="cob-btn" id="cobComposeGo" data-cob-compose-go="1" ${chosen.length ? "" : "disabled"}>Faturar em conjunto (${chosen.length}) · ${esc(money(total))}</button>
+        <button type="button" class="cob-btn" id="cobComposeGo" data-cob-compose-go="1" ${chosen.length ? "" : "disabled"}>Gerar cobrança (${chosen.length}) · ${esc(money(total))}</button>
       </div>`;
   }
 
@@ -1131,7 +1151,19 @@
       alert("Informe o CPF ou CNPJ para salvar o cliente.");
       return;
     }
-    const lines = svc().billableLines().filter((l) => compose.selected.has(l.receivableId));
+    const lines = svc()
+      .billableLines()
+      .filter((l) => compose.selected.has(l.receivableId))
+      .map((l) => {
+        const original = Number(l.valor || 0);
+        const abatimento = Number(l.abatimento || 0);
+        return {
+          ...l,
+          valorOriginal: original,
+          abatimento,
+          valor: svc().saldoAposAbatimento(original, abatimento),
+        };
+      });
     if (!lines.length) {
       alert("Selecione pelo menos um veículo com valor pendente.");
       return;
@@ -1424,7 +1456,19 @@
     mount,
     render,
     openConjunto(ids) {
-      openCompose("Faturar em conjunto", ids, "financeiro");
+      openCompose("Gerar cobrança", ids, "financeiro");
+    },
+    showCharges(bucket) {
+      preserveOnMount = true;
+      chargesLoaded = false;
+      chargeRows = [];
+      chargeSearch = "";
+      screen = bucket === "recebidos" ? "recebidos" : "pendentes";
+      if (root()) render();
+    },
+    setChargeSearch(text) {
+      chargeSearch = String(text || "");
+      if (screen === "pendentes" || screen === "recebidos") render();
     },
     offerAfterExit,
   };
