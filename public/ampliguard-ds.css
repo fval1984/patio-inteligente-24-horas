@@ -509,7 +509,7 @@ button {
   transition: background var(--ag-ease), border-color var(--ag-ease), color var(--ag-ease);
 }
 
-button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.close-view):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn):not(.exec-ops-kpi):not(.exec-ops-link):not(.exec-ops-attn button):not(.exec-ops-period button):not(.fin-simple-card):not(.fin-simple-attn):not(.fin-simple-recent button):not(.dashboard-system-btn):not(.header-menu-dropdown button):not(.cmd-ops-kpi):not(.cmd-ops-attn button):not(.cmd-ops-link):not(.fin-act-kpi):not(.ao-card):not(.ao-band):not(.ao-attn):not(.ao-bucket):not(.ao-sort):not(.ao-clear):not(.patio-hub-kpi):not(.ag-sidebar-toggle):not(.cob-kpi) {
+button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.close-view):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn):not(.exec-ops-kpi):not(.exec-ops-link):not(.exec-ops-attn button):not(.exec-ops-period button):not(.fin-simple-card):not(.fin-simple-attn):not(.fin-simple-recent button):not(.dashboard-system-btn):not(.header-menu-dropdown button):not(.cmd-ops-kpi):not(.cmd-ops-attn button):not(.cmd-ops-link):not(.fin-act-kpi):not(.ao-card):not(.ao-band):not(.ao-attn):not(.ao-bucket):not(.ao-sort):not(.ao-clear):not(.patio-hub-kpi):not(.ag-sidebar-toggle):not(.cob-kpi):not(.cx-chip):not(.cob-chip):not(.fin-act-chip):not(.fin-act-period-btn) {
   background: var(--ag-graphite) !important;
   color: #fff !important;
   border: 1px solid var(--ag-graphite) !important;
@@ -646,10 +646,27 @@ label {
 
 :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav) button.active,
 .subnav button.active,
-.patio-nav-inline button.active {
+.patio-nav-inline button.active,
+.cx-chip.is-on,
+.cob-chip.is-on,
+.fin-act-chip.is-active,
+.fin-act-period-btn.is-active {
   background: var(--ag-white) !important;
   color: var(--ag-text) !important;
   box-shadow: var(--ag-shadow-soft) !important;
+}
+
+.cx-chip,
+.cob-chip,
+.fin-act-chip,
+.fin-act-period-btn {
+  border-radius: 8px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--ag-muted) !important;
+  font-weight: 600 !important;
+  min-height: 34px !important;
+  box-shadow: none !important;
 }
 
 /* ---- Tabelas ---- */
@@ -1517,5 +1534,34 @@ body.ag-ficha-open {
 
   #appHeaderMenu .header-menu-item--danger {
     color: #c62828 !important;
+  }
+}
+
+/* Títulos no mesmo tamanho da aba Parceiros. No celular, o CSS móvel já usa 1.2rem em todas. */
+#viewPatio .toolbar h2,
+#viewFinanceiro .toolbar h2,
+#viewDashboard .toolbar h2,
+#viewLista .toolbar h2,
+#viewConfiguracoes .toolbar h2,
+#viewBiExecutivo .toolbar h2,
+#viewCobranca .toolbar h2,
+#viewEscritorios .toolbar h2 {
+  font-family: var(--ag-font-display) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.15 !important;
+  color: var(--ag-text) !important;
+}
+
+@media (min-width: 901px) {
+  #viewPatio .toolbar h2,
+  #viewFinanceiro .toolbar h2,
+  #viewDashboard .toolbar h2,
+  #viewLista .toolbar h2,
+  #viewConfiguracoes .toolbar h2,
+  #viewBiExecutivo .toolbar h2,
+  #viewCobranca .toolbar h2,
+  #viewEscritorios .toolbar h2 {
+    font-size: 1.65rem !important;
   }
 }
