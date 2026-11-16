@@ -7608,7 +7608,7 @@
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha9" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20261116fat1" />
-    <link rel="stylesheet" href="/caixa-operacional.css?v=20261116cx3" />
+    <link rel="stylesheet" href="/caixa-operacional.css?v=20261116cx4" />
   </head>
   <body class="auth-screen-active">
     <noscript>
@@ -8348,6 +8348,10 @@
             <button type="button" data-subview="patios">Pátio</button>
             <button type="button" data-subview="localizadores">Localizador</button>
             <button type="button" data-subview="reboque">Reboque e Transporte</button>
+            <button type="button" data-subview="cadernetas">Cadernetas</button>
+          </div>
+          <div class="section-card partner-subview hidden" data-subview="cadernetas">
+            <div id="parceiroCadernetaRoot"></div>
           </div>
 
           <div class="partner-subview hidden" data-subview="dashboard" hidden aria-hidden="true">
@@ -10665,7 +10669,8 @@
     <script src="/cobranca-service.js?v=20261116cx2"></script>
     <script src="/cobranca-ui.js?v=20261116cx1"></script>
     <script src="/finance-caixa-hub.js?v=20261116caixa1"></script>
-    <script src="/caixa-operacional.js?v=20261116cx3"></script>
+    <script src="/caixa-operacional.js?v=20261116cx4"></script>
+    <script src="/parceiro-caderneta.js?v=20261116cx4"></script>
     <script src="/patio-extrato-service.js?v=20261105resumo2"></script>
     <script src="/patio-extrato-ui.js?v=20261106patioReorg1"></script>
     <script>
@@ -21544,6 +21549,7 @@
 
       function resolvePartnerModule(sub) {
         const raw = String(sub || "").trim().toLowerCase();
+        if (raw === "cadernetas") return "cadernetas";
         if (raw === "escritorios" || raw === "escritorio") return "escritorios";
         if (raw === "reboque" || raw === "reboque_transporte" || raw === "reboque-transporte") return "reboque";
         const svc = window.partnersCadastroService;
@@ -21596,6 +21602,7 @@
         }
         if (novoEsc) novoEsc.classList.toggle("hidden", resolved !== "escritorios");
         syncPartnerFormForCurrentView();
+        if (resolved === "cadernetas" && typeof window.parceiroCaderneta?.render === "function") window.parceiroCaderneta.render();
         if (show) {
           renderPartnerCategoryKpis();
           document.querySelectorAll("#partnerCategoryKpis [data-partner-kpi]").forEach((el) => {
@@ -28900,6 +28907,8 @@ ${body}
           return true;
       }
       window.registerPayableInCaixaManual = registerPayableInCaixaManual;
+      window.finalizePayablePayment = finalizePayablePayment;
+      window.insertManualPayableLancamento = insertManualPayableLancamento;
 
       async function finalizePayablePayment(payableId, opts = {}) {
         if (!(await requireSupabaseSessionForWrite())) return false;
@@ -32068,8 +32077,9 @@ ${body}
           localizadores: 1,
           financeiras: 1,
           reboqueiros: 1,
-          reboque: 1,
-          oficiais: 1,
+            reboque: 1,
+            cadernetas: 1,
+            oficiais: 1,
           transportadoras: 1,
           prestadores: 1,
           outros: 1,
