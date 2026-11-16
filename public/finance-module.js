@@ -7010,6 +7010,8 @@
         btn.classList.toggle("active", btn.getAttribute("data-finance-subview-btn") === resolved);
       });
     }
+    if (typeof window.financeCaixaHub?.mount === "function") window.financeCaixaHub.mount();
+    if (typeof window.financeCaixaHub?.syncFromView === "function") window.financeCaixaHub.syncFromView(resolved);
     if (opts.skipRender) return;
     financePopulateFinanceRppFilters();
     if (resolved === "caixa") {
