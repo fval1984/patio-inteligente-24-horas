@@ -7599,10 +7599,10 @@
       }
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260917header1" />
-    <link rel="stylesheet" href="/finance-action-ui.css?v=20261116vis1" />
+    <link rel="stylesheet" href="/finance-action-ui.css?v=20261117cad1" />
     <link rel="stylesheet" href="/payment-receipt.css?v=20261005recibo10" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20261116vis1" />
-    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261113mobile2" />
+    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261117cad1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20261112plate12" />
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20261117nav2" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
@@ -8349,10 +8349,94 @@
             <button type="button" data-subview="patios">Pátio</button>
             <button type="button" data-subview="localizadores">Localizador</button>
             <button type="button" data-subview="reboque">Reboque e Transporte</button>
-            <button type="button" data-subview="cadernetas">Cadernetas</button>
+            <button type="button" data-subview="cadernetas">Caderneta</button>
           </div>
-          <div class="section-card partner-subview hidden" data-subview="cadernetas">
-            <div id="parceiroCadernetaRoot"></div>
+          <div class="partner-subview hidden" data-subview="cadernetas">
+            <div id="parceiroCadernetaRoot">
+            <div class="finance-subview" data-finance-subview="receber">
+            <div class="fin-toolbar">
+              <form id="finReceberPlateForm" action="#" novalidate style="display: contents">
+              <div><button type="button" id="finBtnNovaReceita">+ Receita avulsa</button></div>
+              <div>
+                <label for="finReceberRpp">RPP</label>
+                <select id="finReceberRpp" title="Responsável financeiro / pagamento">
+                  <option value="">Todos os RPP</option>
+                </select>
+              </div>
+              <div>
+                <label for="finReceberPlaca">Busca por placa</label>
+                <input
+                  id="finReceberPlaca"
+                  name="plate"
+                  type="search"
+                  inputmode="text"
+                  placeholder="Ex.: ABC1D23"
+                  maxlength="20"
+                  autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="characters"
+                  spellcheck="false"
+                />
+              </div>
+              <div>
+                <label for="finReceberValorDe">Valor de</label>
+                <input id="finReceberValorDe" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" />
+              </div>
+              <div>
+                <label for="finReceberValorAte">até</label>
+                <input id="finReceberValorAte" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" />
+              </div>
+              <div style="align-self: flex-end"><button type="submit" id="finReceberPlacaOk">Buscar</button></div>
+              <div style="align-self: flex-end"><button type="button" class="secondary" id="finReceberPlacaClear">Limpar</button></div>
+              </form>
+            </div>
+            <p id="finReceberPlateHint" class="notice hidden" style="margin: 0 0 10px"></p>
+            <div class="fin-batch-bar" aria-label="Ações em lote">
+              <button type="button" class="secondary fin-batch-action" data-fin-batch-view="receber" data-fin-batch-action="conjunto" data-fin-batch-label="Faturar em conjunto" disabled>Faturar em conjunto</button>
+              <button type="button" class="secondary fin-batch-action" data-fin-batch-view="receber" data-fin-batch-action="pg" data-fin-batch-label="PG Selecionados" disabled>PG Selecionados</button>
+              <button type="button" class="secondary fin-batch-action" data-fin-batch-view="receber" data-fin-batch-action="caixa" data-fin-batch-label="Caixa Selecionados" disabled>Caixa Selecionados</button>
+              <button type="button" class="secondary fin-batch-delete fin-batch-action hidden" data-fin-batch-view="receber" data-fin-batch-action="delete" data-fin-batch-label="Apagar Selecionados">Apagar Selecionados</button>
+            </div>
+            <p id="finReceberSelectedSummary" class="fin-selected-summary hidden" aria-live="polite">
+              <strong>Total selecionado:</strong> <span id="finReceberSelectedTotal">R$ 0,00</span><span id="finReceberSelectedCount" class="notice"></span>
+            </p>
+            <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
+            <div class="fin-act-chips" id="finReceberQuickFilters" aria-label="Filtros rápidos"></div>
+            <div id="finReceberCadernetaBar" class="fin-caderneta-bar hidden">
+              <button type="button" class="secondary" id="finReceberCadernetaBack">← Voltar às cadernetas</button>
+              <h3 id="finReceberCadernetaTitle">Caderneta</h3>
+              <div class="fin-caderneta-search">
+                <label for="finReceberCadernetaPlaca">Buscar placa</label>
+                <input
+                  id="finReceberCadernetaPlaca"
+                  type="search"
+                  inputmode="text"
+                  placeholder="Ex.: ABC1D23 ou ABC-1234"
+                  maxlength="20"
+                  autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="characters"
+                  spellcheck="false"
+                  aria-label="Buscar registros da caderneta por placa"
+                />
+              </div>
+              <div id="finReceberCadernetaKpis" class="fin-caderneta-kpis"></div>
+            </div>
+            <div id="finReceberRegistro" class="fin-receber-registro hidden"></div>
+            <div id="finReceberCards" class="fin-act-launch-host"></div>
+            <div class="actions" style="margin: 0 0 12px; flex-wrap: wrap; gap: 8px">
+              <button type="button" class="secondary" id="finReceberBtnPrint">Imprimir para cliente</button>
+              <button type="button" class="secondary" id="finReceberBtnPdf">Baixar PDF para cliente</button>
+            </div>
+            <div class="table-wrap section-card">
+              <table class="table">
+                <thead id="finReceberHead"><tr><th class="fin-th-select" scope="col"><input type="checkbox" class="fin-select-all" data-fin-select-all="receber" title="Selecionar todos" aria-label="Selecionar todos"></th><th>Título</th><th>Referência</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
+                <tbody id="finReceberBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+                    </div>
           </div>
 
           <div class="partner-subview hidden" data-subview="dashboard" hidden aria-hidden="true">
@@ -8711,89 +8795,6 @@
                 <tbody id="finAguardandoBody"></tbody>
               </table>
             </div>
-            </div>
-          </div>
-
-          <div class="finance-subview hidden" data-finance-subview="receber">
-            <div class="fin-toolbar">
-              <form id="finReceberPlateForm" action="#" novalidate style="display: contents">
-              <div><button type="button" id="finBtnNovaReceita">+ Receita avulsa</button></div>
-              <div>
-                <label for="finReceberRpp">RPP</label>
-                <select id="finReceberRpp" title="Responsável financeiro / pagamento">
-                  <option value="">Todos os RPP</option>
-                </select>
-              </div>
-              <div>
-                <label for="finReceberPlaca">Busca por placa</label>
-                <input
-                  id="finReceberPlaca"
-                  name="plate"
-                  type="search"
-                  inputmode="text"
-                  placeholder="Ex.: ABC1D23"
-                  maxlength="20"
-                  autocomplete="off"
-                  autocorrect="off"
-                  autocapitalize="characters"
-                  spellcheck="false"
-                />
-              </div>
-              <div>
-                <label for="finReceberValorDe">Valor de</label>
-                <input id="finReceberValorDe" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" />
-              </div>
-              <div>
-                <label for="finReceberValorAte">até</label>
-                <input id="finReceberValorAte" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" />
-              </div>
-              <div style="align-self: flex-end"><button type="submit" id="finReceberPlacaOk">Buscar</button></div>
-              <div style="align-self: flex-end"><button type="button" class="secondary" id="finReceberPlacaClear">Limpar</button></div>
-              </form>
-            </div>
-            <p id="finReceberPlateHint" class="notice hidden" style="margin: 0 0 10px"></p>
-            <div class="fin-batch-bar" aria-label="Ações em lote">
-              <button type="button" class="secondary fin-batch-action" data-fin-batch-view="receber" data-fin-batch-action="conjunto" data-fin-batch-label="Faturar em conjunto" disabled>Faturar em conjunto</button>
-              <button type="button" class="secondary fin-batch-action" data-fin-batch-view="receber" data-fin-batch-action="pg" data-fin-batch-label="PG Selecionados" disabled>PG Selecionados</button>
-              <button type="button" class="secondary fin-batch-action" data-fin-batch-view="receber" data-fin-batch-action="caixa" data-fin-batch-label="Caixa Selecionados" disabled>Caixa Selecionados</button>
-              <button type="button" class="secondary fin-batch-delete fin-batch-action hidden" data-fin-batch-view="receber" data-fin-batch-action="delete" data-fin-batch-label="Apagar Selecionados">Apagar Selecionados</button>
-            </div>
-            <p id="finReceberSelectedSummary" class="fin-selected-summary hidden" aria-live="polite">
-              <strong>Total selecionado:</strong> <span id="finReceberSelectedTotal">R$ 0,00</span><span id="finReceberSelectedCount" class="notice"></span>
-            </p>
-            <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
-            <div class="fin-act-chips" id="finReceberQuickFilters" aria-label="Filtros rápidos"></div>
-            <div id="finReceberCadernetaBar" class="fin-caderneta-bar hidden">
-              <button type="button" class="secondary" id="finReceberCadernetaBack">← Voltar às cadernetas</button>
-              <h3 id="finReceberCadernetaTitle">Caderneta</h3>
-              <div class="fin-caderneta-search">
-                <label for="finReceberCadernetaPlaca">Buscar placa</label>
-                <input
-                  id="finReceberCadernetaPlaca"
-                  type="search"
-                  inputmode="text"
-                  placeholder="Ex.: ABC1D23 ou ABC-1234"
-                  maxlength="20"
-                  autocomplete="off"
-                  autocorrect="off"
-                  autocapitalize="characters"
-                  spellcheck="false"
-                  aria-label="Buscar registros da caderneta por placa"
-                />
-              </div>
-              <div id="finReceberCadernetaKpis" class="fin-caderneta-kpis"></div>
-            </div>
-            <div id="finReceberRegistro" class="fin-receber-registro hidden"></div>
-            <div id="finReceberCards" class="fin-act-launch-host"></div>
-            <div class="actions" style="margin: 0 0 12px; flex-wrap: wrap; gap: 8px">
-              <button type="button" class="secondary" id="finReceberBtnPrint">Imprimir para cliente</button>
-              <button type="button" class="secondary" id="finReceberBtnPdf">Baixar PDF para cliente</button>
-            </div>
-            <div class="table-wrap section-card">
-              <table class="table">
-                <thead id="finReceberHead"><tr><th class="fin-th-select" scope="col"><input type="checkbox" class="fin-select-all" data-fin-select-all="receber" title="Selecionar todos" aria-label="Selecionar todos"></th><th>Título</th><th>Referência</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
-                <tbody id="finReceberBody"></tbody>
-              </table>
             </div>
           </div>
 
@@ -10631,7 +10632,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20261116cx9"></script>
+    <script src="/finance-module.js?v=20261117cad1"></script>
     <script src="/finance-notas-transporte.js?v=20261111nt1"></script>
     <script src="/payment-receipt.js?v=20261005recibo10"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
@@ -10671,7 +10672,7 @@
     <script src="/cobranca-ui.js?v=20261116cx1"></script>
     <script src="/finance-caixa-hub.js?v=20261116caixa1"></script>
     <script src="/caixa-operacional.js?v=20261117fin3"></script>
-    <script src="/parceiro-caderneta.js?v=20261116cx4"></script>
+    <script src="/parceiro-caderneta.js?v=20261117cad1"></script>
     <script src="/patio-extrato-service.js?v=20261105resumo2"></script>
     <script src="/patio-extrato-ui.js?v=20261106patioReorg1"></script>
     <script>
