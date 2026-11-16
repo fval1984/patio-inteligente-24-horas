@@ -164,10 +164,13 @@ assert.equal(sandbox.caixaOperacional.captura("pagar"), false);
 setTimeout(() => {
   const metrics = byId.caixaOpMetrics;
   assert.ok(metrics, "indicadores criados");
-  assert.match(metrics.innerHTML, /Entradas/);
-  assert.match(metrics.innerHTML, /Saídas/);
-  assert.match(metrics.innerHTML, /Caixa/);
+  assert.match(metrics.innerHTML, /Entradas recebidas/);
+  assert.match(metrics.innerHTML, /Saídas pagas/);
+  assert.match(metrics.innerHTML, /Total a receber/);
+  assert.match(metrics.innerHTML, /Resultado/);
   const raiz = sandbox.document.getElementById("caixaOp");
-  assert.match(raiz.innerHTML, /Nova cobrança/);
+  assert.match(raiz.innerHTML, /Financeiro/);
+  assert.match(raiz.innerHTML, /Novo lançamento/);
+  assert.match(raiz.innerHTML, /Movimentações/);
   console.log("caixa-operacional.test.js ok");
 }, 30);
