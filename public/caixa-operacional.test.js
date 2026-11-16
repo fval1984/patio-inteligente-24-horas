@@ -13,6 +13,39 @@ sandbox.window = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(__dirname, "caixa-operacional.js"), "utf8"), sandbox);
 
+const apurar = sandbox.caixaOperacional.apurarMes;
+const novembro = apurar("2026-11", {
+  payables: [
+    { id: "u", descricao: "Água", valor: 200, data_vencimento: "2026-11-10", status: "EM_ABERTO" },
+    { id: "out", descricao: "Aluguel", valor: 3000, data_vencimento: "2026-10-05", status: "EM_ABERTO" },
+    { id: "nov", descricao: "Aluguel", valor: 3000, data_vencimento: "2026-11-05", status: "EM_ABERTO" },
+    { id: "dez", descricao: "Aluguel", valor: 3000, data_vencimento: "2026-12-05", status: "EM_ABERTO" },
+    { id: "dup", descricao: "Aluguel", valor: 3000, data_vencimento: "2026-11-05", status: "EM_ABERTO" },
+    { id: "fut", descricao: "Internet", valor: 150, data_vencimento: "2027-01-10", status: "EM_ABERTO" },
+    { id: "venc", descricao: "Energia", valor: 400, data_vencimento: "2026-11-08", status: "EM_ABERTO" },
+    { id: "ant", descricao: "Aluguel", valor: 3000, data_vencimento: "2026-10-05", status: "PAGO", data_pagamento: "2026-11-03" },
+  ],
+  cash: [
+    { id: "c1", tipo_conta: "SAIDA", valor: 3000, data_movimento: "2026-11-03", conta_id: "ant", excluir_do_saldo: false },
+    { id: "c1b", tipo_conta: "SAIDA", valor: 3000, data_movimento: "2026-11-03", conta_id: "ant", excluir_do_saldo: false },
+    { id: "c2", tipo_conta: "ENTRADA", valor: 800, data_movimento: "2026-11-15", excluir_do_saldo: false },
+    { id: "c3", tipo_conta: "SAIDA", valor: 9000, data_movimento: "2026-10-03", excluir_do_saldo: false },
+  ],
+});
+assert.equal(novembro.aPagar, 3600);
+assert.equal(novembro.saidasPagas, 3000);
+assert.equal(novembro.entradasRecebidas, 800);
+assert.equal(novembro.resultado, -2200);
+assert.equal(novembro.abertoTodosMeses, 9750);
+const outubro = apurar("2026-10", {
+  payables: [
+    { id: "ant", descricao: "Aluguel", valor: 3000, data_vencimento: "2026-10-05", status: "PAGO" },
+  ],
+  cash: [{ id: "c1", tipo_conta: "SAIDA", valor: 3000, data_movimento: "2026-11-03", conta_id: "ant" }],
+});
+assert.equal(outubro.aPagar, 0);
+assert.equal(outubro.saidasPagas, 0);
+
 const alocar = sandbox.caixaOperacional.alocarPagamento;
 const plano = alocar(
   [
