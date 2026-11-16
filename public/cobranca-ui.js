@@ -23,6 +23,30 @@
   let previewDoc = null;
   let historyRows = [];
   let historyMissing = false;
+  let preserveOnMount = false;
+  let presetIds = null;
+  let chargeRows = [];
+  let chargeSearch = "";
+  let chargesMissing = false;
+  let chargesLoaded = false;
+  let currentCharge = null;
+  let compose = emptyCompose();
+
+  function emptyCompose() {
+    return {
+      titulo: "Faturar em conjunto",
+      modo: "cadastrado",
+      clientKey: "",
+      busca: "",
+      nome: "",
+      documento: "",
+      contato: "",
+      salvar: false,
+      origem: "financeiro",
+      selected: new Set(),
+      client: null,
+    };
+  }
 
   function root() {
     return document.getElementById("cobrancaRoot");
@@ -76,6 +100,9 @@
     if (!el) return;
     if (screen === "partner" && currentSubject) renderPartner(el);
     else if (screen === "preview") renderPreview(el);
+    else if (screen === "compose") renderCompose(el);
+    else if (screen === "pendentes" || screen === "recebidos") renderCharges(el);
+    else if (screen === "detalhe") renderDetalhe(el);
     else renderList(el);
   }
 
@@ -116,6 +143,12 @@
           <h2>Cobrança</h2>
           <p class="cob-sub">Controle de valores em aberto por parceiro</p>
         </div>
+      </div>
+      <div class="cob-actions-row cob-main-actions">
+        <button type="button" class="cob-btn" data-cob-nav="nova">Nova cobrança</button>
+        <button type="button" class="cob-btn" data-cob-nav="conjunto">Faturar em conjunto</button>
+        <button type="button" class="cob-btn secondary" data-cob-nav="pendentes">Cobranças pendentes</button>
+        <button type="button" class="cob-btn secondary" data-cob-nav="recebidos">Pagamentos recebidos</button>
       </div>
       <input class="cob-search" id="cobSearchPartner" type="search" placeholder="Pesquisar parceiro..." value="${esc(search)}" />
       <div class="cob-filters">${chips}</div>
@@ -192,6 +225,12 @@
               .join("")}</tbody></table></div>`
           : `<p class="cob-empty">Nenhum documento gerado ainda para este parceiro.</p>`;
 
+    const gerarLabel = () => {
+      const chosen = lines.filter((l) => selectedIds.has(l.receivableId));
+      if (!chosen.length) return "Faturar em conjunto";
+      return `Faturar em conjunto (${chosen.length}) · ${money(svc().summarizeLines(chosen).total)}`;
+    };
+
     const rows =
       slice.length === 0
         ? `<tr><td colspan="9">Nenhum registro em aberto com os filtros atuais.</td></tr>`
@@ -244,7 +283,7 @@
         <button type="button" class="cob-btn secondary" data-cob-sel="none">Desmarcar todos</button>
         <span>${selectedIds.size} selecionado(s)${selectedOnPage ? ` · ${selectedOnPage} nesta página` : ""}</span>
         <button type="button" class="cob-btn danger" data-cob-hide-sel="1">Apagar selecionados</button>
-        <button type="button" class="cob-btn" data-cob-gerar="1">GERAR COBRANÇA</button>
+        <button type="button" class="cob-btn" data-cob-gerar="1" ${selectedIds.size ? "" : "disabled"}>${esc(gerarLabel())}</button>
       </div>
       <div class="cob-table-wrap">
         <table class="cob-table">
@@ -269,6 +308,7 @@
         (line) => `<tr>
           <td>${esc(line.veiculoNome)}</td>
           <td>${esc(line.placa || "—")}</td>
+          <td>${esc(line.servico || svc().serviceLabel(line))}</td>
           <td>${esc(d(line.entrada))}</td>
           <td>${esc(line.saida ? d(line.saida) : "—")}</td>
           <td>${esc(svc().formatPeriodLabel(line.entrada, line.saida || svc().todayYmd()))}</td>
@@ -283,7 +323,7 @@
       <img class="cob-preview-logo" src="${esc(logo)}" alt="AMPLIAUTO" />
       <h1>COBRANÇA Nº ${esc(num)}</h1>
       <div class="cob-preview-meta">
-        <p><strong>Parceiro:</strong> ${esc(doc.parceiroNome)}</p>
+        <p><strong>Cliente:</strong> ${esc(doc.parceiroNome)}</p>
         <p><strong>Tipo:</strong> ${esc(doc.parceiroTipo)}</p>
         <p><strong>Data de emissão:</strong> ${esc(doc.dataEmissao)}</p>
         <p><strong>Período da cobrança:</strong> ${esc(doc.periodoLabel)}</p>
@@ -296,12 +336,12 @@
       <h3>Detalhamento</h3>
       <table>
         <thead><tr>
-          <th>Veículo</th><th>Placa</th><th>Entrada</th><th>Saída</th><th>Período</th><th>Dias</th><th>Valor</th>
+          <th>Veículo</th><th>Placa</th><th>Serviço</th><th>Entrada</th><th>Saída</th><th>Período</th><th>Dias</th><th>Valor</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
       <p class="cob-preview-total"><strong>TOTAL DA COBRANÇA: ${esc(money(doc.total))}</strong></p>
-      <p class="cob-preview-foot">AMPLIAUTO · Documento de cobrança gerado pelo sistema · ${esc(doc.geradoEm)}</p>
+      <p class="cob-preview-foot">AMPLIAUTO · Demonstrativo de cobrança · não é nota fiscal · ${esc(doc.geradoEm)}</p>
     </div>`;
   }
 
@@ -319,7 +359,8 @@
         </div>
         <div class="cob-actions-row">
           <button type="button" class="cob-btn secondary" data-cob-back="partner">← VOLTAR</button>
-          <button type="button" class="cob-btn" data-cob-pdf="1">BAIXAR PDF</button>
+          <button type="button" class="cob-btn" data-cob-confirm="1">Confirmar cobrança</button>
+          <button type="button" class="cob-btn secondary" data-cob-pdf="1">BAIXAR PDF</button>
           <button type="button" class="cob-btn secondary" data-cob-print="1">IMPRIMIR</button>
           <button type="button" class="cob-btn secondary" data-cob-whatsapp="1">WhatsApp</button>
         </div>
@@ -388,7 +429,18 @@
       return;
     }
     previewLines = lines;
+    compose.client = {
+      modo: "cadastrado",
+      nome: currentMeta?.nome || "",
+      documento: "",
+      contato: currentMeta?.whatsapp || "",
+      tipoLabel: currentMeta?.tipoLabel || "Cliente",
+      salvar: false,
+      origem: "financeiro",
+      subject: currentSubject,
+    };
     previewDoc = buildPreviewDoc(lines, { numero: 0 });
+    preserveOnMount = true;
     screen = "preview";
     render();
   }
@@ -469,7 +521,7 @@
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(8);
       pdf.setTextColor(70, 70, 70);
-      pdf.text("AMPLIAUTO · Documento de cobrança gerado pelo sistema", mx, footerY + 14);
+      pdf.text("AMPLIAUTO · Demonstrativo de cobrança · não é nota fiscal", mx, footerY + 14);
       pdf.text(`${doc.geradoEm} · Página ${page}/${pages}`, pageW - mx, footerY + 14, { align: "right" });
     };
 
@@ -484,7 +536,7 @@
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "normal");
     const meta = [
-      `Parceiro: ${doc.parceiroNome}`,
+      `Cliente: ${doc.parceiroNome}`,
       `Tipo: ${doc.parceiroTipo}`,
       `Data de emissão: ${doc.dataEmissao}`,
       `Período da cobrança: ${doc.periodoLabel}`,
@@ -498,9 +550,9 @@
     });
     y += 8;
 
-    const colParts = [1.7, 0.9, 0.85, 0.85, 1.2, 0.5, 0.95];
+    const colParts = [1.4, 0.75, 1.05, 0.72, 0.72, 0.95, 0.42, 0.8];
     const colSum = colParts.reduce((a, b) => a + b, 0);
-    const colHeads = ["Veículo", "Placa", "Entrada", "Saída", "Período", "Dias", "Valor"];
+    const colHeads = ["Veículo", "Placa", "Serviço", "Entrada", "Saída", "Período", "Dias", "Valor"];
     const cols = colHeads.map((h, i) => ({ h, w: (colParts[i] / colSum) * contentW }));
     const rowH = 18;
 
@@ -530,8 +582,9 @@
         paintTableHead();
       }
       const vals = [
-        String(line.veiculoNome || "").slice(0, 28),
+        String(line.veiculoNome || "").slice(0, 22),
         line.placa || "—",
+        String(line.servico || svc().serviceLabel(line)).slice(0, 18),
         d(line.entrada),
         line.saida ? d(line.saida) : "—",
         svc().formatPeriodLabel(line.entrada, line.saida || svc().todayYmd()),
@@ -542,8 +595,8 @@
       pdf.setDrawColor(210, 210, 210);
       pdf.line(mx, y + rowH, mx + contentW, y + rowH);
       vals.forEach((val, i) => {
-        const align = i >= 5 ? { align: "right" } : undefined;
-        const tx = i >= 5 ? x + cols[i].w - 4 : x + 4;
+        const align = i >= 6 ? { align: "right" } : undefined;
+        const tx = i >= 6 ? x + cols[i].w - 4 : x + 4;
         pdf.text(String(val), tx, y + 12, align);
         x += cols[i].w;
       });
@@ -579,9 +632,10 @@
       const created = await svc().persistCobranca({
         supabase: supabase(),
         uid: uid(),
-        subject: currentSubject,
+        subject: compose.client?.subject || currentSubject,
         meta: currentMeta,
         lines: previewLines,
+        client: compose.client,
         sessionUser: state().user || state().session?.user || null,
       });
       previewDoc = buildPreviewDoc(previewLines, created);
@@ -718,9 +772,45 @@
       openPartner(openBtn.getAttribute("data-cob-open"), openBtn.getAttribute("data-cob-id"));
       return;
     }
+    const nav = e.target.closest("[data-cob-nav]");
+    if (nav) {
+      const dest = nav.getAttribute("data-cob-nav");
+      if (dest === "nova" || dest === "conjunto") {
+        openCompose(dest === "nova" ? "Nova cobrança" : "Faturar em conjunto", [], "financeiro");
+        return;
+      }
+      preserveOnMount = true;
+      chargeRows = [];
+      chargesLoaded = false;
+      chargeSearch = "";
+      screen = dest === "recebidos" ? "recebidos" : "pendentes";
+      render();
+      return;
+    }
+    const openCharge = e.target.closest("[data-cob-open-charge]");
+    if (openCharge) {
+      void openDetalhe(openCharge.getAttribute("data-cob-open-charge"));
+      return;
+    }
+    if (e.target.closest("[data-cob-compose-go]")) {
+      goComposePreview();
+      return;
+    }
+    if (e.target.closest("[data-cob-confirm]")) {
+      void confirmCharge();
+      return;
+    }
     const back = e.target.closest("[data-cob-back]");
     if (back) {
-      screen = back.getAttribute("data-cob-back") === "list" ? "list" : "partner";
+      const dest = back.getAttribute("data-cob-back");
+      if (dest === "list") {
+        preserveOnMount = false;
+        screen = "list";
+      } else if (screen === "preview") {
+        screen = currentSubject?.id ? "partner" : "compose";
+      } else {
+        screen = "partner";
+      }
       render();
       return;
     }
@@ -785,11 +875,34 @@
       openHistory(hist.getAttribute("data-cob-hist"), hist.getAttribute("data-act"));
       return;
     }
+    const pick = e.target.closest("[data-cob-pick]");
+    if (pick) {
+      const id = pick.getAttribute("data-cob-pick");
+      if (pick.checked) compose.selected.add(id);
+      else compose.selected.delete(id);
+      const chosen = svc().billableLines().filter((l) => compose.selected.has(l.receivableId));
+      const btn = document.getElementById("cobComposeGo");
+      if (btn) {
+        btn.disabled = !chosen.length;
+        btn.textContent = `Faturar em conjunto (${chosen.length}) · ${money(svc().summarizeLines(chosen).total)}`;
+      }
+      return;
+    }
     const chk = e.target.closest("[data-cob-check]");
     if (chk) {
       const id = chk.getAttribute("data-cob-check");
       if (chk.checked) selectedIds.add(id);
       else selectedIds.delete(id);
+      const gerar = document.querySelector("#cobrancaRoot [data-cob-gerar]");
+      if (gerar) {
+        const chosen = svc()
+          .openLines()
+          .filter((l) => svc().lineMatchesPartner(l, currentSubject) && selectedIds.has(l.receivableId));
+        gerar.disabled = !chosen.length;
+        gerar.textContent = chosen.length
+          ? `Faturar em conjunto (${chosen.length}) · ${money(svc().summarizeLines(chosen).total)}`
+          : "Faturar em conjunto";
+      }
       return;
     }
     const tr = e.target.closest("tr[data-cob-line]");
@@ -864,7 +977,412 @@
       periodAte = e.target.value;
       linePage = 0;
       render();
+      return;
     }
+    if (e.target.name === "cobClienteModo" || e.target.id === "cobClienteBusca" || e.target.id === "cobClienteSelect") {
+      captureCompose();
+      const pos = e.target.selectionStart;
+      const id = e.target.id;
+      render();
+      if (id === "cobClienteBusca") {
+        const again = document.getElementById("cobClienteBusca");
+        if (again) {
+          again.focus();
+          if (pos != null) again.setSelectionRange(pos, pos);
+        }
+      }
+      return;
+    }
+    if (e.target.id === "cobAvulsoNome" || e.target.id === "cobAvulsoDoc" || e.target.id === "cobAvulsoContato" || e.target.id === "cobAvulsoSalvar") {
+      captureCompose();
+      return;
+    }
+    if (e.target.id === "cobChargeSearch") {
+      chargeSearch = e.target.value;
+      const pos = e.target.selectionStart;
+      render();
+      const again = document.getElementById("cobChargeSearch");
+      if (again) {
+        again.focus();
+        if (pos != null) again.setSelectionRange(pos, pos);
+      }
+    }
+  }
+
+  function captureCompose() {
+    const modo = document.querySelector('#cobrancaRoot input[name="cobClienteModo"]:checked');
+    if (modo) compose.modo = modo.value === "avulso" ? "avulso" : "cadastrado";
+    const busca = document.getElementById("cobClienteBusca");
+    if (busca) compose.busca = busca.value;
+    const sel = document.getElementById("cobClienteSelect");
+    if (sel) compose.clientKey = sel.value;
+    const nome = document.getElementById("cobAvulsoNome");
+    if (nome) compose.nome = nome.value;
+    const doc = document.getElementById("cobAvulsoDoc");
+    if (doc) compose.documento = doc.value;
+    const contato = document.getElementById("cobAvulsoContato");
+    if (contato) compose.contato = contato.value;
+    const salvar = document.getElementById("cobAvulsoSalvar");
+    if (salvar) compose.salvar = !!salvar.checked;
+  }
+
+  function clientFromCompose() {
+    if (compose.modo === "avulso") {
+      const nome = String(compose.nome || "").trim();
+      return {
+        modo: "avulso",
+        nome,
+        documento: String(compose.documento || "").trim(),
+        contato: String(compose.contato || "").trim(),
+        tipoLabel: "Cliente avulso",
+        salvar: !!compose.salvar,
+        origem: compose.origem || "financeiro",
+        subject: { kind: "avulso", id: null },
+      };
+    }
+    const found = svc().clientCatalog().find((c) => c.key === compose.clientKey);
+    if (!found) return null;
+    return {
+      modo: "cadastrado",
+      nome: found.nome,
+      documento: found.documento || "",
+      contato: found.contato || "",
+      tipoLabel: found.tipoLabel,
+      salvar: false,
+      origem: compose.origem || "financeiro",
+      subject: { kind: found.kind, id: found.id },
+    };
+  }
+
+  function renderCompose(el) {
+    const catalog = svc().clientCatalog().filter((c) => {
+      const q = String(compose.busca || "").trim().toLowerCase();
+      if (!q) return true;
+      return `${c.nome} ${c.documento} ${c.tipoLabel}`.toLowerCase().includes(q);
+    });
+    const options = catalog
+      .map(
+        (c) =>
+          `<option value="${esc(c.key)}"${c.key === compose.clientKey ? " selected" : ""}>${esc(c.nome)} · ${esc(c.tipoLabel)}</option>`
+      )
+      .join("");
+    const lines = svc().billableLines();
+    const chosen = lines.filter((l) => compose.selected.has(l.receivableId));
+    const total = svc().summarizeLines(chosen).total;
+    const rows = lines.length
+      ? lines
+          .map((line) => {
+            const checked = compose.selected.has(line.receivableId) ? "checked" : "";
+            return `<tr>
+              <td data-label="Sel."><input type="checkbox" data-cob-pick="${esc(line.receivableId)}" ${checked} /></td>
+              <td data-label="Placa">${esc(line.placa || "—")}</td>
+              <td data-label="Serviço">${esc(line.servico || svc().serviceLabel(line))}</td>
+              <td data-label="Período">${esc(svc().formatPeriodLabel(line.entrada, line.saida || svc().todayYmd()))}</td>
+              <td class="num" data-label="Valor">${esc(money(line.valor))}</td>
+            </tr>`;
+          })
+          .join("")
+      : `<tr><td colspan="5">Nenhum veículo com valor pendente disponível para faturar.</td></tr>`;
+    const avulso = compose.modo === "avulso";
+    el.innerHTML = `
+      <div class="cob-toolbar">
+        <div>
+          <button type="button" class="cob-btn secondary" data-cob-back="list">← Voltar</button>
+          <h2 style="margin-top:10px">${esc(compose.titulo || "Faturar em conjunto")}</h2>
+          <p class="cob-sub">Escolha o cliente e os veículos. Os valores originais não são recalculados.</p>
+        </div>
+      </div>
+      <div class="cob-choice">
+        <label><input type="radio" name="cobClienteModo" value="cadastrado" ${avulso ? "" : "checked"} /> Cliente cadastrado</label>
+        <label><input type="radio" name="cobClienteModo" value="avulso" ${avulso ? "checked" : ""} /> Informar cliente na hora</label>
+      </div>
+      ${
+        avulso
+          ? `<div class="cob-form">
+              <label>Nome ou razão social<input id="cobAvulsoNome" type="text" value="${esc(compose.nome)}" autocomplete="name" /></label>
+              <label>CPF ou CNPJ<input id="cobAvulsoDoc" type="text" value="${esc(compose.documento)}" inputmode="numeric" /></label>
+              <label>Contato<input id="cobAvulsoContato" type="text" value="${esc(compose.contato)}" /></label>
+              <label class="cob-checkline"><input id="cobAvulsoSalvar" type="checkbox" ${compose.salvar ? "checked" : ""} /> Salvar este cliente para futuras cobranças</label>
+            </div>`
+          : `<div class="cob-form">
+              <label>Buscar cliente<input id="cobClienteBusca" type="search" value="${esc(compose.busca)}" placeholder="Nome, documento ou tipo" /></label>
+              <label>Cliente<select id="cobClienteSelect"><option value="">Selecione</option>${options}</select></label>
+            </div>`
+      }
+      <div class="cob-table-wrap">
+        <table class="cob-table">
+          <thead><tr><th></th><th>Placa</th><th>Serviço</th><th>Período</th><th class="num">Valor</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="cob-actions-row">
+        <button type="button" class="cob-btn" id="cobComposeGo" data-cob-compose-go="1" ${chosen.length ? "" : "disabled"}>Faturar em conjunto (${chosen.length}) · ${esc(money(total))}</button>
+      </div>`;
+  }
+
+  function goComposePreview() {
+    captureCompose();
+    const client = clientFromCompose();
+    if (!client?.nome) {
+      alert(compose.modo === "avulso" ? "Informe o nome ou a razão social." : "Selecione um cliente cadastrado.");
+      return;
+    }
+    if (client.salvar && !client.documento) {
+      alert("Informe o CPF ou CNPJ para salvar o cliente.");
+      return;
+    }
+    const lines = svc().billableLines().filter((l) => compose.selected.has(l.receivableId));
+    if (!lines.length) {
+      alert("Selecione pelo menos um veículo com valor pendente.");
+      return;
+    }
+    compose.client = client;
+    currentSubject = client.subject;
+    currentMeta = { nome: client.nome, tipoLabel: client.tipoLabel, whatsapp: client.contato, id: client.subject?.id || null };
+    previewLines = lines;
+    previewDoc = buildPreviewDoc(lines, { numero: 0 });
+    preserveOnMount = true;
+    screen = "preview";
+    render();
+  }
+
+  async function confirmCharge() {
+    try {
+      const doc = await persistIfNeeded();
+      if (compose.client?.salvar) {
+        try {
+          await svc().saveFinanceClient({
+            supabase: supabase(),
+            uid: uid(),
+            nome: compose.client.nome,
+            documento: compose.client.documento,
+            contato: compose.client.contato,
+          });
+        } catch (err) {
+          alert(err.message || "A cobrança foi gerada, mas o cliente não foi salvo.");
+        }
+        compose.client.salvar = false;
+      }
+      await svc().refreshBlockedReceivables(uid(), supabase());
+      await openDetalhe(doc.cobrancaId);
+    } catch (e) {
+      alert(e.message || "Não foi possível confirmar a cobrança.");
+    }
+  }
+
+  async function openDetalhe(id) {
+    const loaded = await svc().loadCharges(uid(), supabase());
+    chargesMissing = !!loaded.missingTable;
+    chargeRows = loaded.rows || [];
+    currentCharge = chargeRows.find((row) => String(row.id) === String(id)) || currentCharge;
+    if (!currentCharge) {
+      alert("Cobrança gravada, mas não foi possível reabri-la agora.");
+      return;
+    }
+    const items = await svc().loadHistoryItems(id, supabase());
+    previewLines = svc().snapshotLinesFromItems(items);
+    currentMeta = {
+      nome: currentCharge.parceiro_nome,
+      tipoLabel: currentCharge.parceiro_tipo,
+      whatsapp: currentCharge.cliente_contato || "",
+    };
+    previewDoc = {
+      numero: currentCharge.numero_cobranca,
+      parceiroNome: currentCharge.parceiro_nome,
+      parceiroTipo: currentCharge.parceiro_tipo,
+      dataEmissao: svc().formatDate(currentCharge.data_geracao || currentCharge.created_at),
+      periodoLabel: svc().formatPeriodLabel(currentCharge.periodo_inicio, currentCharge.periodo_fim),
+      veiculos: currentCharge.quantidade_veiculos,
+      diarias: previewLines.reduce((s, l) => s + Number(l.diarias || 0), 0),
+      outros: previewLines.reduce((s, l) => s + Number(l.outros || 0), 0),
+      total: Number(currentCharge.valor_total || 0),
+      geradoEm: currentCharge.data_geracao ? new Date(currentCharge.data_geracao).toLocaleString("pt-BR") : "",
+      lines: previewLines,
+      cobrancaId: currentCharge.id,
+    };
+    preserveOnMount = true;
+    screen = "detalhe";
+    render();
+  }
+
+  function renderDetalhe(el) {
+    const row = currentCharge;
+    if (!row) {
+      el.innerHTML = `<p class="cob-empty">Cobrança indisponível.</p>`;
+      return;
+    }
+    const ident = row.identificador || `FAT-${String(row.numero_cobranca || 0).padStart(6, "0")}`;
+    const recebido = Number(row.valor_recebido || 0);
+    const total = Number(row.valor_total || 0);
+    const snap = svc().paymentSnapshot(total, recebido);
+    const status = String(row.status || "PENDENTE").toUpperCase() === "HISTORICO" ? "HISTORICO" : snap.status;
+    const podePagar = status === "PENDENTE" || status === "PARCIAL";
+    const rows = (previewLines || [])
+      .map(
+        (line) => `<tr>
+          <td data-label="Placa">${esc(line.placa || "—")}</td>
+          <td data-label="Serviço">${esc(line.servico || svc().serviceLabel(line))}</td>
+          <td data-label="Período">${esc(svc().formatPeriodLabel(line.entrada, line.saida || svc().todayYmd()))}</td>
+          <td class="num" data-label="Valor">${esc(money(line.valor))}</td>
+        </tr>`
+      )
+      .join("");
+    el.innerHTML = `
+      <div class="cob-toolbar">
+        <div>
+          <button type="button" class="cob-btn secondary" data-cob-nav="${status === "PAGO" || status === "HISTORICO" ? "recebidos" : "pendentes"}">← Voltar</button>
+          <h2 style="margin-top:10px">${esc(ident)}</h2>
+          <p class="cob-sub">${esc(row.parceiro_nome || "Cliente")} · <span class="cob-tag">${esc(svc().chargeStatusLabel(status))}</span></p>
+          <p class="cob-sub">Demonstrativo de cobrança. Não é nota fiscal. O saldo é único; a composição por veículo permanece abaixo.</p>
+        </div>
+        <div class="cob-actions-row">
+          <button type="button" class="cob-btn" data-cob-pdf="1">Baixar PDF</button>
+          <button type="button" class="cob-btn secondary" data-cob-print="1">Imprimir</button>
+          <button type="button" class="cob-btn secondary" data-cob-whatsapp="1">Compartilhar</button>
+        </div>
+      </div>
+      <div class="cob-kpis">
+        <div class="cob-kpi"><span>Total</span><strong>${esc(money(total))}</strong></div>
+        <div class="cob-kpi"><span>Recebido</span><strong>${esc(money(recebido))}</strong></div>
+        <div class="cob-kpi"><span>Saldo</span><strong>${esc(money(snap.saldo))}</strong></div>
+        <div class="cob-kpi"><span>Veículos</span><strong>${esc(row.quantidade_veiculos || previewLines.length)}</strong></div>
+      </div>
+      <div class="cob-table-wrap">
+        <table class="cob-table">
+          <thead><tr><th>Placa</th><th>Serviço</th><th>Período</th><th class="num">Valor</th></tr></thead>
+          <tbody>${rows || `<tr><td colspan="4">Sem itens.</td></tr>`}</tbody>
+        </table>
+      </div>
+      <p class="cob-preview-total"><strong>TOTAL ${esc(money(total))}</strong></p>
+      ${
+        podePagar
+          ? `<form id="cobPayForm" class="cob-form">
+              <p class="cob-sub">Registre o PIX. Pagamento parcial mantém o saldo. A quitação dá baixa em todos os veículos de uma vez, sem alterar o valor original de cada um.</p>
+              <label>Valor recebido<input id="cobPayValor" type="number" min="0.01" step="0.01" value="${esc(snap.saldo.toFixed(2))}" /></label>
+              <label>Forma<select id="cobPayForma"><option value="PIX">PIX</option><option value="DINHEIRO">Dinheiro</option><option value="TRANSFERENCIA">Transferência</option></select></label>
+              <label>Data<input id="cobPayData" type="date" value="${esc(svc().todayYmd())}" /></label>
+              <button type="submit" class="cob-btn">Confirmar recebimento</button>
+            </form>`
+          : `<p class="notice">Esta cobrança está ${esc(svc().chargeStatusLabel(status).toLowerCase())}.</p>`
+      }`;
+    document.getElementById("cobPayForm")?.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      void submitPayment();
+    });
+  }
+
+  async function submitPayment() {
+    const amount = Number(document.getElementById("cobPayValor")?.value || 0);
+    const forma = document.getElementById("cobPayForma")?.value || "PIX";
+    const dataMovimento = document.getElementById("cobPayData")?.value || svc().todayYmd();
+    try {
+      const res = await svc().registerChargePayment({
+        supabase: supabase(),
+        uid: uid(),
+        charge: currentCharge,
+        amount,
+        forma,
+        dataMovimento,
+      });
+      currentCharge = res.charge;
+      const snap = res.snap;
+      alert(snap.status === "PAGO" ? "Pagamento confirmado. Todos os veículos desta fatura foram quitados." : "Pagamento parcial registrado. O saldo restante continua em aberto.");
+      await openDetalhe(currentCharge.id);
+    } catch (e) {
+      alert(e.message || "Não foi possível registrar o pagamento.");
+    }
+  }
+
+  async function renderCharges(el) {
+    const bucket = screen === "recebidos" ? "recebidos" : "pendentes";
+    const title = bucket === "recebidos" ? "Pagamentos recebidos" : "Cobranças pendentes";
+    if (!chargesLoaded) {
+      el.innerHTML = `<p class="cob-sub">Carregando…</p>`;
+      const loaded = await svc().loadCharges(uid(), supabase());
+      chargesLoaded = true;
+      chargesMissing = !!loaded.missingTable;
+      chargeRows = loaded.rows || [];
+      if (screen !== "pendentes" && screen !== "recebidos") return;
+    }
+    const rows = svc().filterCharges(chargeRows, { bucket, search: chargeSearch });
+    const body = chargesMissing
+      ? `<p class="cob-empty">Histórico indisponível até aplicar supabase/cobrancas.sql.</p>`
+      : rows.length
+        ? `<div class="cob-table-wrap"><table class="cob-table"><thead><tr>
+            <th>Fatura</th><th>Cliente</th><th class="num">Veículos</th><th class="num">Total</th><th class="num">Saldo</th><th>Status</th><th></th>
+          </tr></thead><tbody>${rows
+            .map((row) => {
+              const ident = row.identificador || `FAT-${String(row.numero_cobranca || 0).padStart(6, "0")}`;
+              const snap = svc().paymentSnapshot(row.valor_total, row.valor_recebido || 0);
+              const st = String(row.status || "HISTORICO").toUpperCase();
+              return `<tr>
+                <td data-label="Fatura">${esc(ident)}</td>
+                <td data-label="Cliente">${esc(row.parceiro_nome || "—")}</td>
+                <td class="num" data-label="Veículos">${esc(row.quantidade_veiculos || 0)}</td>
+                <td class="num" data-label="Total">${esc(money(row.valor_total))}</td>
+                <td class="num" data-label="Saldo">${esc(money(st === "HISTORICO" ? 0 : snap.saldo))}</td>
+                <td data-label="Status">${esc(svc().chargeStatusLabel(st))}</td>
+                <td data-label="Ações"><button type="button" class="cob-btn secondary" data-cob-open-charge="${esc(row.id)}">Abrir</button></td>
+              </tr>`;
+            })
+            .join("")}</tbody></table></div>`
+        : `<p class="cob-empty">Nenhuma cobrança nesta lista.</p>`;
+    el.innerHTML = `
+      <div class="cob-toolbar">
+        <div>
+          <button type="button" class="cob-btn secondary" data-cob-back="list">← Voltar</button>
+          <h2 style="margin-top:10px">${esc(title)}</h2>
+          <p class="cob-sub">Busque por cliente, placa ou número da fatura.</p>
+        </div>
+      </div>
+      <input class="cob-search" id="cobChargeSearch" type="search" value="${esc(chargeSearch)}" placeholder="Cliente, placa ou fatura" />
+      ${body}`;
+  }
+
+  function openCompose(titulo, ids, origem) {
+    preserveOnMount = true;
+    compose = emptyCompose();
+    compose.titulo = titulo;
+    compose.origem = origem || "financeiro";
+    presetIds = new Set((ids || []).map(String));
+    compose.selected = new Set(presetIds);
+    screen = "compose";
+    if (typeof global.openMainView === "function") global.openMainView("financeiro");
+    if (typeof global.openFinanceSubview === "function") global.openFinanceSubview("cobrancas", { skipRefresh: true });
+    else render();
+  }
+
+  function offerAfterExit(vehicleId, message) {
+    const lines = svc().billableLines().filter((l) => String(l.vehicleId) === String(vehicleId));
+    if (!lines.length) return false;
+    const total = svc().summarizeLines(lines).total;
+    const placas = lines.map((l) => l.placa || "sem placa").join(", ");
+    document.getElementById("cobExitModal")?.remove();
+    const bd = document.createElement("div");
+    bd.id = "cobExitModal";
+    bd.className = "cob-modal-backdrop";
+    bd.innerHTML = `<div class="cob-modal" role="dialog">
+      <h3>Saída registrada</h3>
+      <p>${esc(message || "O veículo saiu do pátio. O pagamento não é obrigatório agora.")}</p>
+      <p><strong>${esc(placas)}</strong> · ${esc(money(total))}</p>
+      <div class="cob-actions-row">
+        <button type="button" class="cob-btn" data-cob-exit="agora">Cobrar agora</button>
+        <button type="button" class="cob-btn secondary" data-cob-exit="pendente">Deixar pendente</button>
+        <button type="button" class="cob-btn secondary" data-cob-exit="depois">Incluir em conjunto depois</button>
+      </div>
+    </div>`;
+    bd.addEventListener("click", (ev) => {
+      const act = ev.target.closest("[data-cob-exit]")?.getAttribute("data-cob-exit");
+      if (ev.target === bd) {
+        bd.remove();
+        return;
+      }
+      if (!act) return;
+      bd.remove();
+      if (act === "agora") openCompose("Nova cobrança", lines.map((l) => l.receivableId), "saida");
+    });
+    document.body.appendChild(bd);
+    return true;
   }
 
   function bindOnce() {
@@ -879,13 +1397,35 @@
 
   function mount() {
     bindOnce();
-    screen = "list";
-    ensureDataThen(() => render());
+    if (!preserveOnMount) screen = "list";
+    ensureDataThen(async () => {
+      try {
+        await svc().refreshBlockedReceivables(uid(), supabase());
+      } catch (_e) {
+        /* sem a coluna status a lista segue como antes */
+      }
+      if (presetIds) {
+        const live = new Set(svc().billableLines().map((l) => l.receivableId));
+        const wanted = [...presetIds].map(String);
+        compose.selected = new Set(wanted.filter((id) => live.has(id)));
+        presetIds = null;
+        screen = "compose";
+        preserveOnMount = true;
+        if (wanted.length && compose.selected.size < wanted.length) {
+          alert("Algum registro já está em cobrança ativa ou não está pendente e ficou de fora.");
+        }
+      }
+      render();
+    });
   }
 
   global.cobrancaUi = {
     bindOnce,
     mount,
     render,
+    openConjunto(ids) {
+      openCompose("Faturar em conjunto", ids, "financeiro");
+    },
+    offerAfterExit,
   };
 })(typeof window !== "undefined" ? window : globalThis);
