@@ -141,15 +141,9 @@
 
   function hasCaixaBaixa(r) {
     if (!r?.id) return false;
-    if (typeof global.receivableCashMovementExists === "function" && global.receivableCashMovementExists(r.id)) {
-      return true;
-    }
-    const id = String(r.id);
-    return (state().cash || []).some(function (m) {
-      if (String(m.conta_id) !== id) return false;
-      const t = String(m.tipo_conta || "").toUpperCase();
-      return t === "RECEBER" || t === "ENTRADA";
-    });
+    const valor = Number(r.valor || 0);
+    if (!(valor > 0)) return false;
+    return abatimentoDoRecebivel(r.id) + 0.009 >= valor;
   }
 
   function isPaidOrSettled(r) {
@@ -961,7 +955,7 @@
     return data;
   }
 
-  async function registerChargePayment({ supabase, uid, charge, amount, forma, dataMovimento }) {
+  async function registerChargePayment({ supabase, uid, charge, amount, forma, dataMovimento, observacao }) {
     if (!supabase || !uid || !charge?.id) throw new Error("Cobrança não encontrada.");
     const st = String(charge.status || "").toUpperCase();
     if (st === "PAGO" || st === "HISTORICO") throw new Error("Esta cobrança não aceita novo pagamento.");
@@ -993,7 +987,7 @@
       valor: add,
       forma: forma || "PIX",
       data_pagamento: dataMovimento || todayYmd(),
-      observacao: snap.status === "PAGO" ? "Quitação da fatura" : "Pagamento parcial",
+      observacao: observacao || (snap.status === "PAGO" ? "Quitação da fatura" : "Pagamento parcial"),
     };
     const ins = await supabase.from("cobranca_pagamentos").insert(pay).select("*").single();
     if (ins.error) {
