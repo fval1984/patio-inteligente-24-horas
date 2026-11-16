@@ -590,8 +590,12 @@
       } else {
         btn.classList.remove("hidden");
       }
-      const base = btn.getAttribute("data-fin-batch-label") || btn.textContent.replace(/\s*\(\d+\)\s*$/, "");
-      btn.textContent = count > 0 ? `${base} (${count})` : base;
+      const base = btn.getAttribute("data-fin-batch-label") || btn.textContent.replace(/\s*\(\d+\)\s*$/, "").replace(/\s*·.*$/, "");
+      if (action === "conjunto" && count > 0) {
+        btn.textContent = `${base} (${count} · ${formatCurrency(financeSelectedRowsTotal(view))})`;
+      } else {
+        btn.textContent = count > 0 ? `${base} (${count})` : base;
+      }
     });
     const selectedSummaryByView = {
       aguardando: {
@@ -7615,6 +7619,11 @@
         if (!view || !action || count < 1) return;
         if (action === "delete") {
           financeOpenBatchDeleteModal(view, count);
+          return;
+        }
+        if (action === "conjunto" && (view === "aguardando" || view === "receber")) {
+          const ids = [...(financeRowSelection[view] || [])];
+          if (typeof window.cobrancaUi?.openConjunto === "function") window.cobrancaUi.openConjunto(ids);
           return;
         }
         if (action === "faturar" && view === "aguardando") {
