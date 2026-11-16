@@ -10630,14 +10630,14 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20261116cx5"></script>
+    <script src="/finance-module.js?v=20261116cx9"></script>
     <script src="/finance-notas-transporte.js?v=20261111nt1"></script>
     <script src="/payment-receipt.js?v=20261005recibo10"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
     <script src="/partner-program.js?v=20261112pp1"></script>
-    <script src="/finance-simple-ui.js?v=20261112fin1"></script>
+    <script src="/finance-simple-ui.js?v=20261116cx9"></script>
     <script src="/finance-action-ui.js?v=20260921caderneta1"></script>
     <script src="/finance-pix-ui.js?v=20261112pix1"></script>
     <script src="/patio-dashboard.js?v=20260715gestor"></script>
@@ -10669,7 +10669,7 @@
     <script src="/cobranca-service.js?v=20261116cx6"></script>
     <script src="/cobranca-ui.js?v=20261116cx1"></script>
     <script src="/finance-caixa-hub.js?v=20261116caixa1"></script>
-    <script src="/caixa-operacional.js?v=20261116cx8"></script>
+    <script src="/caixa-operacional.js?v=20261116cx9"></script>
     <script src="/parceiro-caderneta.js?v=20261116cx4"></script>
     <script src="/patio-extrato-service.js?v=20261105resumo2"></script>
     <script src="/patio-extrato-ui.js?v=20261106patioReorg1"></script>
@@ -16312,7 +16312,10 @@
               const origem = financeStripFinmetaText(
                 meta?.origem_texto || rec?.responsavel_pagamento || text || mov.descricao || "—"
               );
-              const descricao = financeStripFinmetaText(meta?.descricao_texto || text || mov.descricao || "—");
+              const descricaoBruta = financeStripFinmetaText(meta?.descricao_texto || text || mov.descricao || "—");
+              const descricao =
+                (typeof financeDescricaoMovimentoVisivel === "function" && financeDescricaoMovimentoVisivel(mov)) ||
+                String(descricaoBruta || "").replace(/^\s*di[aá]rias\s*[—\-–:]\s*/i, "").trim();
               return `<tr>
               <td data-label="Data">${escapeHtml(formatDateTime(mov.data_movimento))}</td>
               <td data-label="Tipo">${escapeHtml(mov.tipo_conta || "—")}</td>
