@@ -19,9 +19,21 @@
   let cobrancaPorRecebivelId = new Map();
   let pagosReceivableIds = new Set();
   let built = false;
+  let refreshToken = 0;
+  let refreshTimer = 0;
+  let contasCache = null;
+  let catalogCache = null;
+  let linhaMap = null;
+  let recebivelMap = null;
+  let veiculoMap = null;
+  let limiteLista = 200;
 
   function svc() {
     return global.cobrancaService;
+  }
+
+  function dados() {
+    return global.__ampliState || global.state || {};
   }
 
   function esc(v) {
@@ -84,7 +96,8 @@
   }
 
   function clienteDaLinha(line) {
-    const catalog = svc()?.clientCatalog?.() || [];
+    if (!catalogCache) catalogCache = svc()?.clientCatalog?.() || [];
+    const catalog = catalogCache;
     const link = (line.links || []).find((l) => l.kind === "partner" || l.kind === "advocacy_office");
     if (!link) return { key: "sem", nome: "Sem cliente definido" };
     const found = catalog.find((c) => c.kind === link.kind && c.id === String(link.id));
@@ -111,15 +124,27 @@
   }
 
   function recebivelPorId(id) {
-    return (global.state?.receivables || []).find((r) => String(r.id) === String(id)) || null;
+    if (!recebivelMap) {
+      recebivelMap = new Map();
+      for (const r of dados()?.receivables || []) if (r?.id != null) recebivelMap.set(String(r.id), r);
+    }
+    return recebivelMap.get(String(id)) || null;
   }
 
   function veiculoDo(r) {
-    return (global.state?.vehicles || []).find((v) => String(v.id) === String(r?.vehicle_id)) || null;
+    if (!veiculoMap) {
+      veiculoMap = new Map();
+      for (const v of dados()?.vehicles || []) if (v?.id != null) veiculoMap.set(String(v.id), v);
+    }
+    return veiculoMap.get(String(r?.vehicle_id || "")) || null;
   }
 
   function linhaDeRecebivel(r) {
-    const pronta = (svc()?.billableLines?.() || []).find((l) => l.receivableId === String(r.id));
+    if (!linhaMap) {
+      linhaMap = new Map();
+      for (const linha of svc()?.billableLines?.() || []) linhaMap.set(String(linha.receivableId), linha);
+    }
+    const pronta = linhaMap.get(String(r.id));
     if (pronta) return pronta;
     const v = veiculoDo(r);
     return {
@@ -160,14 +185,17 @@
   }
 
   function contasFonte() {
+    if (contasCache) return contasCache;
     if (typeof global.financeContasReceberList === "function") {
       try {
-        return global.financeContasReceberList() || [];
+        contasCache = global.financeContasReceberList() || [];
+        return contasCache;
       } catch (_e) {
         /* a lista antiga continua disponível pelo status do recebível */
       }
     }
-    return (global.state?.receivables || []).filter((r) => ehContaReceber(r) && Number(r.valor || 0) > 0);
+    contasCache = (dados()?.receivables || []).filter((r) => ehContaReceber(r) && Number(r.valor || 0) > 0);
+    return contasCache;
   }
 
   function linhasAFaturar() {
@@ -284,7 +312,7 @@
 
   function recebidosAvulsos() {
     const out = [];
-    for (const r of global.state?.receivables || []) {
+    for (const r of dados()?.receivables || []) {
       if (!r?.id) continue;
       const line = linhaDeRecebivel(r);
       const pago = ehPago(r);
@@ -308,7 +336,7 @@
 
   function linhasHistorico() {
     const itens = [];
-    for (const r of global.state?.receivables || []) {
+    for (const r of dados()?.receivables || []) {
       if (!r?.id) continue;
       const line = linhaDeRecebivel(r);
       if (!noPeriodo(line.saida || line.entrada || r.created_at)) continue;
@@ -344,7 +372,7 @@
         situacao: st === "HISTORICO" ? "Fatura antiga" : svc().chargeStatusLabel(st),
       });
     }
-    for (const mov of global.state?.cash || []) {
+    for (const mov of dados()?.cash || []) {
       if (mov?.conta_id && recebivelPorId(mov.conta_id)) continue;
       const titulo = mov.descricao || "Movimento de caixa";
       if (q && !String(titulo).toLowerCase().includes(q.toLowerCase())) continue;
@@ -380,7 +408,7 @@
       aFaturar: round(aFaturar),
       aReceber: round(aReceber),
       recebido: round(recebido),
-      historico: (global.state?.receivables || []).length + charges.length,
+      historico: (dados()?.receivables || []).length + charges.length,
     };
   }
 
@@ -408,6 +436,7 @@
         <label>Tipo<select id="caixaOpTipo"><option value="">Todos</option><option value="entrada">Entradas</option><option value="saida">Saídas</option></select></label>
         <button type="button" class="cx-btn" id="caixaOpNova">Nova cobrança</button>
       </div>
+      <p id="caixaOpErro" class="cx-empty" hidden></p>
       <div id="caixaOpLista"></div>
       <div id="caixaOpBar"></div>`;
     finance.appendChild(el);
@@ -432,18 +461,34 @@
   }
 
   function pintar() {
-    pintarTotais();
-    const nova = document.getElementById("caixaOpNova");
-    if (nova) {
-      nova.hidden = filtro === "caixa";
-      nova.textContent = filtro === "saidas" ? "Nova despesa" : "Nova cobrança";
+    contasCache = null;
+    catalogCache = null;
+    linhaMap = null;
+    recebivelMap = null;
+    veiculoMap = null;
+    try {
+      pintarTotais();
+      const nova = document.getElementById("caixaOpNova");
+      if (nova) {
+        nova.hidden = filtro === "caixa";
+        nova.textContent = filtro === "saidas" ? "Nova despesa" : "Nova cobrança";
+      }
+      pintarLista();
+      pintarBarra();
+      const erro = document.getElementById("caixaOpErro");
+      if (erro) erro.hidden = true;
+    } catch (err) {
+      console.error("financeiro", err);
+      const erro = document.getElementById("caixaOpErro");
+      if (erro) {
+        erro.hidden = false;
+        erro.textContent = `Não foi possível montar o financeiro. Os registros continuam salvos. ${err?.message || ""}`;
+      }
     }
-    pintarLista();
-    pintarBarra();
   }
 
   function movimentosCaixa() {
-    const bruto = global.state?.cash || [];
+    const bruto = dados()?.cash || [];
     const lista = typeof global.financeDedupeCaixaMovs === "function" ? global.financeDedupeCaixaMovs(bruto) : bruto;
     return (lista || []).filter((mov) => mov && mov.excluir_do_saldo !== true);
   }
@@ -523,15 +568,18 @@
         situacao: "Pendente",
       });
     }
-    return itens.filter((item) => {
-      if (!passaPeriodo(item.data || item.venc)) return false;
-      const blob = `${item.titulo} ${item.cliente} ${item.situacao}`.toLowerCase();
-      return !q || blob.includes(q.toLowerCase());
-    });
+    const ordem = { Faturado: 0, Parcial: 1, Pendente: 2 };
+    return itens
+      .filter((item) => {
+        if (!passaPeriodo(item.data || item.venc)) return false;
+        const blob = `${item.titulo} ${item.cliente} ${item.situacao}`.toLowerCase();
+        return !q || blob.includes(q.toLowerCase());
+      })
+      .sort((a, b) => (ordem[a.situacao] ?? 9) - (ordem[b.situacao] ?? 9) || String(a.cliente).localeCompare(String(b.cliente), "pt-BR"));
   }
 
   function saidasPendentes() {
-    return (global.state?.payables || []).filter((p) => {
+    return (dados()?.payables || []).filter((p) => {
       if (!p?.id) return false;
       if (String(p.status || "").toUpperCase() === "PAGO") return false;
       if (!(Number(p.valor || 0) > 0)) return false;
@@ -663,13 +711,23 @@
     if (!box || !svc()) return;
     if (filtro === "entradas") {
       const itens = entradasPendentes();
+      const aReceber = itens.filter((item) => item.situacao === "Faturado" || item.situacao === "Parcial").length;
+      const aFaturar = itens.filter((item) => item.situacao === "Pendente").length;
+      const pagina = itens.slice(0, limiteLista);
+      const mais = itens.length > pagina.length
+        ? `<button type="button" class="cx-btn" data-cx-mais="1">Mostrar mais ${itens.length - pagina.length}</button>`
+        : "";
       box.innerHTML = itens.length
-        ? `<div class="cx-group"><div class="cx-group-head"><span></span><span>Placa / fatura</span><span>Cliente</span><span class="cx-num cx-hide-sm">Valor</span><span class="cx-num cx-hide-sm">Recebido</span><span class="cx-num">Saldo</span><span></span></div>${itens.map(linhaMovimentoHtml).join("")}</div>`
-        : `<p class="cx-empty">Nenhuma entrada pendente.</p>`;
+        ? `<p class="cx-total">A receber: ${aReceber} · A faturar: ${aFaturar}</p><div class="cx-group"><div class="cx-group-head"><span></span><span>Placa / fatura</span><span>Cliente</span><span class="cx-num cx-hide-sm">Valor</span><span class="cx-num cx-hide-sm">Recebido</span><span class="cx-num">Saldo</span><span></span></div>${pagina.map(linhaMovimentoHtml).join("")}</div>${mais}`
+        : `<p class="cx-empty">Nenhuma entrada pendente. Contas a receber e valores a faturar aparecem aqui.</p>`;
       return;
     }
     if (filtro === "saidas") {
-      const itens = saidasPendentes();
+      const todas = saidasPendentes();
+      const itens = todas.slice(0, limiteLista);
+      const mais = todas.length > itens.length
+        ? `<button type="button" class="cx-btn" data-cx-mais="1">Mostrar mais ${todas.length - itens.length}</button>`
+        : "";
       box.innerHTML = itens.length
         ? `<div class="cx-group">${itens
             .map(
@@ -683,7 +741,7 @@
                 <button type="button" class="cx-btn" data-cx-pagar="${esc(p.id)}">Pagar</button>
               </div>`
             )
-            .join("")}</div>`
+            .join("")}</div>${mais}`
         : `<p class="cx-empty">Nenhuma despesa pendente.</p>`;
       return;
     }
@@ -697,7 +755,8 @@
       });
       const entradas = movs.filter(movimentoEhEntrada).reduce((s, m) => s + Number(m.valor || 0), 0);
       const saidas = movs.filter(movimentoEhSaida).reduce((s, m) => s + Number(m.valor || 0), 0);
-      const corpo = movs
+      const pagina = movs.slice(0, limiteLista);
+      const corpo = pagina
         .map((mov) => {
           const entrada = movimentoEhEntrada(mov);
           return `<div class="cx-row" data-cx-open="caixa" data-cx-id="${esc(mov.id)}">
@@ -711,7 +770,10 @@
           </div>`;
         })
         .join("");
-      box.innerHTML = `<p class="cx-total">Saldo das movimentações confirmadas: ${esc(money(entradas - saidas))}</p><div class="cx-group"><div class="cx-group-head"><span></span><span>Movimento</span><span>Data</span><span class="cx-num cx-hide-sm">Entrada</span><span class="cx-num cx-hide-sm">Saída</span><span class="cx-num">Valor</span><span></span></div>${corpo || `<p class="cx-empty">Nenhuma movimentação confirmada neste período.</p>`}</div>`;
+      const mais = movs.length > pagina.length
+        ? `<button type="button" class="cx-btn" data-cx-mais="1">Mostrar mais ${movs.length - pagina.length}</button>`
+        : "";
+      box.innerHTML = `<p class="cx-total">Saldo das movimentações confirmadas: ${esc(money(entradas - saidas))}${movs.length ? ` · ${pagina.length} de ${movs.length}` : ""}</p><div class="cx-group"><div class="cx-group-head"><span></span><span>Movimento</span><span>Data</span><span class="cx-num cx-hide-sm">Entrada</span><span class="cx-num cx-hide-sm">Saída</span><span class="cx-num">Valor</span><span></span></div>${corpo || `<p class="cx-empty">Nenhuma movimentação confirmada neste período.</p>`}</div>${mais}`;
       return;
     }
     if (filtro === "historico") {
@@ -880,7 +942,13 @@
     if (filtroBtn) {
       filtro = filtroBtn.getAttribute("data-cx-filtro");
       selected = new Set();
+      limiteLista = 200;
       pintar();
+      return;
+    }
+    if (e.target.closest("[data-cx-mais]")) {
+      limiteLista += 200;
+      pintarLista();
       return;
     }
     const pagar = e.target.closest("[data-cx-pagar]");
@@ -1230,7 +1298,7 @@
       if (typeof global.registerReceivableCashMovement !== "function") {
         throw new Error("Não foi possível registrar o pagamento parcial.");
       }
-      const rec = (global.state?.receivables || []).find((r) => String(r.id) === String(line.receivableId));
+      const rec = (dados()?.receivables || []).find((r) => String(r.id) === String(line.receivableId));
       const gravado = await global.registerReceivableCashMovement(rec || { id: line.receivableId, valor: original, vehicle_id: line.vehicleId }, {
         valor: acumulado,
         dataMovimento: opts.data,
@@ -1394,47 +1462,68 @@
     if (typeof global.updateDashboard === "function") global.updateDashboard();
   }
 
-  async function carregarItens(ids) {
+  async function carregarItens(ids, token) {
     const map = new Map();
     const db = supabase();
-    const lista = (ids || []).filter(Boolean);
+    const lista = [...new Set((ids || []).filter(Boolean).map(String))];
     if (!db || !lista.length) return map;
     for (let i = 0; i < lista.length; i += 80) {
+      if (token !== refreshToken) return map;
       const slice = lista.slice(i, i + 80);
-      const { data, error } = await db.from("cobranca_itens").select("cobranca_id,receivable_id,valor,snapshot").in("cobranca_id", slice);
-      if (error) break;
+      const { data, error } = await db.from("cobranca_itens").select("cobranca_id,receivable_id,valor,snapshot").in("receivable_id", slice);
+      if (error) {
+        console.warn("financeiro itens", error.message || error);
+        break;
+      }
       for (const item of data || []) {
         const key = String(item.cobranca_id);
         if (!map.has(key)) map.set(key, []);
         map.get(key).push(item);
       }
+      await new Promise((resolve) => global.setTimeout(resolve, 0));
     }
     return map;
   }
 
+  function indexarCobrancas() {
+    cobrancaPorRecebivelId = new Map();
+    pagosReceivableIds = new Set();
+    for (const row of charges) {
+      const pago = String(row.status || "").toUpperCase() === "PAGO";
+      for (const item of itensPorCobranca.get(String(row.id)) || []) {
+        if (!item.receivable_id) continue;
+        const recId = String(item.receivable_id);
+        if (!cobrancaPorRecebivelId.has(recId)) cobrancaPorRecebivelId.set(recId, row);
+        if (pago) pagosReceivableIds.add(recId);
+      }
+    }
+  }
+
   async function refresh() {
     if (!svc()) return;
+    const token = ++refreshToken;
     ensure();
+    pintar();
     try {
       await svc().refreshBlockedReceivables(uid(), supabase());
+      if (token !== refreshToken) return;
       const loaded = await svc().loadCharges(uid(), supabase());
+      if (token !== refreshToken) return;
       charges = loaded.rows || [];
-      itensPorCobranca = await carregarItens(charges.map((row) => row.id));
-      cobrancaPorRecebivelId = new Map();
-      pagosReceivableIds = new Set();
-      for (const row of charges) {
-        const pago = String(row.status || "").toUpperCase() === "PAGO";
-        for (const item of itensPorCobranca.get(String(row.id)) || []) {
-          if (!item.receivable_id) continue;
-          const recId = String(item.receivable_id);
-          if (!cobrancaPorRecebivelId.has(recId)) cobrancaPorRecebivelId.set(recId, row);
-          if (pago) pagosReceivableIds.add(recId);
-        }
-      }
+      contasCache = null;
+      const ids = contasFonte().map((r) => r.id);
+      itensPorCobranca = await carregarItens(ids, token);
+      if (token !== refreshToken) return;
+      indexarCobrancas();
+      pintar();
     } catch (err) {
-      console.warn("caixa operacional", err);
+      console.error("financeiro", err);
+      const erro = document.getElementById("caixaOpErro");
+      if (erro) {
+        erro.hidden = false;
+        erro.textContent = `A consulta do financeiro falhou. Os registros continuam salvos. ${err?.message || ""}`;
+      }
     }
-    pintar();
   }
 
   function captura(view) {
@@ -1449,7 +1538,17 @@
       el.classList.add("hidden");
       el.hidden = true;
     });
-    refresh();
+    try {
+      pintar();
+    } catch (err) {
+      console.error("financeiro", err);
+    }
+    if (typeof global.clearTimeout === "function") global.clearTimeout(refreshTimer);
+    if (typeof global.setTimeout === "function") {
+      refreshTimer = global.setTimeout(() => {
+        refresh().catch((err) => console.error("financeiro", err));
+      }, 40);
+    }
     return true;
   }
 
