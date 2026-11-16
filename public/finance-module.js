@@ -2300,6 +2300,13 @@
     };
   }
 
+  function financeReceberSurfaceOpen() {
+    if (currentFinanceView == "receber") return true;
+    const page = document.getElementById("viewParceiros");
+    const host = document.querySelector('#viewParceiros [data-subview="cadernetas"]');
+    return !!(page && host && !page.classList.contains("hidden") && !host.classList.contains("hidden"));
+  }
+
   function financeOpenReceberCaderneta(key) {
     const k = String(key || "").trim();
     if (!k) return;
@@ -5856,7 +5863,7 @@
   }
 
   function financePrintSubview() {
-    if (currentFinanceView === "receber") {
+    if (financeReceberSurfaceOpen()) {
       financePrintReceberCliente();
       return;
     }
@@ -5864,7 +5871,7 @@
   }
 
   async function financeExportPdfHint() {
-    if (currentFinanceView === "receber") {
+    if (financeReceberSurfaceOpen()) {
       await financeDownloadReceberClientePdf();
       return;
     }
@@ -7294,6 +7301,7 @@
           renderFinance();
         }
         updateDashboard?.();
+        if (financeReceberSurfaceOpen()) financeRenderReceber();
       } catch (e) {
         console.error("refreshFinanceData", e?.message || e);
         if (preserveView) {
@@ -7404,7 +7412,7 @@
 
     document.getElementById("finFilterBusca")?.addEventListener("input", (e) => {
       financeFilterBanco = e.target.value || "";
-      if (currentFinanceView === "receber") financeRenderReceber();
+      if (financeReceberSurfaceOpen()) financeRenderReceber();
     });
     document.getElementById("finFilterStatus")?.addEventListener("change", (e) => {
       financeFilterStatus = e.target.value || "";
@@ -7419,7 +7427,7 @@
       financeRenderReceber();
     });
     document.getElementById("finReceberRpp")?.addEventListener("change", () => {
-      if (currentFinanceView === "receber") financeRenderReceber();
+      if (financeReceberSurfaceOpen()) financeRenderReceber();
     });
     document.getElementById("finAguardandoPlateForm")?.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -7458,10 +7466,10 @@
       financeCloseReceberCaderneta();
     });
     document.getElementById("finReceberCadernetaPlaca")?.addEventListener("input", () => {
-      if (currentFinanceView === "receber" && finReceberCadernetaKey) financeRenderReceber();
+      if (financeReceberSurfaceOpen() && finReceberCadernetaKey) financeRenderReceber();
     });
     document.getElementById("finReceberCadernetaPlaca")?.addEventListener("search", () => {
-      if (currentFinanceView === "receber" && finReceberCadernetaKey) financeRenderReceber();
+      if (financeReceberSurfaceOpen() && finReceberCadernetaKey) financeRenderReceber();
     });
     document.getElementById("finReceberCadernetaPlaca")?.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
@@ -7469,7 +7477,7 @@
     });
     document.getElementById("finReceberPlateForm")?.addEventListener("submit", (e) => {
       e.preventDefault();
-      if (currentFinanceView === "receber") financeReceberTryOpenRegistroFromPlacaSubmit();
+      if (financeReceberSurfaceOpen()) financeReceberTryOpenRegistroFromPlacaSubmit();
     });
     document.getElementById("finReceberPlaca")?.addEventListener("input", () => {
       const plateNorm = financeNormalizePlate(document.getElementById("finReceberPlaca")?.value);
@@ -7477,19 +7485,19 @@
         finReceberCadernetaKey = "";
         financeClearCadernetaPlacaFilter();
       }
-      if (currentFinanceView === "receber") financeRenderReceber();
+      if (financeReceberSurfaceOpen()) financeRenderReceber();
     });
     document.getElementById("finReceberPlaca")?.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
       e.preventDefault();
-      if (currentFinanceView === "receber") financeReceberTryOpenRegistroFromPlacaSubmit();
+      if (financeReceberSurfaceOpen()) financeReceberTryOpenRegistroFromPlacaSubmit();
     });
     ["finReceberValorDe", "finReceberValorAte"].forEach((id) => {
       document.getElementById(id)?.addEventListener("input", () => {
-        if (currentFinanceView === "receber") financeRenderReceber();
+        if (financeReceberSurfaceOpen()) financeRenderReceber();
       });
       document.getElementById(id)?.addEventListener("change", () => {
-        if (currentFinanceView === "receber") financeRenderReceber();
+        if (financeReceberSurfaceOpen()) financeRenderReceber();
       });
     });
     document.getElementById("finReceberPlacaClear")?.addEventListener("click", () => {
@@ -7503,7 +7511,7 @@
       financeFilterReceberValorAte = null;
       finReceberRegistroId = "";
       finReceberCadernetaKey = "";
-      if (currentFinanceView === "receber") financeRenderReceber();
+      if (financeReceberSurfaceOpen()) financeRenderReceber();
     });
     document.getElementById("finCaixaPlaca")?.addEventListener("input", () => {
       if (currentFinanceView === "caixa") financeRenderCaixa();
@@ -7534,10 +7542,10 @@
 
     ["finReceberDataDe", "finReceberDataAte", "finReceberDataBusca"].forEach((id) => {
       document.getElementById(id)?.addEventListener("change", () => {
-        if (currentFinanceView === "receber") financeRenderReceber();
+        if (financeReceberSurfaceOpen()) financeRenderReceber();
       });
       document.getElementById(id)?.addEventListener("search", () => {
-        if (currentFinanceView === "receber") financeRenderReceber();
+        if (financeReceberSurfaceOpen()) financeRenderReceber();
       });
     });
     document.getElementById("finCaixaFilterEntrada")?.addEventListener("click", () => {
@@ -7639,7 +7647,7 @@
       });
     });
 
-    document.getElementById("viewFinanceiro")?.addEventListener("change", (e) => {
+    const financeShellChange = (e) => {
       const rowCheck = e.target.closest(".fin-row-check");
       if (rowCheck) {
         const view = rowCheck.getAttribute("data-fin-row-check");
@@ -7665,9 +7673,11 @@
         });
         financeUpdateBatchBar(view);
       }
-    });
+    };
+    document.getElementById("viewFinanceiro")?.addEventListener("change", financeShellChange);
+    document.getElementById("parceiroCadernetaRoot")?.addEventListener("change", financeShellChange);
 
-    document.getElementById("viewFinanceiro")?.addEventListener("click", (e) => {
+    const financeShellClick = (e) => {
       const batchBtn = e.target.closest("[data-fin-batch-action]");
       if (batchBtn) {
         const view = batchBtn.getAttribute("data-fin-batch-view");
@@ -7735,7 +7745,9 @@
           return;
         }
       }
-    });
+    };
+    document.getElementById("viewFinanceiro")?.addEventListener("click", financeShellClick);
+    document.getElementById("parceiroCadernetaRoot")?.addEventListener("click", financeShellClick);
 
     document.getElementById("finBatchDeleteConfirm")?.addEventListener("click", async () => {
       const btn = document.getElementById("finBatchDeleteConfirm");
@@ -7933,11 +7945,7 @@
         }
         financeCloseReceitaModal();
         await Promise.all([loadReceivables(), loadCash()]);
-        if (typeof financeActivateSubview === "function") {
-          financeActivateSubview("receber");
-        } else {
-          renderFinance();
-        }
+        financeRenderReceber();
         updateDashboard?.();
         if (modo === "RECORRENTE") {
           financeFilterTipo = "recorrente";
@@ -8394,6 +8402,7 @@
   window.financeCaixaTotalsForMovs = financeCaixaTotalsForMovs;
   window.financeCashIsSaida = financeCashIsSaida;
   window.financeOpenReceberCaderneta = financeOpenReceberCaderneta;
+  window.financeRenderReceber = financeRenderReceber;
   window.financeOpenReceberRegistro = financeOpenReceberRegistro;
   window.financeReceivableDevedorIdentity = financeReceivableDevedorIdentity;
   window.financeVehicleRpvNome = financeVehicleRpvNome;
