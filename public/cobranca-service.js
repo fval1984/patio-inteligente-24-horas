@@ -302,6 +302,7 @@
       statusLabel: displayStatus(r),
       links: receivablePartnerLinks(r, v),
       servico: serviceLabel({ diarias, outros }),
+      abatimento: abatimentoDoRecebivel(r.id),
     };
   }
 
@@ -309,6 +310,21 @@
     const v = Number(n || 0);
     if (!Number.isFinite(v)) return 0;
     return Math.round(v * 100) / 100;
+  }
+
+  function abatimentoDoRecebivel(receivableId) {
+    let sum = 0;
+    for (const m of state().cash || []) {
+      if (String(m?.conta_id || "") !== String(receivableId || "")) continue;
+      const t = String(m.tipo_conta || "").toUpperCase();
+      if (t !== "RECEBER" && t !== "ENTRADA") continue;
+      sum += Number(m.valor || 0);
+    }
+    return roundMoney(sum);
+  }
+
+  function saldoAposAbatimento(valor, abatido) {
+    return roundMoney(Math.max(0, Number(valor || 0) - Number(abatido || 0)));
   }
 
   function serviceLabel(line) {
@@ -687,6 +703,8 @@
         saida: line.saida,
         dias: line.dias,
         valor: line.valor,
+        valorOriginal: line.valorOriginal != null ? line.valorOriginal : line.valor,
+        abatimento: line.abatimento || 0,
         diarias: line.diarias,
         outros: line.outros,
       },
@@ -706,6 +724,7 @@
       cliente_contato: client?.contato || null,
       identificador: ident,
       origem: client?.origem || "financeiro",
+      data_vencimento: client?.vencimento || null,
       busca_texto: [header.parceiro_nome, client?.documento, client?.contato, placas, ident].filter(Boolean).join(" "),
     };
   }
@@ -771,7 +790,7 @@
 
   function stripChargeExtras(header) {
     const copy = { ...header };
-    ["status", "valor_recebido", "cliente_modo", "cliente_documento", "cliente_contato", "identificador", "origem", "busca_texto"].forEach(
+    ["status", "valor_recebido", "cliente_modo", "cliente_documento", "cliente_contato", "identificador", "origem", "busca_texto", "data_vencimento"].forEach(
       (key) => {
         delete copy[key];
       }
@@ -1025,6 +1044,8 @@
     vehicleById,
     displayStatus,
     roundMoney,
+    abatimentoDoRecebivel,
+    saldoAposAbatimento,
     paymentSnapshot,
     chargeStatusLabel,
     serviceLabel,
