@@ -87,6 +87,38 @@
     return y ? `${nome}/${y}` : nome;
   }
 
+  function rotuloVeiculo(v) {
+    if (!v) return "";
+    const placa = String(v.placa || "").trim();
+    const nome = [v.marca, v.modelo].filter(Boolean).join(" ").trim();
+    if (placa && nome) return `${placa} • ${nome}`;
+    return placa || nome;
+  }
+
+  function textoVisivel(texto) {
+    let s = String(texto || "");
+    s = s.replace(/\[\[finmeta:[\s\S]*?\]\]/g, " ");
+    s = s.replace(/^\s*di[aá]rias\s*[—\-–:]\s*/i, "");
+    s = s.replace(/\s+/g, " ").trim();
+    if (!s || s.includes("[[finmeta:") || s.startsWith("{")) return "";
+    return s;
+  }
+
+  function descricaoMovimento(mov) {
+    if (typeof global.financeDescricaoMovimentoVisivel === "function") {
+      const pronto = global.financeDescricaoMovimentoVisivel(mov);
+      if (pronto) return pronto;
+    }
+    const rec = recebivelPorId(mov?.conta_id);
+    const v = veiculoDo(rec);
+    const rotulo = rotuloVeiculo(v);
+    const limpo = textoVisivel(mov?.descricao);
+    if (rotulo && (v?.marca || v?.modelo)) return rotulo;
+    if (limpo) return limpo;
+    if (rotulo) return rotulo;
+    return movimentoEhEntrada(mov) ? "Entrada" : "Saída";
+  }
+
   function textoDespesa(p) {
     return String(p?.descricao || "")
       .replace(/\[\[finmeta:[\s\S]*?\]\]/g, " ")
@@ -239,6 +271,19 @@
       for (const v of dados()?.vehicles || []) if (v?.id != null) veiculoMap.set(String(v.id), v);
     }
     return veiculoMap.get(String(r?.vehicle_id || "")) || null;
+  }
+
+  function rotuloLinha(line) {
+    const r = line?.receivable || recebivelPorId(line?.receivableId);
+    const v = veiculoDo(r);
+    const estruturado = rotuloVeiculo(v);
+    if (estruturado && (v?.marca || v?.modelo)) return estruturado;
+    const placa = String(line?.placa || v?.placa || "").trim();
+    const nome = String(line?.veiculoNome || "").trim();
+    const nomeUtil = nome && nome !== "Lançamento" && nome !== "—" && nome !== placa ? nome : "";
+    if (placa && nomeUtil) return `${placa} • ${nomeUtil}`;
+    if (estruturado) return estruturado;
+    return placa || nomeUtil || "Veículo";
   }
 
   function linhaDeRecebivel(r) {
@@ -425,7 +470,7 @@
       const total = Number(line.valor || 0);
       out.push({
         id: String(r.id),
-        placa: line.placa || line.veiculoNome || "Lançamento",
+        placa: rotuloLinha(line),
         nome: nomeLinha(line),
         total,
         recebido: pago ? Math.max(recebido, total) : recebido,
@@ -448,7 +493,7 @@
       itens.push({
         tipo: "veiculo",
         id: line.receivableId,
-        titulo: line.placa || line.veiculoNome || "Lançamento",
+        titulo: rotuloLinha(line),
         nome: nomeLinha(line),
         total: Number(line.valor || 0),
         recebido,
@@ -476,7 +521,7 @@
     }
     for (const mov of dados()?.cash || []) {
       if (mov?.conta_id && recebivelPorId(mov.conta_id)) continue;
-      const titulo = mov.descricao || "Movimento de caixa";
+      const titulo = descricaoMovimento(mov);
       if (q && !String(titulo).toLowerCase().includes(q.toLowerCase())) continue;
       if (!noPeriodo(mov.data_movimento || mov.created_at)) continue;
       const entrada = ["RECEBER", "ENTRADA"].includes(String(mov.tipo_conta || "").toUpperCase());
@@ -668,7 +713,7 @@
       itens.push({
         tipo: "veiculo",
         id: line.receivableId,
-        titulo: line.placa || line.veiculoNome || "Entrada",
+        titulo: rotuloLinha(line),
         cliente: r?.cobranca_destinatario_nome || nomeLinha(line),
         data: r?.faturado_em || r?.contas_receber_em || line.saida || line.entrada,
         venc: (typeof global.financeContaDueYmd === "function" ? global.financeContaDueYmd(r, "receivable") : "") || r?.data_vencimento || "",
@@ -683,7 +728,7 @@
       itens.push({
         tipo: "veiculo",
         id: line.receivableId,
-        titulo: line.placa || line.veiculoNome || "Entrada",
+        titulo: rotuloLinha(line),
         cliente: nomeLinha(line),
         data: line.saida || line.entrada,
         venc: r?.data_vencimento || "",
@@ -770,7 +815,7 @@
     const tag = situacao || "A faturar";
     return `<div class="cx-row" data-cx-open="veiculo" data-cx-id="${esc(line.receivableId)}">
       <input class="cx-check" type="checkbox" data-cx-check="${esc(line.receivableId)}" ${on} aria-label="Selecionar ${esc(line.placa || "veículo")}" />
-      <span class="cx-title">${esc(line.placa || line.veiculoNome || "Veículo")}</span>
+      <span class="cx-title">${esc(rotuloLinha(line))}</span>
       <span class="cx-client">${esc(grupoNome)}</span>
       <span class="cx-num cx-hide-sm">${esc(money(line.valor))}</span>
       <span class="cx-num cx-hide-sm">${esc(money(line.abatimento || 0))}</span>
@@ -804,7 +849,15 @@
 
   function placasDaCobranca(row) {
     const items = itensPorCobranca.get(String(row.id)) || [];
-    const placas = items.map((item) => item.snapshot?.placa).filter(Boolean);
+    const placas = items
+      .map((item) =>
+        rotuloLinha({
+          receivableId: item.receivable_id,
+          placa: item.snapshot?.placa,
+          veiculoNome: item.snapshot?.veiculo,
+        })
+      )
+      .filter((txt) => txt && txt !== "Veículo");
     if (placas.length) return placas.join(", ");
     const n = items.length || Number(row.quantidade_veiculos || 0);
     return n ? `${n} veículo${n === 1 ? "" : "s"}` : "—";
@@ -839,7 +892,7 @@
     const on = selected.has(line.receivableId) ? "checked" : "";
     return `<div class="cx-row" data-cx-open="veiculo" data-cx-id="${esc(line.receivableId)}">
       <input class="cx-check" type="checkbox" data-cx-check="${esc(line.receivableId)}" ${on} aria-label="Selecionar ${esc(numero)}" />
-      <span class="cx-title">${esc(numero)}<br><small>${esc(v?.placa || line.placa || "Veículo")}</small></span>
+      <span class="cx-title">${esc(cob?.identificador ? numero : rotuloLinha(line))}${cob?.identificador ? `<br><small>${esc(rotuloLinha(line))}</small>` : ""}</span>
       <span class="cx-client">${esc(cliente)}<br><small>Emissão ${esc(dataCurta(emissao))} · Venc. ${esc(dataCurta(venc))}</small></span>
       <span class="cx-num cx-hide-sm">${esc(money(line.valor))}</span>
       <span class="cx-num cx-hide-sm">${esc(money(0))}</span>
@@ -889,14 +942,14 @@
         if (!passaPeriodo(mov.data_movimento || mov.created_at)) return false;
         if (tipoMov === "entrada" && !movimentoEhEntrada(mov)) return false;
         if (tipoMov === "saida" && !movimentoEhSaida(mov)) return false;
-        const blob = `${mov.descricao || ""} ${mov.forma_pagamento || ""}`.toLowerCase();
+        const blob = `${descricaoMovimento(mov)} ${mov.descricao || ""} ${mov.forma_pagamento || ""}`.toLowerCase();
         return !q || blob.includes(q.toLowerCase());
       });
       const pagina = movs.slice(0, limiteLista);
       const rows = pagina.map((mov) => {
         const entrada = movimentoEhEntrada(mov);
         return `<tr data-cx-open="caixa" data-cx-id="${esc(mov.id)}">
-          ${celula("Descrição", esc(mov.descricao || (entrada ? "Entrada" : "Saída")))}
+          ${celula("Descrição", esc(descricaoMovimento(mov)))}
           ${celula("Data", esc(dataCurta(mov.data_movimento || mov.created_at)))}
           ${celula("Forma", esc(mov.forma_pagamento || "—"))}
           ${celula("Valor", esc(money(entrada ? mov.valor : -Number(mov.valor || 0))), "num")}
@@ -908,10 +961,10 @@
     }
     if (vista === "recebidos") {
       const apura = apurarMes(mesAtivo());
-      const movs = apura.movs.filter((mov) => movimentoEhEntrada(mov) && (!q || String(mov.descricao || "").toLowerCase().includes(q.toLowerCase())));
+      const movs = apura.movs.filter((mov) => movimentoEhEntrada(mov) && (!q || `${descricaoMovimento(mov)} ${mov.descricao || ""}`.toLowerCase().includes(q.toLowerCase())));
       const pagina = movs.slice(0, limiteLista);
       const rows = pagina.map((mov) => `<tr data-cx-open="caixa" data-cx-id="${esc(mov.id)}">
-        ${celula("Descrição", esc(mov.descricao || "Recebimento"))}
+        ${celula("Descrição", esc(descricaoMovimento(mov)))}
         ${celula("Data", esc(dataCurta(mov.data_movimento || mov.created_at)))}
         ${celula("Forma", esc(mov.forma_pagamento || "—"))}
         ${celula("Valor", esc(money(mov.valor)), "num")}
@@ -966,14 +1019,14 @@
       const rows = pagina.map((line) => `<tr data-cx-open="veiculo" data-cx-id="${esc(line.receivableId)}">
         ${celula("", `<input class="cx-check" type="checkbox" data-cx-check="${esc(line.receivableId)}" ${selected.has(line.receivableId) ? "checked" : ""} aria-label="Selecionar" />`, "cx-check-cell")}
         ${celula("Cliente", esc(nomeLinha(line)))}
-        ${celula("Placa", esc(line.placa || line.veiculoNome || "Veículo"))}
+        ${celula("Veículo", esc(rotuloLinha(line)))}
         ${celula("Valor", esc(money(line.valor)), "num")}
         ${celula("Recebido", esc(money(line.abatimento || 0)), "num")}
         ${celula("Saldo", esc(money(saldoLinha(line))), "num")}
         ${celula("Vencimento", esc(dataCurta(line.saida || line.entrada)))}
         ${celula("Status", statusTag("A faturar", ""))}
       </tr>`);
-      box.innerHTML = `<p class="cx-note">Veículos ainda sem cobrança. Selecione vários do mesmo cliente para gerar uma fatura só.</p>${tabela(["", "Cliente", "Placa", "Valor", "Recebido", "Saldo", "Referência", "Status"], rows, "Nenhum valor pendente de cobrança.")}${maisBotao(linhas.length, pagina.length)}`;
+      box.innerHTML = `<p class="cx-note">Veículos ainda sem cobrança. Selecione vários do mesmo cliente para gerar uma fatura só.</p>${tabela(["", "Cliente", "Veículo", "Valor", "Recebido", "Saldo", "Referência", "Status"], rows, "Nenhum valor pendente de cobrança.")}${maisBotao(linhas.length, pagina.length)}`;
       return true;
     }
     return false;
@@ -1037,7 +1090,7 @@
           const entrada = movimentoEhEntrada(mov);
           return `<div class="cx-row" data-cx-open="caixa" data-cx-id="${esc(mov.id)}">
             <span></span>
-            <span class="cx-title">${esc(mov.descricao || (entrada ? "Entrada" : "Saída"))}</span>
+            <span class="cx-title">${esc(descricaoMovimento(mov))}</span>
             <span class="cx-client">${esc(dataCurta(mov.data_movimento || mov.created_at))} · ${esc(mov.forma_pagamento || "")}</span>
             <span class="cx-num cx-hide-sm">${entrada ? esc(money(mov.valor)) : ""}</span>
             <span class="cx-num cx-hide-sm">${entrada ? "" : esc(money(mov.valor))}</span>
@@ -1279,7 +1332,7 @@
     aside.className = "cx-detail";
     aside.innerHTML = `<div class="cx-panel" role="dialog">
       <button type="button" class="cx-btn secondary" data-cx-fechar="1">Fechar</button>
-      <h3>${esc(line.placa || line.veiculoNome)}</h3>
+      <h3>${esc(rotuloLinha(line))}</h3>
       <p>${esc(nomeLinha(line))} · ${esc(line.servico || "Guarda e custódia")}</p>
       <div class="cx-dl">
         <div><span>Valor do serviço</span><strong>${esc(money(line.valor))}</strong></div>
@@ -1324,7 +1377,7 @@
       <tbody>${lines
         .map(
           (l) =>
-            `<tr><td>${esc(l.placa || "—")}</td><td>${esc(l.servico || "Serviço")}</td><td class="num">${esc(money(l.valor))}</td></tr>`
+            `<tr><td>${esc(rotuloLinha(l))}</td><td>${esc(l.servico || "Serviço")}</td><td class="num">${esc(money(l.valor))}</td></tr>`
         )
         .join("")}</tbody></table>
     </div>`;
@@ -1389,7 +1442,7 @@
     aside.className = "cx-detail";
     aside.innerHTML = `<div class="cx-panel" role="dialog">
       <button type="button" class="cx-btn secondary" data-cx-fechar="1">Fechar</button>
-      <h3>${esc(mov.descricao || (entrada ? "Entrada" : "Saída"))}</h3>
+      <h3>${esc(descricaoMovimento(mov))}</h3>
       <div class="cx-dl">
         <div><span>Data</span><strong>${esc(dataCurta(mov.data_movimento || mov.created_at))}</strong></div>
         <div><span>Forma</span><strong>${esc(mov.forma_pagamento || "—")}</strong></div>
@@ -1461,7 +1514,7 @@
         .map(
           (l) => `<tr>
             <td><input type="checkbox" data-cx-modal-line="${esc(l.receivableId)}" checked /></td>
-            <td>${esc(l.placa || l.veiculoNome)}</td>
+            <td>${esc(rotuloLinha(l))}</td>
             <td class="num">${esc(money(l.valorOriginal))}</td>
             <td class="num">${esc(money(l.abatimento))}</td>
             <td class="num">${esc(money(l.valor))}</td>
@@ -1779,7 +1832,7 @@
     modal.id = "caixaOpModal";
     modal.innerHTML = `<div class="cx-modal-back"><form class="cx-dialog" id="caixaOpFormLibera">
       <h3>Entrada da liberação</h3>
-      <p>${esc(linhas.map((l) => l.placa || "veículo").join(", "))}</p>
+      <p>${esc(linhas.map((l) => rotuloLinha(l)).join(", "))}</p>
       <div class="cx-dl">
         <div><span>Valor</span><strong>${esc(money(total))}</strong></div>
         <div><span>Já recebido</span><strong>${esc(money(abatido))}</strong></div>
@@ -1979,6 +2032,7 @@
     },
     alocarPagamento,
     apurarMes,
+    descricaoMovimento,
     gruposAFaturar,
   };
 })(typeof window !== "undefined" ? window : globalThis);
