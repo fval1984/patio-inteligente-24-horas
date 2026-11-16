@@ -1,28 +1,18 @@
 /* Módulo Cobrança — alto contraste, isolado dos demais módulos */
 
 .cob-shell {
-  --cob-text: #101114;
-  --cob-muted: #3d4450;
-  --cob-bg: #ece8e1;
-  --cob-card: #fffcf7;
-  --cob-line: #8f877c;
-  --cob-ink: #0c0d10;
-  --cob-accent: #1e3a5f;
-  --cob-accent-2: #9b2c2c;
-  --cob-ok: #1f5c32;
-  padding: 12px 16px 28px;
-}
-
-html[data-theme="dark"] .cob-shell {
-  --cob-text: #f4f1ea;
-  --cob-muted: #c5c0b6;
-  --cob-bg: #161719;
-  --cob-card: #232526;
-  --cob-line: #6f7478;
-  --cob-ink: #f7f4ee;
-  --cob-accent: #7eb0d8;
-  --cob-accent-2: #e07a7a;
-  --cob-ok: #8fd19a;
+  --cob-text: var(--ag-text);
+  --cob-muted: var(--ag-muted);
+  --cob-bg: var(--ag-bg);
+  --cob-card: var(--ag-surface);
+  --cob-line: var(--ag-border);
+  --cob-ink: var(--ag-text);
+  --cob-accent: var(--ag-graphite);
+  --cob-accent-2: var(--ag-red);
+  --cob-ok: var(--ag-success);
+  padding: 0;
+  font-family: var(--ag-font);
+  color: var(--ag-text);
 }
 
 .cob-shell h2,
@@ -69,20 +59,15 @@ html[data-theme="dark"] .cob-shell {
   color: #fff;
 }
 
-html[data-theme="dark"] .cob-chip.is-on {
-  color: #101114;
-  background: #d7e6f4;
-  border-color: #d7e6f4;
-}
-
 .cob-search {
   width: min(420px, 100%);
-  min-height: 44px;
+  min-height: var(--ag-control-h);
   padding: 8px 12px;
   border: 1px solid var(--cob-line);
   background: var(--cob-card);
   color: var(--cob-text);
-  font-size: 1rem;
+  font-size: 14px;
+  border-radius: var(--ag-radius-sm);
 }
 
 .cob-grid {
@@ -134,20 +119,16 @@ html[data-theme="dark"] .cob-chip.is-on {
 }
 
 .cob-btn {
-  min-height: 44px;
-  padding: 10px 16px;
-  border: 0;
-  border-radius: 4px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid var(--ag-graphite);
+  border-radius: var(--ag-radius-sm);
+  font-weight: 600;
+  letter-spacing: 0;
   cursor: pointer;
-  background: var(--cob-accent);
+  background: var(--ag-graphite);
   color: #fff;
-}
-
-html[data-theme="dark"] .cob-btn {
-  color: #101114;
-  background: #d7e6f4;
+  font-family: inherit;
 }
 
 .cob-btn.secondary {
@@ -157,15 +138,15 @@ html[data-theme="dark"] .cob-btn {
 }
 
 .cob-btn.danger {
-  background: #9b2c2c;
+  background: var(--ag-red);
   color: #fff;
   border: 1px solid #7a1f1f;
 }
 
 html[data-theme="dark"] .cob-btn.danger {
-  background: #c45c5c;
+  background: var(--ag-red-strong);
   color: #101114;
-  border-color: #c45c5c;
+  border-color: var(--ag-red-strong);
 }
 
 .cob-btn:disabled {
@@ -229,11 +210,12 @@ html[data-theme="dark"] .cob-btn.danger {
 }
 
 .cob-table th {
-  font-size: 0.75rem;
+  font-size: 11px;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--cob-ink);
-  background: rgba(30, 58, 95, 0.08);
+  color: var(--ag-muted);
+  background: #f4f6f8;
 }
 
 .cob-table td.num,
@@ -247,7 +229,7 @@ html[data-theme="dark"] .cob-btn.danger {
 }
 
 .cob-table tbody tr:hover {
-  background: rgba(30, 58, 95, 0.06);
+  background: var(--ag-surface-2);
 }
 
 .cob-tag {
@@ -256,17 +238,17 @@ html[data-theme="dark"] .cob-btn.danger {
   border-radius: 99px;
   font-size: 0.75rem;
   font-weight: 700;
-  background: #e4eef6;
+  background: var(--ag-info-bg);
   color: #14324f;
 }
 
 .cob-tag.late {
-  background: #f6e2e0;
+  background: var(--ag-danger-bg);
   color: #7a1f1f;
 }
 
 .cob-tag.open {
-  background: #e5f0e4;
+  background: var(--ag-success-bg);
   color: #1f5c32;
 }
 
@@ -453,7 +435,7 @@ html[data-theme="dark"] .cob-btn.danger {
 
 .cob-modal {
   width: min(520px, 100%);
-  background: var(--cob-card, #fffcf7);
+  background: var(--cob-card, var(--ag-surface));
   color: var(--cob-text, #101114);
   border-radius: 8px;
   padding: 16px;
