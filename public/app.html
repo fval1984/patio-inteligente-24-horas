@@ -7607,7 +7607,7 @@
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20261113nav2" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha9" />
-    <link rel="stylesheet" href="/cobranca-module.css?v=20260917logo1" />
+    <link rel="stylesheet" href="/cobranca-module.css?v=20261116fat1" />
   </head>
   <body class="auth-screen-active">
     <noscript>
@@ -8301,6 +8301,7 @@
                 </label>
                 <strong id="patioAguardandoSelCount">0 registros selecionados</strong>
                 <button type="button" id="patioAguardandoFaturarSel">Faturar Selecionados</button>
+                <button type="button" class="secondary" id="patioAguardandoFaturarConjunto">Faturar em conjunto</button>
                 <button type="button" class="secondary hidden" id="patioAguardandoGerarCobranca">GERAR COBRANÇA</button>
               </div>
               <p id="patioCobrancaParceiroAviso" class="patio-cobranca-aviso hidden" role="alert"></p>
@@ -8690,6 +8691,7 @@
             <p id="finAguardandoPlateHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <div class="fin-batch-bar" aria-label="Ações em lote">
               <button type="button" class="secondary fin-batch-action" data-fin-batch-view="aguardando" data-fin-batch-action="faturar" data-fin-batch-label="Faturar Selecionados" disabled>Faturar Selecionados</button>
+              <button type="button" class="secondary fin-batch-action" data-fin-batch-view="aguardando" data-fin-batch-action="conjunto" data-fin-batch-label="Faturar em conjunto" disabled>Faturar em conjunto</button>
               <button type="button" class="secondary fin-batch-delete fin-batch-action hidden" data-fin-batch-view="aguardando" data-fin-batch-action="delete" data-fin-batch-label="Apagar Selecionados">Apagar Selecionados</button>
             </div>
             <p id="finAguardandoSelectedSummary" class="fin-selected-summary hidden" aria-live="polite">
@@ -8744,6 +8746,7 @@
             </div>
             <p id="finReceberPlateHint" class="notice hidden" style="margin: 0 0 10px"></p>
             <div class="fin-batch-bar" aria-label="Ações em lote">
+              <button type="button" class="secondary fin-batch-action" data-fin-batch-view="receber" data-fin-batch-action="conjunto" data-fin-batch-label="Faturar em conjunto" disabled>Faturar em conjunto</button>
               <button type="button" class="secondary fin-batch-action" data-fin-batch-view="receber" data-fin-batch-action="pg" data-fin-batch-label="PG Selecionados" disabled>PG Selecionados</button>
               <button type="button" class="secondary fin-batch-action" data-fin-batch-view="receber" data-fin-batch-action="caixa" data-fin-batch-label="Caixa Selecionados" disabled>Caixa Selecionados</button>
               <button type="button" class="secondary fin-batch-delete fin-batch-action hidden" data-fin-batch-view="receber" data-fin-batch-action="delete" data-fin-batch-label="Apagar Selecionados">Apagar Selecionados</button>
@@ -10624,7 +10627,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20261112dash1"></script>
+    <script src="/finance-module.js?v=20261116fat1"></script>
     <script src="/finance-notas-transporte.js?v=20261111nt1"></script>
     <script src="/payment-receipt.js?v=20261005recibo10"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
@@ -10660,8 +10663,8 @@
     <script src="/advocacy-offices-service.js?v=20261001escritorio3"></script>
     <script src="/advocacy-office-report-ui.js?v=20261001escritorio5"></script>
     <script src="/advocacy-offices-ui.js?v=20261022parceiro1"></script>
-    <script src="/cobranca-service.js?v=20261112cob1"></script>
-    <script src="/cobranca-ui.js?v=20261112cob1"></script>
+    <script src="/cobranca-service.js?v=20261116fat1"></script>
+    <script src="/cobranca-ui.js?v=20261116fat1"></script>
     <script src="/patio-extrato-service.js?v=20261105resumo2"></script>
     <script src="/patio-extrato-ui.js?v=20261106patioReorg1"></script>
     <script>
@@ -21836,6 +21839,11 @@
         document.getElementById("patioAguardandoFaturarSel")?.addEventListener("click", () => {
           openCdfFaturamentoLote([...patioAguardandoSelecionados]);
         });
+        document.getElementById("patioAguardandoFaturarConjunto")?.addEventListener("click", () => {
+          const ids = [...patioAguardandoSelecionados];
+          if (!ids.length) return;
+          if (typeof window.cobrancaUi?.openConjunto === "function") window.cobrancaUi.openConjunto(ids);
+        });
         document.getElementById("patioAguardandoPlacaForm")?.addEventListener("submit", (ev) => {
           ev.preventDefault();
           patioAguardandoPlacaBusca = document.getElementById("patioAguardandoPlaca")?.value || "";
@@ -22090,7 +22098,21 @@
         const all = document.getElementById("patioAguardandoSelectAll");
         const head = document.getElementById("patioAguardandoSelectHead");
         if (bar) bar.classList.toggle("hidden", n < 1);
-        if (countEl) countEl.textContent = patioTextoSelecao(n);
+        if (countEl) {
+          let soma = 0;
+          for (const id of patioAguardandoSelecionados) {
+            const rec = (state.receivables || []).find((r) => String(r.id) === id);
+            soma += Number(rec?.valor || 0);
+          }
+          countEl.textContent = n
+            ? `${patioTextoSelecao(n)} · ${typeof formatCurrency === "function" ? formatCurrency(soma) : soma}`
+            : patioTextoSelecao(0);
+        }
+        const conjuntoBtn = document.getElementById("patioAguardandoFaturarConjunto");
+        if (conjuntoBtn) {
+          conjuntoBtn.disabled = n < 1;
+          conjuntoBtn.textContent = n ? `Faturar em conjunto (${n})` : "Faturar em conjunto";
+        }
         const todos = idsNaTela.length > 0 && idsNaTela.every((id) => patioAguardandoSelecionados.has(id));
         if (all) all.checked = todos;
         if (head) head.checked = todos;
@@ -23422,6 +23444,9 @@
         if (typeof receivableIsContaReceberFinanceiro === "function" && receivableIsContaReceberFinanceiro(rec)) {
           return "já está em Entradas";
         }
+        if (typeof window.cobrancaService?.isReceivableInActiveCharge === "function" && window.cobrancaService.isReceivableInActiveCharge(rec.id)) {
+          return "já está em uma cobrança ativa";
+        }
         if (typeof openContaReceberSibling === "function" && openContaReceberSibling(rec)) {
           return "já está em Entradas";
         }
@@ -23457,7 +23482,14 @@
       }
       window.cdfSepararFilaFaturamento = cdfSepararFilaFaturamento;
 
-      function openCdfFaturamentoLote(ids) {
+      async function openCdfFaturamentoLote(ids) {
+        if (typeof window.cobrancaService?.refreshBlockedReceivables === "function") {
+          try {
+            await window.cobrancaService.refreshBlockedReceivables(effectiveUserId(), supabase);
+          } catch (_e) {
+            /* a fila segue com o que já estiver em memória */
+          }
+        }
         const { pendentes, ignorados } = cdfSepararFilaFaturamento(ids);
         if (!pendentes.length) {
           alert("Nenhum registro pendente. Os selecionados já estão em Entradas ou não foram encontrados.");
@@ -28055,14 +28087,20 @@ ${body}
       }
 
       async function finalizeReceivablePayment(receivableId, totalAtual, opts = {}) {
+        const quiet = !!opts.quiet;
+        const tell = (msg) => {
+          if (quiet) console.warn(msg);
+          else alert(msg);
+        };
         if (!(await requireSupabaseSessionForWrite())) return null;
         const receivable = state.receivables.find((r) => r.id === receivableId);
         if (!receivable) {
-          alert("Recebimento não encontrado. Atualize a página (Financeiro) e tente de novo.");
+          tell("Recebimento não encontrado. Atualize a página (Financeiro) e tente de novo.");
           return null;
         }
         if (receivable.status === "PAGO") {
-          alert("Este recebimento já foi marcado como pago.");
+          if (opts.skipReload) return { receivable, vehicle: state.vehicles.find((v) => v.id === receivable.vehicle_id) || null, valor: Number(receivable.valor || 0), already: true };
+          tell("Este recebimento já foi marcado como pago.");
           return null;
         }
         const dataMov = opts.dataMovimento || toLocalYmd(new Date().toISOString());
@@ -28097,11 +28135,13 @@ ${body}
             responsavel_pagamento: obsPacked || receivable.responsavel_pagamento,
           });
           if (errFallback) {
-            alertSupabaseError(errFallback, "Não foi possível confirmar o pagamento.");
+            if (quiet) console.warn("Não foi possível confirmar o pagamento.", errFallback);
+            else alertSupabaseError(errFallback, "Não foi possível confirmar o pagamento.");
             return null;
           }
         } else if (error) {
-          alertSupabaseError(error, "Não foi possível confirmar o pagamento.");
+          if (quiet) console.warn("Não foi possível confirmar o pagamento.", error);
+          else alertSupabaseError(error, "Não foi possível confirmar o pagamento.");
           return null;
         }
         if (receivable.vehicle_id) {
@@ -28121,10 +28161,12 @@ ${body}
             aprovadoCaixa: true,
           });
           if (cashResult.error) {
-            alertSupabaseError(
-              cashResult.error,
-              "Pagamento confirmado, mas não foi possível registrar a entrada no caixa."
-            );
+            if (quiet) console.warn("Pagamento confirmado, mas não foi possível registrar a entrada no caixa.", cashResult.error);
+            else
+              alertSupabaseError(
+                cashResult.error,
+                "Pagamento confirmado, mas não foi possível registrar a entrada no caixa."
+              );
           }
         }
         if (opts.anexo) await financeAttachmentSave("receivable", receivableId, opts.anexo);
@@ -28153,6 +28195,12 @@ ${body}
         }
         removeReceberTriagemId(receivableId);
         await createNextRecorrenteReceivable(receivable);
+        if (opts.skipReload) {
+          const idx = state.receivables.findIndex((r) => r.id === receivableId);
+          const paidNow = { ...(idx >= 0 ? state.receivables[idx] : receivable), status: "PAGO", valor: totalAtual };
+          if (idx >= 0) state.receivables[idx] = paidNow;
+          return { receivable: paidNow, vehicle: vehicle || null, valor: totalAtual };
+        }
         await Promise.all([loadReceivables(), loadCash(), loadVehicles()]);
         let syncStats = null;
         if (typeof window.syncPaidReceivablesCashMovements === "function") {
@@ -28197,6 +28245,37 @@ ${body}
         };
       }
       window.finalizeReceivablePayment = finalizeReceivablePayment;
+
+      window.settleCobrancaReceivables = async function settleCobrancaReceivables(lines, opts = {}) {
+        const falhas = [];
+        for (const line of lines || []) {
+          const id = line.receivableId || line.receivable_id;
+          const rec = (state.receivables || []).find((r) => String(r.id) === String(id));
+          if (!rec) {
+            falhas.push(String(id || ""));
+            continue;
+          }
+          if (String(rec.status || "").toUpperCase() === "PAGO") continue;
+          const valorOriginal = Number(rec.valor || 0);
+          const res = await finalizeReceivablePayment(rec.id, valorOriginal, {
+            dataMovimento: opts.dataMovimento,
+            formaPagamento: opts.formaPagamento || "PIX",
+            observacao: opts.observacao || "",
+            valorOriginal,
+            desconto: 0,
+            quiet: true,
+            skipReload: true,
+          });
+          if (!res) falhas.push(String(rec.id));
+        }
+        if (typeof window.syncPaidReceivablesCashMovements === "function") {
+          await window.syncPaidReceivablesCashMovements();
+        }
+        await Promise.all([loadReceivables(), loadCash(), loadVehicles()]);
+        updateDashboard();
+        if (typeof renderFinance === "function") renderFinance();
+        return { ok: falhas.length === 0, falhas };
+      };
 
       async function callRegisterCashReceivableApi(payload = {}) {
         const userId = effectiveUserId();
@@ -31139,9 +31218,10 @@ ${body}
             } else if (pistaSemCobranca) {
               alert("Saída física confirmada. Valor R$ 0,00 — encerrado sem cobrança.");
             } else {
-              alert(
-                "Saída física confirmada. O veículo saiu do pátio e o ciclo ficou em Aguardando faturamento. Só entra no financeiro depois de finalizar o faturamento."
-              );
+              const msgSaida =
+                "Saída física confirmada. O veículo saiu do pátio e o ciclo ficou em Aguardando faturamento. O pagamento não é obrigatório agora.";
+              const ofereceu = window.cobrancaUi?.offerAfterExit?.(id, msgSaida);
+              if (!ofereceu) alert(msgSaida);
             }
             return;
           }
@@ -31263,13 +31343,16 @@ ${body}
             alert(
               `Veículo removido do pátio (VRP), mas houve pendência no financeiro:\n\n${financeWarning}`
             );
+          } else if (vrpSemCobranca) {
+            alert("Veículo removido do pátio (VRP). Valor R$ 0,00 — encerrado sem cobrança.");
           } else {
-            alert(
-              vrpSemCobranca
-                ? "Veículo removido do pátio (VRP). Valor R$ 0,00 — encerrado sem cobrança."
-                : "Veículo removido (VRP). O ciclo foi concluído e o registro está em Financeiro → Aguardando faturamento. Só após a nota ou cobrança ele entra em Contas a receber."
-            );
-            if (!vrpSemCobranca && !financeWarning) openAguardandoFaturamentoFinanceiro();
+            const msgSaida =
+              "Veículo removido (VRP). O ciclo ficou em Aguardando faturamento. Você pode cobrar agora, deixar pendente ou juntar com outros veículos depois.";
+            const ofereceu = window.cobrancaUi?.offerAfterExit?.(id, msgSaida);
+            if (!ofereceu) {
+              alert(msgSaida);
+              openAguardandoFaturamentoFinanceiro();
+            }
           }
           fichaModal.classList.add("hidden");
           delete fichaModal.dataset.openVehicleId;
