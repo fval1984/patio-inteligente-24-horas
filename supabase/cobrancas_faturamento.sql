@@ -11,6 +11,7 @@ ALTER TABLE public.cobrancas ADD COLUMN IF NOT EXISTS cliente_contato text;
 ALTER TABLE public.cobrancas ADD COLUMN IF NOT EXISTS identificador text;
 ALTER TABLE public.cobrancas ADD COLUMN IF NOT EXISTS origem text NOT NULL DEFAULT 'financeiro';
 ALTER TABLE public.cobrancas ADD COLUMN IF NOT EXISTS busca_texto text;
+ALTER TABLE public.cobrancas ADD COLUMN IF NOT EXISTS data_vencimento date;
 
 UPDATE public.cobrancas
 SET status = 'HISTORICO'
