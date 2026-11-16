@@ -14,6 +14,8 @@
   let selected = new Set();
   let collapsed = new Set();
   let charges = [];
+  let itensPorCobranca = new Map();
+  let cobrancaPorRecebivelId = new Map();
   let pagosReceivableIds = new Set();
   let built = false;
 
@@ -147,27 +149,61 @@
     return !q || blob.includes(q.toLowerCase());
   }
 
+  function passaPeriodo(data) {
+    if (!de && !ate) return true;
+    const dia = ymd(data);
+    if (!dia) return true;
+    if (de && dia < de) return false;
+    if (ate && dia > ate) return false;
+    return true;
+  }
+
+  function contasFonte() {
+    if (typeof global.financeContasReceberList === "function") {
+      try {
+        return global.financeContasReceberList() || [];
+      } catch (_e) {
+        /* a lista antiga continua disponível pelo status do recebível */
+      }
+    }
+    return (global.state?.receivables || []).filter((r) => ehContaReceber(r) && Number(r.valor || 0) > 0);
+  }
+
   function linhasAFaturar() {
+    const jaFaturados = new Set(contasFonte().map((r) => String(r.id)));
     return (svc()?.billableLines?.() || []).filter((line) => {
+      if (jaFaturados.has(String(line.receivableId))) return false;
       const r = line.receivable || recebivelPorId(line.receivableId);
       if (r && (ehContaReceber(r) || ehPago(r))) return false;
       if (saldoLinha(line) <= 0) return false;
-      if (!noPeriodo(line.saida || line.entrada)) return false;
+      if (!passaPeriodo(line.saida || line.entrada)) return false;
       return cabeNaBusca(line);
     });
   }
 
+  function idsCobertosPorFatura() {
+    const ids = new Set();
+    for (const row of faturasAbertas()) {
+      for (const item of itensPorCobranca.get(String(row.id)) || []) {
+        if (item.receivable_id) ids.add(String(item.receivable_id));
+      }
+    }
+    for (const fat of faturasAntigasEmAberto()) fat.ids.forEach((id) => ids.add(id));
+    return ids;
+  }
+
   function linhasAReceber() {
-    const vistas = new Set();
+    const cobertos = idsCobertosPorFatura();
     const out = [];
-    for (const r of global.state?.receivables || []) {
-      if (!r?.id || !ehContaReceber(r)) continue;
-      if (svc().isReceivableInActiveCharge?.(r.id)) continue;
-      const line = linhaDeRecebivel(r);
-      if (saldoLinha(line) <= 0) continue;
-      if (!noPeriodo(line.saida || line.entrada || r.created_at)) continue;
-      if (!cabeNaBusca(line)) continue;
-      vistas.add(line.receivableId);
+    for (const r of contasFonte()) {
+      if (!r?.id || cobertos.has(String(r.id))) continue;
+      const base = linhaDeRecebivel(r);
+      const line = { ...base, valor: Number(r.valor || 0), abatimento: 0, receivable: r };
+      if (!(line.valor > 0)) continue;
+      if (!passaPeriodo(r.faturado_em || r.contas_receber_em || r.period_end || r.created_at)) continue;
+      const dest = r.cobranca_destinatario_nome || "";
+      const blob = `${line.placa} ${line.veiculoNome} ${nomeLinha(line)} ${dest}`.toLowerCase();
+      if (q && !blob.includes(q.toLowerCase())) continue;
       out.push(line);
     }
     return out;
@@ -194,11 +230,42 @@
     return charges.filter((row) => {
       const st = String(row.status || "").toUpperCase();
       if (st !== "PENDENTE" && st !== "PARCIAL") return false;
-      if (!noPeriodo(row.data_vencimento || row.data_geracao)) return false;
+      const snap = svc().paymentSnapshot(row.valor_total, row.valor_recebido || 0);
+      if (snap.saldo <= 0) return false;
+      if (!passaPeriodo(row.data_vencimento || row.data_geracao || row.created_at)) return false;
       const ident = row.identificador || `FAT-${String(row.numero_cobranca || 0).padStart(6, "0")}`;
       const blob = `${ident} ${row.parceiro_nome} ${row.busca_texto || ""}`.toLowerCase();
       return !q || blob.includes(q.toLowerCase());
     });
+  }
+
+  function faturasAntigasEmAberto() {
+    const contasIds = new Set(contasFonte().map((r) => String(r.id)));
+    const emFaturaNova = new Set();
+    for (const row of faturasAbertas()) {
+      for (const item of itensPorCobranca.get(String(row.id)) || []) {
+        if (item.receivable_id) emFaturaNova.add(String(item.receivable_id));
+      }
+    }
+    const usados = new Set();
+    const out = [];
+    for (const row of charges) {
+      if (String(row.status || "").toUpperCase() !== "HISTORICO") continue;
+      const items = itensPorCobranca.get(String(row.id)) || [];
+      const ids = items
+        .map((item) => String(item.receivable_id || ""))
+        .filter((id) => contasIds.has(id) && !emFaturaNova.has(id) && !usados.has(id));
+      ids.forEach((id) => usados.add(id));
+      if (!ids.length) continue;
+      if (!passaPeriodo(row.data_geracao || row.created_at)) continue;
+      const ident = row.identificador || `FAT-${String(row.numero_cobranca || 0).padStart(6, "0")}`;
+      const blob = `${ident} ${row.parceiro_nome || ""} ${row.busca_texto || ""}`.toLowerCase();
+      if (q && !blob.includes(q.toLowerCase())) continue;
+      const saldo = ids.reduce((s, id) => s + Number(recebivelPorId(id)?.valor || 0), 0);
+      if (saldo <= 0) continue;
+      out.push({ row, ids, saldo });
+    }
+    return out;
   }
 
   function recebidos() {
@@ -298,10 +365,11 @@
 
   function totais() {
     const aFaturar = linhasAFaturar().reduce((s, l) => s + saldoLinha(l), 0);
-    let aReceber = linhasAReceber().reduce((s, l) => s + saldoLinha(l), 0);
+    let aReceber = linhasAReceber().reduce((s, l) => s + Number(l.valor || 0), 0);
     for (const row of faturasAbertas()) {
       aReceber += svc().paymentSnapshot(row.valor_total, row.valor_recebido || 0).saldo;
     }
+    for (const fat of faturasAntigasEmAberto()) aReceber += fat.saldo;
     let recebido = 0;
     for (const item of recebidosAvulsos()) {
       recebido += item.pago ? Number(item.total || 0) : Number(item.recebido || 0);
@@ -412,6 +480,57 @@
     </div>`;
   }
 
+  function dataCurta(v) {
+    if (!v) return "—";
+    return svc().formatDate(v);
+  }
+
+  function placasDaCobranca(row) {
+    const items = itensPorCobranca.get(String(row.id)) || [];
+    const placas = items.map((item) => item.snapshot?.placa).filter(Boolean);
+    if (placas.length) return placas.join(", ");
+    const n = items.length || Number(row.quantidade_veiculos || 0);
+    return n ? `${n} veículo${n === 1 ? "" : "s"}` : "—";
+  }
+
+  function faturaReceberHtml(row, saldo) {
+    const ident = row.identificador || `FAT-${String(row.numero_cobranca || 0).padStart(6, "0")}`;
+    const st = String(row.status || "").toUpperCase();
+    const podeMarcar = st === "PENDENTE" || st === "PARCIAL";
+    const check = podeMarcar
+      ? `<input class="cx-check" type="checkbox" data-cx-fat="${esc(row.id)}" ${selected.has(`fat:${row.id}`) ? "checked" : ""} aria-label="Selecionar ${esc(ident)}" />`
+      : "<span></span>";
+    return `<div class="cx-row" data-cx-open="fatura" data-cx-id="${esc(row.id)}">
+      ${check}
+      <span class="cx-title">${esc(ident)}<br><small>${esc(placasDaCobranca(row))}</small></span>
+      <span class="cx-client">${esc(row.parceiro_nome || "Cliente")}<br><small>Emissão ${esc(dataCurta(row.data_geracao))} · Venc. ${esc(dataCurta(row.data_vencimento))}</small></span>
+      <span class="cx-num cx-hide-sm">${esc(money(row.valor_total))}</span>
+      <span class="cx-num cx-hide-sm">${esc(money(row.valor_recebido || 0))}</span>
+      <span class="cx-num cx-values">${esc(money(saldo))}</span>
+      <span class="cx-tag receber">A receber</span>
+    </div>`;
+  }
+
+  function linhaReceberHtml(line) {
+    const r = line.receivable || recebivelPorId(line.receivableId);
+    const v = veiculoDo(r);
+    const cob = cobrancaPorRecebivelId.get(String(r?.id || ""));
+    const numero = cob?.identificador || v?.placa || line.placa || "Conta a receber";
+    const cliente = r?.cobranca_destinatario_nome || nomeLinha(line);
+    const emissao = r?.faturado_em || r?.contas_receber_em || r?.created_at;
+    const venc = typeof global.financeContaDueYmd === "function" ? global.financeContaDueYmd(r, "receivable") : r?.period_end;
+    const on = selected.has(line.receivableId) ? "checked" : "";
+    return `<div class="cx-row" data-cx-open="veiculo" data-cx-id="${esc(line.receivableId)}">
+      <input class="cx-check" type="checkbox" data-cx-check="${esc(line.receivableId)}" ${on} aria-label="Selecionar ${esc(numero)}" />
+      <span class="cx-title">${esc(numero)}<br><small>${esc(v?.placa || line.placa || "Veículo")}</small></span>
+      <span class="cx-client">${esc(cliente)}<br><small>Emissão ${esc(dataCurta(emissao))} · Venc. ${esc(dataCurta(venc))}</small></span>
+      <span class="cx-num cx-hide-sm">${esc(money(line.valor))}</span>
+      <span class="cx-num cx-hide-sm">${esc(money(0))}</span>
+      <span class="cx-num cx-values">${esc(money(line.valor))}</span>
+      <span class="cx-tag receber">A receber</span>
+    </div>`;
+  }
+
   function pintarLista() {
     const box = document.getElementById("caixaOpLista");
     if (!box || !svc()) return;
@@ -436,15 +555,28 @@
         .join("")}</div>`;
       return;
     }
-    if (filtro === "a_faturar" || filtro === "a_receber") {
-      const linhas = filtro === "a_receber" ? linhasAReceber() : linhasAFaturar();
-      const grupos = gruposAFaturar(linhas);
-      const faturas = filtro === "a_receber" ? faturasAbertas() : [];
-      if (!grupos.length && !faturas.length) {
-        box.innerHTML = `<p class="cx-empty">${filtro === "a_receber" ? "Nenhuma cobrança em aberto." : "Nenhum valor pendente de cobrança."}</p>`;
+    if (filtro === "a_receber") {
+      const linhas = linhasAReceber();
+      const faturas = faturasAbertas();
+      const antigas = faturasAntigasEmAberto();
+      if (!linhas.length && !faturas.length && !antigas.length) {
+        box.innerHTML = `<p class="cx-empty">Nenhuma cobrança em aberto.</p>`;
         return;
       }
-      const tag = filtro === "a_receber" ? "A receber" : "A faturar";
+      const contaHtml = linhas.map((line) => linhaReceberHtml(line)).join("");
+      const novasHtml = faturas.map((row) => faturaReceberHtml(row, svc().paymentSnapshot(row.valor_total, row.valor_recebido || 0).saldo)).join("");
+      const antigasHtml = antigas.map((fat) => faturaReceberHtml(fat.row, fat.saldo)).join("");
+      box.innerHTML = `<div class="cx-group"><div class="cx-group-head"><span></span><span>Fatura</span><span>Cliente</span><span class="cx-num cx-hide-sm">Original</span><span class="cx-num cx-hide-sm">Recebido</span><span class="cx-num">Saldo</span><span></span></div>${novasHtml}${antigasHtml}${contaHtml}</div>`;
+      return;
+    }
+    if (filtro === "a_faturar") {
+      const linhas = linhasAFaturar();
+      const grupos = gruposAFaturar(linhas);
+      if (!grupos.length) {
+        box.innerHTML = `<p class="cx-empty">Nenhum valor pendente de cobrança.</p>`;
+        return;
+      }
+      const tag = "A faturar";
       const gruposHtml = grupos
         .map((g) => {
           const aberto = !collapsed.has(g.key);
@@ -461,14 +593,11 @@
               <strong class="cx-num cx-values">${esc(money(total))}</strong>
               <span class="cx-tag ${tag === "A receber" ? "receber" : ""}">${tag}</span>
             </div>
-            ${aberto ? g.linhas.map((l) => linhaHtml(l, g.nome, tag)).join("") : ""}
+            ${aberto ? g.linhas.map((l) => linhaHtml(l, g.nome, "A faturar")).join("") : ""}
           </section>`;
         })
         .join("");
-      const faturasHtml = faturas.length
-        ? `<div class="cx-group">${faturas.map((row) => faturaHtml(row, "A receber", "receber")).join("")}</div>`
-        : "";
-      box.innerHTML = `${gruposHtml}${faturasHtml}`;
+      box.innerHTML = gruposHtml;
       return;
     }
     const rows = filtro === "recebido" ? recebidos() : [];
@@ -935,6 +1064,24 @@
     if (typeof global.updateDashboard === "function") global.updateDashboard();
   }
 
+  async function carregarItens(ids) {
+    const map = new Map();
+    const db = supabase();
+    const lista = (ids || []).filter(Boolean);
+    if (!db || !lista.length) return map;
+    for (let i = 0; i < lista.length; i += 80) {
+      const slice = lista.slice(i, i + 80);
+      const { data, error } = await db.from("cobranca_itens").select("cobranca_id,receivable_id,valor,snapshot").in("cobranca_id", slice);
+      if (error) break;
+      for (const item of data || []) {
+        const key = String(item.cobranca_id);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(item);
+      }
+    }
+    return map;
+  }
+
   async function refresh() {
     if (!svc()) return;
     ensure();
@@ -942,11 +1089,17 @@
       await svc().refreshBlockedReceivables(uid(), supabase());
       const loaded = await svc().loadCharges(uid(), supabase());
       charges = loaded.rows || [];
-      const pagos = charges.filter((row) => String(row.status || "").toUpperCase() === "PAGO").map((row) => row.id);
+      itensPorCobranca = await carregarItens(charges.map((row) => row.id));
+      cobrancaPorRecebivelId = new Map();
       pagosReceivableIds = new Set();
-      if (pagos.length && supabase()) {
-        const itens = await supabase().from("cobranca_itens").select("receivable_id").in("cobranca_id", pagos);
-        if (!itens.error) pagosReceivableIds = new Set((itens.data || []).map((item) => String(item.receivable_id || "")));
+      for (const row of charges) {
+        const pago = String(row.status || "").toUpperCase() === "PAGO";
+        for (const item of itensPorCobranca.get(String(row.id)) || []) {
+          if (!item.receivable_id) continue;
+          const recId = String(item.receivable_id);
+          if (!cobrancaPorRecebivelId.has(recId)) cobrancaPorRecebivelId.set(recId, row);
+          if (pago) pagosReceivableIds.add(recId);
+        }
       }
     } catch (err) {
       console.warn("caixa operacional", err);
@@ -992,6 +1145,16 @@
     refresh,
     cobrarSelecao,
     isActive: () => ativo,
+    contagemAReceber() {
+      const contas = linhasAReceber().length;
+      const novas = faturasAbertas().length;
+      const antigas = faturasAntigasEmAberto().length;
+      return {
+        contasAntigas: contasFonte().length,
+        exibidas: contas + novas + antigas,
+        faturas: charges.length,
+      };
+    },
     alocarPagamento,
     gruposAFaturar,
   };
