@@ -4085,6 +4085,7 @@
         flex-direction: column;
         gap: 18px;
         max-height: min(90vh, 760px);
+        overflow-y: auto;
       }
       #liberacaoModal .workflow-step-handle {
         display: none;
@@ -4279,6 +4280,135 @@
       [data-theme="dark"] #liberacaoModal .workflow-step-badge--vrp {
         background: rgba(22, 163, 74, 0.18);
         color: #86efac;
+      }
+      #liberacaoModal .wf-contact {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+      }
+      #liberacaoModal .wf-contact-toggle {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      #liberacaoModal .wf-contact-toggle__btn {
+        min-height: 40px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--border) !important;
+        background: var(--card) !important;
+        color: var(--text) !important;
+        box-shadow: none !important;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      #liberacaoModal .wf-contact-toggle__btn.is-active {
+        border-color: var(--ag-graphite, #242830) !important;
+        background: var(--ag-graphite, #242830) !important;
+        color: #fff !important;
+      }
+      #liberacaoModal .wf-contact-avulso {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      #liberacaoModal .wf-contact-sub {
+        margin: 4px 0 0;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      #liberacaoModal .wf-contact-combo {
+        position: relative;
+      }
+      #liberacaoModal .wf-avulso-nome,
+      #liberacaoModal .wf-avulso-tel {
+        width: 100%;
+        min-height: 48px;
+        box-sizing: border-box;
+      }
+      #liberacaoModal .wf-contact-suggest {
+        position: static;
+        z-index: 1;
+        max-height: 180px;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        margin-top: 4px;
+        padding: 4px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--card);
+      }
+      #liberacaoModal .wf-contact-suggest__item {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        width: 100%;
+        min-height: 44px;
+        padding: 8px 10px;
+        border: 0 !important;
+        border-radius: 8px;
+        background: transparent !important;
+        color: var(--text) !important;
+        box-shadow: none !important;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      #liberacaoModal .wf-contact-suggest__item strong {
+        font-size: 14px;
+      }
+      #liberacaoModal .wf-contact-suggest__item span {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      #liberacaoModal .wf-contact-suggest__item:hover,
+      #liberacaoModal .wf-contact-suggest__item.is-active {
+        background: color-mix(in srgb, var(--primary-weak) 70%, var(--card));
+      }
+      #liberacaoModal .wf-contact-readonly {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 700;
+        text-align: right;
+      }
+      #liberacaoModal .wf-contact-avulso.hidden,
+      #liberacaoModal .wf-contact-suggest.hidden,
+      #liberacaoModal .wf-contact.hidden,
+      #liberacaoModal .wf-contact-readonly.hidden {
+        display: none !important;
+      }
+      #liberacaoModal .wf-field--readonly .wf-contact-toggle,
+      #liberacaoModal .wf-field--readonly .wf-contact-avulso {
+        display: none !important;
+      }
+      #liberacaoModal .wf-field--readonly .wf-contact,
+      #liberacaoModal .wf-field--readonly .wf-contact-readonly:not(.hidden) {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      #liberacaoModal .wf-field--readonly .wf-contact-cadastrado select {
+        width: 100%;
+      }
+      @media (max-width: 720px) {
+        #liberacaoModal.modal-backdrop {
+          padding: 10px 8px;
+        }
+        #liberacaoModal .workflow-step-modal {
+          width: 100%;
+          max-height: 92vh;
+          padding: 16px 14px 14px;
+        }
+        #liberacaoModal .wf-contact-toggle__btn,
+        #liberacaoModal .wf-avulso-nome,
+        #liberacaoModal .wf-avulso-tel {
+          font-size: 16px;
+        }
       }
       .modal-backdrop.tab-view-modal {
         z-index: 190;
@@ -9630,18 +9760,81 @@
             <div id="libActionFields" class="form-grid workflow-step-fields">
               <div id="libRowSolicitante" class="wf-field">
                 <label id="libSolicitanteLabel">Quem solicitou a liberação?</label>
-                <p class="wf-field-hint" id="libSolicitanteHint">Parceiro que pediu a liberação do veículo.</p>
-                <select id="libSolicitante"></select>
+                <p class="wf-field-hint" id="libSolicitanteHint">Pessoa ou empresa cadastrada, ou contato avulso com nome e telefone.</p>
+                <div class="wf-contact" data-contact-key="solicitante">
+                  <div class="wf-contact-toggle" role="group" aria-label="Tipo de contato">
+                    <button type="button" class="wf-contact-toggle__btn is-active" data-mode="cadastrado">Cadastrado</button>
+                    <button type="button" class="wf-contact-toggle__btn" data-mode="avulso">Avulso</button>
+                  </div>
+                  <div class="wf-contact-cadastrado">
+                    <select id="libSolicitante"></select>
+                  </div>
+                  <div class="wf-contact-avulso hidden">
+                    <span class="wf-contact-sub">Nome</span>
+                    <div class="wf-contact-combo">
+                      <input id="libSolicitanteAvulsoNome" class="wf-avulso-nome" type="text" maxlength="160" autocomplete="off" placeholder="Nome completo" />
+                      <div class="wf-contact-suggest hidden" role="listbox"></div>
+                    </div>
+                    <span class="wf-contact-sub">Telefone/WhatsApp</span>
+                    <div class="wf-contact-combo">
+                      <input id="libSolicitanteAvulsoTel" class="wf-avulso-tel" type="tel" inputmode="tel" maxlength="16" autocomplete="off" placeholder="(00) 00000-0000" />
+                      <div class="wf-contact-suggest hidden" role="listbox"></div>
+                    </div>
+                  </div>
+                </div>
+                <p class="wf-contact-readonly hidden"></p>
               </div>
               <div id="libRowConfirmador" class="wf-field hidden" aria-hidden="true">
                 <label id="libConfirmadorLabel">Quem confirma a liberação?</label>
-                <p class="wf-field-hint" id="libConfirmadorHint">Parceiro responsável por confirmar a liberação.</p>
-                <select id="libConfirmador"></select>
+                <p class="wf-field-hint" id="libConfirmadorHint">Pessoa ou empresa cadastrada, ou contato avulso com nome e telefone.</p>
+                <div class="wf-contact" data-contact-key="confirmador">
+                  <div class="wf-contact-toggle" role="group" aria-label="Tipo de contato">
+                    <button type="button" class="wf-contact-toggle__btn is-active" data-mode="cadastrado">Cadastrado</button>
+                    <button type="button" class="wf-contact-toggle__btn" data-mode="avulso">Avulso</button>
+                  </div>
+                  <div class="wf-contact-cadastrado">
+                    <select id="libConfirmador"></select>
+                  </div>
+                  <div class="wf-contact-avulso hidden">
+                    <span class="wf-contact-sub">Nome</span>
+                    <div class="wf-contact-combo">
+                      <input id="libConfirmadorAvulsoNome" class="wf-avulso-nome" type="text" maxlength="160" autocomplete="off" placeholder="Nome completo" />
+                      <div class="wf-contact-suggest hidden" role="listbox"></div>
+                    </div>
+                    <span class="wf-contact-sub">Telefone/WhatsApp</span>
+                    <div class="wf-contact-combo">
+                      <input id="libConfirmadorAvulsoTel" class="wf-avulso-tel" type="tel" inputmode="tel" maxlength="16" autocomplete="off" placeholder="(00) 00000-0000" />
+                      <div class="wf-contact-suggest hidden" role="listbox"></div>
+                    </div>
+                  </div>
+                </div>
+                <p class="wf-contact-readonly hidden"></p>
               </div>
               <div id="libRowResponsavel" class="wf-field hidden" aria-hidden="true">
                 <label id="libResponsavelLabel">RPP · responsável financeiro</label>
-                <p class="wf-field-hint" id="libResponsavelHint">Quem será cobrado pelas diárias deste ciclo.</p>
-                <select id="libResponsavelPagamento"></select>
+                <p class="wf-field-hint" id="libResponsavelHint">Quem será cobrado pelas diárias deste ciclo. Pode ser cadastrado ou avulso.</p>
+                <div class="wf-contact" data-contact-key="responsavelFinanceiro">
+                  <div class="wf-contact-toggle" role="group" aria-label="Tipo de contato">
+                    <button type="button" class="wf-contact-toggle__btn is-active" data-mode="cadastrado">Cadastrado</button>
+                    <button type="button" class="wf-contact-toggle__btn" data-mode="avulso">Avulso</button>
+                  </div>
+                  <div class="wf-contact-cadastrado">
+                    <select id="libResponsavelPagamento"></select>
+                  </div>
+                  <div class="wf-contact-avulso hidden">
+                    <span class="wf-contact-sub">Nome</span>
+                    <div class="wf-contact-combo">
+                      <input id="libResponsavelAvulsoNome" class="wf-avulso-nome" type="text" maxlength="160" autocomplete="off" placeholder="Nome completo" />
+                      <div class="wf-contact-suggest hidden" role="listbox"></div>
+                    </div>
+                    <span class="wf-contact-sub">Telefone/WhatsApp</span>
+                    <div class="wf-contact-combo">
+                      <input id="libResponsavelAvulsoTel" class="wf-avulso-tel" type="tel" inputmode="tel" maxlength="16" autocomplete="off" placeholder="(00) 00000-0000" />
+                      <div class="wf-contact-suggest hidden" role="listbox"></div>
+                    </div>
+                  </div>
+                </div>
+                <p class="wf-contact-readonly hidden"></p>
               </div>
               <div id="libRowSolicRemocao" class="wf-field hidden" aria-hidden="true">
                 <label id="libSolicRemocaoLabel">Quem solicitou a remoção?</label>
@@ -9650,8 +9843,29 @@
               </div>
               <div id="libRowRemoveu" class="wf-field hidden" aria-hidden="true">
                 <label id="libRemoveuLabel">Quem removeu o veículo?</label>
-                <p class="wf-field-hint" id="libRemoveuHint">Parceiro que efetivou a saída do pátio.</p>
-                <select id="libRemoveu"></select>
+                <p class="wf-field-hint" id="libRemoveuHint">Pessoa ou empresa cadastrada, ou contato avulso com nome e telefone.</p>
+                <div class="wf-contact" data-contact-key="removeu">
+                  <div class="wf-contact-toggle" role="group" aria-label="Tipo de contato">
+                    <button type="button" class="wf-contact-toggle__btn is-active" data-mode="cadastrado">Cadastrado</button>
+                    <button type="button" class="wf-contact-toggle__btn" data-mode="avulso">Avulso</button>
+                  </div>
+                  <div class="wf-contact-cadastrado">
+                    <select id="libRemoveu"></select>
+                  </div>
+                  <div class="wf-contact-avulso hidden">
+                    <span class="wf-contact-sub">Nome</span>
+                    <div class="wf-contact-combo">
+                      <input id="libRemoveuAvulsoNome" class="wf-avulso-nome" type="text" maxlength="160" autocomplete="off" placeholder="Nome completo" />
+                      <div class="wf-contact-suggest hidden" role="listbox"></div>
+                    </div>
+                    <span class="wf-contact-sub">Telefone/WhatsApp</span>
+                    <div class="wf-contact-combo">
+                      <input id="libRemoveuAvulsoTel" class="wf-avulso-tel" type="tel" inputmode="tel" maxlength="16" autocomplete="off" placeholder="(00) 00000-0000" />
+                      <div class="wf-contact-suggest hidden" role="listbox"></div>
+                    </div>
+                  </div>
+                </div>
+                <p class="wf-contact-readonly hidden"></p>
               </div>
               <div id="libRowDestinacao" class="wf-field">
                 <label for="libDestinacao">Destinação do veículo</label>
@@ -10675,6 +10889,7 @@
     <script src="/parceiro-caderneta.js?v=20261117cad1"></script>
     <script src="/patio-extrato-service.js?v=20261105resumo2"></script>
     <script src="/patio-extrato-ui.js?v=20261106patioReorg1"></script>
+    <script src="/contatos-avulsos.js?v=20261117avulso1"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
       const supabaseKey =
@@ -15508,13 +15723,19 @@
         return String(v.responsavel_financeiro_id || v.localizador_id || "").trim();
       }
 
-      /** Nome do RPF para tabelas (parceiro ou nome gravado no veículo). */
+      /** Nome do RPF para tabelas (parceiro, nome gravado ou localizador). */
       function vehicleRpfNome(v) {
         if (!v) return "—";
-        const pid = listaVehicleEffectiveRpfPartnerId(v);
-        if (!pid) return "—";
-        const nome = rppNomeById(pid) || v.responsavel_financeiro_nome || "";
-        return (nome || "").trim() || "—";
+        const direto = String(v.responsavel_financeiro_id || "").trim();
+        if (direto) {
+          const nome = rppNomeById(direto) || v.responsavel_financeiro_nome || "";
+          return (nome || "").trim() || "—";
+        }
+        const gravado = String(v.responsavel_financeiro_nome || "").trim();
+        if (gravado) return gravado;
+        const loc = String(v.localizador_id || "").trim();
+        if (!loc) return "—";
+        return (rppNomeById(loc) || "").trim() || "—";
       }
 
       function vehicleAdvocacyOfficeNome(v) {
@@ -17841,6 +18062,31 @@
           .replace("REMocao_", "Remoção ")
           .replace("REMOCAO_", "Remoção ")
           .replace("REMOVIDO", "Removido");
+      }
+
+      async function loadVehicleContatoMap(vehicleId) {
+        const map = new Map();
+        if (!supabase || !vehicleId) return map;
+        const { data, error } = await supabase
+          .from("vehicle_movimento_contatos")
+          .select("event_id,etapa,papel,contato_tipo,nome,telefone,registrado_por,registrado_em")
+          .eq("vehicle_id", vehicleId)
+          .order("registrado_em", { ascending: true });
+        if (error || !Array.isArray(data)) return map;
+        data.forEach((row) => {
+          const key = String(row.event_id || "");
+          if (!key) return;
+          if (!map.has(key)) map.set(key, []);
+          map.get(key).push(row);
+        });
+        return map;
+      }
+
+      function eventContatoMetaHtml(evt, map) {
+        const rows = map && map.get ? map.get(String((evt && evt.id) || "")) : null;
+        const lines = (window.contatosAvulsos && window.contatosAvulsos.historicoLinhas(rows)) || [];
+        if (!lines.length) return "";
+        return `<div class="timeline-meta">${lines.map((line) => escapeHtml(line)).join("<br>")}</div>`;
       }
 
       function currentPatioOperatorLabel() {
@@ -20479,6 +20725,350 @@
         if (!item) return { id: "", nome: "" };
         return { id: String(item.id), nome: String(item.nome || "").trim() };
       }
+
+      window.contatosAvulsosCatalog = window.contatosAvulsosCatalog || [];
+      let contatosAvulsosSchemaWarned = false;
+
+      const WORKFLOW_CONTACT_SELECT = {
+        solicitante: () => libSolicitante,
+        confirmador: () => libConfirmador,
+        responsavelFinanceiro: () => libResponsavelPagamento,
+        removeu: () => libRemoveu,
+      };
+
+      const WORKFLOW_CONTACT_CADASTRADO_MSG = {
+        solicitante: "Selecione quem solicitou a liberação.",
+        confirmador: "Selecione quem confirmou a liberação.",
+        responsavelFinanceiro: "Selecione o RPP (responsável financeiro / pagamento).",
+        removeu: "Selecione quem removeu o veículo.",
+      };
+
+      const WORKFLOW_CONTACT_SUBJECT = {
+        solicitante: "quem solicitou a liberação",
+        confirmador: "quem confirmou a liberação",
+        responsavelFinanceiro: "o responsável pelo RPP",
+        removeu: "quem removeu o veículo",
+      };
+
+      const WORKFLOW_CONTACT_ROTULO = {
+        solicitante: "Solicitante",
+        confirmador: "Confirmador",
+        responsavelFinanceiro: "RPP",
+        removeu: "Quem removeu",
+      };
+
+      const WORKFLOW_CONTACT_ETAPA = {
+        solicitante: "VSL",
+        confirmador: "VSC",
+        responsavelFinanceiro: "RPP",
+        removeu: "REMOCAO",
+      };
+
+      function phoneForRegisteredContact(id) {
+        const sid = String(id || "");
+        if (!sid) return "";
+        const partner = (state.partners || []).find((p) => String(p.id) === sid);
+        if (partner) return partner.whatsapp || partner.telefone || partner.contato || "";
+        const manager = (state.partnerManagers || []).find((m) => String(m.id) === sid);
+        if (manager) return manager.whatsapp || manager.phone || "";
+        const officeManager = (state.advocacyOfficeManagers || []).find((m) => String(m.id) === sid);
+        if (officeManager) return officeManager.whatsapp || officeManager.phone || "";
+        return "";
+      }
+
+      function workflowContactBox(key) {
+        return document.querySelector(`#liberacaoModal [data-contact-key="${key}"]`);
+      }
+
+      function workflowContactMode(key) {
+        const box = workflowContactBox(key);
+        const row = box?.closest(".wf-field");
+        if (!box || row?.classList.contains("wf-field--readonly")) return "cadastrado";
+        const active = box.querySelector(".wf-contact-toggle__btn.is-active");
+        return active?.dataset.mode === "avulso" ? "avulso" : "cadastrado";
+      }
+
+      function hideWorkflowContactSuggestions(except) {
+        document.querySelectorAll("#liberacaoModal .wf-contact-suggest").forEach((list) => {
+          if (except && list === except) return;
+          list.classList.add("hidden");
+          list.innerHTML = "";
+        });
+      }
+
+      function setWorkflowContactMode(box, mode) {
+        if (!box) return;
+        const avulso = mode === "avulso";
+        box.querySelectorAll(".wf-contact-toggle__btn").forEach((btn) => {
+          btn.classList.toggle("is-active", btn.dataset.mode === (avulso ? "avulso" : "cadastrado"));
+        });
+        box.querySelector(".wf-contact-cadastrado")?.classList.toggle("hidden", avulso);
+        box.querySelector(".wf-contact-avulso")?.classList.toggle("hidden", !avulso);
+        if (!avulso) hideWorkflowContactSuggestions();
+      }
+
+      function resetWorkflowContactModes() {
+        document.querySelectorAll("#liberacaoModal [data-contact-key]").forEach((box) => {
+          setWorkflowContactMode(box, "cadastrado");
+          box.querySelectorAll(".wf-avulso-nome, .wf-avulso-tel").forEach((input) => {
+            input.value = "";
+          });
+          const fallback = box.parentElement?.querySelector(".wf-contact-readonly");
+          if (fallback) {
+            fallback.textContent = "";
+            fallback.classList.add("hidden");
+          }
+          box.classList.remove("hidden");
+        });
+        hideWorkflowContactSuggestions();
+      }
+
+      function renderWorkflowContactSuggestions(input) {
+        const api = window.contatosAvulsos;
+        const combo = input?.closest(".wf-contact-combo");
+        const list = combo?.querySelector(".wf-contact-suggest");
+        if (!list || !api) return;
+        const hits = api.searchContacts(window.contatosAvulsosCatalog || [], input.value, 8);
+        hideWorkflowContactSuggestions(list);
+        if (!hits.length) {
+          list.classList.add("hidden");
+          list.innerHTML = "";
+          return;
+        }
+        list.innerHTML = hits
+          .map(
+            (item) =>
+              `<button type="button" class="wf-contact-suggest__item" data-nome="${escapeHtml(item.nome)}" data-tel="${escapeHtml(
+                item.telefone
+              )}"><strong>${escapeHtml(item.nome)}</strong><span>${escapeHtml(item.telefone)}</span></button>`
+          )
+          .join("");
+        list.classList.remove("hidden");
+      }
+
+      function applyWorkflowContactSuggestion(button) {
+        const box = button.closest("[data-contact-key]");
+        if (!box) return;
+        const nome = button.getAttribute("data-nome") || "";
+        const tel = button.getAttribute("data-tel") || "";
+        const nomeInput = box.querySelector(".wf-avulso-nome");
+        const telInput = box.querySelector(".wf-avulso-tel");
+        if (nomeInput) nomeInput.value = nome;
+        if (telInput) telInput.value = window.contatosAvulsos?.formatPhoneBr(tel) || tel;
+        hideWorkflowContactSuggestions();
+        nomeInput?.focus();
+      }
+
+      function readWorkflowContact(key) {
+        const api = window.contatosAvulsos;
+        const select = WORKFLOW_CONTACT_SELECT[key]?.();
+        if (workflowContactMode(key) === "avulso") {
+          const box = workflowContactBox(key);
+          const nome = String(box?.querySelector(".wf-avulso-nome")?.value || "").trim();
+          const rawTel = String(box?.querySelector(".wf-avulso-tel")?.value || "");
+          const telefone = api ? api.formatPhoneBr(rawTel) : rawTel.trim();
+          return {
+            tipo: "AVULSO",
+            id: "",
+            nome,
+            telefone,
+            telefoneNorm: api ? api.digits(telefone) : rawTel.replace(/\D/g, ""),
+            papel: key,
+          };
+        }
+        const sel = readWorkflowPartnerSelect(select);
+        const rawPhone = phoneForRegisteredContact(sel.id);
+        const telefone = rawPhone ? (api ? api.formatPhoneBr(rawPhone) : String(rawPhone).trim()) : "";
+        return {
+          tipo: "CADASTRADO",
+          id: sel.id,
+          nome: sel.nome,
+          telefone,
+          telefoneNorm: api ? api.digits(telefone) : "",
+          papel: key,
+        };
+      }
+
+      function workflowContactError(key, contact) {
+        if (contact?.tipo === "AVULSO") {
+          return window.contatosAvulsos?.validationMessage(contact, WORKFLOW_CONTACT_SUBJECT[key]) || "Informe o contato avulso.";
+        }
+        if (!contact?.id) {
+          if (!listaGeralParceiros().length) {
+            return "Não há contato cadastrado. Escolha Avulso e informe nome e telefone, ou cadastre um parceiro.";
+          }
+          return WORKFLOW_CONTACT_CADASTRADO_MSG[key] || "Selecione o contato.";
+        }
+        return "";
+      }
+
+      function workflowContatoSuffix(contacts) {
+        const note = window.contatosAvulsos?.contactNote(
+          (contacts || []).map((item) => ({ ...item, rotulo: WORKFLOW_CONTACT_ROTULO[item.papel] || item.papel }))
+        );
+        return note ? ` ${note}.` : "";
+      }
+
+      function warnContatosAvulsosSchema(error) {
+        const msg = String(error?.message || error || "");
+        if (!/schema cache|PGRST204|relation|does not exist|contatos_avulsos|vehicle_movimento_contatos/i.test(msg)) return;
+        if (contatosAvulsosSchemaWarned) return;
+        contatosAvulsosSchemaWarned = true;
+        alert(
+          "A movimentação foi registada. Para memorizar contatos avulsos e sugerir nas próximas vezes, execute no Supabase o arquivo supabase/contatos_avulsos.sql."
+        );
+      }
+
+      async function ensureContatosAvulsos() {
+        const uid = effectiveUserId();
+        if (!uid || !supabase) return window.contatosAvulsosCatalog || [];
+        const { data, error } = await supabase
+          .from("contatos_avulsos")
+          .select("id,nome,telefone,telefone_norm,ultimo_uso_em")
+          .eq("user_id", uid)
+          .order("ultimo_uso_em", { ascending: false })
+          .limit(500);
+        if (error) {
+          console.warn("contatos_avulsos", error.message || error);
+          return window.contatosAvulsosCatalog || [];
+        }
+        window.contatosAvulsosCatalog = data || [];
+        return window.contatosAvulsosCatalog;
+      }
+
+      async function saveAvulsoCatalog(contact) {
+        const api = window.contatosAvulsos;
+        const uid = effectiveUserId();
+        if (!api || !uid || !supabase || contact?.tipo !== "AVULSO") return null;
+        const plan = api.commitAvulsoContact(window.contatosAvulsosCatalog || [], contact);
+        const row = {
+          nome: plan.record.nome,
+          telefone: plan.record.telefone,
+          telefone_norm: plan.record.telefone_norm,
+          ultimo_uso_em: plan.record.ultimo_uso_em,
+          updated_at: plan.record.updated_at,
+        };
+        if (plan.action === "update" && plan.record.id) {
+          const { error } = await supabase.from("contatos_avulsos").update(row).eq("id", plan.record.id).eq("user_id", uid);
+          if (error) {
+            warnContatosAvulsosSchema(error);
+            return plan.record.id;
+          }
+          window.contatosAvulsosCatalog = plan.catalog;
+          return plan.record.id;
+        }
+        const { data, error } = await supabase
+          .from("contatos_avulsos")
+          .insert({ ...row, user_id: uid, criado_por: currentPatioOperatorLabel() })
+          .select("id")
+          .maybeSingle();
+        if (error) {
+          if (/duplicate|unique/i.test(error.message || "")) {
+            const { data: found } = await supabase
+              .from("contatos_avulsos")
+              .select("id")
+              .eq("user_id", uid)
+              .eq("telefone_norm", row.telefone_norm)
+              .maybeSingle();
+            if (found?.id) {
+              await supabase.from("contatos_avulsos").update(row).eq("id", found.id).eq("user_id", uid);
+              plan.record.id = found.id;
+              window.contatosAvulsosCatalog = plan.catalog.map((item) =>
+                item.telefone_norm === row.telefone_norm ? { ...item, id: found.id } : item
+              );
+              return found.id;
+            }
+          }
+          warnContatosAvulsosSchema(error);
+          return null;
+        }
+        if (data?.id) plan.record.id = data.id;
+        window.contatosAvulsosCatalog = plan.catalog.map((item) =>
+          item.telefone_norm === row.telefone_norm ? { ...item, id: data?.id || item.id } : item
+        );
+        return data?.id || null;
+      }
+
+      async function persistWorkflowContatos(vehicleId, eventId, contacts) {
+        if (!supabase || !vehicleId || !contacts?.length) return;
+        const uid = effectiveUserId();
+        if (!uid) return;
+        const operador = currentPatioOperatorLabel();
+        const now = new Date().toISOString();
+        const prepared = [];
+        for (const contact of contacts) {
+          if (!contact?.nome) continue;
+          let avulsoId = null;
+          if (contact.tipo === "AVULSO") avulsoId = await saveAvulsoCatalog(contact);
+          prepared.push({
+            user_id: uid,
+            vehicle_id: vehicleId,
+            event_id: eventId || null,
+            etapa: WORKFLOW_CONTACT_ETAPA[contact.papel] || "VSL",
+            papel: contact.papel,
+            contato_tipo: contact.tipo === "AVULSO" ? "AVULSO" : "CADASTRADO",
+            nome: contact.nome,
+            telefone: contact.telefone || null,
+            telefone_norm: contact.telefoneNorm || null,
+            cadastro_id: contact.tipo === "CADASTRADO" && contact.id ? contact.id : null,
+            contato_avulso_id: avulsoId,
+            registrado_por: operador,
+            registrado_em: now,
+          });
+        }
+        if (!prepared.length) return;
+        const usedAvulso = contacts.some((item) => item && item.tipo === "AVULSO");
+        const { error } = await supabase.from("vehicle_movimento_contatos").insert(prepared);
+        if (error) {
+          console.warn("vehicle_movimento_contatos", error.message || error);
+          if (usedAvulso) warnContatosAvulsosSchema(error);
+        }
+      }
+
+      function bindWorkflowContactUiOnce() {
+        if (bindWorkflowContactUiOnce.done || !liberacaoModal) return;
+        bindWorkflowContactUiOnce.done = true;
+        liberacaoModal.addEventListener("mousedown", (event) => {
+          if (event.target.closest(".wf-contact-suggest__item")) event.preventDefault();
+        });
+        liberacaoModal.addEventListener("click", (event) => {
+          const modeBtn = event.target.closest(".wf-contact-toggle__btn");
+          if (modeBtn && liberacaoModal.contains(modeBtn)) {
+            event.preventDefault();
+            setWorkflowContactMode(modeBtn.closest("[data-contact-key]"), modeBtn.dataset.mode);
+            return;
+          }
+          const suggestion = event.target.closest(".wf-contact-suggest__item");
+          if (suggestion) {
+            event.preventDefault();
+            applyWorkflowContactSuggestion(suggestion);
+            return;
+          }
+          if (!event.target.closest(".wf-contact-combo")) hideWorkflowContactSuggestions();
+        });
+        liberacaoModal.addEventListener("input", (event) => {
+          const input = event.target;
+          if (!(input instanceof HTMLInputElement)) return;
+          if (input.classList.contains("wf-avulso-tel") && window.contatosAvulsos) {
+            const next = window.contatosAvulsos.formatPhoneBr(input.value);
+            if (next !== input.value) input.value = next;
+          }
+          if (input.classList.contains("wf-avulso-nome") || input.classList.contains("wf-avulso-tel")) {
+            renderWorkflowContactSuggestions(input);
+          }
+        });
+        liberacaoModal.addEventListener("focusout", (event) => {
+          const input = event.target;
+          if (!(input instanceof HTMLInputElement)) return;
+          if (!input.classList.contains("wf-avulso-nome") && !input.classList.contains("wf-avulso-tel")) return;
+          setTimeout(() => {
+            const active = document.activeElement;
+            if (active && active.closest && active.closest(".wf-contact-suggest")) return;
+            hideWorkflowContactSuggestions();
+          }, 160);
+        });
+      }
+      bindWorkflowContactUiOnce();
 
       function syncWorkflowPartnerSelects() {
         const html = partnerSelectOptionsHtml("");
@@ -25318,6 +25908,7 @@
         }
 
         let events = [];
+        let contatoMap = new Map();
         try {
           const { data, error } = await supabase
             .from("vehicle_events")
@@ -25325,6 +25916,7 @@
             .eq("vehicle_id", vehicle.id)
             .order("data_evento", { ascending: true });
           if (!error) events = data || [];
+          contatoMap = await loadVehicleContatoMap(vehicle.id);
         } catch (e) {
           events = [];
         }
@@ -25335,8 +25927,14 @@
             .map((evt) => {
               const title = formatPatioEventTitle(evt.tipo);
               const when = formatDateTime(evt.data_evento);
-              const extra = evt.descricao ? ` — ${evt.descricao}` : "";
-              return `<li><strong>${escapeHtml(title)}${escapeHtml(extra)}</strong><time>${escapeHtml(
+              const contatoTxt = (
+                (window.contatosAvulsos &&
+                  window.contatosAvulsos.historicoLinhas(contatoMap.get(String(evt.id || "")))) ||
+                []
+              ).join(" · ");
+              const extra = [evt.descricao || "", contatoTxt].filter(Boolean).join(" — ");
+              const extraHtml = extra ? ` — ${extra}` : "";
+              return `<li><strong>${escapeHtml(title)}${escapeHtml(extraHtml)}</strong><time>${escapeHtml(
                 when || "—"
               )}</time></li>`;
             })
@@ -25756,6 +26354,7 @@
           .select("*")
           .eq("vehicle_id", vehicle.id)
           .order("data_evento", { ascending: true });
+        const contatoMap = error ? new Map() : await loadVehicleContatoMap(vehicle.id);
 
         if (error) {
           fichaTimeline.innerHTML = `<div class="timeline-item">Erro ao carregar histórico.</div>`;
@@ -25767,11 +26366,12 @@
               const title = formatPatioEventTitle(evt.tipo);
               return `
                 <div class="timeline-item">
-                  <div class="timeline-title">${title}</div>
-                  <div>${evt.descricao || "-"}</div>
-                  <div class="timeline-meta">Responsável: ${evt.responsavel || "-"} • ${formatDateTime(
-                evt.data_evento
+                  <div class="timeline-title">${escapeHtml(title)}</div>
+                  <div>${escapeHtml(evt.descricao || "-")}</div>
+                  <div class="timeline-meta">Responsável: ${escapeHtml(evt.responsavel || "-")} • ${escapeHtml(
+                formatDateTime(evt.data_evento) || "-"
               )}</div>
+                  ${eventContatoMetaHtml(evt, contatoMap)}
                 </div>
               `;
             })
@@ -26534,21 +27134,29 @@
       });
       confirmLiberacaoModal.addEventListener("click", () => {
         if (!workflowModalConfig) return;
-        const sol = readWorkflowPartnerSelect(libSolicitante);
-        const conf = readWorkflowPartnerSelect(libConfirmador);
-        const rpp = readWorkflowPartnerSelect(libResponsavelPagamento);
+        const sol = readWorkflowContact("solicitante");
+        const conf = readWorkflowContact("confirmador");
+        const rpp = readWorkflowContact("responsavelFinanceiro");
         const solRem = readWorkflowPartnerSelect(libSolicitanteRemocao);
-        const rem = readWorkflowPartnerSelect(libRemoveu);
+        const rem = readWorkflowContact("removeu");
         const required = workflowModalConfig.requiredFields || [];
-        if (required.includes("solicitante") && !sol.id) return alert("Selecione quem solicitou a liberação.");
-        if (required.includes("confirmador") && !conf.id) return alert("Selecione quem confirmou a liberação.");
-        if (required.includes("responsavelFinanceiro") && !rpp.id)
-          return alert("Selecione o RPP (responsável financeiro / pagamento).");
+        if (required.includes("solicitante")) {
+          const err = workflowContactError("solicitante", sol);
+          if (err) return alert(err);
+        }
+        if (required.includes("confirmador")) {
+          const err = workflowContactError("confirmador", conf);
+          if (err) return alert(err);
+        }
+        if (required.includes("responsavelFinanceiro")) {
+          const err = workflowContactError("responsavelFinanceiro", rpp);
+          if (err) return alert(err);
+        }
         if (required.includes("solicitanteRemocao") && !solRem.id)
           return alert("Selecione quem solicitou a remoção.");
-        if (required.includes("removeu") && !rem.id) return alert("Selecione quem removeu o veículo.");
-        if (!(state.partners || []).length && !findCarteiraManagerById(rpp.id)) {
-          return alert("Cadastre parceiros ou gestores de carteira antes de concluir esta ação.");
+        if (required.includes("removeu")) {
+          const err = workflowContactError("removeu", rem);
+          if (err) return alert(err);
         }
         const destUi = readLibDestinacaoPayload();
         if (!assertRestituicaoResponsavel(destUi.destinacao, destUi.restituicaoResponsavel)) return;
@@ -26556,15 +27164,27 @@
         if (liberacaoModalResolver) {
           liberacaoModalResolver({
             solicitante: sol.nome,
-            solicitantePartnerId: sol.id,
+            solicitantePartnerId: sol.tipo === "CADASTRADO" ? sol.id : "",
+            solicitanteTipo: sol.tipo,
+            solicitanteTelefone: sol.telefone,
+            solicitanteContato: sol,
             confirmador: conf.nome,
-            confirmadorPartnerId: conf.id,
+            confirmadorPartnerId: conf.tipo === "CADASTRADO" ? conf.id : "",
+            confirmadorTipo: conf.tipo,
+            confirmadorTelefone: conf.telefone,
+            confirmadorContato: conf,
             responsavelFinanceiro: rpp.nome,
-            responsavelFinanceiroPartnerId: rpp.id,
+            responsavelFinanceiroPartnerId: rpp.tipo === "CADASTRADO" ? rpp.id : "",
+            responsavelFinanceiroTipo: rpp.tipo,
+            responsavelFinanceiroTelefone: rpp.telefone,
+            responsavelFinanceiroContato: rpp,
             solicitanteRemocao: solRem.nome,
             solicitanteRemocaoPartnerId: solRem.id,
             removeu: rem.nome,
-            removeuPartnerId: rem.id,
+            removeuPartnerId: rem.tipo === "CADASTRADO" ? rem.id : "",
+            removeuTipo: rem.tipo,
+            removeuTelefone: rem.telefone,
+            removeuContato: rem,
             observacao: String(document.getElementById("libObservacao")?.value || "").trim(),
             destinacao: destUi.destinacao,
             restituicaoResponsavel: destUi.restituicaoResponsavel,
@@ -29033,14 +29653,13 @@ ${body}
         return new Promise((resolve) => {
           liberacaoModalResolver = resolve;
           workflowModalConfig = { requiredFields };
-          const needsPartner = (requiredFields || []).some((f) =>
-            ["solicitante", "confirmador", "solicitanteRemocao", "removeu"].includes(f)
-          );
-          const needsRpp = (requiredFields || []).includes("responsavelFinanceiro");
-          const hasPartners = !!(state.partners || []).length;
-          const hasRppChoices = hasPartners || carteiraManagersForRpp().length > 0;
-          if ((needsPartner && !hasPartners) || (needsRpp && !hasRppChoices)) {
-            alert("Cadastre parceiros em Rede de parceiros ou gestores de carteira no escritório antes de concluir esta ação.");
+          const onlyLegacyPartner =
+            (requiredFields || []).includes("solicitanteRemocao") &&
+            !(requiredFields || []).some((f) =>
+              ["solicitante", "confirmador", "responsavelFinanceiro", "removeu"].includes(f)
+            );
+          if (onlyLegacyPartner && !(state.partners || []).length) {
+            alert("Cadastre parceiros em Rede de parceiros antes de concluir esta ação.");
             resolve(null);
             return;
           }
@@ -29049,17 +29668,39 @@ ${body}
           if (confirmLiberacaoModal) confirmLiberacaoModal.textContent = submitLabel;
           applyWorkflowStepChrome({ requiredFields });
           layoutWorkflowStepFields({ requiredFields, values, readonly });
+          resetWorkflowContactModes();
+          void ensureContatosAvulsos();
 
           syncWorkflowPartnerSelects();
+          const showStoredContact = (el, stored, ro) => {
+            const row = el?.closest(".wf-field");
+            const box = row?.querySelector(".wf-contact");
+            const fallback = row?.querySelector(".wf-contact-readonly");
+            const resolved = String(el?.value || "").trim();
+            const label = String(stored || "").trim();
+            if (ro && !resolved && label && fallback) {
+              fallback.textContent = label;
+              fallback.classList.remove("hidden");
+              box?.classList.add("hidden");
+              return;
+            }
+            if (fallback) {
+              fallback.textContent = "";
+              fallback.classList.add("hidden");
+            }
+            box?.classList.remove("hidden");
+          };
           const setPartnerSel = (el, stored, ro) => {
             if (!el) return;
             el.value = resolvePartnerIdFromStored(stored);
             el.disabled = !!ro;
+            showStoredContact(el, stored, ro);
           };
           const setRppSel = (el, stored, ro) => {
             if (!el) return;
             el.value = resolveRppIdFromStored(stored);
             el.disabled = !!ro;
+            showStoredContact(el, stored, ro);
           };
           setPartnerSel(libSolicitante, values.solicitante, readonly.solicitante);
           setPartnerSel(libConfirmador, values.confirmador, readonly.confirmador);
@@ -30833,7 +31474,10 @@ ${body}
             liberacao_confirmada_obs: obs || null,
             ...destinacaoPatchFromUi(libData, vehicle),
           };
-          if (rppPartnerId) {
+          if (libData.responsavelFinanceiroTipo === "AVULSO") {
+            vehiclePatch.responsavel_financeiro_id = null;
+            vehiclePatch.responsavel_financeiro_nome = responsavel || null;
+          } else if (rppPartnerId) {
             vehiclePatch.responsavel_financeiro_id = rppPartnerId;
             vehiclePatch.responsavel_financeiro_nome = responsavel || rppNomeById(rppPartnerId) || null;
             const rppMgr = findCarteiraManagerById(rppPartnerId);
@@ -30897,16 +31541,23 @@ ${body}
           }
           }
 
-          await supabase.from("vehicle_events").insert({
-            vehicle_id: id,
-            tipo: "LIBERACAO_CONFIRMADA",
-            responsavel: confirmador || operador,
-            descricao:
-              `Liberação confirmada (VSC). Confirmador: ${confirmador || "-"}. RPP: ${responsavel}. ` +
-              `Registado por ${operador}. As diárias continuam a contar até a retirada física (VRP).` +
-              destEventNote(libData) +
-              (obs ? ` Observação: ${obs}` : ""),
-          });
+          const vscContatos = [libData.confirmadorContato, libData.responsavelFinanceiroContato].filter((item) => item && item.nome);
+          const vscIns = await supabase
+            .from("vehicle_events")
+            .insert({
+              vehicle_id: id,
+              tipo: "LIBERACAO_CONFIRMADA",
+              responsavel: confirmador || operador,
+              descricao:
+                `Liberação confirmada (VSC). Confirmador: ${confirmador || "-"}. RPP: ${responsavel}. ` +
+                `Registado por ${operador}. As diárias continuam a contar até a retirada física (VRP).` +
+                destEventNote(libData) +
+                (obs ? ` Observação: ${obs}` : "") +
+                workflowContatoSuffix(vscContatos),
+            })
+            .select("id")
+            .maybeSingle();
+          if (!vscIns.error) await persistWorkflowContatos(id, vscIns.data?.id, vscContatos);
           await loadVehicles();
           if (!FINANCE_MANUAL_ONLY) await Promise.all([loadReceivables(), loadCycleClosures()]);
           else await loadCycleClosures();
@@ -31114,10 +31765,6 @@ ${body}
         }
 
         if (action === "solicitar") {
-          if (!(state.partners || []).length) {
-            alert("Cadastre parceiros em Rede de parceiros antes de solicitar liberação.");
-            return;
-          }
           const libData = await openWorkflowStepModal({
             title: "Solicitação de liberação (VSL)",
             submitLabel: "Registar solicitação",
@@ -31128,26 +31775,37 @@ ${body}
             },
           });
           if (!libData) return;
+          const contato = libData.solicitanteContato;
           const solicitanteId = String(libData.solicitantePartnerId || "").trim();
           const solicitanteItem = listaGeralParceiros(solicitanteId).find((x) => String(x.id) === solicitanteId);
           const solicitante = String(libData.solicitante || solicitanteItem?.nome || "").trim();
-          if (!solicitanteId || !solicitanteItem) {
+          if (libData.solicitanteTipo === "AVULSO") {
+            if (!solicitante || !libData.solicitanteTelefone) {
+              alert("Informe o nome e o telefone/WhatsApp de quem solicitou a liberação.");
+              return;
+            }
+          } else if (!solicitanteId || !solicitanteItem) {
             alert("Selecione quem solicitou a liberação (parceiro cadastrado).");
             return;
           }
           const obs = String(libData.observacao || "").trim();
           const operador = currentPatioOperatorLabel();
           const agora = new Date().toISOString();
-          await supabase.from("vehicle_events").insert({
-            vehicle_id: id,
-            tipo: "LIBERACAO_SOLICITADA",
-            responsavel: solicitante,
-            descricao:
-              `Solicitação de liberação registada (VSL). Solicitante: ${solicitante}. ` +
-              `Registado por ${operador}. O veículo continua no pátio e as diárias seguem a contar.` +
-              destEventNote(libData) +
-              (obs ? ` Observação: ${obs}` : ""),
-          });
+          const vslIns = await supabase
+            .from("vehicle_events")
+            .insert({
+              vehicle_id: id,
+              tipo: "LIBERACAO_SOLICITADA",
+              responsavel: solicitante,
+              descricao:
+                `Solicitação de liberação registada (VSL). Solicitante: ${solicitante}. ` +
+                `Registado por ${operador}. O veículo continua no pátio e as diárias seguem a contar.` +
+                destEventNote(libData) +
+                (obs ? ` Observação: ${obs}` : "") +
+                workflowContatoSuffix([contato]),
+            })
+            .select("id")
+            .maybeSingle();
           const upErr = await updateVehiclePatioFields(id, {
             status: "LIBERACAO_SOLICITADA",
             liberacao_solicitada_em: agora,
@@ -31159,6 +31817,7 @@ ${body}
             alert(upErr.message);
             return;
           }
+          if (!vslIns.error) await persistWorkflowContatos(id, vslIns.data?.id, [contato]);
 
           await loadVehicles();
           updateDashboard();
@@ -31297,17 +31956,23 @@ ${body}
           });
           if (!vrpData) return;
           const responsavel = String(vrpData.removeu || "").trim();
+          const remContato = vrpData.removeuContato;
           const dataSaida = new Date().toISOString();
           const previousStatus = liveVehicle.status;
-          const { error: eventError } = await runSupabaseWrite(() =>
+          const eventWrite = await runSupabaseWrite(() =>
             supabase.from("vehicle_events").insert({
               vehicle_id: id,
               tipo: "REMOVIDO",
               responsavel,
               descricao:
-                `Remoção efetivada — veículo removido do pátio. PREV_STATUS=${previousStatus}` + destEventNote(vrpData),
-            })
+                `Remoção efetivada — veículo removido do pátio. PREV_STATUS=${previousStatus}` +
+                destEventNote(vrpData) +
+                ` Registado por ${currentPatioOperatorLabel()}.` +
+                workflowContatoSuffix([remContato]),
+            }).select("id").maybeSingle()
           );
+          const eventError = eventWrite?.error;
+          const remocaoEventId = eventWrite?.data?.id || null;
           if (eventError) {
             alertSupabaseError(eventError, "Não foi possível registrar a saída (VRP).");
             return;
@@ -31348,6 +32013,7 @@ ${body}
             alert("Não foi possível atualizar o veículo. Verifique se o registro está no seu usuário.");
             return;
           }
+          await persistWorkflowContatos(id, remocaoEventId, [remContato]);
 
           let vrpSemCobranca = false;
           let financeWarning = "";
