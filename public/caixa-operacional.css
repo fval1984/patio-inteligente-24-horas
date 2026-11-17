@@ -110,6 +110,7 @@ header#cxHead {
   font-family: inherit;
 }
 
+.cx-metrics[hidden] { display: none !important; }
 .cx-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
