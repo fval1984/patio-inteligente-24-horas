@@ -5,9 +5,10 @@
 (function caixaOperacionalModule(global) {
   "use strict";
 
-  const TELAS = new Set(["aguardando", "cobrancas", "caixa", "receber", "em_patio", "dashboard"]);
+  const TELAS = new Set(["aguardando", "cobrancas", "caixa", "receber", "em_patio", "dashboard", "entradas", "saidas"]);
   let ativo = false;
-  let filtro = "movimentacoes";
+  let filtro = "entradas";
+  let prazo = "";
   let tipoMov = "";
   let q = "";
   let de = "";
@@ -197,6 +198,47 @@
       resultado: round(entradasRecebidas - saidasPagas),
       abertoTodosMeses: round(abertas.reduce((s, p) => s + Number(p.valor || 0), 0)),
       abertoPorMes: porMes,
+    };
+  }
+
+  function movimentosDeduplicados(origem) {
+    const base = origem || dados() || {};
+    const cashBruto = base.cash || [];
+    const cashDedup =
+      typeof global.financeDedupeCaixaMovs === "function" ? global.financeDedupeCaixaMovs(cashBruto) : cashBruto;
+    const vistosCaixa = new Set();
+    const cash = [];
+    for (const mov of cashDedup || []) {
+      if (!mov || mov.excluir_do_saldo === true) continue;
+      const chave = mov.conta_id
+        ? `${String(mov.tipo_conta || "").toUpperCase()}|${mov.conta_id}`
+        : String(mov.id || `avulso-${cash.length}`);
+      if (vistosCaixa.has(chave)) continue;
+      vistosCaixa.add(chave);
+      cash.push(mov);
+    }
+    return cash;
+  }
+
+  function saldoCaixa(mes, origem) {
+    const referencia = anoMes(`${mes || mesAtivo()}-01`);
+    const apura = apurarMes(mes || mesAtivo(), origem);
+    let inicial = 0;
+    for (const mov of movimentosDeduplicados(origem)) {
+      const ym = anoMes(mov.data_movimento || mov.created_at);
+      if (!ym || ym >= referencia) continue;
+      const valor = Number(mov.valor || 0);
+      if (movimentoEhSaida(mov)) inicial -= valor;
+      else if (movimentoEhEntrada(mov)) inicial += valor;
+    }
+    inicial = round(inicial);
+    return {
+      mes: referencia,
+      inicial,
+      recebido: apura.entradasRecebidas,
+      pago: apura.saidasPagas,
+      final: round(inicial + apura.entradasRecebidas - apura.saidasPagas),
+      aPagar: apura.aPagar,
     };
   }
 
@@ -568,6 +610,7 @@
     if (!finance) return;
     finance.classList.add("caixa-op-on");
     const jaExiste = document.getElementById("caixaOp");
+    if (jaExiste && !jaExiste.querySelector('[data-cx-filtro="entradas"]')) jaExiste.remove();
     if (jaExiste && !document.getElementById("cxHead")) jaExiste.remove();
     if (document.getElementById("caixaOp")) {
       const mes = document.getElementById("caixaOpMes");
@@ -586,23 +629,17 @@
         </div>
         <div class="cx-head-tools">
           <label>Mês<input id="caixaOpMes" type="month" value="${esc(mesAtivo())}" /></label>
-          <label class="cx-search">Busca<input id="caixaOpBusca" type="search" placeholder="Placa, cliente ou fatura" /></label>
+          <label class="cx-search">Busca<input id="caixaOpBusca" type="search" placeholder="Placa ou responsável" /></label>
           <button type="button" class="cx-btn" id="caixaOpNova">+ Novo lançamento</button>
         </div>
       </header>
-      <div class="cx-metrics" id="caixaOpMetrics"></div>
+      <div class="cx-metrics" id="caixaOpMetrics" hidden></div>
       <div class="cx-filters" id="caixaOpFiltros">
-        <button type="button" class="cx-chip is-on" data-cx-filtro="movimentacoes">Movimentações</button>
-        <button type="button" class="cx-chip" data-cx-filtro="a_faturar">A faturar</button>
-        <button type="button" class="cx-chip" data-cx-filtro="a_receber">A receber</button>
-        <button type="button" class="cx-chip" data-cx-filtro="recebidos">Recebidos</button>
-        <button type="button" class="cx-chip" data-cx-filtro="despesas">Despesas</button>
+        <button type="button" class="cx-chip is-on" data-cx-filtro="entradas">Entradas</button>
+        <button type="button" class="cx-chip" data-cx-filtro="saidas">Saídas</button>
+        <button type="button" class="cx-chip" data-cx-filtro="caixa">Caixa</button>
       </div>
-      <div class="cx-tools">
-        <label>De<input id="caixaOpDe" type="date" /></label>
-        <label>Até<input id="caixaOpAte" type="date" /></label>
-        <label>Tipo<select id="caixaOpTipo"><option value="">Todos</option><option value="entrada">Entradas</option><option value="saida">Saídas</option></select></label>
-      </div>
+      <div class="cx-tools" id="caixaOpTools"></div>
       <p id="caixaOpErro" class="cx-empty" hidden></p>
       <div id="caixaOpLista"></div>
       <div id="caixaOpBar" class="cx-bar"></div>`;
@@ -764,12 +801,34 @@
   }
 
   function vistaAtual() {
-    if (filtro === "entradas" || filtro === "a_receber") return "a_receber";
-    if (filtro === "saidas" || filtro === "despesas") return "despesas";
-    if (filtro === "caixa" || filtro === "movimentacoes" || filtro === "historico") return "movimentacoes";
-    if (filtro === "recebido" || filtro === "recebidos") return "recebidos";
-    if (filtro === "a_faturar") return "a_faturar";
-    return "movimentacoes";
+    if (filtro === "saidas" || filtro === "despesas") return "saidas";
+    if (filtro === "caixa" || filtro === "movimentacoes" || filtro === "historico" || filtro === "recebidos" || filtro === "recebido") return "caixa";
+    return "entradas";
+  }
+
+  function saldoAbertoEntradas() {
+    if (!svc()) return 0;
+    const busca = q;
+    const inicio = de;
+    const fim = ate;
+    const corte = prazo;
+    q = "";
+    de = "";
+    ate = "";
+    prazo = "";
+    const total = entradasPendentes().reduce((s, item) => s + Number(item.saldo || 0), 0);
+    q = busca;
+    de = inicio;
+    ate = fim;
+    prazo = corte;
+    return round(total);
+  }
+
+  function classePrazo(item) {
+    const venc = ymd(item.venc);
+    if (!venc) return "";
+    if (venc < today()) return "atrasado";
+    return "vencer";
   }
 
   function saldoAReceberAcumulado() {
@@ -793,20 +852,37 @@
     document.querySelectorAll("[data-cx-filtro]").forEach((btn) => {
       btn.classList.toggle("is-on", btn.getAttribute("data-cx-filtro") === vista);
     });
+    const busca = document.getElementById("caixaOpBusca");
+    if (busca) {
+      busca.placeholder = vista === "saidas" ? "Descrição ou categoria" : vista === "caixa" ? "Descrição" : "Placa ou responsável";
+    }
+    const tools = document.getElementById("caixaOpTools");
+    if (tools) {
+      tools.innerHTML = vista === "entradas"
+        ? `<button type="button" class="cx-chip ${prazo === "" ? "is-on" : ""}" data-cx-prazo="">Todos</button>
+           <button type="button" class="cx-chip ${prazo === "vencer" ? "is-on" : ""}" data-cx-prazo="vencer">A vencer</button>
+           <button type="button" class="cx-chip ${prazo === "atrasado" ? "is-on" : ""}" data-cx-prazo="atrasado">Atrasados</button>`
+        : "";
+    }
   }
 
   function pintarTotais() {
     const box = document.getElementById("caixaOpMetrics");
     if (!box) return;
-    const apura = apurarMes(mesAtivo());
-    const receber = saldoAReceberAcumulado();
+    if (vistaAtual() !== "caixa") {
+      box.hidden = true;
+      box.innerHTML = "";
+      return;
+    }
+    const s = saldoCaixa(mesAtivo());
     const card = (classe, nome, valor, nota) =>
       `<div class="cx-metric ${classe}"><span>${nome}</span><strong>${esc(money(valor))}</strong><small>${esc(nota)}</small></div>`;
+    box.hidden = false;
     box.innerHTML =
-      card("cx-in", "Entradas recebidas", apura.entradasRecebidas, nomeMes(apura.mes)) +
-      card("cx-out", "Saídas pagas", apura.saidasPagas, nomeMes(apura.mes)) +
-      card("cx-wait", "Total a receber", receber, "Saldo acumulado") +
-      card("cx-result", "Resultado", apura.resultado, "Recebido menos pago");
+      card("cx-wait", "Saldo inicial", s.inicial, "Transportado") +
+      card("cx-in", "Total recebido", s.recebido, nomeMes(s.mes)) +
+      card("cx-out", "Total pago", s.pago, nomeMes(s.mes)) +
+      card("cx-result", "Saldo final", s.final, "Inicial + recebido − pago");
   }
 
   function linhaHtml(line, grupoNome, situacao) {
@@ -932,10 +1008,89 @@
     return `<div class="cx-table-wrap"><table class="cx-table"><thead><tr>${head}</tr></thead><tbody>${linhas.join("")}</tbody></table></div>`;
   }
 
+  function situacaoEntrada(item) {
+    if (item.situacao === "Parcial") return "Parcial";
+    if (item.situacao === "Faturado") return "Faturado";
+    return "Em aberto";
+  }
+
+  function contaMovimento(mov) {
+    return mov?.conta_nome || mov?.conta_financeira || mov?.banco || mov?.conta || "Caixa";
+  }
+
   function pintarVista() {
     const box = document.getElementById("caixaOpLista");
     const vista = vistaAtual();
     const mes = nomeMes(mesAtivo());
+    if (vista === "entradas") {
+      let itens = entradasPendentes();
+      if (prazo) itens = itens.filter((item) => classePrazo(item) === prazo);
+      const pagina = itens.slice(0, limiteLista);
+      const rows = pagina.map((item) => {
+        const check = item.tipo === "fatura"
+          ? `<input class="cx-check" type="checkbox" data-cx-fat="${esc(item.id)}" ${selected.has(`fat:${item.id}`) ? "checked" : ""} aria-label="Selecionar" />`
+          : `<input class="cx-check" type="checkbox" data-cx-check="${esc(item.id)}" ${selected.has(item.id) ? "checked" : ""} aria-label="Selecionar" />`;
+        const partes = String(item.titulo || "").split("•");
+        const placa = item.tipo === "fatura" ? item.titulo : (partes[0] || item.titulo || "—").trim();
+        const veiculo = item.tipo === "fatura" ? "Fatura" : (partes.slice(1).join("•") || "—").trim();
+        return `<tr data-cx-open="${esc(item.tipo)}" data-cx-id="${esc(item.id)}">
+          ${celula("", check, "cx-check-cell")}
+          ${celula("Placa", esc(placa || "—"))}
+          ${celula("Veículo", esc(veiculo || "—"))}
+          ${celula("Responsável", esc(item.cliente || "—"))}
+          ${celula("Saída", esc(dataCurta(item.data)))}
+          ${celula("Vencimento", esc(dataCurta(item.venc)))}
+          ${celula("Valor", esc(money(item.valor)), "num")}
+          ${celula("Saldo", esc(money(item.saldo)), "num")}
+          ${celula("Situação", statusTag(situacaoEntrada(item), classePrazo(item) === "atrasado" ? "saida" : "receber"))}
+          ${celula("", `<button type="button" class="cx-btn" data-cx-receber="${esc(item.id)}" data-cx-tipo="${esc(item.tipo)}">Marcar recebido</button>`)}
+        </tr>`;
+      });
+      box.innerHTML = `<p class="cx-note">Cobranças com saldo. Recebido no ato aparece no Caixa; faturado continua aqui até a quitação.</p>${tabela(["", "Placa", "Veículo", "Responsável", "Saída", "Vencimento", "Valor", "Saldo", "Situação", ""], rows, "Nenhuma cobrança com saldo.")}${maisBotao(itens.length, pagina.length)}`;
+      return true;
+    }
+    if (vista === "saidas") {
+      const todas = saidasDoMes();
+      const apura = apurarMes(mesAtivo());
+      const pagina = todas.slice(0, limiteLista);
+      const rows = pagina.map((p) => {
+        const paga = despesaPaga(p);
+        return `<tr data-cx-open="despesa" data-cx-id="${esc(p.id)}">
+          ${celula("Descrição", esc(textoDespesa(p)))}
+          ${celula("Categoria", esc(p.categoria || p.payable_category || "Outras"))}
+          ${celula("Competência", esc(nomeMes(competenciaDespesa(p))))}
+          ${celula("Vencimento", esc(dataCurta(p.data_vencimento)))}
+          ${celula("Valor", esc(money(p.valor)), "num")}
+          ${celula("Situação", paga ? statusTag("Pago", "pago") : statusTag(ymd(p.data_vencimento) && ymd(p.data_vencimento) < today() ? "Vencida" : "A pagar", "saida"))}
+          ${celula("", paga ? "" : `<button type="button" class="cx-btn" data-cx-pagar="${esc(p.id)}">Marcar pago</button>`)}
+        </tr>`;
+      });
+      const anteriores = Object.entries(apura.abertoPorMes || {}).filter(([k, v]) => k && k < apura.mes && Number(v) > 0);
+      const aviso = anteriores.length ? ` Há despesas vencidas em meses anteriores; elas continuam pendentes no mês de cada uma.` : "";
+      box.innerHTML = `<p class="cx-note">${esc(mes)} · a pagar ${esc(money(apura.aPagar))}. Só entra no Caixa quando o pagamento é confirmado.${esc(aviso)}</p>${tabela(["Descrição", "Categoria", "Competência", "Vencimento", "Valor", "Situação", ""], rows, `Nenhuma despesa de ${esc(mes)}.`)}${maisBotao(todas.length, pagina.length)}`;
+      return true;
+    }
+    if (vista === "caixa") {
+      const s = saldoCaixa(mesAtivo());
+      const movs = (apurarMes(mesAtivo()).movs || []).filter((mov) => {
+        const blob = `${descricaoMovimento(mov)} ${mov.descricao || ""} ${mov.forma_pagamento || ""} ${contaMovimento(mov)}`.toLowerCase();
+        return !q || blob.includes(q.toLowerCase());
+      });
+      const pagina = movs.slice(0, limiteLista);
+      const rows = pagina.map((mov) => {
+        const entrada = movimentoEhEntrada(mov);
+        return `<tr data-cx-open="caixa" data-cx-id="${esc(mov.id)}">
+          ${celula("Data", esc(dataCurta(mov.data_movimento || mov.created_at)))}
+          ${celula("Descrição", esc(descricaoMovimento(mov)))}
+          ${celula("Origem / destino", esc(entrada ? "Recebimento" : "Pagamento"))}
+          ${celula("Conta", esc(contaMovimento(mov)))}
+          ${celula("Forma", esc(mov.forma_pagamento || "—"))}
+          ${celula("Valor", esc(money(entrada ? mov.valor : -Number(mov.valor || 0))), "num")}
+        </tr>`;
+      });
+      box.innerHTML = `<p class="cx-note">${esc(mes)} · saldo final ${esc(money(s.final))}. Pendências de Entradas e Saídas não entram neste saldo.</p>${tabela(["Data", "Descrição", "Origem / destino", "Conta", "Forma", "Valor"], rows, `Nenhuma movimentação em ${esc(mes)}.`)}${maisBotao(movs.length, pagina.length)}`;
+      return true;
+    }
     if (vista === "movimentacoes") {
       const apura = apurarMes(mesAtivo());
       const movs = apura.movs.filter((mov) => {
@@ -1219,7 +1374,7 @@
     const veiculos = selecionadosVeiculos();
     const faturas = selecionadasFaturas();
     const n = veiculos.length || faturas.length;
-    if (!n || vistaAtual() === "recebidos" || vistaAtual() === "movimentacoes" || vistaAtual() === "despesas") {
+    if (!n || vistaAtual() !== "entradas") {
       bar.innerHTML = "";
       return;
     }
@@ -1265,6 +1420,21 @@
       if (collapsed.has(key)) collapsed.delete(key);
       else collapsed.add(key);
       pintarLista();
+      return;
+    }
+    const prazoBtn = e.target.closest("[data-cx-prazo]");
+    if (prazoBtn) {
+      prazo = prazoBtn.getAttribute("data-cx-prazo") || "";
+      limiteLista = 200;
+      pintar();
+      return;
+    }
+    const receberBtn = e.target.closest("[data-cx-receber]");
+    if (receberBtn) {
+      const id = receberBtn.getAttribute("data-cx-receber");
+      const tipo = receberBtn.getAttribute("data-cx-tipo");
+      if (tipo === "fatura") mostrarFatura(id);
+      else mostrarVeiculo(id);
       return;
     }
     const filtroBtn = e.target.closest("[data-cx-filtro]");
@@ -1978,6 +2148,7 @@
       return false;
     }
     ativo = true;
+    if (view === "entradas" || view === "saidas" || view === "caixa") filtro = view;
     ensure();
     document.querySelectorAll("#viewFinanceiro .finance-subview").forEach((el) => {
       el.classList.add("hidden");
@@ -2032,6 +2203,17 @@
     },
     alocarPagamento,
     apurarMes,
+    saldoCaixa,
+    resumoPainel(mes) {
+      const caixa = saldoCaixa(mes || mesAtivo());
+      return {
+        recebido: caixa.recebido,
+        pago: caixa.pago,
+        aReceber: saldoAbertoEntradas(),
+        aPagar: caixa.aPagar,
+        mes: caixa.mes,
+      };
+    },
     descricaoMovimento,
     gruposAFaturar,
   };
