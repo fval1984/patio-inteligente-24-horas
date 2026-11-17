@@ -7604,11 +7604,11 @@
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20261116vis1" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261113mobile2" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20261112plate12" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261116vis1" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261117nav2" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha9" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20261116vis1" />
-    <link rel="stylesheet" href="/caixa-operacional.css?v=20261116vis1" />
+    <link rel="stylesheet" href="/caixa-operacional.css?v=20261117nav4" />
   </head>
   <body class="auth-screen-active">
     <noscript>
@@ -7679,6 +7679,11 @@
       </header>
       <div id="appSubheader" class="app-subheader hidden">
         <div class="app-subheader-row">
+          <button type="button" id="agSidebarToggle" class="ag-sidebar-toggle hidden" aria-expanded="true" aria-controls="dashboardSystemEntry" title="Recolher menu">
+            <span class="ag-nav-mark" aria-hidden="true"></span>
+            <span class="sr-only">Menu</span>
+          </button>
+          <div id="agNavBackdrop" class="ag-nav-backdrop" hidden></div>
           <nav class="dashboard-system-entry header-module-nav" id="dashboardSystemEntry" aria-label="Módulos do sistema">
             <button type="button" class="dashboard-system-btn" id="dashboardOpenHome">
               <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
@@ -7725,10 +7730,6 @@
               <span class="dashboard-system-btn__title">Configurações</span>
               <span class="dashboard-system-btn__desc">Ajuste dados, usuários e parâmetros operacionais.</span>
               <span class="dashboard-system-btn__go">Abrir configurações →</span>
-            </button>
-            <button type="button" id="agSidebarToggle" class="ag-sidebar-toggle hidden" aria-expanded="true" aria-controls="dashboardSystemEntry" title="Recolher menu">
-              <span class="ag-hamburger" aria-hidden="true"></span>
-              <span class="sr-only">Menu</span>
             </button>
           </nav>
         </div>
@@ -11728,15 +11729,25 @@
       (function bindAmpliguardSidebarToggle() {
         const KEY = "ampliguard_nav_collapsed";
         const btn = document.getElementById("agSidebarToggle");
+        const backdrop = document.getElementById("agNavBackdrop");
+        const nav = document.getElementById("dashboardSystemEntry");
+        const mobile = () => window.matchMedia("(max-width: 900px)").matches;
         const apply = (collapsed) => {
           document.body.classList.toggle("ag-nav-collapsed", collapsed);
           document.documentElement.classList.toggle("ag-nav-collapsed", collapsed);
           btn?.setAttribute("aria-expanded", collapsed ? "false" : "true");
+          if (backdrop) backdrop.hidden = collapsed || !mobile();
           if (btn) {
             btn.title = collapsed ? "Expandir menu" : "Recolher menu";
             const sr = btn.querySelector(".sr-only");
             if (sr) sr.textContent = collapsed ? "Expandir menu" : "Recolher menu";
           }
+        };
+        const setCollapsed = (collapsed) => {
+          try {
+            localStorage.setItem(KEY, collapsed ? "1" : "0");
+          } catch (e) {}
+          apply(collapsed);
         };
         const stored = (() => {
           try {
@@ -11755,12 +11766,14 @@
         btn?.addEventListener("click", (event) => {
           event.preventDefault();
           event.stopPropagation();
-          const next = !document.body.classList.contains("ag-nav-collapsed");
-          try {
-            localStorage.setItem(KEY, next ? "1" : "0");
-          } catch (e) {}
-          apply(next);
+          setCollapsed(!document.body.classList.contains("ag-nav-collapsed"));
         });
+        backdrop?.addEventListener("click", () => setCollapsed(true));
+        nav?.addEventListener("click", (event) => {
+          if (!mobile() || !event.target.closest(".dashboard-system-btn")) return;
+          setCollapsed(true);
+        });
+        window.addEventListener("resize", () => apply(document.body.classList.contains("ag-nav-collapsed")));
       })();
 
       let appInitPromise = null;
