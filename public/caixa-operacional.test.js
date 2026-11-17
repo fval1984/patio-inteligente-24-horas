@@ -45,6 +45,19 @@ const outubro = apurar("2026-10", {
 });
 assert.equal(outubro.aPagar, 0);
 assert.equal(outubro.saidasPagas, 0);
+const saldo = sandbox.caixaOperacional.saldoCaixa("2026-11", {
+  payables: [],
+  cash: [
+    { id: "c1", tipo_conta: "SAIDA", valor: 3000, data_movimento: "2026-11-03", conta_id: "ant" },
+    { id: "c1b", tipo_conta: "SAIDA", valor: 3000, data_movimento: "2026-11-03", conta_id: "ant" },
+    { id: "c2", tipo_conta: "ENTRADA", valor: 800, data_movimento: "2026-11-15" },
+    { id: "c3", tipo_conta: "SAIDA", valor: 9000, data_movimento: "2026-10-03" },
+  ],
+});
+assert.equal(saldo.inicial, -9000);
+assert.equal(saldo.recebido, 800);
+assert.equal(saldo.pago, 3000);
+assert.equal(saldo.final, -11200);
 
 const alocar = sandbox.caixaOperacional.alocarPagamento;
 const plano = alocar(
@@ -185,13 +198,12 @@ assert.equal(sandbox.caixaOperacional.captura("pagar"), false);
 setTimeout(() => {
   const metrics = byId.caixaOpMetrics;
   assert.ok(metrics, "indicadores criados");
-  assert.match(metrics.innerHTML, /Entradas recebidas/);
-  assert.match(metrics.innerHTML, /Saídas pagas/);
-  assert.match(metrics.innerHTML, /Total a receber/);
-  assert.match(metrics.innerHTML, /Resultado/);
+  assert.equal(metrics.hidden, true);
   const raiz = sandbox.document.getElementById("caixaOp");
   assert.match(raiz.innerHTML, /Financeiro/);
   assert.match(raiz.innerHTML, /Novo lançamento/);
-  assert.match(raiz.innerHTML, /Movimentações/);
+  assert.match(raiz.innerHTML, /Entradas/);
+  assert.match(raiz.innerHTML, /Saídas/);
+  assert.match(raiz.innerHTML, />Caixa</);
   console.log("caixa-operacional.test.js ok");
 }, 30);
