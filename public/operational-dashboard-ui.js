@@ -341,6 +341,7 @@
             <strong>${esc(String(pendencias), ctx)}</strong>
           </button>
         </section>
+        ${financeCards(ctx)}
         <section class="cmd-ops-block">
           <h3>Precisa da minha atenção</h3>
           ${attnHtml}
@@ -354,6 +355,25 @@
         </section>
       </div>
     `;
+  }
+
+  function financeCards(ctx) {
+    let resumo = null;
+    try {
+      if (typeof global.caixaOperacional?.resumoPainel === "function") resumo = global.caixaOperacional.resumoPainel();
+    } catch (err) {
+      resumo = null;
+    }
+    const valor = (n) => (resumo && typeof global.formatCurrency === "function" ? global.formatCurrency(n) : resumo ? Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—");
+    const mes = resumo?.mes ? String(resumo.mes) : "mês atual";
+    const card = (nav, nome, numero, nota) =>
+      `<button type="button" class="cmd-ops-kpi cmd-ops-kpi--money" data-hub-nav="${nav}"><span>${nome}</span><strong>${esc(valor(numero), ctx)}</strong><small>${esc(nota, ctx)}</small></button>`;
+    return `<section class="cmd-ops-kpis" aria-label="Indicadores financeiros">
+      ${card("financeiro:caixa", "Recebido no mês", resumo?.recebido, mes)}
+      ${card("financeiro:caixa", "Pago no mês", resumo?.pago, mes)}
+      ${card("financeiro:entradas", "A receber", resumo?.aReceber, "Saldo pendente acumulado")}
+      ${card("financeiro:saidas", "A pagar no mês", resumo?.aPagar, mes)}
+    </section>`;
   }
 
   function invalidateAndRefresh() {
