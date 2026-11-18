@@ -11,6 +11,7 @@ const nextConfig = {
   async rewrites() {
     return [
       { source: "/apresentacao", destination: "/apresentacao.html" },
+      { source: "/apresentacao-patio", destination: "/apresentacao-patio.html" },
       { source: "/", destination: "/app.html" },
       { source: "/app", destination: "/app.html" },
       { source: "/amplipatio", destination: "/app.html" },
@@ -36,6 +37,8 @@ const nextConfig = {
       { source: "/patio", headers: [...htmlUtf8, ...noStore] },
       { source: "/apresentacao", headers: [...htmlUtf8, ...noStore] },
       { source: "/apresentacao.html", headers: [...htmlUtf8, ...noStore] },
+      { source: "/apresentacao-patio", headers: [...htmlUtf8, ...noStore] },
+      { source: "/apresentacao-patio.html", headers: [...htmlUtf8, ...noStore] },
       { source: "/v/:path*", headers: noStore },
       { source: "/api/vehicles/public-history", headers: noStore },
     ];
