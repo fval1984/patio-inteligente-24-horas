@@ -9324,16 +9324,28 @@
 
           <div id="configPanelApresentacao" data-config-panel="apresentacao" class="hidden">
             <div class="section-card">
-              <h3 style="margin: 0 0 8px; font-size: 1.1rem">Propaganda Institucional</h3>
+              <h3 style="margin: 0 0 8px; font-size: 1.1rem">Propaganda Completa — Com Venda Direta</h3>
               <p class="notice" style="margin: 0 0 14px">
-                O QR Code abre a propaganda pública já publicada, sem login.
+                Seis imagens, com a página de compra direta. O endereço público continua o mesmo.
               </p>
               <div class="form-actions" style="flex-wrap: wrap">
-                <button type="button" id="propagandaVisualizar">Visualizar Propaganda</button>
-                <button type="button" id="propagandaBaixarQr">Gerar e Baixar QR Code</button>
-                <button type="button" class="secondary" id="propagandaCopiarLink">Copiar Link</button>
+                <button type="button" id="propagandaCompletaVer">Visualizar apresentação</button>
+                <button type="button" id="propagandaCompletaQr">Gerar e baixar QR Code</button>
+                <button type="button" class="secondary" id="propagandaCompletaLink">Copiar link público</button>
               </div>
-              <p class="notice" id="apresentacaoAdminStatus" style="margin: 12px 0 0"></p>
+              <p class="notice" id="propagandaCompletaStatus" style="margin: 12px 0 0"></p>
+            </div>
+            <div class="section-card" style="margin-top: 18px">
+              <h3 style="margin: 0 0 8px; font-size: 1.1rem">Propaganda Institucional — Sem Venda Direta</h3>
+              <p class="notice" style="margin: 0 0 14px">
+                Cinco imagens. A página de compra direta não entra nesta versão.
+              </p>
+              <div class="form-actions" style="flex-wrap: wrap">
+                <button type="button" id="propagandaPatioVer">Visualizar apresentação</button>
+                <button type="button" id="propagandaPatioQr">Gerar e baixar QR Code</button>
+                <button type="button" class="secondary" id="propagandaPatioLink">Copiar link público</button>
+              </div>
+              <p class="notice" id="propagandaPatioStatus" style="margin: 12px 0 0"></p>
             </div>
           </div>
         </div>
@@ -10957,7 +10969,7 @@
     <script src="/vehicle-entry-inspection.js?v=20261105fotos1"></script>
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
     <script src="/vehicle-qr.js?v=20261112qr12"></script>
-    <script src="/apresentacao-admin.js?v=20261118ap3"></script>
+    <script src="/apresentacao-admin.js?v=20261118ap4"></script>
     <script src="/vehicle-ficha-tipo2-pix.js?v=20261109pix1"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
