@@ -1,20 +1,40 @@
 /**
- * QR Code permanente da propaganda institucional já publicada em /apresentacao.
- * O arquivo aponta para o domínio público do sistema, nunca para localhost.
+ * QR Codes permanentes das duas propagandas públicas.
+ * O endereço usa o domínio publicado, nunca localhost.
  */
 (function (global) {
   const QR_SRC = "/vendor/qrcode.min.js?v=20261005recibo1";
   const PUBLISHED_ORIGIN = "https://amplipatio-web.vercel.app";
-  const PNG_NAME = "QRCode_Propaganda_AMPLIGUARD.png";
   const PNG_SIZE = 1000;
+  const VERSIONS = {
+    completa: {
+      path: "/apresentacao",
+      file: "QRCode_AMPLIGUARD_Com_Venda_Direta.png",
+      statusId: "propagandaCompletaStatus",
+      viewId: "propagandaCompletaVer",
+      downloadId: "propagandaCompletaQr",
+      copyId: "propagandaCompletaLink",
+    },
+    patio: {
+      path: "/apresentacao-patio",
+      file: "QRCode_AMPLIGUARD_Sem_Venda_Direta.png",
+      statusId: "propagandaPatioStatus",
+      viewId: "propagandaPatioVer",
+      downloadId: "propagandaPatioQr",
+      copyId: "propagandaPatioLink",
+    },
+  };
   let listenersReady = false;
   let busy = false;
 
-  function publicUrl() {
+  function publicOrigin() {
     const host = String(global.location.hostname || "");
     const local = host === "localhost" || host === "127.0.0.1" || host === "::1" || host.endsWith(".local");
-    const origin = local ? PUBLISHED_ORIGIN : global.location.origin;
-    const url = new URL("/apresentacao", origin).href;
+    return local ? PUBLISHED_ORIGIN : global.location.origin;
+  }
+
+  function publicUrl(path) {
+    const url = new URL(path, publicOrigin()).href;
     if (/localhost|127\.0\.0\.1|\[::1\]/i.test(url)) {
       throw new Error("O QR Code não pode usar endereço local.");
     }
@@ -86,17 +106,17 @@
     return canvas;
   }
 
-  function setStatus(message) {
-    const el = document.getElementById("apresentacaoAdminStatus");
+  function setStatus(version, message) {
+    const el = document.getElementById(version.statusId);
     if (el) el.textContent = message || "";
   }
 
-  function saveCanvas(canvas) {
+  function saveCanvas(canvas, filename) {
     canvas.toBlob((blob) => {
       const href = blob ? URL.createObjectURL(blob) : canvas.toDataURL("image/png");
       const a = document.createElement("a");
       a.href = href;
-      a.download = PNG_NAME;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -104,21 +124,21 @@
     }, "image/png");
   }
 
-  async function downloadPng() {
+  async function downloadPng(version) {
     if (busy) return;
     busy = true;
-    setStatus("Gerando QR Code…");
+    setStatus(version, "Gerando QR Code…");
     try {
-      const url = publicUrl();
+      const url = publicUrl(version.path);
       const code = await buildQrModel(url);
       const canvas = composePng(code);
       if (canvas.width !== PNG_SIZE || canvas.height !== PNG_SIZE) {
         throw new Error("Não foi possível montar o PNG do QR Code.");
       }
-      saveCanvas(canvas);
-      setStatus("QR Code baixado: " + PNG_NAME);
+      saveCanvas(canvas, version.file);
+      setStatus(version, "QR Code baixado: " + version.file);
     } catch (err) {
-      setStatus(err && err.message ? err.message : "Não foi possível gerar o QR Code.");
+      setStatus(version, err && err.message ? err.message : "Não foi possível gerar o QR Code.");
     } finally {
       busy = false;
     }
@@ -137,8 +157,8 @@
     return ok;
   }
 
-  async function copyLink() {
-    const url = publicUrl();
+  async function copyLink(version) {
+    const url = publicUrl(version.path);
     let copied = false;
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -155,22 +175,25 @@
         copied = false;
       }
     }
-    setStatus(copied ? "Link copiado." : url);
+    setStatus(version, copied ? "Link copiado." : url);
   }
 
-  function visualizar() {
-    global.open(new URL("/apresentacao", global.location.origin).href, "_blank", "noopener");
+  function visualizar(version) {
+    global.open(new URL(version.path, global.location.origin).href, "_blank", "noopener");
   }
 
   function bind() {
     if (listenersReady) return;
     listenersReady = true;
-    document.getElementById("propagandaVisualizar")?.addEventListener("click", visualizar);
-    document.getElementById("propagandaBaixarQr")?.addEventListener("click", () => {
-      void downloadPng();
-    });
-    document.getElementById("propagandaCopiarLink")?.addEventListener("click", () => {
-      void copyLink();
+    Object.keys(VERSIONS).forEach((key) => {
+      const version = VERSIONS[key];
+      document.getElementById(version.viewId)?.addEventListener("click", () => visualizar(version));
+      document.getElementById(version.downloadId)?.addEventListener("click", () => {
+        void downloadPng(version);
+      });
+      document.getElementById(version.copyId)?.addEventListener("click", () => {
+        void copyLink(version);
+      });
     });
   }
 
@@ -179,9 +202,15 @@
   }
 
   global.apresentacaoInstitucional = {
-    publicUrl,
+    publicUrl: function (path) {
+      return publicUrl(path || "/apresentacao");
+    },
     mount,
-    downloadPng,
-    copyLink,
+    downloadPng: function () {
+      return downloadPng(VERSIONS.completa);
+    },
+    copyLink: function () {
+      return copyLink(VERSIONS.completa);
+    },
   };
 })(typeof window !== "undefined" ? window : globalThis);
