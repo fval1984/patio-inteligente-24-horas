@@ -70,7 +70,33 @@
       font-size: 12px;
       pointer-events: none;
       text-align: center;
-      max-width: calc(100vw - 24px);
+      max-width: calc(100vw - 148px);
+    }
+    #soundDock {
+      position: fixed;
+      top: calc(10px + env(safe-area-inset-top));
+      right: calc(10px + env(safe-area-inset-right));
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #08271edb;
+      border-radius: 22px;
+      padding: 4px 8px 4px 4px;
+    }
+    #soundBtn {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 50%;
+      font-size: 16px;
+      line-height: 1;
+    }
+    #soundLevel {
+      width: 76px;
+      height: 18px;
+      margin: 0;
+      accent-color: #ffffff;
     }
     button:focus-visible, #slide:focus-visible {
       outline: 3px solid #fff;
@@ -79,6 +105,10 @@
 </head>
 <body>
   <div id="hint">Toque na imagem para avançar • Música ao primeiro toque</div>
+  <div id="soundDock">
+    <button id="soundBtn" type="button" aria-pressed="false" aria-label="Silenciar música">🔊</button>
+    <input id="soundLevel" type="range" min="0" max="100" value="100" aria-label="Volume da música" />
+  </div>
   <main>
     <img id="slide" alt="Página 1 da apresentação AMPLIGUARD" tabindex="0" src="/apresentacao/slides/01.jpg" />
   </main>
@@ -97,7 +127,9 @@
       "/apresentacao/slides/05.png",
       "/apresentacao/slides/06.png"
     ];
-    let idx = 0, ctx = null, muted = false, playing = false, notesTimer = null;
+    let idx = 0, ctx = null, bus = null, master = null, muted = false, playing = false, notesTimer = null;
+    let volume = 1;
+    const NOTE_PEAK = 0.5;
     const img = document.getElementById("slide");
     function render() {
       img.src = slides[idx];
@@ -105,18 +137,48 @@
       document.getElementById("count").textContent = (idx + 1) + " / " + slides.length;
       document.getElementById("next").textContent = idx === slides.length - 1 ? "Recomeçar ↻" : "Avançar ›";
     }
-    function startMusic() {
-      if (muted) return;
-      if (!ctx) {
-        ctx = new (window.AudioContext || window.webkitAudioContext)();
+    function ensureBus() {
+      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (bus) return;
+      const curve = new Float32Array(2048);
+      for (let i = 0; i < curve.length; i++) {
+        const x = (i / (curve.length - 1)) * 2 - 1;
+        curve[i] = Math.tanh(x * 1.25);
       }
+      const shaper = ctx.createWaveShaper();
+      shaper.curve = curve;
+      shaper.oversample = "2x";
+      master = ctx.createGain();
+      master.gain.value = muted ? 0 : volume;
+      shaper.connect(master);
+      master.connect(ctx.destination);
+      bus = shaper;
+    }
+    function applyVolume() {
+      if (!master || !ctx) return;
+      const level = muted || volume <= 0 ? 0 : volume;
+      master.gain.cancelScheduledValues(ctx.currentTime);
+      master.gain.setTargetAtTime(level, ctx.currentTime, 0.03);
+    }
+    function syncSoundUi() {
+      const silent = muted || volume <= 0;
+      document.getElementById("music").textContent = silent ? "♫ Música: desligada" : "♫ Música: ligada";
+      const soundBtn = document.getElementById("soundBtn");
+      soundBtn.textContent = silent ? "🔇" : "🔊";
+      soundBtn.setAttribute("aria-pressed", silent ? "true" : "false");
+      soundBtn.setAttribute("aria-label", silent ? "Ativar música" : "Silenciar música");
+    }
+    function startMusic() {
+      if (muted || volume <= 0) return;
+      ensureBus();
       ctx.resume();
+      applyVolume();
       if (playing) return;
       playing = true;
       let n = 0;
       const chords = [[196, 246.94, 293.66], [174.61, 220, 261.63], [164.81, 196, 246.94], [174.61, 220, 293.66]];
       function play() {
-        if (!ctx || muted || ctx.state === "closed") return;
+        if (!ctx || ctx.state === "closed") return;
         let t = ctx.currentTime + 0.02;
         let c = chords[n++ % chords.length];
         c.forEach((f) => {
@@ -124,17 +186,32 @@
           o.type = "sine";
           o.frequency.value = f;
           g.gain.setValueAtTime(0, t);
-          g.gain.linearRampToValueAtTime(0.018, t + 0.35);
-          g.gain.setValueAtTime(0.018, t + 1.4);
+          g.gain.linearRampToValueAtTime(NOTE_PEAK, t + 0.35);
+          g.gain.setValueAtTime(NOTE_PEAK, t + 1.4);
           g.gain.exponentialRampToValueAtTime(0.0001, t + 2.9);
           o.connect(g);
-          g.connect(ctx.destination);
+          g.connect(bus);
           o.start(t);
           o.stop(t + 3);
         });
       }
       play();
       notesTimer = setInterval(play, 2600);
+    }
+    function toggleMute() {
+      muted = !muted;
+      syncSoundUi();
+      if (!muted && volume <= 0) {
+        volume = 1;
+        document.getElementById("soundLevel").value = "100";
+      }
+      if (!ctx) {
+        if (!muted) startMusic();
+        return;
+      }
+      ctx.resume();
+      applyVolume();
+      if (!muted) startMusic();
     }
     function go(d) {
       startMusic();
@@ -150,15 +227,20 @@
     });
     document.getElementById("next").onclick = () => go(1);
     document.getElementById("prev").onclick = () => go(-1);
-    document.getElementById("music").onclick = () => {
-      muted = !muted;
-      document.getElementById("music").textContent = muted ? "♫ Música: desligada" : "♫ Música: ligada";
-      if (muted) {
-        clearInterval(notesTimer);
-        playing = false;
-        if (ctx) ctx.suspend();
-      } else startMusic();
-    };
+    document.getElementById("music").onclick = () => toggleMute();
+    document.getElementById("soundBtn").onclick = () => toggleMute();
+    document.getElementById("soundLevel").addEventListener("input", (event) => {
+      volume = Math.max(0, Math.min(1, Number(event.target.value) / 100));
+      muted = volume <= 0;
+      syncSoundUi();
+      if (!ctx) {
+        if (!muted) startMusic();
+        return;
+      }
+      ctx.resume();
+      applyVolume();
+      if (!muted) startMusic();
+    });
     document.addEventListener("keydown", (e) => {
       if (e.key === "ArrowRight") go(1);
       if (e.key === "ArrowLeft") go(-1);
