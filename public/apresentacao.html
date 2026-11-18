@@ -129,18 +129,15 @@
     ];
     let idx = 0, muted = false, started = false;
     let volume = 1;
-    const TRACKS = ["/apresentacao/trilha.mp3", "/apresentacao/trilha.m4a", "/apresentacao/trilha.ogg", "/apresentacao/trilha.wav"];
-    let trackIndex = 0;
-    const audio = new Audio();
+    const audio = document.createElement("audio");
     audio.loop = true;
     audio.preload = "auto";
     audio.volume = 1;
     audio.setAttribute("playsinline", "");
-    audio.src = TRACKS[0];
-    audio.addEventListener("error", () => {
-      trackIndex += 1;
-      if (trackIndex < TRACKS.length) audio.src = TRACKS[trackIndex];
-    });
+    audio.setAttribute("webkit-playsinline", "");
+    audio.src = "/apresentacao/alanajordan-bossa-nova-instrumental-01-359887.mp3";
+    audio.hidden = true;
+    document.body.appendChild(audio);
     const img = document.getElementById("slide");
     function render() {
       img.src = slides[idx];
