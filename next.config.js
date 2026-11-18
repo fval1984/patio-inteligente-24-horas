@@ -10,6 +10,7 @@ const nextConfig = {
   // Rewrites no Next (não só em vercel.json) para a Vercel tratar o projeto como Next.js e servir /api/*.
   async rewrites() {
     return [
+      { source: "/apresentacao", destination: "/apresentacao.html" },
       { source: "/", destination: "/app.html" },
       { source: "/app", destination: "/app.html" },
       { source: "/amplipatio", destination: "/app.html" },
@@ -33,6 +34,8 @@ const nextConfig = {
       { source: "/app", headers: [...htmlUtf8, ...noStore] },
       { source: "/amplipatio", headers: [...htmlUtf8, ...noStore] },
       { source: "/patio", headers: [...htmlUtf8, ...noStore] },
+      { source: "/apresentacao", headers: [...htmlUtf8, ...noStore] },
+      { source: "/apresentacao.html", headers: [...htmlUtf8, ...noStore] },
       { source: "/v/:path*", headers: noStore },
       { source: "/api/vehicles/public-history", headers: noStore },
     ];
