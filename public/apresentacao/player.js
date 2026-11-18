@@ -1,6 +1,7 @@
 /**
  * Apresentação pública AMPLIGUARD.
- * A música começa no primeiro toque, segue entre as imagens e fica em 80%.
+ * A música tenta começar ao abrir, segue entre as imagens e fica em 80%.
+ * Se o navegador bloquear o som automático, ela entra na primeira interação.
  */
 (function () {
   const slides = Array.isArray(window.APRESENTACAO_SLIDES) ? window.APRESENTACAO_SLIDES : [];
@@ -12,6 +13,7 @@
 
   const audio = document.createElement("audio");
   audio.loop = true;
+  audio.autoplay = true;
   audio.preload = "auto";
   audio.volume = VOLUME;
   audio.setAttribute("playsinline", "");
@@ -67,6 +69,9 @@
       started = true;
     }
   }
+
+  audio.addEventListener("canplay", startMusic);
+  startMusic();
 
   function go(delta) {
     startMusic();
