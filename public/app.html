@@ -4078,14 +4078,14 @@
         padding: 24px 16px;
       }
       #liberacaoModal .workflow-step-modal {
-        width: min(460px, 94vw);
-        padding: 22px 22px 20px;
-        border-radius: 20px;
+        width: min(840px, 96vw);
+        padding: 24px;
+        border-radius: 18px;
         display: flex;
         flex-direction: column;
-        gap: 18px;
-        max-height: min(90vh, 760px);
-        overflow-y: auto;
+        gap: 14px;
+        max-height: calc(100vh - 40px);
+        overflow: hidden;
       }
       #liberacaoModal .workflow-step-handle {
         display: none;
@@ -4159,9 +4159,19 @@
       #liberacaoModal .wf-action-wrap {
         min-width: 0;
       }
+      #liberacaoModal .wf-context-wrap {
+        flex: 0 1 auto;
+        max-height: 28vh;
+        overflow: auto;
+      }
+      #liberacaoModal .wf-action-wrap {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+      }
       #liberacaoModal .wf-context-fields {
-        display: flex;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         border: 1px solid var(--border);
         border-radius: 14px;
         background: color-mix(in srgb, var(--card) 72%, var(--ag-neutral-bg, #f1f5f9) 28%);
@@ -4231,10 +4241,22 @@
         pointer-events: none;
       }
       #liberacaoModal .workflow-step-fields {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        grid-template-columns: none;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+      #liberacaoModal .workflow-step-fields > .wf-field {
+        grid-column: 1 / -1;
+      }
+      #liberacaoModal #libActionFields:has(#libRowDestinacao:not(.hidden)):has(#libRowRestituicaoResp:not(.hidden)) #libRowDestinacao,
+      #liberacaoModal #libActionFields:has(#libRowDestinacao:not(.hidden)):has(#libRowRestituicaoResp:not(.hidden)) #libRowRestituicaoResp {
+        grid-column: auto;
+      }
+      #liberacaoModal .workflow-step-fields select,
+      #liberacaoModal .workflow-step-fields textarea,
+      #liberacaoModal .workflow-step-fields input {
+        width: 100%;
+        box-sizing: border-box;
       }
       #liberacaoModal .wf-field--action {
         gap: 8px;
@@ -4251,15 +4273,19 @@
         font-weight: 600;
         border-radius: 12px !important;
       }
+      #liberacaoModal .workflow-step-header,
       #liberacaoModal .workflow-step-actions {
-        margin-top: 4px;
+        flex: 0 0 auto;
+      }
+      #liberacaoModal .workflow-step-actions {
+        margin-top: 0;
         padding-top: 4px;
         gap: 10px;
       }
       #liberacaoModal .workflow-step-actions #confirmLiberacaoModal {
-        flex: 1 1 auto;
+        flex: 0 0 auto;
         min-height: 46px;
-        padding: 12px 16px;
+        padding: 12px 18px;
         font-size: 14px;
       }
       #liberacaoModal .workflow-step-actions #cancelLiberacaoModal {
@@ -4311,9 +4337,16 @@
         color: #fff !important;
       }
       #liberacaoModal .wf-contact-avulso {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        align-items: start;
+      }
+      #liberacaoModal .wf-contact-pair {
         display: flex;
         flex-direction: column;
         gap: 6px;
+        min-width: 0;
       }
       #liberacaoModal .wf-contact-sub {
         margin: 4px 0 0;
@@ -4401,8 +4434,23 @@
         }
         #liberacaoModal .workflow-step-modal {
           width: 100%;
-          max-height: 92vh;
+          max-height: calc(100vh - 20px);
           padding: 16px 14px 14px;
+          border-radius: 16px 16px 0 0;
+        }
+        #liberacaoModal .wf-context-fields,
+        #liberacaoModal .wf-contact-avulso,
+        #liberacaoModal .workflow-step-fields {
+          grid-template-columns: 1fr;
+        }
+        #liberacaoModal .workflow-step-fields > .wf-field {
+          grid-column: 1 / -1;
+        }
+        #liberacaoModal .workflow-step-actions {
+          flex-direction: column;
+        }
+        #liberacaoModal .workflow-step-actions button {
+          width: 100%;
         }
         #liberacaoModal .wf-contact-toggle__btn,
         #liberacaoModal .wf-avulso-nome,
@@ -9770,15 +9818,19 @@
                     <select id="libSolicitante"></select>
                   </div>
                   <div class="wf-contact-avulso hidden">
-                    <span class="wf-contact-sub">Nome</span>
-                    <div class="wf-contact-combo">
-                      <input id="libSolicitanteAvulsoNome" class="wf-avulso-nome" type="text" maxlength="160" autocomplete="off" placeholder="Nome completo" />
-                      <div class="wf-contact-suggest hidden" role="listbox"></div>
+                    <div class="wf-contact-pair">
+                      <span class="wf-contact-sub">Nome</span>
+                      <div class="wf-contact-combo">
+                        <input id="libSolicitanteAvulsoNome" class="wf-avulso-nome" type="text" maxlength="160" autocomplete="off" placeholder="Nome completo" />
+                        <div class="wf-contact-suggest hidden" role="listbox"></div>
+                      </div>
                     </div>
-                    <span class="wf-contact-sub">Telefone/WhatsApp</span>
-                    <div class="wf-contact-combo">
-                      <input id="libSolicitanteAvulsoTel" class="wf-avulso-tel" type="tel" inputmode="tel" maxlength="16" autocomplete="off" placeholder="(00) 00000-0000" />
-                      <div class="wf-contact-suggest hidden" role="listbox"></div>
+                    <div class="wf-contact-pair">
+                      <span class="wf-contact-sub">Telefone/WhatsApp</span>
+                      <div class="wf-contact-combo">
+                        <input id="libSolicitanteAvulsoTel" class="wf-avulso-tel" type="tel" inputmode="tel" maxlength="16" autocomplete="off" placeholder="(00) 00000-0000" />
+                        <div class="wf-contact-suggest hidden" role="listbox"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -9796,15 +9848,19 @@
                     <select id="libConfirmador"></select>
                   </div>
                   <div class="wf-contact-avulso hidden">
-                    <span class="wf-contact-sub">Nome</span>
-                    <div class="wf-contact-combo">
-                      <input id="libConfirmadorAvulsoNome" class="wf-avulso-nome" type="text" maxlength="160" autocomplete="off" placeholder="Nome completo" />
-                      <div class="wf-contact-suggest hidden" role="listbox"></div>
+                    <div class="wf-contact-pair">
+                      <span class="wf-contact-sub">Nome</span>
+                      <div class="wf-contact-combo">
+                        <input id="libConfirmadorAvulsoNome" class="wf-avulso-nome" type="text" maxlength="160" autocomplete="off" placeholder="Nome completo" />
+                        <div class="wf-contact-suggest hidden" role="listbox"></div>
+                      </div>
                     </div>
-                    <span class="wf-contact-sub">Telefone/WhatsApp</span>
-                    <div class="wf-contact-combo">
-                      <input id="libConfirmadorAvulsoTel" class="wf-avulso-tel" type="tel" inputmode="tel" maxlength="16" autocomplete="off" placeholder="(00) 00000-0000" />
-                      <div class="wf-contact-suggest hidden" role="listbox"></div>
+                    <div class="wf-contact-pair">
+                      <span class="wf-contact-sub">Telefone/WhatsApp</span>
+                      <div class="wf-contact-combo">
+                        <input id="libConfirmadorAvulsoTel" class="wf-avulso-tel" type="tel" inputmode="tel" maxlength="16" autocomplete="off" placeholder="(00) 00000-0000" />
+                        <div class="wf-contact-suggest hidden" role="listbox"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -9822,15 +9878,19 @@
                     <select id="libResponsavelPagamento"></select>
                   </div>
                   <div class="wf-contact-avulso hidden">
-                    <span class="wf-contact-sub">Nome</span>
-                    <div class="wf-contact-combo">
-                      <input id="libResponsavelAvulsoNome" class="wf-avulso-nome" type="text" maxlength="160" autocomplete="off" placeholder="Nome completo" />
-                      <div class="wf-contact-suggest hidden" role="listbox"></div>
+                    <div class="wf-contact-pair">
+                      <span class="wf-contact-sub">Nome</span>
+                      <div class="wf-contact-combo">
+                        <input id="libResponsavelAvulsoNome" class="wf-avulso-nome" type="text" maxlength="160" autocomplete="off" placeholder="Nome completo" />
+                        <div class="wf-contact-suggest hidden" role="listbox"></div>
+                      </div>
                     </div>
-                    <span class="wf-contact-sub">Telefone/WhatsApp</span>
-                    <div class="wf-contact-combo">
-                      <input id="libResponsavelAvulsoTel" class="wf-avulso-tel" type="tel" inputmode="tel" maxlength="16" autocomplete="off" placeholder="(00) 00000-0000" />
-                      <div class="wf-contact-suggest hidden" role="listbox"></div>
+                    <div class="wf-contact-pair">
+                      <span class="wf-contact-sub">Telefone/WhatsApp</span>
+                      <div class="wf-contact-combo">
+                        <input id="libResponsavelAvulsoTel" class="wf-avulso-tel" type="tel" inputmode="tel" maxlength="16" autocomplete="off" placeholder="(00) 00000-0000" />
+                        <div class="wf-contact-suggest hidden" role="listbox"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -9853,15 +9913,19 @@
                     <select id="libRemoveu"></select>
                   </div>
                   <div class="wf-contact-avulso hidden">
-                    <span class="wf-contact-sub">Nome</span>
-                    <div class="wf-contact-combo">
-                      <input id="libRemoveuAvulsoNome" class="wf-avulso-nome" type="text" maxlength="160" autocomplete="off" placeholder="Nome completo" />
-                      <div class="wf-contact-suggest hidden" role="listbox"></div>
+                    <div class="wf-contact-pair">
+                      <span class="wf-contact-sub">Nome</span>
+                      <div class="wf-contact-combo">
+                        <input id="libRemoveuAvulsoNome" class="wf-avulso-nome" type="text" maxlength="160" autocomplete="off" placeholder="Nome completo" />
+                        <div class="wf-contact-suggest hidden" role="listbox"></div>
+                      </div>
                     </div>
-                    <span class="wf-contact-sub">Telefone/WhatsApp</span>
-                    <div class="wf-contact-combo">
-                      <input id="libRemoveuAvulsoTel" class="wf-avulso-tel" type="tel" inputmode="tel" maxlength="16" autocomplete="off" placeholder="(00) 00000-0000" />
-                      <div class="wf-contact-suggest hidden" role="listbox"></div>
+                    <div class="wf-contact-pair">
+                      <span class="wf-contact-sub">Telefone/WhatsApp</span>
+                      <div class="wf-contact-combo">
+                        <input id="libRemoveuAvulsoTel" class="wf-avulso-tel" type="tel" inputmode="tel" maxlength="16" autocomplete="off" placeholder="(00) 00000-0000" />
+                        <div class="wf-contact-suggest hidden" role="listbox"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
