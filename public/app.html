@@ -9324,6 +9324,23 @@
 
           <div id="configPanelApresentacao" data-config-panel="apresentacao" class="hidden">
             <div class="section-card">
+              <h3 style="margin: 0 0 8px; font-size: 1.1rem">WhatsApp comercial</h3>
+              <p class="notice" style="margin: 0 0 14px">
+                Este número abre a conversa do botão na última imagem das duas apresentações.
+                Se ficar vazio, usa o telefone do recibo. Se esse também estiver vazio, usa o WhatsApp já impresso na apresentação: (81) 99991-8484.
+              </p>
+              <div class="form-grid">
+                <div>
+                  <label for="propagandaWhatsapp">WhatsApp comercial</label>
+                  <input id="propagandaWhatsapp" type="tel" inputmode="tel" autocomplete="tel" placeholder="(81) 99991-8484" />
+                </div>
+              </div>
+              <div class="form-actions" style="margin-top: 10px">
+                <button type="button" id="propagandaWhatsappSalvar">Salvar WhatsApp</button>
+              </div>
+              <p class="notice" id="propagandaWhatsappStatus" style="margin: 12px 0 0"></p>
+            </div>
+            <div class="section-card" style="margin-top: 18px">
               <h3 style="margin: 0 0 8px; font-size: 1.1rem">Propaganda Completa — Com Venda Direta</h3>
               <p class="notice" style="margin: 0 0 14px">
                 Seis imagens, com a página de compra direta. O endereço público continua o mesmo.
@@ -19631,6 +19648,7 @@
           if (settingsEndereco) settingsEndereco.value = state.settings.endereco || "";
           if (settingsReciboEmitente) settingsReciboEmitente.value = state.settings.recibo_emitente_nome || "";
           if (settingsReciboTelefone) settingsReciboTelefone.value = state.settings.recibo_telefone || "";
+          fillPropagandaWhatsappField();
           settingsBank.value = state.settings.conta_bancaria || "";
           settingsCharge.value = state.settings.texto_cobranca || "";
           settingsInvoice.value = state.settings.texto_nota_fiscal || "";
@@ -30588,6 +30606,52 @@ ${body}
         loadSettings();
       });
 
+      function fillPropagandaWhatsappField() {
+        const input = document.getElementById("propagandaWhatsapp");
+        if (!input || document.activeElement === input) return;
+        const saved = String(state.settings?.whatsapp_comercial || "").trim();
+        const recibo = String(state.settings?.recibo_telefone || "").trim();
+        input.value = saved || recibo || "";
+      }
+
+      document.getElementById("propagandaWhatsappSalvar")?.addEventListener("click", async () => {
+        const input = document.getElementById("propagandaWhatsapp");
+        const status = document.getElementById("propagandaWhatsappStatus");
+        const value = String(input?.value || "").trim();
+        const digits = value.replace(/\D/g, "");
+        if (value && digits.length < 10) {
+          if (status) status.textContent = "Informe o WhatsApp com DDD.";
+          return;
+        }
+        if (!state.settings?.id || !supabase) {
+          if (status) status.textContent = "Salve primeiro os dados do pátio em Pátio e textos.";
+          return;
+        }
+        const token = await getAccessTokenForApi();
+        const resp = await fetch("/api/apresentacao/contato", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ access_token: token, whatsapp: value }),
+        });
+        const json = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          const direct = await supabase.from("settings").update({ whatsapp_comercial: value }).eq("id", state.settings.id);
+          if (!direct.error) {
+            state.settings.whatsapp_comercial = value;
+            if (status) status.textContent = "WhatsApp comercial salvo. As duas apresentações passam a usar este número.";
+            return;
+          }
+          if (status) status.textContent = json.error || direct.error.message || "Não foi possível gravar o WhatsApp.";
+          return;
+        }
+        state.settings.whatsapp_comercial = value;
+        if (status) {
+          status.textContent = value
+            ? "WhatsApp comercial salvo. As duas apresentações passam a usar este número."
+            : "Campo limpo. As apresentações usam o telefone do recibo ou o WhatsApp já impresso nos contatos.";
+        }
+      });
+
       function isValidManagerLogin(s) {
         const norm = normalizeManagerLogin(s);
         return norm.length >= 3 && norm.length <= 48;
@@ -32580,6 +32644,7 @@ ${body}
           refreshConfigUsuariosPanel();
         }
         if (currentConfigSubview === "apresentacao" && window.apresentacaoInstitucional) {
+          fillPropagandaWhatsappField();
           window.apresentacaoInstitucional.mount();
         }
       }
