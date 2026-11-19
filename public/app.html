@@ -3637,18 +3637,36 @@
       .vehicle-photo-box {
         display: grid;
         gap: 10px;
+        position: relative;
       }
       .vehicle-photo-actions {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
       }
+      .vehicle-photo-actions .vehicle-photo-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--ag-border, #d7ddd9);
+        background: var(--ag-surface, #fff);
+        color: var(--ag-text, #20242b);
+        font-weight: 600;
+        cursor: pointer;
+      }
       .vehicle-photo-input {
         position: absolute;
         width: 1px;
         height: 1px;
+        padding: 0;
+        margin: -1px;
         overflow: hidden;
-        clip: rect(0 0 0 0);
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
       }
       .vehicle-photo-preview {
         display: block;
@@ -3660,10 +3678,71 @@
         border-radius: 8px;
         background: var(--ag-surface, #fff);
       }
-      #vehicleForm.initial-register-simplified .gestor-entry-auto-note {
+      .vehicle-photo-preview.hidden {
+        display: none !important;
+      }
+      .qt-picker {
+        position: relative;
+        display: grid;
+        gap: 8px;
+      }
+      .qt-picker-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .qt-picker-row input {
+        flex: 1 1 180px;
+        min-width: 0;
+      }
+      #vehicleQuemTrouxeList {
+        position: absolute;
+        z-index: 30;
+        left: 0;
+        right: 0;
+        top: 42px;
+        max-height: 240px;
+        overflow: auto;
+        background: var(--ag-surface, #fff);
+        border: 1px solid var(--ag-border, #d7ddd9);
+        border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(32, 36, 43, 0.12);
+      }
+      #vehicleQuemTrouxeList button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        background: transparent !important;
+        color: var(--ag-text, #20242b) !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 8px 10px;
+        min-height: 36px;
+      }
+      #vehicleQuemTrouxeList button:hover,
+      #vehicleQuemTrouxeList button[aria-selected="true"] {
+        background: rgba(36, 40, 48, 0.06);
+      }
+      .qt-avulso {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .qt-avulso.hidden {
+        display: none !important;
+      }
+      @media (max-width: 640px) {
+        .qt-avulso { grid-template-columns: 1fr; }
+      }
+      #vehicleForm .gestor-entry-auto-note {
+        display: none;
+      }
+      #vehicleForm.operador-simplified .gestor-entry-auto-note {
         display: block;
       }
-      #vehicleForm.registro-cr-only .field-create-only,
+      #vehicleForm.registro-cr-only .field-create-only:not(#vehicleQuemTrouxeWrap):not(#vehiclePhotoWrap),
       #vehicleForm.registro-cr-only .gestor-entry-auto-note {
         display: none !important;
       }
@@ -9481,28 +9560,6 @@
                 <label>Cor</label>
                 <input id="vehicleColor" type="text" placeholder="Prata" />
               </div>
-              <div class="full field-create-only" id="vehicleQuemTrouxeWrap">
-                <label for="vehicleQuemTrouxe">Quem trouxe</label>
-                <input id="vehicleQuemTrouxe" type="text" maxlength="180" autocomplete="name" placeholder="Nome de quem entregou o veículo" />
-              </div>
-              <div class="field-operador-hide field-cr-only field-entry-show">
-                <label for="vehicleDaily">Valor da diária</label>
-                <input id="vehicleDaily" type="number" step="0.01" min="0" placeholder="150.00" required />
-              </div>
-              <div class="full field-create-only" id="vehiclePhotoWrap">
-                <div class="vehicle-photo-box">
-                  <label>Foto do veículo</label>
-                  <p class="notice" style="margin: 0">Opcional. Tire a foto pela câmera ou escolha uma imagem. A prévia aparece antes de salvar.</p>
-                  <div class="vehicle-photo-actions">
-                    <button type="button" class="secondary" id="vehiclePhotoCameraBtn">Tirar foto</button>
-                    <button type="button" class="secondary" id="vehiclePhotoFileBtn">Escolher imagem</button>
-                    <button type="button" class="secondary hidden" id="vehiclePhotoClear">Remover foto</button>
-                  </div>
-                  <input id="vehiclePhotoCamera" class="vehicle-photo-input" type="file" accept="image/*" capture="environment" />
-                  <input id="vehiclePhotoFile" class="vehicle-photo-input" type="file" accept="image/*" />
-                  <img id="vehiclePhotoPreview" class="vehicle-photo-preview hidden" alt="Prévia da fotografia do veículo" />
-                </div>
-              </div>
               <div class="full field-entry-hide" id="vehicleChaveCondicaoWrap">
                 <label>Condição da chave</label>
                 <div class="chave-condicao-options" role="radiogroup" aria-label="Condição da chave">
@@ -9537,6 +9594,10 @@
                   autocomplete="name"
                   placeholder="Nome completo de quem recebe o veículo"
                 />
+              </div>
+              <div class="field-operador-hide field-cr-only field-entry-show">
+                <label for="vehicleDaily">Valor da diária</label>
+                <input id="vehicleDaily" type="number" step="0.01" min="0" placeholder="150.00" required />
               </div>
               <div class="field-operador-hide">
                 <label>Data e hora de entrada</label>
@@ -9630,6 +9691,21 @@
               <div class="full field-create-only field-entry-hide">
                 <label>Observações</label>
                 <input id="vehicleNotes" type="text" placeholder="Observações importantes" />
+              </div>
+              <div class="full" id="vehiclePhotoWrap">
+                <div class="vehicle-photo-box">
+                  <label>Foto do Veículo</label>
+                  <p class="notice" style="margin: 0">Opcional. Sem foto, o registro é gravado normalmente.</p>
+                  <div class="vehicle-photo-actions">
+                    <label class="vehicle-photo-btn" id="vehiclePhotoCameraBtn" for="vehiclePhotoCamera">Tirar foto</label>
+                    <label class="vehicle-photo-btn" id="vehiclePhotoFileBtn" for="vehiclePhotoFile">Selecionar imagem</label>
+                    <button type="button" class="secondary hidden" id="vehiclePhotoClear">Remover foto</button>
+                  </div>
+                  <input id="vehiclePhotoCamera" class="vehicle-photo-input" type="file" accept="image/*" capture="environment" />
+                  <input id="vehiclePhotoFile" class="vehicle-photo-input" type="file" accept="image/*" />
+                  <img id="vehiclePhotoPreview" class="vehicle-photo-preview hidden" alt="Prévia da fotografia do veículo" />
+                  <p class="notice" id="vehiclePhotoStatus" style="margin: 0"></p>
+                </div>
               </div>
             </div>
             <div id="vehicleLabelActions" class="form-actions vehicle-label-actions hidden">
@@ -11988,6 +12064,8 @@
       let vehicleEntryPhotoFile = null;
       let vehicleEntryPhotoRemove = false;
       let vehicleEntryPhotoObjectUrl = "";
+      let vehicleQuemTrouxeMode = "cadastrado";
+      let vehicleQuemTrouxeBound = false;
       let nfseVehicleId = null;
       let nfseStatusBeforeOpen = null;
       let nfseThermalVehicleId = null;
@@ -25936,8 +26014,10 @@
         if (!vehicle?.id) return "";
         try {
           if (vehicle.foto_entrada_path) {
-            const own = await signedVehiclePhotoUrl(vehicle.foto_entrada_path);
+            const own = await vehicleEntryPhotoBlobUrl(vehicle.foto_entrada_path, "ficha");
             if (own) return own;
+            const signed = await signedVehiclePhotoUrl(vehicle.foto_entrada_path);
+            if (signed) return signed;
           }
           const insp = getInspectionIndexEntry(vehicle.id);
           if (insp && window.vehicleEntryInspection?.loadInspectionDetail) {
@@ -26712,6 +26792,8 @@
           img.classList.add("hidden");
         }
         if (clearBtn) clearBtn.classList.add("hidden");
+        const status = document.getElementById("vehiclePhotoStatus");
+        if (status) status.textContent = "";
       }
 
       function showVehicleEntryPhotoPreview(src) {
@@ -26752,6 +26834,207 @@
         }
       }
 
+      let vehicleFichaPhotoObjectUrl = "";
+
+      async function vehicleEntryPhotoBlobUrl(path, target) {
+        if (!path || !supabase) return "";
+        try {
+          const { data, error } = await supabase.storage.from("vehicle-inspection-photos").download(path);
+          if (error || !data) return "";
+          const url = URL.createObjectURL(data);
+          if (target === "ficha") {
+            if (vehicleFichaPhotoObjectUrl) URL.revokeObjectURL(vehicleFichaPhotoObjectUrl);
+            vehicleFichaPhotoObjectUrl = url;
+            return url;
+          }
+          revokeVehicleEntryPhotoUrl();
+          vehicleEntryPhotoObjectUrl = url;
+          return url;
+        } catch (e) {
+          return "";
+        }
+      }
+
+      function formatQuemTrouxePhone(value) {
+        if (window.contatosAvulsos?.formatPhoneBr) return window.contatosAvulsos.formatPhoneBr(value);
+        const d = String(value || "").replace(/\D/g, "").slice(0, 11);
+        if (d.length < 10) return String(value || "").trim();
+        const ddd = d.slice(0, 2);
+        const rest = d.slice(2);
+        return d.length === 10 ? `(${ddd}) ${rest.slice(0, 4)}-${rest.slice(4)}` : `(${ddd}) ${rest.slice(0, 5)}-${rest.slice(5, 9)}`;
+      }
+
+      function quemTrouxeCatalog(keepId) {
+        if (typeof listaGeralParceiros !== "function") return [];
+        return listaGeralParceiros(keepId);
+      }
+
+      function quemTrouxeIsPartner(id) {
+        const sid = String(id || "").trim();
+        if (!sid) return false;
+        return (state.partners || []).some((p) => String(p.id) === sid);
+      }
+
+      function hideQuemTrouxeList() {
+        document.getElementById("vehicleQuemTrouxeList")?.classList.add("hidden");
+      }
+
+      function setQuemTrouxeAvulsoOpen(open) {
+        vehicleQuemTrouxeMode = open ? "avulso" : "cadastrado";
+        document.getElementById("vehicleQuemTrouxeAvulso")?.classList.toggle("hidden", !open);
+        if (open) {
+          const idEl = document.getElementById("vehicleQuemTrouxeId");
+          if (idEl) idEl.value = "";
+          hideQuemTrouxeList();
+        }
+      }
+
+      function applyQuemTrouxeCadastrado(id) {
+        const sid = String(id || "").trim();
+        setQuemTrouxeAvulsoOpen(false);
+        const idEl = document.getElementById("vehicleQuemTrouxeId");
+        const search = document.getElementById("vehicleQuemTrouxeSearch");
+        const hiddenName = document.getElementById("vehicleQuemTrouxe");
+        const item = sid ? quemTrouxeCatalog(sid).find((x) => String(x.id) === sid) : null;
+        if (idEl) idEl.value = item ? sid : "";
+        const nome = item ? String(item.nome || "").trim() : "";
+        if (search && document.activeElement !== search) search.value = item ? item.label || nome : "";
+        if (hiddenName) hiddenName.value = nome;
+        if (vehicleLocator) vehicleLocator.value = quemTrouxeIsPartner(sid) ? sid : "";
+        hideQuemTrouxeList();
+      }
+
+      function resetVehicleQuemTrouxe() {
+        vehicleQuemTrouxeMode = "cadastrado";
+        const search = document.getElementById("vehicleQuemTrouxeSearch");
+        const idEl = document.getElementById("vehicleQuemTrouxeId");
+        const hiddenName = document.getElementById("vehicleQuemTrouxe");
+        const nome = document.getElementById("vehicleQuemTrouxeAvulsoNome");
+        const tel = document.getElementById("vehicleQuemTrouxeAvulsoTel");
+        if (search) search.value = "";
+        if (idEl) idEl.value = "";
+        if (hiddenName) hiddenName.value = "";
+        if (nome) nome.value = "";
+        if (tel) tel.value = "";
+        setQuemTrouxeAvulsoOpen(false);
+        hideQuemTrouxeList();
+      }
+
+      function fillVehicleQuemTrouxe(vehicle) {
+        resetVehicleQuemTrouxe();
+        if (!vehicle) return;
+        const locId = String(vehicle.localizador_id || "").trim();
+        if (quemTrouxeIsPartner(locId)) {
+          applyQuemTrouxeCadastrado(locId);
+          return;
+        }
+        const text = String(vehicle.quem_trouxe || "").trim();
+        if (!text) return;
+        const parts = text.split(" · ");
+        const nomePart = parts[0].trim();
+        const telPart = parts.length > 1 ? parts.slice(1).join(" · ").trim() : "";
+        const match = quemTrouxeCatalog().find((item) => partnerNomeNorm(item.nome) === partnerNomeNorm(nomePart) && !telPart);
+        if (match && quemTrouxeIsPartner(match.id)) {
+          applyQuemTrouxeCadastrado(match.id);
+          return;
+        }
+        if (match && !telPart) {
+          applyQuemTrouxeCadastrado(match.id);
+          return;
+        }
+        setQuemTrouxeAvulsoOpen(true);
+        const nome = document.getElementById("vehicleQuemTrouxeAvulsoNome");
+        const tel = document.getElementById("vehicleQuemTrouxeAvulsoTel");
+        const hiddenName = document.getElementById("vehicleQuemTrouxe");
+        if (nome) nome.value = nomePart;
+        if (tel) tel.value = telPart ? formatQuemTrouxePhone(telPart) : "";
+        if (hiddenName) hiddenName.value = text;
+      }
+
+      function readVehicleQuemTrouxe() {
+        if (vehicleQuemTrouxeMode === "avulso") {
+          const nome = document.getElementById("vehicleQuemTrouxeAvulsoNome")?.value?.trim() || "";
+          const telRaw = document.getElementById("vehicleQuemTrouxeAvulsoTel")?.value?.trim() || "";
+          const tel = telRaw ? formatQuemTrouxePhone(telRaw) : "";
+          const text = [nome, tel].filter(Boolean).join(" · ");
+          return { quem_trouxe: text || null, localizador_id: null };
+        }
+        const id = document.getElementById("vehicleQuemTrouxeId")?.value?.trim() || "";
+        const item = id ? quemTrouxeCatalog(id).find((x) => String(x.id) === id) : null;
+        if (item && quemTrouxeIsPartner(id)) return { quem_trouxe: item.nome || null, localizador_id: id };
+        if (item) return { quem_trouxe: item.nome || null, localizador_id: null };
+        return { quem_trouxe: null, localizador_id: vehicleLocator?.value || null };
+      }
+
+      function renderQuemTrouxeList() {
+        const list = document.getElementById("vehicleQuemTrouxeList");
+        const search = document.getElementById("vehicleQuemTrouxeSearch");
+        const keep = document.getElementById("vehicleQuemTrouxeId")?.value || "";
+        if (!list || !search) return;
+        const q = partnerNomeNorm(search.value);
+        const all = quemTrouxeCatalog(keep);
+        const hits = (q ? all.filter((item) => item.search.indexOf(q) >= 0 || partnerNomeNorm(item.label).indexOf(q) >= 0) : all).slice(0, 40);
+        const avulso = `<button type="button" class="secondary" data-qt-avulso="1">Adicionar avulso</button>`;
+        const rows = hits
+          .map((item) => {
+            const sel = String(item.id) === String(keep) ? ' aria-selected="true"' : "";
+            return `<button type="button" class="secondary" data-qt-id="${escapeHtml(item.id)}"${sel}>${escapeHtml(item.label || item.nome || "-")}</button>`;
+          })
+          .join("");
+        const empty = hits.length ? "" : `<button type="button" class="secondary" disabled>Nenhuma pessoa encontrada</button>`;
+        list.innerHTML = rows + empty + avulso;
+        list.classList.remove("hidden");
+      }
+
+      function bindVehicleQuemTrouxePicker() {
+        if (vehicleQuemTrouxeBound) return;
+        const search = document.getElementById("vehicleQuemTrouxeSearch");
+        const list = document.getElementById("vehicleQuemTrouxeList");
+        const avulsoBtn = document.getElementById("vehicleQuemTrouxeAvulsoBtn");
+        const tel = document.getElementById("vehicleQuemTrouxeAvulsoTel");
+        if (!search || !list) return;
+        search.addEventListener("focus", renderQuemTrouxeList);
+        search.addEventListener("click", renderQuemTrouxeList);
+        search.addEventListener("input", () => {
+          if (vehicleQuemTrouxeMode === "avulso") setQuemTrouxeAvulsoOpen(false);
+          const idEl = document.getElementById("vehicleQuemTrouxeId");
+          if (idEl && partnerNomeNorm(search.value) !== partnerNomeNorm(document.getElementById("vehicleQuemTrouxe")?.value || "")) {
+            idEl.value = "";
+          }
+          renderQuemTrouxeList();
+        });
+        search.addEventListener("blur", () => setTimeout(hideQuemTrouxeList, 180));
+        list.addEventListener("mousedown", (event) => {
+          const avulso = event.target.closest("[data-qt-avulso]");
+          const pick = event.target.closest("[data-qt-id]");
+          if (!avulso && !pick) return;
+          event.preventDefault();
+          if (avulso) {
+            const typed = search.value.trim();
+            setQuemTrouxeAvulsoOpen(true);
+            const nome = document.getElementById("vehicleQuemTrouxeAvulsoNome");
+            if (nome && !nome.value && typed) nome.value = typed;
+            search.value = "";
+            nome?.focus();
+            return;
+          }
+          applyQuemTrouxeCadastrado(pick.getAttribute("data-qt-id") || "");
+        });
+        avulsoBtn?.addEventListener("click", () => {
+          const typed = search.value.trim();
+          setQuemTrouxeAvulsoOpen(true);
+          const nome = document.getElementById("vehicleQuemTrouxeAvulsoNome");
+          if (nome && !nome.value && typed) nome.value = typed;
+          search.value = "";
+          nome?.focus();
+        });
+        tel?.addEventListener("input", () => {
+          const next = formatQuemTrouxePhone(tel.value);
+          if (next && next !== tel.value && String(tel.value).replace(/\D/g, "").length >= 10) tel.value = next;
+        });
+        vehicleQuemTrouxeBound = true;
+      }
+
       async function persistVehicleEntryPhoto(vehicleId, userId) {
         if (!vehicleId || !supabase) return { ok: true };
         if (!vehicleEntryPhotoFile && !vehicleEntryPhotoRemove) return { ok: true };
@@ -26766,7 +27049,12 @@
         }
         const ext = String(vehicleEntryPhotoFile.name || "").split(".").pop() || "jpg";
         const safeExt = /^[a-z0-9]+$/i.test(ext) ? ext.toLowerCase() : "jpg";
-        const path = `${userId}/entrada/${vehicleId}/foto-${Date.now()}.${safeExt}`;
+        let folderUid = userId;
+        try {
+          const { data: authData } = await supabase.auth.getUser();
+          if (authData?.user?.id) folderUid = authData.user.id;
+        } catch (e) {}
+        const path = `${folderUid}/entrada/${vehicleId}/foto-${Date.now()}.${safeExt}`;
         const { error: upErr } = await supabase.storage.from("vehicle-inspection-photos").upload(path, vehicleEntryPhotoFile, {
           contentType: vehicleEntryPhotoFile.type || "image/jpeg",
           upsert: false,
@@ -26779,6 +27067,31 @@
           .eq("user_id", userId);
         if (error && /foto_entrada_path/i.test(error.message || "")) return { ok: false, missingColumn: true, error };
         return { ok: !error, error };
+      }
+
+      async function showSavedVehiclePhoto(vehicle) {
+        const status = document.getElementById("vehiclePhotoStatus");
+        if (!vehicle || String(editingVehicleId || "") !== String(vehicle.id)) return;
+        try {
+          if (vehicle.foto_entrada_path) {
+            const url =
+              (await vehicleEntryPhotoBlobUrl(vehicle.foto_entrada_path, "form")) ||
+              (await signedVehiclePhotoUrl(vehicle.foto_entrada_path));
+            if (String(editingVehicleId || "") !== String(vehicle.id)) return;
+            if (url) {
+              showVehicleEntryPhotoPreview(url);
+              return;
+            }
+            if (status) status.textContent = "A fotografia está salva, mas não foi possível abri-la. Você pode enviar outra.";
+            return;
+          }
+          const fallback = await loadVehicleMainPhotoUrl(Object.assign({}, vehicle, { foto_entrada_path: "" }));
+          if (fallback && String(editingVehicleId || "") === String(vehicle.id) && !vehicleEntryPhotoFile) {
+            showVehicleEntryPhotoPreview(fallback);
+          }
+        } catch (e) {
+          if (status) status.textContent = "Não foi possível carregar a fotografia salva.";
+        }
       }
 
       function openVehicleModal(mode, vehicle, opts = {}) {
@@ -26804,12 +27117,14 @@
             ? "Complemente financeira, escritório, leiloeiro, pátio, localizador e valor da diária"
             : mode === "edit"
               ? "Atualize os dados do veículo"
-              : "Placa, marca, modelo, cor, quem trouxe e diária. A foto é opcional.";
+              : "Cadastro de entrada no pátio";
         vehicleForm.classList.toggle("operador-simplified", !!(isGestorPista && mode === "create"));
-        vehicleForm.classList.toggle("initial-register-simplified", mode === "create");
+        vehicleForm.classList.remove("initial-register-simplified");
         vehicleForm.classList.toggle("registro-cr-only", mode === "cr");
         vehicleForm.reset();
         resetVehicleEntryPhotoDraft();
+        bindVehicleQuemTrouxePicker();
+        resetVehicleQuemTrouxe();
         vehicleExit.value = "";
         bindVehicleRppPicker();
         if ((mode === "edit" || mode === "cr") && vehicle) {
@@ -26835,13 +27150,8 @@
           const rppMgr = findCarteiraManagerById(vehicle.responsavel_financeiro_id);
           if (rppMgr && !vehicle.advocacy_office_id) applyOfficeFromCarteiraRpp();
           document.getElementById("vehicleNotes").value = vehicle.observacoes || "";
-          const quemTrouxeEl = document.getElementById("vehicleQuemTrouxe");
-          if (quemTrouxeEl) quemTrouxeEl.value = vehicle.quem_trouxe || "";
-          if (vehicle.foto_entrada_path) {
-            signedVehiclePhotoUrl(vehicle.foto_entrada_path).then((url) => {
-              if (url && String(editingVehicleId || "") === String(vehicle.id)) showVehicleEntryPhotoPreview(url);
-            });
-          }
+          fillVehicleQuemTrouxe(vehicle);
+          showSavedVehiclePhoto(vehicle);
           setVehicleChaveCondicaoField(vehicle.chave_condicao);
           setVehicleDestinacaoFields(vehicle);
           const inspectionDateEl = document.getElementById("vehicleInspectionDate");
@@ -26889,7 +27199,7 @@
         const gestorCreate = isGestorPista && mode === "create";
         const crMode = mode === "cr";
         if (vd) vd.required = mode === "create" || mode === "edit" || crMode;
-        if (entryInput) entryInput.required = !gestorCreate && mode !== "create" && !crMode;
+        if (entryInput) entryInput.required = !gestorCreate && !crMode;
         refreshVehiclePlatePreviewInput();
         const novoEscBtn = document.getElementById("vehicleAdvocacyOfficeNew");
         if (novoEscBtn) novoEscBtn.classList.toggle("hidden", !!(isGestorPista || isVistoriador || isVisualizador));
@@ -30195,12 +30505,6 @@ ${body}
         }
       });
 
-      document.getElementById("vehiclePhotoCameraBtn")?.addEventListener("click", () => {
-        document.getElementById("vehiclePhotoCamera")?.click();
-      });
-      document.getElementById("vehiclePhotoFileBtn")?.addEventListener("click", () => {
-        document.getElementById("vehiclePhotoFile")?.click();
-      });
       document.getElementById("vehiclePhotoCamera")?.addEventListener("change", (event) => {
         const file = event.target.files && event.target.files[0];
         if (file) stageVehicleEntryPhoto(file);
@@ -30245,7 +30549,11 @@ ${body}
             alert("Valor da diária inválido.");
             return;
           }
-          dataEntradaIso = initialCreate ? new Date().toISOString() : editingVehicleData?.data_entrada || new Date().toISOString();
+          dataEntradaIso = crMode
+            ? editingVehicleData?.data_entrada || new Date().toISOString()
+            : vehicleEntryEl?.value
+              ? new Date(vehicleEntryEl.value).toISOString()
+              : new Date().toISOString();
         } else {
           const vehicleDailyRaw = (vehicleDailyEl?.value || "").toString().trim();
           if (!vehicleDailyRaw) {
@@ -30328,15 +30636,14 @@ ${body}
           cor: document.getElementById("vehicleColor")?.value?.trim() || null,
           valor_diaria: vehicleDailyValue,
           data_entrada: dataEntradaIso,
-          data_saida: initialCreate || crMode ? editingVehicleData?.data_saida || null : vehicleExit.value ? new Date(vehicleExit.value).toISOString() : null,
+          data_saida: vehicleExit.value ? new Date(vehicleExit.value).toISOString() : null,
           localizador_id: vehicleLocator.value || null,
-          responsavel_financeiro_id: initialCreate ? null : rpfFields.responsavel_financeiro_id,
-          responsavel_financeiro_nome: initialCreate ? null : rpfFields.responsavel_financeiro_nome,
+          responsavel_financeiro_id: rpfFields.responsavel_financeiro_id,
+          responsavel_financeiro_nome: rpfFields.responsavel_financeiro_nome,
           assessoria_id: null,
-          leiloeiro_id: initialCreate ? null : vehicleAuctioneer?.value || null,
+          leiloeiro_id: vehicleAuctioneer?.value || null,
           observacoes: document.getElementById("vehicleNotes").value.trim(),
-          quem_trouxe: document.getElementById("vehicleQuemTrouxe")?.value?.trim() || null,
-          chave_condicao: initialCreate ? null : readVehicleChaveCondicao() || editingVehicleData?.chave_condicao || null,
+          chave_condicao: readVehicleChaveCondicao() || null,
           destinacao: readVehicleDestinacao() || null,
           restituicao_responsavel_nome:
             readVehicleDestinacao() === "RESTITUICAO"
@@ -30359,15 +30666,13 @@ ${body}
           },
           vistoria_observacoes: inspectionDamageEl?.value?.trim() || "",
         };
-        if (advocacyColsOk) payload.advocacy_office_id = initialCreate ? null : advocacyOfficeId;
-        if (managerColOk) payload.advocacy_office_manager_id = initialCreate ? null : advocacyManagerId || null;
+        if (advocacyColsOk) payload.advocacy_office_id = advocacyOfficeId || null;
+        if (managerColOk) payload.advocacy_office_manager_id = advocacyManagerId || null;
         const patioParceiroId = document.getElementById("vehiclePatioPartner")?.value || null;
         const financeiraId = document.getElementById("vehicleFinanceira")?.value || null;
-        if (!initialCreate) {
-          payload.patio_parceiro_id = patioParceiroId || null;
-          payload.financeira_id = financeiraId || null;
-        }
-        if (!initialCreate && payload.destinacao === "RESTITUICAO" && !String(payload.restituicao_responsavel_nome || "").trim()) {
+        payload.patio_parceiro_id = patioParceiroId || null;
+        payload.financeira_id = financeiraId || null;
+        if (payload.destinacao === "RESTITUICAO" && !String(payload.restituicao_responsavel_nome || "").trim()) {
           alert("Informe o nome completo do responsável pela restituição.");
           return;
         }
@@ -30395,7 +30700,7 @@ ${body}
           payload.status = "NO_PATIO";
           payload.entry_inspection_flow = false;
           payload.registro_concluido = true;
-          payload.data_saida = null;
+          if (!vehicleExit.value) payload.data_saida = null;
           payload.payment_status = "EM_ABERTO";
           payload.nfse_status = "NAO_SOLICITADA";
           payload.nfse_requested_at = null;
@@ -30665,7 +30970,9 @@ ${body}
             alert(
               photoRes.missingColumn
                 ? "Veículo salvo. Para guardar a fotografia, execute supabase/vehicles_entrada_simplificada.sql no Supabase e envie a foto de novo em Editar."
-                : "Veículo salvo, mas a fotografia não foi gravada. Abra Editar e envie a imagem outra vez."
+                : "Veículo salvo, mas a fotografia não foi gravada. " +
+                  (photoRes.error?.message ? photoRes.error.message + " " : "") +
+                  "Abra Editar e envie a imagem outra vez."
             );
           }
         }
