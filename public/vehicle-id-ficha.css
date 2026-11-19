@@ -319,11 +319,13 @@
 .vif-photo {
   display: block;
   width: 100%;
-  max-height: 240px;
-  object-fit: cover;
+  height: auto;
+  max-height: none;
+  object-fit: contain;
+  object-position: center;
   border-radius: 12px;
   margin: 0 0 16px;
-  background: #e8efe9;
+  background: transparent;
 }
 
 .vif-capture h2 {
@@ -409,7 +411,10 @@
 }
 
 .vif-capture--tipo2 .vif-photo--compact {
-  max-height: 140px;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  object-fit: contain;
 }
 
 #vehicleIdFichaModal .vif-pix-qr {
