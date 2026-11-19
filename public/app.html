@@ -3630,9 +3630,36 @@
         background: rgba(56, 189, 248, 0.14);
         box-shadow: inset 4px 0 0 0 rgba(14, 165, 233, 0.95);
       }
-      #vehicleForm.initial-register-simplified .field-operador-hide,
-      #vehicleForm.initial-register-simplified .field-cr-only {
+      #vehicleForm.initial-register-simplified .field-operador-hide:not(.field-entry-show),
+      #vehicleForm.initial-register-simplified .field-cr-only:not(.field-entry-show),
+      #vehicleForm.initial-register-simplified .field-entry-hide {
         display: none !important;
+      }
+      .vehicle-photo-box {
+        display: grid;
+        gap: 10px;
+      }
+      .vehicle-photo-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .vehicle-photo-input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+      }
+      .vehicle-photo-preview {
+        display: block;
+        width: 100%;
+        max-width: 320px;
+        height: auto;
+        object-fit: contain;
+        border: 1px solid var(--ag-border, #d7ddd9);
+        border-radius: 8px;
+        background: var(--ag-surface, #fff);
       }
       #vehicleForm.initial-register-simplified .gestor-entry-auto-note {
         display: block;
@@ -7784,7 +7811,7 @@
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20261112plate12" />
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20261117nav2" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
-    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261112ficha9" />
+    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261119entrada" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20261116vis1" />
     <link rel="stylesheet" href="/caixa-operacional.css?v=20261117fin3" />
   </head>
@@ -9455,7 +9482,29 @@
                 <label>Cor</label>
                 <input id="vehicleColor" type="text" placeholder="Prata" />
               </div>
-              <div class="full" id="vehicleChaveCondicaoWrap">
+              <div class="full field-create-only" id="vehicleQuemTrouxeWrap">
+                <label for="vehicleQuemTrouxe">Quem trouxe</label>
+                <input id="vehicleQuemTrouxe" type="text" maxlength="180" autocomplete="name" placeholder="Nome de quem entregou o veículo" />
+              </div>
+              <div class="field-operador-hide field-cr-only field-entry-show">
+                <label for="vehicleDaily">Valor da diária</label>
+                <input id="vehicleDaily" type="number" step="0.01" min="0" placeholder="150.00" required />
+              </div>
+              <div class="full field-create-only" id="vehiclePhotoWrap">
+                <div class="vehicle-photo-box">
+                  <label>Foto do veículo</label>
+                  <p class="notice" style="margin: 0">Opcional. Tire a foto pela câmera ou escolha uma imagem. A prévia aparece antes de salvar.</p>
+                  <div class="vehicle-photo-actions">
+                    <button type="button" class="secondary" id="vehiclePhotoCameraBtn">Tirar foto</button>
+                    <button type="button" class="secondary" id="vehiclePhotoFileBtn">Escolher imagem</button>
+                    <button type="button" class="secondary hidden" id="vehiclePhotoClear">Remover foto</button>
+                  </div>
+                  <input id="vehiclePhotoCamera" class="vehicle-photo-input" type="file" accept="image/*" capture="environment" />
+                  <input id="vehiclePhotoFile" class="vehicle-photo-input" type="file" accept="image/*" />
+                  <img id="vehiclePhotoPreview" class="vehicle-photo-preview hidden" alt="Prévia da fotografia do veículo" />
+                </div>
+              </div>
+              <div class="full field-entry-hide" id="vehicleChaveCondicaoWrap">
                 <label>Condição da chave</label>
                 <div class="chave-condicao-options" role="radiogroup" aria-label="Condição da chave">
                   <label class="chave-opt is-c-chave">
@@ -9472,7 +9521,7 @@
                   </label>
                 </div>
               </div>
-              <div class="full" id="vehicleDestinacaoWrap">
+              <div class="full field-entry-hide" id="vehicleDestinacaoWrap">
                 <label for="vehicleDestinacao">Destinação do veículo</label>
                 <select id="vehicleDestinacao">
                   <option value="">Não informado</option>
@@ -9480,7 +9529,7 @@
                   <option value="LEILAO">Leilão</option>
                 </select>
               </div>
-              <div class="full hidden" id="vehicleRestituicaoRespWrap">
+              <div class="full hidden field-entry-hide" id="vehicleRestituicaoRespWrap">
                 <label for="vehicleRestituicaoResponsavel">Nome do responsável pela restituição</label>
                 <input
                   id="vehicleRestituicaoResponsavel"
@@ -9490,10 +9539,6 @@
                   placeholder="Nome completo de quem recebe o veículo"
                 />
               </div>
-              <div class="field-operador-hide field-cr-only">
-                <label>Valor da diária</label>
-                <input id="vehicleDaily" type="number" step="0.01" placeholder="150.00" required />
-              </div>
               <div class="field-operador-hide">
                 <label>Data e hora de entrada</label>
                 <input id="vehicleEntry" type="datetime-local" required />
@@ -9501,11 +9546,11 @@
               <div class="full gestor-entry-auto-note">
                 <p class="notice" style="margin: 0">Data e hora de entrada serão registradas automaticamente ao salvar.</p>
               </div>
-              <div class="field-operador-hide">
+              <div class="field-operador-hide field-entry-hide">
                 <label>Data e hora de saída (opcional)</label>
                 <input id="vehicleExit" type="datetime-local" />
               </div>
-              <div>
+              <div class="field-entry-hide">
                 <label>Parceiro</label>
                 <select id="vehicleLocator" title="Parceiro que trouxe o veículo ao pátio"></select>
               </div>
@@ -9583,7 +9628,7 @@
                   <option value="">Sem gestor informado</option>
                 </select>
               </div>
-              <div class="full field-create-only">
+              <div class="full field-create-only field-entry-hide">
                 <label>Observações</label>
                 <input id="vehicleNotes" type="text" placeholder="Observações importantes" />
               </div>
@@ -11941,6 +11986,9 @@
       let editingVehicleId = null;
       let vehicleFormMode = "create";
       let editingVehicleData = null;
+      let vehicleEntryPhotoFile = null;
+      let vehicleEntryPhotoRemove = false;
+      let vehicleEntryPhotoObjectUrl = "";
       let nfseVehicleId = null;
       let nfseStatusBeforeOpen = null;
       let nfseThermalVehicleId = null;
@@ -18975,7 +19023,7 @@
           #viewPatio [data-subview="removidos"] table tbody td:nth-child(8) {
             display: none !important;
           }
-          #vehicleForm.operador-simplified .field-operador-hide { display: none !important; }
+          #vehicleForm.operador-simplified .field-operador-hide:not(.field-entry-show) { display: none !important; }
           #vehicleForm .gestor-entry-auto-note { display: none; }
           #vehicleForm.operador-simplified .gestor-entry-auto-note { display: block; }
         `;
@@ -25898,6 +25946,10 @@
       async function loadVehicleMainPhotoUrl(vehicle) {
         if (!vehicle?.id) return "";
         try {
+          if (vehicle.foto_entrada_path) {
+            const own = await signedVehiclePhotoUrl(vehicle.foto_entrada_path);
+            if (own) return own;
+          }
           const insp = getInspectionIndexEntry(vehicle.id);
           if (insp && window.vehicleEntryInspection?.loadInspectionDetail) {
             const detail = await window.vehicleEntryInspection.loadInspectionDetail(
@@ -25992,7 +26044,7 @@
         const leiloeiro = partnerNomeById(vehicle.leiloeiro_id) || "";
         const photoUrl = await loadVehicleMainPhotoUrl(vehicle);
         const photoHtml = photoUrl
-          ? `<img class="vif-photo${kind === 2 ? " vif-photo--compact" : ""}" alt="Fotografia do veículo" src="${escapeHtml(photoUrl)}" />`
+          ? `<img class="vif-photo${kind === 2 ? " vif-photo--compact" : ""}" alt="Fotografia do veículo" crossorigin="anonymous" src="${escapeHtml(photoUrl)}" />`
           : "";
 
         if (kind === 2) {
@@ -26052,6 +26104,7 @@
             <dl class="vif-meta">
               ${vifMetaRow("Marca / modelo", modelo)}
               ${vifMetaRow("Cor", vehicle.cor || "—")}
+              ${vehicle.quem_trouxe ? vifMetaRow("Quem trouxe", vehicle.quem_trouxe) : ""}
               ${vifMetaRow("Instituição financeira", financeira || "Sem financeira informada")}
               ${vifMetaRow("Entrada no pátio", formatDateTime(vehicle.data_entrada) || "—")}
               ${vifMetaRow("Saída do pátio", vehicle.data_saida ? formatDateTime(vehicle.data_saida) : "Ainda no pátio")}
@@ -26133,6 +26186,7 @@
           ${photoHtml}
           <dl class="vif-meta">
             ${vifMetaRow("Cor", vehicle.cor || "—")}
+            ${vehicle.quem_trouxe ? vifMetaRow("Quem trouxe", vehicle.quem_trouxe) : ""}
             ${vifMetaRow("Entrada no pátio", formatDateTime(vehicle.data_entrada) || "—")}
           </dl>
           ${
@@ -26648,6 +26702,96 @@
         partnerModal?.classList.remove("hidden");
       }
 
+      function revokeVehicleEntryPhotoUrl() {
+        if (!vehicleEntryPhotoObjectUrl) return;
+        URL.revokeObjectURL(vehicleEntryPhotoObjectUrl);
+        vehicleEntryPhotoObjectUrl = "";
+      }
+
+      function resetVehicleEntryPhotoDraft() {
+        vehicleEntryPhotoFile = null;
+        vehicleEntryPhotoRemove = false;
+        revokeVehicleEntryPhotoUrl();
+        const cam = document.getElementById("vehiclePhotoCamera");
+        const file = document.getElementById("vehiclePhotoFile");
+        const img = document.getElementById("vehiclePhotoPreview");
+        const clearBtn = document.getElementById("vehiclePhotoClear");
+        if (cam) cam.value = "";
+        if (file) file.value = "";
+        if (img) {
+          img.removeAttribute("src");
+          img.classList.add("hidden");
+        }
+        if (clearBtn) clearBtn.classList.add("hidden");
+      }
+
+      function showVehicleEntryPhotoPreview(src) {
+        const img = document.getElementById("vehiclePhotoPreview");
+        const clearBtn = document.getElementById("vehiclePhotoClear");
+        if (!img) return;
+        if (!src) {
+          img.removeAttribute("src");
+          img.classList.add("hidden");
+          clearBtn?.classList.add("hidden");
+          return;
+        }
+        img.src = src;
+        img.classList.remove("hidden");
+        clearBtn?.classList.remove("hidden");
+      }
+
+      function stageVehicleEntryPhoto(file) {
+        if (!file) return;
+        if (!String(file.type || "").startsWith("image/")) {
+          alert("Escolha uma imagem do veículo.");
+          return;
+        }
+        vehicleEntryPhotoRemove = false;
+        vehicleEntryPhotoFile = file;
+        revokeVehicleEntryPhotoUrl();
+        vehicleEntryPhotoObjectUrl = URL.createObjectURL(file);
+        showVehicleEntryPhotoPreview(vehicleEntryPhotoObjectUrl);
+      }
+
+      async function signedVehiclePhotoUrl(path) {
+        if (!path || !supabase) return "";
+        try {
+          const signed = await supabase.storage.from("vehicle-inspection-photos").createSignedUrl(path, 3600);
+          return signed.data?.signedUrl || "";
+        } catch (e) {
+          return "";
+        }
+      }
+
+      async function persistVehicleEntryPhoto(vehicleId, userId) {
+        if (!vehicleId || !supabase) return { ok: true };
+        if (!vehicleEntryPhotoFile && !vehicleEntryPhotoRemove) return { ok: true };
+        if (vehicleEntryPhotoRemove && !vehicleEntryPhotoFile) {
+          const { error } = await supabase
+            .from("vehicles")
+            .update({ foto_entrada_path: null })
+            .eq("id", vehicleId)
+            .eq("user_id", userId);
+          if (error && /foto_entrada_path/i.test(error.message || "")) return { ok: false, missingColumn: true, error };
+          return { ok: !error, error };
+        }
+        const ext = String(vehicleEntryPhotoFile.name || "").split(".").pop() || "jpg";
+        const safeExt = /^[a-z0-9]+$/i.test(ext) ? ext.toLowerCase() : "jpg";
+        const path = `${userId}/entrada/${vehicleId}/foto-${Date.now()}.${safeExt}`;
+        const { error: upErr } = await supabase.storage.from("vehicle-inspection-photos").upload(path, vehicleEntryPhotoFile, {
+          contentType: vehicleEntryPhotoFile.type || "image/jpeg",
+          upsert: false,
+        });
+        if (upErr) return { ok: false, error: upErr };
+        const { error } = await supabase
+          .from("vehicles")
+          .update({ foto_entrada_path: path })
+          .eq("id", vehicleId)
+          .eq("user_id", userId);
+        if (error && /foto_entrada_path/i.test(error.message || "")) return { ok: false, missingColumn: true, error };
+        return { ok: !error, error };
+      }
+
       function openVehicleModal(mode, vehicle, opts = {}) {
         if (isVisualizador) {
           alert("O perfil Visualizador é somente consulta. Não é possível cadastrar ou editar veículos.");
@@ -26671,11 +26815,12 @@
             ? "Complemente financeira, escritório, leiloeiro, pátio, localizador e valor da diária"
             : mode === "edit"
               ? "Atualize os dados do veículo"
-              : "Cadastro de entrada no pátio — placa, marca, modelo, cor, RPV e observações";
+              : "Placa, marca, modelo, cor, quem trouxe e diária. A foto é opcional.";
         vehicleForm.classList.toggle("operador-simplified", !!(isGestorPista && mode === "create"));
         vehicleForm.classList.toggle("initial-register-simplified", mode === "create");
         vehicleForm.classList.toggle("registro-cr-only", mode === "cr");
         vehicleForm.reset();
+        resetVehicleEntryPhotoDraft();
         vehicleExit.value = "";
         bindVehicleRppPicker();
         if ((mode === "edit" || mode === "cr") && vehicle) {
@@ -26701,6 +26846,13 @@
           const rppMgr = findCarteiraManagerById(vehicle.responsavel_financeiro_id);
           if (rppMgr && !vehicle.advocacy_office_id) applyOfficeFromCarteiraRpp();
           document.getElementById("vehicleNotes").value = vehicle.observacoes || "";
+          const quemTrouxeEl = document.getElementById("vehicleQuemTrouxe");
+          if (quemTrouxeEl) quemTrouxeEl.value = vehicle.quem_trouxe || "";
+          if (vehicle.foto_entrada_path) {
+            signedVehiclePhotoUrl(vehicle.foto_entrada_path).then((url) => {
+              if (url && String(editingVehicleId || "") === String(vehicle.id)) showVehicleEntryPhotoPreview(url);
+            });
+          }
           setVehicleChaveCondicaoField(vehicle.chave_condicao);
           setVehicleDestinacaoFields(vehicle);
           const inspectionDateEl = document.getElementById("vehicleInspectionDate");
@@ -26747,7 +26899,7 @@
         const entryInput = document.getElementById("vehicleEntry");
         const gestorCreate = isGestorPista && mode === "create";
         const crMode = mode === "cr";
-        if (vd) vd.required = !gestorCreate && mode !== "create";
+        if (vd) vd.required = mode === "create" || mode === "edit" || crMode;
         if (entryInput) entryInput.required = !gestorCreate && mode !== "create" && !crMode;
         refreshVehiclePlatePreviewInput();
         const novoEscBtn = document.getElementById("vehicleAdvocacyOfficeNew");
@@ -30054,6 +30206,31 @@ ${body}
         }
       });
 
+      document.getElementById("vehiclePhotoCameraBtn")?.addEventListener("click", () => {
+        document.getElementById("vehiclePhotoCamera")?.click();
+      });
+      document.getElementById("vehiclePhotoFileBtn")?.addEventListener("click", () => {
+        document.getElementById("vehiclePhotoFile")?.click();
+      });
+      document.getElementById("vehiclePhotoCamera")?.addEventListener("change", (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (file) stageVehicleEntryPhoto(file);
+      });
+      document.getElementById("vehiclePhotoFile")?.addEventListener("change", (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (file) stageVehicleEntryPhoto(file);
+      });
+      document.getElementById("vehiclePhotoClear")?.addEventListener("click", () => {
+        vehicleEntryPhotoFile = null;
+        vehicleEntryPhotoRemove = true;
+        revokeVehicleEntryPhotoUrl();
+        const cam = document.getElementById("vehiclePhotoCamera");
+        const file = document.getElementById("vehiclePhotoFile");
+        if (cam) cam.value = "";
+        if (file) file.value = "";
+        showVehicleEntryPhotoPreview("");
+      });
+
       vehicleForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         if (!(await requireSupabaseSessionForWrite())) return;
@@ -30068,10 +30245,7 @@ ${body}
         const vehicleEntryEl = document.getElementById("vehicleEntry");
         let vehicleDailyValue = 0;
         let dataEntradaIso = new Date().toISOString();
-        if (initialCreate) {
-          vehicleDailyValue = 0;
-          dataEntradaIso = new Date().toISOString();
-        } else if (crMode) {
+        if (initialCreate || crMode) {
           const vehicleDailyRaw = (vehicleDailyEl?.value || "").toString().trim();
           if (!vehicleDailyRaw) {
             alert("Informe o valor da diária.");
@@ -30082,7 +30256,7 @@ ${body}
             alert("Valor da diária inválido.");
             return;
           }
-          dataEntradaIso = editingVehicleData?.data_entrada || new Date().toISOString();
+          dataEntradaIso = initialCreate ? new Date().toISOString() : editingVehicleData?.data_entrada || new Date().toISOString();
         } else {
           const vehicleDailyRaw = (vehicleDailyEl?.value || "").toString().trim();
           if (!vehicleDailyRaw) {
@@ -30172,7 +30346,8 @@ ${body}
           assessoria_id: null,
           leiloeiro_id: initialCreate ? null : vehicleAuctioneer?.value || null,
           observacoes: document.getElementById("vehicleNotes").value.trim(),
-          chave_condicao: readVehicleChaveCondicao() || null,
+          quem_trouxe: document.getElementById("vehicleQuemTrouxe")?.value?.trim() || null,
+          chave_condicao: initialCreate ? null : readVehicleChaveCondicao() || editingVehicleData?.chave_condicao || null,
           destinacao: readVehicleDestinacao() || null,
           restituicao_responsavel_nome:
             readVehicleDestinacao() === "RESTITUICAO"
@@ -30203,11 +30378,7 @@ ${body}
           payload.patio_parceiro_id = patioParceiroId || null;
           payload.financeira_id = financeiraId || null;
         }
-        if (!editingVehicleId && !payload.chave_condicao) {
-          alert("Selecione a condição da chave: C/CHAVE, S/CHAVE ou TRANCADO.");
-          return;
-        }
-        if (payload.destinacao === "RESTITUICAO" && !String(payload.restituicao_responsavel_nome || "").trim()) {
+        if (!initialCreate && payload.destinacao === "RESTITUICAO" && !String(payload.restituicao_responsavel_nome || "").trim()) {
           alert("Informe o nome completo do responsável pela restituição.");
           return;
         }
@@ -30234,7 +30405,7 @@ ${body}
         if (!editingVehicleId) {
           payload.status = "NO_PATIO";
           payload.entry_inspection_flow = false;
-          payload.registro_concluido = false;
+          payload.registro_concluido = true;
           payload.data_saida = null;
           payload.payment_status = "EM_ABERTO";
           payload.nfse_status = "NAO_SOLICITADA";
@@ -30317,6 +30488,12 @@ ${body}
           delete o.chave_condicao;
           return o;
         };
+        const stripEntradaSimplesFrom = (p) => {
+          const o = { ...p };
+          delete o.quem_trouxe;
+          delete o.foto_entrada_path;
+          return o;
+        };
         const stripDestinacaoFrom = (p) => {
           const o = { ...p };
           delete o.destinacao;
@@ -30334,6 +30511,7 @@ ${body}
           if (/pending_adm_review|registered_by_gestor|adm_reviewed_at/i.test(m)) kinds.push("admreview");
           if (/registro_concluido|patio_parceiro_id|financeira_id/i.test(m)) kinds.push("regcr");
           if (/chave_condicao/i.test(m)) kinds.push("chave");
+          if (/quem_trouxe|foto_entrada_path/i.test(m)) kinds.push("entrada");
           if (/destinacao|restituicao_responsavel_nome/i.test(m)) kinds.push("destinacao");
           if (/AGUARDANDO_VISTORIA|check constraint|vehicles_status/i.test(m)) kinds.push("status");
           return kinds;
@@ -30394,6 +30572,7 @@ ${body}
               if (!editingVehicleId) tryPayload.pending_adm_review = true;
             }
             else if (k === "chave") tryPayload = stripChaveCondicaoFrom(tryPayload);
+            else if (k === "entrada") tryPayload = stripEntradaSimplesFrom(tryPayload);
             else if (k === "destinacao") tryPayload = stripDestinacaoFrom(tryPayload);
             else if (k === "status" && !editingVehicleId) {
               alert(
@@ -30425,6 +30604,7 @@ ${body}
             partes.push("concluir registro / pátio parceiro (registro_concluido)");
           }
           if (degradedGroups.includes("chave")) partes.push("condição da chave");
+          if (degradedGroups.includes("entrada")) partes.push("quem trouxe / fotografia da entrada");
           if (degradedGroups.includes("destinacao")) partes.push("destinação / responsável pela restituição");
           const sqlHints = [];
           if (degradedGroups.some((k) => ["vistoria", "leiloeiro", "rpf"].includes(k))) {
@@ -30442,6 +30622,9 @@ ${body}
           }
           if (degradedGroups.includes("chave")) {
             sqlHints.push("supabase/vehicles_chave_condicao.sql");
+          }
+          if (degradedGroups.includes("entrada")) {
+            sqlHints.push("supabase/vehicles_entrada_simplificada.sql");
           }
           if (degradedGroups.includes("destinacao")) {
             sqlHints.push("supabase/vehicles_restituicao_responsavel.sql");
@@ -30487,7 +30670,18 @@ ${body}
         const savedEditId = editingVehicleId;
         const wasNewVehicle = !savedEditId;
         const wasCr = crMode;
+        if (histVehicleId && (vehicleEntryPhotoFile || vehicleEntryPhotoRemove) && !degradedGroups.includes("entrada")) {
+          const photoRes = await persistVehicleEntryPhoto(histVehicleId, effectiveUserId());
+          if (!photoRes.ok) {
+            alert(
+              photoRes.missingColumn
+                ? "Veículo salvo. Para guardar a fotografia, execute supabase/vehicles_entrada_simplificada.sql no Supabase e envie a foto de novo em Editar."
+                : "Veículo salvo, mas a fotografia não foi gravada. Abra Editar e envie a imagem outra vez."
+            );
+          }
+        }
         vehicleForm.reset();
+        resetVehicleEntryPhotoDraft();
         editingVehicleId = null;
         editingVehicleData = null;
         vehicleFormMode = "create";
@@ -30527,9 +30721,7 @@ ${body}
         } else if (wasNewVehicle) {
           openMainView("patio");
           openPatioSubview("no_patio");
-          alert(
-            "Veículo cadastrado. Fica no VNP. Use «CR — Concluir registro» para escritório, leiloeiro, pátio, localizador e diária. Depois disso entra na fila de vistoria."
-          );
+          alert("Veículo registrado. A data e a hora da entrada foram gravadas agora. A vistoria pode ser feita depois, se for necessária.");
         }
       });
 
