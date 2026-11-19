@@ -33,9 +33,9 @@
   let financeFilterReceberRppId = "";
   let finReceberQuick = "todos";
   const finConsulta = {
-    receber: { situacao: "todos", periodo: "mes", de: "", ate: "" },
-    pagar: { situacao: "todos", periodo: "mes", de: "", ate: "" },
-    caixa: { situacao: "todos", periodo: "mes", de: "", ate: "" },
+    receber: { situacao: "todos", periodo: "30d", de: "", ate: "" },
+    pagar: { situacao: "todos", periodo: "30d", de: "", ate: "" },
+    caixa: { situacao: "todos", periodo: "30d", de: "", ate: "" },
   };
   let finReceberCadernetaKey = "";
   let financeFilterCadernetaPlaca = "";
@@ -1823,46 +1823,39 @@
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
 
+  function financeAddDaysYmd(ymd, days) {
+    const d = new Date(`${ymd}T12:00:00`);
+    d.setDate(d.getDate() + days);
+    return financeYmdFromLocalDate(d);
+  }
+
   function financeConsultaRange(st) {
     const today = financeTodayYmd();
-    const periodo = st?.periodo || "mes";
+    const periodo = st?.periodo || "30d";
     if (periodo === "tudo") return { de: "", ate: "" };
     if (periodo === "hoje") return { de: today, ate: today };
-    if (periodo === "semana") {
-      const d = new Date(`${today}T12:00:00`);
-      const diff = d.getDay() === 0 ? 6 : d.getDay() - 1;
-      d.setDate(d.getDate() - diff);
-      const de = financeYmdFromLocalDate(d);
-      const end = new Date(`${de}T12:00:00`);
-      end.setDate(end.getDate() + 6);
-      return { de, ate: financeYmdFromLocalDate(end) };
-    }
-    if (periodo === "anterior") {
-      const first = new Date(`${today.slice(0, 7)}-01T12:00:00`);
-      first.setDate(0);
-      const ate = financeYmdFromLocalDate(first);
-      return { de: `${ate.slice(0, 7)}-01`, ate };
-    }
+    if (periodo === "7d") return { de: financeAddDaysYmd(today, -6), ate: today };
+    if (periodo === "90d") return { de: financeAddDaysYmd(today, -89), ate: today };
     if (periodo === "personalizado") {
       let de = st.de || "";
       let ate = st.ate || "";
       if (de && ate && de > ate) [de, ate] = [ate, de];
       return { de, ate };
     }
-    return financeCaixaMesAtualRange();
+    return { de: financeAddDaysYmd(today, -29), ate: today };
   }
 
   function financeConsultaPeriodoLabel(view) {
     const st = finConsulta[view];
     const map = {
       hoje: "Hoje",
-      semana: "Esta semana",
-      mes: "Este mês",
-      anterior: "Mês anterior",
+      "7d": "7 dias",
+      "30d": "30 dias",
+      "90d": "90 dias",
       personalizado: "Personalizado",
       tudo: "Todo o período",
     };
-    return map[st?.periodo] || "Este mês";
+    return map[st?.periodo] || "30 dias";
   }
 
   function financeSyncConsultaUi(view) {
@@ -7756,7 +7749,7 @@
         return;
       }
       if (!de && !ate) {
-        finConsulta.pagar.periodo = "mes";
+        finConsulta.pagar.periodo = "30d";
         finConsulta.pagar.de = "";
         finConsulta.pagar.ate = "";
       } else {
@@ -7767,7 +7760,7 @@
       financeRenderPagar();
     });
     document.getElementById("finDespesasMesAtual")?.addEventListener("click", () => {
-      finConsulta.pagar.periodo = "mes";
+      finConsulta.pagar.periodo = "30d";
       financeRenderPagar();
     });
     document.getElementById("finCaixaFilterApply")?.addEventListener("click", () => {
@@ -7777,7 +7770,7 @@
       financeRenderCaixa();
     });
     document.getElementById("finCaixaMesAtual")?.addEventListener("click", () => {
-      finConsulta.caixa.periodo = "mes";
+      finConsulta.caixa.periodo = "30d";
       financeRenderCaixa();
     });
     document.getElementById("finCaixaBusca")?.addEventListener("input", (e) => {
@@ -7805,7 +7798,7 @@
       financeFilterCaixaValorAte = null;
       financeFilterCaixaTipo = "";
       finConsulta.caixa.situacao = "todos";
-      finConsulta.caixa.periodo = "mes";
+      finConsulta.caixa.periodo = "30d";
       financeRenderCaixa();
     });
     document.getElementById("finCaixaRpp")?.addEventListener("change", () => {
