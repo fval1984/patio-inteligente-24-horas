@@ -864,7 +864,6 @@
           )
           .join("")}</div>`
       : `<p class="cob-empty">Nenhum cliente no Programa Parceiro.</p>`;
-    const customOpen = _filterPeriod === "custom";
 
     root.innerHTML = `
       <div class="cob-shell">
@@ -879,17 +878,6 @@
             <button type="button" class="cob-btn secondary" data-hub-nav="parceiros">Parceiros</button>
           </div>
         </div>
-        <div class="cob-filters" role="group" aria-label="Período">
-          <button type="button" class="cob-chip${_filterPeriod === "7d" ? " is-on" : ""}" data-exec-period="7d">7 dias</button>
-          <button type="button" class="cob-chip${_filterPeriod === "30d" ? " is-on" : ""}" data-exec-period="30d">30 dias</button>
-          <button type="button" class="cob-chip${_filterPeriod === "90d" ? " is-on" : ""}" data-exec-period="90d">90 dias</button>
-          <button type="button" class="cob-chip${customOpen ? " is-on" : ""}" data-exec-period="custom">Personalizado</button>
-        </div>
-        <div class="cob-actions-row ag-dash-custom"${customOpen ? "" : " hidden"}>
-          <label>De <input type="date" id="agDashFrom" value="${escapeHtml(_customFrom)}" /></label>
-          <label>Até <input type="date" id="agDashTo" value="${escapeHtml(_customTo)}" /></label>
-        </div>
-
         <h3>Indicadores principais</h3>
         <div class="cob-kpis ag-dash-kpis-6" role="group" aria-label="Indicadores do pátio">
           ${cobKpi("patio:no_patio", "No pátio", b.vnp)}
