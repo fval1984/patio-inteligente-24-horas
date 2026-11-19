@@ -1595,6 +1595,15 @@ body.ag-ficha-open {
     outline-offset: 3px;
   }
 
+  html.ag-nav-collapsed body:not(.auth-screen-active) #dashboardSystemEntry {
+    transform: translateX(-105%) !important;
+    box-shadow: none !important;
+  }
+
+  html.ag-nav-collapsed body:not(.auth-screen-active) .ag-nav-backdrop {
+    display: none !important;
+  }
+
   body:not(.auth-screen-active) #dashboardSystemEntry {
     position: fixed !important;
     top: 0 !important;
