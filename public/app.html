@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <!-- amplipatio-static build=partners-tabs-v2 -->
 <html lang="pt-BR" data-theme="light">
   <head>
@@ -48,9 +48,8 @@
         }
       })();
       try {
-        if (localStorage.getItem("ampliguard_nav_collapsed") !== "0") {
-          document.documentElement.classList.add("ag-nav-collapsed");
-        }
+        document.documentElement.classList.add("ag-nav-collapsed");
+        localStorage.setItem("ampliguard_nav_collapsed", "1");
       } catch (e) {}
     </script>
     <meta charset="utf-8" />
@@ -7809,7 +7808,7 @@
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20261116vis1" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261117cad1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20261112plate12" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261117nav2" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261119nav" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261119entrada" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20261116vis1" />
@@ -8567,9 +8566,9 @@
               </div>
               <div class="fin-act-periods" role="group" aria-label="Período">
                 <button type="button" class="fin-act-chip" data-fin-consulta-periodo="hoje">Hoje</button>
-                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="semana">Esta semana</button>
-                <button type="button" class="fin-act-chip is-active" data-fin-consulta-periodo="mes" aria-pressed="true">Este mês</button>
-                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="anterior">Mês anterior</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="7d">7 dias</button>
+                <button type="button" class="fin-act-chip is-active" data-fin-consulta-periodo="30d" aria-pressed="true">30 dias</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="90d">90 dias</button>
                 <button type="button" class="fin-act-chip" data-fin-consulta-periodo="personalizado">Personalizado</button>
                 <button type="button" class="fin-act-chip" data-fin-consulta-periodo="tudo">Todo o período</button>
               </div>
@@ -9031,9 +9030,9 @@
               </div>
               <div class="fin-act-periods" role="group" aria-label="Período">
                 <button type="button" class="fin-act-chip" data-fin-consulta-periodo="hoje">Hoje</button>
-                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="semana">Esta semana</button>
-                <button type="button" class="fin-act-chip is-active" data-fin-consulta-periodo="mes" aria-pressed="true">Este mês</button>
-                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="anterior">Mês anterior</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="7d">7 dias</button>
+                <button type="button" class="fin-act-chip is-active" data-fin-consulta-periodo="30d" aria-pressed="true">30 dias</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="90d">90 dias</button>
                 <button type="button" class="fin-act-chip" data-fin-consulta-periodo="personalizado">Personalizado</button>
                 <button type="button" class="fin-act-chip" data-fin-consulta-periodo="tudo">Todo o período</button>
               </div>
@@ -9129,9 +9128,9 @@
               </div>
               <div class="fin-act-periods" role="group" aria-label="Período">
                 <button type="button" class="fin-act-chip" data-fin-consulta-periodo="hoje">Hoje</button>
-                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="semana">Esta semana</button>
-                <button type="button" class="fin-act-chip is-active" data-fin-consulta-periodo="mes" aria-pressed="true">Este mês</button>
-                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="anterior">Mês anterior</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="7d">7 dias</button>
+                <button type="button" class="fin-act-chip is-active" data-fin-consulta-periodo="30d" aria-pressed="true">30 dias</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="90d">90 dias</button>
                 <button type="button" class="fin-act-chip" data-fin-consulta-periodo="personalizado">Personalizado</button>
                 <button type="button" class="fin-act-chip" data-fin-consulta-periodo="tudo">Todo o período</button>
               </div>
@@ -11058,7 +11057,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20261119filtros"></script>
+    <script src="/finance-module.js?v=20261119periodos"></script>
     <script src="/finance-notas-transporte.js?v=20261111nt1"></script>
     <script src="/payment-receipt.js?v=20261005recibo10"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
@@ -11080,7 +11079,7 @@
     <script src="/reboque-transporte-service.js?v=20261021reboque1"></script>
     <script src="/reboque-transporte-ui.js?v=20261105extrato1"></script>
     <script src="/dashboard-metrics-service.js?v=20261112dash4"></script>
-    <script src="/amplipatio-dashboard.js?v=20261112dash4"></script>
+    <script src="/amplipatio-dashboard.js?v=20261119dash"></script>
     <script src="/recibo-documento.js?v=20261023recibo6"></script>
     <script src="/vehicle-entry-inspection-checklist.js?v=20260915vistoria1"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20261105fotos1"></script>
@@ -12182,20 +12181,10 @@
           } catch (e) {}
           apply(collapsed);
         };
-        const stored = (() => {
-          try {
-            return localStorage.getItem(KEY);
-          } catch (e) {
-            return "1";
-          }
-        })();
-        const collapsed = stored !== "0";
-        if (stored === null) {
-          try {
-            localStorage.setItem(KEY, "1");
-          } catch (e) {}
-        }
-        apply(collapsed);
+        try {
+          localStorage.setItem(KEY, "1");
+        } catch (e) {}
+        apply(true);
         btn?.addEventListener("click", (event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -18457,7 +18446,7 @@
             appLaunchConfigConsumed = true;
             applyAppLaunchConfig(pendingLaunch);
           } else if (!alreadyInApp && !pendingLaunch && !navigationChosenByUser) {
-            openRestoredOrDefaultMainView();
+            openDefaultHomeView();
           }
         } finally {
           showAppBootstrapping = false;
