@@ -22,6 +22,49 @@
   color: var(--fin-act-ink);
 }
 
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-consulta {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-consulta .fin-act-chips,
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-consulta .fin-act-periods {
+  margin: 0;
+}
+
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-chips.hidden {
+  display: none !important;
+}
+
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-consulta .fin-act-chip {
+  background: var(--ag-surface) !important;
+  color: var(--ag-text) !important;
+  border: 1px solid var(--ag-border) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  font-weight: 600 !important;
+}
+
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-consulta .fin-act-chip.is-active {
+  background: var(--ag-graphite) !important;
+  color: #fff !important;
+  border-color: var(--ag-graphite) !important;
+}
+
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-row-late {
+  background: rgba(185, 28, 28, 0.07);
+}
+
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-row-late .fin-tag--late {
+  background: rgba(185, 28, 28, 0.14);
+  color: #b91c1c;
+}
+
+:is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-launch--late {
+  box-shadow: inset 3px 0 0 #b91c1c;
+}
+
 :is(#viewFinanceiro, #parceiroCadernetaRoot) .fin-act-periods {
   display: flex;
   flex-wrap: wrap;
