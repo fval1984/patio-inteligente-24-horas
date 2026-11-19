@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <!-- amplipatio-static build=partners-tabs-v2 -->
 <html lang="pt-BR" data-theme="light">
   <head>
@@ -7777,7 +7777,7 @@
       }
     </style>
     <link rel="stylesheet" href="/ampliguard-theme.css?v=20260917header1" />
-    <link rel="stylesheet" href="/finance-action-ui.css?v=20261117cad1" />
+    <link rel="stylesheet" href="/finance-action-ui.css?v=20261119filtros2" />
     <link rel="stylesheet" href="/payment-receipt.css?v=20261005recibo10" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20261116vis1" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261117cad1" />
@@ -8532,6 +8532,25 @@
           <div class="partner-subview hidden" data-subview="cadernetas">
             <div id="parceiroCadernetaRoot">
             <div class="finance-subview" data-finance-subview="receber">
+            <div class="fin-consulta" data-fin-consulta="receber">
+              <div class="fin-act-chips" role="group" aria-label="Situação">
+                <button type="button" class="fin-act-chip is-active" data-fin-consulta-situacao="todos" aria-pressed="true">Todos</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-situacao="a_vencer" aria-pressed="false">A vencer</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-situacao="atrasados" aria-pressed="false">Atrasados</button>
+              </div>
+              <div class="fin-act-periods" role="group" aria-label="Período">
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="hoje">Hoje</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="semana">Esta semana</button>
+                <button type="button" class="fin-act-chip is-active" data-fin-consulta-periodo="mes" aria-pressed="true">Este mês</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="anterior">Mês anterior</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="personalizado">Personalizado</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="tudo">Todo o período</button>
+              </div>
+              <div class="fin-act-custom" data-fin-consulta-custom hidden>
+                <label>De <input type="date" data-fin-consulta-de /></label>
+                <label>Até <input type="date" data-fin-consulta-ate /></label>
+              </div>
+            </div>
             <div class="fin-toolbar">
               <form id="finReceberPlateForm" action="#" novalidate style="display: contents">
               <div><button type="button" id="finBtnNovaReceita">+ Receita avulsa</button></div>
@@ -8578,8 +8597,8 @@
             <p id="finReceberSelectedSummary" class="fin-selected-summary hidden" aria-live="polite">
               <strong>Total selecionado:</strong> <span id="finReceberSelectedTotal">R$ 0,00</span><span id="finReceberSelectedCount" class="notice"></span>
             </p>
-            <p><strong>Total a receber:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
-            <div class="fin-act-chips" id="finReceberQuickFilters" aria-label="Filtros rápidos"></div>
+            <p><strong id="finReceberTotalLabel">Total do período:</strong> <span id="finReceberTotal">R$ 0,00</span></p>
+            <div class="fin-act-chips hidden" id="finReceberQuickFilters" aria-label="Filtros rápidos"></div>
             <div id="finReceberCadernetaBar" class="fin-caderneta-bar hidden">
               <button type="button" class="secondary" id="finReceberCadernetaBack">← Voltar às cadernetas</button>
               <h3 id="finReceberCadernetaTitle">Caderneta</h3>
@@ -8977,8 +8996,27 @@
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="pagar">
+            <div class="fin-consulta" data-fin-consulta="pagar">
+              <div class="fin-act-chips" role="group" aria-label="Situação">
+                <button type="button" class="fin-act-chip is-active" data-fin-consulta-situacao="todos" aria-pressed="true">Todos</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-situacao="a_vencer" aria-pressed="false">A vencer</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-situacao="atrasados" aria-pressed="false">Atrasados</button>
+              </div>
+              <div class="fin-act-periods" role="group" aria-label="Período">
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="hoje">Hoje</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="semana">Esta semana</button>
+                <button type="button" class="fin-act-chip is-active" data-fin-consulta-periodo="mes" aria-pressed="true">Este mês</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="anterior">Mês anterior</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="personalizado">Personalizado</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="tudo">Todo o período</button>
+              </div>
+              <div class="fin-act-custom" data-fin-consulta-custom hidden>
+                <label>De <input type="date" data-fin-consulta-de /></label>
+                <label>Até <input type="date" data-fin-consulta-ate /></label>
+              </div>
+            </div>
             <h2 id="finDespesasTitulo" style="margin: 0 0 8px; font-size: 1.15rem; letter-spacing: 0.04em">SAÍDAS</h2>
-            <p style="margin: 0 0 12px"><strong>Total de Saídas:</strong> <span id="finPagarTotal">R$ 0,00</span></p>
+            <p style="margin: 0 0 12px"><strong id="finPagarTotalLabel">Total do período:</strong> <span id="finPagarTotal">R$ 0,00</span></p>
             <div class="fin-toolbar">
               <div><button type="button" id="finBtnNovaDespesa">+ Nova saída</button></div>
               <div><button type="button" class="secondary" id="finPagarOpenCadastros">Cadastros</button></div>
@@ -9017,7 +9055,7 @@
               <button type="button" class="secondary fin-batch-action" data-fin-batch-view="pagar" data-fin-batch-action="caixa" data-fin-batch-label="Caixa Selecionados" disabled>Caixa Selecionados</button>
               <button type="button" class="secondary fin-batch-delete fin-batch-action hidden" data-fin-batch-view="pagar" data-fin-batch-action="delete" data-fin-batch-label="Apagar Selecionados">Apagar Selecionados</button>
             </div>
-            <div class="fin-act-chips" id="finPagarQuickFilters" aria-label="Filtros rápidos"></div>
+            <div class="fin-act-chips hidden" id="finPagarQuickFilters" aria-label="Filtros rápidos"></div>
             <div id="finPagarCards" class="fin-act-launch-host"></div>
             <div class="table-wrap section-card">
               <table class="table">
@@ -9056,6 +9094,25 @@
           </div>
 
           <div class="finance-subview hidden" data-finance-subview="caixa">
+            <div class="fin-consulta" data-fin-consulta="caixa">
+              <div class="fin-act-chips" role="group" aria-label="Movimentação">
+                <button type="button" class="fin-act-chip is-active" data-fin-consulta-situacao="todos" aria-pressed="true">Todos</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-situacao="entrada" aria-pressed="false">Entradas</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-situacao="saida" aria-pressed="false">Saídas</button>
+              </div>
+              <div class="fin-act-periods" role="group" aria-label="Período">
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="hoje">Hoje</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="semana">Esta semana</button>
+                <button type="button" class="fin-act-chip is-active" data-fin-consulta-periodo="mes" aria-pressed="true">Este mês</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="anterior">Mês anterior</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="personalizado">Personalizado</button>
+                <button type="button" class="fin-act-chip" data-fin-consulta-periodo="tudo">Todo o período</button>
+              </div>
+              <div class="fin-act-custom" data-fin-consulta-custom hidden>
+                <label>De <input type="date" data-fin-consulta-de /></label>
+                <label>Até <input type="date" data-fin-consulta-ate /></label>
+              </div>
+            </div>
             <h2 id="finCaixaTitulo" style="margin: 0 0 6px; font-size: 1.35rem; letter-spacing: 0.04em">CAIXA</h2>
             <p id="finCaixaPeriodoLabel" class="fin-caixa-periodo">Este mês</p>
             <div class="fin-caixa-summary" id="finCaixaSummary"></div>
@@ -10956,7 +11013,7 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20261117cad1"></script>
+    <script src="/finance-module.js?v=20261119filtros"></script>
     <script src="/finance-notas-transporte.js?v=20261111nt1"></script>
     <script src="/payment-receipt.js?v=20261005recibo10"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
@@ -10964,7 +11021,7 @@
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
     <script src="/partner-program.js?v=20261112pp1"></script>
     <script src="/finance-simple-ui.js?v=20261116cx9"></script>
-    <script src="/finance-action-ui.js?v=20260921caderneta1"></script>
+    <script src="/finance-action-ui.js?v=20261119filtros"></script>
     <script src="/finance-pix-ui.js?v=20261112pix1"></script>
     <script src="/patio-dashboard.js?v=20260715gestor"></script>
     <script src="/operational-metrics-service.js?v=20260727opsdash"></script>
