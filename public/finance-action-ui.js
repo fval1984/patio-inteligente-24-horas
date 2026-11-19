@@ -59,7 +59,8 @@
             : unpaid.length > 1
               ? `<button type="button" class="fin-act-primary" data-fin-act-detalhe="${esc(kind)}" data-fin-act-ids="${esc((c.allIds || []).join(","))}">${actionLabel}</button>`
               : "";
-        return `<article class="fin-act-launch">
+        const late = c.statusKind === "late" ? " fin-act-launch--late" : "";
+        return `<article class="fin-act-launch${late}">
           <div>
             <h4>${esc(c.title)}</h4>
             <p>${esc(c.subtitle || "")}</p>
@@ -253,7 +254,8 @@
         const vehicleBtn = c.vehicleId
           ? `<button type="button" class="secondary" data-fin-open-vehicle="${esc(c.vehicleId)}">${esc(c.placa || "Veículo")}</button>`
           : "";
-        return `<article class="fin-act-launch">
+        const late = c.statusKind === "late" ? " fin-act-launch--late" : "";
+        return `<article class="fin-act-launch${late}">
           <div>
             <h4>${esc(c.title)}</h4>
             <p>${esc(c.subtitle || "")}</p>
