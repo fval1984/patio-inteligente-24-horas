@@ -7983,7 +7983,7 @@
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20261116vis1" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261117cad1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20261112plate12" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261123patioops2" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261123patioops3" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261119entrada" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20261116vis1" />
@@ -12720,6 +12720,17 @@
 
           backdropEl._tabModalTitle = header.querySelector("[data-tab-modal-title]");
           backdropEl._tabModalSubtitle = header.querySelector("[data-tab-modal-subtitle]");
+
+          const patioNav = document.createElement("nav");
+          patioNav.className = "patio-modal-nav";
+          patioNav.setAttribute("aria-label", "Secções do pátio");
+          header.querySelector("[data-tab-modal-close]")?.before(patioNav);
+          patioNav.addEventListener("click", (e) => {
+            const tab = e.target.closest("[data-patio-modal-sub]");
+            if (!tab) return;
+            e.preventDefault();
+            openPatioSubview(tab.getAttribute("data-patio-modal-sub"));
+          });
 
           header.querySelector("[data-tab-modal-close]")?.addEventListener("click", (e) => {
             e.preventDefault();
@@ -22806,6 +22817,36 @@
       bindPatioOpsBoardOnce();
       window.renderPatioOpsBoard = renderPatioOpsBoard;
 
+      function syncPatioModalNav() {
+        const host = document.querySelector("#patioContent .patio-modal-nav");
+        if (!host) return;
+        const current = host.querySelector("button.active")?.getAttribute("data-patio-modal-sub") || "";
+        const buttons = [...document.querySelectorAll("#patioSubnav button[data-subview]")].filter(
+          (btn) => !btn.classList.contains("hidden")
+        );
+        const next = buttons.map((btn) => btn.getAttribute("data-subview")).join("|");
+        if (host.dataset.tabs !== next) {
+          host.dataset.tabs = next;
+          host.replaceChildren(
+            ...buttons.map((src) => {
+              const btn = document.createElement("button");
+              btn.type = "button";
+              btn.className = "secondary";
+              btn.textContent = src.textContent.trim();
+              btn.setAttribute("data-patio-modal-sub", src.getAttribute("data-subview"));
+              return btn;
+            })
+          );
+        }
+        host.querySelectorAll("button[data-patio-modal-sub]").forEach((btn) => {
+          const key = btn.getAttribute("data-patio-modal-sub");
+          const src = document.querySelector(`#patioSubnav button[data-subview="${key}"]`);
+          btn.classList.toggle("active", !!src?.classList.contains("active"));
+          if (!current && btn.classList.contains("active")) btn.setAttribute("aria-current", "page");
+          else btn.toggleAttribute("aria-current", btn.classList.contains("active") ? "page" : false);
+        });
+      }
+
       function setPatioView(view, opts = {}) {
         if (isVisualizador) view = view === "aguardando_faturamento" || view === "fechando_ciclo" || view === "extrato_valores" || view === "resumo_valores" ? "no_patio" : view;
         if (isGestorPista && (view === "extrato_valores" || view === "resumo_valores")) view = "no_patio";
@@ -22893,6 +22934,7 @@
           patioContent?.classList.add("hidden");
         }
         if (isInicio) renderPatioOpsBoard();
+        syncPatioModalNav();
         syncMobileChromeOffset();
       }
 
