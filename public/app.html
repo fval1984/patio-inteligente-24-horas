@@ -7981,9 +7981,9 @@
     <link rel="stylesheet" href="/finance-action-ui.css?v=20261119filtros2" />
     <link rel="stylesheet" href="/payment-receipt.css?v=20261005recibo10" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20261116vis1" />
-    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261117cad1" />
+    <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261123patioframe1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20261112plate12" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261123patioops3" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261123patioframe1" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261119entrada" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20261116vis1" />
@@ -22847,6 +22847,19 @@
         });
       }
 
+      function placePatioContentWithDashboard(el) {
+        if (!el) return;
+        unwrapTabModalShell(el);
+        const root = document.getElementById("viewPatio");
+        const anchor = document.getElementById("patioInicioPanel");
+        if (root && el.parentElement !== root) {
+          if (anchor && anchor.parentElement === root) anchor.after(el);
+          else root.appendChild(el);
+        }
+        el.classList.remove("modal-backdrop", "tab-view-modal");
+        el.style.marginTop = "";
+      }
+
       function setPatioView(view, opts = {}) {
         if (isVisualizador) view = view === "aguardando_faturamento" || view === "fechando_ciclo" || view === "extrato_valores" || view === "resumo_valores" ? "no_patio" : view;
         if (isGestorPista && (view === "extrato_valores" || view === "resumo_valores")) view = "no_patio";
@@ -22885,23 +22898,20 @@
           });
         }
         const patioRoot = document.getElementById("viewPatio");
-        patioRoot?.classList.remove("patio-flyout-open", "patio-subview-fullscreen");
-        patioRoot?.classList.toggle("patio-subtab-modal-open", isContentView && !isVistoriador);
+        patioRoot?.classList.remove("patio-flyout-open", "patio-subview-fullscreen", "patio-subtab-modal-open");
         patioFlyoutBackdrop?.classList.add("hidden");
         const patioContent = document.getElementById("patioContent");
         const patioInicioPanel = document.getElementById("patioInicioPanel");
         if (patioInicioPanel) patioInicioPanel.classList.toggle("hidden", isVistoriador ? true : !isInicio);
         if (patioContent) {
           patioContent.classList.toggle("hidden", !isContentView);
-          if (isContentView) {
-            if (isVistoriador) {
+          if (isVistoriador) {
+            if (isContentView) {
               unwrapTabModalShell(patioContent);
               rehomeViewToAppPanel(patioContent);
-            } else {
-              ensureTabModalShell(patioContent, returnToPainelFromPatioFlyout);
-              const meta = PATIO_TAB_LABELS[view] || { title: view, subtitle: "" };
-              setTabModalMeta(patioContent, meta.title, meta.subtitle);
             }
+          } else {
+            placePatioContentWithDashboard(patioContent);
           }
         }
         mountPatioPlateSearchBar(false);
