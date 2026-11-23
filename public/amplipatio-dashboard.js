@@ -596,9 +596,9 @@
     return Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   }
 
-  function cobKpi(nav, label, value, extraClass) {
+  function cobKpi(nav, label, value, extraClass, icon) {
     return `<button type="button" class="cob-kpi${extraClass ? ` ${extraClass}` : ""}" data-hub-nav="${escapeHtml(nav)}">
-      <span>${escapeHtml(label)}</span>
+      <span class="ag-dash-kpi-top">${iconSvg(icon || "billing")}<span>${escapeHtml(label)}</span></span>
       <strong>${escapeHtml(String(value))}</strong>
     </button>`;
   }
@@ -762,9 +762,9 @@
     const b = buildHomeBoard(data, ctx);
     const m = getMetrics(data);
     const range = m.range || { from: ymdToday(), to: ymdToday(), label: "—" };
-    const navy = "#1e3a5f";
-    const stone = "#8f877c";
-    const ok = "#1f5c32";
+    const navy = "#0f3d2e";
+    const stone = "#8eaa9c";
+    const ok = "#3d7a5a";
     const occ = occupancyByDay(data.vehicles || [], range.from, range.to);
     const recent = recentPatioMovements(data.vehicles || [], 8, range.from, range.to);
     const months = lastSixMonthsYm(ymdToday());
@@ -880,12 +880,12 @@
         </div>
         <h3>Indicadores principais</h3>
         <div class="cob-kpis ag-dash-kpis-6" role="group" aria-label="Indicadores do pátio">
-          ${cobKpi("patio:no_patio", "No pátio", b.vnp)}
-          ${cobKpi("patio:no_patio", "Liberação solicitada", b.vsl)}
-          ${cobKpi("patio:no_patio", "Liberação confirmada", b.vsc)}
-          ${cobKpi("patio:no_patio", "Entradas do mês", b.inMonth)}
-          ${cobKpi("patio:removidos", "Saídas do mês", b.outMonth)}
-          ${cobKpi("patio:no_patio", "Permanência média", b.avgStay === "—" ? "—" : `${b.avgStay} d`)}
+          ${cobKpi("patio:no_patio", "No pátio", b.vnp, "", "vehicle")}
+          ${cobKpi("patio:no_patio", "Liberação solicitada", b.vsl, "", "stay")}
+          ${cobKpi("patio:no_patio", "Liberação confirmada", b.vsc, "", "recv")}
+          ${cobKpi("patio:no_patio", "Entradas do mês", b.inMonth, "", "occupancy")}
+          ${cobKpi("patio:removidos", "Saídas do mês", b.outMonth, "", "billing")}
+          ${cobKpi("patio:no_patio", "Permanência média", b.avgStay === "—" ? "—" : `${b.avgStay} d`, "", "stay")}
         </div>
 
         <h3 style="margin-top:22px">Movimentação do pátio</h3>
@@ -917,11 +917,11 @@
             ? ""
             : `<h3 style="margin-top:22px">Gestão financeira</h3>
         <div class="cob-kpis ag-dash-kpis-5" role="group" aria-label="Indicadores financeiros">
-          ${cobKpi("financeiro:aguardando", "A faturar", b.fmt(b.aFaturar))}
-          ${cobKpi("financeiro:cobrancas", "A receber", b.fmt(b.aReceberVal))}
-          ${cobKpi("financeiro:caixa", "Recebido no mês", b.fmt(b.recebidoMes))}
-          ${cobKpi("financeiro:receber", "Cobranças vencidas", b.fmt(b.vencidoVal), "is-late")}
-          ${cobKpi("financeiro:pix", "PIX a conciliar", b.pixPend)}
+          ${cobKpi("financeiro:aguardando", "A faturar", b.fmt(b.aFaturar), "", "billing")}
+          ${cobKpi("financeiro:cobrancas", "A receber", b.fmt(b.aReceberVal), "", "recv")}
+          ${cobKpi("financeiro:caixa", "Recebido no mês", b.fmt(b.recebidoMes), "", "recv")}
+          ${cobKpi("financeiro:receber", "Cobranças vencidas", b.fmt(b.vencidoVal), "is-late", "late")}
+          ${cobKpi("financeiro:pix", "PIX a conciliar", b.pixPend, "", "billing")}
         </div>
         <article class="cob-card">
           <span class="cob-tipo">Últimos 6 meses</span>
