@@ -1897,6 +1897,78 @@ html[data-theme="light"] .periodo-box__btn.secondary {
   border: none !important;
   box-shadow: none !important;
 }
+#viewPatio > .patio-toolbar {
+  position: relative;
+  z-index: 2;
+  margin-bottom: 8px;
+}
+#viewPatio > #patioContent:not(.tab-view-modal) {
+  margin: 0 !important;
+  padding: 20px 22px 22px !important;
+  background: #ffffff !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  position: static !important;
+  inset: auto !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  z-index: auto !important;
+  overflow: visible !important;
+}
+#viewPatio > #patioContent:not(.tab-view-modal):not(.hidden) {
+  display: block !important;
+}
+#viewPatio > #patioContent:not(.tab-view-modal) .section-card.patio-subview {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+#viewPatio #patioHubTabs.patio-hub-tabs {
+  display: inline-flex;
+  margin: 0 0 12px !important;
+  padding: 4px !important;
+  background: #eef4f0 !important;
+  border: 1px solid #e3ece6 !important;
+  border-radius: 10px !important;
+}
+#viewPatio #patioHubTabs .patio-hub-kpi {
+  background: transparent !important;
+  color: #4d6a5c !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+#viewPatio #patioHubTabs .patio-hub-kpi.active {
+  background: #ffffff !important;
+  color: #0f3d2e !important;
+}
+#viewPatio > #patioContent:not(.tab-view-modal) .table-wrap {
+  background: #f7fbf8;
+  border: 1px solid #c5d9cc;
+  border-radius: 14px;
+  overflow: auto;
+}
+#patioContent:not(.tab-view-modal) .patio-vehicle-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  table-layout: fixed;
+}
+#patioContent:not(.tab-view-modal) .patio-vehicle-table th,
+#patioContent:not(.tab-view-modal) .patio-vehicle-table td {
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+}
+#patioContent:not(.tab-view-modal) .patio-vehicle-table td.actions {
+  min-width: 0 !important;
+}
+@media (max-width: 800px) {
+  #viewPatio > #patioContent:not(.tab-view-modal) {
+    padding: 14px 12px 16px !important;
+  }
+}
 .patio-ops-board {
   display: flex;
   flex-direction: column;
