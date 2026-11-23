@@ -1864,6 +1864,34 @@ html[data-theme="light"] .periodo-box__btn.secondary {
   border: 1px solid #c5d9cc !important;
 }
 
+#patioContent .patio-modal-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1 1 100%;
+  order: 1;
+  margin: 0;
+  padding: 4px;
+  background: #eef4f0;
+  border: 1px solid #e3ece6;
+  border-radius: 10px;
+}
+#patioContent .patio-modal-nav button {
+  flex: 1 1 120px;
+  min-height: 36px !important;
+  padding: 6px 12px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #4d6a5c !important;
+  box-shadow: none !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+}
+#patioContent .patio-modal-nav button.active {
+  background: #ffffff !important;
+  color: #0f3d2e !important;
+}
 #patioInicioPanel.patio-inicio-panel {
   background: #ffffff !important;
   border: none !important;
