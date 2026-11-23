@@ -95,29 +95,10 @@ header#cxHead {
   color: var(--ag-muted);
 }
 
-.cx-periodo {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 12px;
-  align-items: flex-end;
+#caixaOpTools .periodo-box {
   flex: 1 1 100%;
-}
-
-.periodo-data {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-
-.periodo-data input[type="text"] {
-  width: 8.8rem;
-}
-
-.periodo-data input[type="date"] {
-  width: 2.5rem;
-  min-width: 2.5rem;
-  padding: 4px 2px;
+  width: min(100%, 560px);
+  max-width: 560px;
 }
 
 .cx-search { min-width: min(280px, 100%); }
@@ -489,10 +470,7 @@ header#cxHead {
   #caixaOpNova { grid-column: 1 / -1; justify-self: stretch; }
   .cx-head h2 { font-size: 1.2rem; }
   .cx-metrics { grid-template-columns: 1fr 1fr; }
-  .cx-periodo { flex-direction: column; align-items: stretch; }
-  .cx-periodo .periodo-data { width: 100%; }
-  .cx-periodo .periodo-data input[type="text"] { flex: 1 1 auto; width: auto; }
-  .cx-periodo .cx-btn { width: 100%; }
+  #caixaOpTools .periodo-box { max-width: 100%; }
   .cx-table thead { display: none; }
   .cx-table,
   .cx-table tbody,
