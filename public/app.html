@@ -7977,13 +7977,13 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="/ampliguard-theme.css?v=20261123patioops1" />
+    <link rel="stylesheet" href="/ampliguard-theme.css?v=20261123nav1" />
     <link rel="stylesheet" href="/finance-action-ui.css?v=20261119filtros2" />
     <link rel="stylesheet" href="/payment-receipt.css?v=20261005recibo10" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20261116vis1" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261123patioframe1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20261112plate12" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261123login1" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261123nav1" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261119entrada" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20261116vis1" />
@@ -8058,58 +8058,84 @@
       </header>
       <div id="appSubheader" class="app-subheader hidden">
         <div class="app-subheader-row">
-          <button type="button" id="agSidebarToggle" class="ag-sidebar-toggle hidden" aria-expanded="true" aria-controls="dashboardSystemEntry" title="Recolher menu">
+          <button type="button" id="agSidebarToggle" class="ag-sidebar-toggle hidden" aria-expanded="false" aria-controls="dashboardSystemEntry" title="Abrir menu">
+            <span class="ag-nav-mark" aria-hidden="true"></span>
+            <span class="ag-nav-mark" aria-hidden="true"></span>
             <span class="ag-nav-mark" aria-hidden="true"></span>
             <span class="sr-only">Menu</span>
           </button>
           <div id="agNavBackdrop" class="ag-nav-backdrop" hidden></div>
           <nav class="dashboard-system-entry header-module-nav" id="dashboardSystemEntry" aria-label="Módulos do sistema">
-            <button type="button" class="dashboard-system-btn" id="dashboardOpenHome">
+            <button type="button" class="dashboard-system-btn" id="dashboardOpenHome" data-ag-go="dashboard">
               <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
-              <span class="dashboard-system-btn__kicker">Painel</span>
               <span class="dashboard-system-btn__title">Dashboard</span>
-              <span class="dashboard-system-btn__desc">Visão operacional do pátio.</span>
-              <span class="dashboard-system-btn__go">Abrir dashboard →</span>
             </button>
-            <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenPatio">
-              <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span>
-              <span class="dashboard-system-btn__kicker">Operação</span>
-              <span class="dashboard-system-btn__title">Pátio</span>
-              <span class="dashboard-system-btn__desc">Acompanhe veículos, entradas, saídas e fluxo operacional.</span>
-              <span class="dashboard-system-btn__go">Abrir pátio →</span>
-            </button>
-            <button type="button" class="dashboard-system-btn dashboard-system-btn--finance" id="dashboardOpenFinance">
+            <button type="button" class="dashboard-system-btn" id="dashboardOpenBi" data-ag-go="bi">
               <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16V9"/><path d="M12 16V7"/><path d="M16 16v-5"/></svg></span>
-              <span class="dashboard-system-btn__kicker">Financeiro</span>
-              <span class="dashboard-system-btn__title">Financeiro</span>
-              <span class="dashboard-system-btn__desc">Receita em geração, contas a receber, pagamentos e caixa.</span>
-              <span class="dashboard-system-btn__go">Abrir financeiro →</span>
+              <span class="dashboard-system-btn__title">BI Executivo</span>
             </button>
-            <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenParceiros">
-              <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="3"/><path d="M20 8v6"/><path d="M17 11h6"/></svg></span>
-              <span class="dashboard-system-btn__kicker">Relacionamento</span>
-              <span class="dashboard-system-btn__title">Parceiros</span>
-              <span class="dashboard-system-btn__desc">Escritório, financeira, leiloeiro, pátio, localizador e reboque.</span>
-              <span class="dashboard-system-btn__go">Abrir parceiros →</span>
-            </button>
-            <button type="button" class="dashboard-system-btn dashboard-system-btn--patio" id="dashboardOpenLista">
-              <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg></span>
-              <span class="dashboard-system-btn__kicker">Relatórios</span>
-              <span class="dashboard-system-btn__title">Lista</span>
-              <span class="dashboard-system-btn__desc">Acesse listagens operacionais, histórico e consultas rápidas.</span>
-              <span class="dashboard-system-btn__go">Abrir lista →</span>
-            </button>
-            <button
-              type="button"
-              class="dashboard-system-btn dashboard-system-btn--finance"
-              id="dashboardOpenConfiguracoes"
-            >
-              <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.3.6.9 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>
-              <span class="dashboard-system-btn__kicker">Sistema</span>
-              <span class="dashboard-system-btn__title">Configurações</span>
-              <span class="dashboard-system-btn__desc">Ajuste dados, usuários e parâmetros operacionais.</span>
-              <span class="dashboard-system-btn__go">Abrir configurações →</span>
-            </button>
+            <div class="ag-nav-group" data-nav-module="patio">
+              <button type="button" class="dashboard-system-btn" id="dashboardOpenPatio" aria-expanded="false" aria-controls="agNavPatioSub">
+                <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span>
+                <span class="dashboard-system-btn__title">Gestão de Pátio</span>
+              </button>
+              <div class="ag-nav-sub" id="agNavPatioSub">
+                <button type="button" class="ag-nav-subbtn" data-ag-go="patio:inicio">Dashboard</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="patio:no_patio">Pátio</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="patio:extrato_valores">Extrato</button>
+              </div>
+            </div>
+            <div class="ag-nav-group" data-nav-module="financeiro">
+              <button type="button" class="dashboard-system-btn" id="dashboardOpenFinance" aria-expanded="false" aria-controls="agNavFinanceSub">
+                <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 6H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+                <span class="dashboard-system-btn__title">Financeiro</span>
+              </button>
+              <div class="ag-nav-sub" id="agNavFinanceSub">
+                <button type="button" class="ag-nav-subbtn" data-ag-go="fin:entradas">Entradas</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="fin:saidas">Saídas</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="fin:caixa">Caixa</button>
+              </div>
+            </div>
+            <div class="ag-nav-group" data-nav-module="parceiros">
+              <button type="button" class="dashboard-system-btn" id="dashboardOpenParceiros" aria-expanded="false" aria-controls="agNavParceirosSub">
+                <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="3"/><path d="M20 8v6"/><path d="M17 11h6"/></svg></span>
+                <span class="dashboard-system-btn__title">Parceiros</span>
+              </button>
+              <div class="ag-nav-sub" id="agNavParceirosSub">
+                <button type="button" class="ag-nav-subbtn" data-ag-go="parceiros:escritorios">Escritório</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="parceiros:financeiras">Financeira</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="parceiros:leiloeiros">Leiloeiro</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="parceiros:patios">Pátio</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="parceiros:localizadores">Localizador</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="parceiros:reboque">Reboque e Transporte</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="parceiros:cadernetas">Caderneta</button>
+              </div>
+            </div>
+            <div class="ag-nav-group" data-nav-module="lista">
+              <button type="button" class="dashboard-system-btn" id="dashboardOpenLista" aria-expanded="false" aria-controls="agNavListaSub">
+                <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg></span>
+                <span class="dashboard-system-btn__title">Lista</span>
+              </button>
+              <div class="ag-nav-sub" id="agNavListaSub">
+                <button type="button" class="ag-nav-subbtn" data-ag-go="lista:vnp">VNP</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="lista:vrp">VRP</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="lista:aguardando_faturamento" data-lista-gestor-hide="1">Aguardando faturamento</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="lista:receber" data-lista-gestor-hide="1">Contas a receber</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="lista:pagar" data-lista-gestor-hide="1">Contas a pagar</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="lista:caixa" data-lista-gestor-hide="1">Caixa</button>
+              </div>
+            </div>
+            <div class="ag-nav-group" data-nav-module="configuracoes">
+              <button type="button" class="dashboard-system-btn" id="dashboardOpenConfiguracoes" aria-expanded="false" aria-controls="agNavConfigSub">
+                <span class="ag-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.3.6.9 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>
+                <span class="dashboard-system-btn__title">Configurações</span>
+              </button>
+              <div class="ag-nav-sub" id="agNavConfigSub">
+                <button type="button" class="ag-nav-subbtn" data-ag-go="config:dados">Pátio e textos</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="config:usuarios">Usuários</button>
+                <button type="button" class="ag-nav-subbtn" data-ag-go="config:apresentacao">Propaganda Institucional</button>
+              </div>
+            </div>
           </nav>
         </div>
         <p class="notice plate-search-hint header-plate-search-hint hidden" aria-live="polite"></p>
@@ -11394,7 +11420,7 @@
     <script src="/cobranca-ui.js?v=20261116cx1"></script>
     <script src="/finance-caixa-hub.js?v=20261116caixa1"></script>
     <script src="/periodo-filtro.js?v=20261123periodo1"></script>
-    <script src="/caixa-operacional.js?v=20261123periodo2"></script>
+    <script src="/caixa-operacional.js?v=20261123nav1"></script>
     <script src="/parceiro-caderneta.js?v=20261117cad1"></script>
     <script src="/patio-extrato-service.js?v=20261105resumo2"></script>
     <script src="/patio-extrato-ui.js?v=20261106patioReorg1"></script>
@@ -12490,12 +12516,86 @@
           setCollapsed(!document.body.classList.contains("ag-nav-collapsed"));
         });
         backdrop?.addEventListener("click", () => setCollapsed(true));
+        window.__agSetNavCollapsed = setCollapsed;
         nav?.addEventListener("click", (event) => {
-          if (!mobile() || !event.target.closest(".dashboard-system-btn")) return;
-          setCollapsed(true);
+          const leaf = event.target.closest("[data-ag-go]");
+          if (leaf && nav.contains(leaf)) {
+            event.preventDefault();
+            agNavigate(leaf.getAttribute("data-ag-go"));
+            if (mobile()) setCollapsed(true);
+            return;
+          }
+          const head = event.target.closest(".ag-nav-group > .dashboard-system-btn");
+          if (!head || !nav.contains(head)) return;
+          event.preventDefault();
+          const group = head.closest(".ag-nav-group");
+          const open = !group.classList.contains("is-open");
+          group.classList.toggle("is-open", open);
+          head.setAttribute("aria-expanded", open ? "true" : "false");
         });
         window.addEventListener("resize", () => apply(document.body.classList.contains("ag-nav-collapsed")));
       })();
+
+      function agNavigate(go) {
+        if (!go) return;
+        rememberUserNavigation();
+        if (go === "dashboard") {
+          if (typeof isVistoriador !== "undefined" && isVistoriador) openMainView("patio");
+          else openMainView("dashboard");
+        } else if (go === "bi") {
+          navigateMainViewFromNav("biExecutivo");
+        } else if (go.indexOf("patio:") === 0) {
+          openPatioSubview(go.slice(6));
+        } else if (go.indexOf("fin:") === 0) {
+          const vista = go.slice(4);
+          openMainView("financeiro");
+          if (window.caixaOperacional && typeof window.caixaOperacional.captura === "function") {
+            window.caixaOperacional.captura(vista);
+          }
+        } else if (go.indexOf("parceiros:") === 0) {
+          openPartnerSubview(go.slice(10));
+        } else if (go.indexOf("lista:") === 0) {
+          openListaSubview(go.slice(6));
+        } else if (go.indexOf("config:") === 0) {
+          openMainView("configuracoes");
+          setConfigSubview(go.slice(7));
+        }
+        syncAgSideNav();
+      }
+
+      function syncAgSideNav() {
+        const nav = document.getElementById("dashboardSystemEntry");
+        if (!nav) return;
+        const visible = (id) => {
+          const el = document.getElementById(id);
+          return !!(el && !el.classList.contains("hidden"));
+        };
+        let key = "";
+        if (visible("viewPatio")) key = "patio:" + (currentPatioView || "no_patio");
+        else if (visible("viewFinanceiro")) {
+          const vista = window.caixaOperacional && typeof window.caixaOperacional.vista === "function" ? window.caixaOperacional.vista() : "entradas";
+          key = "fin:" + vista;
+        } else if (visible("viewParceiros")) key = "parceiros:" + (currentPartnerView || "escritorios");
+        else if (visible("viewLista")) key = "lista:" + (currentListaView || "vnp");
+        else if (visible("viewConfiguracoes")) key = "config:" + (typeof currentConfigSubview !== "undefined" ? currentConfigSubview : "dados");
+        else if (visible("viewBiExecutivo")) key = "bi";
+        else if (visible("viewDashboard")) key = "dashboard";
+        nav.querySelectorAll("[data-ag-go]").forEach((btn) => {
+          btn.classList.toggle("is-current", btn.getAttribute("data-ag-go") === key);
+        });
+        nav.querySelectorAll(".ag-nav-group").forEach((group) => {
+          const hit = !!group.querySelector('.ag-nav-subbtn.is-current');
+          const head = group.querySelector(".dashboard-system-btn");
+          if (head) head.classList.toggle("active", hit);
+          if (hit) {
+            group.classList.add("is-open");
+            if (head) head.setAttribute("aria-expanded", "true");
+          }
+        });
+        document.getElementById("dashboardOpenHome")?.classList.toggle("active", key === "dashboard");
+        document.getElementById("dashboardOpenBi")?.classList.toggle("active", key === "bi");
+      }
+      window.syncAgSideNav = syncAgSideNav;
 
       let appInitPromise = null;
       let appInitUserId = null;
@@ -19140,6 +19240,7 @@
         const visualizadorVisible = new Set(["dashboardOpenHome", "dashboardOpenPatio", "dashboardOpenLista", "dashboardOpenParceiros"]);
         [
           "dashboardOpenHome",
+          "dashboardOpenBi",
           "dashboardOpenPatio",
           "dashboardOpenFinance",
           "dashboardOpenParceiros",
@@ -19151,9 +19252,10 @@
           let show = !isVistoriador;
           if (isVistoriador) show = vistoriadorVisible.has(id);
           if (isVisualizador || isGestorPista) show = visualizadorVisible.has(id);
-          if (id === "dashboardOpenFinance") show = show && !isVisualizador && !isGestorPista;
+          if (id === "dashboardOpenFinance" || id === "dashboardOpenBi") show = show && !isVisualizador && !isGestorPista;
           btn.classList.toggle("hidden", !show);
           btn.style.display = show ? "" : "none";
+          btn.closest(".ag-nav-group")?.classList.toggle("hidden", !show);
         });
       }
 
@@ -19206,7 +19308,7 @@
         document.getElementById("track-manager-hide-values-style")?.remove();
         document.getElementById("vehicleForm")?.classList.remove("operador-simplified");
         document.querySelectorAll("#appHeaderMenu .header-menu-details").forEach((el) => el.classList.remove("hidden"));
-        document.querySelectorAll("#headerDetailsLista [data-lista-gestor-hide], #listaSubnav [data-lista-gestor-hide]").forEach((el) => {
+        document.querySelectorAll("#headerDetailsLista [data-lista-gestor-hide], #listaSubnav [data-lista-gestor-hide], #dashboardSystemEntry [data-lista-gestor-hide]").forEach((el) => {
           el.classList.remove("hidden");
         });
         document.querySelectorAll("#headerDetailsPatio [data-header-patio-sub]").forEach((el) => el.classList.remove("hidden"));
@@ -19214,6 +19316,7 @@
           btn.style.display = "";
         });
         patioSubnav?.querySelectorAll("button[data-subview]").forEach((btn) => btn.classList.remove("hidden"));
+        document.querySelectorAll("#dashboardSystemEntry [data-ag-go]").forEach((el) => el.classList.remove("hidden"));
         document.getElementById("dashboardSystemEntry")?.classList.remove("hidden");
         document.getElementById("patioMenuNewVehicle")?.classList.add("hidden");
         const patioTitleReset = document.querySelector("#viewPatio .patio-toolbar h2");
@@ -19280,7 +19383,7 @@
           document.querySelectorAll("#appHeaderMenu button[data-view='biExecutivo']").forEach((btn) => {
             btn.style.display = "none";
           });
-          document.querySelectorAll("#headerDetailsLista [data-lista-gestor-hide], #listaSubnav [data-lista-gestor-hide]").forEach((el) => {
+          document.querySelectorAll("#headerDetailsLista [data-lista-gestor-hide], #listaSubnav [data-lista-gestor-hide], #dashboardSystemEntry [data-lista-gestor-hide]").forEach((el) => {
             el.classList.add("hidden");
           });
           document
@@ -19292,6 +19395,7 @@
           patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.add("hidden");
           patioSubnav?.querySelector('[data-subview="aguardando_faturamento"]')?.classList.add("hidden");
           patioSubnav?.querySelector('[data-subview="extrato_valores"]')?.classList.add("hidden");
+          document.querySelector('#dashboardSystemEntry [data-ag-go="patio:extrato_valores"]')?.classList.add("hidden");
           patioSubnav?.querySelector('[data-subview="resumo_valores"]')?.classList.add("hidden");
           const vehicleDailyHide = document.getElementById("vehicleDaily");
           const vehicleDailyWrapHide = vehicleDailyHide?.closest("div");
@@ -19355,7 +19459,7 @@
         document.querySelectorAll("#appHeaderMenu button[data-view='biExecutivo']").forEach((btn) => {
           btn.style.display = "none";
         });
-        document.querySelectorAll("#headerDetailsLista [data-lista-gestor-hide], #listaSubnav [data-lista-gestor-hide]").forEach((el) => {
+        document.querySelectorAll("#headerDetailsLista [data-lista-gestor-hide], #listaSubnav [data-lista-gestor-hide], #dashboardSystemEntry [data-lista-gestor-hide]").forEach((el) => {
           el.classList.add("hidden");
         });
         document
@@ -19366,6 +19470,7 @@
         patioSubnav?.querySelector('[data-subview="fechando_ciclo"]')?.classList.add("hidden");
         patioSubnav?.querySelector('[data-subview="aguardando_faturamento"]')?.classList.add("hidden");
         patioSubnav?.querySelector('[data-subview="extrato_valores"]')?.classList.add("hidden");
+        document.querySelector('#dashboardSystemEntry [data-ag-go="patio:extrato_valores"]')?.classList.add("hidden");
         patioSubnav?.querySelector('[data-subview="resumo_valores"]')?.classList.add("hidden");
         const vehicleDailyHideG = document.getElementById("vehicleDaily");
         const vehicleDailyWrapHideG = vehicleDailyHideG?.closest("div");
@@ -22978,6 +23083,7 @@
         if (isInicio) renderPatioOpsBoard();
         syncPatioModalNav();
         syncMobileChromeOffset();
+        if (typeof syncAgSideNav === "function") syncAgSideNav();
       }
 
       function renderPartnerCategoryKpis() {
@@ -23045,6 +23151,7 @@
         if (show) view = resolvePartnerModule(view);
         const resolved = show ? view : null;
         currentPartnerView = resolved;
+        if (typeof syncAgSideNav === "function") syncAgSideNav();
         partnerSubnav?.classList.toggle("hidden", !show);
         partnerSubnav?.querySelectorAll("[data-subview]").forEach((btn) => {
           btn.classList.toggle("active", btn.getAttribute("data-subview") === resolved);
@@ -33875,6 +33982,7 @@ ${body}
         }
         syncHeaderMenuModuleHighlight(view);
         syncMobileModuleNavHighlight(view);
+        if (typeof syncAgSideNav === "function") syncAgSideNav();
         persistMainView(view);
         if (isVistoriador) {
           try {
@@ -33902,6 +34010,7 @@ ${body}
           fillPropagandaWhatsappField();
           window.apresentacaoInstitucional.mount();
         }
+        if (typeof syncAgSideNav === "function") syncAgSideNav();
       }
 
       async function refreshConfigUsuariosPanel() {
@@ -34236,6 +34345,7 @@ ${body}
           currentListaView = sub;
           syncListaSubnavActive();
           renderListaPanel();
+          if (typeof syncAgSideNav === "function") syncAgSideNav();
           return;
         }
         if (top && typeof top === "string" && top.startsWith("lista:")) navStack.pop();
@@ -34250,6 +34360,7 @@ ${body}
         currentListaView = sub;
         syncListaSubnavActive();
         renderListaPanel();
+        if (typeof syncAgSideNav === "function") syncAgSideNav();
       }
       window.openListaSubview = openListaSubview;
 
@@ -34319,19 +34430,7 @@ ${body}
         }
       }
 
-      document.getElementById("dashboardOpenHome")?.addEventListener("click", () => {
-        if (isVistoriador) return openMainView("patio");
-        openMainView("dashboard");
-      });
-      document.getElementById("dashboardOpenFinance")?.addEventListener("click", () => {
-        if (isVisualizador) return openMainView("patio");
-        openMainView("financeiro");
-      });
       document.getElementById("finSubnavOpenCobranca")?.addEventListener("click", () => openMainView("cobranca"));
-      document.getElementById("dashboardOpenPatio")?.addEventListener("click", () => openMainView("patio"));
-      document.getElementById("dashboardOpenLista")?.addEventListener("click", () => openMainView("lista"));
-      document.getElementById("dashboardOpenParceiros")?.addEventListener("click", () => openPartnerSubview("escritorios"));
-      document.getElementById("dashboardOpenConfiguracoes")?.addEventListener("click", () => openMainView("configuracoes"));
       document.getElementById("exitConfigToPatio")?.addEventListener("click", () => closeStackTop());
 
       cardVeiculosLink?.addEventListener("click", () => openPatioSubview("no_patio"));
