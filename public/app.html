@@ -3090,19 +3090,101 @@
         padding: 6px 10px;
         font-size: 12px;
       }
-      .periodo-data {
-        display: inline-flex;
-        align-items: center;
+      .periodo-box {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        width: min(100%, 560px);
+        max-width: 100%;
+        margin: 0 0 14px;
+        padding: 14px;
+        box-sizing: border-box;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--card);
+      }
+      .periodo-box__title {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .periodo-box__dates {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .periodo-box__dates label {
+        display: flex;
+        flex-direction: column;
         gap: 6px;
         min-width: 0;
+        margin: 0;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
       }
-      .periodo-data input[type="text"] {
-        width: 8.8rem;
+      .periodo-box .periodo-data {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+        min-width: 0;
       }
-      .periodo-data input[type="date"] {
-        width: 2.5rem;
-        min-width: 2.5rem;
-        padding: 4px 2px;
+      .periodo-box .periodo-data input[type="text"] {
+        flex: 1 1 auto;
+        width: 100%;
+        min-width: 0;
+        min-height: 40px;
+        box-sizing: border-box;
+      }
+      .periodo-box .periodo-data input[type="date"] {
+        width: 42px;
+        min-width: 42px;
+        min-height: 40px;
+        padding: 4px;
+        box-sizing: border-box;
+      }
+      .periodo-box__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .periodo-box__btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        flex: 1 1 0;
+        min-width: 96px;
+        min-height: 40px !important;
+        margin: 0;
+        padding: 8px 10px;
+        box-sizing: border-box;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .periodo-box__btn svg {
+        width: 16px;
+        height: 16px;
+        flex: 0 0 auto;
+      }
+      .periodo-box__btn--go {
+        background: var(--ag-graphite, #242830) !important;
+        color: #fff !important;
+        border: 1px solid var(--ag-graphite, #242830) !important;
+      }
+      .periodo-box__btn.secondary {
+        background: transparent !important;
+        color: var(--text) !important;
+        border: 1px solid var(--border) !important;
+        box-shadow: none !important;
+      }
+      @media (max-width: 520px) {
+        .periodo-box { width: 100%; }
+        .periodo-box__dates { grid-template-columns: 1fr; }
+        .periodo-box__btn { flex: 1 1 100%; }
       }
       #vnpFiltersBar select,
       #patioVrpPlacaForm select,
@@ -4903,13 +4985,6 @@
         .filter-bar select {
           width: 100%;
           min-width: 0;
-        }
-        .filter-bar .periodo-data {
-          width: 100%;
-        }
-        .filter-bar .periodo-data input[type="text"] {
-          flex: 1 1 auto;
-          width: auto;
         }
         #vnpFiltersBar select,
         #vnpFiltersBar input,
@@ -7912,7 +7987,7 @@
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261119entrada" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20261116vis1" />
-    <link rel="stylesheet" href="/caixa-operacional.css?v=20261123periodo1" />
+    <link rel="stylesheet" href="/caixa-operacional.css?v=20261123periodo2" />
   </head>
   <body class="auth-screen-active">
     <noscript>
@@ -8540,19 +8615,33 @@
             </div>
             <div class="section-card patio-subview hidden" data-subview="removidos">
               <select id="patioVrpParceiro" class="hidden" hidden><option value="">Todos os parceiros</option></select>
-              <form id="patioVrpPeriodoForm" class="filter-bar" action="#" novalidate>
-                <label for="patioVrpDataDe">Data inicial</label>
-                <span class="periodo-data">
-                  <input id="patioVrpDataDe" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" aria-label="Data inicial da remoção" />
-                  <input id="patioVrpDataDeCal" type="date" aria-label="Abrir calendário da data inicial" />
-                </span>
-                <label for="patioVrpDataAte">Data final</label>
-                <span class="periodo-data">
-                  <input id="patioVrpDataAte" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" aria-label="Data final da remoção" />
-                  <input id="patioVrpDataAteCal" type="date" aria-label="Abrir calendário da data final" />
-                </span>
-                <button type="submit">Filtrar</button>
-                <button type="button" class="secondary" id="patioVrpPeriodoLimpar">Limpar filtro</button>
+              <form id="patioVrpPeriodoForm" class="periodo-box" action="#" novalidate>
+                <h3 class="periodo-box__title">Filtrar por período</h3>
+                <div class="periodo-box__dates">
+                  <label for="patioVrpDataDe">Data inicial
+                    <span class="periodo-data">
+                      <input id="patioVrpDataDe" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" aria-label="Data inicial da remoção" />
+                      <input id="patioVrpDataDeCal" type="date" aria-label="Abrir calendário da data inicial" />
+                    </span>
+                  </label>
+                  <label for="patioVrpDataAte">Data final
+                    <span class="periodo-data">
+                      <input id="patioVrpDataAte" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" aria-label="Data final da remoção" />
+                      <input id="patioVrpDataAteCal" type="date" aria-label="Abrir calendário da data final" />
+                    </span>
+                  </label>
+                </div>
+                <div class="periodo-box__actions">
+                  <button type="submit" class="periodo-box__btn periodo-box__btn--go">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+                    Filtrar
+                  </button>
+                  <button type="button" class="secondary periodo-box__btn" id="patioVrpPeriodoLimpar">Limpar</button>
+                  <button type="button" class="secondary periodo-box__btn" id="patioVrpPeriodoImprimir">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="7"></rect></svg>
+                    Imprimir
+                  </button>
+                </div>
               </form>
               <p id="patioVrpPeriodoTotal" class="notice" style="margin: 0 0 12px"></p>
               <p id="patioVrpPlacaHint" class="notice hidden" style="margin: 0 0 12px"></p>
@@ -11210,7 +11299,7 @@
     <script src="/cobranca-ui.js?v=20261116cx1"></script>
     <script src="/finance-caixa-hub.js?v=20261116caixa1"></script>
     <script src="/periodo-filtro.js?v=20261123periodo1"></script>
-    <script src="/caixa-operacional.js?v=20261123periodo1"></script>
+    <script src="/caixa-operacional.js?v=20261123periodo2"></script>
     <script src="/parceiro-caderneta.js?v=20261117cad1"></script>
     <script src="/patio-extrato-service.js?v=20261105resumo2"></script>
     <script src="/patio-extrato-ui.js?v=20261106patioReorg1"></script>
@@ -17166,6 +17255,40 @@
         return true;
       }
       window.printHtmlInHiddenIframe = printHtmlInHiddenIframe;
+
+      function imprimirRelatorioA4({ titulo, meta, colunas, linhas, total } = {}) {
+        const cols = Array.isArray(colunas) ? colunas : [];
+        const rows = Array.isArray(linhas) ? linhas : [];
+        const cell = (v) => escapeHtml(v == null || v === "" ? "—" : String(v));
+        const head = cols.map((c) => `<th>${cell(c)}</th>`).join("");
+        const body = rows.length
+          ? rows
+              .map((linha) => `<tr>${(Array.isArray(linha) ? linha : []).map((c) => `<td>${cell(c)}</td>`).join("")}</tr>`)
+              .join("")
+          : `<tr><td colspan="${Math.max(cols.length, 1)}">Nenhum registro neste período.</td></tr>`;
+        const printCss = `@page { size: A4; margin: 12mm; }
+          * { box-sizing: border-box; }
+          body { margin: 0; color: #0f172a; font-family: Arial, Helvetica, sans-serif; font-size: 11px; }
+          h1 { margin: 0 0 6px; font-size: 16px; }
+          .meta { margin: 0 0 12px; color: #334155; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #cbd5e1; padding: 5px 6px; text-align: left; vertical-align: top; word-break: break-word; }
+          th { background: #f1f5f9; }
+          .total { margin: 12px 0 0; font-weight: 700; }
+          .lista-export-brand { margin: 0 0 12px; background: transparent; }
+          .lista-export-brand img { display: block; height: 48px; width: auto; max-width: 280px; }`;
+        const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${cell(
+          titulo || "Relatório"
+        )}</title><style>${printCss}</style></head><body>
+          ${listaExportBrandHtml()}
+          <h1>${cell(titulo || "Relatório")}</h1>
+          <div class="meta">${cell(meta || "")}</div>
+          <table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
+          ${total ? `<p class="total">${cell(total)}</p>` : ""}
+        </body></html>`;
+        return printHtmlInHiddenIframe(html, { iframeTitle: titulo || "Impressão" });
+      }
+      window.imprimirRelatorioA4 = imprimirRelatorioA4;
 
       function printNfseThermalTicket(html, paperWidthMm, frameTitle, opts) {
         const paper = Number(paperWidthMm) || 80;
@@ -23563,6 +23686,7 @@
       let patioVrpPeriodoDe = "";
       let patioVrpPeriodoAte = "";
       let patioVrpVisiveisCount = null;
+      let patioVrpListaImpressao = [];
 
       function patioVrpAtualizarSelecao() {
         for (const id of [...patioVrpSelecionados]) {
@@ -23715,6 +23839,7 @@
         }
         patioVrpIdsVigentes = new Set(fonte.map((v) => String(v.id)));
         patioVrpVisiveisCount = fonte.length;
+        patioVrpListaImpressao = ordenado.list || [];
         for (const id of [...patioVrpSelecionados]) {
           if (!patioVrpIdsVigentes.has(id)) patioVrpSelecionados.delete(id);
         }
@@ -23777,6 +23902,43 @@
         }
       }
 
+      function patioVrpPeriodoRotulo() {
+        const api = window.periodoFiltro;
+        if (!patioVrpPeriodoDe && !patioVrpPeriodoAte) return "Todos os registros";
+        const de = api ? api.format(patioVrpPeriodoDe) : patioVrpPeriodoDe;
+        const ate = api ? api.format(patioVrpPeriodoAte) : patioVrpPeriodoAte;
+        return `${de || "—"} a ${ate || "—"}`;
+      }
+
+      function imprimirVrpPeriodo() {
+        const lista = patioVrpListaImpressao || [];
+        const semValores = hidesFinancialValues();
+        const linhas = lista.map((v) => {
+          const localizador = state.partners.find((p) => p.id === v.localizador_id)?.nome || "—";
+          const linha = [
+            v.placa || "—",
+            [v.marca, v.modelo].filter(Boolean).join(" ") || "—",
+            localizador,
+            vehicleRpfNome(v) || "—",
+            formatDateTime(v.data_entrada),
+            formatDateTime(v.data_saida),
+          ];
+          if (!semValores) linha.push(formatCurrency(calcTotal(v)));
+          return linha;
+        });
+        const colunas = ["Placa", "Veículo", "RPV", "RPF", "Entrada", "Saída"];
+        if (!semValores) colunas.push("Valor");
+        const n = lista.length;
+        const valor = lista.reduce((s, v) => s + Number(calcTotal(v) || 0), 0);
+        imprimirRelatorioA4({
+          titulo: "VRP — Veículos removidos",
+          meta: `Período pela data de remoção: ${patioVrpPeriodoRotulo()}.`,
+          colunas,
+          linhas,
+          total: semValores ? `${n} veículo${n === 1 ? "" : "s"}` : `${n} veículo${n === 1 ? "" : "s"} · ${formatCurrency(valor)}`,
+        });
+      }
+
       function bindPatioVrpSelecaoOnce() {
         if (bindPatioVrpSelecaoOnce._done) return;
         bindPatioVrpSelecaoOnce._done = true;
@@ -23825,6 +23987,9 @@
           if (ate) ate.value = "";
           patioVrpEspelharCalendario();
           renderVehicles();
+        });
+        document.getElementById("patioVrpPeriodoImprimir")?.addEventListener("click", () => {
+          imprimirVrpPeriodo();
         });
         document.getElementById("tableRemovidos")?.addEventListener("change", (ev) => {
           const chk = ev.target.closest(".patio-vrp-check");
