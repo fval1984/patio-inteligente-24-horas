@@ -534,7 +534,7 @@ button {
   transition: background var(--ag-ease), border-color var(--ag-ease), color var(--ag-ease);
 }
 
-button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.close-view):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn):not(.exec-ops-kpi):not(.exec-ops-link):not(.exec-ops-attn button):not(.exec-ops-period button):not(.fin-simple-card):not(.fin-simple-attn):not(.fin-simple-recent button):not(.dashboard-system-btn):not(.header-menu-dropdown button):not(.cmd-ops-kpi):not(.cmd-ops-attn button):not(.cmd-ops-link):not(.fin-act-kpi):not(.ao-card):not(.ao-band):not(.ao-attn):not(.ao-bucket):not(.ao-sort):not(.ao-clear):not(.patio-hub-kpi):not(.ag-sidebar-toggle):not(.cob-kpi):not(.patio-ops-card):not(.cx-chip):not(.cob-chip):not(.fin-act-chip):not(.fin-act-period-btn) {
+button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.close-view):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn):not(.exec-ops-kpi):not(.exec-ops-link):not(.exec-ops-attn button):not(.exec-ops-period button):not(.fin-simple-card):not(.fin-simple-attn):not(.fin-simple-recent button):not(.dashboard-system-btn):not(.header-menu-dropdown button):not(.cmd-ops-kpi):not(.cmd-ops-attn button):not(.cmd-ops-link):not(.fin-act-kpi):not(.ao-card):not(.ao-band):not(.ao-attn):not(.ao-bucket):not(.ao-sort):not(.ao-clear):not(.patio-hub-kpi):not(.ag-sidebar-toggle):not(.cob-kpi):not(.patio-ops-card):not(.cx-chip):not(.cob-chip):not(.fin-act-chip):not(.fin-act-period-btn):not(.ag-nav-subbtn) {
   background: var(--ag-graphite) !important;
   color: #fff !important;
   border: 1px solid var(--ag-graphite) !important;
@@ -2307,5 +2307,222 @@ body.auth-screen-active .auth-screen__foot {
   body.auth-screen-active .auth-screen__card {
     padding: 22px 16px 16px;
   }
+}
+
+/* Menu lateral único: gaveta recolhida, submenus e sem abas repetidas no topo. */
+#viewPatio #patioSubnav.patio-nav-inline,
+#viewPatio .patio-nav-inline,
+#patioSubnav,
+#listaSubnav,
+#partnerSubnav,
+#configSubnav,
+#caixaOpFiltros,
+.config-module-ribbon {
+  display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+body.role-vistoriador #agSidebarToggle {
+  display: none !important;
+}
+
+body:not(.auth-screen-active) #agSidebarToggle:not(.hidden) {
+  display: inline-flex !important;
+  flex-direction: column;
+  gap: 4px;
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  left: 14px;
+  z-index: 90;
+  width: 36px !important;
+  height: 32px !important;
+  min-width: 36px !important;
+  min-height: 32px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #0f3d2e;
+}
+
+body:not(.auth-screen-active) #agSidebarToggle .ag-nav-mark {
+  display: block !important;
+  width: 18px !important;
+  height: 2px !important;
+  margin: 0 !important;
+  border-radius: 99px;
+  background: #0f3d2e !important;
+  box-shadow: none !important;
+}
+
+body:not(.auth-screen-active) #agSidebarToggle:hover .ag-nav-mark {
+  height: 2px !important;
+  background: #0c3226 !important;
+}
+
+body:not(.auth-screen-active) header {
+  padding-left: 56px !important;
+}
+
+#dashboardSystemEntry .ag-nav-group.hidden {
+  display: none !important;
+}
+
+#dashboardSystemEntry .ag-nav-group > .dashboard-system-btn::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  border-right: 1.6px solid currentColor;
+  border-bottom: 1.6px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  opacity: 0.7;
+  flex: 0 0 auto;
+}
+
+#dashboardSystemEntry .ag-nav-group.is-open > .dashboard-system-btn::after {
+  transform: rotate(-135deg) translateY(-2px);
+}
+
+#dashboardSystemEntry .ag-nav-sub {
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 6px;
+  padding: 2px 0 4px 28px;
+}
+
+#dashboardSystemEntry .ag-nav-group.is-open > .ag-nav-sub {
+  display: flex;
+}
+
+#dashboardSystemEntry .ag-nav-subbtn {
+  display: flex !important;
+  align-items: center;
+  width: 100%;
+  min-height: 40px !important;
+  margin: 0;
+  padding: 8px 10px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #4d6a5c !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  text-align: left;
+  cursor: pointer;
+}
+
+#dashboardSystemEntry .ag-nav-subbtn.hidden {
+  display: none !important;
+}
+
+#dashboardSystemEntry .ag-nav-subbtn:hover {
+  background: rgba(15, 61, 46, 0.06) !important;
+  color: #0f3d2e !important;
+  transform: none !important;
+}
+
+#dashboardSystemEntry .dashboard-system-btn.active,
+#dashboardSystemEntry .ag-nav-subbtn.is-current,
+body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn.active,
+body:not(.auth-screen-active).app-module-patio:has(#viewPatio:not(.hidden)) #dashboardOpenPatio,
+body:not(.auth-screen-active).app-module-finance #dashboardOpenFinance,
+body:not(.auth-screen-active).app-module-lista #dashboardOpenLista,
+body:not(.auth-screen-active):has(#viewParceiros:not(.hidden)) #dashboardOpenParceiros,
+body:not(.auth-screen-active):has(#viewConfiguracoes:not(.hidden)) #dashboardOpenConfiguracoes,
+body:not(.auth-screen-active):has(#viewDashboard:not(.hidden)) #dashboardOpenHome {
+  background: #e7f2eb !important;
+  color: #0f3d2e !important;
+  box-shadow: inset 3px 0 0 #0f3d2e !important;
+  border-color: transparent !important;
+}
+
+@media (min-width: 901px) {
+  body:not(.auth-screen-active),
+  body:not(.auth-screen-active).ag-nav-collapsed,
+  html.ag-nav-collapsed body:not(.auth-screen-active) {
+    --ag-rail: 0px !important;
+  }
+
+  body:not(.auth-screen-active) .app-top-shell,
+  body:not(.auth-screen-active) main {
+    margin-left: 0 !important;
+    width: calc(100% - var(--ag-ficha-w)) !important;
+  }
+
+  body:not(.auth-screen-active) #dashboardSystemEntry {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: min(280px, 86vw) !important;
+    height: auto !important;
+    z-index: 80 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 4px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    margin: 0 !important;
+    padding: 64px 12px 18px !important;
+    background: #f7fbf8 !important;
+    border-right: 1px solid #c5d9cc !important;
+    color: #4d6a5c !important;
+    transform: translateX(-105%);
+    transition: transform 180ms ease;
+    box-shadow: none !important;
+  }
+
+  html.ag-nav-collapsed body:not(.auth-screen-active) #dashboardSystemEntry,
+  body:not(.auth-screen-active).ag-nav-collapsed #dashboardSystemEntry {
+    transform: translateX(-105%) !important;
+    pointer-events: none;
+  }
+
+  body:not(.auth-screen-active):not(.ag-nav-collapsed) #dashboardSystemEntry {
+    transform: none !important;
+    pointer-events: auto;
+    box-shadow: 8px 0 28px rgba(15, 61, 46, 0.08) !important;
+  }
+
+  body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    background: transparent !important;
+    color: #4d6a5c !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn__title {
+    display: inline !important;
+    color: inherit !important;
+  }
+
+  body:not(.auth-screen-active).ag-nav-collapsed #dashboardSystemEntry .dashboard-system-btn__title {
+    display: inline !important;
+  }
+
+  html body:not(.auth-screen-active):not(.ag-nav-collapsed) #dashboardSystemEntry {
+    transform: none !important;
+    pointer-events: auto;
+  }
+}
+
+html body:not(.auth-screen-active):not(.ag-nav-collapsed) #dashboardSystemEntry {
+  transform: none !important;
+  pointer-events: auto;
 }
 
