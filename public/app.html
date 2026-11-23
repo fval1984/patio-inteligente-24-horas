@@ -7977,13 +7977,13 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="/ampliguard-theme.css?v=20260917header1" />
+    <link rel="stylesheet" href="/ampliguard-theme.css?v=20261123patioops1" />
     <link rel="stylesheet" href="/finance-action-ui.css?v=20261119filtros2" />
     <link rel="stylesheet" href="/payment-receipt.css?v=20261005recibo10" />
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20261116vis1" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261117cad1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20261112plate12" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261123dash1" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261123patioops2" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261119entrada" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20261116vis1" />
@@ -8332,7 +8332,7 @@
             <div class="patio-toolbar-text">
               <h2>Gestão de Pátio</h2>
               <nav id="patioSubnav" class="subnav patio-nav-inline" aria-label="Secções do pátio">
-                <button type="button" class="secondary hidden" data-subview="inicio">Dashboard</button>
+                <button type="button" class="secondary" data-subview="inicio">Dashboard</button>
                 <button type="button" class="secondary" data-subview="no_patio">Pátio</button>
                 <button type="button" class="secondary" data-subview="extrato_valores">Extrato</button>
                 <button type="button" class="secondary hidden" data-patio-extra="1" data-subview="consultar_placa">Consultar placa</button>
@@ -8380,6 +8380,80 @@
                 <h3 id="patioInicioGreeting" class="js-user-ops-greeting">Olá</h3>
               </div>
               <div class="cmd-ops-meta" id="patioOpsMeta"></div>
+            </div>
+            <div id="patioOpsBoard" class="patio-ops-board">
+              <form id="patioOpsPeriodo" class="periodo-box" action="#" novalidate>
+                <h3 class="periodo-box__title">Filtrar por período</h3>
+                <div class="periodo-box__dates">
+                  <label for="patioOpsDataDe">Data inicial
+                    <span class="periodo-data">
+                      <input id="patioOpsDataDe" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" aria-label="Data inicial da remoção" />
+                      <input id="patioOpsDataDeCal" type="date" aria-label="Abrir calendário da data inicial" />
+                    </span>
+                  </label>
+                  <label for="patioOpsDataAte">Data final
+                    <span class="periodo-data">
+                      <input id="patioOpsDataAte" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" aria-label="Data final da remoção" />
+                      <input id="patioOpsDataAteCal" type="date" aria-label="Abrir calendário da data final" />
+                    </span>
+                  </label>
+                </div>
+                <div class="periodo-box__actions">
+                  <button type="submit" class="periodo-box__btn periodo-box__btn--go">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+                    Filtrar
+                  </button>
+                  <button type="button" class="secondary periodo-box__btn" id="patioOpsPeriodoLimpar">Limpar</button>
+                  <button type="button" class="secondary periodo-box__btn" id="patioOpsPeriodoImprimir">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="7"></rect></svg>
+                    Imprimir
+                  </button>
+                </div>
+              </form>
+              <p class="patio-ops-hint">O período vale para o VRP, pela data de remoção.</p>
+              <div class="patio-ops-grid">
+                <button type="button" class="patio-ops-card" data-patio-ops="vnp">
+                  <span class="patio-ops-card-top"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16l2-6h12l2 6M6 16h12M8 20h2M14 20h2"></path></svg><span>VNP · No pátio</span></span>
+                  <strong id="patioOpsVnp">0</strong>
+                  <small>Veículos presentes</small>
+                </button>
+                <button type="button" class="patio-ops-card" data-patio-ops="vrp">
+                  <span class="patio-ops-card-top"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"></path></svg><span>VRP · Removidos</span></span>
+                  <strong id="patioOpsVrp">0</strong>
+                  <small id="patioOpsVrpMeta">Todos os removidos</small>
+                </button>
+                <button type="button" class="patio-ops-card" data-patio-ops="vsl">
+                  <span class="patio-ops-card-top"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><span>VSL · Liberação solicitada</span></span>
+                  <strong id="patioOpsVsl">0</strong>
+                  <small>Ainda não confirmada</small>
+                </button>
+                <button type="button" class="patio-ops-card" data-patio-ops="vsc">
+                  <span class="patio-ops-card-top"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M8 12l3 3 5-6"></path></svg><span>VSC · Liberação confirmada</span></span>
+                  <strong id="patioOpsVsc">0</strong>
+                  <small>No pátio, aguardando retirada</small>
+                </button>
+                <button type="button" class="patio-ops-card" data-patio-ops="longa">
+                  <span class="patio-ops-card-top"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><span>Mais de 30 dias</span></span>
+                  <strong id="patioOpsLonga">0</strong>
+                  <small>Ainda no pátio</small>
+                </button>
+                <button type="button" class="patio-ops-card" data-patio-ops="livres">
+                  <span class="patio-ops-card-top"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="16" rx="1.5"></rect><rect x="14" y="4" width="7" height="16" rx="1.5"></rect></svg><span>Vagas disponíveis</span></span>
+                  <strong id="patioOpsLivres">120</strong>
+                  <small>Capacidade de 120</small>
+                </button>
+              </div>
+              <section class="patio-ops-ocupacao" aria-label="Ocupação do pátio">
+                <div class="patio-ops-ocupacao-head">
+                  <span>Ocupação do pátio</span>
+                  <strong id="patioOpsPct">0%</strong>
+                </div>
+                <div class="patio-ops-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="patioOpsBarHost">
+                  <span id="patioOpsBar"></span>
+                </div>
+                <p id="patioOpsOcupacaoMeta">0 ocupadas · 0 disponíveis · capacidade 120</p>
+              </section>
+              <section id="patioOpsLista" class="patio-ops-lista hidden" aria-live="polite"></section>
             </div>
             <div id="patioOpsDashRoot" class="ops-exec-root"></div>
             <div class="patio-inicio-grid hub-dash-legacy-hidden" aria-hidden="true" hidden aria-label="Dashboard do pátio (legado)">
@@ -19079,7 +19153,7 @@
         if (isVistoriador) view = "patio";
         else if ((isVisualizador || isGestorPista) && isViewerForbiddenView(view)) view = fallback;
         view = resolveViewForDevice(view);
-        if (view === "patio") openPatioSubview("inicio");
+        if (view === "patio") openPatioSubview("no_patio");
         else if (view === "parceiros") openPartnerSubview("escritorios");
         else if (view === "lista") openListaSubview("vnp");
         else openMainView(view);
@@ -20795,6 +20869,7 @@
             events: state.opsVehicleEvents || [],
           };
           window.operationalDashboardRender(opsData, opsCtx);
+          renderPatioOpsBoard();
           if (!window.__opsEventsLoading && typeof loadOperationalVehicleEvents === "function") {
             loadOperationalVehicleEvents();
           }
@@ -22540,6 +22615,197 @@
         </tr>`;
       }
 
+      const PATIO_OPS_CAPACIDADE = 120;
+      let patioOpsVrpDe = "";
+      let patioOpsVrpAte = "";
+      let patioOpsListaKind = "";
+
+      function patioOpsNoPatio(v) {
+        return isVnpStageVehicle(v);
+      }
+
+      function patioOpsRemovidos() {
+        const todos = (state.vehicles || []).filter((v) => patioStageOfVehicle(v) === "vrp");
+        const api = window.periodoFiltro;
+        if ((!patioOpsVrpDe && !patioOpsVrpAte) || !api) return todos;
+        return todos.filter((v) => api.inRange(v?.data_saida, patioOpsVrpDe, patioOpsVrpAte));
+      }
+
+      function patioOpsPeriodoRotulo() {
+        const api = window.periodoFiltro;
+        if (!patioOpsVrpDe && !patioOpsVrpAte) return "Todos os removidos";
+        const de = api ? api.format(patioOpsVrpDe) : patioOpsVrpDe;
+        const ate = api ? api.format(patioOpsVrpAte) : patioOpsVrpAte;
+        return `${de || "—"} a ${ate || "—"}`;
+      }
+
+      function patioOpsVeiculoTexto(v) {
+        return [v?.marca, v?.modelo].filter(Boolean).join(" ") || "—";
+      }
+
+      function patioOpsConjunto(kind) {
+        const vehicles = state.vehicles || [];
+        const noPatio = vehicles.filter(patioOpsNoPatio);
+        if (kind === "vsl") return noPatio.filter((v) => patioStageOfVehicle(v) === "vsl");
+        if (kind === "vsc") return noPatio.filter((v) => patioStageOfVehicle(v) === "vsc");
+        if (kind === "longa") return noPatio.filter((v) => calcDays(v) > 30);
+        if (kind === "vrp") return patioOpsRemovidos();
+        return noPatio;
+      }
+
+      function renderPatioOpsLista() {
+        const host = document.getElementById("patioOpsLista");
+        if (!host) return;
+        if (!patioOpsListaKind) {
+          host.classList.add("hidden");
+          host.innerHTML = "";
+          return;
+        }
+        const titulos = {
+          vsl: "VSL — liberação solicitada",
+          vsc: "VSC — liberação confirmada",
+          longa: "Veículos com mais de 30 dias no pátio",
+        };
+        let lista = patioOpsConjunto(patioOpsListaKind).slice();
+        lista.sort((a, b) => calcDays(b) - calcDays(a) || String(a.placa || "").localeCompare(String(b.placa || ""), "pt-BR"));
+        const linhas = lista
+          .map(
+            (v) => `<tr data-patio-ops-veiculo="${escapeHtml(String(v.id))}">
+              <td>${escapeHtml(v.placa || "—")}</td>
+              <td>${escapeHtml(patioOpsVeiculoTexto(v))}</td>
+              <td>${escapeHtml(formatDateTime(v.data_entrada))}</td>
+              <td class="num">${calcDays(v)}</td>
+            </tr>`
+          )
+          .join("");
+        host.classList.remove("hidden");
+        host.innerHTML = `<h3>${escapeHtml(titulos[patioOpsListaKind] || "Listagem")}</h3>
+          <p>${lista.length} veículo${lista.length === 1 ? "" : "s"}</p>
+          <div class="patio-ops-table-wrap"><table>
+            <thead><tr><th>Placa</th><th>Marca / modelo</th><th>Entrada</th><th>Dias</th></tr></thead>
+            <tbody>${linhas || `<tr><td colspan="4">Nenhum veículo nesta lista.</td></tr>`}</tbody>
+          </table></div>`;
+      }
+
+      function renderPatioOpsBoard() {
+        const board = document.getElementById("patioOpsBoard");
+        if (!board) return;
+        const noPatio = (state.vehicles || []).filter(patioOpsNoPatio);
+        const ocupadas = noPatio.length;
+        const livres = Math.max(0, PATIO_OPS_CAPACIDADE - ocupadas);
+        const pct = PATIO_OPS_CAPACIDADE ? Math.round((ocupadas / PATIO_OPS_CAPACIDADE) * 100) : 0;
+        const set = (id, txt) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = txt;
+        };
+        set("patioOpsVnp", String(ocupadas));
+        set("patioOpsVrp", String(patioOpsRemovidos().length));
+        set("patioOpsVsl", String(noPatio.filter((v) => patioStageOfVehicle(v) === "vsl").length));
+        set("patioOpsVsc", String(noPatio.filter((v) => patioStageOfVehicle(v) === "vsc").length));
+        set("patioOpsLonga", String(noPatio.filter((v) => calcDays(v) > 30).length));
+        set("patioOpsLivres", String(livres));
+        set("patioOpsVrpMeta", patioOpsPeriodoRotulo());
+        set("patioOpsPct", `${pct}%`);
+        set("patioOpsOcupacaoMeta", `${ocupadas} ocupadas · ${livres} disponíveis · capacidade ${PATIO_OPS_CAPACIDADE}`);
+        const bar = document.getElementById("patioOpsBar");
+        const barHost = document.getElementById("patioOpsBarHost");
+        if (bar) bar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+        if (barHost) barHost.setAttribute("aria-valuenow", String(Math.max(0, Math.min(100, pct))));
+        if (patioOpsListaKind) renderPatioOpsLista();
+      }
+
+      function patioOpsImprimirVrp() {
+        const lista = patioOpsRemovidos()
+          .slice()
+          .sort((a, b) => String(b.data_saida || "").localeCompare(String(a.data_saida || "")));
+        imprimirRelatorioA4({
+          titulo: "Gestão de Pátio — VRP",
+          meta: `Período pela data de remoção: ${patioOpsPeriodoRotulo()}.`,
+          colunas: ["Placa", "Veículo", "Entrada", "Saída", "Dias"],
+          linhas: lista.map((v) => [
+            v.placa || "—",
+            patioOpsVeiculoTexto(v),
+            formatDateTime(v.data_entrada),
+            formatDateTime(v.data_saida),
+            String(calcDays(v)),
+          ]),
+          total: `${lista.length} veículo${lista.length === 1 ? "" : "s"}`,
+        });
+      }
+
+      function patioOpsAplicarPeriodoNoVrp() {
+        patioVrpPeriodoDe = patioOpsVrpDe;
+        patioVrpPeriodoAte = patioOpsVrpAte;
+        const api = window.periodoFiltro;
+        const de = document.getElementById("patioVrpDataDe");
+        const ate = document.getElementById("patioVrpDataAte");
+        if (de) de.value = patioOpsVrpDe && api ? api.format(patioOpsVrpDe) : "";
+        if (ate) ate.value = patioOpsVrpAte && api ? api.format(patioOpsVrpAte) : "";
+        patioVrpEspelharCalendario();
+      }
+
+      function bindPatioOpsBoardOnce() {
+        if (bindPatioOpsBoardOnce._done) return;
+        bindPatioOpsBoardOnce._done = true;
+        bindPeriodoTextoCalendario("patioOpsDataDe", "patioOpsDataDeCal");
+        bindPeriodoTextoCalendario("patioOpsDataAte", "patioOpsDataAteCal");
+        document.getElementById("patioOpsPeriodo")?.addEventListener("submit", (ev) => {
+          ev.preventDefault();
+          const api = window.periodoFiltro;
+          const lido = api
+            ? api.read(document.getElementById("patioOpsDataDe")?.value || "", document.getElementById("patioOpsDataAte")?.value || "")
+            : { ok: false, erro: "Não foi possível ler o período." };
+          if (!lido.ok) {
+            alert(lido.erro);
+            return;
+          }
+          patioOpsVrpDe = lido.de;
+          patioOpsVrpAte = lido.ate;
+          renderPatioOpsBoard();
+        });
+        document.getElementById("patioOpsPeriodoLimpar")?.addEventListener("click", () => {
+          patioOpsVrpDe = "";
+          patioOpsVrpAte = "";
+          ["patioOpsDataDe", "patioOpsDataAte", "patioOpsDataDeCal", "patioOpsDataAteCal"].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.value = "";
+          });
+          renderPatioOpsBoard();
+        });
+        document.getElementById("patioOpsPeriodoImprimir")?.addEventListener("click", () => {
+          patioOpsImprimirVrp();
+        });
+        document.getElementById("patioOpsBoard")?.addEventListener("click", (ev) => {
+          const card = ev.target.closest("[data-patio-ops]");
+          if (card) {
+            const kind = card.getAttribute("data-patio-ops");
+            if (kind === "vnp" || kind === "livres") {
+              openPatioSubview("no_patio");
+              return;
+            }
+            if (kind === "vrp") {
+              patioOpsAplicarPeriodoNoVrp();
+              openPatioSubview("removidos");
+              renderVehicles();
+              return;
+            }
+            patioOpsListaKind = patioOpsListaKind === kind ? "" : kind;
+            renderPatioOpsLista();
+            if (patioOpsListaKind) document.getElementById("patioOpsLista")?.scrollIntoView({ block: "nearest" });
+            return;
+          }
+          const row = ev.target.closest("[data-patio-ops-veiculo]");
+          if (!row) return;
+          const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(row.getAttribute("data-patio-ops-veiculo")));
+          if (vehicle && typeof openVehicleIdFicha === "function") void openVehicleIdFicha(vehicle, 1);
+        });
+        setInterval(() => {
+          if (typeof currentPatioView !== "undefined" && currentPatioView === "inicio") renderPatioOpsBoard();
+        }, 60000);
+      }
+      bindPatioOpsBoardOnce();
+      window.renderPatioOpsBoard = renderPatioOpsBoard;
+
       function setPatioView(view, opts = {}) {
         if (isVisualizador) view = view === "aguardando_faturamento" || view === "fechando_ciclo" || view === "extrato_valores" || view === "resumo_valores" ? "no_patio" : view;
         if (isGestorPista && (view === "extrato_valores" || view === "resumo_valores")) view = "no_patio";
@@ -22626,6 +22892,7 @@
         if (isContentView && document.body.classList.contains("auth-screen-active")) {
           patioContent?.classList.add("hidden");
         }
+        if (isInicio) renderPatioOpsBoard();
         syncMobileChromeOffset();
       }
 
@@ -33785,7 +34052,7 @@ ${body}
           setPatioView("vistoria");
           return;
         }
-        if (sub === "inicio" || sub === "dashboard") sub = "no_patio";
+        if (sub === "dashboard") sub = "inicio";
         if (sub === "consultar_placa") sub = "no_patio";
         if (sub === "resumo_valores") sub = "extrato_valores";
         if (sub === "liberacao_solicitada" || sub === "vlp" || sub === "vsl" || sub === "vsc") sub = "no_patio";
@@ -34015,7 +34282,7 @@ ${body}
       }
 
       document.getElementById("patioPlateGoInicio")?.addEventListener("click", () => {
-        openPatioSubview("inicio");
+        openPatioSubview("no_patio");
       });
 
       clearPlateFilter?.addEventListener("click", () => {
