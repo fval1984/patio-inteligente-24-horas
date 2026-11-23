@@ -13,6 +13,8 @@
   let q = "";
   let de = "";
   let ate = "";
+  let entradaDe = "";
+  let entradaAte = "";
   let mesSelecionado = "";
   let selected = new Set();
   let collapsed = new Set();
@@ -662,6 +664,20 @@
       pintar();
       return;
     }
+    if (e.target.id === "caixaOpEntradaDe" || e.target.id === "caixaOpEntradaAte") {
+      const api = global.periodoFiltro;
+      if (api) {
+        const next = api.mask(e.target.value);
+        if (next !== e.target.value) e.target.value = next;
+      }
+      return;
+    }
+    if (e.target.id === "caixaOpEntradaDeCal" || e.target.id === "caixaOpEntradaAteCal") {
+      const api = global.periodoFiltro;
+      const txt = document.getElementById(e.target.id === "caixaOpEntradaDeCal" ? "caixaOpEntradaDe" : "caixaOpEntradaAte");
+      if (txt && api) txt.value = api.format(e.target.value);
+      return;
+    }
     if (e.target.id === "caixaOpBusca") q = e.target.value || "";
     if (e.target.id === "caixaOpDe") de = e.target.value || "";
     if (e.target.id === "caixaOpAte") ate = e.target.value || "";
@@ -723,6 +739,7 @@
         titulo: row.identificador || `FAT-${String(row.numero_cobranca || 0).padStart(6, "0")}`,
         cliente: row.parceiro_nome || "Cliente",
         data: row.data_geracao,
+        lancamento: row.data_geracao || row.created_at,
         venc: row.data_vencimento,
         valor: Number(row.valor_total || 0),
         saldo: snap.saldo,
@@ -737,6 +754,7 @@
         titulo: fat.row.identificador || `FAT-${String(fat.row.numero_cobranca || 0).padStart(6, "0")}`,
         cliente: fat.row.parceiro_nome || "Cliente",
         data: fat.row.data_geracao,
+        lancamento: fat.row.data_geracao || fat.row.created_at,
         venc: fat.row.data_vencimento,
         valor: Number(fat.row.valor_total || fat.saldo),
         saldo: fat.saldo,
@@ -753,6 +771,7 @@
         titulo: rotuloLinha(line),
         cliente: r?.cobranca_destinatario_nome || nomeLinha(line),
         data: r?.faturado_em || r?.contas_receber_em || line.saida || line.entrada,
+        lancamento: r?.faturado_em || r?.contas_receber_em || r?.created_at,
         venc: (typeof global.financeContaDueYmd === "function" ? global.financeContaDueYmd(r, "receivable") : "") || r?.data_vencimento || "",
         valor: Number(line.valor || 0),
         saldo: Number(line.valor || 0),
@@ -768,6 +787,7 @@
         titulo: rotuloLinha(line),
         cliente: nomeLinha(line),
         data: line.saida || line.entrada,
+        lancamento: r?.created_at || r?.contas_receber_em || r?.faturado_em,
         venc: r?.data_vencimento || "",
         valor: Number(line.valor || 0),
         saldo: saldoLinha(line),
@@ -858,10 +878,29 @@
     }
     const tools = document.getElementById("caixaOpTools");
     if (tools) {
+      const api = global.periodoFiltro;
+      const deTxt = api ? api.format(entradaDe) : "";
+      const ateTxt = api ? api.format(entradaAte) : "";
       tools.innerHTML = vista === "entradas"
         ? `<button type="button" class="cx-chip ${prazo === "" ? "is-on" : ""}" data-cx-prazo="">Todos</button>
            <button type="button" class="cx-chip ${prazo === "vencer" ? "is-on" : ""}" data-cx-prazo="vencer">A vencer</button>
-           <button type="button" class="cx-chip ${prazo === "atrasado" ? "is-on" : ""}" data-cx-prazo="atrasado">Atrasados</button>`
+           <button type="button" class="cx-chip ${prazo === "atrasado" ? "is-on" : ""}" data-cx-prazo="atrasado">Atrasados</button>
+           <div class="cx-periodo">
+             <label>Data inicial
+               <span class="periodo-data">
+                 <input id="caixaOpEntradaDe" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" value="${esc(deTxt)}" aria-label="Data inicial do lançamento" />
+                 <input id="caixaOpEntradaDeCal" type="date" value="${esc(entradaDe)}" aria-label="Abrir calendário da data inicial" />
+               </span>
+             </label>
+             <label>Data final
+               <span class="periodo-data">
+                 <input id="caixaOpEntradaAte" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" value="${esc(ateTxt)}" aria-label="Data final do lançamento" />
+                 <input id="caixaOpEntradaAteCal" type="date" value="${esc(entradaAte)}" aria-label="Abrir calendário da data final" />
+               </span>
+             </label>
+             <button type="button" class="cx-btn" id="caixaOpEntradaFiltrar">Filtrar</button>
+             <button type="button" class="cx-btn secondary" id="caixaOpEntradaLimpar">Limpar filtro</button>
+           </div>`
         : "";
     }
   }
@@ -1024,7 +1063,14 @@
     const mes = nomeMes(mesAtivo());
     if (vista === "entradas") {
       let itens = entradasPendentes();
+      if ((entradaDe || entradaAte) && global.periodoFiltro) {
+        itens = itens.filter((item) => global.periodoFiltro.inRange(item.lancamento, entradaDe, entradaAte));
+      }
       if (prazo) itens = itens.filter((item) => classePrazo(item) === prazo);
+      const saldo = itens.reduce((s, item) => s + Number(item.saldo || 0), 0);
+      const noPeriodo = !!(entradaDe || entradaAte);
+      const rotuloTotal = noPeriodo ? "Total no período" : "Total";
+      const vazio = noPeriodo ? "Nenhuma cobrança com saldo neste período." : "Nenhuma cobrança com saldo.";
       const pagina = itens.slice(0, limiteLista);
       const rows = pagina.map((item) => {
         const check = item.tipo === "fatura"
@@ -1046,7 +1092,7 @@
           ${celula("", `<button type="button" class="cx-btn" data-cx-receber="${esc(item.id)}" data-cx-tipo="${esc(item.tipo)}">Marcar recebido</button>`)}
         </tr>`;
       });
-      box.innerHTML = `<p class="cx-note">Cobranças com saldo. Recebido no ato aparece no Caixa; faturado continua aqui até a quitação.</p>${tabela(["", "Placa", "Veículo", "Responsável", "Saída", "Vencimento", "Valor", "Saldo", "Situação", ""], rows, "Nenhuma cobrança com saldo.")}${maisBotao(itens.length, pagina.length)}`;
+      box.innerHTML = `<p class="cx-note">Cobranças com saldo. Recebido no ato aparece no Caixa; faturado continua aqui até a quitação. ${rotuloTotal}: ${itens.length} · saldo ${esc(money(saldo))}.</p>${tabela(["", "Placa", "Veículo", "Responsável", "Saída", "Vencimento", "Valor", "Saldo", "Situação", ""], rows, vazio)}${maisBotao(itens.length, pagina.length)}`;
       return true;
     }
     if (vista === "saidas") {
@@ -1420,6 +1466,28 @@
       if (collapsed.has(key)) collapsed.delete(key);
       else collapsed.add(key);
       pintarLista();
+      return;
+    }
+    if (e.target.closest("#caixaOpEntradaFiltrar")) {
+      const api = global.periodoFiltro;
+      const lido = api
+        ? api.read(document.getElementById("caixaOpEntradaDe")?.value || "", document.getElementById("caixaOpEntradaAte")?.value || "")
+        : { ok: false, erro: "Não foi possível ler o período." };
+      if (!lido.ok) {
+        if (typeof global.alert === "function") global.alert(lido.erro);
+        return;
+      }
+      entradaDe = lido.de;
+      entradaAte = lido.ate;
+      limiteLista = 200;
+      pintar();
+      return;
+    }
+    if (e.target.closest("#caixaOpEntradaLimpar")) {
+      entradaDe = "";
+      entradaAte = "";
+      limiteLista = 200;
+      pintar();
       return;
     }
     const prazoBtn = e.target.closest("[data-cx-prazo]");
