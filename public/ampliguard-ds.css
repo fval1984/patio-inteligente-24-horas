@@ -1401,13 +1401,92 @@ body.ag-ficha-open {
 #viewDashboard .cob-shell {
   padding: 4px 0 8px;
 }
+#viewDashboard .cob-shell h2,
+#viewDashboard .cob-shell h3 {
+  color: #4d6a5c;
+  font-weight: 700;
+}
+#viewDashboard .cob-kpis {
+  align-items: stretch;
+  gap: 12px;
+}
 #viewDashboard .cob-kpi {
   width: 100%;
+  height: 100%;
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
   font: inherit;
   text-align: left;
   cursor: pointer;
-  box-shadow: none;
-  min-height: 0;
+  background: #f7fbf8 !important;
+  border: 1px solid #c5d9cc !important;
+  border-radius: 14px !important;
+  box-shadow: none !important;
+  color: #4d6a5c;
+}
+#viewDashboard .cob-kpi .ag-dash-kpi-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  color: #4d6a5c;
+}
+#viewDashboard .cob-kpi .hub-ops-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: #4d6a5c;
+}
+#viewDashboard .cob-kpi .ag-dash-kpi-top span {
+  display: block;
+  min-width: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+  text-transform: uppercase;
+  color: #4d6a5c;
+}
+#viewDashboard .cob-kpi strong {
+  display: block;
+  margin-top: auto;
+  font-size: clamp(1.2rem, 1.5vw, 1.7rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: #0f3d2e !important;
+  overflow-wrap: anywhere;
+}
+#viewDashboard .cob-kpi.is-late {
+  background: #fff !important;
+  border-color: #e4c4c4 !important;
+}
+#viewDashboard .cob-kpi.is-late .hub-ops-icon,
+#viewDashboard .cob-kpi.is-late strong {
+  color: #9b3a3a !important;
+}
+#viewDashboard .cob-card {
+  background: #f7fbf8 !important;
+  border: 1px solid #c5d9cc !important;
+  border-radius: 14px !important;
+  box-shadow: none !important;
+}
+#viewDashboard .cob-tipo {
+  color: #4d6a5c !important;
+}
+#viewDashboard .cob-card h3,
+#viewDashboard .cob-metrics strong {
+  color: #0f3d2e;
+}
+#viewDashboard .ag-dash-layout {
+  align-items: stretch;
+  gap: 12px;
 }
 #viewDashboard .cob-chip {
   background: var(--cob-card, #fffcf7) !important;
@@ -1423,7 +1502,8 @@ body.ag-ficha-open {
 }
 #viewDashboard .cob-kpi:hover,
 #viewDashboard .cob-card:hover {
-  border-color: var(--cob-accent, #1e3a5f);
+  border-color: #0f3d2e !important;
+  background: #fff !important;
 }
 #viewDashboard .cob-card[data-hub-nav] {
   cursor: pointer;
