@@ -885,21 +885,33 @@
         ? `<button type="button" class="cx-chip ${prazo === "" ? "is-on" : ""}" data-cx-prazo="">Todos</button>
            <button type="button" class="cx-chip ${prazo === "vencer" ? "is-on" : ""}" data-cx-prazo="vencer">A vencer</button>
            <button type="button" class="cx-chip ${prazo === "atrasado" ? "is-on" : ""}" data-cx-prazo="atrasado">Atrasados</button>
-           <div class="cx-periodo">
-             <label>Data inicial
-               <span class="periodo-data">
-                 <input id="caixaOpEntradaDe" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" value="${esc(deTxt)}" aria-label="Data inicial do lançamento" />
-                 <input id="caixaOpEntradaDeCal" type="date" value="${esc(entradaDe)}" aria-label="Abrir calendário da data inicial" />
-               </span>
-             </label>
-             <label>Data final
-               <span class="periodo-data">
-                 <input id="caixaOpEntradaAte" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" value="${esc(ateTxt)}" aria-label="Data final do lançamento" />
-                 <input id="caixaOpEntradaAteCal" type="date" value="${esc(entradaAte)}" aria-label="Abrir calendário da data final" />
-               </span>
-             </label>
-             <button type="button" class="cx-btn" id="caixaOpEntradaFiltrar">Filtrar</button>
-             <button type="button" class="cx-btn secondary" id="caixaOpEntradaLimpar">Limpar filtro</button>
+           <div class="periodo-box">
+             <h3 class="periodo-box__title">Filtrar por período</h3>
+             <div class="periodo-box__dates">
+               <label for="caixaOpEntradaDe">Data inicial
+                 <span class="periodo-data">
+                   <input id="caixaOpEntradaDe" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" value="${esc(deTxt)}" aria-label="Data inicial do lançamento" />
+                   <input id="caixaOpEntradaDeCal" type="date" value="${esc(entradaDe)}" aria-label="Abrir calendário da data inicial" />
+                 </span>
+               </label>
+               <label for="caixaOpEntradaAte">Data final
+                 <span class="periodo-data">
+                   <input id="caixaOpEntradaAte" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" value="${esc(ateTxt)}" aria-label="Data final do lançamento" />
+                   <input id="caixaOpEntradaAteCal" type="date" value="${esc(entradaAte)}" aria-label="Abrir calendário da data final" />
+                 </span>
+               </label>
+             </div>
+             <div class="periodo-box__actions">
+               <button type="button" class="periodo-box__btn periodo-box__btn--go" id="caixaOpEntradaFiltrar">
+                 <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+                 Filtrar
+               </button>
+               <button type="button" class="secondary periodo-box__btn" id="caixaOpEntradaLimpar">Limpar</button>
+               <button type="button" class="secondary periodo-box__btn" id="caixaOpEntradaImprimir">
+                 <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="7"></rect></svg>
+                 Imprimir
+               </button>
+             </div>
            </div>`
         : "";
     }
@@ -1057,16 +1069,58 @@
     return mov?.conta_nome || mov?.conta_financeira || mov?.banco || mov?.conta || "Caixa";
   }
 
+  function entradasVisiveis() {
+    let itens = entradasPendentes();
+    if ((entradaDe || entradaAte) && global.periodoFiltro) {
+      itens = itens.filter((item) => global.periodoFiltro.inRange(item.lancamento, entradaDe, entradaAte));
+    }
+    if (prazo) itens = itens.filter((item) => classePrazo(item) === prazo);
+    return itens;
+  }
+
+  function imprimirEntradasPeriodo() {
+    const imprimir = global.imprimirRelatorioA4;
+    if (typeof imprimir !== "function") {
+      if (typeof global.alert === "function") global.alert("Não foi possível preparar a impressão.");
+      return;
+    }
+    const itens = entradasVisiveis();
+    const api = global.periodoFiltro;
+    const deTxt = entradaDe && api ? api.format(entradaDe) : "";
+    const ateTxt = entradaAte && api ? api.format(entradaAte) : "";
+    const periodo = entradaDe || entradaAte ? `${deTxt || "—"} a ${ateTxt || "—"}` : "Todos os registros";
+    const status = prazo === "vencer" ? "A vencer" : prazo === "atrasado" ? "Atrasados" : "Todos";
+    const linhas = itens.map((item) => {
+      const partes = String(item.titulo || "").split("•");
+      const placa = item.tipo === "fatura" ? item.titulo : (partes[0] || item.titulo || "—").trim();
+      const veiculo = item.tipo === "fatura" ? "Fatura" : (partes.slice(1).join("•") || "—").trim();
+      return [
+        placa || "—",
+        veiculo || "—",
+        item.cliente || "—",
+        dataCurta(item.data),
+        dataCurta(item.venc),
+        money(item.valor),
+        money(item.saldo),
+        situacaoEntrada(item),
+      ];
+    });
+    const saldo = itens.reduce((s, item) => s + Number(item.saldo || 0), 0);
+    imprimir({
+      titulo: "Financeiro — Entradas",
+      meta: `Período pela data do lançamento: ${periodo}. Situação: ${status}.`,
+      colunas: ["Placa", "Veículo", "Responsável", "Saída", "Vencimento", "Valor", "Saldo", "Situação"],
+      linhas,
+      total: `${itens.length} · saldo ${money(saldo)}`,
+    });
+  }
+
   function pintarVista() {
     const box = document.getElementById("caixaOpLista");
     const vista = vistaAtual();
     const mes = nomeMes(mesAtivo());
     if (vista === "entradas") {
-      let itens = entradasPendentes();
-      if ((entradaDe || entradaAte) && global.periodoFiltro) {
-        itens = itens.filter((item) => global.periodoFiltro.inRange(item.lancamento, entradaDe, entradaAte));
-      }
-      if (prazo) itens = itens.filter((item) => classePrazo(item) === prazo);
+      const itens = entradasVisiveis();
       const saldo = itens.reduce((s, item) => s + Number(item.saldo || 0), 0);
       const noPeriodo = !!(entradaDe || entradaAte);
       const rotuloTotal = noPeriodo ? "Total no período" : "Total";
@@ -1488,6 +1542,10 @@
       entradaAte = "";
       limiteLista = 200;
       pintar();
+      return;
+    }
+    if (e.target.closest("#caixaOpEntradaImprimir")) {
+      imprimirEntradasPeriodo();
       return;
     }
     const prazoBtn = e.target.closest("[data-cx-prazo]");
