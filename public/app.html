@@ -15515,6 +15515,27 @@
           .limit(1)
           .maybeSingle();
         actors.responsavelFinanceiro = rec?.responsavel_pagamento || "";
+        actors.contatos = {};
+        const { data: contatoRows, error: contatoErr } = await supabase
+          .from("vehicle_movimento_contatos")
+          .select("papel,contato_tipo,nome,telefone,cadastro_id,registrado_em")
+          .eq("vehicle_id", vehicleId)
+          .order("registrado_em", { ascending: false })
+          .limit(80);
+        if (!contatoErr && Array.isArray(contatoRows)) {
+          contatoRows.forEach((row) => {
+            const papel = String(row?.papel || "");
+            if (!papel || actors.contatos[papel]) return;
+            const tipo = String(row.contato_tipo || "").toUpperCase() === "AVULSO" ? "AVULSO" : "CADASTRADO";
+            actors.contatos[papel] = {
+              tipo,
+              id: row.cadastro_id ? String(row.cadastro_id) : "",
+              nome: String(row.nome || "").trim(),
+              telefone: String(row.telefone || "").trim(),
+            };
+            if (!actors[papel] && actors.contatos[papel].nome) actors[papel] = actors.contatos[papel].nome;
+          });
+        }
         return actors;
       }
 
@@ -21068,8 +21089,7 @@
 
       function workflowContactMode(key) {
         const box = workflowContactBox(key);
-        const row = box?.closest(".wf-field");
-        if (!box || row?.classList.contains("wf-field--readonly")) return "cadastrado";
+        if (!box) return "cadastrado";
         const active = box.querySelector(".wf-contact-toggle__btn.is-active");
         return active?.dataset.mode === "avulso" ? "avulso" : "cadastrado";
       }
@@ -21107,6 +21127,38 @@
           box.classList.remove("hidden");
         });
         hideWorkflowContactSuggestions();
+      }
+
+      function applyStoredAvulsoContact(key, contact, isReadonly) {
+        if (!contact || String(contact.tipo || "").toUpperCase() !== "AVULSO") return;
+        const box = workflowContactBox(key);
+        if (!box) return;
+        const nome = String(contact.nome || "").trim();
+        const telRaw = String(contact.telefone || "").trim();
+        const tel = window.contatosAvulsos?.formatPhoneBr(telRaw) || telRaw;
+        setWorkflowContactMode(box, "avulso");
+        const nomeInput = box.querySelector(".wf-avulso-nome");
+        const telInput = box.querySelector(".wf-avulso-tel");
+        if (nomeInput) nomeInput.value = nome;
+        if (telInput) telInput.value = tel;
+        const select = WORKFLOW_CONTACT_SELECT[key]?.();
+        if (select) select.value = "";
+        const row = box.closest(".wf-field");
+        const fallback = row?.querySelector(".wf-contact-readonly");
+        if (isReadonly) {
+          const label = [nome, tel].filter(Boolean).join(" · ");
+          if (fallback && label) {
+            fallback.textContent = label;
+            fallback.classList.remove("hidden");
+            box.classList.add("hidden");
+          }
+          return;
+        }
+        if (fallback) {
+          fallback.textContent = "";
+          fallback.classList.add("hidden");
+        }
+        box.classList.remove("hidden");
       }
 
       function renderWorkflowContactSuggestions(input) {
@@ -21177,7 +21229,14 @@
 
       function workflowContactError(key, contact) {
         if (contact?.tipo === "AVULSO") {
-          return window.contatosAvulsos?.validationMessage(contact, WORKFLOW_CONTACT_SUBJECT[key]) || "Informe o contato avulso.";
+          const api = window.contatosAvulsos;
+          if (api && typeof api.validationMessage === "function") {
+            return api.validationMessage(contact, WORKFLOW_CONTACT_SUBJECT[key]);
+          }
+          const nome = String(contact.nome || "").trim();
+          const digits = String(contact.telefone || "").replace(/\D/g, "");
+          if (nome.length >= 2 && digits.length >= 10 && digits.length <= 11) return "";
+          return "Informe o contato avulso.";
         }
         if (!contact?.id) {
           if (!listaGeralParceiros().length) {
@@ -21286,6 +21345,11 @@
           if (!contact?.nome) continue;
           let avulsoId = null;
           if (contact.tipo === "AVULSO") avulsoId = await saveAvulsoCatalog(contact);
+          const api = window.contatosAvulsos;
+          const telNorm =
+            String(contact.telefoneNorm || "").replace(/\D/g, "") ||
+            (api ? api.digits(contact.telefone) : String(contact.telefone || "").replace(/\D/g, "")) ||
+            null;
           prepared.push({
             user_id: uid,
             vehicle_id: vehicleId,
@@ -21295,7 +21359,7 @@
             contato_tipo: contact.tipo === "AVULSO" ? "AVULSO" : "CADASTRADO",
             nome: contact.nome,
             telefone: contact.telefone || null,
-            telefone_norm: contact.telefoneNorm || null,
+            telefone_norm: telNorm,
             cadastro_id: contact.tipo === "CADASTRADO" && contact.id ? contact.id : null,
             contato_avulso_id: avulsoId,
             registrado_por: operador,
@@ -30271,6 +30335,7 @@ ${body}
         requiredFields = [],
         values = {},
         readonly = {},
+        contacts = {},
       }) {
         return new Promise((resolve) => {
           liberacaoModalResolver = resolve;
@@ -30331,10 +30396,14 @@ ${body}
           setPartnerSel(libRemoveu, values.removeu, readonly.removeu);
           const obsEl = document.getElementById("libObservacao");
           if (obsEl) obsEl.value = values.observacao || "";
-          if (requiredFields.includes("removeu") && libRemoveu && !libRemoveu.value) {
+          if (requiredFields.includes("removeu") && libRemoveu && !libRemoveu.value && String(contacts.removeu?.tipo || "").toUpperCase() !== "AVULSO") {
             const firstRemoveu = [...libRemoveu.options].find((o) => o.value);
             if (firstRemoveu) libRemoveu.value = firstRemoveu.value;
           }
+          applyStoredAvulsoContact("solicitante", contacts.solicitante, !!readonly.solicitante);
+          applyStoredAvulsoContact("confirmador", contacts.confirmador, !!readonly.confirmador);
+          applyStoredAvulsoContact("responsavelFinanceiro", contacts.responsavelFinanceiro, !!readonly.responsavelFinanceiro);
+          applyStoredAvulsoContact("removeu", contacts.removeu, !!readonly.removeu);
           if (libDestinacao) libDestinacao.value = normalizeDestinacao(values.destinacao);
           if (libRestituicaoResponsavel) {
             libRestituicaoResponsavel.value = String(values.restituicaoResponsavel || "").trim();
@@ -32164,6 +32233,7 @@ ${body}
               restituicaoResponsavel: vehicle.restituicao_responsavel_nome,
             },
             readonly: { solicitante: true },
+            contacts: actors.contatos || {},
           });
           if (!libData) return;
           const responsavel = String(libData.responsavelFinanceiro || "").trim();
@@ -32304,6 +32374,7 @@ ${body}
               confirmador: true,
               responsavelFinanceiro: true,
             },
+            contacts: actors.contatos || {},
           });
           if (!remData) return;
           const por = String(remData.solicitanteRemocao || "").trim();
@@ -32658,6 +32729,7 @@ ${body}
               responsavelFinanceiro: true,
               solicitanteRemocao: true,
             },
+            contacts: actors.contatos || {},
           });
           if (!vrpData) return;
           const responsavel = String(vrpData.removeu || "").trim();
