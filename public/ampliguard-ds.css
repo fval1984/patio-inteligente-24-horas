@@ -1,68 +1,69 @@
 /**
- * AMPLIGUARD — Identidade corporativa premium (somente apresentação)
- * Branco / cinza / grafite / vermelho institucional
+ * AMPLIGUARD — identidade da ficha Permanência e Cobrança.
+ * Branco, verde acinzentado e verde-escuro. Vermelho apenas em alerta e exclusão.
  */
 
 :root {
   --ag-white: #ffffff;
-  --ag-bg: #f4f6f8;
-  --ag-surface: #ffffff;
-  --ag-surface-2: #f4f6f8;
+  --ag-bg: #ffffff;
+  --ag-surface: #f4f8f5;
+  --ag-surface-2: #eef4f0;
   --ag-field: #ffffff;
-  --ag-graphite: #242830;
-  --ag-graphite-2: #1c2128;
-  --ag-text: #20242b;
-  --ag-muted: #667085;
-  --ag-border: #e5e7eb;
+  --ag-graphite: #0f3d2e;
+  --ag-graphite-2: #0c3226;
+  --ag-text: #14221c;
+  --ag-muted: #4d6a5c;
+  --ag-border: #e3ece6;
+  --ag-line: #c5d9cc;
   --ag-red: #c62828;
   --ag-red-strong: #ab1f1f;
   --ag-red-soft: #fdecec;
-  --ag-success: #2e7d32;
-  --ag-success-bg: #e8f5e9;
+  --ag-success: #0f3d2e;
+  --ag-success-bg: #e7f3ec;
   --ag-warning: #c9a227;
   --ag-warning-bg: #fff8e1;
   --ag-danger: #c62828;
   --ag-danger-bg: #fdecec;
-  --ag-info: #3d5a80;
-  --ag-info-bg: #eef2f6;
-  --ag-radius: 10px;
-  --ag-radius-sm: 8px;
-  --ag-radius-xs: 6px;
-  --ag-shadow: 0 1px 2px rgba(37, 42, 50, 0.06);
-  --ag-shadow-soft: 0 1px 2px rgba(37, 42, 50, 0.04);
+  --ag-info: #4d6a5c;
+  --ag-info-bg: #f4f8f5;
+  --ag-radius: 12px;
+  --ag-radius-sm: 10px;
+  --ag-radius-xs: 8px;
+  --ag-shadow: 0 1px 2px rgba(15, 61, 46, 0.05);
+  --ag-shadow-soft: 0 1px 2px rgba(15, 61, 46, 0.04);
   --ag-sidebar-w: 228px;
   --ag-sidebar-w-collapsed: 72px;
   --ag-topbar-h: 56px;
   --ag-font: "Inter", "Segoe UI", system-ui, sans-serif;
   --ag-font-display: "Inter", "Segoe UI", system-ui, sans-serif;
   --ag-ease: 140ms ease;
-  --ag-control-h: 38px;
-  --ag-navy: #252a32;
-  --ag-navy-deep: #1c2128;
-  --ag-blue: #c62828;
-  --ag-blue-strong: #ab1f1f;
-  --ag-blue-soft: #fdecec;
-  --ag-iron: #252a32;
-  --ag-wood: #c62828;
-  --ag-wood-light: #ef9a9a;
-  --ag-concrete: #f7f8fa;
+  --ag-control-h: 40px;
+  --ag-navy: #0f3d2e;
+  --ag-navy-deep: #0c3226;
+  --ag-blue: #0f3d2e;
+  --ag-blue-strong: #0c3226;
+  --ag-blue-soft: #f4f8f5;
+  --ag-iron: #14221c;
+  --ag-wood: #0f3d2e;
+  --ag-wood-light: #c5d9cc;
+  --ag-concrete: #f7fbf8;
   --ag-steel: #ffffff;
-  --ag-metal: #667085;
+  --ag-metal: #4d6a5c;
 
   --bg: var(--ag-bg);
   --card: var(--ag-surface);
   --text: var(--ag-text);
   --muted: var(--ag-muted);
-  --primary: var(--ag-red);
-  --primary-strong: var(--ag-red-strong);
-  --primary-weak: rgba(198, 40, 40, 0.1);
+  --primary: var(--ag-graphite);
+  --primary-strong: var(--ag-graphite-2);
+  --primary-weak: rgba(15, 61, 46, 0.1);
   --border: var(--ag-border);
   --shadow: var(--ag-shadow);
   --shadow-soft: var(--ag-shadow-soft);
   --radius: var(--ag-radius);
-  --gold: var(--ag-red);
-  --gold-strong: var(--ag-red-strong);
-  --gold-light: #ef9a9a;
+  --gold: var(--ag-graphite);
+  --gold-strong: var(--ag-graphite-2);
+  --gold-light: #c5d9cc;
   --success: var(--ag-success);
   --error: var(--ag-danger);
 }
@@ -101,7 +102,7 @@ body.app-module-lista {
 }
 
 ::selection {
-  background: var(--ag-red-soft);
+  background: #d7ebe0;
   color: var(--ag-text);
 }
 
@@ -401,7 +402,7 @@ body.auth-screen-active .ag-header-context {
     width: 22px;
     height: 3px;
     border-radius: 99px;
-    background: #c62828;
+    background: #0f3d2e;
   }
 
   body:not(.auth-screen-active) #agSidebarToggle:hover .ag-nav-mark {
@@ -409,7 +410,7 @@ body.auth-screen-active .ag-header-context {
   }
 
   body:not(.auth-screen-active) #agSidebarToggle:focus-visible {
-    outline: 2px solid #c62828;
+    outline: 2px solid #0f3d2e;
     outline-offset: 3px;
   }
 
@@ -436,8 +437,8 @@ body.auth-screen-active .ag-header-context {
   }
 
   .header-plate-search button[type="submit"] {
-    background: var(--ag-red) !important;
-    border-color: var(--ag-red) !important;
+    background: var(--ag-graphite) !important;
+    border-color: var(--ag-graphite) !important;
     color: #fff !important;
   }
 }
@@ -539,15 +540,15 @@ button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab
   border: 1px solid var(--ag-graphite) !important;
   box-shadow: none !important;
   font-weight: 600;
-  min-height: 34px;
+  min-height: var(--ag-control-h);
   letter-spacing: 0;
 }
 
 .header-plate-search button[type="submit"],
 #vehicleIdFichaAcoesBtn,
 .auth-login-form button[type="submit"] {
-  background: var(--ag-red) !important;
-  border-color: var(--ag-red) !important;
+  background: var(--ag-graphite) !important;
+  border-color: var(--ag-graphite) !important;
   color: #fff !important;
 }
 
@@ -603,7 +604,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--ag-red) !important;
+  outline: 2px solid var(--ag-graphite) !important;
   outline-offset: 2px !important;
 }
 
@@ -768,9 +769,9 @@ html[data-theme="dark"] .table tbody tr:nth-child(even) {
 }
 
 #vehicleIdFichaAcoesBtn {
-  background: var(--ag-red) !important;
+  background: var(--ag-graphite) !important;
   color: #fff !important;
-  border-color: var(--ag-red) !important;
+  border-color: var(--ag-graphite) !important;
 }
 
 /* ---- Status ---- */
@@ -995,7 +996,7 @@ html[data-theme="dark"] .table tbody tr:nth-child(even) {
 }
 
 .patio-side-menu button.active {
-  box-shadow: inset 3px 0 0 var(--ag-red) !important;
+  box-shadow: inset 3px 0 0 #ffffff !important;
 }
 
 .ao-kpi {
@@ -1005,9 +1006,9 @@ html[data-theme="dark"] .table tbody tr:nth-child(even) {
 }
 
 .header-plate-search button[type="submit"] {
-  background: var(--ag-red) !important;
+  background: var(--ag-graphite) !important;
   color: #fff !important;
-  border-color: var(--ag-red) !important;
+  border-color: var(--ag-graphite) !important;
 }
 
 .panel.auth,
@@ -1039,7 +1040,7 @@ body.auth-screen-active #authorizationPanel:not(.hidden) {
   }
 
   #dashboardSystemEntry .dashboard-system-btn.active {
-    background: var(--ag-red) !important;
+    background: var(--ag-graphite) !important;
     color: #fff !important;
   }
 }
@@ -1314,7 +1315,7 @@ body.ag-ficha-open {
 }
 
 .table thead th {
-  background: #f4f6f8 !important;
+  background: #f7fbf8 !important;
 }
 
 @media (min-width: 901px) {
@@ -1335,8 +1336,8 @@ body.ag-ficha-open {
   }
 
   body:not(.auth-screen-active) #dashboardSystemEntry {
-    background: #f4f6f8 !important;
-    border-right: 1px solid #e5e7eb !important;
+    background: #f7fbf8 !important;
+    border-right: 1px solid #e3ece6 !important;
   }
 
   body:not(.auth-screen-active) #dashboardSystemEntry::before {
@@ -1345,7 +1346,7 @@ body.ag-ficha-open {
 
   body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn {
     background: transparent !important;
-    color: #5f6b7a !important;
+    color: #4d6a5c !important;
     justify-content: center !important;
     box-shadow: none !important;
   }
@@ -1355,8 +1356,8 @@ body.ag-ficha-open {
   }
 
   body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn:hover {
-    background: rgba(36, 40, 48, 0.06) !important;
-    color: #20242b !important;
+    background: rgba(15, 61, 46, 0.06) !important;
+    color: #14221c !important;
   }
 
   body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn.active,
@@ -1366,7 +1367,7 @@ body.ag-ficha-open {
   body:not(.auth-screen-active):has(#viewParceiros:not(.hidden)) #dashboardOpenParceiros,
   body:not(.auth-screen-active):has(#viewConfiguracoes:not(.hidden)) #dashboardOpenConfiguracoes,
   body:not(.auth-screen-active):has(#viewDashboard:not(.hidden)) #dashboardOpenHome {
-    background: #242830 !important;
+    background: #0f3d2e !important;
     color: #fff !important;
     box-shadow: none !important;
     border-radius: 10px !important;
@@ -1548,8 +1549,8 @@ body.ag-ficha-open {
   #appHeaderMenu .header-menu-top.header-menu-top--current,
   #appHeaderMenu .header-menu-details.header-menu-details--current > summary,
   #appHeaderMenu button.active {
-    background: rgba(198, 40, 40, 0.12) !important;
-    color: #ab1f1f !important;
+    background: rgba(15, 61, 46, 0.1) !important;
+    color: #0f3d2e !important;
   }
 
   #appHeaderMenu .header-menu-item--danger {
@@ -1587,11 +1588,11 @@ body.ag-ficha-open {
     width: 22px;
     height: 3px;
     border-radius: 99px;
-    background: #c62828;
+    background: #0f3d2e;
   }
 
   body:not(.auth-screen-active) #agSidebarToggle:focus-visible {
-    outline: 2px solid #c62828;
+    outline: 2px solid #0f3d2e;
     outline-offset: 3px;
   }
 
@@ -1621,8 +1622,8 @@ body.ag-ficha-open {
     overflow-y: auto !important;
     margin: 0 !important;
     padding: 56px 12px 16px !important;
-    background: #f4f6f8 !important;
-    border-right: 1px solid #e5e7eb !important;
+    background: #f7fbf8 !important;
+    border-right: 1px solid #e3ece6 !important;
     transform: translateX(-105%);
     transition: transform 180ms ease;
     box-shadow: none !important;
@@ -1646,13 +1647,13 @@ body.ag-ficha-open {
     flex: 0 0 auto !important;
     justify-content: flex-start !important;
     background: transparent !important;
-    color: #5f6b7a !important;
+    color: #4d6a5c !important;
     border: 0 !important;
     border-radius: 8px !important;
   }
 
   body:not(.auth-screen-active) #dashboardSystemEntry .dashboard-system-btn.active {
-    background: #242830 !important;
+    background: #0f3d2e !important;
     color: #fff !important;
   }
 
@@ -1707,7 +1708,7 @@ body.ag-ficha-open {
   font-weight: 700 !important;
   letter-spacing: 0 !important;
   line-height: 1.15 !important;
-  color: var(--ag-text) !important;
+  color: #4d6a5c !important;
 }
 
 @media (min-width: 901px) {
@@ -1721,4 +1722,66 @@ body.ag-ficha-open {
   #viewEscritorios .toolbar h2 {
     font-size: 1.65rem !important;
   }
+}
+
+/* Superfície compartilhada: quadros, campos, tabelas e valores no padrão da ficha. */
+html[data-theme="light"] :is(.panel, .card, .section-card, .cx-metric, .modal):not(.auth):not(.vehicle-id-ficha-modal) {
+  background: #f4f8f5 !important;
+  border: 1px solid #c5d9cc !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  color: #14221c;
+}
+
+html[data-theme="light"] :is(.card-title, .cx-kicker, .notice, label) {
+  color: #4d6a5c;
+}
+
+html[data-theme="light"] :is(.card-value, .cx-metric strong, .cx-values, .vif-total) {
+  color: #0f3d2e;
+  font-weight: 800;
+}
+
+html[data-theme="light"] :is(#patioSubnav, #partnerSubnav, #configSubnav, #listaSubnav, #escritoriosSubnav, #rtSubnav) {
+  background: #f4f8f5 !important;
+  border: 1px solid #c5d9cc !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="light"] :is(.table, .cx-table) th,
+html[data-theme="light"] :is(.table, .cx-table) td {
+  border-color: #e3ece6;
+}
+
+html[data-theme="light"] :is(.table, .cx-table) thead th {
+  background: #eef4f0 !important;
+  color: #4d6a5c !important;
+  font-weight: 700;
+}
+
+html[data-theme="light"] :is(.table, .cx-table) tbody tr:hover {
+  background: #eef4f0 !important;
+}
+
+html[data-theme="light"] :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]):not([type="range"]):not([type="hidden"]) {
+  background: #ffffff !important;
+  border: 1px solid #c5d9cc !important;
+  border-radius: 12px !important;
+  color: #14221c !important;
+}
+
+html[data-theme="light"] .periodo-box {
+  background: #f4f8f5 !important;
+  border: 1px solid #c5d9cc !important;
+}
+
+html[data-theme="light"] .periodo-box__title {
+  color: #4d6a5c !important;
+}
+
+html[data-theme="light"] .periodo-box__btn.secondary {
+  background: #ffffff !important;
+  color: #14221c !important;
+  border: 1px solid #c5d9cc !important;
 }
