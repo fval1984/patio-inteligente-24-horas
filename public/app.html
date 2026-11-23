@@ -3090,6 +3090,20 @@
         padding: 6px 10px;
         font-size: 12px;
       }
+      .periodo-data {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+      }
+      .periodo-data input[type="text"] {
+        width: 8.8rem;
+      }
+      .periodo-data input[type="date"] {
+        width: 2.5rem;
+        min-width: 2.5rem;
+        padding: 4px 2px;
+      }
       #vnpFiltersBar select,
       #patioVrpPlacaForm select,
       #patioAguardandoPlacaForm select {
@@ -4889,6 +4903,13 @@
         .filter-bar select {
           width: 100%;
           min-width: 0;
+        }
+        .filter-bar .periodo-data {
+          width: 100%;
+        }
+        .filter-bar .periodo-data input[type="text"] {
+          flex: 1 1 auto;
+          width: auto;
         }
         #vnpFiltersBar select,
         #vnpFiltersBar input,
@@ -7891,7 +7912,7 @@
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261119entrada" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20261116vis1" />
-    <link rel="stylesheet" href="/caixa-operacional.css?v=20261117fin3" />
+    <link rel="stylesheet" href="/caixa-operacional.css?v=20261123periodo1" />
   </head>
   <body class="auth-screen-active">
     <noscript>
@@ -8519,6 +8540,21 @@
             </div>
             <div class="section-card patio-subview hidden" data-subview="removidos">
               <select id="patioVrpParceiro" class="hidden" hidden><option value="">Todos os parceiros</option></select>
+              <form id="patioVrpPeriodoForm" class="filter-bar" action="#" novalidate>
+                <label for="patioVrpDataDe">Data inicial</label>
+                <span class="periodo-data">
+                  <input id="patioVrpDataDe" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" aria-label="Data inicial da remoção" />
+                  <input id="patioVrpDataDeCal" type="date" aria-label="Abrir calendário da data inicial" />
+                </span>
+                <label for="patioVrpDataAte">Data final</label>
+                <span class="periodo-data">
+                  <input id="patioVrpDataAte" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" aria-label="Data final da remoção" />
+                  <input id="patioVrpDataAteCal" type="date" aria-label="Abrir calendário da data final" />
+                </span>
+                <button type="submit">Filtrar</button>
+                <button type="button" class="secondary" id="patioVrpPeriodoLimpar">Limpar filtro</button>
+              </form>
+              <p id="patioVrpPeriodoTotal" class="notice" style="margin: 0 0 12px"></p>
               <p id="patioVrpPlacaHint" class="notice hidden" style="margin: 0 0 12px"></p>
               <div id="patioVrpLoteBar" class="hidden" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px">
                 <label style="display:flex;align-items:center;gap:6px;margin:0">
@@ -11173,7 +11209,8 @@
     <script src="/cobranca-service.js?v=20261116cx6"></script>
     <script src="/cobranca-ui.js?v=20261116cx1"></script>
     <script src="/finance-caixa-hub.js?v=20261116caixa1"></script>
-    <script src="/caixa-operacional.js?v=20261117fin3"></script>
+    <script src="/periodo-filtro.js?v=20261123periodo1"></script>
+    <script src="/caixa-operacional.js?v=20261123periodo1"></script>
     <script src="/parceiro-caderneta.js?v=20261117cad1"></script>
     <script src="/patio-extrato-service.js?v=20261105resumo2"></script>
     <script src="/patio-extrato-ui.js?v=20261106patioReorg1"></script>
@@ -21783,7 +21820,7 @@
           no_patio: vnpOnPatio.length,
           vsl: vslItems.length,
           vsc: vscItems.length,
-          removidos: byStatus.REMOVIDO.length,
+          removidos: typeof patioVrpVisiveisCount === "number" ? patioVrpVisiveisCount : byStatus.REMOVIDO.length,
         });
 
         if (qNorm && currentPatioView !== "consultar_placa") {
@@ -23523,6 +23560,9 @@
       let patioVrpPlacaAchou = false;
       let patioVrpTopoDestaque = "";
       let patioVrpRolarTopo = false;
+      let patioVrpPeriodoDe = "";
+      let patioVrpPeriodoAte = "";
+      let patioVrpVisiveisCount = null;
 
       function patioVrpAtualizarSelecao() {
         for (const id of [...patioVrpSelecionados]) {
@@ -23587,10 +23627,63 @@
         return String(v?.localizador_id || "") === String(patioVrpParceiroId);
       }
 
+      function patioVrpNoPeriodo(v) {
+        const api = window.periodoFiltro;
+        if (!patioVrpPeriodoDe && !patioVrpPeriodoAte) return true;
+        if (!api) return true;
+        return api.inRange(v?.data_saida, patioVrpPeriodoDe, patioVrpPeriodoAte);
+      }
+
+      function patioVrpAtualizarTotal(fonte) {
+        const el = document.getElementById("patioVrpPeriodoTotal");
+        if (!el) return;
+        const lista = fonte || [];
+        const n = lista.length;
+        const valor = lista.reduce((s, v) => s + Number(calcTotal(v) || 0), 0);
+        const noPeriodo = !!(patioVrpPeriodoDe || patioVrpPeriodoAte);
+        const rotulo = noPeriodo ? "Total no período" : "Total";
+        const veiculos = `${n} veículo${n === 1 ? "" : "s"}`;
+        el.textContent = hidesFinancialValues()
+          ? `${rotulo}: ${veiculos}`
+          : `${rotulo}: ${veiculos} · ${formatCurrency(valor)}`;
+      }
+
+      function patioVrpLerPeriodo() {
+        const api = window.periodoFiltro;
+        if (!api) return { ok: false, erro: "Não foi possível ler o período." };
+        return api.read(
+          document.getElementById("patioVrpDataDe")?.value || "",
+          document.getElementById("patioVrpDataAte")?.value || ""
+        );
+      }
+
+      function patioVrpEspelharCalendario() {
+        const de = document.getElementById("patioVrpDataDeCal");
+        const ate = document.getElementById("patioVrpDataAteCal");
+        if (de) de.value = patioVrpPeriodoDe || "";
+        if (ate) ate.value = patioVrpPeriodoAte || "";
+      }
+
+      function bindPeriodoTextoCalendario(textId, calId) {
+        const text = document.getElementById(textId);
+        const cal = document.getElementById(calId);
+        text?.addEventListener("input", () => {
+          const api = window.periodoFiltro;
+          if (!api) return;
+          const next = api.mask(text.value);
+          if (next !== text.value) text.value = next;
+        });
+        cal?.addEventListener("change", () => {
+          const api = window.periodoFiltro;
+          if (!text || !api) return;
+          text.value = api.format(cal.value);
+        });
+      }
+
       function renderRemovedVehicles(tbody, items) {
         if (!tbody) return;
         const lista = items || [];
-        const fonte = lista.filter(patioVrpVeiculoDoParceiro).sort((a, b) => {
+        const fonte = lista.filter(patioVrpVeiculoDoParceiro).filter(patioVrpNoPeriodo).sort((a, b) => {
           const ta = new Date(a.data_saida || a.updated_at || 0).getTime();
           const tb = new Date(b.data_saida || b.updated_at || 0).getTime();
           if (tb !== ta) return tb - ta;
@@ -23621,15 +23714,20 @@
           hint.classList.toggle("hidden", !patioVrpPlacaAviso);
         }
         patioVrpIdsVigentes = new Set(fonte.map((v) => String(v.id)));
+        patioVrpVisiveisCount = fonte.length;
         for (const id of [...patioVrpSelecionados]) {
           if (!patioVrpIdsVigentes.has(id)) patioVrpSelecionados.delete(id);
         }
+        patioVrpAtualizarTotal(fonte);
         if (!fonte.length) {
+          const noPeriodo = !!(patioVrpPeriodoDe || patioVrpPeriodoAte);
           setEmptyRow(
             tbody,
-            lista.length && patioVrpParceiroId
-              ? "Nenhum veículo removido com o parceiro selecionado."
-              : "Nenhum veículo removido.",
+            noPeriodo
+              ? "Nenhum veículo removido neste período."
+              : lista.length && patioVrpParceiroId
+                ? "Nenhum veículo removido com o parceiro selecionado."
+                : "Nenhum veículo removido.",
             11
           );
           patioVrpSelecionados.clear();
@@ -23703,6 +23801,30 @@
         });
         document.getElementById("patioVrpSelectHead")?.addEventListener("change", (ev) => {
           patioVrpAlternarTodos(!!ev.target.checked);
+        });
+        bindPeriodoTextoCalendario("patioVrpDataDe", "patioVrpDataDeCal");
+        bindPeriodoTextoCalendario("patioVrpDataAte", "patioVrpDataAteCal");
+        document.getElementById("patioVrpPeriodoForm")?.addEventListener("submit", (ev) => {
+          ev.preventDefault();
+          const lido = patioVrpLerPeriodo();
+          if (!lido.ok) {
+            alert(lido.erro);
+            return;
+          }
+          patioVrpPeriodoDe = lido.de;
+          patioVrpPeriodoAte = lido.ate;
+          patioVrpEspelharCalendario();
+          renderVehicles();
+        });
+        document.getElementById("patioVrpPeriodoLimpar")?.addEventListener("click", () => {
+          patioVrpPeriodoDe = "";
+          patioVrpPeriodoAte = "";
+          const de = document.getElementById("patioVrpDataDe");
+          const ate = document.getElementById("patioVrpDataAte");
+          if (de) de.value = "";
+          if (ate) ate.value = "";
+          patioVrpEspelharCalendario();
+          renderVehicles();
         });
         document.getElementById("tableRemovidos")?.addEventListener("change", (ev) => {
           const chk = ev.target.closest(".patio-vrp-check");
