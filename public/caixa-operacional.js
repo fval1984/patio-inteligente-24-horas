@@ -872,6 +872,7 @@
     document.querySelectorAll("[data-cx-filtro]").forEach((btn) => {
       btn.classList.toggle("is-on", btn.getAttribute("data-cx-filtro") === vista);
     });
+    if (typeof global.syncAgSideNav === "function") global.syncAgSideNav();
     const busca = document.getElementById("caixaOpBusca");
     if (busca) {
       busca.placeholder = vista === "saidas" ? "Descrição ou categoria" : vista === "caixa" ? "Descrição" : "Placa ou responsável";
@@ -2317,6 +2318,7 @@
     cobrarSelecao,
     aposLiberacao,
     isActive: () => ativo,
+    vista: () => vistaAtual(),
     contagemAReceber() {
       const contas = linhasAReceber().length;
       const novas = faturasAbertas().length;
