@@ -848,9 +848,26 @@
       host.id = "caixaOpVinculo";
       lista.parentNode.insertBefore(host, lista);
     }
+    const entradas = vistaAtual() === "entradas";
     api.mount(host, {
       selection: vinculoSel,
       state: dados(),
+      period: entradas
+        ? {
+            de: entradaDe,
+            ate: entradaAte,
+            onChange(range) {
+              entradaDe = range?.de || "";
+              entradaAte = range?.ate || "";
+              limiteLista = 200;
+              pintarLista();
+              pintarBarra();
+            },
+            onPrint() {
+              imprimirEntradasPeriodo();
+            },
+          }
+        : null,
       onChange(sel) {
         vinculoSel = sel;
         limiteLista = 200;
@@ -930,41 +947,10 @@
     }
     const tools = document.getElementById("caixaOpTools");
     if (tools) {
-      const api = global.periodoFiltro;
-      const deTxt = api ? api.format(entradaDe) : "";
-      const ateTxt = api ? api.format(entradaAte) : "";
       tools.innerHTML = vista === "entradas"
         ? `<button type="button" class="cx-chip ${prazo === "" ? "is-on" : ""}" data-cx-prazo="">Todos</button>
            <button type="button" class="cx-chip ${prazo === "vencer" ? "is-on" : ""}" data-cx-prazo="vencer">A vencer</button>
-           <button type="button" class="cx-chip ${prazo === "atrasado" ? "is-on" : ""}" data-cx-prazo="atrasado">Atrasados</button>
-           <div class="periodo-box">
-             <h3 class="periodo-box__title">Filtrar por período</h3>
-             <div class="periodo-box__dates">
-               <label for="caixaOpEntradaDe">Data inicial
-                 <span class="periodo-data">
-                   <input id="caixaOpEntradaDe" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" value="${esc(deTxt)}" aria-label="Data inicial do lançamento" />
-                   <input id="caixaOpEntradaDeCal" type="date" value="${esc(entradaDe)}" aria-label="Abrir calendário da data inicial" />
-                 </span>
-               </label>
-               <label for="caixaOpEntradaAte">Data final
-                 <span class="periodo-data">
-                   <input id="caixaOpEntradaAte" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" value="${esc(ateTxt)}" aria-label="Data final do lançamento" />
-                   <input id="caixaOpEntradaAteCal" type="date" value="${esc(entradaAte)}" aria-label="Abrir calendário da data final" />
-                 </span>
-               </label>
-             </div>
-             <div class="periodo-box__actions">
-               <button type="button" class="periodo-box__btn periodo-box__btn--go" id="caixaOpEntradaFiltrar">
-                 <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
-                 Filtrar
-               </button>
-               <button type="button" class="secondary periodo-box__btn" id="caixaOpEntradaLimpar">Limpar</button>
-               <button type="button" class="secondary periodo-box__btn" id="caixaOpEntradaImprimir">
-                 <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="7"></rect></svg>
-                 Imprimir
-               </button>
-             </div>
-           </div>`
+           <button type="button" class="cx-chip ${prazo === "atrasado" ? "is-on" : ""}" data-cx-prazo="atrasado">Atrasados</button>`
         : "";
     }
   }
