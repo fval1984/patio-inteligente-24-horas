@@ -11,6 +11,7 @@
   let lastResumo = null;
   let previewOpen = false;
   let screen = "extrato";
+  let extratoVinculo = null;
 
   function svc() {
     return global.patioExtratoService;
@@ -136,10 +137,15 @@
       return null;
     }
     const st = state();
+    let vehicles = st.vehicles || [];
+    const filtros = global.vinculoFiltros;
+    if (filtros && filtros.isActive(extratoSelection())) {
+      vehicles = vehicles.filter((vehicle) => filtros.vehicleMatches(vehicle, extratoSelection()));
+    }
     lastReport = svc().buildExtrato({
       fromYmd,
       toYmd,
-      vehicles: st.vehicles || [],
+      vehicles,
       receivables: st.receivables || [],
       partners: st.partners || [],
       ...towCtx(),
@@ -181,9 +187,30 @@
     return "";
   }
 
+  function extratoSelection() {
+    if (!extratoVinculo) {
+      extratoVinculo = global.vinculoFiltros ? global.vinculoFiltros.empty() : { financeira: "", escritorio: "", patio: "", localizador: "" };
+    }
+    return extratoVinculo;
+  }
+
+  function onExtratoVinculo(sel) {
+    extratoVinculo = sel;
+    if (screen !== "extrato") return;
+    const fromYmd = String(document.getElementById("patioExtratoDe")?.value || "").slice(0, 10);
+    const toYmd = String(document.getElementById("patioExtratoAte")?.value || "").slice(0, 10);
+    if (!fromYmd || !toYmd || fromYmd > toYmd) return;
+    if (!buildReport()) return;
+    render();
+  }
+
   function tableBody(rows) {
     if (!rows.length) {
-      return `<tr><td class="empty" colspan="9">Nenhum veículo com saída confirmada neste período.</td></tr>`;
+      const filtrado = global.vinculoFiltros && global.vinculoFiltros.isActive(extratoSelection());
+      const msg = filtrado
+        ? "Nenhum veículo com saída neste período para os filtros selecionados."
+        : "Nenhum veículo com saída confirmada neste período.";
+      return `<tr><td class="empty" colspan="9">${esc(msg)}</td></tr>`;
     }
     return rows
       .map(
@@ -401,12 +428,20 @@
         </label>
         <button type="submit">${isResumo ? "Consultar" : "Gerar extrato"}</button>
       </form>
+      ${isResumo ? "" : `<div id="patioExtratoVinculo"></div>`}
       ${resumoActions}
       ${actions}
       ${kpis}
       ${table}
       ${resumoBlock}
     `;
+    if (!isResumo && global.vinculoFiltros) {
+      global.vinculoFiltros.mount(document.getElementById("patioExtratoVinculo"), {
+        selection: extratoSelection(),
+        state: state(),
+        onChange: onExtratoVinculo,
+      });
+    }
     renderPreviewLayer();
   }
 
