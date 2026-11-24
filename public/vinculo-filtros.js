@@ -263,16 +263,21 @@
         margin: 0 0 12px;
         box-sizing: border-box;
       }
+      .vf-bar--period { grid-template-columns: repeat(6, minmax(0, 1fr)) auto; }
       .vf-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; max-width: 100%; }
       .vf-field > span { font-size: 12px; font-weight: 600; color: var(--muted, var(--ag-muted, #64748b)); }
       .vf-combo { position: relative; min-width: 0; max-width: 100%; }
-      .vf-bar input[data-vf-input] {
+      .vf-actions { display: flex; gap: 8px; align-items: end; min-width: 0; }
+      .vf-bar input[data-vf-input],
+      .vf-bar input[data-vf-de],
+      .vf-bar input[data-vf-ate] {
         width: 100%;
         max-width: 100%;
         min-width: 0;
         box-sizing: border-box;
         min-height: 36px;
         height: 36px;
+        font: inherit;
       }
       .vf-list {
         position: absolute;
@@ -330,17 +335,19 @@
         justify-self: start;
       }
       @media (max-width: 900px) {
-        .vf-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .vf-clear { grid-column: 1 / -1; }
+        .vf-bar,
+        .vf-bar--period { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .vf-actions { grid-column: 1 / -1; }
       }
       @media (max-width: 520px) {
-        .vf-bar { grid-template-columns: minmax(0, 1fr); }
+        .vf-bar,
+        .vf-bar--period { grid-template-columns: minmax(0, 1fr); }
       }
     `;
     document.head.appendChild(style);
   }
 
-  function barHtml() {
+  function barHtml(withPeriod, withPrint) {
     const fields = FIELDS.map(
       (field) => `<label class="vf-field">
         <span>${esc(field.label)}</span>
@@ -351,7 +358,11 @@
         </div>
       </label>`
     ).join("");
-    return `<div class="vf-bar">${fields}<button type="button" class="vf-clear" data-vf-clear>Limpar filtros</button></div>`;
+    const period = withPeriod
+      ? `<label class="vf-field"><span>De</span><input type="text" data-vf-de inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" aria-label="Data inicial" /></label><label class="vf-field"><span>Até</span><input type="text" data-vf-ate inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" aria-label="Data final" /></label>`
+      : "";
+    const print = withPrint ? `<button type="button" class="vf-clear" data-vf-print>Imprimir</button>` : "";
+    return `<div class="vf-bar${withPeriod ? " vf-bar--period" : ""}">${fields}${period}<div class="vf-actions"><button type="button" class="vf-clear" data-vf-clear>Limpar filtros</button>${print}</div></div>`;
   }
 
   function read(host) {
@@ -419,6 +430,40 @@
     if (typeof host.__vfOnChange === "function") host.__vfOnChange(read(host));
   }
 
+  function commitPeriod(host) {
+    const period = host.__vfPeriod;
+    if (!period || typeof period.onChange !== "function") return;
+    const api = global.periodoFiltro;
+    const deRaw = host.querySelector("[data-vf-de]")?.value || "";
+    const ateRaw = host.querySelector("[data-vf-ate]")?.value || "";
+    if ((deRaw && deRaw.length < 10) || (ateRaw && ateRaw.length < 10)) return;
+    if (!api) return;
+    const lido = api.read(deRaw, ateRaw);
+    if (!lido.ok) {
+      if (typeof global.alert === "function") global.alert(lido.erro);
+      return;
+    }
+    const prev = host.__vfPeriodValue || { de: "", ate: "" };
+    if (prev.de === lido.de && prev.ate === lido.ate) return;
+    host.__vfPeriodValue = { de: lido.de, ate: lido.ate };
+    period.onChange({ de: lido.de, ate: lido.ate });
+  }
+
+  function applyPeriod(host, period, notifyChange) {
+    const deEl = host.querySelector("[data-vf-de]");
+    const ateEl = host.querySelector("[data-vf-ate]");
+    if (!deEl || !ateEl) return;
+    const api = global.periodoFiltro;
+    const de = period?.de || "";
+    const ate = period?.ate || "";
+    host.__vfPeriodValue = { de, ate };
+    if (document.activeElement !== deEl) deEl.value = api && de ? api.format(de) : de ? deEl.value : "";
+    if (document.activeElement !== ateEl) ateEl.value = api && ate ? api.format(ate) : ate ? ateEl.value : "";
+    if (!de && document.activeElement !== deEl) deEl.value = "";
+    if (!ate && document.activeElement !== ateEl) ateEl.value = "";
+    if (notifyChange && typeof host.__vfPeriod?.onChange === "function") host.__vfPeriod.onChange({ de, ate });
+  }
+
   function choose(host, combo, id) {
     const hidden = combo.querySelector("[data-vf-id]");
     if (hidden) hidden.value = String(id || "");
@@ -440,9 +485,16 @@
       choose(host, combo, opt.getAttribute("data-vf-option") || "");
     });
     host.addEventListener("click", (ev) => {
+      if (ev.target.closest?.("[data-vf-print]")) {
+        ev.preventDefault();
+        commitPeriod(host);
+        if (typeof host.__vfPeriod?.onPrint === "function") host.__vfPeriod.onPrint();
+        return;
+      }
       if (!ev.target.closest?.("[data-vf-clear]")) return;
       ev.preventDefault();
       applySelection(host, empty(), true);
+      applyPeriod(host, { de: "", ate: "" }, true);
     });
     host.addEventListener("focusin", (ev) => {
       const input = ev.target.closest?.("[data-vf-input]");
@@ -454,6 +506,17 @@
       renderOptions(combo, "");
     });
     host.addEventListener("input", (ev) => {
+      const periodInput = ev.target.closest?.("[data-vf-de], [data-vf-ate]");
+      if (periodInput && host.contains(periodInput)) {
+        ev.stopPropagation();
+        const api = global.periodoFiltro;
+        if (api) {
+          const next = api.mask(periodInput.value);
+          if (next !== periodInput.value) periodInput.value = next;
+        }
+        if (!periodInput.value || periodInput.value.length === 10) commitPeriod(host);
+        return;
+      }
       const input = ev.target.closest?.("[data-vf-input]");
       if (!input || !host.contains(input)) return;
       ev.stopPropagation();
@@ -522,11 +585,19 @@
     ensureStyles();
     host.classList.add("vf-host");
     host.__vfOnChange = opts?.onChange || function () {};
+    host.__vfPeriod = opts?.period || null;
     host.__vfState = opts?.state || null;
-    if (!host.querySelector(".vf-bar")) {
-      host.innerHTML = barHtml();
+    const wantPeriod = !!opts?.period;
+    const wantPrint = !!(opts?.period && opts.period.onPrint);
+    const bar = host.querySelector(".vf-bar");
+    const hasPeriod = !!host.querySelector("[data-vf-de]");
+    const hasPrint = !!host.querySelector("[data-vf-print]");
+    if (!bar || hasPeriod !== wantPeriod || hasPrint !== wantPrint) {
+      host.innerHTML = barHtml(wantPeriod, wantPrint);
+      host.__vfBound = false;
       bind(host);
     }
+    if (wantPeriod) applyPeriod(host, opts.period, false);
     const cat = catalog(opts?.state || host.__vfState || {});
     host.__vfCatalog = cat;
     host.querySelectorAll(".vf-combo").forEach((combo) => {
