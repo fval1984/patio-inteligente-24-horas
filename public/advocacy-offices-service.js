@@ -823,6 +823,8 @@
         escritorio: officeId === "__sem__" ? "" : officeName(v.advocacy_office_id, offices),
         gestor: gestorId ? managerName(gestorId, managers) : "",
         patio: v.patio_parceiro_id ? partnerNomeById(v.patio_parceiro_id, partners) : patioNome,
+        financeira: partnerNomeById(v.financeira_id, partners),
+        encaminhou: blankText(v.quem_trouxe) || partnerNomeById(v.localizador_id, partners),
         dataEntrada: toLocalYmd(v.data_entrada) || "",
         dataSolicitacao: blankText(ev.solicitacao),
         dataConfirmacao: blankText(ev.confirmacao),
