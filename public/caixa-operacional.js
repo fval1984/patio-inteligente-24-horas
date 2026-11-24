@@ -988,13 +988,23 @@
       card("cx-result", "Saldo final", s.final, "Inicial + recebido − pago");
   }
 
+  function tituloLinhaHtml(line) {
+    const r = line?.receivable || recebivelPorId(line?.receivableId);
+    const v = veiculoDo(r);
+    const id = String(v?.id || line?.vehicleId || "").trim();
+    const full = rotuloLinha(line);
+    const placa = String(line?.placa || v?.placa || "").trim();
+    if (!id || !placa || !String(full).startsWith(placa)) return esc(full);
+    return `<button type="button" class="vp-plate-open vp-plate-open--text" data-open-vehicle="${esc(id)}">${esc(placa)}</button>${esc(String(full).slice(placa.length))}`;
+  }
+
   function linhaHtml(line, grupoNome, situacao) {
     const saldo = saldoLinha(line);
     const on = selected.has(line.receivableId) ? "checked" : "";
     const tag = situacao || "A faturar";
     return `<div class="cx-row" data-cx-open="veiculo" data-cx-id="${esc(line.receivableId)}">
       <input class="cx-check" type="checkbox" data-cx-check="${esc(line.receivableId)}" ${on} aria-label="Selecionar ${esc(line.placa || "veículo")}" />
-      <span class="cx-title">${esc(rotuloLinha(line))}</span>
+      <span class="cx-title">${tituloLinhaHtml(line)}</span>
       <span class="cx-client">${esc(grupoNome)}</span>
       <span class="cx-num cx-hide-sm">${esc(money(line.valor))}</span>
       <span class="cx-num cx-hide-sm">${esc(money(line.abatimento || 0))}</span>
@@ -1343,7 +1353,7 @@
       const rows = pagina.map((line) => `<tr data-cx-open="veiculo" data-cx-id="${esc(line.receivableId)}">
         ${celula("", `<input class="cx-check" type="checkbox" data-cx-check="${esc(line.receivableId)}" ${selected.has(line.receivableId) ? "checked" : ""} aria-label="Selecionar" />`, "cx-check-cell")}
         ${celula("Cliente", esc(nomeLinha(line)))}
-        ${celula("Veículo", esc(rotuloLinha(line)))}
+        ${celula("Veículo", tituloLinhaHtml(line))}
         ${celula("Valor", esc(money(line.valor)), "num")}
         ${celula("Recebido", esc(money(line.abatimento || 0)), "num")}
         ${celula("Saldo", esc(money(saldoLinha(line))), "num")}
