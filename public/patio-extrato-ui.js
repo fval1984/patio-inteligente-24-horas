@@ -204,6 +204,14 @@
     render();
   }
 
+  function placaConsultaHtml(r) {
+    const id = String(r?.vehicleId || "").trim();
+    const placa = String(r?.placa || "").trim();
+    if (!id || !placa || placa === "—") return esc(r?.placa || "—");
+    if (typeof global.vehiclePlateOpenHtml === "function") return global.vehiclePlateOpenHtml(placa, id, "sm");
+    return `<button type="button" class="vp-plate-open vp-plate-open--text" data-open-vehicle="${esc(id)}">${esc(placa)}</button>`;
+  }
+
   function tableBody(rows) {
     if (!rows.length) {
       const filtrado = global.vinculoFiltros && global.vinculoFiltros.isActive(extratoSelection());
@@ -215,7 +223,7 @@
     return rows
       .map(
         (r) => `<tr>
-          <td data-label="Placa">${esc(r.placa)}</td>
+          <td data-label="Placa">${placaConsultaHtml(r)}</td>
           <td data-label="Marca/modelo">${esc(r.marcaModelo)}</td>
           <td data-label="Entrada">${esc(r.entradaLabel)}</td>
           <td data-label="Saída">${esc(r.saidaLabel)}</td>
