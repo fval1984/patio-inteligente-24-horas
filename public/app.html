@@ -11332,7 +11332,8 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20261124placa1"></script>
+    <script src="/finance-module.js?v=20261124acerto1"></script>
+    <script src="/acerto-parcial.js?v=20261124acerto1"></script>
     <script src="/finance-notas-transporte.js?v=20261111nt1"></script>
     <script src="/payment-receipt.js?v=20261005recibo10"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
@@ -11374,7 +11375,7 @@
     <script src="/finance-caixa-hub.js?v=20261116caixa1"></script>
     <script src="/periodo-filtro.js?v=20261123periodo1"></script>
     <script src="/vinculo-filtros.js?v=20261124per1"></script>
-    <script src="/caixa-operacional.js?v=20261124per1"></script>
+    <script src="/caixa-operacional.js?v=20261124acerto1"></script>
     <script src="/parceiro-caderneta.js?v=20261117cad1"></script>
     <script src="/patio-extrato-service.js?v=20261105resumo2"></script>
     <script src="/patio-extrato-ui.js?v=20261124placa1"></script>
@@ -14647,6 +14648,11 @@
         const breakdown = calcFinanceChargeBreakdown(closedVehicle, billingPeriodStart, dataSaida, {
           aplicarRemocao: hadRemocao,
         });
+        if (billingPeriodStart && dataSaida && new Date(billingPeriodStart).getTime() > new Date(dataSaida).getTime()) {
+          breakdown.dias = 0;
+          breakdown.diariasTotal = 0;
+          breakdown.total = Number(breakdown.taxaRemocao || 0) + Number(breakdown.taxasAdicionais || 0);
+        }
         const valorFechamento = breakdown.total;
         result.valorFechamento = valorFechamento;
         result.vrpSemCobranca = !(valorFechamento > 0);
@@ -22635,7 +22641,12 @@
             : vnpShouldShowVistoriaStartButton(v)
               ? `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`
               : "";
+          const acertoBtn =
+            v.status !== "REMOVIDO" && Number(v.valor_diaria) > 0
+              ? `<button class="secondary" data-action="acerto_parcial" data-id="${v.id}">Acerto parcial</button>`
+              : "";
           inner = `
+              ${acertoBtn}
               ${fluxoBtn}
               ${veiBtn}
               ${patioFichaMenuButtonsHtml(v)}
@@ -26878,6 +26889,24 @@
         return `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value || "—")}</dd></div>`;
       }
 
+      window.abrirAcertoParcial = function abrirAcertoParcial(vehicle) {
+        if (!vehicle || !window.acertoParcial) return;
+        window.acertoParcial.open(vehicle, {
+          state,
+          supabase,
+          userId: typeof effectiveUserId === "function" ? effectiveUserId() : "",
+          operador: typeof currentPatioOperatorLabel === "function" ? currentPatioOperatorLabel() : "",
+          pack: typeof financeMetaPack === "function" ? financeMetaPack : null,
+          async reload(vehicleId) {
+            await loadVehicles();
+            if (!FINANCE_MANUAL_ONLY && typeof loadReceivables === "function") await loadReceivables();
+            if (typeof renderVehicles === "function") renderVehicles();
+            if (typeof refreshFichaIfOpen === "function") await refreshFichaIfOpen(vehicleId);
+            if (window.caixaOperacional && typeof window.caixaOperacional.pintar === "function") window.caixaOperacional.pintar();
+          },
+        });
+      };
+
       function syncVehicleIdFichaActions(vehicle, kind) {
         const wrap = document.getElementById("vehicleIdFichaAcoesWrap");
         const menu = document.getElementById("vehicleIdFichaAcoesMenu");
@@ -26938,6 +26967,10 @@
           const horas = calcHours(vehicle);
           const vd = Number(vehicle.valor_diaria);
           const totalNum = Number(calcTotal(vehicle) || 0);
+          const acertoResumo = window.acertoParcial?.resumo
+            ? window.acertoParcial.resumo(vehicle, state.receivables || [], vehicle.data_saida ? new Date(vehicle.data_saida) : new Date(), state.cash || [])
+            : null;
+          const pixNum = acertoResumo && acertoResumo.itens.length ? Number(acertoResumo.saldoAberto || 0) : totalNum;
           const diariaTxt = Number.isFinite(vd) && vd > 0 ? formatCurrency(vd) : "—";
           const totalTxt = formatCurrency(totalNum);
           const statusTxt = patioConsultaSituacaoLabel(vehicle);
@@ -26957,11 +26990,11 @@
             pixHtml = `<p class="vif-empty">Valores e Pix não são exibidos neste perfil.</p>`;
           } else if (!pixApi) {
             pixHtml = `<p class="vif-empty">Não foi possível carregar o gerador Pix da ficha.</p>`;
-          } else if (!(Number.isFinite(totalNum) && totalNum > 0)) {
+          } else if (!(Number.isFinite(pixNum) && pixNum > 0)) {
             pixHtml = `<p class="vif-empty">Não há valor de diária para montar o Pix desta ficha.</p>`;
           } else {
-            const payload = pixApi.buildPayload(totalNum, `AMPLIGUARD ${vehicle.placa || ""}`.trim());
-            const check = pixApi.validate(payload, totalNum);
+            const payload = pixApi.buildPayload(pixNum, `AMPLIGUARD ${vehicle.placa || ""}`.trim());
+            const check = pixApi.validate(payload, pixNum);
             if (!check.ok) {
               pixHtml = `<p class="vif-empty">Não foi possível validar o QR Code Pix. A ficha não exibe cobrança bancária.</p>`;
             } else {
@@ -26971,7 +27004,7 @@
                   <img class="vif-pix-qr" alt="QR Code Pix para pagamento" src="${qrUrl}" />
                   <div class="vif-pix-side">
                     <p class="vif-pix-kicker">Pix · pagamento</p>
-                    <p class="vif-pix-amount">${escapeHtml(totalTxt)}</p>
+                    <p class="vif-pix-amount">${escapeHtml(formatCurrency(pixNum))}</p>
                     <p class="vif-pix-hint">O valor entra no código Pix e aparece no aplicativo do banco. Gerar o QR não dá baixa no financeiro.</p>
                     <p class="vif-pix-favorecido">AMPLIGUARD · CNPJ 57.936.119/0001-98</p>
                   </div>
@@ -27010,6 +27043,7 @@
               </dl>
               ${hideMoney ? "" : `<p class="vif-total-label">Valor total devido</p><p class="vif-total">${escapeHtml(totalTxt)}</p>`}
             </section>
+            ${hideMoney || !window.acertoParcial ? "" : window.acertoParcial.fichaHtml(vehicle, state.receivables || [], state.cash || [])}
             <section class="vif-pix-wrap"><h2>Pagamento Pix</h2>${pixHtml}</section>
             <p class="vif-foot">AMPLIGUARD</p>
           `;
@@ -32362,6 +32396,7 @@ ${body}
           "confirmar",
           "solicitar",
           "trocar-responsavel",
+          "acerto_parcial",
           "editar_fechamento_ciclo",
           "patio_liberar_financeiro",
           "patio_finalizar_faturamento",
@@ -33160,6 +33195,12 @@ ${body}
           renderVehicles();
           updateDashboard();
           await refreshFichaIfOpen(id);
+          return;
+        }
+
+        if (action === "acerto_parcial") {
+          const alvo = state.vehicles.find((v) => String(v.id) === String(id));
+          if (alvo && typeof window.abrirAcertoParcial === "function") window.abrirAcertoParcial(alvo);
           return;
         }
 
