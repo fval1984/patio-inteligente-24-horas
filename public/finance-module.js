@@ -493,11 +493,15 @@
     return { origem: t.origem, descricao: t.descricao };
   }
 
-  function financePlateVisualHtml(placa) {
-    if (typeof window.vehiclePlateUI?.renderHtml === "function") {
-      return window.vehiclePlateUI.renderHtml(placa, { size: "sm", showEmpty: true, placeholder: "—" });
-    }
-    return escapeHtml(placa || "—");
+  function financePlateVisualHtml(placa, vehicleId) {
+    const visual =
+      typeof window.vehiclePlateUI?.renderHtml === "function"
+        ? window.vehiclePlateUI.renderHtml(placa, { size: "sm", showEmpty: true, placeholder: "—" })
+        : escapeHtml(placa || "—");
+    const id = String(vehicleId || "").trim();
+    if (!id) return visual;
+    const label = String(placa || "veículo").trim() || "veículo";
+    return `<button type="button" class="vp-plate-open" data-open-vehicle="${escapeHtml(id)}" aria-label="Abrir consulta do veículo ${escapeHtml(label)}">${visual}</button>`;
   }
 
   function financeReceivableManualCellHtml(r) {
@@ -2356,7 +2360,7 @@
   function financeReceberCadernetaRefHtml(r, v) {
     const lines = [];
     if (v?.placa) {
-      lines.push(financePlateVisualHtml(v.placa));
+      lines.push(financePlateVisualHtml(v.placa, v.id));
       const modelo = [v.marca, v.modelo].filter(Boolean).join(" ");
       if (modelo) lines.push(escapeHtml(modelo));
     } else {
@@ -3308,7 +3312,7 @@
         const vd = Number(v.valor_diaria || 0);
         const st = financeDiariaStatusLabel(v, receivable);
         return `<tr>
-          <td data-label="Veículo">${financePlateVisualHtml(v.placa)}<br /><span class="notice">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "—")}</span></td>
+          <td data-label="Veículo">${financePlateVisualHtml(v.placa, v.id)}<br /><span class="notice">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "—")}</span></td>
           <td data-label="Placa">${escapeHtml(v.placa || "—")}</td>
           <td data-label="Cliente/Financeira">${escapeHtml(instituicao)}</td>
           <td data-label="Entrada">${escapeHtml(v.data_entrada ? formatDate(v.data_entrada) : "—")}</td>
@@ -3554,7 +3558,7 @@
     if (!list.length) {
       financePruneStaleRowSelection("aguardando");
       financeUpdateBatchBar("aguardando");
-      body.innerHTML = `<tr><td colspan="7" class="notice">${
+      body.innerHTML = `<tr><td colspan="6" class="notice">${
         plateFilter || rppFilter || periodoFilter || dataFilter
           ? "Nenhum veículo aguardando faturamento com os filtros informados (placa, RPP, mês e/ou datas)."
           : "Nenhum veículo aguardando faturamento. Após saída (VRP), o registro aparece aqui até ir para Contas a receber."
@@ -3569,19 +3573,11 @@
         const rowSel = financeRowIsSelected("aguardando", r.id) ? " fin-row-selected" : "";
         return `<tr class="${rowSel.trim()}">
           ${financeRowCheckCell("aguardando", r.id)}
-          <td data-label="Veículo / RPV">${financePlateVisualHtml(v?.placa)}<br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span></td>
+          <td data-label="Veículo / RPV">${financePlateVisualHtml(v?.placa, v?.id)}<br /><span class="notice">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</span><br /><span class="notice">RPV: ${escapeHtml(financeVehicleRpvNome(v))}</span></td>
           <td data-label="RPP">${escapeHtml(financeReceberRppNome(r, v))}</td>
           <td data-label="Saída">${escapeHtml(saida ? formatDate(saida) : "—")}</td>
           <td data-label="Valor">${escapeHtml(formatCurrency(Number(r.valor || 0)))}</td>
           <td data-label="Status"><span class="fin-tag fin-tag--open">Aguardando</span></td>
-          <td data-label="Ações">
-            <div class="fin-row-actions">
-              <button type="button" class="secondary fin-btn-aguardando-receber" data-fin-aguardando-receber="${escapeHtml(String(r.id))}">Contas a receber</button>
-              <button type="button" class="secondary fin-btn-aguardando-editar" data-fin-aguardando-editar="${escapeHtml(String(r.id))}">Editar</button>
-              <button type="button" class="secondary fin-btn-aguardando-apagar" data-fin-aguardando-apagar="${escapeHtml(String(r.id))}">Apagar</button>
-              <button type="button" class="secondary fin-btn-aguardando-voltar" data-fin-aguardando-voltar="${escapeHtml(String(r.id))}">Voltar</button>
-            </div>
-          </td>
         </tr>`;
       })
       .join("");
