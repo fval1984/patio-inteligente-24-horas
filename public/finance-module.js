@@ -1182,6 +1182,8 @@
   }
 
   function financeReceberRppNome(r, v) {
+    const acerto = financeAcertoMeta(r);
+    if (acerto?.responsavel_nome) return String(acerto.responsavel_nome);
     if (financeIsManualReceivable(r)) return financeReceivableTypedFields(r).rpp;
     if (typeof vehicleRpfNome === "function" && v) {
       const rpf = vehicleRpfNome(v);
@@ -1243,8 +1245,19 @@
       .replace(/\s+/g, " ");
   }
 
+  function financeAcertoMeta(r) {
+    const unpack = typeof financeMetaUnpack === "function" ? financeMetaUnpack(r?.observacoes) : { meta: {} };
+    return unpack?.meta?.acerto_parcial === true ? unpack.meta : null;
+  }
+
   /** Agrupa por ID de cadastro/parceiro; nome só entra se não houver identificador. */
   function financeReceivableDevedorIdentity(r) {
+    const acerto = financeAcertoMeta(r);
+    if (acerto) {
+      const nome = String(acerto.responsavel_nome || r?.cobranca_destinatario_nome || "").trim() || "Devedor";
+      if (acerto.responsavel_id) return { key: `p:${acerto.responsavel_id}`, nome };
+      return { key: `n:${financeDevedorNameKey(nome) || "sem"}`, nome };
+    }
     const v = r?.vehicle_id ? financeVehicleById().get(r.vehicle_id) : null;
     const contactId = financeReceivableContactId(r);
     if (contactId) {
@@ -2375,6 +2388,12 @@
     const start = r?.period_start ? formatDate(r.period_start) : "";
     const end = r?.period_end ? formatDate(r.period_end) : "";
     if (start || end) lines.push(escapeHtml(`Período: ${start || "…"} — ${end || "…"}`));
+    const acerto = financeAcertoMeta(r);
+    if (acerto) {
+      lines.push(escapeHtml("Origem: Acerto parcial de estadia"));
+      if (Number(acerto.desconto) > 0) lines.push(escapeHtml(`Desconto: ${formatCurrency(acerto.desconto)}`));
+      lines.push(escapeHtml(Number(r.valor || 0) > 0 && String(r.status || "").toUpperCase() !== "PAGO" ? "Status: A receber" : "Status: Recebido"));
+    }
     if (r?.created_at) lines.push(escapeHtml(`Faturamento: ${formatDate(r.created_at)}`));
     const obs = financeIsManualReceivable(r) ? financeReceivableTypedFields(r).observacoes : "";
     if (obs) lines.push(`<span class="notice">${escapeHtml(obs)}</span>`);
