@@ -4758,12 +4758,9 @@
       #patioContent [data-subview="vsl"] .table,
       #patioContent [data-subview="vsc"] .table,
       #patioContent [data-subview="removidos"] .table {
-        min-width: 100%;
-        width: max(100%, 1480px);
-        table-layout: auto;
-      }
-      #patioContent [data-subview="no_patio"] .table td.actions {
-        min-width: 28rem;
+        min-width: 0;
+        width: 100%;
+        table-layout: fixed;
       }
       #patioContent [data-subview="no_patio"] .table thead th,
       #patioContent [data-subview="no_patio"] .table tbody td,
@@ -4775,18 +4772,18 @@
       #patioContent [data-subview="vsc"] .table tbody td,
       #patioContent [data-subview="removidos"] .table thead th,
       #patioContent [data-subview="removidos"] .table tbody td {
-        white-space: nowrap;
+        white-space: normal;
         vertical-align: middle;
-        word-break: normal;
-        padding: 10px 12px;
+        word-break: break-word;
+        padding: 10px 8px;
         font-size: 13px;
       }
-      #patioContent [data-subview="no_patio"] .table tbody td[data-label="Ações"],
-      #patioContent [data-subview="vlp"] .table tbody td[data-label="Ações"],
-      #patioContent [data-subview="vsl"] .table tbody td[data-label="Ações"],
-      #patioContent [data-subview="vsc"] .table tbody td[data-label="Ações"],
-      #patioContent [data-subview="removidos"] .table tbody td[data-label="Situação / ações"] {
-        white-space: normal;
+      #patioContent [data-subview="no_patio"] .patio-desk-thead th:nth-child(1),
+      #patioContent [data-subview="vlp"] .patio-desk-thead th:nth-child(1),
+      #patioContent [data-subview="vsl"] .patio-desk-thead th:nth-child(1),
+      #patioContent [data-subview="vsc"] .patio-desk-thead th:nth-child(1),
+      #patioContent [data-subview="removidos"] .patio-desk-thead th:nth-child(2) {
+        width: 148px;
       }
       #patioContent.modal-backdrop.tab-view-modal #patioFlyoutSummaryCards {
         display: none !important;
@@ -7983,7 +7980,7 @@
     <link rel="stylesheet" href="/ampliguard-vistoria-ui.css?v=20261116vis1" />
     <link rel="stylesheet" href="/ampliguard-mobile.css?v=20261123patioframe1" />
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20261112plate12" />
-    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261123nav1" />
+    <link rel="stylesheet" href="/ampliguard-ds.css?v=20261124placa1" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
     <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261119entrada" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20261116vis1" />
@@ -8578,7 +8575,6 @@
                       <th>Entrada</th>
                       <th>RPV</th>
                       <th>Status</th>
-                      <th>Ações</th>
                     </tr>
                   </thead>
                   <tbody id="tableVistoria"></tbody>
@@ -8609,7 +8605,6 @@
                     <th>Escritório</th>
                     <th>Entrada</th>
                     <th>Valor gerado</th>
-                    <th>Ações</th>
                   </tr>
                 </thead>
                 <tbody id="tableNoPatio"></tbody>
@@ -8644,7 +8639,6 @@
                     <th>Escritório</th>
                     <th>Entrada</th>
                     <th>Valor gerado</th>
-                    <th>Ações</th>
                   </tr>
                 </thead>
                 <tbody id="tableVsl"></tbody>
@@ -8679,7 +8673,6 @@
                     <th>Escritório</th>
                     <th>Entrada</th>
                     <th>Valor gerado</th>
-                    <th>Ações</th>
                   </tr>
                 </thead>
                 <tbody id="tableVsc"></tbody>
@@ -8718,7 +8711,6 @@
                     <th>Escritório</th>
                     <th>Entrada</th>
                     <th>Valor gerado</th>
-                    <th>Ações</th>
                   </tr>
                 </thead>
                 <tbody id="tableVlp"></tbody>
@@ -8789,7 +8781,6 @@
                     <th>Entrada</th>
                     <th>Saída</th>
                     <th>Valor total</th>
-                    <th>Situação / ações</th>
                   </tr>
                 </thead>
                 <tbody id="tableRemovidos"></tbody>
@@ -9331,7 +9322,7 @@
             <p><strong>Total aguardando:</strong> <span id="finAguardandoTotal">R$ 0,00</span></p>
             <div class="table-wrap section-card">
               <table class="table">
-                <thead><tr><th class="fin-th-select" scope="col"><input type="checkbox" class="fin-select-all" data-fin-select-all="aguardando" title="Selecionar todos" aria-label="Selecionar todos"></th><th>Veículo / RPV</th><th>RPP</th><th>Saída</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
+                <thead><tr><th class="fin-th-select" scope="col"><input type="checkbox" class="fin-select-all" data-fin-select-all="aguardando" title="Selecionar todos" aria-label="Selecionar todos"></th><th>Veículo / RPV</th><th>RPP</th><th>Saída</th><th>Valor</th><th>Status</th></tr></thead>
                 <tbody id="finAguardandoBody"></tbody>
               </table>
             </div>
@@ -11370,14 +11361,14 @@
     <script src="/vendor/supabase.umd.js"></script>
     <script src="/finance-persist-audit.js?v=20260605persist"></script>
     <script src="/finance-restore-settled-plan.js?v=20260818restore7"></script>
-    <script src="/finance-module.js?v=20261124cad2"></script>
+    <script src="/finance-module.js?v=20261124placa1"></script>
     <script src="/finance-notas-transporte.js?v=20261111nt1"></script>
     <script src="/payment-receipt.js?v=20261005recibo10"></script>
     <script src="/finance-dashboard.js?v=20260703compare"></script>
     <script src="/financial-metrics-service.js?v=20260818finact8"></script>
     <script src="/financial-dashboard-ui.js?v=20260818finact6"></script>
     <script src="/partner-program.js?v=20261112pp1"></script>
-    <script src="/finance-simple-ui.js?v=20261116cx9"></script>
+    <script src="/finance-simple-ui.js?v=20261124placa1"></script>
     <script src="/finance-action-ui.js?v=20261119filtros"></script>
     <script src="/finance-pix-ui.js?v=20261112pix1"></script>
     <script src="/patio-dashboard.js?v=20260715gestor"></script>
@@ -11397,7 +11388,7 @@
     <script src="/vehicle-entry-inspection-checklist.js?v=20260915vistoria1"></script>
     <script src="/vehicle-entry-inspection-photos-mobile.js?v=20261105fotos1"></script>
     <script src="/vehicle-entry-inspection-document.js?v=20261105fotos1"></script>
-    <script src="/vehicle-entry-inspection.js?v=20261105fotos1"></script>
+    <script src="/vehicle-entry-inspection.js?v=20261124placa1"></script>
     <script src="/vehicle-plate-ui.js?v=20260813plate6"></script>
     <script src="/vehicle-qr.js?v=20261112qr12"></script>
     <script src="/apresentacao-admin.js?v=20261118ap4"></script>
@@ -11412,10 +11403,10 @@
     <script src="/finance-caixa-hub.js?v=20261116caixa1"></script>
     <script src="/periodo-filtro.js?v=20261123periodo1"></script>
     <script src="/vinculo-filtros.js?v=20261124vf1"></script>
-    <script src="/caixa-operacional.js?v=20261124vf1"></script>
+    <script src="/caixa-operacional.js?v=20261124placa1"></script>
     <script src="/parceiro-caderneta.js?v=20261117cad1"></script>
     <script src="/patio-extrato-service.js?v=20261105resumo2"></script>
-    <script src="/patio-extrato-ui.js?v=20261124vf1"></script>
+    <script src="/patio-extrato-ui.js?v=20261124placa1"></script>
     <script src="/contatos-avulsos.js?v=20261117avulso1"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
@@ -15742,6 +15733,15 @@
         return escapeHtml(placa || "—");
       }
 
+      function vehiclePlateOpenHtml(placa, vehicleId, size = "sm") {
+        const visual = plateVisualHtml(placa, size);
+        const id = String(vehicleId || "").trim();
+        if (!id) return visual;
+        const label = String(placa || "veículo").trim() || "veículo";
+        return `<button type="button" class="vp-plate-open" data-open-vehicle="${escapeHtml(id)}" aria-label="Abrir consulta do veículo ${escapeHtml(label)}">${visual}</button>`;
+      }
+      window.vehiclePlateOpenHtml = vehiclePlateOpenHtml;
+
       function refreshVehiclePlatePreviewInput() {
         const el = document.getElementById("vehiclePlate");
         if (el) el.dispatchEvent(new Event("input", { bubbles: true }));
@@ -17070,7 +17070,7 @@
             .map((v) => {
               const val = semVal ? "" : `<td data-label="Valor">${escapeHtml(formatCurrency(calcTotal(v)))}</td>`;
               return `<tr>
-                <td data-label="Placa">${plateVisualHtml(v.placa, "sm")}</td>
+                <td data-label="Placa">${vehiclePlateOpenHtml(v.placa, v.id, "sm")}</td>
                 <td data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td data-label="Veículo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</td>
                 <td data-label="RPV">${escapeHtml(locLabel(v.localizador_id))}</td>
@@ -17097,7 +17097,7 @@
               const v = vehicleById.get(r.vehicle_id);
               const saida = v?.data_saida || r.period_end;
               return `<tr>
-                <td data-label="Placa">${plateVisualHtml(v?.placa, "sm")}</td>
+                <td data-label="Placa">${vehiclePlateOpenHtml(v?.placa, v?.id, "sm")}</td>
                 <td data-label="Veículo">${escapeHtml([v?.marca, v?.modelo].filter(Boolean).join(" ") || "—")}</td>
                 <td data-label="RPV">${escapeHtml(locLabel(v?.localizador_id))}</td>
                 <td data-label="RPP">${escapeHtml(vehicleRpfNome(v))}</td>
@@ -17136,7 +17136,7 @@
               const saiLabel = saiRaw ? formatDate(saiRaw) : "—";
               const st = r.status === "EM_ABERTO" ? "Em aberto" : r.status || "—";
               return `<tr>
-              <td data-label="Veículo / responsável">${plateVisualHtml(placa, "xs")} · ${escapeHtml(vm)}<br /><span class="notice" style="font-size:0.86rem">${escapeHtml(financeReceivableDisplayText(r))}</span></td>
+              <td data-label="Veículo / responsável">${vehiclePlateOpenHtml(placa, vehicle?.id, "xs")} · ${escapeHtml(vm)}<br /><span class="notice" style="font-size:0.86rem">${escapeHtml(financeReceivableDisplayText(r))}</span></td>
               <td data-label="Entrada (pátio)">${escapeHtml(entLabel)}</td>
               <td data-label="Saída">${escapeHtml(saiLabel)}</td>
               <td data-label="Diárias">${listaReceberDiariasCellHtml(r, vehicle)}</td>
@@ -22322,7 +22322,7 @@
 
       function buildPatioMobileCompactLine(v) {
         const dot = inspectionStatusIndicatorHtml(v);
-        const plate = plateVisualHtml(v.placa, "xs");
+        const plate = vehiclePlateOpenHtml(v.placa, v.id, "xs");
         const modelo = escapeHtml(String(v.modelo || v.marca || "-").trim() || "-");
         return `<span class="patio-mob-compact-line">${dot}<span class="vei-plate-with-status">${plate}</span><span class="patio-mob-compact-meta">${modelo}</span></span>`;
       }
@@ -22335,7 +22335,6 @@
                 ${lead}
                 <span class="patio-mob-compact-text">${buildPatioMobileCompactLine(v)}</span>
                 ${patioVehicleStatusButtonHtml(v, v.status === "REMOVIDO" ? "vrp" : "vnp")}
-                <button type="button" class="patio-mob-info-btn secondary" data-action="patio_acoes" data-id="${v.id}" aria-label="Ações do veículo" title="Ações">Ações</button>
               </div>
             </td>`;
       }
@@ -22714,12 +22713,10 @@
         }
         const situacaoHtml = situacaoTags.length > 0 ? `<div class="vnp-situacao">${situacaoTags.join("")}</div>` : "";
 
-        const actionsCell = buildPatioVehicleActionsHtml(v, { listContext: "vnp", compact: true });
-
         return `
           <tr class="${rowClass}" data-vehicle-row="${v.id}">
-            ${buildPatioMobileListCellsHtml(v, 9)}
-            <td class="patio-desk-only" data-label="Placa"><span class="vei-plate-with-status">${inspectionStatusIndicatorHtml(v)}${plateVisualHtml(v.placa, "sm")}</span>${situacaoHtml}</td>
+            ${buildPatioMobileListCellsHtml(v, 8)}
+            <td class="patio-desk-only" data-label="Placa"><span class="vei-plate-with-status">${inspectionStatusIndicatorHtml(v)}${vehiclePlateOpenHtml(v.placa, v.id, "sm")}</span>${situacaoHtml}</td>
             <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml(registoKind === "vnp" ? patioStageOfVehicle(v) : registoKind)}</td>
             <td class="patio-desk-only" data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
             <td class="patio-desk-only" data-label="RPV">${localizador}</td>
@@ -22727,7 +22724,6 @@
             <td class="patio-desk-only" data-label="Escritório">${escapeHtml(vehicleAdvocacyOfficeNome(v))}</td>
             <td class="patio-desk-only" data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
             <td class="patio-desk-only" data-label="Valor">${valorCell}</td>
-            <td class="patio-desk-only actions" data-label="Ações">${actionsCell}</td>
           </tr>
         `;
       }
@@ -22740,7 +22736,7 @@
             tbody.innerHTML = "";
             return;
           }
-          setEmptyRow(tbody, emptyText, 9);
+          setEmptyRow(tbody, emptyText, 8);
           return;
         }
         tbody.innerHTML = items.map((v) => buildVnpUnifiedRowHtml(v, opts)).join("");
@@ -22770,7 +22766,7 @@
         }
         const rowCls = rowClsParts.join(" ");
         return `<tr${rowCls ? ` class="${rowCls}"` : ""} data-vehicle-row="${v.id}">
-          <td data-label="Placa">${plateVisualHtml(v.placa, "sm")}${pendingTag}</td>
+          <td data-label="Placa">${vehiclePlateOpenHtml(v.placa, v.id, "sm")}${pendingTag}</td>
           <td data-label="Registo">${patioRegistoBadgeHtml(patioStageOfVehicle(v))}</td>
           <td data-label="Veículo">${escapeHtml([v.marca, v.modelo].filter(Boolean).join(" ") || "-")}</td>
           <td data-label="RPV">${escapeHtml(locLabel(v.localizador_id))}</td>
@@ -23671,7 +23667,7 @@
             return `
               <tr data-receivable-row="${r.id}" data-vehicle-row="${vehicle.id}"${destaque}>
                 <td data-label="Selecionar"><input type="checkbox" class="patio-aguardando-check" value="${escapeHtml(String(r.id))}"${marcado} aria-label="Selecionar ${escapeHtml(vehicle.placa || "veículo")}" /></td>
-                <td data-label="Placa">${plateVisualHtml(vehicle.placa, "sm")}</td>
+                <td data-label="Placa">${vehiclePlateOpenHtml(vehicle.placa, vehicle.id, "sm")}</td>
                 <td data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td data-label="Veículo">${escapeHtml([vehicle.marca, vehicle.modelo].filter(Boolean).join(" ") || "-")}</td>
                 <td data-label="RPF">${escapeHtml(financeStripFinmetaText(rpfNome) || "-")}</td>
@@ -24338,7 +24334,7 @@
                   : lista.length && patioVrpParceiroId
                     ? "Nenhum veículo removido com o parceiro selecionado."
                     : "Nenhum veículo removido.",
-            11
+            10
           );
           patioVrpSelecionados.clear();
           patioVrpAtualizarSelecao();
@@ -24356,7 +24352,6 @@
               ? "-"
               : `${formatCurrency(total)}<span class="notice">(${calcDays(v)} diárias • ${calcHours(v)}h)</span>`;
 
-            const actionsCell = buildPatioVehicleActionsHtml(v, { listContext: "vrp", compact: true });
             const marcado = patioVrpSelecionados.has(String(v.id)) ? " checked" : "";
             const destaque = String(v.id) === String(patioVrpTopoDestaque) ? ' style="outline: 2px solid #8a9a3a"' : "";
             const rowSel = patioVrpSelecionados.has(String(v.id)) ? "patio-vrp-selected" : "";
@@ -24364,9 +24359,9 @@
 
             return `
               <tr class="${rowSel}" data-vehicle-row="${v.id}"${destaque}>
-                ${buildPatioMobileListCellsHtml(v, 11, `<label class="patio-vrp-mob-check">${check}</label>`)}
+                ${buildPatioMobileListCellsHtml(v, 10, `<label class="patio-vrp-mob-check">${check}</label>`)}
                 <td class="patio-desk-only patio-vrp-select-col" data-label="Selecionar">${check}</td>
-                <td class="patio-desk-only" data-label="Placa">${plateVisualHtml(v.placa, "sm")}</td>
+                <td class="patio-desk-only" data-label="Placa">${vehiclePlateOpenHtml(v.placa, v.id, "sm")}</td>
                 <td class="patio-desk-only" data-label="Registo">${patioRegistoBadgeHtml("vrp")}</td>
                 <td class="patio-desk-only" data-label="Veículo">${[v.marca, v.modelo].filter(Boolean).join(" ") || "-"}</td>
                 <td class="patio-desk-only" data-label="RPV">${localizador}</td>
@@ -24375,7 +24370,6 @@
                 <td class="patio-desk-only" data-label="Entrada">${formatDateTime(v.data_entrada)}</td>
                 <td class="patio-desk-only" data-label="Saída">${formatDateTime(v.data_saida)}</td>
                 <td class="patio-desk-only" data-label="Valor">${valorCell}</td>
-                <td class="patio-desk-only actions" data-label="Ações">${actionsCell}</td>
               </tr>
             `;
           })
@@ -33787,6 +33781,20 @@ ${body}
       }
 
       bindPatioVehicleTableActions();
+
+      document.addEventListener(
+        "click",
+        (event) => {
+          const btn = event.target.closest("[data-open-vehicle]");
+          if (!btn) return;
+          event.preventDefault();
+          event.stopPropagation();
+          const id = btn.getAttribute("data-open-vehicle");
+          const vehicle = (state.vehicles || []).find((v) => String(v.id) === String(id));
+          if (vehicle) void openVehicleIdFicha(vehicle, 2);
+        },
+        true
+      );
 
       patioVehicleActionsModal?.addEventListener("click", async (event) => {
         const button = event.target.closest("button[data-action]");
