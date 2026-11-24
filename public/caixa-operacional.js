@@ -1189,9 +1189,13 @@
         const partes = String(item.titulo || "").split("•");
         const placa = item.tipo === "fatura" ? item.titulo : (partes[0] || item.titulo || "—").trim();
         const veiculo = item.tipo === "fatura" ? "Fatura" : (partes.slice(1).join("•") || "—").trim();
+        const rec = item.tipo === "veiculo" ? recebivelPorId(item.id) : null;
+        const placaHtml = rec?.vehicle_id
+          ? `<button type="button" class="vp-plate-open vp-plate-open--text" data-open-vehicle="${esc(rec.vehicle_id)}">${esc(placa || "—")}</button>`
+          : esc(placa || "—");
         return `<tr data-cx-open="${esc(item.tipo)}" data-cx-id="${esc(item.id)}">
           ${celula("", check, "cx-check-cell")}
-          ${celula("Placa", esc(placa || "—"))}
+          ${celula("Placa", placaHtml)}
           ${celula("Veículo", esc(veiculo || "—"))}
           ${celula("Responsável", esc(item.cliente || "—"))}
           ${celula("Saída", esc(dataCurta(item.data)))}
@@ -1690,19 +1694,33 @@
     if (!line) return;
     fecharCamadas();
     const saldo = saldoLinha(line);
+    const acerto = typeof global.financeMetaUnpack === "function" ? global.financeMetaUnpack(r?.observacoes)?.meta : null;
+    const acertoHtml = acerto?.acerto_parcial
+      ? `<div class="cx-dl">
+        <div><span>Origem</span><strong>Acerto parcial de estadia</strong></div>
+        <div><span>Diárias acertadas</span><strong>${esc(String(acerto.diarias || "—"))}</strong></div>
+        <div><span>Valor original</span><strong>${esc(money(acerto.valor_original || line.valor))}</strong></div>
+        <div><span>Desconto</span><strong>${esc(money(acerto.desconto || 0))}</strong></div>
+        <div><span>Valor acertado</span><strong>${esc(money(r?.valor || line.valor))}</strong></div>
+        <div><span>Vencimento</span><strong>${esc(dataCurta(acerto.vencimento || r?.data_vencimento))}</strong></div>
+        <div><span>Responsável</span><strong>${esc(acerto.responsavel_nome || nomeLinha(line))}</strong></div>
+        <div><span>Observações</span><strong>${esc(acerto.observacoes_texto || "—")}</strong></div>
+      </div>`
+      : "";
     const aside = document.createElement("div");
     aside.id = "caixaOpDetail";
     aside.className = "cx-detail";
     aside.innerHTML = `<div class="cx-panel" role="dialog">
       <button type="button" class="cx-btn secondary" data-cx-fechar="1">Fechar</button>
       <h3>${esc(rotuloLinha(line))}</h3>
-      <p>${esc(nomeLinha(line))} · ${esc(line.servico || "Guarda e custódia")}</p>
+      <p>${esc(nomeLinha(line))} · ${esc(acerto?.acerto_parcial ? "Acerto parcial de estadia" : line.servico || "Guarda e custódia")}</p>
       <div class="cx-dl">
         <div><span>Valor do serviço</span><strong>${esc(money(line.valor))}</strong></div>
         <div><span>Já recebido</span><strong>${esc(money(line.abatimento || 0))}</strong></div>
         <div><span>Saldo</span><strong>${esc(money(saldo))}</strong></div>
         <div><span>Situação</span><strong>${esc((() => { const rec = line.receivable || recebivelPorId(line.receivableId); if (rec && ehPago(rec)) return "Recebido"; if (rec && ehContaReceber(rec)) return "A receber"; return "A faturar"; })())}</strong></div>
       </div>
+      ${acertoHtml}
       <p>Período ${esc(svc().formatPeriodLabel(line.entrada, line.saida || svc().todayYmd()))}. A saída do pátio não quita este valor.</p>
     </div>`;
     aside.addEventListener("click", (ev) => {
