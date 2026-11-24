@@ -8422,35 +8422,6 @@
               <div class="cmd-ops-meta" id="patioOpsMeta"></div>
             </div>
             <div id="patioOpsBoard" class="patio-ops-board">
-              <form id="patioOpsPeriodo" class="periodo-box" action="#" novalidate>
-                <h3 class="periodo-box__title">Filtrar por período</h3>
-                <div class="periodo-box__dates">
-                  <label for="patioOpsDataDe">Data inicial
-                    <span class="periodo-data">
-                      <input id="patioOpsDataDe" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" aria-label="Data inicial da remoção" />
-                      <input id="patioOpsDataDeCal" type="date" aria-label="Abrir calendário da data inicial" />
-                    </span>
-                  </label>
-                  <label for="patioOpsDataAte">Data final
-                    <span class="periodo-data">
-                      <input id="patioOpsDataAte" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="off" aria-label="Data final da remoção" />
-                      <input id="patioOpsDataAteCal" type="date" aria-label="Abrir calendário da data final" />
-                    </span>
-                  </label>
-                </div>
-                <div class="periodo-box__actions">
-                  <button type="submit" class="periodo-box__btn periodo-box__btn--go">
-                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
-                    Filtrar
-                  </button>
-                  <button type="button" class="secondary periodo-box__btn" id="patioOpsPeriodoLimpar">Limpar</button>
-                  <button type="button" class="secondary periodo-box__btn" id="patioOpsPeriodoImprimir">
-                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="7"></rect></svg>
-                    Imprimir
-                  </button>
-                </div>
-              </form>
-              <p class="patio-ops-hint">O período vale para o VRP, pela data de remoção.</p>
               <div class="patio-ops-grid">
                 <button type="button" class="patio-ops-card" data-patio-ops="vnp">
                   <span class="patio-ops-card-top"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16l2-6h12l2 6M6 16h12M8 20h2M14 20h2"></path></svg><span>VNP · No pátio</span></span>
@@ -11402,8 +11373,8 @@
     <script src="/cobranca-ui.js?v=20261116cx1"></script>
     <script src="/finance-caixa-hub.js?v=20261116caixa1"></script>
     <script src="/periodo-filtro.js?v=20261123periodo1"></script>
-    <script src="/vinculo-filtros.js?v=20261124vf1"></script>
-    <script src="/caixa-operacional.js?v=20261124placa1"></script>
+    <script src="/vinculo-filtros.js?v=20261124per1"></script>
+    <script src="/caixa-operacional.js?v=20261124per1"></script>
     <script src="/parceiro-caderneta.js?v=20261117cad1"></script>
     <script src="/patio-extrato-service.js?v=20261105resumo2"></script>
     <script src="/patio-extrato-ui.js?v=20261124placa1"></script>
@@ -12282,6 +12253,7 @@
       let vnpFilterPatioId = "";
       let vnpFilterPlacaNorm = "";
       let patioVnpVinculo = window.vinculoFiltros ? window.vinculoFiltros.empty() : { financeira: "", escritorio: "", patio: "", localizador: "" };
+      let patioVnpPeriodo = { de: "", ate: "" };
       let patioVrpVinculo = window.vinculoFiltros ? window.vinculoFiltros.empty() : { financeira: "", escritorio: "", patio: "", localizador: "" };
       let listaFilterLocatorId = "";
       let listaFilterRpfId = "";
@@ -12502,6 +12474,11 @@
         });
         backdrop?.addEventListener("click", () => setCollapsed(true));
         window.__agSetNavCollapsed = setCollapsed;
+        document.addEventListener("click", (event) => {
+          if (document.body.classList.contains("ag-nav-collapsed")) return;
+          if (nav?.contains(event.target) || btn?.contains(event.target)) return;
+          setCollapsed(true);
+        });
         nav?.addEventListener("click", (event) => {
           const leaf = event.target.closest("[data-ag-go]");
           if (leaf && nav.contains(leaf)) {
@@ -16181,12 +16158,14 @@
       }
 
       function vnpOrganizationalFiltersOn() {
-        return !!(window.vinculoFiltros && window.vinculoFiltros.isActive(patioVnpVinculo));
+        return !!((window.vinculoFiltros && window.vinculoFiltros.isActive(patioVnpVinculo)) || patioVnpPeriodo.de || patioVnpPeriodo.ate);
       }
 
       function vehicleMatchesVnpFilters(v) {
         if (!window.vinculoFiltros) return !!v;
-        return window.vinculoFiltros.vehicleMatches(v, patioVnpVinculo);
+        if (!window.vinculoFiltros.vehicleMatches(v, patioVnpVinculo)) return false;
+        if (!patioVnpPeriodo.de && !patioVnpPeriodo.ate) return true;
+        return !!(window.periodoFiltro && window.periodoFiltro.inRange(v?.data_entrada, patioVnpPeriodo.de, patioVnpPeriodo.ate));
       }
 
       function ensurePatioVinculoFiltros() {
@@ -16195,6 +16174,14 @@
         api.mount(document.getElementById("patioVnpVinculo"), {
           selection: patioVnpVinculo,
           state,
+          period: {
+            de: patioVnpPeriodo.de,
+            ate: patioVnpPeriodo.ate,
+            onChange(range) {
+              patioVnpPeriodo = { de: range?.de || "", ate: range?.ate || "" };
+              renderVehicles();
+            },
+          },
           onChange(sel) {
             patioVnpVinculo = sel;
             renderVehicles();
@@ -22947,7 +22934,6 @@
               return;
             }
             if (kind === "vrp") {
-              patioOpsAplicarPeriodoNoVrp();
               openPatioSubview("removidos");
               renderVehicles();
               return;
