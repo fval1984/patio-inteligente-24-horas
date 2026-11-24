@@ -387,7 +387,7 @@
     return `<tr>
       <td data-label="Data">${esc(data || "—")}</td>
       <td data-label="Devedor">${esc(devedor || "—")}</td>
-      <td data-label="Placa">${esc(placa)}</td>
+      <td data-label="Placa">${vehicle?.id ? `<button type="button" class="vp-plate-open vp-plate-open--text" data-open-vehicle="${esc(vehicle.id)}">${esc(placa)}</button>` : esc(placa)}</td>
       <td data-label="RPP/RPV">${esc([rpp, rpv].filter((x) => x && x !== "—").join(" · ") || "—")}</td>
       <td data-label="Valor">${esc(money(movValor(mov)))}</td>
       <td data-label="Forma">${esc(forma)}</td>
