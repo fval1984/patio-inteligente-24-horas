@@ -2250,7 +2250,7 @@
     if (!key) return "Devedor";
     const sample =
       financeReceberTitlesForDevedor(key)[0] ||
-      financeContasReceberList().find((r) => financeReceivableDevedorIdentity(r).key === key);
+      (state.receivables || []).find((r) => financeReceivableDevedorIdentity(r).key === key);
     return sample ? financeReceivableDevedorIdentity(sample).nome : "Devedor";
   }
 
@@ -2430,7 +2430,7 @@
   function financeReceberSurfaceOpen() {
     if (currentFinanceView == "receber") return true;
     const page = document.getElementById("viewParceiros");
-    const host = document.querySelector('#viewParceiros [data-subview="cadernetas"]');
+    const host = document.querySelector('#viewParceiros .partner-subview[data-subview="cadernetas"]');
     return !!(page && host && !page.classList.contains("hidden") && !host.classList.contains("hidden"));
   }
 
@@ -8262,7 +8262,7 @@
       if (e.target === e.currentTarget) financeCloseCaixaDeleteModal();
     });
 
-    document.getElementById("viewFinanceiro")?.addEventListener("click", async (e) => {
+    const financeReceberClick = async (e) => {
       const caixaDetalhe = e.target.closest("[data-fin-caixa-detalhe]");
       if (caixaDetalhe && !e.target.closest("button")) {
         e.preventDefault();
@@ -8511,7 +8511,9 @@
         const detailHost = finRow.closest("#finFinanceirasRoot, #finDashFinanceirasPreview")?.querySelector(".fin-financeiras-detail");
         financeRenderFinanceiraDetail(finRow.getAttribute("data-fin-act-financeira"), detailHost);
       }
-    });
+    };
+    document.getElementById("viewFinanceiro")?.addEventListener("click", financeReceberClick);
+    document.getElementById("parceiroCadernetaRoot")?.addEventListener("click", financeReceberClick);
 
     document.addEventListener("click", (e) => {
       const inDetail = e.target.closest("#finActDetailModal");
