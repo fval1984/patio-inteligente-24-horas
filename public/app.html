@@ -8586,12 +8586,7 @@
               </div>
             </div>
             <div class="section-card patio-subview hidden" data-subview="no_patio">
-              <div id="vnpFiltersBar" class="hidden" hidden>
-                <select id="vnpFilterParceiro"><option value="">Todos os parceiros</option></select>
-                <select id="vnpFilterFinanceira"><option value="">Todas as instituições</option></select>
-                <select id="vnpFilterEscritorio"><option value="">Todos os escritórios</option></select>
-                <select id="vnpFilterPatio"><option value="">Todos os pátios</option></select>
-              </div>
+              <div id="patioVnpVinculo"></div>
                 <div class="table-wrap">
                 <table class="table stacked patio-vehicle-table">
                 <thead class="patio-mob-thead">
@@ -8761,6 +8756,7 @@
                 </div>
               </form>
               <p id="patioVrpPeriodoTotal" class="notice" style="margin: 0 0 12px"></p>
+              <div id="patioVrpVinculo"></div>
               <p id="patioVrpPlacaHint" class="notice hidden" style="margin: 0 0 12px"></p>
               <div id="patioVrpLoteBar" class="hidden" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px">
                 <label style="display:flex;align-items:center;gap:6px;margin:0">
@@ -11415,10 +11411,11 @@
     <script src="/cobranca-ui.js?v=20261116cx1"></script>
     <script src="/finance-caixa-hub.js?v=20261116caixa1"></script>
     <script src="/periodo-filtro.js?v=20261123periodo1"></script>
-    <script src="/caixa-operacional.js?v=20261123nav1"></script>
+    <script src="/vinculo-filtros.js?v=20261124vf1"></script>
+    <script src="/caixa-operacional.js?v=20261124vf1"></script>
     <script src="/parceiro-caderneta.js?v=20261117cad1"></script>
     <script src="/patio-extrato-service.js?v=20261105resumo2"></script>
-    <script src="/patio-extrato-ui.js?v=20261106patioReorg1"></script>
+    <script src="/patio-extrato-ui.js?v=20261124vf1"></script>
     <script src="/contatos-avulsos.js?v=20261117avulso1"></script>
     <script>
       const supabaseUrl = "https://mgnfuwlbvwarmjtiwsdh.supabase.co";
@@ -12293,6 +12290,8 @@
       let vnpFilterEscritorioId = "";
       let vnpFilterPatioId = "";
       let vnpFilterPlacaNorm = "";
+      let patioVnpVinculo = window.vinculoFiltros ? window.vinculoFiltros.empty() : { financeira: "", escritorio: "", patio: "", localizador: "" };
+      let patioVrpVinculo = window.vinculoFiltros ? window.vinculoFiltros.empty() : { financeira: "", escritorio: "", patio: "", localizador: "" };
       let listaFilterLocatorId = "";
       let listaFilterRpfId = "";
       let listaFilterPlaca = "";
@@ -16182,11 +16181,33 @@
       }
 
       function vnpOrganizationalFiltersOn() {
-        return !!(vnpFilterParceiroId || vnpFilterFinanceiraId || vnpFilterEscritorioId || vnpFilterPatioId);
+        return !!(window.vinculoFiltros && window.vinculoFiltros.isActive(patioVnpVinculo));
       }
 
       function vehicleMatchesVnpFilters(v) {
-        return !!v;
+        if (!window.vinculoFiltros) return !!v;
+        return window.vinculoFiltros.vehicleMatches(v, patioVnpVinculo);
+      }
+
+      function ensurePatioVinculoFiltros() {
+        const api = window.vinculoFiltros;
+        if (!api) return;
+        api.mount(document.getElementById("patioVnpVinculo"), {
+          selection: patioVnpVinculo,
+          state,
+          onChange(sel) {
+            patioVnpVinculo = sel;
+            renderVehicles();
+          },
+        });
+        api.mount(document.getElementById("patioVrpVinculo"), {
+          selection: patioVrpVinculo,
+          state,
+          onChange(sel) {
+            patioVrpVinculo = sel;
+            renderVehicles();
+          },
+        });
       }
 
       function runHubPlateConsulta(rawPlate) {
@@ -22047,6 +22068,7 @@
       }
 
       function renderVehicles() {
+        ensurePatioVinculoFiltros();
         const qNorm = normalizePlateSearch(plateQuery);
         const filteredVehicles = qNorm
           ? state.vehicles.filter((v) => normalizePlateSearch(v.placa) === qNorm)
@@ -22146,7 +22168,9 @@
 
         renderVnpUnifiedTable(tableNoPatio, vnpOnPatio, {
           registoKind: "vnp",
-          emptyText: "Nenhum veículo no pátio.",
+          emptyText: vnpOrganizationalFiltersOn()
+            ? "Nenhum veículo no pátio com estes filtros."
+            : "Nenhum veículo no pátio.",
         });
         if (window.vehicleEntryInspection?.renderAwaitingTable) {
           window.vehicleEntryInspection.renderAwaitingTable(tableVistoria, state.vehicles, buildVehicleInspectionCtx());
@@ -24260,7 +24284,10 @@
       function renderRemovedVehicles(tbody, items) {
         if (!tbody) return;
         const lista = items || [];
-        const fonte = lista.filter(patioVrpVeiculoDoParceiro).filter(patioVrpNoPeriodo).sort((a, b) => {
+        const fonte = lista.filter(patioVrpVeiculoDoParceiro).filter(patioVrpNoPeriodo).filter((v) => {
+          if (!window.vinculoFiltros) return true;
+          return window.vinculoFiltros.vehicleMatches(v, patioVrpVinculo);
+        }).sort((a, b) => {
           const ta = new Date(a.data_saida || a.updated_at || 0).getTime();
           const tb = new Date(b.data_saida || b.updated_at || 0).getTime();
           if (tb !== ta) return tb - ta;
@@ -24299,13 +24326,18 @@
         patioVrpAtualizarTotal(fonte);
         if (!fonte.length) {
           const noPeriodo = !!(patioVrpPeriodoDe || patioVrpPeriodoAte);
+          const vinculoAtivo = !!(window.vinculoFiltros && window.vinculoFiltros.isActive(patioVrpVinculo));
           setEmptyRow(
             tbody,
-            noPeriodo
-              ? "Nenhum veículo removido neste período."
-              : lista.length && patioVrpParceiroId
-                ? "Nenhum veículo removido com o parceiro selecionado."
-                : "Nenhum veículo removido.",
+            vinculoAtivo && noPeriodo
+              ? "Nenhum veículo removido neste período com estes filtros."
+              : vinculoAtivo
+                ? "Nenhum veículo removido com estes filtros."
+                : noPeriodo
+                  ? "Nenhum veículo removido neste período."
+                  : lista.length && patioVrpParceiroId
+                    ? "Nenhum veículo removido com o parceiro selecionado."
+                    : "Nenhum veículo removido.",
             11
           );
           patioVrpSelecionados.clear();
