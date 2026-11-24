@@ -31,6 +31,7 @@
   let recebivelMap = null;
   let veiculoMap = null;
   let limiteLista = 200;
+  let vinculoSel = global.vinculoFiltros ? global.vinculoFiltros.empty() : { financeira: "", escritorio: "", patio: "", localizador: "" };
 
   function svc() {
     return global.cobrancaService;
@@ -642,6 +643,7 @@
         <button type="button" class="cx-chip" data-cx-filtro="caixa">Caixa</button>
       </div>
       <div class="cx-tools" id="caixaOpTools"></div>
+      <div id="caixaOpVinculo"></div>
       <p id="caixaOpErro" class="cx-empty" hidden></p>
       <div id="caixaOpLista"></div>
       <div id="caixaOpBar" class="cx-bar"></div>`;
@@ -695,6 +697,7 @@
     try {
       pintarTotais();
       pintarFiltros();
+      montarVinculo();
       pintarLista();
       pintarBarra();
       const erro = document.getElementById("caixaOpErro");
@@ -811,10 +814,58 @@
     return mov ? ymd(mov.data_movimento || mov.created_at) : "";
   }
 
+  function vinculoCtx() {
+    const cache = typeof global.reboqueTransporteGetCache === "function" ? global.reboqueTransporteGetCache() : null;
+    return {
+      vehicles: dados()?.vehicles || [],
+      payables: dados()?.payables || [],
+      receivables: dados()?.receivables || [],
+      charges,
+      towServices: cache?.services || [],
+    };
+  }
+
+  function entradaNoVinculo(item) {
+    const api = global.vinculoFiltros;
+    if (!api || !api.isActive(vinculoSel)) return true;
+    if (item?.tipo === "fatura") {
+      const ids = (itensPorCobranca.get(String(item.id)) || []).map((row) => row.receivable_id).filter(Boolean);
+      const vehicles = ids.map((id) => veiculoDo(recebivelPorId(id))).filter(Boolean);
+      const row = charges.find((c) => String(c.id) === String(item.id));
+      return api.chargeMatches(row, vehicles, vinculoSel);
+    }
+    return api.vehicleMatches(veiculoDo(recebivelPorId(item?.id)), vinculoSel);
+  }
+
+  function montarVinculo() {
+    const api = global.vinculoFiltros;
+    if (!api) return;
+    let host = document.getElementById("caixaOpVinculo");
+    if (!host) {
+      const lista = document.getElementById("caixaOpLista");
+      if (!lista?.parentNode) return;
+      host = document.createElement("div");
+      host.id = "caixaOpVinculo";
+      lista.parentNode.insertBefore(host, lista);
+    }
+    api.mount(host, {
+      selection: vinculoSel,
+      state: dados(),
+      onChange(sel) {
+        vinculoSel = sel;
+        limiteLista = 200;
+        pintarLista();
+        pintarBarra();
+      },
+    });
+  }
+
   function saidasDoMes() {
     const apura = apurarMes(mesAtivo());
+    const api = global.vinculoFiltros;
     return apura.despesas.filter((p) => {
       if (!passaPeriodo(p.data_vencimento || p.created_at)) return false;
+      if (api && api.isActive(vinculoSel) && !api.payableMatches(p, vinculoSel, vinculoCtx())) return false;
       const blob = `${textoDespesa(p)} ${p.categoria || ""} ${p.fornecedor || ""} ${p.favorecido || ""}`.toLowerCase();
       return !q || blob.includes(q.toLowerCase());
     });
@@ -1076,6 +1127,7 @@
       itens = itens.filter((item) => global.periodoFiltro.inRange(item.lancamento, entradaDe, entradaAte));
     }
     if (prazo) itens = itens.filter((item) => classePrazo(item) === prazo);
+    itens = itens.filter(entradaNoVinculo);
     return itens;
   }
 
@@ -1124,8 +1176,15 @@
       const itens = entradasVisiveis();
       const saldo = itens.reduce((s, item) => s + Number(item.saldo || 0), 0);
       const noPeriodo = !!(entradaDe || entradaAte);
+      const filtrado = global.vinculoFiltros && global.vinculoFiltros.isActive(vinculoSel);
       const rotuloTotal = noPeriodo ? "Total no período" : "Total";
-      const vazio = noPeriodo ? "Nenhuma cobrança com saldo neste período." : "Nenhuma cobrança com saldo.";
+      const vazio = filtrado
+        ? noPeriodo
+          ? "Nenhuma cobrança neste período com estes filtros."
+          : "Nenhuma cobrança com estes filtros."
+        : noPeriodo
+          ? "Nenhuma cobrança com saldo neste período."
+          : "Nenhuma cobrança com saldo.";
       const pagina = itens.slice(0, limiteLista);
       const rows = pagina.map((item) => {
         const check = item.tipo === "fatura"
@@ -1153,6 +1212,10 @@
     if (vista === "saidas") {
       const todas = saidasDoMes();
       const apura = apurarMes(mesAtivo());
+      const filtrado = global.vinculoFiltros && global.vinculoFiltros.isActive(vinculoSel);
+      const aPagarNota = filtrado
+        ? round(todas.filter((p) => !despesaPaga(p)).reduce((s, p) => s + Number(p.valor || 0), 0))
+        : apura.aPagar;
       const pagina = todas.slice(0, limiteLista);
       const rows = pagina.map((p) => {
         const paga = despesaPaga(p);
@@ -1168,14 +1231,18 @@
       });
       const anteriores = Object.entries(apura.abertoPorMes || {}).filter(([k, v]) => k && k < apura.mes && Number(v) > 0);
       const aviso = anteriores.length ? ` Há despesas vencidas em meses anteriores; elas continuam pendentes no mês de cada uma.` : "";
-      box.innerHTML = `<p class="cx-note">${esc(mes)} · a pagar ${esc(money(apura.aPagar))}. Só entra no Caixa quando o pagamento é confirmado.${esc(aviso)}</p>${tabela(["Descrição", "Categoria", "Competência", "Vencimento", "Valor", "Situação", ""], rows, `Nenhuma despesa de ${esc(mes)}.`)}${maisBotao(todas.length, pagina.length)}`;
+      const vazioSaidas = filtrado ? `Nenhuma saída de ${esc(mes)} com estes filtros.` : `Nenhuma despesa de ${esc(mes)}.`;
+      box.innerHTML = `<p class="cx-note">${esc(mes)} · a pagar ${esc(money(aPagarNota))}. Só entra no Caixa quando o pagamento é confirmado.${esc(aviso)}</p>${tabela(["Descrição", "Categoria", "Competência", "Vencimento", "Valor", "Situação", ""], rows, vazioSaidas)}${maisBotao(todas.length, pagina.length)}`;
       return true;
     }
     if (vista === "caixa") {
       const s = saldoCaixa(mesAtivo());
+      const filtradoCaixa = global.vinculoFiltros && global.vinculoFiltros.isActive(vinculoSel);
       const movs = (apurarMes(mesAtivo()).movs || []).filter((mov) => {
         const blob = `${descricaoMovimento(mov)} ${mov.descricao || ""} ${mov.forma_pagamento || ""} ${contaMovimento(mov)}`.toLowerCase();
-        return !q || blob.includes(q.toLowerCase());
+        if (q && !blob.includes(q.toLowerCase())) return false;
+        if (filtradoCaixa && !global.vinculoFiltros.movementMatches(mov, vinculoSel, vinculoCtx())) return false;
+        return true;
       });
       const pagina = movs.slice(0, limiteLista);
       const rows = pagina.map((mov) => {
@@ -1189,7 +1256,8 @@
           ${celula("Valor", esc(money(entrada ? mov.valor : -Number(mov.valor || 0))), "num")}
         </tr>`;
       });
-      box.innerHTML = `<p class="cx-note">${esc(mes)} · saldo final ${esc(money(s.final))}. Pendências de Entradas e Saídas não entram neste saldo.</p>${tabela(["Data", "Descrição", "Origem / destino", "Conta", "Forma", "Valor"], rows, `Nenhuma movimentação em ${esc(mes)}.`)}${maisBotao(movs.length, pagina.length)}`;
+      const vazioCaixa = filtradoCaixa ? `Nenhuma movimentação em ${esc(mes)} com estes filtros.` : `Nenhuma movimentação em ${esc(mes)}.`;
+      box.innerHTML = `<p class="cx-note">${esc(mes)} · saldo final ${esc(money(s.final))}. Pendências de Entradas e Saídas não entram neste saldo.</p>${tabela(["Data", "Descrição", "Origem / destino", "Conta", "Forma", "Valor"], rows, vazioCaixa)}${maisBotao(movs.length, pagina.length)}`;
       return true;
     }
     if (vista === "movimentacoes") {
@@ -1338,7 +1406,9 @@
         if (tipoMov === "entrada" && !movimentoEhEntrada(mov)) return false;
         if (tipoMov === "saida" && !movimentoEhSaida(mov)) return false;
         const blob = `${mov.descricao || ""} ${mov.forma_pagamento || ""} ${mov.categoria || ""}`.toLowerCase();
-        return !q || blob.includes(q.toLowerCase());
+        if (q && !blob.includes(q.toLowerCase())) return false;
+        if (global.vinculoFiltros && global.vinculoFiltros.isActive(vinculoSel) && !global.vinculoFiltros.movementMatches(mov, vinculoSel, vinculoCtx())) return false;
+        return true;
       });
       const pagina = movs.slice(0, limiteLista);
       const corpo = pagina
