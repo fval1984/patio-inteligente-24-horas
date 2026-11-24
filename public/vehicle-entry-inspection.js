@@ -3588,36 +3588,19 @@
         return String(b.id || "").localeCompare(String(a.id || ""), "pt-BR");
       });
     if (!list.length) {
-      tbody.innerHTML = `<tr><td colspan="9" class="notice" style="text-align:center;padding:18px">Nenhum veículo aguardando vistoria.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="notice" style="text-align:center;padding:18px">Nenhum veículo aguardando vistoria.</td></tr>`;
       return;
     }
     tbody.innerHTML = list
       .map((v) => {
         const loc = partnerName(ctx, v.localizador_id);
-        const isGp = !!ctx.isGestorPista;
-        const isVistoriador = !!ctx.isVistoriador;
-        const isVisualizador = !!ctx.isVisualizador;
-        const isAdmPc = !!ctx.isAdmDesktopPc;
-        let actions = "";
-        if (isVisualizador) {
-          actions = "";
-        } else if (isVistoriador) {
-          actions = `<button class="vei-start-btn" data-action="vistoria" data-id="${v.id}">INICIAR VISTORIA</button>`;
-        } else if (isGp) {
-          actions = `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>`;
-        } else if (isAdmPc) {
-          actions =
-            `<button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>` +
-            `<button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>`;
-        } else {
-          actions =
-            `<button class="secondary" data-action="vistoria" data-id="${v.id}">Vistoria</button>` +
-            `<button class="secondary" data-action="editar" data-id="${v.id}">Editar</button>` +
-            `<button class="secondary" data-action="apagar" data-id="${v.id}">Apagar</button>`;
-        }
+        const plate =
+          typeof global.vehiclePlateOpenHtml === "function"
+            ? global.vehiclePlateOpenHtml(v.placa, v.id, "sm")
+            : plateHtml(v.placa);
         return (
           `<tr class="vnp-row-aguardando-vistoria" data-vehicle-row="${v.id}">` +
-          `<td data-label="Placa"><span class="vei-plate-with-status"><span class="vei-status-dot vei-status-dot--pending" title="Aguardando vistoria" aria-label="Aguardando vistoria"></span>${plateHtml(v.placa)}</span></td>` +
+          `<td data-label="Placa"><span class="vei-plate-with-status"><span class="vei-status-dot vei-status-dot--pending" title="Aguardando vistoria" aria-label="Aguardando vistoria"></span>${plate}</span></td>` +
           `<td data-label="Marca">${esc(v.marca || "—")}</td>` +
           `<td data-label="Modelo">${esc(v.modelo || "—")}</td>` +
           `<td data-label="Ano">${esc(v.ano || "—")}</td>` +
@@ -3625,7 +3608,6 @@
           `<td data-label="Entrada">${esc(ctx.formatDateTime ? ctx.formatDateTime(v.data_entrada) : fmtDateTime(v.data_entrada))}</td>` +
           `<td data-label="RPV">${esc(loc)}</td>` +
           `<td data-label="Status"><span class="tag warning">Aguardando vistoria</span></td>` +
-          `<td class="actions" data-label="Ações">${actions}</td>` +
           `</tr>`
         );
       })
