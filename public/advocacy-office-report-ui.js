@@ -818,16 +818,107 @@
     return document.getElementById("aoOfficeDoc");
   }
 
-  function printDoc() {
-    const doc = docEl();
-    if (!doc) {
-      alert("Gere o relatório do escritório antes de imprimir.");
-      return;
-    }
+  function printVehicleRows() {
+    const service = svc();
+    const vehicles = (_model && _model.vehicles) || [];
+    const filters = (_model && _model.filters) || {};
+    if (!service) return vehicles;
+    return service.sortOfficeReportRows(service.filterOfficeReportDrill(vehicles, _drill, filters), _sort);
+  }
+
+  function printBodyHtml() {
+    const model = _model;
+    if (!model) return "";
+    const office = model.office || {};
+    const summary = model.summary || {};
+    const insights = model.insights || {};
+    const lines = filterLines(model.filters || {});
+    const counts = [
+      ["Total de veículos", String(summary.veiculos || 0)],
+      ["Atualmente no pátio", String(summary.noPatio || 0)],
+      ["Entradas no período", String(insights.entradas || 0)],
+      ["Saídas no período", String(insights.saidas || 0)],
+      ["Solicitação de liberação", String(summary.vsl || 0)],
+      ["Liberação confirmada", String(summary.vsc || 0)],
+      ["Retirados do pátio", String(summary.retirados || 0)],
+    ];
+    const sumBody = counts
+      .map((pair) => `<tr><td>${esc(pair[0])}</td><td>${esc(pair[1])}</td></tr>`)
+      .join("");
+    const listed = printVehicleRows();
+    const rows = listed.length
+      ? listed
+          .map(
+            (r) => `<tr>
+              <td>${esc(dash(r.placa))}</td>
+              <td>${esc(dash(r.veiculo))}</td>
+              <td>${esc(dash(r.financeira))}</td>
+              <td>${esc(dash(r.encaminhou))}</td>
+              <td>${esc(fmtYmd(r.dataEntrada))}</td>
+              <td>${esc(r.dataSaida ? fmtYmd(r.dataSaida) : "—")}</td>
+              <td>${esc(dash(r.situacao))}</td>
+            </tr>`
+          )
+          .join("")
+      : `<tr><td colspan="7">${listed.length || (model.vehicles || []).length ? "Nenhum veículo neste indicador." : "Nenhum veículo encontrado com os filtros selecionados."}</td></tr>`;
+    const banner =
+      _drill !== "all" && drillLabel(_drill)
+        ? `<p class="ao-note">Lista filtrada por: ${esc(drillLabel(_drill))}. ${listed.length} veículo(s).</p>`
+        : "";
+    return `<article class="ao-doc" id="aoOfficeDoc">
+      <div class="ao-doc-head">
+        <img src="${esc(LOGO)}" alt="AMPLIGUARD" />
+        <h1>RELATÓRIO DETALHADO DE ESCRITÓRIO</h1>
+        <p class="ao-office-name">${esc(dash(office.name))}</p>
+        <p>CNPJ: ${esc(dash(office.cnpj))}</p>
+        <p>Gestor(es) de Carteira: ${esc(dash(office.managers))}</p>
+        <p>${esc(lines[0] || "")}</p>
+        <p>Emitido em ${esc(_issuedLabel)}</p>
+        ${lines.length > 1 ? `<p class="ao-filters">${esc(lines.slice(1).join(" · "))}</p>` : ""}
+      </div>
+      <h2>Resumo dos veículos</h2>
+      <table class="ao-table">
+        <thead><tr><th>Indicador</th><th>Valor</th></tr></thead>
+        <tbody>${sumBody}</tbody>
+      </table>
+      <h2>Veículos</h2>
+      ${banner}
+      <table class="ao-table">
+        <thead>
+          <tr>
+            <th>Placa</th>
+            <th>Marca e modelo</th>
+            <th>Financeira</th>
+            <th>Quem encaminhou</th>
+            <th>Entrada</th>
+            <th>Saída</th>
+            <th>Situação</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="ao-foot-print" aria-hidden="true">
+        <span>${esc(FOOTER)}</span>
+        <span>Emitido em ${esc(_issuedLabel)}</span>
+        <span>Página <span class="ao-page-num"></span></span>
+      </div>
+    </article>`;
+  }
+
+  function printSourceHtml() {
+    const body = printBodyHtml();
+    if (!body) return "";
     const origin = global.location && global.location.origin ? global.location.origin : "";
-    const html = doc.outerHTML.replace(LOGO, origin + LOGO);
-    const page = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório detalhado de escritório</title>
-      <style>${DOC_CSS} @page { margin: 12mm; }</style></head><body>${html}</body></html>`;
+    const html = body.replace(LOGO, origin + LOGO);
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório detalhado de escritório</title>
+      <style>${DOC_CSS}
+      @page { margin: 12mm; }
+      body { margin: 0; background: #fff; }
+      .ao-doc { border: 0; border-radius: 0; box-shadow: none; padding: 0 0 16mm; }
+      </style></head><body>${html}</body></html>`;
+  }
+
+  function openPrintFrame(html) {
     const iframe = document.createElement("iframe");
     iframe.setAttribute("title", "Relatório de escritório");
     iframe.setAttribute("aria-hidden", "true");
@@ -837,13 +928,16 @@
     const win = iframe.contentWindow;
     if (!win) {
       iframe.remove();
-      alert("Não foi possível preparar a impressão neste navegador.");
-      return;
+      return null;
     }
     win.document.open();
-    win.document.write(page);
+    win.document.write(html);
     win.document.close();
-    const imgs = Array.from(win.document.images || []);
+    return iframe;
+  }
+
+  function whenImagesReady(doc) {
+    const imgs = Array.from((doc && doc.images) || []);
     const ready = Promise.all(
       imgs.map(
         (img) =>
@@ -857,7 +951,22 @@
       )
     );
     const timeout = new Promise((resolve) => setTimeout(resolve, 1200));
-    Promise.race([ready, timeout]).then(() => {
+    return Promise.race([ready, timeout]);
+  }
+
+  function printDoc() {
+    const page = printSourceHtml();
+    if (!page) {
+      alert("Gere o relatório do escritório antes de imprimir.");
+      return;
+    }
+    const iframe = openPrintFrame(page);
+    const win = iframe && iframe.contentWindow;
+    if (!win) {
+      alert("Não foi possível preparar a impressão neste navegador.");
+      return;
+    }
+    whenImagesReady(win.document).then(() => {
       try {
         win.focus();
         win.print();
@@ -869,8 +978,8 @@
   }
 
   async function downloadPdf() {
-    const doc = docEl();
-    if (!doc) {
+    const page = printSourceHtml();
+    if (!page) {
       alert("Gere o relatório do escritório antes de baixar o PDF.");
       return;
     }
@@ -880,184 +989,72 @@
       btn.disabled = true;
       btn.textContent = "Gerando PDF…";
     }
+    const iframe = openPrintFrame(page);
     try {
       if (typeof global.loadJsPdf === "function") await global.loadJsPdf();
       if (typeof global.loadHtml2Canvas === "function") await global.loadHtml2Canvas();
       const jsPdfCtor = global.jspdf && global.jspdf.jsPDF;
       const html2canvas = global.html2canvas;
-      if (!jsPdfCtor || typeof html2canvas !== "function") {
+      const win = iframe && iframe.contentWindow;
+      if (!jsPdfCtor || typeof html2canvas !== "function" || !win) {
         alert("Não foi possível carregar o gerador de PDF.");
         return;
       }
-      await renderPdf(doc, jsPdfCtor, html2canvas);
+      await whenImagesReady(win.document);
+      const target = win.document.getElementById("aoOfficeDoc") || win.document.body;
+      iframe.style.height = `${Math.max(1400, target.scrollHeight + 80)}px`;
+      const canvas = await html2canvas(target, { backgroundColor: "#ffffff", scale: 2, useCORS: true, windowWidth: 1100 });
+      const pdf = new jsPdfCtor({ orientation: "portrait", unit: "mm", format: "a4" });
+      const margin = 12;
+      const pageW = 210;
+      const pageH = 297;
+      const contentW = pageW - margin * 2;
+      const footerSpace = 8;
+      const contentH = pageH - margin * 2 - footerSpace;
+      const slicePx = Math.max(1, Math.floor((contentH * canvas.width) / contentW));
+      const pageCanvas = document.createElement("canvas");
+      const ctx = pageCanvas.getContext("2d");
+      pageCanvas.width = canvas.width;
+      let offset = 0;
+      let pageIndex = 0;
+      while (offset < canvas.height) {
+        const sliceH = Math.min(slicePx, canvas.height - offset);
+        pageCanvas.height = sliceH;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        ctx.drawImage(canvas, 0, offset, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+        const drawH = (sliceH * contentW) / canvas.width;
+        if (pageIndex > 0) pdf.addPage();
+        pdf.addImage(pageCanvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, contentW, drawH);
+        offset += sliceH;
+        pageIndex += 1;
+      }
+      const total = pdf.internal.getNumberOfPages();
+      for (let n = 1; n <= total; n += 1) {
+        pdf.setPage(n);
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 116, 139);
+        pdf.text(FOOTER, margin, pageH - 6);
+        pdf.text(`Emitido em ${_issuedLabel}`, pageW / 2, pageH - 6, { align: "center" });
+        pdf.text(`Página ${n}`, pageW - margin, pageH - 6, { align: "right" });
+      }
+      const safe = String(((_model && _model.office && _model.office.name) || "escritorio"))
+        .trim()
+        .toLowerCase()
+        .replace(/[^\w]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 40);
+      pdf.save(`relatorio-escritorio-${safe || "escritorio"}.pdf`);
     } catch (err) {
       console.error(err);
       alert("Não foi possível gerar o PDF.");
     } finally {
+      if (iframe) iframe.remove();
       if (btn) {
         btn.disabled = false;
         btn.textContent = prev || "Baixar PDF";
       }
     }
-  }
-
-  function blockHeight(el) {
-    const rect = el.getBoundingClientRect();
-    const cs = global.getComputedStyle(el);
-    const mt = parseFloat(cs.marginTop) || 0;
-    const mb = parseFloat(cs.marginBottom) || 0;
-    return Math.ceil(rect.height + mt + mb);
-  }
-
-  async function renderPdf(doc, jsPdfCtor, html2canvas) {
-    const widthPx = 1120;
-    const marginMm = 8;
-    const footerMm = 8;
-    const pageW = 297;
-    const pageH = 210;
-    const contentW = pageW - marginMm * 2;
-    const contentH = pageH - marginMm * 2 - footerMm;
-    const sandbox = document.createElement("div");
-    sandbox.style.cssText = `position:fixed;left:0;top:0;width:${widthPx}px;background:#fff;z-index:-1;pointer-events:none;`;
-    sandbox.innerHTML = doc.outerHTML;
-    document.body.appendChild(sandbox);
-    const imgs = Array.from(sandbox.querySelectorAll("img"));
-    await Promise.all(
-      imgs.map(
-        (img) =>
-          new Promise((resolve) => {
-            if (img.complete) resolve();
-            else {
-              img.onload = () => resolve();
-              img.onerror = () => resolve();
-            }
-          })
-      )
-    );
-    sandbox.querySelectorAll(".ao-screen-only").forEach((el) => el.remove());
-    sandbox.querySelectorAll(".ao-print-label").forEach((el) => {
-      el.style.display = "inline";
-    });
-    sandbox.querySelectorAll(".ao-foot-screen, .ao-foot-print").forEach((el) => el.remove());
-    const pxPerMm = widthPx / contentW;
-    const maxPx = Math.floor(contentH * pxPerMm) - 6;
-    const items = [];
-    sandbox.querySelectorAll("[data-ao-block]").forEach((el) => {
-      if (el.tagName === "TR") {
-        const table = el.closest("table");
-        const thead = table ? table.querySelector("thead") : null;
-        items.push({
-          type: "row",
-          el,
-          h: Math.max(1, blockHeight(el)),
-          thead,
-          theadH: thead ? Math.max(1, blockHeight(thead)) : 0,
-          table,
-        });
-      } else {
-        items.push({ type: "block", el, h: Math.max(1, blockHeight(el)) });
-      }
-    });
-    const pages = [];
-    let page = [];
-    let used = 0;
-    let lastTable = null;
-    const flush = () => {
-      if (page.length) pages.push(page);
-      page = [];
-      used = 0;
-      lastTable = null;
-    };
-    items.forEach((item) => {
-      let need = item.h;
-      let prefix = null;
-      if (item.type === "row" && item.thead) {
-        if (used === 0 || lastTable !== item.table) {
-          need += item.theadH;
-          prefix = item.thead;
-        }
-      }
-      if (used > 0 && used + need > maxPx) {
-        flush();
-        if (item.type === "row" && item.thead) {
-          need = item.h + item.theadH;
-          prefix = item.thead;
-        }
-      }
-      if (item.h > maxPx && used === 0 && !prefix) {
-        page.push(item.el);
-        flush();
-        return;
-      }
-      if (prefix) {
-        page.push(prefix);
-        used += item.theadH;
-      }
-      page.push(item.el);
-      used += item.h;
-      if (item.type === "row") lastTable = item.table;
-    });
-    flush();
-
-    const pdf = new jsPdfCtor({ orientation: "landscape", unit: "mm", format: "a4" });
-    try {
-    for (let i = 0; i < pages.length; i += 1) {
-      const wrap = document.createElement("div");
-      wrap.className = "ao-doc";
-      wrap.style.width = `${widthPx}px`;
-      wrap.style.padding = "0";
-      wrap.style.border = "0";
-      wrap.style.borderRadius = "0";
-      let table = null;
-      pages[i].forEach((el) => {
-        if (el.tagName === "THEAD" || el.tagName === "TR") {
-          if (!table) {
-            table = document.createElement("table");
-            table.className = "ao-table";
-            wrap.appendChild(table);
-          }
-          if (el.tagName === "THEAD") table.appendChild(el.cloneNode(true));
-          else {
-            let body = table.querySelector("tbody");
-            if (!body) {
-              body = document.createElement("tbody");
-              table.appendChild(body);
-            }
-            body.appendChild(el.cloneNode(true));
-          }
-        } else {
-          table = null;
-          wrap.appendChild(el.cloneNode(true));
-        }
-      });
-      sandbox.appendChild(wrap);
-      const canvas = await html2canvas(wrap, { backgroundColor: "#ffffff", scale: 1.5, useCORS: true });
-      wrap.remove();
-      const imgH = (canvas.height * contentW) / canvas.width;
-      const drawH = Math.min(imgH, contentH);
-      const drawW = imgH > contentH ? contentW * (contentH / imgH) : contentW;
-      if (i > 0) pdf.addPage();
-      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", marginMm, marginMm, drawW, drawH);
-    }
-    const total = pdf.internal.getNumberOfPages();
-    for (let n = 1; n <= total; n += 1) {
-      pdf.setPage(n);
-      pdf.setFontSize(8);
-      pdf.setTextColor(100, 116, 139);
-      pdf.text(FOOTER, marginMm, pageH - 5);
-      pdf.text(`Emitido em ${_issuedLabel}`, pageW / 2, pageH - 5, { align: "center" });
-      pdf.text(`Página ${n} de ${total}`, pageW - marginMm, pageH - 5, { align: "right" });
-    }
-    } finally {
-      sandbox.remove();
-    }
-    const safe = String((doc.querySelector(".ao-office-name") || {}).textContent || "escritorio")
-      .trim()
-      .toLowerCase()
-      .replace(/[^\w]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 40);
-    pdf.save(`relatorio-escritorio-${safe || "escritorio"}.pdf`);
   }
 
   async function show(root, filters) {
