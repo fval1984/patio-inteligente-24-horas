@@ -534,7 +534,7 @@ button {
   transition: background var(--ag-ease), border-color var(--ag-ease), color var(--ag-ease);
 }
 
-button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.close-view):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn):not(.exec-ops-kpi):not(.exec-ops-link):not(.exec-ops-attn button):not(.exec-ops-period button):not(.fin-simple-card):not(.fin-simple-attn):not(.fin-simple-recent button):not(.dashboard-system-btn):not(.header-menu-dropdown button):not(.cmd-ops-kpi):not(.cmd-ops-attn button):not(.cmd-ops-link):not(.fin-act-kpi):not(.ao-card):not(.ao-band):not(.ao-attn):not(.ao-bucket):not(.ao-sort):not(.ao-clear):not(.patio-hub-kpi):not(.ag-sidebar-toggle):not(.cob-kpi):not(.patio-ops-card):not(.cx-chip):not(.cob-chip):not(.fin-act-chip):not(.fin-act-period-btn):not(.ag-nav-subbtn) {
+button:not(.secondary):not(.modal-close):not(.header-menu-trigger):not(.auth-tab):not(.toggle):not(.vei-class-btn):not(.vei-choice-btn):not(.ao-kpi):not(.pc-modal-tab):not(.subnav button):not(.patio-nav-inline button):not(.close-view):not(.vei-photo-btn-secondary):not(.vei-card-prev):not(.vei-damage-photo-btn):not(.nfse-action-btn):not(.exec-ops-kpi):not(.exec-ops-link):not(.exec-ops-attn button):not(.exec-ops-period button):not(.fin-simple-card):not(.fin-simple-attn):not(.fin-simple-recent button):not(.dashboard-system-btn):not(.header-menu-dropdown button):not(.cmd-ops-kpi):not(.cmd-ops-attn button):not(.cmd-ops-link):not(.fin-act-kpi):not(.ao-card):not(.ao-band):not(.ao-attn):not(.ao-bucket):not(.ao-sort):not(.ao-clear):not(.patio-hub-kpi):not(.ag-sidebar-toggle):not(.cob-kpi):not(.patio-ops-card):not(.cx-chip):not(.cob-chip):not(.fin-act-chip):not(.fin-act-period-btn):not(.ag-nav-subbtn):not(.vp-plate-open) {
   background: var(--ag-graphite) !important;
   color: #fff !important;
   border: 1px solid var(--ag-graphite) !important;
@@ -1961,8 +1961,39 @@ html[data-theme="light"] .periodo-box__btn.secondary {
   white-space: normal !important;
   overflow-wrap: anywhere;
 }
-#patioContent:not(.tab-view-modal) .patio-vehicle-table td.actions {
-  min-width: 0 !important;
+button.vp-plate-open {
+  display: inline-flex !important;
+  align-items: center;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  font: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  min-height: 0 !important;
+  height: auto !important;
+  line-height: 0;
+  vertical-align: middle;
+  cursor: pointer;
+  border-radius: 0 !important;
+}
+button.vp-plate-open--text {
+  line-height: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+button.vp-plate-open:hover,
+button.vp-plate-open:focus,
+button.vp-plate-open:focus-visible {
+  background: transparent !important;
+  color: inherit !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  filter: none;
 }
 @media (max-width: 800px) {
   #viewPatio > #patioContent:not(.tab-view-modal) {
