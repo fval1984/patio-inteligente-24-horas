@@ -125,9 +125,14 @@ DECLARE
   financeira_id uuid;
   leiloeiro_id uuid;
   advocacy_office_id uuid;
+  localizador_id uuid;
+  patio_parceiro_id uuid;
+  quem_trouxe text;
   financeira_nome text;
   escritorio_nome text;
   leiloeiro_nome text;
+  localizador_nome text;
+  patio_nome text;
   status_label text;
   ev_vsl timestamptz;
   ev_vsc timestamptz;
@@ -156,7 +161,9 @@ BEGIN
     v.liberacao_confirmada_em,
     v.financeira_id,
     v.leiloeiro_id,
-    v.advocacy_office_id
+    v.advocacy_office_id,
+    v.localizador_id,
+    v.patio_parceiro_id
   INTO
     vid,
     placa,
@@ -170,7 +177,9 @@ BEGIN
     vsc_em,
     financeira_id,
     leiloeiro_id,
-    advocacy_office_id
+    advocacy_office_id,
+    localizador_id,
+    patio_parceiro_id
   FROM public.vehicles v
   WHERE lower(v.public_token) = tok
   LIMIT 1;
@@ -178,6 +187,15 @@ BEGIN
   IF vid IS NULL THEN
     RETURN jsonb_build_object('ok', false, 'error', 'not_found');
   END IF;
+
+  BEGIN
+    EXECUTE 'SELECT quem_trouxe FROM public.vehicles WHERE id = $1'
+      INTO quem_trouxe
+      USING vid;
+  EXCEPTION
+    WHEN undefined_column THEN
+      quem_trouxe := NULL;
+  END;
 
   IF financeira_id IS NOT NULL AND to_regclass('public.partners') IS NOT NULL THEN
     SELECT p.nome INTO financeira_nome FROM public.partners p WHERE p.id = financeira_id;
@@ -190,6 +208,20 @@ BEGIN
     INTO escritorio_nome
     FROM public.advocacy_offices ao
     WHERE ao.id = advocacy_office_id;
+  END IF;
+  IF localizador_id IS NOT NULL AND to_regclass('public.partners') IS NOT NULL THEN
+    SELECT p.nome INTO localizador_nome FROM public.partners p WHERE p.id = localizador_id;
+  END IF;
+  IF (localizador_nome IS NULL OR btrim(localizador_nome) = '')
+     AND localizador_id IS NOT NULL
+     AND to_regclass('public.advocacy_office_managers') IS NOT NULL THEN
+    SELECT m.name INTO localizador_nome FROM public.advocacy_office_managers m WHERE m.id = localizador_id;
+  END IF;
+  IF localizador_nome IS NULL OR btrim(localizador_nome) = '' THEN
+    localizador_nome := NULLIF(btrim(COALESCE(quem_trouxe, '')), '');
+  END IF;
+  IF patio_parceiro_id IS NOT NULL AND to_regclass('public.partners') IS NOT NULL THEN
+    SELECT p.nome INTO patio_nome FROM public.partners p WHERE p.id = patio_parceiro_id;
   END IF;
 
   status_raw := COALESCE(status_raw, '');
@@ -276,6 +308,8 @@ BEGIN
     'financeira', COALESCE(financeira_nome, ''),
     'escritorio', COALESCE(escritorio_nome, ''),
     'leiloeiro', COALESCE(leiloeiro_nome, ''),
+    'localizador', COALESCE(localizador_nome, ''),
+    'patio', COALESCE(patio_nome, ''),
     'timeline', timeline
   );
 END;
