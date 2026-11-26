@@ -24,6 +24,8 @@ export type PublicVehicleHistory = {
   financeira: string;
   escritorio: string;
   leiloeiro: string;
+  localizador?: string;
+  patio?: string;
   timeline: PublicVehicleTimelineItem[];
 };
 
