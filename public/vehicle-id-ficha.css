@@ -529,6 +529,68 @@
   }
 }
 
+@page fichaTipo2 {
+  size: A4;
+  margin: 8mm;
+}
+
+@media print {
+  #vehicleIdFichaModal[data-ficha-tipo="2"]:not(.hidden) {
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+    pointer-events: auto !important;
+    page: fichaTipo2;
+  }
+
+  #vehicleIdFichaModal[data-ficha-tipo="2"]:not(.hidden) .vehicle-id-ficha-modal {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  #vehicleIdFichaModal[data-ficha-tipo="2"]:not(.hidden) .vif-panel-head,
+  #vehicleIdFichaModal[data-ficha-tipo="2"]:not(.hidden) .vif-panel-footer {
+    display: none !important;
+  }
+
+  #vehicleIdFichaModal[data-ficha-tipo="2"]:not(.hidden) #vehicleIdFichaCapture {
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    flex: none !important;
+  }
+
+  #vehicleIdFichaModal[data-ficha-tipo="2"]:not(.hidden) .vif-pix-wrap,
+  #vehicleIdFichaModal[data-ficha-tipo="2"]:not(.hidden) .vif-pix,
+  #vehicleIdFichaModal[data-ficha-tipo="2"]:not(.hidden) .vif-pix-side {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  #vehicleIdFichaModal[data-ficha-tipo="2"]:not(.hidden) .vif-pix-qr {
+    overflow: visible !important;
+    width: 148px !important;
+    height: 148px !important;
+    max-height: none !important;
+  }
+}
+
 @media (max-width: 900px) {
   .modal.vehicle-id-ficha-modal {
     max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top))) !important;
