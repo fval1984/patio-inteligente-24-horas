@@ -742,6 +742,7 @@
         titulo: row.identificador || `FAT-${String(row.numero_cobranca || 0).padStart(6, "0")}`,
         cliente: row.parceiro_nome || "Cliente",
         data: row.data_geracao,
+        origem: ymd(row.data_geracao || row.created_at),
         lancamento: row.data_geracao || row.created_at,
         venc: row.data_vencimento,
         valor: Number(row.valor_total || 0),
@@ -757,6 +758,7 @@
         titulo: fat.row.identificador || `FAT-${String(fat.row.numero_cobranca || 0).padStart(6, "0")}`,
         cliente: fat.row.parceiro_nome || "Cliente",
         data: fat.row.data_geracao,
+        origem: ymd(fat.row.data_geracao || fat.row.created_at),
         lancamento: fat.row.data_geracao || fat.row.created_at,
         venc: fat.row.data_vencimento,
         valor: Number(fat.row.valor_total || fat.saldo),
@@ -773,7 +775,8 @@
         id: line.receivableId,
         titulo: rotuloLinha(line),
         cliente: r?.cobranca_destinatario_nome || nomeLinha(line),
-        data: r?.faturado_em || r?.contas_receber_em || line.saida || line.entrada,
+        data: line.saida || line.entrada || r?.period_end || r?.period_start,
+        origem: ymd(line.saida || line.entrada || r?.period_end || r?.period_start),
         lancamento: r?.faturado_em || r?.contas_receber_em || r?.created_at,
         venc: (typeof global.financeContaDueYmd === "function" ? global.financeContaDueYmd(r, "receivable") : "") || r?.data_vencimento || "",
         valor: Number(line.valor || 0),
@@ -790,6 +793,7 @@
         titulo: rotuloLinha(line),
         cliente: nomeLinha(line),
         data: line.saida || line.entrada,
+        origem: ymd(line.saida || line.entrada || r?.period_end || r?.period_start),
         lancamento: r?.created_at || r?.contas_receber_em || r?.faturado_em,
         venc: r?.data_vencimento || "",
         valor: Number(line.valor || 0),
@@ -1127,6 +1131,25 @@
     return itens;
   }
 
+  function faixasEntradas(itens, limite) {
+    const api = global.liberacaoFinanceiro;
+    if (api?.faixasVisiveis) return api.faixasVisiveis(itens, limite);
+    const pagina = itens.slice(0, limite);
+    const aberto = round(itens.reduce((s, item) => s + Number(item.saldo || 0), 0));
+    return {
+      grupos: pagina.length ? [{ chave: "", rotulo: "", aberto, itens: pagina, completo: pagina.length === itens.length }] : [],
+      aberto,
+      total: itens.length,
+      mostrado: pagina.length,
+      completo: pagina.length === itens.length,
+    };
+  }
+
+  function faixaHtml(classe, texto, valor, colspan) {
+    const valorHtml = valor == null ? "" : `<strong class="cx-num">${esc(money(valor))}</strong>`;
+    return `<tr class="${classe}"><td colspan="${colspan}"><span>${esc(texto)}</span>${valorHtml}</td></tr>`;
+  }
+
   function imprimirEntradasPeriodo() {
     const imprimir = global.imprimirRelatorioA4;
     if (typeof imprimir !== "function") {
@@ -1139,25 +1162,32 @@
     const ateTxt = entradaAte && api ? api.format(entradaAte) : "";
     const periodo = entradaDe || entradaAte ? `${deTxt || "—"} a ${ateTxt || "—"}` : "Todos os registros";
     const status = prazo === "vencer" ? "A vencer" : prazo === "atrasado" ? "Atrasados" : "Todos";
-    const linhas = itens.map((item) => {
-      const partes = String(item.titulo || "").split("•");
-      const placa = item.tipo === "fatura" ? item.titulo : (partes[0] || item.titulo || "—").trim();
-      const veiculo = item.tipo === "fatura" ? "Fatura" : (partes.slice(1).join("•") || "—").trim();
-      return [
-        placa || "—",
-        veiculo || "—",
-        item.cliente || "—",
-        dataCurta(item.data),
-        dataCurta(item.venc),
-        money(item.valor),
-        money(item.saldo),
-        situacaoEntrada(item),
-      ];
-    });
-    const saldo = itens.reduce((s, item) => s + Number(item.saldo || 0), 0);
+    const faixas = faixasEntradas(itens, itens.length);
+    const linhas = [];
+    for (const grupo of faixas.grupos) {
+      if (grupo.rotulo) linhas.push([grupo.rotulo, "", "", "", "", "", "", ""]);
+      for (const item of grupo.itens) {
+        const partes = String(item.titulo || "").split("•");
+        const placa = item.tipo === "fatura" ? item.titulo : (partes[0] || item.titulo || "—").trim();
+        const veiculo = item.tipo === "fatura" ? "Fatura" : (partes.slice(1).join("•") || "—").trim();
+        linhas.push([
+          placa || "—",
+          veiculo || "—",
+          item.cliente || "—",
+          dataCurta(item.origem || item.data),
+          dataCurta(item.venc),
+          money(item.valor),
+          money(item.saldo),
+          situacaoEntrada(item),
+        ]);
+      }
+      if (grupo.rotulo && grupo.completo) linhas.push(["Subtotal em aberto", "", "", "", "", "", money(grupo.aberto), ""]);
+    }
+    if (faixas.completo) linhas.push(["Total geral em aberto", "", "", "", "", "", money(faixas.aberto), ""]);
+    const saldo = faixas.aberto;
     imprimir({
       titulo: "Financeiro — Entradas",
-      meta: `Período pela data do lançamento: ${periodo}. Situação: ${status}.`,
+      meta: `Lista pela data de origem do débito. Período filtrado pela data do lançamento: ${periodo}. Situação: ${status}.`,
       colunas: ["Placa", "Veículo", "Responsável", "Saída", "Vencimento", "Valor", "Saldo", "Situação"],
       linhas,
       total: `${itens.length} · saldo ${money(saldo)}`,
@@ -1181,32 +1211,39 @@
         : noPeriodo
           ? "Nenhuma cobrança com saldo neste período."
           : "Nenhuma cobrança com saldo.";
-      const pagina = itens.slice(0, limiteLista);
-      const rows = pagina.map((item) => {
-        const check = item.tipo === "fatura"
-          ? `<input class="cx-check" type="checkbox" data-cx-fat="${esc(item.id)}" ${selected.has(`fat:${item.id}`) ? "checked" : ""} aria-label="Selecionar" />`
-          : `<input class="cx-check" type="checkbox" data-cx-check="${esc(item.id)}" ${selected.has(item.id) ? "checked" : ""} aria-label="Selecionar" />`;
-        const partes = String(item.titulo || "").split("•");
-        const placa = item.tipo === "fatura" ? item.titulo : (partes[0] || item.titulo || "—").trim();
-        const veiculo = item.tipo === "fatura" ? "Fatura" : (partes.slice(1).join("•") || "—").trim();
-        const rec = item.tipo === "veiculo" ? recebivelPorId(item.id) : null;
-        const placaHtml = rec?.vehicle_id
-          ? `<button type="button" class="vp-plate-open vp-plate-open--text" data-open-vehicle="${esc(rec.vehicle_id)}">${esc(placa || "—")}</button>`
-          : esc(placa || "—");
-        return `<tr data-cx-open="${esc(item.tipo)}" data-cx-id="${esc(item.id)}">
+      const colunas = ["", "Placa", "Veículo", "Responsável", "Saída", "Vencimento", "Valor", "Saldo", "Situação", ""];
+      const faixas = faixasEntradas(itens, limiteLista);
+      const rows = [];
+      for (const grupo of faixas.grupos) {
+        if (grupo.rotulo) rows.push(faixaHtml("cx-faixa", grupo.rotulo, null, colunas.length));
+        for (const item of grupo.itens) {
+          const check = item.tipo === "fatura"
+            ? `<input class="cx-check" type="checkbox" data-cx-fat="${esc(item.id)}" ${selected.has(`fat:${item.id}`) ? "checked" : ""} aria-label="Selecionar" />`
+            : `<input class="cx-check" type="checkbox" data-cx-check="${esc(item.id)}" ${selected.has(item.id) ? "checked" : ""} aria-label="Selecionar" />`;
+          const partes = String(item.titulo || "").split("•");
+          const placa = item.tipo === "fatura" ? item.titulo : (partes[0] || item.titulo || "—").trim();
+          const veiculo = item.tipo === "fatura" ? "Fatura" : (partes.slice(1).join("•") || "—").trim();
+          const rec = item.tipo === "veiculo" ? recebivelPorId(item.id) : null;
+          const placaHtml = rec?.vehicle_id
+            ? `<button type="button" class="vp-plate-open vp-plate-open--text" data-open-vehicle="${esc(rec.vehicle_id)}">${esc(placa || "—")}</button>`
+            : esc(placa || "—");
+          rows.push(`<tr data-cx-open="${esc(item.tipo)}" data-cx-id="${esc(item.id)}">
           ${celula("", check, "cx-check-cell")}
           ${celula("Placa", placaHtml)}
           ${celula("Veículo", esc(veiculo || "—"))}
           ${celula("Responsável", esc(item.cliente || "—"))}
-          ${celula("Saída", esc(dataCurta(item.data)))}
+          ${celula("Saída", esc(dataCurta(item.origem || item.data)))}
           ${celula("Vencimento", esc(dataCurta(item.venc)))}
           ${celula("Valor", esc(money(item.valor)), "num")}
           ${celula("Saldo", esc(money(item.saldo)), "num")}
           ${celula("Situação", statusTag(situacaoEntrada(item), classePrazo(item) === "atrasado" ? "saida" : "receber"))}
           ${celula("", `<button type="button" class="cx-btn" data-cx-receber="${esc(item.id)}" data-cx-tipo="${esc(item.tipo)}">Marcar recebido</button>`)}
-        </tr>`;
-      });
-      box.innerHTML = `<p class="cx-note">Cobranças com saldo. Recebido no ato aparece no Caixa; faturado continua aqui até a quitação. ${rotuloTotal}: ${itens.length} · saldo ${esc(money(saldo))}.</p>${tabela(["", "Placa", "Veículo", "Responsável", "Saída", "Vencimento", "Valor", "Saldo", "Situação", ""], rows, vazio)}${maisBotao(itens.length, pagina.length)}`;
+        </tr>`);
+        }
+        if (grupo.rotulo && grupo.completo) rows.push(faixaHtml("cx-subtotal", "Subtotal em aberto", grupo.aberto, colunas.length));
+      }
+      if (faixas.completo && itens.length) rows.push(faixaHtml("cx-geral", "Total geral em aberto", faixas.aberto, colunas.length));
+      box.innerHTML = `<p class="cx-note">Cobranças com saldo, pela data de origem do débito. Recebido no ato aparece no Caixa; faturado continua aqui até a quitação. ${rotuloTotal}: ${itens.length} · saldo ${esc(money(saldo))}.</p>${tabela(colunas, rows, vazio)}${maisBotao(itens.length, faixas.mostrado)}`;
       return true;
     }
     if (vista === "saidas") {
@@ -1631,7 +1668,7 @@
       const id = receberBtn.getAttribute("data-cx-receber");
       const tipo = receberBtn.getAttribute("data-cx-tipo");
       if (tipo === "fatura") mostrarFatura(id);
-      else mostrarVeiculo(id);
+      else marcarRecebido(id);
       return;
     }
     const filtroBtn = e.target.closest("[data-cx-filtro]");
@@ -2105,9 +2142,11 @@
         const quitado = await global.finalizeReceivablePayment(line.receivableId, original, {
           quiet: true,
           skipReload: true,
+          requireCash: !!opts.requireCash,
           dataMovimento: opts.data,
           formaPagamento: opts.forma,
           observacao: opts.origem || "",
+          descricao: opts.descricao,
           valorOriginal: original,
         });
         if (!quitado) throw new Error(`Não foi possível confirmar o pagamento de ${line.placa || "um veículo"}.`);
@@ -2121,7 +2160,7 @@
         valor: acumulado,
         dataMovimento: opts.data,
         formaPagamento: opts.forma,
-        descricao,
+        descricao: opts.descricao || descricao,
         aprovadoCaixa: true,
       });
       if (gravado?.error) throw new Error(gravado.error.message || "Não foi possível registrar o pagamento parcial.");
@@ -2184,6 +2223,52 @@
     pintar();
   }
 
+  async function marcarRecebido(id) {
+    const r = recebivelPorId(id);
+    const line =
+      (svc()?.billableLines?.() || []).find((l) => String(l.receivableId) === String(id)) ||
+      (r ? linhaDeRecebivel(r) : null);
+    if (!line) {
+      alert("Lançamento não encontrado.");
+      return;
+    }
+    const saldo = saldoLinha(line);
+    if (!(saldo > 0) || (r && ehPago(r))) {
+      alert("Este lançamento já foi recebido.");
+      return;
+    }
+    const nome =
+      regrasLiberacao()?.responsavelUtil?.(
+        r?.cobranca_destinatario_nome,
+        r?.responsavel_pagamento,
+        nomeLinha(line)
+      ) || "";
+    if (!confirm(`Confirmar o recebimento de ${money(saldo)} e lançar no Caixa?`)) return;
+    try {
+      await pagarVeiculos([line], saldo, {
+        data: today(),
+        forma: "PIX",
+        origem: nome ? `Recebido · ${nome}` : "Recebido",
+        descricao: `Diárias - ${rotuloLinha(line)}${nome ? ` · ${nome}` : ""}`,
+        requireCash: true,
+      });
+    } catch (err) {
+      alert(err?.message || "Não foi possível lançar o recebimento no Caixa.");
+      return;
+    }
+    if (typeof global.loadReceivables === "function") await global.loadReceivables();
+    if (typeof global.loadCash === "function") await global.loadCash();
+    recebivelMap = null;
+    linhaMap = null;
+    contasCache = null;
+    if (!temEntradaNoCaixa(id)) {
+      alert("O recebimento não entrou no Caixa.");
+      return;
+    }
+    filtro = "caixa";
+    pintar();
+  }
+
   async function confirmarSaida(id) {
     if (typeof global.finalizePayablePayment !== "function") {
       alert("Não foi possível confirmar o pagamento.");
@@ -2202,12 +2287,92 @@
     return `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(base.getDate()).padStart(2, "0")}`;
   }
 
+  function regrasLiberacao() {
+    return global.liberacaoFinanceiro || null;
+  }
+
+  function linhaLiberacaoDe(r) {
+    if (!r?.id) return null;
+    const pronta = (svc()?.billableLines?.() || []).find((l) => String(l.receivableId) === String(r.id));
+    if (pronta) return pronta;
+    const v = veiculoDo(r);
+    return {
+      receivableId: String(r.id),
+      vehicleId: r.vehicle_id ? String(r.vehicle_id) : "",
+      receivable: r,
+      valor: Number(r.valor || 0),
+      abatimento: svc()?.abatimentoDoRecebivel?.(r.id) || 0,
+      placa: v?.placa || "",
+      veiculoNome: [v?.marca, v?.modelo].filter(Boolean).join(" "),
+      entrada: r.period_start || "",
+      saida: r.period_end || "",
+      links: [],
+      servico: "Guarda e custódia",
+    };
+  }
+
+  function linhasDaLiberacao(vehicleId) {
+    const regras = regrasLiberacao();
+    const entra = (line) => {
+      const r = line?.receivable || recebivelPorId(line?.receivableId);
+      if (!r) return saldoLinha(line) > 0;
+      if (regras?.deveEntrarNaLiberacao) return regras.deveEntrarNaLiberacao(r, line.abatimento || 0);
+      return saldoLinha(line) > 0;
+    };
+    const vistas = (svc()?.billableLines?.() || []).filter(
+      (l) => String(l.vehicleId) === String(vehicleId) && entra(l)
+    );
+    if (vistas.length) return vistas;
+    const extras = [];
+    for (const r of dados()?.receivables || []) {
+      if (String(r.vehicle_id) !== String(vehicleId)) continue;
+      const line = linhaLiberacaoDe(r);
+      if (line && entra(line)) extras.push(line);
+    }
+    return extras;
+  }
+
+  function responsavelInformado(linhas) {
+    const regras = regrasLiberacao();
+    const digitado = document.getElementById("cxLibCliente")?.value || document.getElementById("cxLibNome")?.value || "";
+    const candidatos = [digitado];
+    for (const line of linhas) {
+      const r = line.receivable || recebivelPorId(line.receivableId);
+      const v = veiculoDo(r);
+      candidatos.push(r?.cobranca_destinatario_nome, r?.responsavel_pagamento, v?.responsavel_financeiro_nome);
+    }
+    if (regras?.responsavelUtil) return regras.responsavelUtil(...candidatos);
+    return String(digitado || "").trim();
+  }
+
+  function contatoDoResponsavel(nome, linhas) {
+    const catalog = svc()?.clientCatalog?.() || [];
+    const achado = catalog.find((c) => c.nome === nome);
+    if (achado?.contato) return String(achado.contato).trim();
+    for (const line of linhas) {
+      const r = line.receivable || recebivelPorId(line.receivableId);
+      const contato = String(r?.cobranca_destinatario_contato || "").trim();
+      if (contato) return contato;
+    }
+    return "Cadastrado";
+  }
+
+  function temEntradaNoCaixa(receivableId) {
+    return (dados()?.cash || []).some((m) => {
+      const t = String(m?.tipo_conta || "").toUpperCase();
+      if (t !== "RECEBER" && t !== "ENTRADA") return false;
+      if (String(m.conta_id || "") !== String(receivableId)) return false;
+      if (m.excluir_do_saldo === true || m.aprovado_caixa === false) return false;
+      return Number(m.valor || 0) > 0;
+    });
+  }
+
   function aposLiberacao(vehicleId) {
-    const linhas = (svc()?.billableLines?.() || []).filter((l) => String(l.vehicleId) === String(vehicleId) && saldoLinha(l) > 0);
-    if (!linhas.length) return;
+    const linhas = linhasDaLiberacao(vehicleId);
+    if (!linhas.length) return false;
     const total = linhas.reduce((s, l) => s + Number(l.valor || 0), 0);
     const abatido = linhas.reduce((s, l) => s + Number(l.abatimento || 0), 0);
-    const saldo = Math.max(0, total - abatido);
+    const saldo = Math.max(0, round(total - abatido));
     const catalog = svc().clientCatalog();
     const modal = document.getElementById("caixaOpModal") || document.body.appendChild(document.createElement("div"));
     modal.id = "caixaOpModal";
@@ -2231,41 +2396,134 @@
       ev.preventDefault();
       concluirLiberacao(linhas, saldo);
     });
+    return true;
   }
 
   async function concluirLiberacao(linhas, saldo) {
+    if (concluirLiberacao._busy) return;
     const modo = document.querySelector('input[name="cxLibModo"]:checked')?.value || "vista";
-    const nome = document.getElementById("cxLibCliente")?.value || document.getElementById("cxLibNome")?.value?.trim() || "";
+    const nome = responsavelInformado(linhas);
+    const regras = regrasLiberacao();
     const db = supabase();
     const user = uid();
-    if (modo === "faturado") {
-      const venc = maisDias(today(), 15);
-      for (const line of linhas) {
-        if (!db || !user) break;
-        await db.from("receivables").update({ data_vencimento: venc, cobranca_destinatario_nome: nome || null }).eq("id", line.receivableId).eq("user_id", user);
-      }
-      fecharCamadas();
-      if (typeof global.loadReceivables === "function") await global.loadReceivables();
-      filtro = "entradas";
-      pintar();
+    if (!(saldo > 0)) {
+      alert("Não há saldo restante para lançar.");
       return;
     }
-    for (const line of linhas) {
-      if (typeof global.finalizeReceivablePayment !== "function") break;
-      await global.finalizeReceivablePayment(line.receivableId, Number(line.valor || 0), {
-        quiet: true,
-        skipReload: true,
-        dataMovimento: today(),
-        formaPagamento: "PIX",
-        observacao: nome ? `À vista · ${nome}` : "À vista",
-        valorOriginal: Number(line.valor || 0),
-      });
+    if (!nome) {
+      alert("Informe o responsável pelo pagamento. O lançamento não foi concluído.");
+      return;
     }
-    fecharCamadas();
-    if (typeof global.loadReceivables === "function") await global.loadReceivables();
-    if (typeof global.loadCash === "function") await global.loadCash();
-    filtro = "caixa";
-    pintar();
+    if (!db || !user) {
+      alert("Não foi possível gravar o lançamento financeiro. A liberação não foi concluída no Financeiro.");
+      return;
+    }
+    concluirLiberacao._busy = true;
+    const botao = document.querySelector("#caixaOpFormLibera button[type='submit']");
+    if (botao) botao.disabled = true;
+    try {
+      if (modo === "faturado") {
+        if (typeof global.ensureReceivablePromotedToContasReceber !== "function") {
+          throw new Error("Não foi possível lançar o valor em Entradas.");
+        }
+        const contato = contatoDoResponsavel(nome, linhas);
+        for (const line of linhas) {
+          const r = line.receivable || recebivelPorId(line.receivableId);
+          const restante = regras?.valorALancar
+            ? regras.valorALancar(line.valor, line.abatimento || 0)
+            : saldoLinha(line);
+          if (!(restante > 0)) continue;
+          const base = r?.data_vencimento || r?.period_end || today();
+          const venc = regras?.vencimentoFaturado
+            ? regras.vencimentoFaturado(r?.data_vencimento, base)
+            : r?.data_vencimento || maisDias(today(), 15);
+          const promovido = await global.ensureReceivablePromotedToContasReceber(line.receivableId, {
+            silent: true,
+            faturamento: { destinatarioNome: nome, destinatarioContato: contato },
+          });
+          if (!promovido) throw new Error("Não foi possível lançar o valor em Entradas.");
+          const atual = (dados()?.receivables || []).find((x) => String(x.id) === String(line.receivableId)) || r || {};
+          const metaPatch =
+            typeof global.receivablePackObservacoesMeta === "function"
+              ? {
+                  observacoes: global.receivablePackObservacoesMeta(atual, {
+                    pagamento_liberacao: "faturado",
+                    lancamento_liberacao_em: new Date().toISOString(),
+                    responsavel_nome: nome,
+                  }),
+                }
+              : {};
+          let gravado = await db
+            .from("receivables")
+            .update({
+              data_vencimento: venc,
+              cobranca_destinatario_nome: nome,
+              cobranca_destinatario_contato: contato,
+              ...metaPatch,
+            })
+            .eq("id", line.receivableId)
+            .eq("user_id", user);
+          if (gravado.error) {
+            gravado = await db
+              .from("receivables")
+              .update({ data_vencimento: venc, cobranca_destinatario_nome: nome })
+              .eq("id", line.receivableId)
+              .eq("user_id", user);
+          }
+          if (gravado.error) throw new Error(gravado.error.message || "Não foi possível lançar o valor em Entradas.");
+        }
+        fecharCamadas();
+        if (typeof global.loadReceivables === "function") await global.loadReceivables();
+        filtro = "entradas";
+        pintar();
+        return;
+      }
+      for (const line of linhas) {
+        const r = line.receivable || recebivelPorId(line.receivableId);
+        const atual = r || {};
+        if (typeof global.receivablePackObservacoesMeta === "function") {
+          const meta = await db
+            .from("receivables")
+            .update({
+              cobranca_destinatario_nome: nome,
+              responsavel_pagamento: String(atual.responsavel_pagamento || "").startsWith("[[finmeta:")
+                ? atual.responsavel_pagamento
+                : nome,
+              observacoes: global.receivablePackObservacoesMeta(atual, {
+                pagamento_liberacao: "vista",
+                lancamento_liberacao_em: new Date().toISOString(),
+                responsavel_nome: nome,
+              }),
+            })
+            .eq("id", line.receivableId)
+            .eq("user_id", user);
+          if (meta.error) throw new Error(meta.error.message || "Não foi possível lançar o recebimento no Caixa.");
+        }
+      }
+      await pagarVeiculos(linhas, saldo, {
+        data: today(),
+        forma: "PIX",
+        origem: `À vista · ${nome}`,
+        descricao: `Diárias - ${linhas.map((l) => rotuloLinha(l)).join(", ")} · ${nome}`,
+        requireCash: true,
+      });
+      if (typeof global.loadReceivables === "function") await global.loadReceivables();
+      if (typeof global.loadCash === "function") await global.loadCash();
+      recebivelMap = null;
+      for (const line of linhas) {
+        if (!temEntradaNoCaixa(line.receivableId)) {
+          throw new Error("O recebimento não entrou no Caixa. A liberação financeira não foi concluída.");
+        }
+      }
+      fecharCamadas();
+      filtro = "caixa";
+      pintar();
+    } catch (err) {
+      alert(err?.message || "Não foi possível concluir o lançamento financeiro.");
+      if (botao) botao.disabled = false;
+    } finally {
+      concluirLiberacao._busy = false;
+    }
   }
 
   function onModalClick(e) {
