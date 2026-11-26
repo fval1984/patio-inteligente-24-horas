@@ -7986,7 +7986,7 @@
     <link rel="stylesheet" href="/vehicle-plate-ui.css?v=20261112plate12" />
     <link rel="stylesheet" href="/ampliguard-ds.css?v=20261124placa1" />
     <link rel="stylesheet" href="/vehicle-labels.css?v=20261109qr2" />
-    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261119entrada" />
+    <link rel="stylesheet" href="/vehicle-id-ficha.css?v=20261126ficha2" />
     <link rel="stylesheet" href="/cobranca-module.css?v=20261116vis1" />
     <link rel="stylesheet" href="/caixa-operacional.css?v=20261123periodo2" />
   </head>
@@ -11467,6 +11467,8 @@
     <script src="/vehicle-qr.js?v=20261112qr12"></script>
     <script src="/apresentacao-admin.js?v=20261118ap4"></script>
     <script src="/vehicle-ficha-tipo2-pix.js?v=20261109pix1"></script>
+    <script src="/ficha-tipo2-origem.js?v=20261126origem1"></script>
+    <script src="/ficha-tipo2-print.js?v=20261126print1"></script>
     <script src="/bi-metrics-service.js?v=20260727biexec"></script>
     <script src="/bi-executivo-ui.js?v=20260727biexec"></script>
     <script src="/advocacy-offices-service.js?v=20261001escritorio3"></script>
@@ -27047,7 +27049,7 @@
           vehicleIdFichaTitle.textContent = "Consulta do Veículo";
         }
         const fichaDlBtn = document.getElementById("downloadVehicleIdFichaPdf");
-        if (fichaDlBtn) fichaDlBtn.textContent = kind === 2 ? "Baixar PNG" : "Baixar PDF";
+        if (fichaDlBtn) fichaDlBtn.textContent = "Baixar PDF";
         vehicleIdFichaCapture.innerHTML = `<p class="vif-empty">A carregar ficha…</p>`;
         syncVehicleIdFichaActions(vehicle, kind);
         document.body.classList.add("ag-ficha-open");
@@ -27119,6 +27121,19 @@
                 : `<p class="vif-empty">Não foi possível desenhar o QR Code Pix.</p>`;
             }
           }
+          const origemPairs = window.fichaTipo2Origem
+            ? window.fichaTipo2Origem.origemRows({
+                localizadorNome: typeof rppNomeById === "function" ? rppNomeById(vehicle.localizador_id) : partnerNomeById(vehicle.localizador_id),
+                quem_trouxe: vehicle.quem_trouxe,
+                patioNome: partnerNomeById(vehicle.patio_parceiro_id),
+                escritorioNome: escritorio,
+                financeiraNome: financeira,
+              })
+            : [];
+          const origemHtml = origemPairs.map((row) => vifMetaRow(row[0], row[1])).join("");
+          const localizadorTxt = (origemPairs.find((row) => row[0] === "Localizador") || ["", ""])[1];
+          const quemTxt = String(vehicle.quem_trouxe || "").trim();
+          const quemHtml = quemTxt && quemTxt !== localizadorTxt ? vifMetaRow("Quem trouxe", quemTxt) : "";
           vehicleIdFichaCapture.classList.add("vif-capture--tipo2");
           vehicleIdFichaCapture.innerHTML = `
             <img src="/assets/ampliguard-logo-official.png?v=20261109qr1" alt="AMPLIGUARD" class="vif-logo" onerror="this.onerror=null;this.src='/assets/ampliguard-marca.png?v=20260917logo2'" />
@@ -27129,8 +27144,8 @@
             <dl class="vif-meta">
               ${vifMetaRow("Marca / modelo", modelo)}
               ${vifMetaRow("Cor", vehicle.cor || "—")}
-              ${vehicle.quem_trouxe ? vifMetaRow("Quem trouxe", vehicle.quem_trouxe) : ""}
-              ${vifMetaRow("Instituição financeira", financeira || "Sem financeira informada")}
+              ${origemHtml}
+              ${quemHtml}
               ${vifMetaRow("Entrada no pátio", formatDateTime(vehicle.data_entrada) || "—")}
               ${vifMetaRow("Saída do pátio", vehicle.data_saida ? formatDateTime(vehicle.data_saida) : "Ainda no pátio")}
             </dl>
@@ -27246,6 +27261,50 @@
         syncVehicleIdFichaActions(null, 0);
       }
 
+      let fichaTipo2PrintRestore = null;
+
+      function fichaTipo2ApplyPrintLayout() {
+        const modal = document.getElementById("vehicleIdFichaModal");
+        const cap = document.getElementById("vehicleIdFichaCapture");
+        if (!modal || !cap || modal.classList.contains("hidden") || modal.dataset.fichaTipo !== "2") return;
+        const api = window.fichaTipo2Print;
+        const width = api && typeof api.printWidthPx === "function" ? api.printWidthPx() : 734;
+        const pageH = api && typeof api.pageContentPx === "function" ? api.pageContentPx() : 1063;
+        fichaTipo2PrintRestore = {
+          width: cap.style.width,
+          height: cap.style.height,
+          maxHeight: cap.style.maxHeight,
+          overflow: cap.style.overflow,
+          zoom: cap.style.zoom,
+        };
+        cap.style.width = width + "px";
+        cap.style.height = "auto";
+        cap.style.maxHeight = "none";
+        cap.style.overflow = "visible";
+        cap.style.zoom = "";
+        const contentH = cap.scrollHeight;
+        const fit = pageH / contentH;
+        if (contentH > pageH && fit >= 0.72) cap.style.zoom = String(fit);
+      }
+
+      function fichaTipo2ClearPrintLayout() {
+        const cap = document.getElementById("vehicleIdFichaCapture");
+        const prev = fichaTipo2PrintRestore;
+        fichaTipo2PrintRestore = null;
+        if (!cap || !prev) return;
+        cap.style.width = prev.width;
+        cap.style.height = prev.height;
+        cap.style.maxHeight = prev.maxHeight;
+        cap.style.overflow = prev.overflow;
+        cap.style.zoom = prev.zoom;
+      }
+
+      if (!window.__fichaTipo2PrintBound) {
+        window.__fichaTipo2PrintBound = true;
+        window.addEventListener("beforeprint", fichaTipo2ApplyPrintLayout);
+        window.addEventListener("afterprint", fichaTipo2ClearPrintLayout);
+      }
+
       async function downloadVehicleIdFichaPdfFn() {
         if (!vehicleIdFichaCapture || vehicleIdFichaModal?.classList.contains("hidden")) return;
         const tipo = vehicleIdFichaModal.dataset.fichaTipo === "2" ? "tipo2" : "tipo1";
@@ -27255,25 +27314,27 @@
           .slice(0, 40);
         let h2c;
         try {
-          if (tipo !== "tipo2") await loadJsPdf();
+          await loadJsPdf();
           h2c = await loadHtml2Canvas();
         } catch (e) {
-          alert(
-            tipo === "tipo2"
-              ? "Não foi possível carregar a ferramenta de imagem. Verifique a internet."
-              : "Não foi possível carregar a ferramenta de PDF. Verifique a internet."
-          );
+          alert("Não foi possível carregar a ferramenta de PDF. Verifique a internet.");
           return;
         }
         if (!h2c) return;
         if (tipo === "tipo2") {
           const host = document.createElement("div");
           try {
-            const box = vehicleIdFichaCapture.getBoundingClientRect();
-            const capW = Math.max(280, Math.ceil(box.width || vehicleIdFichaCapture.clientWidth || 420));
+            const jsPdfCtor = window.jspdf?.jsPDF;
+            if (!jsPdfCtor) throw new Error("jspdf");
+            const api = window.fichaTipo2Print;
+            const margin = api?.A4?.marginMm || 8;
+            const pageW = 210;
+            const contentWmm = pageW - margin * 2;
+            const contentHmm = 297 - margin * 2;
+            const capW = api && typeof api.printWidthPx === "function" ? api.printWidthPx() : Math.round((contentWmm * 96) / 25.4);
             host.setAttribute("aria-hidden", "true");
             host.style.cssText =
-              "position:fixed;left:-20000px;top:0;width:" +
+              "position:fixed;left:0;top:0;width:" +
               capW +
               "px;height:auto;max-height:none;overflow:visible;background:#ffffff;z-index:-1;pointer-events:none;";
             const clone = vehicleIdFichaCapture.cloneNode(true);
@@ -27284,8 +27345,13 @@
             clone.style.setProperty("min-height", "0", "important");
             clone.style.setProperty("overflow", "visible", "important");
             clone.style.setProperty("flex", "none", "important");
+            clone.style.setProperty("display", "block", "important");
             host.appendChild(clone);
             document.body.appendChild(host);
+            clone.querySelectorAll(".vif-pix-wrap, .vif-pix, .vif-pix-side, .vif-pix-qr").forEach((el) => {
+              el.style.setProperty("overflow", "visible", "important");
+              el.style.setProperty("max-height", "none", "important");
+            });
             await Promise.all(
               [...host.querySelectorAll("img")].map(
                 (img) =>
@@ -27302,12 +27368,15 @@
             await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
             const w = Math.max(1, Math.ceil(clone.scrollWidth));
             const h = Math.max(1, Math.ceil(clone.scrollHeight));
-            let scale = 2;
+            const pix = clone.querySelector(".vif-pix-wrap");
+            const pixTop = pix ? pix.offsetTop : 0;
+            const pixHeight = pix ? pix.offsetHeight : 0;
+            let captureScale = 2;
             const maxSide = 16384;
-            if (Math.max(w, h) * scale > maxSide) scale = Math.max(1, maxSide / Math.max(w, h));
+            if (Math.max(w, h) * captureScale > maxSide) captureScale = Math.max(1, maxSide / Math.max(w, h));
             const source = await h2c(clone, {
               backgroundColor: "#ffffff",
-              scale,
+              scale: captureScale,
               useCORS: true,
               allowTaint: true,
               logging: false,
@@ -27320,43 +27389,32 @@
               x: 0,
               y: 0,
             });
-            const cupomMm = 80;
-            const cupomDpi = 203;
-            const targetW = Math.round((cupomMm / 25.4) * cupomDpi);
-            const ratio = targetW / source.width;
-            const targetH = Math.max(1, Math.round(source.height * ratio));
-            const out = document.createElement("canvas");
-            out.width = targetW;
-            out.height = targetH;
-            const ctx = out.getContext("2d");
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, targetW, targetH);
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = "high";
-            ctx.drawImage(source, 0, 0, targetW, targetH);
-            await new Promise((resolve, reject) => {
-              out.toBlob(
-                (blob) => {
-                  if (!blob) {
-                    reject(new Error("png"));
-                    return;
-                  }
-                  const a = document.createElement("a");
-                  const url = URL.createObjectURL(blob);
-                  a.href = url;
-                  a.download = `ficha-tipo2-${placa || "veiculo"}.png`;
-                  document.body.appendChild(a);
-                  a.click();
-                  a.remove();
-                  setTimeout(() => URL.revokeObjectURL(url), 2000);
-                  resolve();
-                },
-                "image/png"
-              );
+            const pxPerCss = source.height / h;
+            const canvasPageH = ((contentHmm * 96) / 25.4) * pxPerCss;
+            const plan = api && typeof api.planFichaPages === "function"
+              ? api.planFichaPages(source.height, canvasPageH, pixTop * pxPerCss, pixHeight * pxPerCss, 0.72)
+              : { mode: "single", scale: Math.min(1, canvasPageH / source.height), slices: [{ y: 0, h: source.height }] };
+            const pdf = new jsPdfCtor({ unit: "mm", format: "a4" });
+            plan.slices.forEach((slice, index) => {
+              if (index) pdf.addPage();
+              const sliceH = Math.max(1, Math.round(slice.h));
+              const sliceY = Math.max(0, Math.round(slice.y));
+              const sliceCanvas = document.createElement("canvas");
+              sliceCanvas.width = source.width;
+              sliceCanvas.height = Math.min(sliceH, source.height - sliceY);
+              const ctx = sliceCanvas.getContext("2d");
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+              ctx.drawImage(source, 0, sliceY, source.width, sliceCanvas.height, 0, 0, source.width, sliceCanvas.height);
+              const drawW = contentWmm * plan.scale;
+              const drawH = (sliceCanvas.height * drawW) / source.width;
+              const x = margin + (contentWmm - drawW) / 2;
+              pdf.addImage(sliceCanvas.toDataURL("image/png"), "PNG", x, margin, drawW, drawH);
             });
+            pdf.save(`ficha-tipo2-${placa || "veiculo"}.pdf`);
           } catch (e) {
             console.error(e);
-            alert("Não foi possível gerar a imagem PNG neste aparelho.");
+            alert("Não foi possível gerar o PDF neste aparelho.");
           } finally {
             host.remove();
           }
