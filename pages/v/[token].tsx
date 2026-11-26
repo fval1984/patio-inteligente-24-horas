@@ -10,6 +10,7 @@ import {
   splitEntryDateTime,
   type PublicVehicleHistory,
 } from "@/lib/public-vehicle-history";
+import { origemRows } from "@/lib/ficha-tipo2-origem";
 
 const LOGO = "/assets/ampliguard-logo-official.png?v=20261109qr1";
 const LOGO_FALLBACK = "/assets/ampliguard-marca.png?v=20260917logo2";
@@ -24,6 +25,12 @@ type PublicExtras = {
   data_saida: string | null;
   valor_diaria: number | null;
   chave_condicao: string | null;
+  originLoaded: boolean;
+  localizador: string;
+  patio: string;
+  escritorio: string;
+  financeira: string;
+  quemTrouxe: string;
 };
 
 type PageProps =
@@ -42,6 +49,70 @@ function asIso(value: unknown): string | null {
   if (!value) return null;
   const d = new Date(String(value));
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+const EMPTY_ORIGIN = {
+  originLoaded: false,
+  localizador: "",
+  patio: "",
+  escritorio: "",
+  financeira: "",
+  quemTrouxe: "",
+};
+
+async function readName(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  table: "partners" | "advocacy_offices" | "advocacy_office_managers",
+  id: string,
+  column: "nome" | "name"
+): Promise<string> {
+  const key = String(id || "").trim();
+  if (!key) return "";
+  const { data, error } = await admin.from(table).select(column).eq("id", key).maybeSingle();
+  if (error || !data) return "";
+  return String((data as Record<string, string | null>)[column] || "").trim();
+}
+
+async function loadOriginLabels(token: string, admin: ReturnType<typeof getSupabaseAdmin>) {
+  const withAvulso = await admin
+    .from("vehicles")
+    .select("localizador_id,patio_parceiro_id,financeira_id,advocacy_office_id,quem_trouxe")
+    .ilike("public_token", token)
+    .maybeSingle();
+  const row = withAvulso.error
+    ? (
+        await admin
+          .from("vehicles")
+          .select("localizador_id,patio_parceiro_id,financeira_id,advocacy_office_id")
+          .ilike("public_token", token)
+          .maybeSingle()
+      ).data
+    : withAvulso.data;
+  if (!row) return { ...EMPTY_ORIGIN };
+  const source = row as {
+    localizador_id?: string | null;
+    patio_parceiro_id?: string | null;
+    financeira_id?: string | null;
+    advocacy_office_id?: string | null;
+    quem_trouxe?: string | null;
+  };
+  let localizador = await readName(admin, "partners", String(source.localizador_id || ""), "nome");
+  if (!localizador && source.localizador_id) {
+    localizador = await readName(admin, "advocacy_office_managers", String(source.localizador_id), "name");
+  }
+  const [patio, financeira, escritorio] = await Promise.all([
+    readName(admin, "partners", String(source.patio_parceiro_id || ""), "nome"),
+    readName(admin, "partners", String(source.financeira_id || ""), "nome"),
+    readName(admin, "advocacy_offices", String(source.advocacy_office_id || ""), "name"),
+  ]);
+  return {
+    originLoaded: true,
+    localizador,
+    patio,
+    escritorio,
+    financeira,
+    quemTrouxe: String(source.quem_trouxe || "").trim(),
+  };
 }
 
 async function loadPublicExtras(token: string, fichaTipo: FichaTipo): Promise<PublicExtras | null> {
@@ -63,6 +134,14 @@ async function loadPublicExtras(token: string, fichaTipo: FichaTipo): Promise<Pu
       ).data;
     if (!row) return null;
     const vd = Number((row as { valor_diaria?: number }).valor_diaria);
+    let origin = { ...EMPTY_ORIGIN };
+    if (fichaTipo === 2) {
+      try {
+        origin = await loadOriginLabels(token, admin);
+      } catch {
+        origin = { ...EMPTY_ORIGIN };
+      }
+    }
     return {
       data_entrada: asIso(row.data_entrada),
       data_saida: asIso(row.data_saida),
@@ -70,6 +149,7 @@ async function loadPublicExtras(token: string, fichaTipo: FichaTipo): Promise<Pu
       chave_condicao: (row as { chave_condicao?: string }).chave_condicao
         ? String((row as { chave_condicao?: string }).chave_condicao)
         : null,
+      ...origin,
     };
   } catch {
     return null;
@@ -239,6 +319,32 @@ export default function PublicVehicleHistoryPage(props: PageProps) {
     };
   }, [props, metrics.total]);
 
+  const printTipo2 = props.ok && props.fichaTipo === 2;
+  useEffect(() => {
+    if (!printTipo2) return;
+    const cardOf = () => document.querySelector(".pvh-card--tipo2") as HTMLElement | null;
+    const onBefore = () => {
+      const card = cardOf();
+      if (!card) return;
+      card.style.zoom = "";
+      const pagePx = ((297 - 16) * 96) / 25.4;
+      const contentH = card.scrollHeight;
+      const fit = pagePx / contentH;
+      if (contentH > pagePx && fit >= 0.72) card.style.zoom = String(fit);
+    };
+    const onAfter = () => {
+      const card = cardOf();
+      if (card) card.style.zoom = "";
+    };
+    window.addEventListener("beforeprint", onBefore);
+    window.addEventListener("afterprint", onAfter);
+    return () => {
+      window.removeEventListener("beforeprint", onBefore);
+      window.removeEventListener("afterprint", onAfter);
+      onAfter();
+    };
+  }, [printTipo2]);
+
   const title = !props.ok
     ? props.reason === "unavailable"
       ? "Consulta indisponível"
@@ -378,6 +484,14 @@ function FichaTipo2({
   const chave = chaveChip(extras?.chave_condicao);
   const diariaTxt = extras?.valor_diaria ? formatBRL(extras.valor_diaria) : "—";
   const totalTxt = formatBRL(metrics.total);
+  const fromRecord = extras?.originLoaded === true;
+  const origem = origemRows({
+    localizadorNome: fromRecord ? extras?.localizador : d.localizador || "",
+    quem_trouxe: fromRecord ? extras?.quemTrouxe : "",
+    patioNome: fromRecord ? extras?.patio : d.patio || "",
+    escritorioNome: fromRecord ? extras?.escritorio : d.escritorio,
+    financeiraNome: fromRecord ? extras?.financeira : d.financeira,
+  });
   return (
     <main className="pvh-card pvh-card--tipo2">
       <img
@@ -400,16 +514,12 @@ function FichaTipo2({
           <dt>Cor</dt>
           <dd>{esc(d.cor) || "—"}</dd>
         </div>
-        <div>
-          <dt>Instituição financeira</dt>
-          <dd>{esc(d.financeira) || "Sem financeira informada"}</dd>
-        </div>
-        {d.escritorio ? (
-          <div>
-            <dt>Escritório responsável</dt>
-            <dd>{esc(d.escritorio)}</dd>
+        {origem.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{esc(value)}</dd>
           </div>
-        ) : null}
+        ))}
         <div>
           <dt>Entrada no pátio</dt>
           <dd>{esc(d.data_entrada_label) || "—"}</dd>
@@ -454,7 +564,7 @@ function FichaTipo2({
         <p className="pvh-total-label">Valor total devido</p>
         <p className="pvh-total">{totalTxt}</p>
       </section>
-      <section>
+      <section className="pvh-pix-block">
         <h2>Pagamento Pix</h2>
         {metrics.total > 0 && pixUrl ? (
           <div className="pvh-pix">
@@ -564,6 +674,28 @@ const globalCss = `
   .pvh-pix-amount { margin: 0 0 6px; font-size: 22px; font-weight: 800; color: #0f3d2e; }
   .pvh-pix-hint, .pvh-pix-fav { margin: 0 0 6px; font-size: 12px; color: #4d6a5c; line-height: 1.35; text-align: left; }
   .pvh-pix-fav { margin: 0; font-weight: 600; color: #14221c; }
+  @page fichaTipo2 { size: A4; margin: 8mm; }
+  @media print {
+    html, body, .pvh-page, .pvh-ficha { background: #fff !important; min-height: 0 !important; height: auto !important; }
+    .pvh-splash { display: none !important; }
+    .pvh-ficha { display: block !important; padding: 0 !important; }
+    .pvh-card--tipo2 {
+      page: fichaTipo2;
+      max-width: none !important;
+      width: 100% !important;
+      margin: 0 !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      overflow: visible !important;
+      height: auto !important;
+    }
+    .pvh-pix-block, .pvh-pix, .pvh-pix-qr {
+      overflow: visible !important;
+      max-height: none !important;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+  }
   @media (max-width: 420px) {
     .pvh-status-row, .pvh-pix { grid-template-columns: 1fr; flex-direction: column; align-items: flex-start; }
   }
