@@ -47,4 +47,15 @@ assert.match(empty, /Valor total: \[VALOR\]\./);
 assert.ok(empty.includes(nt.PAYMENT_TEXT));
 assert.equal(empty.includes("\n"), false);
 
+const doServico = nt.buildTexto({
+  veiculo: "Fiat Strada",
+  placa: "abc1d23",
+  data: "2026-03-11",
+  origem: "Recife/PE",
+  destino: "Olinda/PE",
+  valor: (3500).toFixed(2),
+});
+assert.equal(doServico, sample);
+assert.match(nt.buildTexto({ valor: (350.5).toFixed(2) }), /Valor total: R\$ 350,50\./);
+
 console.log("finance-notas-transporte: ok");
