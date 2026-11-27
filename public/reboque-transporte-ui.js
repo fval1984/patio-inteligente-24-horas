@@ -509,8 +509,89 @@
     );
   }
 
+  function ymdLocal(iso) {
+    const d = new Date(iso);
+    if (!iso || Number.isNaN(d.getTime())) return String(iso || "").slice(0, 10);
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + mm + "-" + dd;
+  }
+
+  function valorNota(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return "";
+    return v.toFixed(2);
+  }
+
+  function textoNotaServico(s) {
+    const api = global.financeNotasTransporte;
+    if (!s || !api || typeof api.buildTexto !== "function") return "";
+    const v = findId(data.vehicles, s.vehicle_id);
+    const fin = financeOf(s.id);
+    const nome = [v && v.marca, v && v.modelo].filter(Boolean).join(" ").trim();
+    return api.buildTexto({
+      veiculo: nome,
+      placa: s.placa_veiculo || (v && v.placa) || "",
+      data: ymdLocal(s.data_remocao),
+      origem: s.origem || "",
+      destino: s.destino || "",
+      valor: valorNota(fin && fin.valor_contratado),
+    });
+  }
+
+  function copyFallback(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "readonly");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch (_e) {
+      ok = false;
+    }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  async function copiarNota(id, btn) {
+    const s = findId(cache.services, id);
+    const text = textoNotaServico(s);
+    if (!text) {
+      alert("Não foi possível montar o texto da nota.");
+      return;
+    }
+    let ok = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        ok = true;
+      }
+    } catch (_e) {
+      ok = false;
+    }
+    if (!ok) ok = copyFallback(text);
+    if (!ok) {
+      alert("Não foi possível copiar automaticamente. Selecione o texto da nota.");
+      return;
+    }
+    const aviso = (global.financeNotasTransporte && global.financeNotasTransporte.COPY_OK) || "Texto copiado com sucesso!";
+    if (btn) {
+      const prev = btn.textContent;
+      btn.textContent = aviso;
+      setTimeout(function () {
+        if (btn) btn.textContent = prev;
+      }, 1600);
+    }
+  }
+
   function serviceActions(s, fin, pays, sit) {
     let html = '<div class="rt-actions"><button type="button" class="secondary" data-rt-action="ver" data-rt-kind="servico" data-id="' + esc(s.id) + '">Ver</button>';
+    html += '<button type="button" class="secondary" data-rt-action="copiar-nota" data-id="' + esc(s.id) + '">Copiar texto</button>';
     if (!readOnly() && seeFinance()) {
       const gate = svc() ? svc().canGeneratePayable(s, fin, data.payables) : { ok: false };
       if (gate.ok) html += '<button type="button" data-rt-action="obrigacao" data-id="' + esc(s.id) + '">Gerar obrigação</button>';
@@ -633,6 +714,7 @@
     } else if (action === "obrigacao") await gerarObrigacao(id);
     else if (action === "pagar") openPagamento(id);
     else if (action === "cancelar-servico") await cancelarServico(id);
+    else if (action === "copiar-nota") await copiarNota(id, btn);
     else if (action === "novo-caminhao") openTruck(btn.getAttribute("data-owner") || "");
   }
 
@@ -1470,6 +1552,10 @@
       kv("Prestador", s.partner_nome) + kv("Motorista", s.driver_nome) + kv("Caminhão", s.truck_placa) +
       kv("Registrado por", s.registrado_por) + kv("Situação", svc().situacaoLabel(sit)) +
       "</div>";
+    const texto = textoNotaServico(s);
+    if (texto) {
+      html += '<h4>Nota fiscal</h4><p class="notice">' + esc(texto) + '</p><p><button type="button" class="secondary" data-rt-action="copiar-nota" data-id="' + esc(s.id) + '">Copiar texto</button></p>';
+    }
     if (seeFinance()) {
       html += "<h4>Pagamentos</h4>" + mini(pays.map(function (p) {
         return esc(p.data_pagamento) + " · " + money(p.valor) + " · " + esc(p.forma_pagamento || "") + " · " + esc(p.favorecido_nome || "") + (p.usuario ? " · " + esc(p.usuario) : "");
