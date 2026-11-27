@@ -71,8 +71,38 @@
     return /^\d{4}-\d{2}-\d{2}$/.test(ymd) ? ymd : "";
   }
 
+  /** Prazo antigo da recuperação. Liberações já gravadas mantêm a data informada. */
   function vencimentoFaturado(informado, baseYmd) {
     return dataInformada(informado) || somarDias(dataInformada(baseYmd), 15);
+  }
+
+  /** Data já gravada da liberação. Não usa vencimento anterior. */
+  function dataLiberacaoDe(receivable, vehicle) {
+    return dataInformada(vehicle?.data_saida) || dataInformada(receivable?.period_end) || "";
+  }
+
+  /** Último dia civil do mês, inclusive fevereiro e ano bissexto. */
+  function ultimoDiaDoMes(ymd) {
+    const data = dataInformada(ymd);
+    if (!data) return "";
+    const ano = Number(data.slice(0, 4));
+    const mes = Number(data.slice(5, 7));
+    if (!ano || mes < 1 || mes > 12) return "";
+    const ultimo = new Date(ano, mes, 0).getDate();
+    return `${data.slice(0, 7)}-${String(ultimo).padStart(2, "0")}`;
+  }
+
+  /**
+   * Vencimento de uma liberação nova.
+   * Faturado: último dia do mês da liberação. À vista: a própria data da liberação.
+   */
+  function vencimentoPorModalidade(modo, dataLiberacao) {
+    const data = dataInformada(dataLiberacao);
+    if (!data) return "";
+    const m = String(modo || "").trim().toLowerCase();
+    if (m === "faturado") return ultimoDiaDoMes(data);
+    if (m === "vista" || m === "a_vista" || m === "à vista" || m === "a vista") return data;
+    return "";
   }
 
   function deveEntrarNaLiberacao(r, abatimento) {
@@ -227,6 +257,9 @@
     valorALancar,
     somarDias,
     vencimentoFaturado,
+    dataLiberacaoDe,
+    ultimoDiaDoMes,
+    vencimentoPorModalidade,
     deveEntrarNaLiberacao,
     decidirRecuperacao,
     dataOrigemDebito,
