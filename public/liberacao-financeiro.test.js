@@ -27,6 +27,22 @@ assert.strictEqual(api.valorALancar(100, 100), 0);
 assert.strictEqual(api.vencimentoFaturado("", "2026-11-01"), "2026-11-16");
 assert.strictEqual(api.vencimentoFaturado("2026-12-01", "2026-11-01"), "2026-12-01");
 
+assert.strictEqual(api.dataLiberacaoDe(ciclo, veiculo), "2026-11-01");
+assert.strictEqual(api.dataLiberacaoDe({ period_end: "" }, { data_saida: "2024-02-29T18:00:00" }), "2024-02-29");
+assert.strictEqual(api.ultimoDiaDoMes("2026-11-27"), "2026-11-30");
+assert.strictEqual(api.ultimoDiaDoMes("2026-01-01"), "2026-01-31");
+assert.strictEqual(api.ultimoDiaDoMes("2026-04-09"), "2026-04-30");
+assert.strictEqual(api.ultimoDiaDoMes("2026-02-10"), "2026-02-28");
+assert.strictEqual(api.ultimoDiaDoMes("2024-02-10"), "2024-02-29");
+assert.strictEqual(api.ultimoDiaDoMes("2000-02-01"), "2000-02-29");
+assert.strictEqual(api.ultimoDiaDoMes("1900-02-01"), "1900-02-28");
+assert.strictEqual(api.ultimoDiaDoMes("2026-12-31"), "2026-12-31");
+assert.strictEqual(api.vencimentoPorModalidade("faturado", "2026-11-01"), "2026-11-30");
+assert.strictEqual(api.vencimentoPorModalidade("faturado", "2024-02-15"), "2024-02-29");
+assert.strictEqual(api.vencimentoPorModalidade("vista", "2026-11-01"), "2026-11-01");
+assert.strictEqual(api.vencimentoPorModalidade("vista", "2024-02-29"), "2024-02-29");
+assert.strictEqual(api.vencimentoPorModalidade("faturado", ""), "");
+
 assert.strictEqual(api.deveEntrarNaLiberacao(ciclo, 0), true);
 assert.strictEqual(api.deveEntrarNaLiberacao(ciclo, 250), false);
 assert.strictEqual(
