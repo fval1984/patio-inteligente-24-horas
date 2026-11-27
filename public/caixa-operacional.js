@@ -2281,10 +2281,26 @@
     pintar();
   }
 
-  function maisDias(ymd, dias) {
-    const base = new Date(`${ymd || today()}T12:00:00`);
-    base.setDate(base.getDate() + dias);
-    return `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(base.getDate()).padStart(2, "0")}`;
+  function dataLiberacaoInformada(line, r) {
+    const regras = regrasLiberacao();
+    const v = veiculoDo(r);
+    const daRegra = regras?.dataLiberacaoDe ? regras.dataLiberacaoDe(r, v) : "";
+    return daRegra || ymd(v?.data_saida) || ymd(r?.period_end) || ymd(line?.saida) || today();
+  }
+
+  function vencimentoDaNovaLiberacao(modo, line, r) {
+    const data = dataLiberacaoInformada(line, r);
+    const regras = regrasLiberacao();
+    if (regras?.vencimentoPorModalidade) {
+      return regras.vencimentoPorModalidade(modo, data) || data;
+    }
+    if (modo === "faturado") {
+      const ano = Number(String(data).slice(0, 4));
+      const mes = Number(String(data).slice(5, 7));
+      const ultimo = new Date(ano, mes, 0).getDate();
+      return `${String(data).slice(0, 7)}-${String(ultimo).padStart(2, "0")}`;
+    }
+    return data;
   }
 
   function regrasLiberacao() {
@@ -2433,10 +2449,7 @@
             ? regras.valorALancar(line.valor, line.abatimento || 0)
             : saldoLinha(line);
           if (!(restante > 0)) continue;
-          const base = r?.data_vencimento || r?.period_end || today();
-          const venc = regras?.vencimentoFaturado
-            ? regras.vencimentoFaturado(r?.data_vencimento, base)
-            : r?.data_vencimento || maisDias(today(), 15);
+          const venc = vencimentoDaNovaLiberacao("faturado", line, r);
           const promovido = await global.ensureReceivablePromotedToContasReceber(line.receivableId, {
             silent: true,
             faturamento: { destinatarioNome: nome, destinatarioContato: contato },
@@ -2481,24 +2494,25 @@
       for (const line of linhas) {
         const r = line.receivable || recebivelPorId(line.receivableId);
         const atual = r || {};
+        const venc = vencimentoDaNovaLiberacao("vista", line, r);
+        const patch = { data_vencimento: venc };
         if (typeof global.receivablePackObservacoesMeta === "function") {
-          const meta = await db
-            .from("receivables")
-            .update({
-              cobranca_destinatario_nome: nome,
-              responsavel_pagamento: String(atual.responsavel_pagamento || "").startsWith("[[finmeta:")
-                ? atual.responsavel_pagamento
-                : nome,
-              observacoes: global.receivablePackObservacoesMeta(atual, {
-                pagamento_liberacao: "vista",
-                lancamento_liberacao_em: new Date().toISOString(),
-                responsavel_nome: nome,
-              }),
-            })
-            .eq("id", line.receivableId)
-            .eq("user_id", user);
-          if (meta.error) throw new Error(meta.error.message || "Não foi possível lançar o recebimento no Caixa.");
+          patch.cobranca_destinatario_nome = nome;
+          patch.responsavel_pagamento = String(atual.responsavel_pagamento || "").startsWith("[[finmeta:")
+            ? atual.responsavel_pagamento
+            : nome;
+          patch.observacoes = global.receivablePackObservacoesMeta(atual, {
+            pagamento_liberacao: "vista",
+            lancamento_liberacao_em: new Date().toISOString(),
+            responsavel_nome: nome,
+          });
         }
+        const meta = await db
+          .from("receivables")
+          .update(patch)
+          .eq("id", line.receivableId)
+          .eq("user_id", user);
+        if (meta.error) throw new Error(meta.error.message || "Não foi possível lançar o recebimento no Caixa.");
       }
       await pagarVeiculos(linhas, saldo, {
         data: today(),
